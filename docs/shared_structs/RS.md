@@ -3,7 +3,7 @@
 ## Overview
 
 Reservation station is used to store instruction which wait for their operands to be ready. When instruction is ready
-it should be waked up, by wakeup logic and dispatched to correct FU.
+it should be waked up by wakeup logic and dispatched to correct FU.
 
 
 ## Internal data
@@ -12,20 +12,20 @@ it should be waked up, by wakeup logic and dispatched to correct FU.
 
 This is a buffer which hes `R` rows. Each row has structure:
 
-|-|------|--------|--------|--------|---------|--------|---------|
 |v|opcode|`id_out`|`id_ROB`|`id_rs1`|`val_rs1`|`id_rs2`|`val_rs2`|
+|-|------|--------|--------|--------|---------|--------|---------|
 
 Assumptions:
-- `v` - "valid" it is 1 if entry is a correct instruction which wait to be dispatched
-- `id_rsX` - is 0 when this source value is ready (in appropriate `id_valX`) or not needed. It is non-zero when we wait
-  for operand to be ready.
-- When operand is ready we insert it to appropriate `id_valX` field and we set zero in `id_rsX`
-- Instruction is ready to be dispatched if all `v`, `id_rs1` and `id_rs2` have values 0
+- `v` - "valid" - it is 1 if entry is a correct instruction which wait to be filled with operands/dispatched
+- `id_rsX` - is 0 when source value is ready (and is stored in appropriate `id_valX`) or not needed. It is non-zero when
+  we wait for operand to be ready.
+- When operand is ready we insert it to appropriate `id_valX` field and we put zero to `id_rsX`
+- Instruction is ready to be dispatched if `v` has `1` and both `id_rs1`, `id_rs2` have values 0
 
 ### Used slots table
 
-It is a table with `R` one-bit fields. Each field is `1` if this slot is used or is reserved to be used in future (there
-is instruction in pipeline which will be saved to this slot).
+It is a table with `R` one-bit fields. Each field is `1` if this slot is used or is reserved to be used in near future
+(there is instruction in pipeline which will be saved to this slot).
 
 Assumptions:
 - when entry in RS is released then their entry in this table is switched from `1` to `0`
@@ -36,7 +36,7 @@ Assumptions:
 ### Insert new instruction
 
 Ready when:
-- data can be saved to RS
+- *implementation defined*
 
 Input:
 - `opcode` - instruction identifier for FU
@@ -53,11 +53,6 @@ Output:
 Site effects:
 - Save data from input to slot in RS specified by `position` argument
 
-Remarks:
-- We have to precompute if there is free slot to set `ready` bit. Probably this computation can be also used to get id
-  of free slot. In such case saving will have possibility to use this information to make it's calculation faster (no
-  need to compute the same thing second time).
-
 
 ### If free slot
 
@@ -68,7 +63,9 @@ Input:
 - *null*
 
 Output:
-- `free` - 0 -> no free slot, 1 -> there is a free slot
+- `free` 
+  - 0 -> no free slot
+  - 1 -> there is a free slot
 
 
 ### Get free slot
@@ -89,10 +86,10 @@ Site effects:
 ### Mark slot as used
 
 Ready when:
-- new slot can be marked as used
+- *implementation defined*
 
 Input:
-- `position` - id of position of slot which should be marked as used
+- `position` - id of slot which should be marked as used
 - `start` - signal to start operation
 
 Output:
@@ -107,18 +104,18 @@ Remarks:
 
 ### Get slot and mark as used
 
-Atomically make [Get free slot](#get_free_slot) and [Mark slot as used](#mark_slot_as_used).
+Atomically make ["Get free slot"](#get_free_slot) and ["Mark slot as used"](#mark_slot_as_used).
 
 Ready when:
-- [Mark slot as used](#mark_slot_as_used) is ready and
-- [Get free slot](#get_free_slot) is ready
+- ["Mark slot as used"](#mark_slot_as_used) is ready and
+- ["Get free slot"](#get_free_slot) is ready
 
 Input:
 - `start` - signal to start operation
 
 Output:
-- `position` - position returned by [Get free slot](#get_free_slot)
-- `err` - error code returned by [Mark slot as used](#mark_slot_as_used)
+- `position` - position returned by ["Get free slot"](#get_free_slot)
+- `err` - error code returned by ["Mark slot as used"](#mark_slot_as_used)
 
 
 -----
@@ -145,10 +142,10 @@ Site effects:
 
 ### Compare and substitute all
 
-It invokes for each row of RS [Compare and substitute](#compare_and_substitute).
+It invokes for each row of RS ["Compare and substitute"](#compare_and_substitute).
 
 Ready when:
-- [Compare and substitute](#compare_and_substitute) for all rows from RS is ready
+- ["Compare and substitute"](#compare_and_substitute) for all rows from RS is ready
 - It should be **always** ready to don't loose any data from Tomasulo bus
 
 Input:
@@ -159,6 +156,8 @@ Input:
 Output:
 - *null*
 
+Site effects:
+- Site effects of ["Compare and substitute"](#compare_and_substitute) for each row of RS
 
 ----
 
@@ -201,11 +200,11 @@ Site effects:
 
 ### Read and clean row
 
-Atomically make [Read row](#read_row) and [Clean row](#clean_row)
+Atomically make ["Read row"](#read_row) and ["Clean row"](#clean_row)
 
 Ready when:
-- [Read row](#read_row) is ready and
-- [Clean row](#clean_row) is ready
+- ["Read row"](#read_row) is ready and
+- ["Clean row"](#clean_row) is ready
 
 Input:
 - `position` - identifier of RS row, which should be read

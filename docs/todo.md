@@ -1,9 +1,5 @@
 # Documentation ToDo
 
-## Frontend
-
-None (as for now it isn't developed)
-
 ## Scheduler
 
 ### Notes from meetings
@@ -44,7 +40,7 @@ Prepare documentation of:
 - announcement block
 
 
-## Retirement
+## Retirement - Bartosz Szpila
 
 ### Notes from meetings
 
@@ -61,7 +57,7 @@ Prepare documentation of following blocks:
 ## Shared structures
 
 Prepare documentation of following entities:
-- RS
+- RS - Kuba Nowak
 - ROB
 - RF
 - Tomasulo bus
