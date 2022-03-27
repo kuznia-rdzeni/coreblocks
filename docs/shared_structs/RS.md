@@ -12,15 +12,15 @@ it should be waked up by wakeup logic and dispatched to correct FU.
 
 This is a buffer which hes `R` rows. Each row has structure:
 
-|v|opcode|`id-out`|`id-ROB`|`id-rs1`|`val-rs1`|`id-rs2`|`val-rs2`|
+|v|opcode|`id_out`|`id_ROB`|`id_rs1`|`val_rs1`|`id_rs2`|`val_rs2`|
 |-|------|--------|--------|--------|---------|--------|---------|
 
 Assumptions:
 - `v` - "valid" - it is 1 if entry is a correct instruction which wait to be filled with operands/dispatched
-- `id-rsX` - is 0 when source value is ready (and is stored in appropriate `id-valX`) or not needed. It is non-zero when
+- `id_rsX` - is 0 when source value is ready (and is stored in appropriate `id_valX`) or not needed. It is non-zero when
   we wait for operand to be ready.
-- When operand is ready we insert it to appropriate `id-valX` field and we put zero to `id-rsX`
-- Instruction is ready to be dispatched if `v` has `1` and both `id-rs1`, `id-rs2` have values 0
+- When operand is ready we insert it to appropriate `id_valX` field and we put zero to `id_rsX`
+- Instruction is ready to be dispatched if `v` has `1` and both `id_rs1`, `id_rs2` have values 0
 
 ### Used slots table
 
@@ -40,10 +40,10 @@ Ready when:
 
 Input:
 - `opcode` - instruction identifier for FU
-- `id-s1` - id of RF field where `src1` should be stored
-- `id-s2` - id of RF field where `src2` should be stored
-- `id-out` - id of RF field where instruction output should be stored
-- `id-ROB` - id of ROB entry which is allocated for this instruction
+- `id_s1` - id of RF field where `src1` should be stored
+- `id_s2` - id of RF field where `src2` should be stored
+- `id_out` - id of RF field where instruction output should be stored
+- `id_ROB` - id of ROB entry which is allocated for this instruction
 - `position` - position in RS to which we should write this entry
 - `start` - signal to start operation
 
@@ -136,8 +136,8 @@ Output:
 - *null*
 
 Site effects:
-- When `tag` matches one of `id-rsX` saved in RS on `position` then `id-rsX` is cleared (set to 0) and `value` is saved
-  in `val-rsX`
+- When `tag` matches one of `id_rsX` saved in RS on `position` then `id_rsX` is cleared (set to 0) and `value` is saved
+  in `val_rsX`
 
 
 ### Compare and substitute all
@@ -172,10 +172,10 @@ Input:
 
 Output:
 - `opcode` - instruction identifier for FU
-- `val-rs1` - value of first operand
-- `val-rs2` - value of second operand
-- `id-out` - id of RF field where instruction output should be stored
-- `id-ROB` - id of ROB entry which is allocated for this instruction
+- `val_rs1` - value of first operand
+- `val_rs2` - value of second operand
+- `id_out` - id of RF field where instruction output should be stored
+- `id_ROB` - id of ROB entry which is allocated for this instruction
 - `err` - error code
 
 Remarks:
@@ -212,10 +212,10 @@ Input:
 
 Output:
 - `opcode` - instruction identifier for FU
-- `val-rs1` - value of first operand
-- `val-rs2` - value of second operand
-- `id-out` - id of RF field where instruction output should be stored
-- `id-ROB` - id of ROB entry which is allocated for this instruction
+- `val_rs1` - value of first operand
+- `val_rs2` - value of second operand
+- `id_out` - id of RF field where instruction output should be stored
+- `id_ROB` - id of ROB entry which is allocated for this instruction
 - `err` - error code
 
 Site effects:
