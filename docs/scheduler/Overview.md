@@ -2,13 +2,14 @@
 
 ## Description
 
-Scheduler is middle part of out processor. It is located after frontend and before execution units and its main tasks
-are:
+Scheduler is the middle part of out processor.
+It is located after the frontend and before execution units.
+Its main tasks are:
 
 - register allocation
 - renaming
 - ROB entry allocation
-- dispatching instruction to RS
+- dispatching instructions to RSs
 
 
 ## Schema
@@ -17,15 +18,15 @@ are:
 
 ## Structure
 
-We decided to split scheduler into 5 phases:
+We decided to split the scheduler into 5 phases:
 - register allocation
 - renaming
 - ROB entry allocation
-- choosing RS to which instruction should be dispatched
+- choosing the RS to which instruction should be dispatched
 - inserting instruction to RS
 
-Each of this phases can be potentially one clock cycle but they can be merged in future because of optimisations, but
-during implementation each should be treated as separate hardware block to get flexibility in future.
+Each of this phases can potentially take one clock cycle, but they can be merged as a potential future optimization.
+During implementation each should be treated as a separate hardware block for future flexibility.
 
 
 ## More detailed description of each block

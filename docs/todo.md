@@ -4,7 +4,7 @@
 
 ### Notes from meetings
 
-- Expand scheduler overview based on what was discussed on meetings
+- Expand scheduler overview based on what was discussed in meetings
 
 ### Block documentation
 

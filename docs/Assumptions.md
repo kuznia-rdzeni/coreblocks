@@ -1,8 +1,8 @@
 # List of assumptions made during development
 
-- RF has data forwarding from Tomasulo announcement bus
-- read to `x0`/`RF0` return 0
-- write to `x0`/`RF0` doesn't write
+- RF has data forwarding from the Tomasulo announcement bus
+- read of `x0`/`RF0` returns 0
+- write to `x0`/`RF0` is a noop
 - separate RS for each FU
-- writeback stage save data to RF and ROB (after getting output data from FU)
-- commit stage update R-RAT
+- the writeback stage saves data to the RF and the ROB (after getting output data from FUs)
+- the commit stage updates the R-RAT

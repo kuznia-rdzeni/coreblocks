@@ -2,33 +2,33 @@
 
 ## Overview
 
-Reservation station is used to store instruction which wait for their operands to be ready. When instruction is ready
-it should be waked up by wakeup logic and dispatched to correct FU.
+The reservation station is used to store instructions which wait for their operands to be ready.
+When the instruction is ready it should be woken up by wakeup logic and dispatched to the correct FU.
 
 
 ## Internal data
 
 ### Actual Reservation Station
 
-This is a buffer which hes `R` rows. Each row has structure:
+This is a buffer which has `R` rows. Each row has the following structure:
 
 |v|opcode|`id_out`|`id_ROB`|`id_rs1`|`val_rs1`|`id_rs2`|`val_rs2`|
 |-|------|--------|--------|--------|---------|--------|---------|
 
 Assumptions:
-- `v` - "valid" - it is 1 if entry is a correct instruction which wait to be filled with operands/dispatched
-- `id_rsX` - is 0 when source value is ready (and is stored in appropriate `id_valX`) or not needed. It is non-zero when
-  we wait for operand to be ready.
-- When operand is ready we insert it to appropriate `id_valX` field and we put zero to `id_rsX`
-- Instruction is ready to be dispatched if `v` has `1` and both `id_rs1`, `id_rs2` have values 0
+- `v` - "valid" - it is 1 if entry is a correct instruction which waits to be filled with operands/dispatched
+- `id_rsX` - is 0 when the source value is ready (and is stored in the appropriate `id_valX`) or not needed. It is non-zero when
+  we wait for an operand to be ready.
+- When the operand is ready we insert it to the appropriate `id_valX` field and we put zero to `id_rsX`
+- The instruction is ready to be dispatched if `v` is `1` and both `id_rs1`, `id_rs2` are `0`
 
 ### Used slots table
 
-It is a table with `R` one-bit fields. Each field is `1` if this slot is used or is reserved to be used in near future
+It is a table with `R` one-bit fields. Each field is `1` if this slot is used or is reserved to be used in the near future
 (there is instruction in pipeline which will be saved to this slot).
 
 Assumptions:
-- when entry in RS is released then their entry in this table is switched from `1` to `0`
+- when an entry in the RS is released then their entry in this table is switched from `1` to `0`
 
 
 ## Interface
@@ -44,14 +44,14 @@ Input:
 - `id_s2` - id of RF field where `src2` should be stored
 - `id_out` - id of RF field where instruction output should be stored
 - `id_ROB` - id of ROB entry which is allocated for this instruction
-- `position` - position in RS to which we should write this entry
+- `position` - position in the RS to which we should write this entry
 - `start` - signal to start operation
 
 Output:
 - *null*
 
-Site effects:
-- Save data from input to slot in RS specified by `position` argument
+Side effects:
+- Save data from input to the slot in RS specified by the `position` argument
 
 
 ### If free slot
@@ -63,7 +63,7 @@ Input:
 - *null*
 
 Output:
-- `free` 
+- `free`
   - 0 -> no free slot
   - 1 -> there is a free slot
 
@@ -71,15 +71,15 @@ Output:
 ### Get free slot
 
 Ready when:
-- there is free slot in RS
+- there is a free slot in the RS
 
 Input:
 - *null*
 
 Output:
-- `position` - identifier of free slot in RS
+- `position` - identifier of the free slot in the RS
 
-Site effects:
+Side effects:
 - *null*
 
 
@@ -95,11 +95,11 @@ Input:
 Output:
 - `err` - error code
 
-Site effects:
+Side effects:
 - `position` slot in RS marked as used
 
 Remarks:
-- Function should check if position which we want to mark as used is free. If not error should be returned (`err` =  1).
+- Function should check if position which we want to mark as used is free. If not, error should be returned (`err` =  1).
 
 
 ### Get slot and mark as used
@@ -135,18 +135,18 @@ Input:
 Output:
 - *null*
 
-Site effects:
+Side effects:
 - When `tag` matches one of `id_rsX` saved in RS on `position` then `id_rsX` is cleared (set to 0) and `value` is saved
   in `val_rsX`
 
 
 ### Compare and substitute all
 
-It invokes for each row of RS ["Compare and substitute"](#compare-and-substitute).
+It invokes ["Compare and substitute"](#compare-and-substitute) for each row of RS.
 
 Ready when:
 - ["Compare and substitute"](#compare-and-substitute) for all rows from RS is ready
-- It should be **always** ready to don't loose any data from Tomasulo bus
+- It should be **always** ready so as not to lose any data from the Tomasulo bus
 
 Input:
 - `tag` - identifier of RF which is announcement on Tomasulo bus
@@ -156,8 +156,8 @@ Input:
 Output:
 - *null*
 
-Site effects:
-- Site effects of ["Compare and substitute"](#compare-and-substitute) for each row of RS
+Side effects:
+- Side effects of ["Compare and substitute"](#compare-and-substitute) for each row of RS
 
 ----
 
@@ -194,7 +194,7 @@ Input:
 Output:
 - *null*
 
-Site effects:
+Side effects:
 - `v` bit for entry on `position` set to `0`
 
 
@@ -218,7 +218,7 @@ Output:
 - `id_ROB` - id of ROB entry which is allocated for this instruction
 - `err` - error code
 
-Site effects:
+Side effects:
 - `v` bit for entry on `position` set to `0`
 
 
@@ -231,4 +231,4 @@ In initial state:
 
 ## Remarks
 
-- I assume that identifier of RS row to be read and cleaned during dispatching to FU will be provided by wakeup logic
+- I assume that the identifier of the RS row to be read and cleaned during dispatching to FU will be provided by the wakeup logic
