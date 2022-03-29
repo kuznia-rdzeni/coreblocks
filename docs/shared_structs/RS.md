@@ -19,7 +19,7 @@ Assumptions:
 - `v` - "valid" - it is 1 if entry is a correct instruction which waits to be filled with operands/dispatched
 - `id_rsX` - is 0 when the source value is ready (and is stored in the appropriate `id_valX`) or not needed. It is non-zero when
   we wait for an operand to be ready.
-- When the operand is ready we insert it to the appropriate `id_valX` field and we put zero to `id_rsX`
+- When the operand is ready we insert it to the appropriate `val_rsX` field and we put zero to `id_rsX`
 - The instruction is ready to be dispatched if `v` is `1` and both `id_rs1`, `id_rs2` are `0`
 
 ### Used slots table
@@ -40,8 +40,8 @@ Ready when:
 
 Input:
 - `opcode` - instruction identifier for FU
-- `id_s1` - id of RF field where `src1` should be stored
-- `id_s2` - id of RF field where `src2` should be stored
+- `id_rs1` - id of RF field where `src1` should be stored
+- `id_rs2` - id of RF field where `src2` should be stored
 - `id_out` - id of RF field where instruction output should be stored
 - `id_ROB` - id of ROB entry which is allocated for this instruction
 - `position` - position in the RS to which we should write this entry
@@ -67,6 +67,8 @@ Output:
   - 0 -> no free slot
   - 1 -> there is a free slot
 
+Side effects:
+- *null*
 
 ### Get free slot
 
@@ -117,6 +119,8 @@ Output:
 - `position` - position returned by ["Get free slot"](#get-free-slot)
 - `err` - error code returned by ["Mark slot as used"](#mark-slot-as-used)
 
+Side effects:
+- *null*
 
 -----
 
@@ -145,8 +149,7 @@ Side effects:
 It invokes ["Compare and substitute"](#compare-and-substitute) for each row of RS.
 
 Ready when:
-- ["Compare and substitute"](#compare-and-substitute) for all rows from RS is ready
-- It should be **always** ready so as not to lose any data from the Tomasulo bus
+- **always**
 
 Input:
 - `tag` - identifier of RF which is announcement on Tomasulo bus
@@ -154,10 +157,14 @@ Input:
 - `start` - signal to start operation
 
 Output:
-- *null*
+- *[optional]* err (0 - no error, 1 - error)
 
 Side effects:
 - Side effects of ["Compare and substitute"](#compare-and-substitute) for each row of RS
+
+Remarks:
+- *[optional]* if ["Compare and substitute"](#compare-and-substitute) for one of rows is not ready, then there can be
+  returned error
 
 ----
 
@@ -177,6 +184,9 @@ Output:
 - `id_out` - id of RF field where instruction output should be stored
 - `id_ROB` - id of ROB entry which is allocated for this instruction
 - `err` - error code
+
+Side effects:
+- *null*
 
 Remarks:
 - `err` is 1 if we try to read non valid RS row
