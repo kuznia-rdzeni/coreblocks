@@ -17,7 +17,7 @@ This is a buffer which has `R` rows. Each row has the following structure:
 
 Assumptions:
 - `v` - "valid" - it is 1 if entry is a correct instruction which waits to be filled with operands/dispatched
-- `id_rsX` - is 0 when the source value is ready (and is stored in the appropriate `id_valX`) or not needed. It is non-zero when
+- `id_rsX` - is 0 when the source value is ready (and is stored in the appropriate `val_rsX`) or not needed. It is non-zero when
   we wait for an operand to be ready.
 - When the operand is ready we insert it to the appropriate `val_rsX` field and we put zero to `id_rsX`
 - The instruction is ready to be dispatched if `v` is `1` and both `id_rs1`, `id_rs2` are `0`
