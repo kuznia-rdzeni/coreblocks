@@ -90,6 +90,26 @@ class TransactionContext:
             raise RuntimeError("TransactionContext stack is empty")
         return cls.stack[-1]
 
+class TransactionModule(Elaboratable):
+    def __init__(self, module):
+        Module.__init__(self)
+        self.transactionManager = TransactionManager()
+        self.module = module
+
+    def transactionContext(self):
+        return TransactionContext(self.transactionManager)
+
+    def elaborate(self, platform):
+        with self.transactionContext():
+            for name in self.module._named_submodules:
+                self.module._named_submodules[name] = amaranth.Fragment.get(self.module._named_submodules[name], platform)
+            for idx in range(len(self.module._anon_submodules)):
+                self.module._anon_submodules[idx] = amaranth.Fragment.get(self.module._anon_submodules[idx], platform)
+
+        self.module.submodules += self.transactionManager
+
+        return self.module
+
 class Transaction:
     def __init__(self, *, manager : TransactionManager = None):
         if manager is None:
@@ -195,15 +215,16 @@ class CopyTrans(Elaboratable):
     def __init__(self, src : Method, dst : Method):
         self.src = src
         self.dst = dst
-        self.trans = Transaction()
-        self.sdata = self.trans.use_method(src)
-        self.ddata = self.trans.use_method(dst)
 
     def elaborate(self, platform):
         m = Module()
+        
+        trans = Transaction()
+        sdata = trans.use_method(self.src)
+        ddata = trans.use_method(self.dst)
 
-        m.d.comb += self.trans.request.eq(1)
-        m.d.comb += self.ddata.eq(self.sdata)
+        m.d.comb += trans.request.eq(1)
+        m.d.comb += ddata.eq(sdata)
 
         return m
 
@@ -211,16 +232,18 @@ class CatTrans(Elaboratable):
     def __init__(self, src1 : Method, src2 : Method, dst : Method):
         self.src1 = src1
         self.src2 = src2
-        self.trans = Transaction()
-        self.sdata1 = self.trans.use_method(src1)
-        self.sdata2 = self.trans.use_method(src2)
-        self.ddata = self.trans.use_method(dst)
+        self.dst = dst
     
     def elaborate(self, platform):
         m = Module()
+        
+        trans = Transaction()
+        sdata1 = trans.use_method(self.src1)
+        sdata2 = trans.use_method(self.src2)
+        ddata = trans.use_method(self.dst)
 
-        m.d.comb += self.trans.request.eq(1)
-        m.d.comb += self.ddata.eq(Cat(self.sdata1, self.sdata2))
+        m.d.comb += trans.request.eq(1)
+        m.d.comb += ddata.eq(Cat(sdata1, sdata2))
 
         return m
 
@@ -238,10 +261,9 @@ class SimpleCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
+        tm = TransactionModule(m)
 
-        manager = TransactionManager()
-        with TransactionContext(manager):
-            m.submodules.manager = manager
+        with tm.transactionContext():
             m.submodules.fifo = fifo = OpFIFO(2, 16)
             m.submodules.in1 = in1 = OpIn()
             m.submodules.in2 = in2 = OpIn()
@@ -255,7 +277,7 @@ class SimpleCircuit(Elaboratable):
             m.d.comb += in2.dat.eq(self.in2_dat)
             m.d.comb += self.out_dat.eq(out.dat)
 
-        return m
+        return tm
 
 if __name__ == "__main__":
     from amaranth.back import verilog
