@@ -32,17 +32,14 @@ class TransactionManager(Elaboratable):
         self.transactions = {}
         self.methods = {}
 
-    def use_method(self, transaction : 'Transaction', method : 'Method'):
-        if method.consumer:
-            data = Record.like(method.data)
-        else:
-            data = None
+    def use_method(self, transaction : 'Transaction', method : 'Method', arg=C(0, 0)):
+        if not transaction in self.transactions:
+            self.transactions[transaction] = []
+        if not method in self.methods:
+            self.methods[method] = []
         self.transactions[transaction].append(method)
-        self.methods[method].append((transaction, data))
-        if method.consumer:
-            return data
-        else:
-            return method.data
+        self.methods[method].append((transaction, arg))
+        return method.data_out
 
     def elaborate(self, platform):
         m = Module()
@@ -62,9 +59,8 @@ class TransactionManager(Elaboratable):
             for n, (transaction, tdata) in enumerate(transactions):
                 m.d.comb += granted[n].eq(transaction.grant)
 
-                if method.consumer:
-                    with m.If(transaction.grant):
-                        m.d.comb += method.data.eq(tdata)
+                with m.If(transaction.grant):
+                    m.d.comb += method.data_in.eq(tdata)
             runnable = granted.any()
             m.d.comb += method.run.eq(runnable)
 
@@ -102,9 +98,9 @@ class TransactionModule(Elaboratable):
     def elaborate(self, platform):
         with self.transactionContext():
             for name in self.module._named_submodules:
-                self.module._named_submodules[name] = amaranth.Fragment.get(self.module._named_submodules[name], platform)
+                self.module._named_submodules[name] = Fragment.get(self.module._named_submodules[name], platform)
             for idx in range(len(self.module._anon_submodules)):
-                self.module._anon_submodules[idx] = amaranth.Fragment.get(self.module._anon_submodules[idx], platform)
+                self.module._anon_submodules[idx] = Fragment.get(self.module._anon_submodules[idx], platform)
 
         self.module.submodules += self.transactionManager
 
@@ -114,26 +110,25 @@ class Transaction:
     def __init__(self, *, manager : TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
-        manager.transactions[self] = []
         self.request = Signal()
         self.grant = Signal()
         self.manager = manager
 
-    def use_method(self, method):
-        return self.manager.use_method(self, method)
+    def use_method(self, method, arg=C(0,0)):
+        return self.manager.use_method(self, method, arg)
 
 class Method:
-    def __init__(self, layout, *, consumer : bool = False, manager : TransactionManager = None):
+    def __init__(self, *, i=0, o=0, manager : TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
-        manager.methods[self] = []
         self.ready = Signal()
         self.run = Signal()
-        self.simple = isinstance(layout, int)
-        if self.simple:
-            layout = [('data', layout)]
-        self.data = Record(layout)
-        self.consumer = consumer
+        if isinstance(i, int):
+            i = [('data', i)]
+        self.data_in = Record(i)
+        if isinstance(o, int):
+            o = [('data', o)]
+        self.data_out = Record(o)
 
 # FIFOs
 
@@ -144,8 +139,8 @@ class OpFIFO(Elaboratable):
         self.width = width
         self.depth = depth
 
-        self.read = Method(width)
-        self.write = Method(width, consumer=True)
+        self.read = Method(o=width)
+        self.write = Method(i=width)
    
     def elaborate(self, platform):
         m = Module()
@@ -156,8 +151,8 @@ class OpFIFO(Elaboratable):
         m.d.comb += self.write.ready.eq(fifo.w_rdy)
         m.d.comb += fifo.r_en.eq(self.read.run)
         m.d.comb += fifo.w_en.eq(self.write.run)
-        m.d.comb += self.read.data.eq(fifo.r_data)
-        m.d.comb += fifo.w_data.eq(self.write.data)
+        m.d.comb += self.read.data_out.eq(fifo.r_data)
+        m.d.comb += fifo.w_data.eq(self.write.data_in)
 
         return m
 
@@ -165,7 +160,7 @@ class OpFIFO(Elaboratable):
 
 class OpIn(Elaboratable):
     def __init__(self, width=1):
-        self.get = Method(width)
+        self.get = Method(o=width)
         self.btn = Signal()
         self.dat = Signal(width)
 
@@ -183,7 +178,7 @@ class OpIn(Elaboratable):
             m.d.sync += self.get.ready.eq(0)
         with m.If(~btn2 & btn1):
             m.d.sync += self.get.ready.eq(1)
-            m.d.sync += self.get.data.eq(dat1)
+            m.d.sync += self.get.data_out.eq(dat1)
 
         return m
 
@@ -191,7 +186,7 @@ class OpIn(Elaboratable):
 
 class OpOut(Elaboratable):
     def __init__(self, width=1):
-        self.put = Method(width, consumer=True)
+        self.put = Method(i=width)
         self.btn = Signal()
         self.dat = Signal(width)
 
@@ -205,7 +200,7 @@ class OpOut(Elaboratable):
         
         m.d.comb += self.put.ready.eq(~btn2 & btn1)
         with m.If(self.put.run):
-            m.d.sync += self.dat.eq(self.put.data)
+            m.d.sync += self.dat.eq(self.put.data_in)
 
         return m
 
@@ -221,7 +216,8 @@ class CopyTrans(Elaboratable):
         
         trans = Transaction()
         sdata = trans.use_method(self.src)
-        ddata = trans.use_method(self.dst)
+        ddata = Record.like(sdata)
+        trans.use_method(self.dst, ddata)
 
         m.d.comb += trans.request.eq(1)
         m.d.comb += ddata.eq(sdata)
@@ -240,7 +236,8 @@ class CatTrans(Elaboratable):
         trans = Transaction()
         sdata1 = trans.use_method(self.src1)
         sdata2 = trans.use_method(self.src2)
-        ddata = trans.use_method(self.dst)
+        ddata = Signal(sdata1.shape().width + sdata2.shape().width)
+        trans.use_method(self.dst, ddata)
 
         m.d.comb += trans.request.eq(1)
         m.d.comb += ddata.eq(Cat(sdata1, sdata2))
