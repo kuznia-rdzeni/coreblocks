@@ -144,20 +144,20 @@ class OpFIFO(Elaboratable):
         self.width = width
         self.depth = depth
 
-        self.read_op = Method(width)
-        self.write_op = Method(width, consumer=True)
+        self.read = Method(width)
+        self.write = Method(width, consumer=True)
    
     def elaborate(self, platform):
         m = Module()
 
         m.submodules.fifo = fifo = amaranth.lib.fifo.SyncFIFO(width=self.width, depth=self.depth)
 
-        m.d.comb += self.read_op.ready.eq(fifo.r_rdy)
-        m.d.comb += self.write_op.ready.eq(fifo.w_rdy)
-        m.d.comb += fifo.r_en.eq(self.read_op.run)
-        m.d.comb += fifo.w_en.eq(self.write_op.run)
-        m.d.comb += self.read_op.data.eq(fifo.r_data)
-        m.d.comb += fifo.w_data.eq(self.write_op.data)
+        m.d.comb += self.read.ready.eq(fifo.r_rdy)
+        m.d.comb += self.write.ready.eq(fifo.w_rdy)
+        m.d.comb += fifo.r_en.eq(self.read.run)
+        m.d.comb += fifo.w_en.eq(self.write.run)
+        m.d.comb += self.read.data.eq(fifo.r_data)
+        m.d.comb += fifo.w_data.eq(self.write.data)
 
         return m
 
@@ -165,7 +165,7 @@ class OpFIFO(Elaboratable):
 
 class OpIn(Elaboratable):
     def __init__(self, width=1):
-        self.op = Method(width)
+        self.get = Method(width)
         self.btn = Signal()
         self.dat = Signal(width)
 
@@ -179,11 +179,11 @@ class OpIn(Elaboratable):
         m.d.sync += btn2.eq(btn1)
         m.d.sync += dat1.eq(self.dat)
 
-        with m.If(self.op.run):
-            m.d.sync += self.op.ready.eq(0)
+        with m.If(self.get.run):
+            m.d.sync += self.get.ready.eq(0)
         with m.If(~btn2 & btn1):
-            m.d.sync += self.op.ready.eq(1)
-            m.d.sync += self.op.data.eq(dat1)
+            m.d.sync += self.get.ready.eq(1)
+            m.d.sync += self.get.data.eq(dat1)
 
         return m
 
@@ -191,7 +191,7 @@ class OpIn(Elaboratable):
 
 class OpOut(Elaboratable):
     def __init__(self, width=1):
-        self.op = Method(width, consumer=True)
+        self.put = Method(width, consumer=True)
         self.btn = Signal()
         self.dat = Signal(width)
 
@@ -203,9 +203,9 @@ class OpOut(Elaboratable):
         m.d.sync += btn1.eq(self.btn)
         m.d.sync += btn2.eq(btn1)
         
-        m.d.comb += self.op.ready.eq(~btn2 & btn1)
-        with m.If(self.op.run):
-            m.d.sync += self.dat.eq(self.op.data)
+        m.d.comb += self.put.ready.eq(~btn2 & btn1)
+        with m.If(self.put.run):
+            m.d.sync += self.dat.eq(self.put.data)
 
         return m
 
@@ -268,8 +268,8 @@ class SimpleCircuit(Elaboratable):
             m.submodules.in1 = in1 = OpIn()
             m.submodules.in2 = in2 = OpIn()
             m.submodules.out = out = OpOut(2)
-            m.submodules.cti = CatTrans(in1.op, in2.op, fifo.write_op)
-            m.submodules.cto = CopyTrans(fifo.read_op, out.op)
+            m.submodules.cti = CatTrans(in1.get, in2.get, fifo.write)
+            m.submodules.cto = CopyTrans(fifo.read, out.put)
             m.d.comb += in1.btn.eq(self.in1_btn)
             m.d.comb += in2.btn.eq(self.in2_btn)
             m.d.comb += out.btn.eq(self.out_btn)
