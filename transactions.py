@@ -1,5 +1,6 @@
 
 import itertools
+from contextlib import contextmanager
 from amaranth import *
 
 class Scheduler(Elaboratable):
@@ -30,16 +31,6 @@ class TransactionManager(Elaboratable):
     def __init__(self):
         self.transactions = {}
         self.operations = {}
-
-    def add_transaction(self):
-        transaction = Transaction(self)
-        self.transactions[transaction] = []
-        return transaction
-
-    def add_operation(self, width=0, *, consumer=False):
-        operation = Operation(width, consumer)
-        self.operations[operation] = []
-        return operation
 
     def use_operation(self, transaction, operation):
         if operation.consumer:
@@ -79,8 +70,31 @@ class TransactionManager(Elaboratable):
 
         return m
 
+class TransactionContext:
+    stack = []
+
+    def __init__(self, manager : TransactionManager):
+        self.manager = manager
+
+    def __enter__(self):
+        self.stack.append(self.manager)
+        return self
+    
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        top = self.stack.pop()
+        assert self.manager is top
+
+    @classmethod
+    def get(cls):
+        if not cls.stack:
+            raise RuntimeError("TransactionContext stack is empty")
+        return cls.stack[-1]
+
 class Transaction:
-    def __init__(self, manager):
+    def __init__(self, *, manager=None):
+        if manager is None:
+            manager = TransactionContext.get()
+        manager.transactions[self] = []
         self.request = Signal()
         self.grant = Signal()
         self.manager = manager
@@ -89,7 +103,10 @@ class Transaction:
         return self.manager.use_operation(self, operation)
 
 class Operation:
-    def __init__(self, width, consumer):
+    def __init__(self, width, *, consumer=False, manager=None):
+        if manager is None:
+            manager = TransactionContext.get()
+        manager.operations[self] = []
         self.ready = Signal()
         self.run = Signal()
         self.data = Signal(width)
@@ -100,12 +117,12 @@ class Operation:
 import amaranth.lib.fifo
 
 class OpFIFO(Elaboratable):
-    def __init__(self, manager, width, depth):
+    def __init__(self, width, depth):
         self.width = width
         self.depth = depth
 
-        self.read_op = manager.add_operation(width)
-        self.write_op = manager.add_operation(width, consumer=True)
+        self.read_op = Operation(width)
+        self.write_op = Operation(width, consumer=True)
    
     def elaborate(self, platform):
         m = Module()
@@ -124,8 +141,8 @@ class OpFIFO(Elaboratable):
 # "Clicked" input
 
 class OpIn(Elaboratable):
-    def __init__(self, manager, width=1):
-        self.op = manager.add_operation(width)
+    def __init__(self, width=1):
+        self.op = Operation(width)
         self.btn = Signal()
         self.dat = Signal(width)
 
@@ -150,8 +167,8 @@ class OpIn(Elaboratable):
 # "Clicked" output
 
 class OpOut(Elaboratable):
-    def __init__(self, manager, width=1):
-        self.op = manager.add_operation(width, consumer=True)
+    def __init__(self, width=1):
+        self.op = Operation(width, consumer=True)
         self.btn = Signal()
         self.dat = Signal(width)
 
@@ -172,10 +189,10 @@ class OpOut(Elaboratable):
 # Example transactions
 
 class CopyTrans(Elaboratable):
-    def __init__(self, manager, src, dst):
+    def __init__(self, src, dst):
         self.src = src
         self.dst = dst
-        self.trans = manager.add_transaction()
+        self.trans = Transaction()
         self.sdata = self.trans.use_operation(src)
         self.ddata = self.trans.use_operation(dst)
 
@@ -188,10 +205,10 @@ class CopyTrans(Elaboratable):
         return m
 
 class CatTrans(Elaboratable):
-    def __init__(self, manager, src1, src2, dst):
+    def __init__(self, src1, src2, dst):
         self.src1 = src1
         self.src2 = src2
-        self.trans = manager.add_transaction()
+        self.trans = Transaction()
         self.sdata1 = self.trans.use_operation(src1)
         self.sdata2 = self.trans.use_operation(src2)
         self.ddata = self.trans.use_operation(dst)
@@ -209,17 +226,18 @@ class CatTrans(Elaboratable):
 class SimpleCircuit(Elaboratable):
     def __init__(self):
         manager = TransactionManager()
-        fifo = OpFIFO(manager, 2, 16)
-        in1 = OpIn(manager)
-        in2 = OpIn(manager)
-        out = OpOut(manager, 2)
-        self.submodules = {
-            'manager': manager,
-            'fifo': fifo,
-            'in1': in1, 'in2': in2, 'out': out,
-            'cti': CatTrans(manager, in1.op, in2.op, fifo.write_op),
-            'cto': CopyTrans(manager, fifo.read_op, out.op)
-        }
+        with TransactionContext(manager):
+            fifo = OpFIFO(2, 16)
+            in1 = OpIn()
+            in2 = OpIn()
+            out = OpOut(2)
+            self.submodules = {
+                'manager': manager,
+                'fifo': fifo,
+                'in1': in1, 'in2': in2, 'out': out,
+                'cti': CatTrans(in1.op, in2.op, fifo.write_op),
+                'cto': CopyTrans(fifo.read_op, out.op)
+            }
         self.ports = [in1.btn, in1.dat, in2.btn, in2.dat, out.btn, out.dat]
 
     def elaborate(self, platform):
