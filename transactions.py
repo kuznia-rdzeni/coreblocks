@@ -34,7 +34,7 @@ class TransactionManager(Elaboratable):
 
     def use_method(self, transaction : 'Transaction', method : 'Method'):
         if method.consumer:
-            data = Signal(method.data.width)
+            data = Record.like(method.data)
         else:
             data = None
         self.transactions[transaction].append(method)
@@ -103,13 +103,16 @@ class Transaction:
         return self.manager.use_method(self, method)
 
 class Method:
-    def __init__(self, width, *, consumer : bool = False, manager : TransactionManager = None):
+    def __init__(self, layout, *, consumer : bool = False, manager : TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
         manager.methods[self] = []
         self.ready = Signal()
         self.run = Signal()
-        self.data = Signal(width)
+        self.simple = isinstance(layout, int)
+        if self.simple:
+            layout = [('data', layout)]
+        self.data = Record(layout)
         self.consumer = consumer
 
 # FIFOs
