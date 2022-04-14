@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from amaranth import *
 
 class Scheduler(Elaboratable):
-    def __init__(self, count):
+    def __init__(self, count: int):
         if not isinstance(count, int) or count < 0:
             raise ValueError("Count must be a non-negative integer, not {!r}"
                              .format(count))
@@ -30,43 +30,43 @@ class Scheduler(Elaboratable):
 class TransactionManager(Elaboratable):
     def __init__(self):
         self.transactions = {}
-        self.operations = {}
+        self.methods = {}
 
-    def use_operation(self, transaction, operation):
-        if operation.consumer:
-            data = Signal(operation.data.width)
+    def use_method(self, transaction : 'Transaction', method : 'Method'):
+        if method.consumer:
+            data = Signal(method.data.width)
         else:
             data = None
-        self.transactions[transaction].append(operation)
-        self.operations[operation].append((transaction, data))
-        if operation.consumer:
+        self.transactions[transaction].append(method)
+        self.methods[method].append((transaction, data))
+        if method.consumer:
             return data
         else:
-            return operation.data
+            return method.data
 
     def elaborate(self, platform):
         m = Module()
 
         m.submodules.sched = sched = Scheduler(len(self.transactions))
 
-        for k, (transaction, operations) in enumerate(self.transactions.items()):
-            ready = Signal(len(operations))
-            for n, operation in enumerate(operations):
-                m.d.comb += ready[n].eq(operation.ready)
+        for k, (transaction, methods) in enumerate(self.transactions.items()):
+            ready = Signal(len(methods))
+            for n, method in enumerate(methods):
+                m.d.comb += ready[n].eq(method.ready)
             runnable = ready.all()
             m.d.comb += sched.requests[k].eq(transaction.request & runnable)
             m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
 
-        for operation, transactions in self.operations.items():
+        for method, transactions in self.methods.items():
             granted = Signal(len(transactions))
             for n, (transaction, tdata) in enumerate(transactions):
                 m.d.comb += granted[n].eq(transaction.grant)
 
-                if operation.consumer:
+                if method.consumer:
                     with m.If(transaction.grant):
-                        m.d.comb += operation.data.eq(tdata)
+                        m.d.comb += method.data.eq(tdata)
             runnable = granted.any()
-            m.d.comb += operation.run.eq(runnable)
+            m.d.comb += method.run.eq(runnable)
 
         return m
 
@@ -91,7 +91,7 @@ class TransactionContext:
         return cls.stack[-1]
 
 class Transaction:
-    def __init__(self, *, manager=None):
+    def __init__(self, *, manager : TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
         manager.transactions[self] = []
@@ -99,14 +99,14 @@ class Transaction:
         self.grant = Signal()
         self.manager = manager
 
-    def use_operation(self, operation):
-        return self.manager.use_operation(self, operation)
+    def use_method(self, method):
+        return self.manager.use_method(self, method)
 
-class Operation:
-    def __init__(self, width, *, consumer=False, manager=None):
+class Method:
+    def __init__(self, width, *, consumer : bool = False, manager : TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
-        manager.operations[self] = []
+        manager.methods[self] = []
         self.ready = Signal()
         self.run = Signal()
         self.data = Signal(width)
@@ -121,8 +121,8 @@ class OpFIFO(Elaboratable):
         self.width = width
         self.depth = depth
 
-        self.read_op = Operation(width)
-        self.write_op = Operation(width, consumer=True)
+        self.read_op = Method(width)
+        self.write_op = Method(width, consumer=True)
    
     def elaborate(self, platform):
         m = Module()
@@ -142,7 +142,7 @@ class OpFIFO(Elaboratable):
 
 class OpIn(Elaboratable):
     def __init__(self, width=1):
-        self.op = Operation(width)
+        self.op = Method(width)
         self.btn = Signal()
         self.dat = Signal(width)
 
@@ -168,7 +168,7 @@ class OpIn(Elaboratable):
 
 class OpOut(Elaboratable):
     def __init__(self, width=1):
-        self.op = Operation(width, consumer=True)
+        self.op = Method(width, consumer=True)
         self.btn = Signal()
         self.dat = Signal(width)
 
@@ -189,12 +189,12 @@ class OpOut(Elaboratable):
 # Example transactions
 
 class CopyTrans(Elaboratable):
-    def __init__(self, src, dst):
+    def __init__(self, src : Method, dst : Method):
         self.src = src
         self.dst = dst
         self.trans = Transaction()
-        self.sdata = self.trans.use_operation(src)
-        self.ddata = self.trans.use_operation(dst)
+        self.sdata = self.trans.use_method(src)
+        self.ddata = self.trans.use_method(dst)
 
     def elaborate(self, platform):
         m = Module()
@@ -205,13 +205,13 @@ class CopyTrans(Elaboratable):
         return m
 
 class CatTrans(Elaboratable):
-    def __init__(self, src1, src2, dst):
+    def __init__(self, src1 : Method, src2 : Method, dst : Method):
         self.src1 = src1
         self.src2 = src2
         self.trans = Transaction()
-        self.sdata1 = self.trans.use_operation(src1)
-        self.sdata2 = self.trans.use_operation(src2)
-        self.ddata = self.trans.use_operation(dst)
+        self.sdata1 = self.trans.use_method(src1)
+        self.sdata2 = self.trans.use_method(src2)
+        self.ddata = self.trans.use_method(dst)
     
     def elaborate(self, platform):
         m = Module()
