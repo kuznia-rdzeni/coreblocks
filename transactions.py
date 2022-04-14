@@ -2,22 +2,6 @@
 import itertools
 from amaranth import *
 
-class Transaction:
-    def __init__(self, manager):
-        self.request = Signal()
-        self.grant = Signal()
-        self.manager = manager
-
-    def use_operation(self, operation):
-        return self.manager.use_operation(self, operation)
-
-class Operation:
-    def __init__(self, width, consumer):
-        self.ready = Signal()
-        self.run = Signal()
-        self.data = Signal(width)
-        self.consumer = consumer
-
 class Scheduler(Elaboratable):
     def __init__(self, count):
         if not isinstance(count, int) or count < 0:
@@ -94,6 +78,22 @@ class TransactionManager(Elaboratable):
             m.d.comb += operation.run.eq(runnable)
 
         return m
+
+class Transaction:
+    def __init__(self, manager):
+        self.request = Signal()
+        self.grant = Signal()
+        self.manager = manager
+
+    def use_operation(self, operation):
+        return self.manager.use_operation(self, operation)
+
+class Operation:
+    def __init__(self, width, consumer):
+        self.ready = Signal()
+        self.run = Signal()
+        self.data = Signal(width)
+        self.consumer = consumer
 
 # FIFOs
 
@@ -221,39 +221,6 @@ class SimpleCircuit(Elaboratable):
             'cto': CopyTrans(manager, fifo.read_op, out.op)
         }
         self.ports = [in1.btn, in1.dat, in2.btn, in2.dat, out.btn, out.dat]
-
-    def elaborate(self, platform):
-        m = Module()
-
-        for k, v in self.submodules.items():
-            m.submodules[k] = v
-
-        return m
-
-class MyCircuit(Elaboratable):
-    def __init__(self):
-        manager = TransactionManager()
-        fifo1 = OpFIFO(manager, 1, 16)
-        fifo2 = OpFIFO(manager, 1, 16)
-        fifo3 = OpFIFO(manager, 1, 16)
-        fifo4 = OpFIFO(manager, 2, 16)
-        in1 = OpIn(manager)
-        in2 = OpIn(manager)
-        out1 = OpOut(manager)
-        out2 = OpOut(manager, 2)
-        self.submodules = {
-            'manager': manager,
-            'fifo1': fifo1, 'fifo2': fifo2, 'fifo3': fifo3, 'fifo4': fifo4, 
-            'in1': in1, 'in2': in2, 'out1': out1, 'out2': out2,
-            'cti1': CopyTrans(manager, in1.op, fifo1.write_op),
-            'cti2': CopyTrans(manager, in2.op, fifo2.write_op),
-            'ctf1': CopyTrans(manager, fifo1.read_op, fifo3.write_op),
-            'ctf2': CopyTrans(manager, fifo2.read_op, fifo3.write_op),
-            'ct': CatTrans(manager, fifo1.read_op, fifo2.read_op, fifo4.write_op),
-            'cto1': CopyTrans(manager, fifo3.read_op, out1.op),
-            'cto2': CopyTrans(manager, fifo4.read_op, out2.op)
-        }
-        self.ports = [in1.btn, in1.dat, in2.btn, in2.dat, out1.btn, out1.dat, out2.btn, out2.dat]
 
     def elaborate(self, platform):
         m = Module()
