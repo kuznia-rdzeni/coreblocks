@@ -228,26 +228,32 @@ class CatTrans(Elaboratable):
 
 class SimpleCircuit(Elaboratable):
     def __init__(self):
-        manager = TransactionManager()
-        with TransactionContext(manager):
-            fifo = OpFIFO(2, 16)
-            in1 = OpIn()
-            in2 = OpIn()
-            out = OpOut(2)
-            self.submodules = {
-                'manager': manager,
-                'fifo': fifo,
-                'in1': in1, 'in2': in2, 'out': out,
-                'cti': CatTrans(in1.op, in2.op, fifo.write_op),
-                'cto': CopyTrans(fifo.read_op, out.op)
-            }
-        self.ports = [in1.btn, in1.dat, in2.btn, in2.dat, out.btn, out.dat]
+        self.in1_btn = Signal()
+        self.in1_dat = Signal()
+        self.in2_btn = Signal()
+        self.in2_dat = Signal()
+        self.out_btn = Signal()
+        self.out_dat = Signal(2)
+        self.ports = [self.in1_btn, self.in1_dat, self.in2_btn, self.in2_dat, self.out_btn, self.out_dat]
 
     def elaborate(self, platform):
         m = Module()
 
-        for k, v in self.submodules.items():
-            m.submodules[k] = v
+        manager = TransactionManager()
+        with TransactionContext(manager):
+            m.submodules.manager = manager
+            m.submodules.fifo = fifo = OpFIFO(2, 16)
+            m.submodules.in1 = in1 = OpIn()
+            m.submodules.in2 = in2 = OpIn()
+            m.submodules.out = out = OpOut(2)
+            m.submodules.cti = CatTrans(in1.op, in2.op, fifo.write_op)
+            m.submodules.cto = CopyTrans(fifo.read_op, out.op)
+            m.d.comb += in1.btn.eq(self.in1_btn)
+            m.d.comb += in2.btn.eq(self.in2_btn)
+            m.d.comb += out.btn.eq(self.out_btn)
+            m.d.comb += in1.dat.eq(self.in1_dat)
+            m.d.comb += in2.dat.eq(self.in2_dat)
+            m.d.comb += self.out_dat.eq(out.dat)
 
         return m
 
