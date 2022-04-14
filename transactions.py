@@ -107,15 +107,28 @@ class TransactionModule(Elaboratable):
         return self.module
 
 class Transaction:
+    current = None
+
     def __init__(self, *, manager : TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
         self.request = Signal()
         self.grant = Signal()
-        self.manager = manager
 
-    def use_method(self, method, arg=C(0,0)):
-        return self.manager.use_method(self, method, arg)
+    def __enter__(self):
+        if self.__class__.current is not None:
+            raise RuntimeError("Transaction inside transaction")
+        self.__class__.current = self
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        self.__class__.current = None
+
+    @classmethod
+    def get(cls):
+        if cls.current is None:
+            raise RuntimeError("No current transaction")
+        return cls.current
 
 class Method:
     def __init__(self, *, i=0, o=0, manager : TransactionManager = None):
@@ -129,6 +142,18 @@ class Method:
         if isinstance(o, int):
             o = [('data', o)]
         self.data_out = Record(o)
+
+    @contextmanager
+    def when_called(self, m : Module, ready=C(1), ret=C(0, 0)):
+        m.d.comb += self.ready.eq(ready)
+        m.d.comb += self.data_out.eq(ret)
+        with m.If(self.run):
+            yield self.data_in
+
+    def __call__(self, arg=C(0, 0)):
+        trans = Transaction.get()
+        manager = TransactionContext.get()
+        return manager.use_method(trans, self, arg)
 
 # FIFOs
 
@@ -147,12 +172,12 @@ class OpFIFO(Elaboratable):
 
         m.submodules.fifo = fifo = amaranth.lib.fifo.SyncFIFO(width=self.width, depth=self.depth)
 
-        m.d.comb += self.read.ready.eq(fifo.r_rdy)
-        m.d.comb += self.write.ready.eq(fifo.w_rdy)
-        m.d.comb += fifo.r_en.eq(self.read.run)
-        m.d.comb += fifo.w_en.eq(self.write.run)
-        m.d.comb += self.read.data_out.eq(fifo.r_data)
-        m.d.comb += fifo.w_data.eq(self.write.data_in)
+        with self.write.when_called(m, fifo.w_rdy) as arg:
+            m.d.comb += fifo.w_en.eq(1)
+            m.d.comb += fifo.w_data.eq(arg)
+
+        with self.read.when_called(m, fifo.r_rdy, fifo.r_data):
+            m.d.comb += fifo.r_en.eq(1)
 
         return m
 
@@ -173,12 +198,15 @@ class OpIn(Elaboratable):
         m.d.sync += btn1.eq(self.btn)
         m.d.sync += btn2.eq(btn1)
         m.d.sync += dat1.eq(self.dat)
+        get_ready = Signal()
+        get_data = Signal()
 
-        with m.If(self.get.run):
-            m.d.sync += self.get.ready.eq(0)
+        with self.get.when_called(m, get_ready, get_data):
+            m.d.sync += get_ready.eq(0)
+
         with m.If(~btn2 & btn1):
-            m.d.sync += self.get.ready.eq(1)
-            m.d.sync += self.get.data_out.eq(dat1)
+            m.d.sync += get_ready.eq(1)
+            m.d.sync += get_data.eq(dat1)
 
         return m
 
@@ -198,9 +226,8 @@ class OpOut(Elaboratable):
         m.d.sync += btn1.eq(self.btn)
         m.d.sync += btn2.eq(btn1)
         
-        m.d.comb += self.put.ready.eq(~btn2 & btn1)
-        with m.If(self.put.run):
-            m.d.sync += self.dat.eq(self.put.data_in)
+        with self.put.when_called(m, ~btn2 & btn1) as arg:
+            m.d.sync += self.dat.eq(arg)
 
         return m
 
@@ -214,13 +241,13 @@ class CopyTrans(Elaboratable):
     def elaborate(self, platform):
         m = Module()
         
-        trans = Transaction()
-        sdata = trans.use_method(self.src)
-        ddata = Record.like(sdata)
-        trans.use_method(self.dst, ddata)
+        with Transaction() as trans:
+            sdata = self.src()
+            ddata = Record.like(sdata)
+            self.dst(ddata)
 
-        m.d.comb += trans.request.eq(1)
-        m.d.comb += ddata.eq(sdata)
+            m.d.comb += trans.request.eq(1)
+            m.d.comb += ddata.eq(sdata)
 
         return m
 
@@ -233,14 +260,14 @@ class CatTrans(Elaboratable):
     def elaborate(self, platform):
         m = Module()
         
-        trans = Transaction()
-        sdata1 = trans.use_method(self.src1)
-        sdata2 = trans.use_method(self.src2)
-        ddata = Signal(sdata1.shape().width + sdata2.shape().width)
-        trans.use_method(self.dst, ddata)
+        with Transaction() as trans:
+            sdata1 = self.src1()
+            sdata2 = self.src2()
+            ddata = Record.like(self.dst.data_in)
+            self.dst(ddata)
 
-        m.d.comb += trans.request.eq(1)
-        m.d.comb += ddata.eq(Cat(sdata1, sdata2))
+            m.d.comb += trans.request.eq(1)
+            m.d.comb += ddata.eq(Cat(sdata1, sdata2))
 
         return m
 
