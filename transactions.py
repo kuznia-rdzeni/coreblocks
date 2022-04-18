@@ -5,12 +5,16 @@ from operator import and_
 from amaranth import *
 
 class Transaction:
+    current = None
+
     def __init__(self, m : Module):
         self.m = m
-
         self.methods = []
 
     def __enter__(self):
+        if self.__class__.current is not None:
+            raise RuntimeError("Transaction inside transaction")
+        self.__class__.current = self
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
@@ -25,36 +29,89 @@ class Transaction:
 
             self.m.d.comb += method.run.eq(all_valid & rest_ready)
 
+        self.__class__.current = None
+
+    @classmethod
+    def get(cls):
+        if cls.current is None:
+            raise RuntimeError("No current transaction")
+        return cls.current
+
     def add_method(self, method, valid):
         self.methods.append((method, valid))
 
 class Method:
-    def __init__(self, data_in=[], data_out=[]):
+    def __init__(self, fn, in_layout, out_layout):
+        self.fn = fn
         self.run = Signal()
         self.ready = Signal()
-        self.data_in = Record(data_in)
-        self.data_out = Record(data_out)
+        self.input = Record(in_layout)
+        self.output = Record(out_layout)
+
+class WithInterface:
+    def __init__(self):
+        self.methods = []
+        self.cur_method = None
+        self.m = None
+
+    def register_method(self, fn, i=[], o=[]):
+        method = Method(fn, i, o)
+
+        def wrapper(run=C(1), **kwargs):
+            trans = Transaction.get()
+            trans.add_method(method, run)
+            
+            for k, v in kwargs.items():
+                trans.m.d.comb += method.input.__getattr__(k).eq(v)
+
+            return method.output
+
+        setattr(self, fn.__name__, wrapper)
+
+        self.methods.append(method)
+
+    def finalize(self, m):
+        self.m = m
+
+        for method in self.methods:
+            kwargs = {}
+            for e in method.input.layout:
+                kwargs[e[0]] = method.input.__getattr__(e[0])
+
+            self.cur_method = method
+            rdy, ret_val = method.fn(m, **kwargs)
+            self.cur_method = None
+
+            for k, v in ret_val.items():
+                m.d.comb += method.output.__getattr__(k).eq(v)
+
+            m.d.comb += method.ready.eq(rdy)
 
     @contextmanager
-    def when_called(self, m : Module, rdy=C(1), ret=C(0)):
-        m.d.comb += self.ready.eq(rdy)
-        m.d.comb += self.data_out.eq(ret)
-        with m.If(self.run & self.ready):
-            yield self.data_in
-
-    def call(self, t : Transaction, run=C(1), arg=C(0)):
-        t.m.d.comb += self.data_in.eq(arg)
-        t.add_method(self, run)
-        return self.data_out
+    def with_guard(self):
+        if self.cur_method is None:
+            raise RuntimeError("No current method")
+        with self.m.If(self.cur_method.run & self.cur_method.ready):
+            yield
 
 # "Clicked" input
 
-class OpIn(Elaboratable):
+class OpIn(Elaboratable, WithInterface):
     def __init__(self, width=1):
+        WithInterface.__init__(self)
+
         self.btn = Signal()
         self.dat = Signal(width)
 
-        self.if_get = Method(data_out=[('data', width)])
+        self.op_rdy = Signal()
+        self.ret_data = Signal(width)
+
+        self.register_method(self.if_get, o=[('data', width)])
+
+    def if_get(self, m):
+        with self.with_guard():
+            m.d.sync += self.op_rdy.eq(0)
+        return self.op_rdy, {'data': self.ret_data}
 
     def elaborate(self, platform):
         m = Module()
@@ -66,26 +123,30 @@ class OpIn(Elaboratable):
         m.d.sync += btn2.eq(btn1)
         m.d.sync += dat1.eq(self.dat)
 
-        op_rdy = Signal()
-        ret_data = Signal.like(self.dat)
-
-        with self.if_get.when_called(m, rdy=op_rdy, ret=ret_data):
-            m.d.sync += op_rdy.eq(0)
-
         with m.If(~btn2 & btn1):
-            m.d.sync += op_rdy.eq(1)
-            m.d.sync += ret_data.eq(dat1)
+            m.d.sync += self.op_rdy.eq(1)
+            m.d.sync += self.ret_data.eq(dat1)
 
+        self.finalize(m)
         return m
 
 # "Clicked" output
 
-class OpOut(Elaboratable):
+class OpOut(Elaboratable, WithInterface):
     def __init__(self, width=1):
+        WithInterface.__init__(self)
+
         self.btn = Signal()
         self.dat = Signal(width)
 
-        self.if_put = Method(data_in=[('data', width)])
+        self.op_rdy = Signal()
+
+        self.register_method(self.if_put, i=[('data', width)])
+
+    def if_put(self, m, data):
+        with self.with_guard():
+            m.d.sync += self.dat.eq(data)
+        return self.op_rdy, {}
 
     def elaborate(self, platform):
         m = Module()
@@ -94,38 +155,42 @@ class OpOut(Elaboratable):
         btn2 = Signal()
         m.d.sync += btn1.eq(self.btn)
         m.d.sync += btn2.eq(btn1)
+        m.d.comb += self.op_rdy.eq(~btn2 & btn1)
 
-        with self.if_put.when_called(m, rdy=(~btn2 & btn1)) as arg:
-            m.d.sync += self.dat.eq(arg.data)
-
+        self.finalize(m)
         return m
 
 import amaranth.lib.fifo
 
-class OpFIFO(Elaboratable):
+class OpFIFO(Elaboratable, WithInterface):
     def __init__(self, width, depth):
+        WithInterface.__init__(self)
+
         self.width = width
         self.depth = depth
 
-        self.entry_layout = [('data', width)]
+        self.fifo = amaranth.lib.fifo.SyncFIFO(width=self.width, depth=self.depth)
 
-        self.if_read = Method(data_out=self.entry_layout)
-        self.if_write = Method(data_in=self.entry_layout)
+        self.register_method(self.if_read, o=[('data', width)])
+        self.register_method(self.if_write, i=[('data', width)])
+
+    def if_read(self, m):
+        with self.with_guard():
+            m.d.comb += self.fifo.r_en.eq(1)
+        return self.fifo.r_rdy, {'data': self.fifo.r_data}
+
+    def if_write(self, m, data):
+        with self.with_guard():
+            m.d.comb += self.fifo.w_en.eq(1)
+        m.d.comb += self.fifo.w_data.eq(data)
+        return self.fifo.w_rdy, {}
    
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.fifo = fifo = amaranth.lib.fifo.SyncFIFO(width=self.width, depth=self.depth)
+        m.submodules.fifo = self.fifo
 
-        with self.if_write.when_called(m, rdy=fifo.w_rdy) as arg:
-            m.d.comb += fifo.w_en.eq(1)
-            m.d.comb += fifo.w_data.eq(arg.data)
-
-        data_packed = Record(self.entry_layout)
-        m.d.comb += data_packed.data.eq(fifo.r_data)
-        with self.if_read.when_called(m, rdy=fifo.r_rdy, ret=data_packed):
-            m.d.comb += fifo.r_en.eq(1)
-
+        self.finalize(m)
         return m
 
 class CopyTrans(Elaboratable):
@@ -136,12 +201,9 @@ class CopyTrans(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        with Transaction(m) as t:
-            data = self.src.if_read.call(t)
-
-            data_packed = Record(self.src.entry_layout)
-            m.d.comb += data_packed.data.eq(data)
-            self.dst.if_put.call(t, arg=data_packed)
+        with Transaction(m):
+            data = self.src.if_read()
+            self.dst.if_put(data=data)
 
         return m
 
@@ -154,13 +216,11 @@ class CatTrans(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        with Transaction(m) as t:
-            data1 = self.src1.if_get.call(t)
-            data2 = self.src2.if_get.call(t)
+        with Transaction(m):
+            data1 = self.src1.if_get()
+            data2 = self.src2.if_get()
 
-            data_packed = Record(self.dst.entry_layout)
-            m.d.comb += data_packed.data.eq(Cat(data1.data, data2.data))
-            self.dst.if_write.call(t, arg=data_packed)
+            self.dst.if_write(data=Cat(data1.data, data2.data))
 
         return m
 
