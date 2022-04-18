@@ -168,6 +168,24 @@ Remarks:
 
 ----
 
+### If instruction ready
+
+Ready when:
+- *always*
+
+Input:
+- `position` - instruction position in RS, which should be checked if it is ready to execute
+- `start` - signal to start operation
+
+Output:
+- `inst_ready`:
+  - 0 - instruction is still waiting for arguments
+  - 1 - instruction is ready for execute
+
+Side effects:
+- *null*
+
+
 ### Read row
 
 Ready when:
@@ -198,7 +216,7 @@ Ready when:
 - *implementation defined*
 
 Input:
-- `position` - identifier of RS row, which should be read
+- `position` - identifier of RS row, which should be cleaned
 - `start` - signal to start operation
 
 Output:
@@ -217,7 +235,7 @@ Ready when:
 - ["Clean row"](#clean-row) is ready
 
 Input:
-- `position` - identifier of RS row, which should be read
+- `position` - identifier of RS row, which should be read and cleared
 - `start` - signal to start operation
 
 Output:

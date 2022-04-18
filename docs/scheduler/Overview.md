@@ -2,7 +2,7 @@
 
 ## Description
 
-Scheduler is the middle part of out processor.
+Scheduler is the middle part of our processor.
 It is located after the frontend and before execution units.
 Its main tasks are:
 
@@ -26,7 +26,7 @@ We decided to split the scheduler into 5 phases:
 - inserting instruction to RS
 
 Each of this phases can potentially take one clock cycle, but they can be merged as a potential future optimization.
-During implementation each should be treated as a separate hardware block for future flexibility.
+During implementation each phase should be treated as a separate hardware block for future flexibility.
 
 
 ## More detailed description of each block
