@@ -18,7 +18,7 @@ class Scheduler(Elaboratable):
         m = Module()
 
         for i in range(self.count):
-            with m.If(self.grant):
+            with m.If(self.grant[i]):
                 for j in itertools.chain(reversed(range(i)), reversed(range(i+1, self.count))):
                     with m.If(self.requests[j]):
                         m.d.sync += self.grant.eq(1 << j)
