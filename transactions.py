@@ -17,11 +17,17 @@ class Scheduler(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        for i in range(self.count):
-            with m.If(self.grant[i]):
-                for j in itertools.chain(reversed(range(i)), reversed(range(i+1, self.count))):
-                    with m.If(self.requests[j]):
-                        m.d.sync += self.grant.eq(1 << j)
+        gr = Signal.like(self.grant)
+        m.d.sync += self.grant.eq(gr)
+
+        with m.Switch(self.grant):
+            for i in range(self.count):
+                with m.Case("-"*(self.count-i-1) + "1" + "-"*i):
+                    for j in itertools.chain(reversed(range(i)), reversed(range(i+1, self.count))):
+                        with m.If(self.requests[j]):
+                            m.d.comb += gr.eq(1 << j)
+            with m.Case():
+                m.d.comb += gr.eq(0)
 
         m.d.sync += self.valid.eq(self.requests.any())
 
