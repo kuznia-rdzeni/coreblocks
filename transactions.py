@@ -33,6 +33,25 @@ class Scheduler(Elaboratable):
 
         return m
 
+def _graph_ccs(gr):
+    ccs = []
+    cc = set()
+    visited = set()
+
+    for v in gr.keys():
+        q = [v]
+        while q:
+            w = q.pop()
+            if w in visited: continue
+            visited.add(w)
+            cc.add(w)
+            q.extend(gr[w])
+        if cc:
+            ccs.append(cc)
+            cc = set()
+
+    return ccs
+
 class TransactionManager(Elaboratable):
     def __init__(self):
         self.transactions = {}
@@ -47,18 +66,37 @@ class TransactionManager(Elaboratable):
         self.methods[method].append((transaction, arg))
         return method.data_out
 
+    def _conflict_graph(self):
+        gr = {}
+
+        for transaction in self.transactions.keys():
+            gr[transaction] = set()
+
+        for transaction, methods in self.transactions.items():
+            for method in methods:
+                for transaction2, _ in self.methods[method]:
+                    if transaction is not transaction2:
+                        gr[transaction].add(transaction2)
+                        gr[transaction2].add(transaction)
+
+        return gr
+
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.sched = sched = Scheduler(len(self.transactions))
+        gr = self._conflict_graph()
 
-        for k, (transaction, methods) in enumerate(self.transactions.items()):
-            ready = Signal(len(methods))
-            for n, method in enumerate(methods):
-                m.d.comb += ready[n].eq(method.ready)
-            runnable = ready.all()
-            m.d.comb += sched.requests[k].eq(transaction.request & runnable)
-            m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
+        for cc in _graph_ccs(gr):
+            sched = Scheduler(len(cc))
+            m.submodules += sched
+            for k, transaction in enumerate(cc):
+                methods = self.transactions[transaction]
+                ready = Signal(len(methods))
+                for n, method in enumerate(methods):
+                    m.d.comb += ready[n].eq(method.ready)
+                runnable = ready.all()
+                m.d.comb += sched.requests[k].eq(transaction.request & runnable)
+                m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
 
         for method, transactions in self.methods.items():
             granted = Signal(len(transactions))
