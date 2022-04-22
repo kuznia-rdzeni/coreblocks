@@ -154,10 +154,10 @@ class TransactionModule(Elaboratable):
 class Transaction:
     current = None
 
-    def __init__(self, *, manager : TransactionManager = None):
+    def __init__(self, *, request=C(1), manager : TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
-        self.request = Signal()
+        self.request = request
         self.grant = Signal()
 
     def __enter__(self):
@@ -291,7 +291,6 @@ class CopyTrans(Elaboratable):
             ddata = Record.like(sdata)
             self.dst(ddata)
 
-            m.d.comb += trans.request.eq(1)
             m.d.comb += ddata.eq(sdata)
 
         return m
@@ -311,7 +310,6 @@ class CatTrans(Elaboratable):
             ddata = Record.like(self.dst.data_in)
             self.dst(ddata)
 
-            m.d.comb += trans.request.eq(1)
             m.d.comb += ddata.eq(Cat(sdata1, sdata2))
 
         return m
