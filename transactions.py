@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from functools import reduce
+from functools import reduce, wraps
 from operator import and_
 
 from amaranth import *
@@ -51,8 +51,13 @@ class Method:
 class WithInterface:
     def __init__(self):
         self.methods = []
-        self.cur_method = None
-        self.m = None
+        self.finalization_ctx = None
+
+        for field in dir(self):
+            attr = getattr(self, field)
+            if hasattr(attr, 'interface_method'):
+                i, o = attr.layout_getter(self)
+                self.register_method(attr, i, o)
 
     def register_method(self, fn, i=[], o=[]):
         method = Method(fn, i, o)
@@ -71,16 +76,14 @@ class WithInterface:
         self.methods.append(method)
 
     def finalize(self, m):
-        self.m = m
-
         for method in self.methods:
             kwargs = {}
             for e in method.input.layout:
                 kwargs[e[0]] = method.input.__getattr__(e[0])
 
-            self.cur_method = method
+            self.finalization_ctx = (method, m)
             rdy, ret_val = method.fn(m, **kwargs)
-            self.cur_method = None
+            self.finalization_ctx = None
 
             for k, v in ret_val.items():
                 m.d.comb += method.output.__getattr__(k).eq(v)
@@ -89,16 +92,27 @@ class WithInterface:
 
     @contextmanager
     def with_guard(self):
-        if self.cur_method is None:
-            raise RuntimeError("No current method")
-        with self.m.If(self.cur_method.run & self.cur_method.ready):
+        if self.finalization_ctx is None:
+            raise RuntimeError("No current finalization context")
+        method, m = self.finalization_ctx
+        with m.If(method.run & method.ready):
             yield
 
 # "Clicked" input
 
+def interface_method(layout_getter):
+    def decorator(func):
+        func.interface_method = True
+        func.layout_getter = layout_getter
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
 class OpIn(Elaboratable, WithInterface):
     def __init__(self, width=1):
-        WithInterface.__init__(self)
+        self.width = width
 
         self.btn = Signal()
         self.dat = Signal(width)
@@ -106,8 +120,9 @@ class OpIn(Elaboratable, WithInterface):
         self.op_rdy = Signal()
         self.ret_data = Signal(width)
 
-        self.register_method(self.if_get, o=[('data', width)])
+        WithInterface.__init__(self)
 
+    @interface_method(lambda self: ([], [('data', self.width)]))
     def if_get(self, m):
         with self.with_guard():
             m.d.sync += self.op_rdy.eq(0)
@@ -134,15 +149,16 @@ class OpIn(Elaboratable, WithInterface):
 
 class OpOut(Elaboratable, WithInterface):
     def __init__(self, width=1):
-        WithInterface.__init__(self)
+        self.width = width
 
         self.btn = Signal()
         self.dat = Signal(width)
 
         self.op_rdy = Signal()
 
-        self.register_method(self.if_put, i=[('data', width)])
+        WithInterface.__init__(self)
 
+    @interface_method(lambda self: ([('data', self.width)], []))
     def if_put(self, m, data):
         with self.with_guard():
             m.d.sync += self.dat.eq(data)
@@ -164,21 +180,20 @@ import amaranth.lib.fifo
 
 class OpFIFO(Elaboratable, WithInterface):
     def __init__(self, width, depth):
-        WithInterface.__init__(self)
-
         self.width = width
         self.depth = depth
 
         self.fifo = amaranth.lib.fifo.SyncFIFO(width=self.width, depth=self.depth)
 
-        self.register_method(self.if_read, o=[('data', width)])
-        self.register_method(self.if_write, i=[('data', width)])
+        WithInterface.__init__(self)
 
+    @interface_method(lambda self: ([], [('data', self.width)]))
     def if_read(self, m):
         with self.with_guard():
             m.d.comb += self.fifo.r_en.eq(1)
         return self.fifo.r_rdy, {'data': self.fifo.r_data}
 
+    @interface_method(lambda self: ([('data', self.width)], []))
     def if_write(self, m, data):
         with self.with_guard():
             m.d.comb += self.fifo.w_en.eq(1)
