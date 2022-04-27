@@ -1,5 +1,6 @@
 
 from contextlib import contextmanager
+from typing import Union
 from amaranth import *
 from ._utils import *
 
@@ -12,6 +13,11 @@ class TransactionManager(Elaboratable):
     def __init__(self):
         self.transactions = {}
         self.methods = {}
+        self.conflicts = []
+
+    def add_conflict(self, end1 : Union['Transaction', 'Method'],
+                           end2 : Union['Transaction', 'Method']):
+        self.conflicts.append((end1, end2))
 
     def use_method(self, transaction : 'Transaction', method : 'Method', arg=C(0, 0)):
         assert transaction.manager is self and method.manager is self
@@ -24,17 +30,35 @@ class TransactionManager(Elaboratable):
         return method.data_out
 
     def _conflict_graph(self):
+        def methodTrans(method):
+            for transaction, _ in self.methods[method]:
+                yield transaction
+
+        def endTrans(end):
+            if isinstance(end, Method):
+                return methodTrans(end)
+            else:
+                return [end]
+
         gr = {}
+
+        def addEdge(transaction, transaction2):
+            gr[transaction].add(transaction2)
+            gr[transaction2].add(transaction)
 
         for transaction in self.transactions.keys():
             gr[transaction] = set()
 
         for transaction, methods in self.transactions.items():
             for method in methods:
-                for transaction2, _ in self.methods[method]:
+                for transaction2 in methodTrans(method):
                     if transaction is not transaction2:
-                        gr[transaction].add(transaction2)
-                        gr[transaction2].add(transaction)
+                        addEdge(transaction, transaction2)
+
+        for (end1, end2) in self.conflicts:
+            for transaction in endTrans(end1):
+                for transaction2 in endTrans(end2):
+                    addEdge(transaction, transaction2)
 
         return gr
 
@@ -126,6 +150,9 @@ class Transaction:
     def __exit__(self, exc_type, exc_value, exc_tb):
         self.__class__.current = None
 
+    def add_conflict(self, end : Union['Transaction', 'Method']):
+        self.manager.add_conflict(self, end)
+
     @classmethod
     def get(cls):
         if cls.current is None:
@@ -145,6 +172,9 @@ class Method:
         if isinstance(o, int):
             o = [('data', o)]
         self.data_out = Record(o)
+
+    def add_conflict(self, end : Union['Transaction', 'Method']):
+        self.manager.add_conflict(self, end)
 
     @contextmanager
     def when_called(self, m : Module, ready=C(1), ret=C(0, 0)):
