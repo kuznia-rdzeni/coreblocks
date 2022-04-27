@@ -59,6 +59,7 @@ class TransactionManager(Elaboratable):
         self.methods = {}
 
     def use_method(self, transaction : 'Transaction', method : 'Method', arg=C(0, 0)):
+        assert transaction.manager is self and method.manager is self
         if not transaction in self.transactions:
             self.transactions[transaction] = []
         if not method in self.methods:
@@ -159,6 +160,7 @@ class Transaction:
             manager = TransactionContext.get()
         self.request = request
         self.grant = Signal()
+        self.manager = manager
 
     def __enter__(self):
         if self.__class__.current is not None:
@@ -181,6 +183,7 @@ class Method:
             manager = TransactionContext.get()
         self.ready = Signal()
         self.run = Signal()
+        self.manager = manager
         if isinstance(i, int):
             i = [('data', i)]
         self.data_in = Record(i)
@@ -197,8 +200,7 @@ class Method:
 
     def __call__(self, arg=C(0, 0)):
         trans = Transaction.get()
-        manager = TransactionContext.get()
-        return manager.use_method(trans, self, arg)
+        return self.manager.use_method(trans, self, arg)
 
 # FIFOs
 
