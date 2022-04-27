@@ -1,6 +1,6 @@
 
 from contextlib import contextmanager
-from typing import Union
+from typing import Union, List
 from amaranth import *
 from ._utils import *
 
@@ -16,7 +16,7 @@ class TransactionManager(Elaboratable):
         self.conflicts = []
 
     def add_conflict(self, end1 : Union['Transaction', 'Method'],
-                           end2 : Union['Transaction', 'Method']):
+                           end2 : Union['Transaction', 'Method']) -> None:
         self.conflicts.append((end1, end2))
 
     def use_method(self, transaction : 'Transaction', method : 'Method', arg=C(0, 0)):
@@ -92,7 +92,7 @@ class TransactionManager(Elaboratable):
         return m
 
 class TransactionContext:
-    stack = []
+    stack : List[TransactionManager] = []
 
     def __init__(self, manager : TransactionManager):
         self.manager = manager
@@ -106,7 +106,7 @@ class TransactionContext:
         assert self.manager is top
 
     @classmethod
-    def get(cls):
+    def get(cls) -> TransactionManager:
         if not cls.stack:
             raise RuntimeError("TransactionContext stack is empty")
         return cls.stack[-1]
@@ -117,7 +117,7 @@ class TransactionModule(Elaboratable):
         self.transactionManager = TransactionManager()
         self.module = module
 
-    def transactionContext(self):
+    def transactionContext(self) -> TransactionContext:
         return TransactionContext(self.transactionManager)
 
     def elaborate(self, platform):
@@ -150,11 +150,11 @@ class Transaction:
     def __exit__(self, exc_type, exc_value, exc_tb):
         self.__class__.current = None
 
-    def add_conflict(self, end : Union['Transaction', 'Method']):
+    def add_conflict(self, end : Union['Transaction', 'Method']) -> None:
         self.manager.add_conflict(self, end)
 
     @classmethod
-    def get(cls):
+    def get(cls) -> 'Transaction':
         if cls.current is None:
             raise RuntimeError("No current transaction")
         return cls.current
@@ -173,7 +173,7 @@ class Method:
             o = [('data', o)]
         self.data_out = Record(o)
 
-    def add_conflict(self, end : Union['Transaction', 'Method']):
+    def add_conflict(self, end : Union['Transaction', 'Method']) -> None:
         self.manager.add_conflict(self, end)
 
     @contextmanager
