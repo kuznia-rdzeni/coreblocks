@@ -5,6 +5,7 @@ from .core import *
 __all__ = [
     "FIFO",
     "ClickIn", "ClickOut",
+    "DummyIO",
     "CopyTrans", "CatTrans"
 ]
 
@@ -81,6 +82,32 @@ class ClickOut(Elaboratable):
 
         with self.put.when_called(m, ~btn2 & btn1) as arg:
             m.d.sync += self.dat.eq(arg)
+
+        return m
+
+# Testbench-friendly input/output
+
+class DummyIO(Elaboratable):
+    def __init__(self, fmt, iface : Method):
+        self.format = fmt
+        self.iface = iface
+        self.en = Signal()
+        self.done = Signal()
+        self.data_in = Record(self.format)
+        self.data_out = Record(self.format)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        # this forces data_in signal to appear in VCD dumps
+        data_in = Signal.like(self.data_in)
+        m.d.comb += data_in.eq(self.data_in)
+
+        m.d.comb += self.done.eq(self.iface.run)
+
+        with Transaction(request=self.en) as t:
+            data_out = self.iface(arg=data_in)
+            m.d.comb += self.data_out.eq(data_out)
 
         return m
 
