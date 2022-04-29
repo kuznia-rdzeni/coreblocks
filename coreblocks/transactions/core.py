@@ -77,16 +77,12 @@ class TransactionManager(Elaboratable):
         gr = self._conflict_graph()
 
         for cc in _graph_ccs(gr):
-            sched = Scheduler(len(cc))
-            m.submodules += sched
             for k, transaction in enumerate(cc):
-                methods = self.transactions[transaction]
-                ready = Signal(len(methods))
-                for n, method in enumerate(methods):
-                    m.d.comb += ready[n].eq(method.ready)
-                runnable = ready.all()
-                m.d.comb += sched.requests[k].eq(transaction.request & runnable)
-                m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
+                ready = [method.ready for method in self.transactions[transaction]]
+                runnable = Cat(ready).all()
+                conflicts = [cc[j].grant for j in range(k) if cc[j] in gr[transaction]]
+                noconflict = ~Cat(conflicts).any()
+                m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
 
         for method, transactions in self.methods.items():
             granted = Signal(len(transactions))
