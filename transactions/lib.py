@@ -5,7 +5,7 @@ from .core import *
 __all__ = [
     "FIFO",
     "ClickIn", "ClickOut",
-    "CopyTrans", "CatTrans"
+    "ConnectTrans", "CatTrans"
 ]
 
 # FIFOs
@@ -86,20 +86,20 @@ class ClickOut(Elaboratable):
 
 # Example transactions
 
-class CopyTrans(Elaboratable):
-    def __init__(self, src : Method, dst : Method):
-        self.src = src
-        self.dst = dst
+class ConnectTrans(Elaboratable):
+    def __init__(self, method1 : Method, method2 : Method):
+        self.method1 = method1
+        self.method2 = method2
 
     def elaborate(self, platform):
         m = Module()
 
         with Transaction() as trans:
-            sdata = self.src()
-            ddata = Record.like(sdata)
-            self.dst(ddata)
+            data1 = Record.like(self.method1.data_out)
+            data2 = Record.like(self.method2.data_out)
 
-            m.d.comb += ddata.eq(sdata)
+            m.d.comb += data1.eq(self.method1(data2))
+            m.d.comb += data2.eq(self.method2(data1))
 
         return m
 
