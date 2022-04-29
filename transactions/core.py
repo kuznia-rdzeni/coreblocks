@@ -13,6 +13,7 @@ class TransactionManager(Elaboratable):
     def __init__(self):
         self.transactions = {}
         self.methods = {}
+        self.methodargs = {}
         self.conflicts = []
 
     def add_conflict(self, end1 : Union['Transaction', 'Method'],
@@ -21,22 +22,21 @@ class TransactionManager(Elaboratable):
 
     def use_method(self, transaction : 'Transaction', method : 'Method', arg=C(0, 0)):
         assert transaction.manager is self and method.manager is self
+        if (transaction, method) in self.methodargs:
+            raise RuntimeError("Method can't be called twice from the same transaction")
         if not transaction in self.transactions:
             self.transactions[transaction] = []
         if not method in self.methods:
             self.methods[method] = []
         self.transactions[transaction].append(method)
-        self.methods[method].append((transaction, arg))
+        self.methods[method].append(transaction)
+        self.methodargs[(transaction, method)] = arg
         return method.data_out
 
     def _conflict_graph(self):
-        def methodTrans(method):
-            for transaction, _ in self.methods[method]:
-                yield transaction
-
         def endTrans(end):
             if isinstance(end, Method):
-                return methodTrans(end)
+                return self.methods[end]
             else:
                 return [end]
 
@@ -51,7 +51,7 @@ class TransactionManager(Elaboratable):
 
         for transaction, methods in self.transactions.items():
             for method in methods:
-                for transaction2 in methodTrans(method):
+                for transaction2 in self.methods[method]:
                     if transaction is not transaction2:
                         addEdge(transaction, transaction2)
 
@@ -81,7 +81,8 @@ class TransactionManager(Elaboratable):
 
         for method, transactions in self.methods.items():
             granted = Signal(len(transactions))
-            for n, (transaction, tdata) in enumerate(transactions):
+            for n, transaction in enumerate(transactions):
+                tdata = self.methodargs[(transaction, method)]
                 m.d.comb += granted[n].eq(transaction.grant)
 
                 with m.If(transaction.grant):
