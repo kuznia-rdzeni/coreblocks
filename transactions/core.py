@@ -120,7 +120,6 @@ class TransactionContext:
 
 class TransactionModule(Elaboratable):
     def __init__(self, module):
-        Module.__init__(self)
         self.transactionManager = TransactionManager()
         self.module = module
 
