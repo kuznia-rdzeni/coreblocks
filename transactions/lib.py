@@ -5,7 +5,7 @@ from .core import *
 __all__ = [
     "FIFO",
     "ClickIn", "ClickOut",
-    "DummyIO",
+    "AdapterTrans",
     "ConnectTrans", "CatTrans"
 ]
 
@@ -87,7 +87,7 @@ class ClickOut(Elaboratable):
 
 # Testbench-friendly input/output
 
-class DummyIO(Elaboratable):
+class AdapterTrans(Elaboratable):
     def __init__(self, iface : Method, i=[], o=[]):
         self.input_fmt = i
         self.output_fmt = o
