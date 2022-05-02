@@ -88,13 +88,14 @@ class ClickOut(Elaboratable):
 # Testbench-friendly input/output
 
 class DummyIO(Elaboratable):
-    def __init__(self, fmt, iface : Method):
-        self.format = fmt
+    def __init__(self, iface : Method, i=[], o=[]):
+        self.input_fmt = i
+        self.output_fmt = o
         self.iface = iface
         self.en = Signal()
         self.done = Signal()
-        self.data_in = Record(self.format)
-        self.data_out = Record(self.format)
+        self.data_in = Record(self.input_fmt)
+        self.data_out = Record(self.output_fmt)
 
     def elaborate(self, platform):
         m = Module()
