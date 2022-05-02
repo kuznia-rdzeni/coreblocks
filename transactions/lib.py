@@ -106,7 +106,7 @@ class AdapterTrans(Elaboratable):
 
         m.d.comb += self.done.eq(self.iface.run)
 
-        with Transaction(request=self.en) as t:
+        with Transaction().when_granted(m, request=self.en) as t:
             data_out = self.iface(arg=data_in)
             m.d.comb += self.data_out.eq(data_out)
 
