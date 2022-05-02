@@ -94,7 +94,7 @@ class ConnectTrans(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        with Transaction() as trans:
+        with Transaction().when_granted(m):
             data1 = Record.like(self.method1.data_out)
             data2 = Record.like(self.method2.data_out)
 
@@ -112,7 +112,7 @@ class CatTrans(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        with Transaction() as trans:
+        with Transaction().when_granted(m):
             sdata1 = self.src1()
             sdata2 = self.src2()
             ddata = Record.like(self.dst.data_in)
