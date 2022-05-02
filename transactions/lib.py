@@ -6,7 +6,7 @@ __all__ = [
     "FIFO",
     "ClickIn", "ClickOut",
     "AdapterTrans",
-    "CopyTrans", "CatTrans"
+    "ConnectTrans", "CatTrans"
 ]
 
 # FIFOs
@@ -114,20 +114,20 @@ class AdapterTrans(Elaboratable):
 
 # Example transactions
 
-class CopyTrans(Elaboratable):
-    def __init__(self, src : Method, dst : Method):
-        self.src = src
-        self.dst = dst
+class ConnectTrans(Elaboratable):
+    def __init__(self, method1 : Method, method2 : Method):
+        self.method1 = method1
+        self.method2 = method2
 
     def elaborate(self, platform):
         m = Module()
 
-        with Transaction() as trans:
-            sdata = self.src()
-            ddata = Record.like(sdata)
-            self.dst(ddata)
+        with Transaction().when_granted(m):
+            data1 = Record.like(self.method1.data_out)
+            data2 = Record.like(self.method2.data_out)
 
-            m.d.comb += ddata.eq(sdata)
+            m.d.comb += data1.eq(self.method1(data2))
+            m.d.comb += data2.eq(self.method2(data1))
 
         return m
 
@@ -140,7 +140,7 @@ class CatTrans(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        with Transaction() as trans:
+        with Transaction().when_granted(m):
             sdata1 = self.src1()
             sdata2 = self.src2()
             ddata = Record.like(self.dst.data_in)

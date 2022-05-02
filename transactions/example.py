@@ -23,7 +23,7 @@ class SimpleCircuit(Elaboratable):
             m.submodules.in2 = in2 = ClickIn()
             m.submodules.out = out = ClickOut(2)
             m.submodules.cti = CatTrans(in1.get, in2.get, fifo.write)
-            m.submodules.cto = CopyTrans(fifo.read, out.put)
+            m.submodules.cto = ConnectTrans(fifo.read, out.put)
             m.d.comb += in1.btn.eq(self.in1_btn)
             m.d.comb += in2.btn.eq(self.in2_btn)
             m.d.comb += out.btn.eq(self.out_btn)

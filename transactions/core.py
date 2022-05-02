@@ -10,9 +10,16 @@ __all__ = [
 ]
 
 class TransactionManager(Elaboratable):
+    """Transaction manager
+
+    This module is responsible for granting ``Transaction``s and running
+    ``Method``s. It takes care that two conflicting ``Transaction``s
+    are never granted in the same clock cycle.
+    """
     def __init__(self):
         self.transactions = {}
         self.methods = {}
+        self.methodargs = {}
         self.conflicts = []
 
     def add_conflict(self, end1 : Union['Transaction', 'Method'],
@@ -21,22 +28,21 @@ class TransactionManager(Elaboratable):
 
     def use_method(self, transaction : 'Transaction', method : 'Method', arg=C(0, 0)):
         assert transaction.manager is self and method.manager is self
+        if (transaction, method) in self.methodargs:
+            raise RuntimeError("Method can't be called twice from the same transaction")
         if not transaction in self.transactions:
             self.transactions[transaction] = []
         if not method in self.methods:
             self.methods[method] = []
         self.transactions[transaction].append(method)
-        self.methods[method].append((transaction, arg))
+        self.methods[method].append(transaction)
+        self.methodargs[(transaction, method)] = arg
         return method.data_out
 
     def _conflict_graph(self):
-        def methodTrans(method):
-            for transaction, _ in self.methods[method]:
-                yield transaction
-
         def endTrans(end):
             if isinstance(end, Method):
-                return methodTrans(end)
+                return self.methods[end]
             else:
                 return [end]
 
@@ -51,7 +57,7 @@ class TransactionManager(Elaboratable):
 
         for transaction, methods in self.transactions.items():
             for method in methods:
-                for transaction2 in methodTrans(method):
+                for transaction2 in self.methods[method]:
                     if transaction is not transaction2:
                         addEdge(transaction, transaction2)
 
@@ -81,7 +87,8 @@ class TransactionManager(Elaboratable):
 
         for method, transactions in self.methods.items():
             granted = Signal(len(transactions))
-            for n, (transaction, tdata) in enumerate(transactions):
+            for n, transaction in enumerate(transactions):
+                tdata = self.methodargs[(transaction, method)]
                 m.d.comb += granted[n].eq(transaction.grant)
 
                 with m.If(transaction.grant):
@@ -113,7 +120,6 @@ class TransactionContext:
 
 class TransactionModule(Elaboratable):
     def __init__(self, module):
-        Module.__init__(self)
         self.transactionManager = TransactionManager()
         self.module = module
 
@@ -132,25 +138,67 @@ class TransactionModule(Elaboratable):
         return self.module
 
 class Transaction:
+    """Transaction.
+
+    A ``Transaction`` allows to simultaneously access multiple ``Method``s
+    in a single clock cycle. It is granted by the ``TransactionManager``
+    only when every ``Method`` it needs is ready, and no conflicting
+    ``Transaction`` is already granted.
+
+    A module which defines a ``Transaction`` should use ``when_granted`` to
+    describe used methods and the transaction's effect on the module state.
+    The used methods should be called inside the ``when_granted``'s
+    ``with`` block.
+
+    Parameters
+    ----------
+    manager: TransactionManager
+        The ``TransactionManager`` controlling this ``Transaction``.
+        If omitted, the manager is received from ``TransactionContext``.
+
+    Attributes
+    ----------
+    request: Signal, in
+        Signals that the transaction wants to run. If omitted, the transaction
+        is always ready. Defined in the constructor.
+    grant: Signal, out
+        Signals that the transaction is granted by the ``TransactionManager``,
+        and all used methods are called.
+    """
     current = None
 
-    def __init__(self, *, request=C(1), manager : TransactionManager = None):
+    def __init__(self, *, manager : TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
-        self.request = request
+        self.request = Signal()
         self.grant = Signal()
         self.manager = manager
 
-    def __enter__(self):
+    @contextmanager
+    def when_granted(self, m : Module, request=C(1)):
         if self.__class__.current is not None:
             raise RuntimeError("Transaction inside transaction")
+        m.d.comb += self.request.eq(request)
         self.__class__.current = self
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_tb):
-        self.__class__.current = None
+        try:
+            with m.If(self.grant):
+                yield self
+        finally:
+            self.__class__.current = None
 
     def add_conflict(self, end : Union['Transaction', 'Method']) -> None:
+        """Registers a conflict.
+
+        The ``TransactionManager`` is informed that given ``Transaction``
+        or ``Method`` cannot execute simultaneously with this ``Transaction``.
+        Typical reason is using a common resource (register write
+        or memory port).
+
+        Parameters
+        ----------
+        end: Transaction or Method
+            The conflicting ``Transaction`` or ``Method``
+        """
         self.manager.add_conflict(self, end)
 
     @classmethod
@@ -160,6 +208,51 @@ class Transaction:
         return cls.current
 
 class Method:
+    """Transactional method.
+
+    A ``Method`` serves to interface a module with external ``Transaction``s.
+    It can be called by at most one ``Transaction`` in a given clock cycle.
+    When a given ``Method`` is required by multiple ``Transaction``s
+    simultenaously, at most one of them is granted by the
+    ``TransactionManager``, and the rest of them must wait.
+    Calling a ``Method`` always takes a single clock cycle.
+
+    Data is combinatorially transferred between ``Method``s and
+    ``Transaction``s using Amaranth ``Record``s. The transfer can take place
+    in both directions at the same time: from ``Method`` to ``Transaction``
+    (``data_out``) and from ``Transaction`` to ``Method`` (``data_in``).
+
+    A module which defines a ``Method`` should use ``when_called`` to describe
+    the method's effect on the module state.
+
+    Parameters
+    ----------
+    i: int or record layout
+        The format of ``data_in``.
+        An ``int`` corresponds to a ``Record`` with a single ``data`` field.
+    o: int or record layout
+        The format of ``data_in``.
+        An ``int`` corresponds to a ``Record`` with a single ``data`` field.
+    manager: TransactionManager
+        The ``TransactionManager`` controlling this ``Method``.
+        If omitted, the manager is received from ``TransactionContext``.
+
+    Attributes
+    ----------
+    ready: Signal, in
+        Signals that the method is ready to run in the current cycle.
+        Typically defined by calling ``when_called``.
+    run: Signal, out
+        Signals that the method is called in the current cycle by some
+        ``Transaction``. Defined by the ``TransactionManager``.
+    data_in: Record, out
+        Contains the data passed to the ``Method`` by the calling
+        ``Transaction``.
+    data_out: Record, in
+        Contains the data passed from the ``Method`` to the calling
+        ``Transaction``. Typically defined by calling ``when_called``.
+    """
+
     def __init__(self, *, i=0, o=0, manager : TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
@@ -174,6 +267,18 @@ class Method:
         self.data_out = Record(o)
 
     def add_conflict(self, end : Union['Transaction', 'Method']) -> None:
+        """Registers a conflict.
+
+        The ``TransactionManager`` is informed that given ``Transaction``
+        or ``Method`` cannot execute simultaneously with this ``Method``.
+        Typical reason is using a common resource (register write
+        or memory port).
+
+        Parameters
+        ----------
+        end: Transaction or Method
+            The conflicting ``Transaction`` or ``Method``
+        """
         self.manager.add_conflict(self, end)
 
     @contextmanager
