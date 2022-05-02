@@ -145,15 +145,13 @@ class Transaction:
     only when every ``Method`` it needs is ready, and no conflicting
     ``Transaction`` is already granted.
 
-    A ``Transaction`` can be used as a context manager (the ``with`` syntax).
-    Methods called inside the ``with`` block are marked as used by this
-    ``Transaction`` in the ``TransactionContext``.
+    A module which defines a ``Transaction`` should use ``when_granted`` to
+    describe used methods and the transaction's effect on the module state.
+    The used methods should be called inside the ``when_granted``'s
+    ``with`` block.
 
     Parameters
     ----------
-    request: Signal, in
-        Signals that the transaction wants to run. If omitted, the transaction
-        is always ready.
     manager: TransactionManager
         The ``TransactionManager`` controlling this ``Transaction``.
         If omitted, the manager is received from ``TransactionContext``.
@@ -169,21 +167,24 @@ class Transaction:
     """
     current = None
 
-    def __init__(self, *, request=C(1), manager : TransactionManager = None):
+    def __init__(self, *, manager : TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
-        self.request = request
+        self.request = Signal()
         self.grant = Signal()
         self.manager = manager
 
-    def __enter__(self):
+    @contextmanager
+    def when_granted(self, m : Module, request=C(1)):
         if self.__class__.current is not None:
             raise RuntimeError("Transaction inside transaction")
+        m.d.comb += self.request.eq(request)
         self.__class__.current = self
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_tb):
-        self.__class__.current = None
+        try:
+            with m.If(self.grant):
+                yield self
+        finally:
+            self.__class__.current = None
 
     def add_conflict(self, end : Union['Transaction', 'Method']) -> None:
         """Registers a conflict.
