@@ -4,6 +4,8 @@ from amaranth.lib.scheduler import RoundRobin
 from functools import reduce
 import operator
 
+from transactions import Method
+
 wbRecord = Record([
             ("dat_r", 64, DIR_FANIN),
             ("dat_w", 64, DIR_FANOUT),
@@ -20,75 +22,81 @@ wbRecord = Record([
 
 # Simple cpu to Wishbone master interface
 class WishboneMaster(Elaboratable):
+    requestLayout = [
+        ("addr", wbRecord.adr.shape().width, DIR_FANIN),
+        ("data", wbRecord.dat_w.shape().width, DIR_FANIN),
+        ("we", 1, DIR_FANIN),
+    ]
+
+    resultLayout = [
+        ("data", wbRecord.dat_r.shape().width),
+        ("err", 1)
+    ]
+
     # WishboneMaster.wbMaster is WB bus output (as wbRecord)
+    # 
+    # Methods avaliable to CPU:
+    # .request - Method that starts new Wishbone request. Ready when no request is currently executed. Takes requestLayout as argument.
+    # .result  - Method that becomes ready when Wishbone request finishes. Returns state of request (error or success) and data (in case of read request) as resultLayout.
     def __init__(self):
         self.wbMaster = Record.like(wbRecord)
 
-        # TODO: Connect to transaction API
-        self.cpuCon = Record([
-            ("addr", wbRecord.adr.shape().width, DIR_FANIN),
-            ("data", wbRecord.dat_w.shape().width, DIR_FANIN),
-            ("we", 1, DIR_FANIN),
-            ("request", 1, DIR_FANIN),
-            ("busy", 1, DIR_FANOUT),
-            ("data_o", wbRecord.dat_r.shape().width, DIR_FANOUT),
-            ("err", 1, DIR_FANOUT),
-            ("done", 1, DIR_FANOUT)])
+        self.request = Method(i=self.requestLayout)
+        self.result = Method(o=self.resultLayout)
 
-        self.prev_req = Signal()
+        self.ready = Signal()
+        self.res_ready = Signal()
+        self.result_data = Record(self.resultLayout)
+
         # latched input signals
-        self.txn_addr = Signal(wbRecord.adr.shape().width)
-        self.txn_data = Signal(wbRecord.dat_w.shape().width)
-        self.txn_we = Signal()
+        self.txn_req = Record(self.requestLayout)
 
-        self.ports = list(self.wbMaster.fields.values()) + list(self.cpuCon.fields.values())
+        self.ports = list(self.wbMaster.fields.values())
 
     def elaborate(self, platform):
         m = Module()
         
-        m.d.sync += self.prev_req.eq(self.cpuCon.request)
-
-        def FSMWBCycStart(addr, data, we):
+        def FSMWBCycStart(request):
             m.d.sync += self.wbMaster.cyc.eq(1)
             m.d.sync += self.wbMaster.stb.eq(1)
-            m.d.sync += self.wbMaster.adr.eq(addr)
-            m.d.sync += self.wbMaster.dat_w.eq(Mux(we, data, 0))
-            m.d.sync += self.wbMaster.we.eq(we)
+            m.d.sync += self.wbMaster.adr.eq(request.addr)
+            m.d.sync += self.wbMaster.dat_w.eq(Mux(request.we, request.data, 0))
+            m.d.sync += self.wbMaster.we.eq(request.we)
             m.next = "WBWaitACK" 
         
+        with self.result.when_called(m, ready=self.res_ready, ret=self.result_data):
+            m.d.sync += self.res_ready.eq(0)
+
         with m.FSM("Reset") as fsm:
             with m.State("Reset"): 
                 m.d.sync += self.wbMaster.rst.eq(1)
                 m.next = "Idle"
             with m.State("Idle"):
                 # default values for important signals
-                m.d.sync += self.cpuCon.busy.eq(0)
-                m.d.sync += self.cpuCon.done.eq(0)
-                m.d.sync += self.cpuCon.err.eq(0)
+                m.d.sync += self.ready.eq(1)
                 m.d.sync += self.wbMaster.rst.eq(0)
                 m.d.sync += self.wbMaster.stb.eq(0)
                 m.d.sync += self.wbMaster.cyc.eq(0)
-     
-                with m.If(self.cpuCon.request & ~self.prev_req):
-                    m.d.sync += self.cpuCon.busy.eq(1)
-                    m.d.sync += self.txn_addr.eq(self.cpuCon.addr)
-                    m.d.sync += self.txn_data.eq(self.cpuCon.data)
-                    m.d.sync += self.txn_we.eq(self.cpuCon.we)
+
+                # TODO: verify ready signal inside FSM
+                with self.request.when_called(m, ready=(self.ready & ~self.res_ready)):
+                    m.d.sync += self.ready.eq(0)
+                    m.d.sync += self.txn_req.connect(self.request.data_in)
                     # do WBCycStart state in the same clock cycle
-                    FSMWBCycStart(self.cpuCon.addr, self.cpuCon.data, self.cpuCon.we)
+                    FSMWBCycStart(self.request.data_in)
              
             with m.State("WBCycStart"): 
-                FSMWBCycStart(self.txn_addr, self.txn_data, self.txn_we)
+                FSMWBCycStart(self.txn_req)
                 m.next = "WBWaitACK"
 
             with m.State("WBWaitACK"):
                 with m.If(self.wbMaster.ack | self.wbMaster.err):
-                    m.d.sync += self.cpuCon.data_o.eq(Mux(self.txn_we, 0, self.wbMaster.dat_r))
                     m.d.sync += self.wbMaster.cyc.eq(0)
                     m.d.sync += self.wbMaster.stb.eq(0)
-                    m.d.sync += self.cpuCon.done.eq(1)
-                    m.d.sync += self.cpuCon.busy.eq(0)
-                    m.d.sync += self.cpuCon.err.eq(self.wbMaster.err)
+                    m.d.sync += self.ready.eq(1)
+                    m.d.sync += self.res_ready.eq(1)
+                    m.d.sync += self.result_data.data.eq(Mux(self.txn_req.we, 0, self.wbMaster.dat_r))
+                    m.d.sync += self.result_data.err.eq(self.wbMaster.err)
                     m.next = "Idle"
                 with m.If(self.wbMaster.rty):
                     m.d.sync += self.wbMaster.cyc.eq(1)
@@ -185,10 +193,3 @@ class WishboneArbiter(Elaboratable):
         m.d.comb += self.arb_enable.eq((~masterArray[m.submodules.rr.grant].cyc) | (~self.prev_cyc))
         
         return m  
-
-if __name__ == "__main__":
-    from amaranth.back import verilog
-    import os
-    model = WishboneMaster()
-    with open("wishbone_master.v", "w") as f:
-        f.write(verilog.convert(model, ports=model.ports))
