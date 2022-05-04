@@ -52,7 +52,7 @@ class ClickIn(Elaboratable):
         m.d.sync += btn2.eq(btn1)
         m.d.sync += dat1.eq(self.dat)
         get_ready = Signal()
-        get_data = Signal()
+        get_data = Signal.like(self.dat)
 
         with self.get.when_called(m, get_ready, get_data):
             m.d.sync += get_ready.eq(0)
