@@ -40,7 +40,7 @@ class RegAllocation(Elaboratable):
 
             with m.State('get_free_reg'):
                 with Transaction().when_granted(m):
-                    reg_id = self.get_free_reg()
+                    reg_id = self.get_free_reg(m)
                     m.d.sync += free_reg.eq(reg_id)
                     m.next = 'wait_output'
 
@@ -89,7 +89,7 @@ class Renaming(Elaboratable):
 
             with m.State('rename_regs'):
                 with Transaction().when_granted(m):
-                    renamed = self.f_rat.if_rename(arg=data_in)
+                    renamed = self.f_rat.if_rename(m, arg=data_in)
                     m.d.sync += rphys_1.eq(renamed.rphys_1)
                     m.d.sync += rphys_2.eq(renamed.rphys_2)
                     m.next = 'wait_output'
