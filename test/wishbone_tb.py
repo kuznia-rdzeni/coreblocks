@@ -2,9 +2,27 @@
 
 from coreblocks.wishbone import *
 from amaranth.sim import Simulator
+from transactions import TransactionModule
+from transactions.lib import AdapterTrans
 
-wbm = WishboneMaster()
+class WishboneMasterTestModule(Elaboratable):
+    def __init__(self):
+        pass
+    def elaborate(self, plaform):
+        m = Module()
+        tm = TransactionModule(m)
+        with tm.transactionContext():
+            m.submodules.wbm = self.wbm = wbm = WishboneMaster()
+            m.submodules.rqa = self.requestAdapter = AdapterTrans(wbm.request, i=WishboneMaster.requestLayout)
+            m.submodules.rsa = self.resultAdapter = AdapterTrans(wbm.result, o=WishboneMaster.resultLayout)
+        return tm
+
+twbm = WishboneMasterTestModule()
 def wbm_bench():
+    wbm = twbm.wbm
+    requestAdapter = twbm.requestAdapter
+    resultAdapter = twbm.resultAdapter
+
     yield
     # reset cycle
     assert (yield wbm.wbMaster.rst)
@@ -13,14 +31,19 @@ def wbm_bench():
     assert not (yield wbm.wbMaster.stb)
     yield
     # request read
-    yield wbm.cpuCon.addr.eq(2)
-    yield wbm.cpuCon.we.eq(0)
-    yield wbm.cpuCon.request.eq(1)
+    assert (yield wbm.request.ready)
+    assert not (yield wbm.result.ready)
+    yield requestAdapter.data_in.addr.eq(2)
+    yield requestAdapter.data_in.we.eq(0)
+    yield requestAdapter.en.eq(1)
     yield
-    # check latching
-    yield wbm.cpuCon.addr.eq(1)
+    assert (yield requestAdapter.done)
+    yield requestAdapter.en.eq(0)
     yield
-    assert (yield wbm.cpuCon.busy)
+    # assert making new request is unavaliable (parameters cannot change)
+    # and check busy state
+    assert not (yield wbm.request.ready)
+    assert not (yield wbm.result.ready)
     yield
     assert (yield wbm.wbMaster.adr == 2)
     assert (yield wbm.wbMaster.cyc)
@@ -34,32 +57,41 @@ def wbm_bench():
     yield wbm.wbMaster.dat_r.eq(3)
     yield wbm.wbMaster.ack.eq(1)
     yield
-    assert (yield wbm.cpuCon.busy)
-    assert not (yield wbm.cpuCon.done)
+    assert not (yield wbm.request.ready)
+    assert not (yield wbm.result.ready)
     yield wbm.wbMaster.ack.eq(0)
-    # check cpu response and wb cycle end
+    # response should be available in the next cycle
+    yield resultAdapter.en.eq(1)
     yield
-    assert not (yield wbm.cpuCon.busy)
-    assert (yield wbm.cpuCon.done)
-    assert (yield wbm.cpuCon.data_o) == 3
+    # response should be ready, but until not read, making new request should be unavaliable
+    assert (yield wbm.result.ready)
+    assert not (yield wbm.request.ready)
     assert not (yield wbm.wbMaster.cyc)
     assert not (yield wbm.wbMaster.stb)
+    # verify outut of result tranaction and if it was executed in the same clock cycle
+    assert (yield resultAdapter.done)
+    assert (yield resultAdapter.data_out.data) == 3
+    yield resultAdapter.en.eq(0)
     yield
-    # check if request is latched only on edge
-    assert not (yield wbm.cpuCon.busy)
-    yield wbm.cpuCon.request.eq(0)
+    # after fetching result only request method should be ready
+    assert (yield wbm.request.ready)
+    assert not (yield wbm.result.ready)
+    yield
+    # check if request is not repeated
+    assert (yield wbm.request.ready)
     yield
     # make write req
-    yield wbm.cpuCon.addr.eq(3)
-    yield wbm.cpuCon.we.eq(1)
-    yield wbm.cpuCon.data.eq(4)
-    yield wbm.cpuCon.request.eq(1)
+    yield requestAdapter.data_in.addr.eq(3)
+    yield requestAdapter.data_in.data.eq(4)
+    yield requestAdapter.data_in.we.eq(1)
+    yield requestAdapter.en.eq(1)
     yield
-    yield wbm.cpuCon.data.eq(3)
+    assert (yield requestAdapter.done)
+    yield requestAdapter.en.eq(0)
     yield
-    assert (yield wbm.cpuCon.busy)
-    # minimal cycle delay
+    assert not (yield wbm.request.ready)
     assert (yield wbm.wbMaster.dat_w) == 4
+    # minimal 1-cycle delay
     # make rty response
     yield wbm.wbMaster.rty.eq(1)
     yield
@@ -68,7 +100,8 @@ def wbm_bench():
     yield
     assert (yield wbm.wbMaster.cyc)
     assert not (yield wbm.wbMaster.stb)
-    assert (yield wbm.cpuCon.busy)
+    assert not (yield wbm.request.ready)
+    assert not (yield wbm.result.ready)
     yield
     assert (yield wbm.wbMaster.cyc)
     assert (yield wbm.wbMaster.stb)
@@ -78,16 +111,21 @@ def wbm_bench():
     yield
     yield wbm.wbMaster.err.eq(0)
     yield
-    assert not (yield wbm.cpuCon.busy)
-    assert (yield wbm.cpuCon.done)
-    assert (yield wbm.cpuCon.err)
+    assert (yield wbm.result.ready)
+    yield resultAdapter.en.eq(1)
+    yield
+    assert (yield resultAdapter.done)
+    assert (yield resultAdapter.data_out.err)
+    assert not (yield wbm.request.ready)
+    yield resultAdapter.en.eq(0)
+    yield
+    assert (yield wbm.request.ready)
+    assert not (yield wbm.result.ready)
     assert not (yield wbm.wbMaster.cyc)
     assert not (yield wbm.wbMaster.stb)
     yield
-    assert not (yield wbm.cpuCon.err)
-    yield
 
-sim = Simulator(wbm)
+sim = Simulator(twbm)
 sim.add_clock(1e-6)
 sim.add_sync_process(wbm_bench)
 with sim.write_vcd("wishbone_master.vcd"):

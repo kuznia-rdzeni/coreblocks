@@ -78,7 +78,6 @@ class WishboneMaster(Elaboratable):
                 m.d.sync += self.wbMaster.stb.eq(0)
                 m.d.sync += self.wbMaster.cyc.eq(0)
 
-                # TODO: verify ready signal inside FSM
                 with self.request.when_called(m, ready=(self.ready & ~self.res_ready)):
                     m.d.sync += self.ready.eq(0)
                     m.d.sync += self.txn_req.connect(self.request.data_in)
