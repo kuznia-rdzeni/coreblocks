@@ -290,7 +290,7 @@ class Method:
 
     def __call__(self, m : Module, arg=C(0, 0), enable=C(1)):
         enable_sig = Signal()
-        m.d.comb += enable_sig.eq(enable_sig)
+        m.d.comb += enable_sig.eq(enable)
         trans = Transaction.get()
         return self.manager.use_method(trans, self, arg, enable_sig)
 
