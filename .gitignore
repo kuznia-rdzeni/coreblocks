@@ -1,0 +1,11 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Verilog files
+*.v
+
+# Waveform dumps
+*.vcd
+*.gtkw
