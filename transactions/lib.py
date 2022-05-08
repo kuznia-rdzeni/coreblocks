@@ -53,7 +53,7 @@ class ClickIn(Elaboratable):
         m.d.sync += btn2.eq(btn1)
         m.d.sync += dat1.eq(self.dat)
         get_ready = Signal()
-        get_data = Signal()
+        get_data = Signal.like(self.dat)
 
         with self.get.when_called(m, get_ready, get_data):
             m.d.sync += get_ready.eq(0)
@@ -126,8 +126,8 @@ class ConnectTrans(Elaboratable):
             data1 = Record.like(self.method1.data_out)
             data2 = Record.like(self.method2.data_out)
 
-            m.d.comb += data1.eq(self.method1(data2))
-            m.d.comb += data2.eq(self.method2(data1))
+            m.d.comb += data1.eq(self.method1(m, data2))
+            m.d.comb += data2.eq(self.method2(m, data1))
 
         return m
 
@@ -141,10 +141,10 @@ class CatTrans(Elaboratable):
         m = Module()
 
         with Transaction().when_granted(m):
-            sdata1 = self.src1()
-            sdata2 = self.src2()
+            sdata1 = self.src1(m)
+            sdata2 = self.src2(m)
             ddata = Record.like(self.dst.data_in)
-            self.dst(ddata)
+            self.dst(m, ddata)
 
             m.d.comb += ddata.eq(Cat(sdata1, sdata2))
 
