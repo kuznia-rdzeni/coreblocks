@@ -26,7 +26,7 @@ class TransactionManager(Elaboratable):
                            end2 : Union['Transaction', 'Method']) -> None:
         self.conflicts.append((end1, end2))
 
-    def use_method(self, transaction : 'Transaction', method : 'Method', arg=C(0, 0)):
+    def use_method(self, transaction : 'Transaction', method : 'Method', arg=C(0, 0), enable=C(1)):
         assert transaction.manager is self and method.manager is self
         if (transaction, method) in self.methodargs:
             raise RuntimeError("Method can't be called twice from the same transaction")
@@ -36,7 +36,7 @@ class TransactionManager(Elaboratable):
             self.methods[method] = []
         self.transactions[transaction].append(method)
         self.methods[method].append(transaction)
-        self.methodargs[(transaction, method)] = arg
+        self.methodargs[(transaction, method)] = (arg, enable)
         return method.data_out
 
     def _conflict_graph(self):
@@ -88,8 +88,8 @@ class TransactionManager(Elaboratable):
         for method, transactions in self.methods.items():
             granted = Signal(len(transactions))
             for n, transaction in enumerate(transactions):
-                tdata = self.methodargs[(transaction, method)]
-                m.d.comb += granted[n].eq(transaction.grant)
+                (tdata, enable) = self.methodargs[(transaction, method)]
+                m.d.comb += granted[n].eq(transaction.grant & enable)
 
                 with m.If(transaction.grant):
                     m.d.comb += method.data_in.eq(tdata)
@@ -288,8 +288,10 @@ class Method:
         with m.If(self.run):
             yield self.data_in
 
-    def __call__(self, arg=C(0, 0)):
+    def __call__(self, m : Module, arg=C(0, 0), enable=C(1)):
+        enable_sig = Signal()
+        m.d.comb += enable_sig.eq(enable)
         trans = Transaction.get()
-        return self.manager.use_method(trans, self, arg)
+        return self.manager.use_method(trans, self, arg, enable_sig)
 
 
