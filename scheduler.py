@@ -141,7 +141,7 @@ class RenameTestCircuit(Elaboratable):
                 RegAlloc(instr_fifo.read, free_rf_fifo.read,
                               buf1.write)
             m.submodules.rat = rat = RAT()
-            m.submodules.buf2 = buf2 = FIFO(layout_width(RAT.output_layout), 2)
+            m.submodules.buf2 = buf2 = FIFO(layout_width(Renaming.output_layout), 2)
             m.submodules.renaming = renaming = \
                 Renaming(buf1.read, rat.if_rename, buf2.write)
 
@@ -162,7 +162,6 @@ def check_renamed(rphys_1, rphys_2, rlog_out, rphys_out):
     assert((yield out.data_out.rphys_1) == rphys_1)
     assert((yield out.data_out.rphys_2) == rphys_2)
     rlog_out_2 = yield out.data_out.rlog_out
-    print(rlog_out_2, rlog_out)
     assert(rlog_out_2 == rlog_out)
     assert((yield out.data_out.rphys_out) == rphys_out)
 
