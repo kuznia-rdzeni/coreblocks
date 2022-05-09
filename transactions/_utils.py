@@ -3,7 +3,7 @@ import itertools
 from amaranth import *
 
 __all__ = [
-    "Scheduler", "_graph_ccs"
+    "Scheduler", "_graph_ccs", "_coerce_record"
 ]
 
 class Scheduler(Elaboratable):
@@ -56,4 +56,8 @@ def _graph_ccs(gr):
 
     return ccs
 
-
+def _coerce_record(int_or_layout):
+    if isinstance(int_or_layout, int):
+        return Record([('data', int_or_layout)])
+    else:
+        return Record(int_or_layout)
