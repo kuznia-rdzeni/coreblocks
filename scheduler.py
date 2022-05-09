@@ -4,122 +4,113 @@ from transactions.lib import FIFO, ConnectTrans, AdapterTrans
 import random
 import queue
 
-class RegAllocation(Elaboratable):
-    def __init__(self, get_free_reg : Method, phys_regs_bits=6):
-        self.get_free_reg = get_free_reg
-        self.phys_regs_bits = phys_regs_bits
-        self.input_layout = [
-            ('rlog_1', 5),
-            ('rlog_2', 5),
-            ('rlog_out', 5)
-        ]
-        self.output_layout = [
-            ('rlog_1', 5),
-            ('rlog_2', 5),
-            ('rlog_out', 5),
-            ('rphys_out', phys_regs_bits)
-        ]
-        self.if_put = Method(i=self.input_layout)
-        self.if_get = Method(o=self.output_layout)
+def layout_width(layout):
+    return Signal.like(Record(layout)).width
+
+RPHYS_WIDTH = 6
+
+class RegAlloc(Elaboratable):
+
+    input_layout = [
+        ('rlog_1', 5),
+        ('rlog_2', 5),
+        ('rlog_out', 5)
+    ]
+
+    output_layout = [
+        ('rlog_1', 5),
+        ('rlog_2', 5),
+        ('rlog_out', 5),
+        ('rphys_out', RPHYS_WIDTH)
+    ]
+
+    def __init__(self, dequeue : Method, get_rf_slot : Method,
+                 enqueue : Method):
+        self.get_rf_slot = get_rf_slot
+        self.dequeue = dequeue
+        self.get_rf_slot = get_rf_slot
+        self.enqueue = enqueue
 
     def elaborate(self, platform):
         m = Module()
 
-        instr = Record(self.input_layout)
-        free_reg = Signal(self.phys_regs_bits)
-        out_rec = Record(self.output_layout)
-
-        with m.FSM():
-            with m.State('wait_input'):
-                with self.if_put.when_called(m) as arg:
-                    m.d.sync += instr.eq(arg)
-                    with m.If(arg.rlog_out != 0):
-                        m.next = 'get_free_reg'
-                    with m.Else():
-                        m.next = 'wait_output'
-
-            with m.State('get_free_reg'):
-                with Transaction().when_granted(m):
-                    reg_id = self.get_free_reg()
-                    m.d.sync += free_reg.eq(reg_id)
-                    m.next = 'wait_output'
-
-            with m.State('wait_output'):
-                with self.if_get.when_called(m, ret=out_rec):
-                    m.d.comb += out_rec.rlog_1.eq(instr.rlog_1)
-                    m.d.comb += out_rec.rlog_2.eq(instr.rlog_2)
-                    m.d.comb += out_rec.rlog_out.eq(instr.rlog_out)
-                    m.d.comb += out_rec.rphys_out.eq(Mux(instr.rlog_out != 0, free_reg, 0))
-                    m.next = 'wait_input'
+        with Transaction().when_granted(m):
+            instr_data = self.dequeue(m)
+            instr = Record(self.input_layout)
+            m.d.comb += instr.eq(instr_data)
+            has_out = (instr.rlog_out != 0)
+            rf_slot = Mux(has_out,
+                         self.get_rf_slot(m, enable=has_out),
+                         C(0, RPHYS_WIDTH))
+            output = Record(self.output_layout)
+            m.d.comb += [
+                output.rlog_1.eq(instr.rlog_1),
+                output.rlog_2.eq(instr.rlog_2),
+                output.rlog_out.eq(instr.rlog_out),
+                output.rphys_out.eq(rf_slot),
+            ]
+            self.enqueue(m, output)
 
         return m
 
+
 class Renaming(Elaboratable):
-    def __init__(self, f_rat, phys_regs_bits=6):
-        self.input_layout = [
-            ('rlog_1', 5),
-            ('rlog_2', 5),
-            ('rlog_out', 5),
-            ('rphys_out', phys_regs_bits)
-        ]
-        self.output_layout = [
-            ('rphys_1', phys_regs_bits),
-            ('rphys_2', phys_regs_bits),
-            ('rlog_out', 5),
-            ('rphys_out', phys_regs_bits)
-        ]
-        self.phys_regs_bits = phys_regs_bits
-        self.if_put = Method(i=self.input_layout)
-        self.if_get = Method(o=self.output_layout)
-        self.f_rat = f_rat
+
+    input_layout = [
+        ('rlog_1', 5),
+        ('rlog_2', 5),
+        ('rlog_out', 5),
+        ('rphys_out', RPHYS_WIDTH)
+    ]
+
+    output_layout = [
+        ('rphys_1', RPHYS_WIDTH),
+        ('rphys_2', RPHYS_WIDTH),
+        ('rlog_out', 5),
+        ('rphys_out', RPHYS_WIDTH)
+    ]
+
+    def __init__(self, dequeue : Method, rename : Method,
+                 enqueue : Method):
+        self.dequeue = dequeue
+        self.rename = rename
+        self.enqueue = enqueue
 
     def elaborate(self, platform):
         m = Module()
 
-        data_in = Record(self.input_layout)
-        data_out = Record(self.output_layout)
-        rphys_1 = Signal(self.phys_regs_bits)
-        rphys_2 = Signal(self.phys_regs_bits)
-
-        with m.FSM():
-            with m.State('wait_input'):
-                with self.if_put.when_called(m) as arg:
-                    m.d.sync += data_in.eq(arg)
-                    m.next = 'rename_regs'
-
-            with m.State('rename_regs'):
-                with Transaction().when_granted(m):
-                    renamed = self.f_rat.if_rename(arg=data_in)
-                    m.d.sync += rphys_1.eq(renamed.rphys_1)
-                    m.d.sync += rphys_2.eq(renamed.rphys_2)
-                    m.next = 'wait_output'
-
-            with m.State('wait_output'):
-                with self.if_get.when_called(m, ret=data_out) as arg:
-                    m.d.comb += data_out.rlog_out.eq(data_in.rlog_out)
-                    m.d.comb += data_out.rphys_out.eq(data_in.rphys_out)
-                    m.d.comb += data_out.rphys_1.eq(rphys_1)
-                    m.d.comb += data_out.rphys_2.eq(rphys_2)
-                    m.next = 'wait_input'
+        with Transaction().when_granted(m):
+            instr_data = self.dequeue(m)
+            instr = Record(self.input_layout)
+            m.d.comb += instr.eq(instr_data)
+            renamed = self.rename(m, instr)
+            output = Record(self.output_layout)
+            m.d.comb += [
+                output.rphys_1.eq(renamed.rphys_1),
+                output.rphys_2.eq(renamed.rphys_2),
+                output.rlog_out.eq(instr.rlog_out),
+                output.rphys_out.eq(instr.rphys_out),
+            ]
+            self.enqueue(m, output)
 
         return m
 
 class RAT(Elaboratable):
-    def __init__(self, phys_regs_bits=6):
-        self.input_layout = [
-            ('rlog_1', 5),
-            ('rlog_2', 5),
-            ('rlog_out', 5),
-            ('rphys_out', phys_regs_bits)
-        ]
-        self.output_layout = [
-            ('rphys_1', phys_regs_bits),
-            ('rphys_2', phys_regs_bits)
-        ]
-        
-        self.entries = Array((Signal(phys_regs_bits, reset=i) for i in range(32)))
-        self.phys_regs_bits = phys_regs_bits
 
+    input_layout = [
+        ('rlog_1', 5),
+        ('rlog_2', 5),
+        ('rlog_out', 5),
+        ('rphys_out', RPHYS_WIDTH)
+    ]
+
+    output_layout = [
+        ('rphys_1', RPHYS_WIDTH),
+        ('rphys_2', RPHYS_WIDTH)
+    ]
+
+    def __init__(self):
+        self.entries = Array((Signal(RPHYS_WIDTH, reset=i) for i in range(32)))
         self.if_rename = Method(i=self.input_layout, o=self.output_layout)
 
     def elaborate(self, platform):
@@ -138,29 +129,25 @@ class RenameTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        instr_layout = [
-            ('rlog_1', 5),
-            ('rlog_2', 5),
-            ('rlog_out', 5)
-        ]
-        
-        instr_width = Signal.like(Record(instr_layout)).width
-
         with tm.transactionContext():
-            m.submodules.instr_fifo = instr_fifo = FIFO(instr_width, 16)
-            m.submodules.free_rf_fifo = free_rf_fifo = FIFO(phys_regs_bits, 2**phys_regs_bits)
+            m.submodules.instr_fifo = instr_fifo = \
+                FIFO(layout_width(RegAlloc.input_layout), 16)
+            m.submodules.free_rf_fifo = free_rf_fifo = \
+                FIFO(RPHYS_WIDTH, 2**RPHYS_WIDTH)
 
-            m.submodules.reg_alloc = reg_alloc = RegAllocation(free_rf_fifo.read, phys_regs_bits)
-            m.submodules.rat = rat = RAT(phys_regs_bits)
-            m.submodules.renaming = renaming = Renaming(rat, phys_regs_bits)
-            
-            m.submodules += ConnectTrans(instr_fifo.read, reg_alloc.if_put)
-            m.submodules += ConnectTrans(reg_alloc.if_get, renaming.if_put)
+            m.submodules.buf1 = buf1 = \
+                FIFO(layout_width(RegAlloc.output_layout), 2)
+            m.submodules.reg_alloc = reg_alloc = \
+                RegAlloc(instr_fifo.read, free_rf_fifo.read,
+                              buf1.write)
+            m.submodules.rat = rat = RAT()
+            m.submodules.buf2 = buf2 = FIFO(layout_width(RAT.output_layout), 2)
+            m.submodules.renaming = renaming = \
+                Renaming(buf1.read, rat.if_rename, buf2.write)
 
-            # mocked input and output
-            m.submodules.output = out = AdapterTrans(renaming.if_get, o=renaming.output_layout) 
-            m.submodules.instr_input = instr_inp = AdapterTrans(instr_fifo.write, i=instr_layout)
-            m.submodules.free_rf_inp = free_rf_inp = AdapterTrans(free_rf_fifo.write, i=[('data', phys_regs_bits)])
+            m.submodules.instr_input = instr_inp = AdapterTrans(instr_fifo.write, i=RegAlloc.input_layout)
+            m.submodules.free_rf_inp = free_rf_inp = AdapterTrans(free_rf_fifo.write, i=[('rphys_out', RPHYS_WIDTH)])
+            m.submodules.output = out = AdapterTrans(buf2.read, o=Renaming.output_layout)
 
         return tm
 
@@ -174,7 +161,9 @@ recycled_regs = queue.Queue()
 def check_renamed(rphys_1, rphys_2, rlog_out, rphys_out):
     assert((yield out.data_out.rphys_1) == rphys_1)
     assert((yield out.data_out.rphys_2) == rphys_2)
-    assert((yield out.data_out.rlog_out) == rlog_out)
+    rlog_out_2 = yield out.data_out.rlog_out
+    print(rlog_out_2, rlog_out)
+    assert(rlog_out_2 == rlog_out)
     assert((yield out.data_out.rphys_out) == rphys_out)
 
 def put_instr(rlog_1, rlog_2, rlog_out):
@@ -226,7 +215,7 @@ def bench_instr_input():
     yield (instr_inp.en.eq(0))
     expected_rename.put(None)
     recycled_regs.put(None)
-    
+
 def bench_free_rf_input():
     while True:
         try:
@@ -248,7 +237,6 @@ if __name__ == "__main__":
     from amaranth.sim import Simulator, Settle
 
     random.seed(42)
-    phys_regs_bits = 6
     m = RenameTestCircuit()
     sim = Simulator(m)
     sim.add_clock(1e-6)
@@ -256,7 +244,7 @@ if __name__ == "__main__":
     sim.add_sync_process(bench_instr_input)
     sim.add_sync_process(bench_free_rf_input)
 
-    for i in range(1, 2**phys_regs_bits):
+    for i in range(1, 2**RPHYS_WIDTH):
         recycle_phys_reg(i)
 
     with sim.write_vcd("dump.vcd"):
