@@ -5,7 +5,7 @@ import random
 import queue
 
 class RegAllocation(Elaboratable):
-    def __init__(self, get_free_reg : Method, phys_regs_bits=6):
+    def __init__(self, get_instr : Method, push_instr : Method, get_free_reg : Method, phys_regs_bits=6):
         self.get_free_reg = get_free_reg
         self.phys_regs_bits = phys_regs_bits
         self.input_layout = [
@@ -19,43 +19,31 @@ class RegAllocation(Elaboratable):
             ('rlog_out', 5),
             ('rphys_out', phys_regs_bits)
         ]
-        self.if_put = Method(i=self.input_layout)
-        self.if_get = Method(o=self.output_layout)
+        self.get_instr = get_instr
+        self.push_instr = push_instr
 
     def elaborate(self, platform):
         m = Module()
 
-        instr = Record(self.input_layout)
         free_reg = Signal(self.phys_regs_bits)
-        out_rec = Record(self.output_layout)
+        data_out = Record(self.output_layout)
 
-        with m.FSM():
-            with m.State('wait_input'):
-                with self.if_put.when_called(m) as arg:
-                    m.d.sync += instr.eq(arg)
-                    with m.If(arg.rlog_out != 0):
-                        m.next = 'get_free_reg'
-                    with m.Else():
-                        m.next = 'wait_output'
+        with Transaction().when_granted(m):
+            instr = self.get_instr(m)
+            with m.If(instr.rlog_out != 0):
+                reg_id = self.get_free_reg(m)
+                m.d.comb += free_reg.eq(reg_id)
 
-            with m.State('get_free_reg'):
-                with Transaction().when_granted(m):
-                    reg_id = self.get_free_reg(m)
-                    m.d.sync += free_reg.eq(reg_id)
-                    m.next = 'wait_output'
-
-            with m.State('wait_output'):
-                with self.if_get.when_called(m, ret=out_rec):
-                    m.d.comb += out_rec.rlog_1.eq(instr.rlog_1)
-                    m.d.comb += out_rec.rlog_2.eq(instr.rlog_2)
-                    m.d.comb += out_rec.rlog_out.eq(instr.rlog_out)
-                    m.d.comb += out_rec.rphys_out.eq(Mux(instr.rlog_out != 0, free_reg, 0))
-                    m.next = 'wait_input'
+            m.d.comb += data_out.rlog_1.eq(instr.rlog_1)
+            m.d.comb += data_out.rlog_2.eq(instr.rlog_2)
+            m.d.comb += data_out.rlog_out.eq(instr.rlog_out)
+            m.d.comb += data_out.rphys_out.eq(free_reg)
+            self.push_instr(m, data_out)
 
         return m
 
 class Renaming(Elaboratable):
-    def __init__(self, f_rat, phys_regs_bits=6):
+    def __init__(self, get_instr : Method, push_instr : Method, rename : Method, phys_regs_bits=6):
         self.input_layout = [
             ('rlog_1', 5),
             ('rlog_2', 5),
@@ -69,9 +57,9 @@ class Renaming(Elaboratable):
             ('rphys_out', phys_regs_bits)
         ]
         self.phys_regs_bits = phys_regs_bits
-        self.if_put = Method(i=self.input_layout)
-        self.if_get = Method(o=self.output_layout)
-        self.f_rat = f_rat
+        self.get_instr = get_instr
+        self.push_instr = push_instr
+        self.rename = rename
 
     def elaborate(self, platform):
         m = Module()
@@ -81,26 +69,15 @@ class Renaming(Elaboratable):
         rphys_1 = Signal(self.phys_regs_bits)
         rphys_2 = Signal(self.phys_regs_bits)
 
-        with m.FSM():
-            with m.State('wait_input'):
-                with self.if_put.when_called(m) as arg:
-                    m.d.sync += data_in.eq(arg)
-                    m.next = 'rename_regs'
+        with Transaction().when_granted(m):
+            instr = self.get_instr(m)
+            renamed_regs = self.rename(m, instr)
 
-            with m.State('rename_regs'):
-                with Transaction().when_granted(m):
-                    renamed = self.f_rat.if_rename(m, arg=data_in)
-                    m.d.sync += rphys_1.eq(renamed.rphys_1)
-                    m.d.sync += rphys_2.eq(renamed.rphys_2)
-                    m.next = 'wait_output'
-
-            with m.State('wait_output'):
-                with self.if_get.when_called(m, ret=data_out) as arg:
-                    m.d.comb += data_out.rlog_out.eq(data_in.rlog_out)
-                    m.d.comb += data_out.rphys_out.eq(data_in.rphys_out)
-                    m.d.comb += data_out.rphys_1.eq(rphys_1)
-                    m.d.comb += data_out.rphys_2.eq(rphys_2)
-                    m.next = 'wait_input'
+            m.d.comb += data_out.rlog_out.eq(instr.rlog_out)
+            m.d.comb += data_out.rphys_out.eq(instr.rphys_out)
+            m.d.comb += data_out.rphys_1.eq(renamed_regs.rphys_1)
+            m.d.comb += data_out.rphys_2.eq(renamed_regs.rphys_2)
+            self.push_instr(m, data_out)
 
         return m
 
@@ -134,32 +111,30 @@ class RAT(Elaboratable):
 
 class RenameTestCircuit(Elaboratable):
     def elaborate(self, platform):
-        global out, instr_inp, free_rf_inp
+        global out, instr_inp, free_rf_inp, renaming
         m = Module()
         tm = TransactionModule(m)
 
-        instr_layout = [
+        instr_record = Record([
             ('rlog_1', 5),
             ('rlog_2', 5),
             ('rlog_out', 5)
-        ]
-        
-        instr_width = Signal.like(Record(instr_layout)).width
+        ])
 
         with tm.transactionContext():
-            m.submodules.instr_fifo = instr_fifo = FIFO(instr_width, 16)
+            m.submodules.instr_fifo = instr_fifo = FIFO(instr_record.layout, 16)
             m.submodules.free_rf_fifo = free_rf_fifo = FIFO(phys_regs_bits, 2**phys_regs_bits)
-
-            m.submodules.reg_alloc = reg_alloc = RegAllocation(free_rf_fifo.read, phys_regs_bits)
-            m.submodules.rat = rat = RAT(phys_regs_bits)
-            m.submodules.renaming = renaming = Renaming(rat, phys_regs_bits)
             
-            m.submodules += ConnectTrans(instr_fifo.read, reg_alloc.if_put)
-            m.submodules += ConnectTrans(reg_alloc.if_get, renaming.if_put)
-
+            m.submodules.reg_alloc = reg_alloc = RegAllocation(instr_fifo.read, None, free_rf_fifo.read, phys_regs_bits)
+            m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(reg_alloc.output_layout, 2)
+            reg_alloc.push_instr = alloc_rename_buf.write
+            m.submodules.rat = rat = RAT(phys_regs_bits)
+            m.submodules.renaming = renaming = Renaming(alloc_rename_buf.read, None, rat.if_rename, phys_regs_bits)
+            m.submodules.rename_out_buf = rename_out_buf = FIFO(renaming.output_layout, 2)
+            renaming.push_instr = rename_out_buf.write
             # mocked input and output
-            m.submodules.output = out = AdapterTrans(renaming.if_get, o=renaming.output_layout) 
-            m.submodules.instr_input = instr_inp = AdapterTrans(instr_fifo.write, i=instr_layout)
+            m.submodules.output = out = AdapterTrans(rename_out_buf.read, o=renaming.output_layout)
+            m.submodules.instr_input = instr_inp = AdapterTrans(instr_fifo.write, i=instr_record.layout)
             m.submodules.free_rf_inp = free_rf_inp = AdapterTrans(free_rf_fifo.write, i=[('data', phys_regs_bits)])
 
         return tm
