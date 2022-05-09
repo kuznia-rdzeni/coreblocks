@@ -1,6 +1,7 @@
 
 from amaranth import *
 from .core import *
+from ._utils import _coerce_record
 
 __all__ = [
     "FIFO",
@@ -14,12 +15,13 @@ __all__ = [
 import amaranth.lib.fifo
 
 class FIFO(Elaboratable):
-    def __init__(self, width, depth):
-        self.width = width
+    def __init__(self, data_layout, depth):
+        data_record = _coerce_record(data_layout)
+        self.width = len(data_record)
         self.depth = depth
 
-        self.read = Method(o=width)
-        self.write = Method(i=width)
+        self.read = Method(o=data_record.layout)
+        self.write = Method(i=data_record.layout)
 
     def elaborate(self, platform):
         m = Module()
@@ -88,14 +90,14 @@ class ClickOut(Elaboratable):
 # Testbench-friendly input/output
 
 class AdapterTrans(Elaboratable):
-    def __init__(self, iface : Method, i=[], o=[]):
-        self.input_fmt = i
-        self.output_fmt = o
+    def __init__(self, iface : Method, i=0, o=0):
         self.iface = iface
         self.en = Signal()
         self.done = Signal()
-        self.data_in = Record(self.input_fmt)
-        self.data_out = Record(self.output_fmt)
+        self.data_in = _coerce_record(i)
+        self.data_out = _coerce_record(o)
+        self.input_fmt = self.data_in.layout
+        self.output_fmt = self.data_out.layout
 
     def elaborate(self, platform):
         m = Module()
