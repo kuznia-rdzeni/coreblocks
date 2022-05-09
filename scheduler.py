@@ -38,10 +38,9 @@ class RegAlloc(Elaboratable):
             instr_data = self.dequeue(m)
             instr = Record(self.input_layout)
             m.d.comb += instr.eq(instr_data)
-            has_out = (instr.rlog_out != 0)
-            rf_slot = Mux(has_out,
-                         self.get_rf_slot(m, enable=has_out),
-                         C(0, RPHYS_WIDTH))
+            rf_slot = Signal(RPHYS_WIDTH)
+            with m.If(instr.rlog_out != 0):
+                m.d.comb += rf_slot.eq(self.get_rf_slot(m))
             output = Record(self.output_layout)
             m.d.comb += [
                 output.rlog_1.eq(instr.rlog_1),
