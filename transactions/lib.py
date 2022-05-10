@@ -1,7 +1,7 @@
 
 from amaranth import *
 from .core import *
-from ._utils import _coerce_record
+from ._utils import _coerce_layout
 
 __all__ = [
     "FIFO",
@@ -15,13 +15,13 @@ __all__ = [
 import amaranth.lib.fifo
 
 class FIFO(Elaboratable):
-    def __init__(self, data_layout, depth):
-        data_record = _coerce_record(data_layout)
-        self.width = len(data_record)
+    def __init__(self, layout, depth):
+        layout = _coerce_layout(layout)
+        self.width = len(Record(layout))
         self.depth = depth
 
-        self.read = Method(o=data_record.layout)
-        self.write = Method(i=data_record.layout)
+        self.read = Method(o=layout)
+        self.write = Method(i=layout)
 
     def elaborate(self, platform):
         m = Module()
@@ -94,8 +94,8 @@ class AdapterTrans(Elaboratable):
         self.iface = iface
         self.en = Signal()
         self.done = Signal()
-        self.data_in = _coerce_record(i)
-        self.data_out = _coerce_record(o)
+        self.data_in = Record(_coerce_layout(i))
+        self.data_out = Record(_coerce_layout(o))
         self.input_fmt = self.data_in.layout
         self.output_fmt = self.data_out.layout
 
@@ -108,7 +108,7 @@ class AdapterTrans(Elaboratable):
 
         m.d.comb += self.done.eq(self.iface.run)
 
-        with Transaction().when_granted(m, request=self.en) as t:
+        with Transaction().body(m, request=self.en) as t:
             data_out = self.iface(m, arg=data_in)
             m.d.comb += self.data_out.eq(data_out)
 
