@@ -276,12 +276,8 @@ class Method:
         self.ready = Signal()
         self.run = Signal()
         self.manager = manager
-        if isinstance(i, int):
-            i = [('data', i)]
-        self.data_in = Record(i)
-        if isinstance(o, int):
-            o = [('data', o)]
-        self.data_out = Record(o)
+        self.data_in = Record(_coerce_layout(i))
+        self.data_out = Record(_coerce_layout(o))
 
     def add_conflict(self, end : Union['Transaction', 'Method']) -> None:
         """Registers a conflict.
