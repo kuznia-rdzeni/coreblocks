@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from typing import Union, List
+from types import MethodType
 from amaranth import *
 from ._utils import *
 
@@ -49,7 +50,7 @@ class TransactionManager(Elaboratable):
         self.methods = {}
         self.methodargs = {}
         self.conflicts = []
-        self.cc_scheduler = cc_scheduler
+        self.cc_scheduler = MethodType(cc_scheduler, self)
 
     def add_conflict(self, end1: Union["Transaction", "Method"], end2: Union["Transaction", "Method"]) -> None:
         self.conflicts.append((end1, end2))
@@ -102,7 +103,7 @@ class TransactionManager(Elaboratable):
         gr = self._conflict_graph()
 
         for cc in _graph_ccs(gr):
-            self.cc_scheduler(self, m, gr, cc)
+            self.cc_scheduler(m, gr, cc)
 
         for method, transactions in self.methods.items():
             granted = Signal(len(transactions))
