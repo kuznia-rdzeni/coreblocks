@@ -1,8 +1,6 @@
 from amaranth import *
 from transactions import Method, Transaction, TransactionModule, TransactionContext
 from transactions.lib import FIFO, ConnectTrans, AdapterTrans
-import random
-import queue
 
 class RegAllocation(Elaboratable):
     def __init__(self, get_instr : Method, push_instr : Method, get_free_reg : Method, phys_regs_bits=6):
@@ -111,7 +109,6 @@ class RAT(Elaboratable):
 
 class RenameTestCircuit(Elaboratable):
     def elaborate(self, platform):
-        global out, instr_inp, free_rf_inp, renaming
         m = Module()
         tm = TransactionModule(m)
 
@@ -133,106 +130,109 @@ class RenameTestCircuit(Elaboratable):
             m.submodules.rename_out_buf = rename_out_buf = FIFO(renaming.output_layout, 2)
             renaming.push_instr = rename_out_buf.write
             # mocked input and output
-            m.submodules.output = out = AdapterTrans(rename_out_buf.read, o=renaming.output_layout)
-            m.submodules.instr_input = instr_inp = AdapterTrans(instr_fifo.write, i=instr_record.layout)
-            m.submodules.free_rf_inp = free_rf_inp = AdapterTrans(free_rf_fifo.write, i=[('data', phys_regs_bits)])
+            m.submodules.output = self.out = AdapterTrans(rename_out_buf.read, o=renaming.output_layout)
+            m.submodules.instr_input = self.instr_inp = AdapterTrans(instr_fifo.write, i=instr_record.layout)
+            m.submodules.free_rf_inp = self.free_rf_inp = AdapterTrans(free_rf_fifo.write, i=[('data', phys_regs_bits)])
 
         return tm
 
-# Testbench code
-
-expected_rename = queue.Queue()
-expected_phys_reg = queue.Queue()
-current_RAT = [x for x in range(0, 32)]
-recycled_regs = queue.Queue()
-
-def check_renamed(rphys_1, rphys_2, rlog_out, rphys_out):
-    assert((yield out.data_out.rphys_1) == rphys_1)
-    assert((yield out.data_out.rphys_2) == rphys_2)
-    assert((yield out.data_out.rlog_out) == rlog_out)
-    assert((yield out.data_out.rphys_out) == rphys_out)
-
-def put_instr(rlog_1, rlog_2, rlog_out):
-    yield (instr_inp.data_in.rlog_1.eq(rlog_1))
-    yield (instr_inp.data_in.rlog_2.eq(rlog_2))
-    yield (instr_inp.data_in.rlog_out.eq(rlog_out))
-    yield
-    while (yield instr_inp.done) != 1:
-        yield
-
-def recycle_phys_reg(reg_id):
-    recycled_regs.put(reg_id)
-    expected_phys_reg.put(reg_id)
-
-def bench_output():
-    while True:
-        try:
-            item = expected_rename.get_nowait()
-            if item is None:
-                yield out.en.eq(0)
-                return
-            yield out.en.eq(1)
-            yield
-            while (yield out.done) != 1:
-                yield
-            yield from check_renamed(**item)
-            yield out.en.eq(0)
-            # recycle physical register number
-            if item['rphys_out'] != 0:
-                recycle_phys_reg(item['rphys_out'])
-        except queue.Empty:
-            yield
-
-def bench_instr_input():
-    yield (instr_inp.en.eq(1))
-    for i in range(500):
-        rlog_1 = random.randint(0, 31)
-        rlog_2 = random.randint(0, 31)
-        rlog_out = random.randint(0, 31)
-        rphys_1 = current_RAT[rlog_1]
-        rphys_2 = current_RAT[rlog_2]
-        rphys_out = expected_phys_reg.get() if rlog_out != 0 else 0
-
-        expected_rename.put({'rphys_1': rphys_1, 'rphys_2': rphys_2, 'rlog_out': rlog_out, 'rphys_out': rphys_out})
-        current_RAT[rlog_out] = rphys_out
-
-        yield from put_instr(rlog_1, rlog_2, rlog_out)
-
-    yield (instr_inp.en.eq(0))
-    expected_rename.put(None)
-    recycled_regs.put(None)
-    
-def bench_free_rf_input():
-    while True:
-        try:
-            reg = recycled_regs.get_nowait()
-            if reg is None:
-                yield free_rf_inp.en.eq(0)
-                return
-            yield free_rf_inp.en.eq(1)
-            yield free_rf_inp.data_in.eq(reg)
-            yield
-            while (yield free_rf_inp.done) != 1:
-                yield
-            yield free_rf_inp.en.eq(0)
-        except queue.Empty:
-            yield
-
 if __name__ == "__main__":
+    import random
+    import queue
     from amaranth.back import verilog
     from amaranth.sim import Simulator, Settle
 
+    # Testbench code
     random.seed(42)
     phys_regs_bits = 6
+
+    expected_rename = queue.Queue()
+    expected_phys_reg = queue.Queue()
+    current_RAT = [x for x in range(0, 32)]
+    recycled_regs = queue.Queue()
+
     m = RenameTestCircuit()
+
+    def check_renamed(rphys_1, rphys_2, rlog_out, rphys_out):
+        assert((yield m.out.data_out.rphys_1) == rphys_1)
+        assert((yield m.out.data_out.rphys_2) == rphys_2)
+        assert((yield m.out.data_out.rlog_out) == rlog_out)
+        assert((yield m.out.data_out.rphys_out) == rphys_out)
+
+    def put_instr(rlog_1, rlog_2, rlog_out):
+        yield (m.instr_inp.data_in.rlog_1.eq(rlog_1))
+        yield (m.instr_inp.data_in.rlog_2.eq(rlog_2))
+        yield (m.instr_inp.data_in.rlog_out.eq(rlog_out))
+        yield
+        while (yield m.instr_inp.done) != 1:
+            yield
+
+    def recycle_phys_reg(reg_id):
+        recycled_regs.put(reg_id)
+        expected_phys_reg.put(reg_id)
+
+    def bench_output():
+        while True:
+            try:
+                item = expected_rename.get_nowait()
+                if item is None:
+                    yield m.out.en.eq(0)
+                    return
+                yield m.out.en.eq(1)
+                yield
+                while (yield m.out.done) != 1:
+                    yield
+                yield from check_renamed(**item)
+                yield m.out.en.eq(0)
+                # recycle physical register number
+                if item['rphys_out'] != 0:
+                    recycle_phys_reg(item['rphys_out'])
+            except queue.Empty:
+                yield
+
+    def bench_instr_input():
+        yield (m.instr_inp.en.eq(1))
+        for i in range(500):
+            rlog_1 = random.randint(0, 31)
+            rlog_2 = random.randint(0, 31)
+            rlog_out = random.randint(0, 31)
+            rphys_1 = current_RAT[rlog_1]
+            rphys_2 = current_RAT[rlog_2]
+            rphys_out = expected_phys_reg.get() if rlog_out != 0 else 0
+
+            expected_rename.put({'rphys_1': rphys_1, 'rphys_2': rphys_2, 'rlog_out': rlog_out, 'rphys_out': rphys_out})
+            current_RAT[rlog_out] = rphys_out
+
+            yield from put_instr(rlog_1, rlog_2, rlog_out)
+
+        yield (m.instr_inp.en.eq(0))
+        expected_rename.put(None)
+        recycled_regs.put(None)
+        
+    def bench_free_rf_input():
+        while True:
+            try:
+                reg = recycled_regs.get_nowait()
+                if reg is None:
+                    yield m.free_rf_inp.en.eq(0)
+                    return
+                yield m.free_rf_inp.en.eq(1)
+                yield m.free_rf_inp.data_in.eq(reg)
+                yield
+                while (yield m.free_rf_inp.done) != 1:
+                    yield
+                yield m.free_rf_inp.en.eq(0)
+            except queue.Empty:
+                yield
+
+    for i in range(1, 2**phys_regs_bits):
+        recycle_phys_reg(i)
+
     sim = Simulator(m)
     sim.add_clock(1e-6)
     sim.add_sync_process(bench_output)
     sim.add_sync_process(bench_instr_input)
     sim.add_sync_process(bench_free_rf_input)
-
-    for i in range(1, 2**phys_regs_bits):
-        recycle_phys_reg(i)
 
     with sim.write_vcd("dump.vcd"):
         sim.run()
