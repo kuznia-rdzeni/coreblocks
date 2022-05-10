@@ -1,6 +1,6 @@
 from amaranth import *
-from transactions import Method, Transaction, TransactionModule, TransactionContext
-from transactions.lib import FIFO, ConnectTrans, AdapterTrans
+from coreblocks.transactions import Method, Transaction, TransactionModule, TransactionContext
+from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans
 
 class RegAllocation(Elaboratable):
     def __init__(self, *, get_instr : Method, push_instr : Method, get_free_reg : Method, phys_regs_bits=6):
@@ -26,7 +26,7 @@ class RegAllocation(Elaboratable):
         free_reg = Signal(self.phys_regs_bits)
         data_out = Record(self.output_layout)
 
-        with Transaction().when_granted(m):
+        with Transaction().body(m):
             instr = self.get_instr(m)
             with m.If(instr.rlog_out != 0):
                 reg_id = self.get_free_reg(m)
@@ -67,7 +67,7 @@ class Renaming(Elaboratable):
         rphys_1 = Signal(self.phys_regs_bits)
         rphys_2 = Signal(self.phys_regs_bits)
 
-        with Transaction().when_granted(m):
+        with Transaction().body(m):
             instr = self.get_instr(m)
             renamed_regs = self.rename(m, instr)
 
@@ -101,7 +101,7 @@ class RAT(Elaboratable):
         m = Module()
         renamed = Record(self.output_layout)
 
-        with self.if_rename.when_called(m, ret=renamed) as arg:
+        with self.if_rename.body(m, out=renamed) as arg:
             m.d.comb += renamed.rphys_1.eq(self.entries[arg.rlog_1])
             m.d.comb += renamed.rphys_2.eq(self.entries[arg.rlog_2])
             m.d.sync += self.entries[arg.rlog_out].eq(arg.rphys_out)
