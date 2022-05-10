@@ -25,11 +25,11 @@ class FIFO(Elaboratable):
 
         m.submodules.fifo = fifo = amaranth.lib.fifo.SyncFIFO(width=self.width, depth=self.depth)
 
-        with self.write.when_called(m, fifo.w_rdy) as arg:
+        with self.write.body(m, ready = fifo.w_rdy) as arg:
             m.d.comb += fifo.w_en.eq(1)
             m.d.comb += fifo.w_data.eq(arg)
 
-        with self.read.when_called(m, fifo.r_rdy, fifo.r_data):
+        with self.read.body(m, ready = fifo.r_rdy, out = fifo.r_data):
             m.d.comb += fifo.r_en.eq(1)
 
         return m
@@ -54,7 +54,7 @@ class ClickIn(Elaboratable):
         get_ready = Signal()
         get_data = Signal.like(self.dat)
 
-        with self.get.when_called(m, get_ready, get_data):
+        with self.get.body(m, ready = get_ready, out = get_data):
             m.d.sync += get_ready.eq(0)
 
         with m.If(~btn2 & btn1):
@@ -79,7 +79,7 @@ class ClickOut(Elaboratable):
         m.d.sync += btn1.eq(self.btn)
         m.d.sync += btn2.eq(btn1)
 
-        with self.put.when_called(m, ~btn2 & btn1) as arg:
+        with self.put.body(m, ready = ~btn2 & btn1) as arg:
             m.d.sync += self.dat.eq(arg)
 
         return m
@@ -94,7 +94,7 @@ class ConnectTrans(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        with Transaction().when_granted(m):
+        with Transaction().body(m):
             data1 = Record.like(self.method1.data_out)
             data2 = Record.like(self.method2.data_out)
 
@@ -112,7 +112,7 @@ class CatTrans(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        with Transaction().when_granted(m):
+        with Transaction().body(m):
             sdata1 = self.src1(m)
             sdata2 = self.src2(m)
             ddata = Record.like(self.dst.data_in)
