@@ -1,7 +1,7 @@
 
 from amaranth import *
-from . import *
-from .lib import *
+from coreblocks.transactions import *
+from coreblocks.transactions.lib import *
 
 class SimpleCircuit(Elaboratable):
     def __init__(self):
