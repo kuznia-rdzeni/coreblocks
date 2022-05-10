@@ -3,7 +3,7 @@ from transactions import Method, Transaction, TransactionModule, TransactionCont
 from transactions.lib import FIFO, ConnectTrans, AdapterTrans
 
 class RegAllocation(Elaboratable):
-    def __init__(self, get_instr : Method, push_instr : Method, get_free_reg : Method, phys_regs_bits=6):
+    def __init__(self, *, get_instr : Method, push_instr : Method, get_free_reg : Method, phys_regs_bits=6):
         self.get_free_reg = get_free_reg
         self.phys_regs_bits = phys_regs_bits
         self.input_layout = [
@@ -41,7 +41,7 @@ class RegAllocation(Elaboratable):
         return m
 
 class Renaming(Elaboratable):
-    def __init__(self, get_instr : Method, push_instr : Method, rename : Method, phys_regs_bits=6):
+    def __init__(self, *, get_instr : Method, push_instr : Method, rename : Method, phys_regs_bits=6):
         self.input_layout = [
             ('rlog_1', 5),
             ('rlog_2', 5),
@@ -80,7 +80,7 @@ class Renaming(Elaboratable):
         return m
 
 class RAT(Elaboratable):
-    def __init__(self, phys_regs_bits=6):
+    def __init__(self, *, phys_regs_bits=6):
         self.input_layout = [
             ('rlog_1', 5),
             ('rlog_2', 5),
@@ -122,11 +122,11 @@ class RenameTestCircuit(Elaboratable):
             m.submodules.instr_fifo = instr_fifo = FIFO(instr_record.layout, 16)
             m.submodules.free_rf_fifo = free_rf_fifo = FIFO(phys_regs_bits, 2**phys_regs_bits)
             
-            m.submodules.reg_alloc = reg_alloc = RegAllocation(instr_fifo.read, None, free_rf_fifo.read, phys_regs_bits)
+            m.submodules.reg_alloc = reg_alloc = RegAllocation(get_instr=instr_fifo.read, push_instr=None, get_free_reg=free_rf_fifo.read, phys_regs_bits=phys_regs_bits)
             m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(reg_alloc.output_layout, 2)
             reg_alloc.push_instr = alloc_rename_buf.write
-            m.submodules.rat = rat = RAT(phys_regs_bits)
-            m.submodules.renaming = renaming = Renaming(alloc_rename_buf.read, None, rat.if_rename, phys_regs_bits)
+            m.submodules.rat = rat = RAT(phys_regs_bits=phys_regs_bits)
+            m.submodules.renaming = renaming = Renaming(get_instr=alloc_rename_buf.read, push_instr=None, rename=rat.if_rename, phys_regs_bits=phys_regs_bits)
             m.submodules.rename_out_buf = rename_out_buf = FIFO(renaming.output_layout, 2)
             renaming.push_instr = rename_out_buf.write
             # mocked input and output
