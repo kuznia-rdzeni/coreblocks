@@ -1,7 +1,7 @@
 from amaranth import *
 from coreblocks.transactions import Method, Transaction
-from layouts import SchedulerLayouts
-from genparams import GenParams
+from coreblocks.layouts import SchedulerLayouts
+from coreblocks.genparams import GenParams
 
 class RegAllocation(Elaboratable):
     def __init__(self, *, get_instr : Method, push_instr : Method, get_free_reg : Method, layouts : SchedulerLayouts, gen_params : GenParams):

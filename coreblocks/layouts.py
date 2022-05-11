@@ -1,4 +1,4 @@
-from genparams import GenParams
+from coreblocks.genparams import GenParams
 
 class SchedulerLayouts:
     def __init__(self, gen_params : GenParams):
