@@ -2,28 +2,60 @@ from amaranth import *
 from coreblocks.transactions import Method, Transaction, TransactionModule, TransactionContext
 from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans
 
-class RegAllocation(Elaboratable):
-    def __init__(self, *, get_instr : Method, push_instr : Method, get_free_reg : Method, phys_regs_bits=6):
-        self.get_free_reg = get_free_reg
+class GenParams:
+    log_regs_bits = 5
+
+    def __init__(self, phys_regs_bits=6):
         self.phys_regs_bits = phys_regs_bits
-        self.input_layout = [
-            ('rlog_1', 5),
-            ('rlog_2', 5),
-            ('rlog_out', 5)
+
+class SchedulerLayouts:
+    def __init__(self, gen_params : GenParams):
+        self.reg_alloc_in = [
+            ('rlog_1', gen_params.log_regs_bits),
+            ('rlog_2', gen_params.log_regs_bits),
+            ('rlog_out', gen_params.log_regs_bits)
         ]
-        self.output_layout = [
-            ('rlog_1', 5),
-            ('rlog_2', 5),
-            ('rlog_out', 5),
-            ('rphys_out', phys_regs_bits)
+        self.reg_alloc_out = self.renaming_in = [
+            ('rlog_1', gen_params.log_regs_bits),
+            ('rlog_2', gen_params.log_regs_bits),
+            ('rlog_out', gen_params.log_regs_bits),
+            ('rphys_out', gen_params.phys_regs_bits)
         ]
+        self.renaming_out = [
+            ('rphys_1', gen_params.phys_regs_bits),
+            ('rphys_2', gen_params.phys_regs_bits),
+            ('rlog_out', gen_params.log_regs_bits),
+            ('rphys_out', gen_params.phys_regs_bits)
+        ]
+        self.rat_rename_in = [
+            ('rlog_1', gen_params.log_regs_bits),
+            ('rlog_2', gen_params.log_regs_bits),
+            ('rlog_out', gen_params.log_regs_bits),
+            ('rphys_out', gen_params.phys_regs_bits)
+        ]
+        self.rat_rename_out = [
+            ('rphys_1', gen_params.phys_regs_bits),
+            ('rphys_2', gen_params.phys_regs_bits)
+        ]
+        self.instr_layout = [
+            ('rlog_1', gen_params.log_regs_bits),
+            ('rlog_2', gen_params.log_regs_bits),
+            ('rlog_out', gen_params.log_regs_bits)
+        ]
+
+class RegAllocation(Elaboratable):
+    def __init__(self, *, get_instr : Method, push_instr : Method, get_free_reg : Method, layouts : SchedulerLayouts, gen_params : GenParams):
+        self.get_free_reg = get_free_reg
+        self.gen_params = gen_params
+        self.input_layout = layouts.reg_alloc_in
+        self.output_layout = layouts.reg_alloc_out
         self.get_instr = get_instr
         self.push_instr = push_instr
 
     def elaborate(self, platform):
         m = Module()
 
-        free_reg = Signal(self.phys_regs_bits)
+        free_reg = Signal(self.gen_params.phys_regs_bits)
         data_out = Record(self.output_layout)
 
         with Transaction().body(m):
@@ -41,20 +73,10 @@ class RegAllocation(Elaboratable):
         return m
 
 class Renaming(Elaboratable):
-    def __init__(self, *, get_instr : Method, push_instr : Method, rename : Method, phys_regs_bits=6):
-        self.input_layout = [
-            ('rlog_1', 5),
-            ('rlog_2', 5),
-            ('rlog_out', 5),
-            ('rphys_out', phys_regs_bits)
-        ]
-        self.output_layout = [
-            ('rphys_1', phys_regs_bits),
-            ('rphys_2', phys_regs_bits),
-            ('rlog_out', 5),
-            ('rphys_out', phys_regs_bits)
-        ]
-        self.phys_regs_bits = phys_regs_bits
+    def __init__(self, *, get_instr : Method, push_instr : Method, rename : Method, layouts : SchedulerLayouts, gen_params : GenParams):
+        self.input_layout = layouts.renaming_in
+        self.output_layout = layouts.renaming_out
+        self.gen_params = gen_params
         self.get_instr = get_instr
         self.push_instr = push_instr
         self.rename = rename
@@ -64,8 +86,8 @@ class Renaming(Elaboratable):
 
         data_in = Record(self.input_layout)
         data_out = Record(self.output_layout)
-        rphys_1 = Signal(self.phys_regs_bits)
-        rphys_2 = Signal(self.phys_regs_bits)
+        rphys_1 = Signal(self.gen_params.phys_regs_bits)
+        rphys_2 = Signal(self.gen_params.phys_regs_bits)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -80,20 +102,12 @@ class Renaming(Elaboratable):
         return m
 
 class RAT(Elaboratable):
-    def __init__(self, *, phys_regs_bits=6):
-        self.input_layout = [
-            ('rlog_1', 5),
-            ('rlog_2', 5),
-            ('rlog_out', 5),
-            ('rphys_out', phys_regs_bits)
-        ]
-        self.output_layout = [
-            ('rphys_1', phys_regs_bits),
-            ('rphys_2', phys_regs_bits)
-        ]
+    def __init__(self, *, layouts : SchedulerLayouts, gen_params : GenParams):
+        self.input_layout = layouts.rat_rename_in
+        self.output_layout = layouts.rat_rename_out
         
-        self.entries = Array((Signal(phys_regs_bits, reset=i) for i in range(32)))
-        self.phys_regs_bits = phys_regs_bits
+        self.gen_params = gen_params
+        self.entries = Array((Signal(self.gen_params.phys_regs_bits, reset=i) for i in range(32)))
 
         self.if_rename = Method(i=self.input_layout, o=self.output_layout)
 
@@ -108,31 +122,39 @@ class RAT(Elaboratable):
         return m
 
 class RenameTestCircuit(Elaboratable):
+    def __init__(self, gen_params : GenParams):
+        self.gen_params = gen_params
+
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
 
-        instr_record = Record([
-            ('rlog_1', 5),
-            ('rlog_2', 5),
-            ('rlog_out', 5)
-        ])
+        layouts = SchedulerLayouts(gen_params)
+        instr_record = Record(layouts.instr_layout)
 
         with tm.transactionContext():
-            m.submodules.instr_fifo = instr_fifo = FIFO(instr_record.layout, 16)
-            m.submodules.free_rf_fifo = free_rf_fifo = FIFO(phys_regs_bits, 2**phys_regs_bits)
+            m.submodules.instr_fifo = instr_fifo = FIFO(layouts.instr_layout, 16)
+            m.submodules.free_rf_fifo = free_rf_fifo = FIFO(gen_params.phys_regs_bits, 2**gen_params.phys_regs_bits)
             
-            m.submodules.reg_alloc = reg_alloc = RegAllocation(get_instr=instr_fifo.read, push_instr=None, get_free_reg=free_rf_fifo.read, phys_regs_bits=phys_regs_bits)
-            m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(reg_alloc.output_layout, 2)
-            reg_alloc.push_instr = alloc_rename_buf.write
-            m.submodules.rat = rat = RAT(phys_regs_bits=phys_regs_bits)
-            m.submodules.renaming = renaming = Renaming(get_instr=alloc_rename_buf.read, push_instr=None, rename=rat.if_rename, phys_regs_bits=phys_regs_bits)
-            m.submodules.rename_out_buf = rename_out_buf = FIFO(renaming.output_layout, 2)
-            renaming.push_instr = rename_out_buf.write
+            m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(layouts.reg_alloc_out, 2)
+            m.submodules.reg_alloc = reg_alloc = RegAllocation(get_instr=instr_fifo.read,
+                                                               push_instr=alloc_rename_buf.write,
+                                                               get_free_reg=free_rf_fifo.read,
+                                                               layouts=layouts,
+                                                               gen_params=gen_params)
+
+            m.submodules.rat = rat = RAT(layouts=layouts, gen_params=gen_params)
+            m.submodules.rename_out_buf = rename_out_buf = FIFO(layouts.renaming_out, 2)
+            m.submodules.renaming = renaming = Renaming(get_instr=alloc_rename_buf.read,
+                                                        push_instr=rename_out_buf.write,
+                                                        rename=rat.if_rename,
+                                                        layouts=layouts,
+                                                        gen_params=gen_params)
+
             # mocked input and output
             m.submodules.output = self.out = AdapterTrans(rename_out_buf.read, o=renaming.output_layout)
-            m.submodules.instr_input = self.instr_inp = AdapterTrans(instr_fifo.write, i=instr_record.layout)
-            m.submodules.free_rf_inp = self.free_rf_inp = AdapterTrans(free_rf_fifo.write, i=[('data', phys_regs_bits)])
+            m.submodules.instr_input = self.instr_inp = AdapterTrans(instr_fifo.write, i=layouts.instr_layout)
+            m.submodules.free_rf_inp = self.free_rf_inp = AdapterTrans(free_rf_fifo.write, i=[('data', gen_params.phys_regs_bits)])
 
         return tm
 
@@ -144,14 +166,14 @@ if __name__ == "__main__":
 
     # Testbench code
     random.seed(42)
-    phys_regs_bits = 6
 
     expected_rename = queue.Queue()
     expected_phys_reg = queue.Queue()
     current_RAT = [x for x in range(0, 32)]
     recycled_regs = queue.Queue()
 
-    m = RenameTestCircuit()
+    gen_params = GenParams()
+    m = RenameTestCircuit(gen_params)
 
     def check_renamed(rphys_1, rphys_2, rlog_out, rphys_out):
         assert((yield m.out.data_out.rphys_1) == rphys_1)
@@ -225,7 +247,7 @@ if __name__ == "__main__":
             except queue.Empty:
                 yield
 
-    for i in range(1, 2**phys_regs_bits):
+    for i in range(1, 2**gen_params.phys_regs_bits):
         recycle_phys_reg(i)
 
     sim = Simulator(m)
