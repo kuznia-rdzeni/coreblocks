@@ -1,7 +1,7 @@
-
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
+
 
 class SimpleCircuit(Elaboratable):
     def __init__(self):
@@ -11,7 +11,14 @@ class SimpleCircuit(Elaboratable):
         self.in2_dat = Signal()
         self.out_btn = Signal()
         self.out_dat = Signal(2)
-        self.ports = [self.in1_btn, self.in1_dat, self.in2_btn, self.in2_dat, self.out_btn, self.out_dat]
+        self.ports = [
+            self.in1_btn,
+            self.in1_dat,
+            self.in2_btn,
+            self.in2_dat,
+            self.out_btn,
+            self.out_dat,
+        ]
 
     def elaborate(self, platform):
         m = Module()
@@ -33,10 +40,11 @@ class SimpleCircuit(Elaboratable):
 
         return tm
 
+
 if __name__ == "__main__":
     from amaranth.back import verilog
     import os
+
     model = SimpleCircuit()
     with open("result.v", "w") as f:
         f.write(verilog.convert(model, ports=model.ports))
-

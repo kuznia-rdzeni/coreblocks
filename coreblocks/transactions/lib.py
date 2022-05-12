@@ -1,18 +1,13 @@
-
 from amaranth import *
 from .core import *
 from ._utils import _coerce_layout
 
-__all__ = [
-    "FIFO",
-    "ClickIn", "ClickOut",
-    "AdapterTrans",
-    "ConnectTrans", "CatTrans"
-]
+__all__ = ["FIFO", "ClickIn", "ClickOut", "AdapterTrans", "ConnectTrans", "CatTrans"]
 
 # FIFOs
 
 import amaranth.lib.fifo
+
 
 class FIFO(Elaboratable):
     def __init__(self, layout, depth):
@@ -28,16 +23,18 @@ class FIFO(Elaboratable):
 
         m.submodules.fifo = fifo = amaranth.lib.fifo.SyncFIFO(width=self.width, depth=self.depth)
 
-        with self.write.body(m, ready = fifo.w_rdy) as arg:
+        with self.write.body(m, ready=fifo.w_rdy) as arg:
             m.d.comb += fifo.w_en.eq(1)
             m.d.comb += fifo.w_data.eq(arg)
 
-        with self.read.body(m, ready = fifo.r_rdy, out = fifo.r_data):
+        with self.read.body(m, ready=fifo.r_rdy, out=fifo.r_data):
             m.d.comb += fifo.r_en.eq(1)
 
         return m
 
+
 # "Clicked" input
+
 
 class ClickIn(Elaboratable):
     def __init__(self, width=1):
@@ -57,7 +54,7 @@ class ClickIn(Elaboratable):
         get_ready = Signal()
         get_data = Signal.like(self.dat)
 
-        with self.get.body(m, ready = get_ready, out = get_data):
+        with self.get.body(m, ready=get_ready, out=get_data):
             m.d.sync += get_ready.eq(0)
 
         with m.If(~btn2 & btn1):
@@ -66,7 +63,9 @@ class ClickIn(Elaboratable):
 
         return m
 
+
 # "Clicked" output
+
 
 class ClickOut(Elaboratable):
     def __init__(self, width=1):
@@ -82,15 +81,17 @@ class ClickOut(Elaboratable):
         m.d.sync += btn1.eq(self.btn)
         m.d.sync += btn2.eq(btn1)
 
-        with self.put.body(m, ready = ~btn2 & btn1) as arg:
+        with self.put.body(m, ready=~btn2 & btn1) as arg:
             m.d.sync += self.dat.eq(arg)
 
         return m
 
+
 # Testbench-friendly input/output
 
+
 class AdapterTrans(Elaboratable):
-    def __init__(self, iface : Method, i=0, o=0):
+    def __init__(self, iface: Method, i=0, o=0):
         self.iface = iface
         self.en = Signal()
         self.done = Signal()
@@ -108,16 +109,18 @@ class AdapterTrans(Elaboratable):
 
         m.d.comb += self.done.eq(self.iface.run)
 
-        with Transaction().body(m, request=self.en) as t:
+        with Transaction().body(m, request=self.en):
             data_out = self.iface(m, arg=data_in)
             m.d.comb += self.data_out.eq(data_out)
 
         return m
 
+
 # Example transactions
 
+
 class ConnectTrans(Elaboratable):
-    def __init__(self, method1 : Method, method2 : Method):
+    def __init__(self, method1: Method, method2: Method):
         self.method1 = method1
         self.method2 = method2
 
@@ -133,8 +136,9 @@ class ConnectTrans(Elaboratable):
 
         return m
 
+
 class CatTrans(Elaboratable):
-    def __init__(self, src1 : Method, src2 : Method, dst : Method):
+    def __init__(self, src1: Method, src2: Method, dst: Method):
         self.src1 = src1
         self.src2 = src2
         self.dst = dst
@@ -151,4 +155,3 @@ class CatTrans(Elaboratable):
             m.d.comb += ddata.eq(Cat(sdata1, sdata2))
 
         return m
-
