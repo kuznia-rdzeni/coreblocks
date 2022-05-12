@@ -13,13 +13,15 @@ sub_help(){
 }
 
 sub_verify() {
-    flake8 \
-    --max-line-length=$MAX_LINE_LENGTH \
-    --ignore=F401,F403,F405 .
+    python3 -m flake8 \
+      --max-line-length=$MAX_LINE_LENGTH \
+      --ignore=F401,F403,F405 .
 }
 
 sub_format(){
-    black --line-length $MAX_LINE_LENGTH .
+    python3 -m black \
+      --line-length $MAX_LINE_LENGTH .
+
     sub_verify
 }
   
