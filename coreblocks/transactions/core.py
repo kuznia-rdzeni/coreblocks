@@ -1,13 +1,16 @@
-
 from contextlib import contextmanager
 from typing import Union, List
 from amaranth import *
 from ._utils import *
 
 __all__ = [
-    "TransactionManager", "TransactionContext", "TransactionModule",
-    "Transaction", "Method"
+    "TransactionManager",
+    "TransactionContext",
+    "TransactionModule",
+    "Transaction",
+    "Method",
 ]
+
 
 class TransactionManager(Elaboratable):
     """Transaction manager
@@ -16,23 +19,23 @@ class TransactionManager(Elaboratable):
     ``Method``s. It takes care that two conflicting ``Transaction``s
     are never granted in the same clock cycle.
     """
+
     def __init__(self):
         self.transactions = {}
         self.methods = {}
         self.methodargs = {}
         self.conflicts = []
 
-    def add_conflict(self, end1 : Union['Transaction', 'Method'],
-                           end2 : Union['Transaction', 'Method']) -> None:
+    def add_conflict(self, end1: Union["Transaction", "Method"], end2: Union["Transaction", "Method"]) -> None:
         self.conflicts.append((end1, end2))
 
-    def use_method(self, transaction : 'Transaction', method : 'Method', arg=C(0, 0), enable=C(1)):
+    def use_method(self, transaction: "Transaction", method: "Method", arg=C(0, 0), enable=C(1)):
         assert transaction.manager is self and method.manager is self
         if (transaction, method) in self.methodargs:
             raise RuntimeError("Method can't be called twice from the same transaction")
-        if not transaction in self.transactions:
+        if transaction not in self.transactions:
             self.transactions[transaction] = []
-        if not method in self.methods:
+        if method not in self.methods:
             self.methods[method] = []
         self.transactions[transaction].append(method)
         self.methods[method].append(transaction)
@@ -98,10 +101,11 @@ class TransactionManager(Elaboratable):
 
         return m
 
-class TransactionContext:
-    stack : List[TransactionManager] = []
 
-    def __init__(self, manager : TransactionManager):
+class TransactionContext:
+    stack: List[TransactionManager] = []
+
+    def __init__(self, manager: TransactionManager):
         self.manager = manager
 
     def __enter__(self):
@@ -118,6 +122,7 @@ class TransactionContext:
             raise RuntimeError("TransactionContext stack is empty")
         return cls.stack[-1]
 
+
 class TransactionModule(Elaboratable):
     """
     ``TransactionModule`` is used as wrapper on ``Module`` class,
@@ -131,6 +136,7 @@ class TransactionModule(Elaboratable):
             The ``Module`` which should be wrapped to add support for
             transactions and methods.
     """
+
     def __init__(self, module):
         self.transactionManager = TransactionManager()
         self.module = module
@@ -148,6 +154,7 @@ class TransactionModule(Elaboratable):
         self.module.submodules += self.transactionManager
 
         return self.module
+
 
 class Transaction:
     """Transaction.
@@ -177,9 +184,10 @@ class Transaction:
         Signals that the transaction is granted by the ``TransactionManager``,
         and all used methods are called.
     """
+
     current = None
 
-    def __init__(self, *, manager : TransactionManager = None):
+    def __init__(self, *, manager: TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
         self.request = Signal()
@@ -197,13 +205,13 @@ class Transaction:
             self.__class__.current = None
 
     @contextmanager
-    def body(self, m : Module, *, request=C(1)):
+    def body(self, m: Module, *, request=C(1)):
         m.d.comb += self.request.eq(request)
         with self.context():
             with m.If(self.grant):
                 yield self
 
-    def add_conflict(self, end : Union['Transaction', 'Method']) -> None:
+    def add_conflict(self, end: Union["Transaction", "Method"]) -> None:
         """Registers a conflict.
 
         The ``TransactionManager`` is informed that given ``Transaction``
@@ -219,10 +227,11 @@ class Transaction:
         self.manager.add_conflict(self, end)
 
     @classmethod
-    def get(cls) -> 'Transaction':
+    def get(cls) -> "Transaction":
         if cls.current is None:
             raise RuntimeError("No current transaction")
         return cls.current
+
 
 class Method:
     """Transactional method.
@@ -270,7 +279,7 @@ class Method:
         ``Transaction``. Typically defined by calling ``body``.
     """
 
-    def __init__(self, *, i=0, o=0, manager : TransactionManager = None):
+    def __init__(self, *, i=0, o=0, manager: TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
         self.ready = Signal()
@@ -279,7 +288,7 @@ class Method:
         self.data_in = Record(_coerce_layout(i))
         self.data_out = Record(_coerce_layout(o))
 
-    def add_conflict(self, end : Union['Transaction', 'Method']) -> None:
+    def add_conflict(self, end: Union["Transaction", "Method"]) -> None:
         """Registers a conflict.
 
         The ``TransactionManager`` is informed that given ``Transaction``
@@ -295,7 +304,7 @@ class Method:
         self.manager.add_conflict(self, end)
 
     @contextmanager
-    def body(self, m : Module, *, ready=C(1), out=C(0, 0)):
+    def body(self, m: Module, *, ready=C(1), out=C(0, 0)):
         """Define method body
 
         The ``body`` function should be used to define body of
@@ -337,10 +346,8 @@ class Method:
         with m.If(self.run):
             yield self.data_in
 
-    def __call__(self, m : Module, arg=C(0, 0), enable=C(1)):
+    def __call__(self, m: Module, arg=C(0, 0), enable=C(1)):
         enable_sig = Signal()
         m.d.comb += enable_sig.eq(enable)
         trans = Transaction.get()
         return self.manager.use_method(trans, self, arg, enable_sig)
-
-
