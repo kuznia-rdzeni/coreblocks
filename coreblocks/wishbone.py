@@ -6,6 +6,7 @@ import operator
 
 from coreblocks.transactions import Method
 
+
 class WishboneLayout:
     # this layout may be used by multiple Wishbone classes and is parametrisable
     def __init__(self, gen_params):
@@ -18,18 +19,22 @@ class WishboneLayout:
             ("cyc", 1, DIR_FANOUT),
             ("err", 1, DIR_FANIN),
             ("lock", 1, DIR_FANOUT),
-            ("rty", 1, DIR_FANIN), 
+            ("rty", 1, DIR_FANIN),
             ("sel", 1, DIR_FANOUT),
             ("stb", 1, DIR_FANOUT),
-            ("we", 1, DIR_FANOUT)]
+            ("we", 1, DIR_FANOUT),
+        ]
+
 
 # Simple cpu to Wishbone master interface
 class WishboneMaster(Elaboratable):
     # WishboneMaster.wbMaster is WB bus output (as WishboneLayout record)
-    # 
+    #
     # Methods avaliable to CPU:
-    # .request - Method that starts new Wishbone request. Ready when no request is currently executed. Takes requestLayout as argument.
-    # .result  - Method that becomes ready when Wishbone request finishes. Returns state of request (error or success) and data (in case of read request) as resultLayout.
+    # .request - Method that starts new Wishbone request. Ready when no request is currently executed.
+    #            Takes requestLayout as argument.
+    # .result  - Method that becomes ready when Wishbone request finishes.
+    #            Returns state of request (error or success) and data (in case of read request) as resultLayout.
     def __init__(self, gen_params):
         self.wb_layout = WishboneLayout(gen_params).wb_layout
         self.wbMaster = Record(self.wb_layout)
@@ -46,7 +51,7 @@ class WishboneMaster(Elaboratable):
         self.txn_req = Record(self.requestLayout)
 
         self.ports = list(self.wbMaster.fields.values())
-    
+
     def generate_layouts(self, gen_params):
         # generate method layouts locally
         self.requestLayout = [
@@ -55,27 +60,24 @@ class WishboneMaster(Elaboratable):
             ("we", 1, DIR_FANIN),
         ]
 
-        self.resultLayout = [
-            ("data", gen_params.wishbone_data_width),
-            ("err", 1)
-        ]
+        self.resultLayout = [("data", gen_params.wishbone_data_width), ("err", 1)]
 
     def elaborate(self, platform):
         m = Module()
-        
+
         def FSMWBCycStart(request):
             m.d.sync += self.wbMaster.cyc.eq(1)
             m.d.sync += self.wbMaster.stb.eq(1)
             m.d.sync += self.wbMaster.adr.eq(request.addr)
             m.d.sync += self.wbMaster.dat_w.eq(Mux(request.we, request.data, 0))
             m.d.sync += self.wbMaster.we.eq(request.we)
-            m.next = "WBWaitACK" 
-        
+            m.next = "WBWaitACK"
+
         with self.result.body(m, ready=self.res_ready, out=self.result_data):
             m.d.sync += self.res_ready.eq(0)
 
-        with m.FSM("Reset") as fsm:
-            with m.State("Reset"): 
+        with m.FSM("Reset"):
+            with m.State("Reset"):
                 m.d.sync += self.wbMaster.rst.eq(1)
                 m.next = "Idle"
             with m.State("Idle"):
@@ -90,8 +92,8 @@ class WishboneMaster(Elaboratable):
                     m.d.sync += self.txn_req.connect(self.request.data_in)
                     # do WBCycStart state in the same clock cycle
                     FSMWBCycStart(self.request.data_in)
-             
-            with m.State("WBCycStart"): 
+
+            with m.State("WBCycStart"):
                 FSMWBCycStart(self.txn_req)
                 m.next = "WBWaitACK"
 
@@ -108,8 +110,9 @@ class WishboneMaster(Elaboratable):
                     m.d.sync += self.wbMaster.cyc.eq(1)
                     m.d.sync += self.wbMaster.stb.eq(0)
                     m.next = "WBCycStart"
-                    
+
         return m
+
 
 # connects one master to multiple slaves
 class WishboneMuxer(Elaboratable):
@@ -125,12 +128,12 @@ class WishboneMuxer(Elaboratable):
         self.txn_sel_r = Signal(selectBits)
 
         self.prev_stb = Signal()
-        
+
     def elaborate(self, platform):
         m = Module()
 
         m.d.sync += self.prev_stb.eq(self.masterWb.stb)
-        
+
         # choose select signal directly from input on first cycle and latched one afterwards
         with m.If(self.masterWb.stb & ~self.prev_stb):
             m.d.sync += self.txn_sel_r.eq(self.sselTGA)
@@ -140,10 +143,12 @@ class WishboneMuxer(Elaboratable):
 
         for i in range(len(self.slaves)):
             # connect all M->S signals except stb
-            m.d.comb += self.masterWb.connect(self.slaves[i], include=["dat_w", "rst", "cyc", "lock", "adr", "we", "sel"])
+            m.d.comb += self.masterWb.connect(
+                self.slaves[i], include=["dat_w", "rst", "cyc", "lock", "adr", "we", "sel"]
+            )
             # use stb as select
             m.d.comb += self.slaves[i].stb.eq((self.txn_sel == i) & self.masterWb.stb)
-        
+
         # bus termination signals S->M should be ORed
         m.d.comb += self.masterWb.ack.eq(reduce(operator.or_, [self.slaves[i].ack for i in range(len(self.slaves))]))
         m.d.comb += self.masterWb.err.eq(reduce(operator.or_, [self.slaves[i].err for i in range(len(self.slaves))]))
@@ -155,6 +160,7 @@ class WishboneMuxer(Elaboratable):
                     m.d.comb += self.masterWb.connect(self.slaves[i], include=["dat_r"])
         return m
 
+
 # connects multiple masters to one slave
 class WishboneArbiter(Elaboratable):
     # slaveWb - wbRecord of slave interface, masters - list of wbRecords for master interfaces
@@ -162,17 +168,18 @@ class WishboneArbiter(Elaboratable):
         self.slaveWb = slaveWb
         self.masters = masters
 
-        self.prev_cyc  = Signal()
+        self.prev_cyc = Signal()
         # Amaranth round robin singals
         self.arb_enable = Signal()
         self.req_signal = Signal(len(masters))
+
     def elaborate(self, plaform):
         m = Module()
 
-        m.submodules.rr = RoundRobin(count=len(self.masters))    
+        m.submodules.rr = RoundRobin(count=len(self.masters))
         m.d.comb += [self.req_signal[i].eq(self.masters[i].cyc) for i in range(len(self.masters))]
         m.d.comb += m.submodules.rr.requests.eq(Mux(self.arb_enable, self.req_signal, 0))
-        
+
         m.d.sync += self.prev_cyc.eq(self.slaveWb.cyc)
 
         for i in range(len(self.masters)):
@@ -185,17 +192,20 @@ class WishboneArbiter(Elaboratable):
 
         # combine reset singnal
         m.d.comb += self.slaveWb.rst.eq(reduce(operator.or_, [self.masters[i].rst for i in range(len(self.masters))]))
-        
+
         # mux all M->S signals
         with m.Switch(m.submodules.rr.grant):
             for i in range(len(self.masters)):
                 with m.Case(i):
-                    m.d.comb += self.masters[i].connect(self.slaveWb, include=["dat_w", "cyc", "lock", "adr", "we", "sel", "stb"])
-        
+                    m.d.comb += self.masters[i].connect(
+                        self.slaveWb, include=["dat_w", "cyc", "lock", "adr", "we", "sel", "stb"]
+                    )
+
         masterArray = Array([master for master in self.masters])
-        # If master ends wb cycle, enable rr input to select new master on next cycle if avaliable (1 cycle break in cyc)
+        # If master ends wb cycle, enable rr input to select new master on next cycle if avaliable (cyc off for 1 cycle)
         # If selcted master is active, disable rr request input to preserve grant signal and correct rr state.
-        # prev_cyc is used to select next master in new bus cycle, if previously selected master asserts cyc at the same time as another one
+        # prev_cyc is used to select next master in new bus cycle, if previously selected master asserts cyc at the
+        # same time as another one
         m.d.comb += self.arb_enable.eq((~masterArray[m.submodules.rr.grant].cyc) | (~self.prev_cyc))
-        
-        return m  
+
+        return m

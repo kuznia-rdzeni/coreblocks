@@ -9,10 +9,12 @@ from coreblocks.genparams import GenParams
 
 from .common import *
 
+
 class TestWishboneMaster(TestCaseWithSimulator):
     class WishboneMasterTestModule(Elaboratable):
         def __init__(self):
             pass
+
         def elaborate(self, plaform):
             m = Module()
             tm = TransactionModule(m)
@@ -56,7 +58,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
             assert (yield wbm.wbMaster.cyc)
             assert (yield wbm.wbMaster.stb)
             assert not (yield wbm.wbMaster.we)
-            yield 
+            yield
             assert (yield wbm.wbMaster.adr == 2)
             # simulate delayed response
             yield
@@ -131,18 +133,17 @@ class TestWishboneMaster(TestCaseWithSimulator):
             assert not (yield wbm.wbMaster.cyc)
             assert not (yield wbm.wbMaster.stb)
             yield
-        
+
         with self.runSimulation(twbm) as sim:
             sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
-class TestWishboneMuxer(TestCaseWithSimulator):
 
+class TestWishboneMuxer(TestCaseWithSimulator):
     def test_manual(self):
         wbRecord = Record(WishboneLayout(GenParams()).wb_layout)
-        mux = WishboneMuxer(wbRecord, 
-            [Record.like(wbRecord, name=f"sl{i}") for i in range(2)], Signal(1))
-        
+        mux = WishboneMuxer(wbRecord, [Record.like(wbRecord, name=f"sl{i}") for i in range(2)], Signal(1))
+
         def process():
             yield mux.masterWb.cyc.eq(0)
             yield mux.masterWb.stb.eq(0)
@@ -180,15 +181,17 @@ class TestWishboneMuxer(TestCaseWithSimulator):
             yield mux.masterWb.cyc.eq(0)
             yield mux.masterWb.stb.eq(0)
             yield
-        
+
         with self.runSimulation(mux) as sim:
             sim.add_clock(1e-6)
-            sim.add_sync_process(process) 
+            sim.add_sync_process(process)
+
 
 class TestWishboneAribiter(TestCaseWithSimulator):
     def test_manual(self):
         wbRecord = Record(WishboneLayout(GenParams()).wb_layout)
         arb = WishboneArbiter(wbRecord, [Record.like(wbRecord, name=f"mst{i}") for i in range(2)])
+
         def process():
             yield arb.masters[0].cyc.eq(0)
             yield arb.masters[0].stb.eq(0)
@@ -275,5 +278,5 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             assert (yield wbRecord.dat_w) == 4
 
         with self.runSimulation(arb) as sim:
-                sim.add_clock(1e-6)
-                sim.add_sync_process(process) 
+            sim.add_clock(1e-6)
+            sim.add_sync_process(process)
