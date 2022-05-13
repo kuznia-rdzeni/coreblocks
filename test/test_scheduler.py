@@ -8,7 +8,7 @@ from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans
 from coreblocks.scheduler import RegAllocation, Renaming, RAT
 from coreblocks.layouts import SchedulerLayouts
 from coreblocks.genparams import GenParams
-from .common import TestCaseWithSimulator
+from .common import TestCaseWithSimulator, TestbenchIO
 
 class RegAllocAndRenameTestCircuit(Elaboratable):
     def __init__(self, gen_params : GenParams):
@@ -41,9 +41,9 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
                                                         gen_params=self.gen_params)
 
             # mocked input and output
-            m.submodules.output = self.out = AdapterTrans(rename_out_buf.read, o=renaming.output_layout)
-            m.submodules.instr_input = self.instr_inp = AdapterTrans(instr_fifo.write, i=layouts.instr_layout)
-            m.submodules.free_rf_inp = self.free_rf_inp = AdapterTrans(free_rf_fifo.write, i=[('data', self.gen_params.phys_regs_bits)])
+            m.submodules.output = self.out = TestbenchIO(rename_out_buf.read, o=renaming.output_layout)
+            m.submodules.instr_input = self.instr_inp = TestbenchIO(instr_fifo.write, i=layouts.instr_layout)
+            m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(free_rf_fifo.write, i=[('data', self.gen_params.phys_regs_bits)])
 
         return tm
 
@@ -60,19 +60,11 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
         for i in range(1, 2**self.gen_params.phys_regs_bits):
             self.recycle_phys_reg(i)
 
-    def check_renamed(self, rphys_1, rphys_2, rlog_out, rphys_out):
-        self.assertEqual((yield self.m.out.data_out.rphys_1), rphys_1)
-        self.assertEqual((yield self.m.out.data_out.rphys_2), rphys_2)
-        self.assertEqual((yield self.m.out.data_out.rlog_out), rlog_out)
-        self.assertEqual((yield self.m.out.data_out.rphys_out), rphys_out)
-
-    def put_instr(self, rlog_1, rlog_2, rlog_out):
-        yield (self.m.instr_inp.data_in.rlog_1.eq(rlog_1))
-        yield (self.m.instr_inp.data_in.rlog_2.eq(rlog_2))
-        yield (self.m.instr_inp.data_in.rlog_out.eq(rlog_out))
-        yield
-        while (yield self.m.instr_inp.done) != 1:
-            yield
+    def check_renamed(self, got, expected):
+        self.assertEqual(got['rphys_1'], expected['rphys_1'])
+        self.assertEqual(got['rphys_2'], expected['rphys_2'])
+        self.assertEqual(got['rlog_out'], expected['rlog_out'])
+        self.assertEqual(got['rphys_out'], expected['rphys_out'])
 
     def recycle_phys_reg(self, reg_id):
         self.recycled_regs.put(reg_id)
@@ -84,14 +76,9 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                 try:
                     item = self.expected_rename.get_nowait()
                     if item is None:
-                        yield self.m.out.en.eq(0)
                         return
-                    yield self.m.out.en.eq(1)
-                    yield
-                    while (yield self.m.out.done) != 1:
-                        yield
-                    yield from self.check_renamed(**item)
-                    yield self.m.out.en.eq(0)
+                    result = yield from self.m.out.get()
+                    self.check_renamed(result, item)
                     # recycle physical register number
                     if item['rphys_out'] != 0:
                         self.recycle_phys_reg(item['rphys_out'])
@@ -99,7 +86,6 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                     yield
 
         def bench_instr_input():
-            yield (self.m.instr_inp.en.eq(1))
             for i in range(500):
                 rlog_1 = random.randint(0, 31)
                 rlog_2 = random.randint(0, 31)
@@ -111,9 +97,8 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                 self.expected_rename.put({'rphys_1': rphys_1, 'rphys_2': rphys_2, 'rlog_out': rlog_out, 'rphys_out': rphys_out})
                 self.current_RAT[rlog_out] = rphys_out
 
-                yield from self.put_instr(rlog_1, rlog_2, rlog_out)
+                yield from self.m.instr_inp.put({'rlog_1': rlog_1, 'rlog_2': rlog_2, 'rlog_out': rlog_out})
 
-            yield (self.m.instr_inp.en.eq(0))
             self.expected_rename.put(None)
             self.recycled_regs.put(None)
             
@@ -122,14 +107,8 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                 try:
                     reg = self.recycled_regs.get_nowait()
                     if reg is None:
-                        yield self.m.free_rf_inp.en.eq(0)
                         return
-                    yield self.m.free_rf_inp.en.eq(1)
-                    yield self.m.free_rf_inp.data_in.eq(reg)
-                    yield
-                    while (yield self.m.free_rf_inp.done) != 1:
-                        yield
-                    yield self.m.free_rf_inp.en.eq(0)
+                    yield from self.m.free_rf_inp.put({'data': reg})
                 except queue.Empty:
                     yield
 
