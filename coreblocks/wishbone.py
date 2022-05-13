@@ -4,7 +4,7 @@ from amaranth.lib.scheduler import RoundRobin
 from functools import reduce
 import operator
 
-from transactions import Method
+from coreblocks.transactions import Method
 
 wbRecord = Record([
             ("dat_r", 64, DIR_FANIN),
@@ -64,7 +64,7 @@ class WishboneMaster(Elaboratable):
             m.d.sync += self.wbMaster.we.eq(request.we)
             m.next = "WBWaitACK" 
         
-        with self.result.when_called(m, ready=self.res_ready, ret=self.result_data):
+        with self.result.body(m, ready=self.res_ready, out=self.result_data):
             m.d.sync += self.res_ready.eq(0)
 
         with m.FSM("Reset") as fsm:
@@ -78,7 +78,7 @@ class WishboneMaster(Elaboratable):
                 m.d.sync += self.wbMaster.stb.eq(0)
                 m.d.sync += self.wbMaster.cyc.eq(0)
 
-                with self.request.when_called(m, ready=(self.ready & ~self.res_ready)):
+                with self.request.body(m, ready=(self.ready & ~self.res_ready)):
                     m.d.sync += self.ready.eq(0)
                     m.d.sync += self.txn_req.connect(self.request.data_in)
                     # do WBCycStart state in the same clock cycle
