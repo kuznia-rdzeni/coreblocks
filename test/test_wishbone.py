@@ -5,6 +5,7 @@ from amaranth.sim import Simulator
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
+from coreblocks.genparams import GenParams
 
 from .common import *
 
@@ -16,9 +17,9 @@ class TestWishboneMaster(TestCaseWithSimulator):
             m = Module()
             tm = TransactionModule(m)
             with tm.transactionContext():
-                m.submodules.wbm = self.wbm = wbm = WishboneMaster()
-                m.submodules.rqa = self.requestAdapter = AdapterTrans(wbm.request, i=WishboneMaster.requestLayout)
-                m.submodules.rsa = self.resultAdapter = AdapterTrans(wbm.result, o=WishboneMaster.resultLayout)
+                m.submodules.wbm = self.wbm = wbm = WishboneMaster(GenParams())
+                m.submodules.rqa = self.requestAdapter = AdapterTrans(wbm.request, i=wbm.requestLayout)
+                m.submodules.rsa = self.resultAdapter = AdapterTrans(wbm.result, o=wbm.resultLayout)
             return tm
 
     def test_manual(self):
@@ -138,7 +139,8 @@ class TestWishboneMaster(TestCaseWithSimulator):
 class TestWishboneMuxer(TestCaseWithSimulator):
 
     def test_manual(self):
-        mux = WishboneMuxer(Record.like(wbRecord, name="mst"), 
+        wbRecord = Record(WishboneLayout(GenParams()).wb_layout)
+        mux = WishboneMuxer(wbRecord, 
             [Record.like(wbRecord, name=f"sl{i}") for i in range(2)], Signal(1))
         
         def process():
@@ -185,6 +187,7 @@ class TestWishboneMuxer(TestCaseWithSimulator):
 
 class TestWishboneAribiter(TestCaseWithSimulator):
     def test_manual(self):
+        wbRecord = Record(WishboneLayout(GenParams()).wb_layout)
         arb = WishboneArbiter(wbRecord, [Record.like(wbRecord, name=f"mst{i}") for i in range(2)])
         def process():
             yield arb.masters[0].cyc.eq(0)

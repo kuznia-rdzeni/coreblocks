@@ -6,40 +6,34 @@ import operator
 
 from coreblocks.transactions import Method
 
-wbRecord = Record([
-            ("dat_r", 64, DIR_FANIN),
-            ("dat_w", 64, DIR_FANOUT),
+class WishboneLayout:
+    # this layout may be used by multiple Wishbone classes and is parametrisable
+    def __init__(self, gen_params):
+        self.wb_layout = [
+            ("dat_r", gen_params.wishbone_data_width, DIR_FANIN),
+            ("dat_w", gen_params.wishbone_data_width, DIR_FANOUT),
             ("rst", 1, DIR_FANOUT),
             ("ack", 1, DIR_FANIN),
-            ("adr", 64, DIR_FANOUT),
+            ("adr", gen_params.wishbone_data_width, DIR_FANOUT),
             ("cyc", 1, DIR_FANOUT),
             ("err", 1, DIR_FANIN),
             ("lock", 1, DIR_FANOUT),
             ("rty", 1, DIR_FANIN), 
             ("sel", 1, DIR_FANOUT),
             ("stb", 1, DIR_FANOUT),
-            ("we", 1, DIR_FANOUT)])
+            ("we", 1, DIR_FANOUT)]
 
 # Simple cpu to Wishbone master interface
 class WishboneMaster(Elaboratable):
-    requestLayout = [
-        ("addr", wbRecord.adr.shape().width, DIR_FANIN),
-        ("data", wbRecord.dat_w.shape().width, DIR_FANIN),
-        ("we", 1, DIR_FANIN),
-    ]
-
-    resultLayout = [
-        ("data", wbRecord.dat_r.shape().width),
-        ("err", 1)
-    ]
-
-    # WishboneMaster.wbMaster is WB bus output (as wbRecord)
+    # WishboneMaster.wbMaster is WB bus output (as WishboneLayout record)
     # 
     # Methods avaliable to CPU:
     # .request - Method that starts new Wishbone request. Ready when no request is currently executed. Takes requestLayout as argument.
     # .result  - Method that becomes ready when Wishbone request finishes. Returns state of request (error or success) and data (in case of read request) as resultLayout.
-    def __init__(self):
-        self.wbMaster = Record.like(wbRecord)
+    def __init__(self, gen_params):
+        self.wb_layout = WishboneLayout(gen_params).wb_layout
+        self.wbMaster = Record(self.wb_layout)
+        self.generate_layouts(gen_params)
 
         self.request = Method(i=self.requestLayout)
         self.result = Method(o=self.resultLayout)
@@ -52,6 +46,19 @@ class WishboneMaster(Elaboratable):
         self.txn_req = Record(self.requestLayout)
 
         self.ports = list(self.wbMaster.fields.values())
+    
+    def generate_layouts(self, gen_params):
+        # generate method layouts locally
+        self.requestLayout = [
+            ("addr", gen_params.wishbone_addr_width, DIR_FANIN),
+            ("data", gen_params.wishbone_data_width, DIR_FANIN),
+            ("we", 1, DIR_FANIN),
+        ]
+
+        self.resultLayout = [
+            ("data", gen_params.wishbone_data_width),
+            ("err", 1)
+        ]
 
     def elaborate(self, platform):
         m = Module()
