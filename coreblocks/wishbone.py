@@ -7,15 +7,21 @@ import operator
 from coreblocks.transactions import Method
 
 
+class WishboneParameters:
+    def __init__(self, *, data_width=64, addr_width=64):
+        self.data_width = data_width
+        self.addr_width = addr_width
+
+
 class WishboneLayout:
     # this layout may be used by multiple Wishbone classes and is parametrisable
-    def __init__(self, gen_params):
+    def __init__(self, wb_params: WishboneParameters):
         self.wb_layout = [
-            ("dat_r", gen_params.wishbone_data_width, DIR_FANIN),
-            ("dat_w", gen_params.wishbone_data_width, DIR_FANOUT),
+            ("dat_r", wb_params.data_width, DIR_FANIN),
+            ("dat_w", wb_params.data_width, DIR_FANOUT),
             ("rst", 1, DIR_FANOUT),
             ("ack", 1, DIR_FANIN),
-            ("adr", gen_params.wishbone_data_width, DIR_FANOUT),
+            ("adr", wb_params.addr_width, DIR_FANOUT),
             ("cyc", 1, DIR_FANOUT),
             ("err", 1, DIR_FANIN),
             ("lock", 1, DIR_FANOUT),
@@ -35,10 +41,10 @@ class WishboneMaster(Elaboratable):
     #            Takes requestLayout as argument.
     # .result  - Method that becomes ready when Wishbone request finishes.
     #            Returns state of request (error or success) and data (in case of read request) as resultLayout.
-    def __init__(self, gen_params):
-        self.wb_layout = WishboneLayout(gen_params).wb_layout
+    def __init__(self, wb_params: WishboneParameters):
+        self.wb_layout = WishboneLayout(wb_params).wb_layout
         self.wbMaster = Record(self.wb_layout)
-        self.generate_layouts(gen_params)
+        self.generate_layouts(wb_params)
 
         self.request = Method(i=self.requestLayout)
         self.result = Method(o=self.resultLayout)
@@ -52,15 +58,15 @@ class WishboneMaster(Elaboratable):
 
         self.ports = list(self.wbMaster.fields.values())
 
-    def generate_layouts(self, gen_params):
+    def generate_layouts(self, wb_params):
         # generate method layouts locally
         self.requestLayout = [
-            ("addr", gen_params.wishbone_addr_width, DIR_FANIN),
-            ("data", gen_params.wishbone_data_width, DIR_FANIN),
+            ("addr", wb_params.addr_width, DIR_FANIN),
+            ("data", wb_params.data_width, DIR_FANIN),
             ("we", 1, DIR_FANIN),
         ]
 
-        self.resultLayout = [("data", gen_params.wishbone_data_width), ("err", 1)]
+        self.resultLayout = [("data", wb_params.data_width), ("err", 1)]
 
     def elaborate(self, platform):
         m = Module()
