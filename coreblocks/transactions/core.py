@@ -188,6 +188,8 @@ class Transaction:
         self.manager.methods_by_transaction[self].append(method)
         self.manager.transactions_by_method[method].append(self)
         self.manager.methodargs[(self, method)] = (arg, enable)
+        for end in method.conflicts:
+            self.manager.add_conflict(method, end)
 
     @contextmanager
     def context(self):
@@ -274,29 +276,26 @@ class Method:
         ``Transaction``. Typically defined by calling ``body``.
     """
 
-    def __init__(self, *, i=0, o=0, manager: TransactionManager = None):
-        if manager is None:
-            manager = TransactionContext.get()
+    def __init__(self, *, i=0, o=0):
         self.ready = Signal()
         self.run = Signal()
-        self.manager = manager
         self.data_in = Record(_coerce_layout(i))
         self.data_out = Record(_coerce_layout(o))
+        self.conflicts = []
 
     def add_conflict(self, end: Union["Transaction", "Method"]) -> None:
         """Registers a conflict.
 
-        The ``TransactionManager`` is informed that given ``Transaction``
-        or ``Method`` cannot execute simultaneously with this ``Method``.
-        Typical reason is using a common resource (register write
-        or memory port).
+        Record that that the given ``Transaction`` or ``Method`` cannot execute
+        simultaneously with this ``Method``.  Typical reason is using a common
+        resource (register write or memory port).
 
         Parameters
         ----------
         end: Transaction or Method
             The conflicting ``Transaction`` or ``Method``
         """
-        self.manager.add_conflict(self, end)
+        self.conflicts.append(end)
 
     @contextmanager
     def body(self, m: Module, *, ready=C(1), out=C(0, 0)):
