@@ -1,3 +1,4 @@
+from collections import defaultdict
 from contextlib import contextmanager
 from typing import Union, List
 from amaranth import *
@@ -21,8 +22,8 @@ class TransactionManager(Elaboratable):
     """
 
     def __init__(self):
-        self.transactions = {}
-        self.methods = {}
+        self.transactions = defaultdict(list)
+        self.methods = defaultdict(list)
         self.methodargs = {}
         self.conflicts = []
 
@@ -33,10 +34,6 @@ class TransactionManager(Elaboratable):
         assert transaction.manager is self and method.manager is self
         if (transaction, method) in self.methodargs:
             raise RuntimeError("Method can't be called twice from the same transaction")
-        if transaction not in self.transactions:
-            self.transactions[transaction] = []
-        if method not in self.methods:
-            self.methods[method] = []
         self.transactions[transaction].append(method)
         self.methods[method].append(transaction)
         self.methodargs[(transaction, method)] = (arg, enable)
