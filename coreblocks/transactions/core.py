@@ -22,8 +22,8 @@ class TransactionManager(Elaboratable):
     """
 
     def __init__(self):
-        self.transactions = defaultdict(list)
-        self.methods = defaultdict(list)
+        self.methods_by_transaction = defaultdict(list)
+        self.transactions_by_method = defaultdict(list)
         self.methodargs = {}
         self.conflicts = []
 
@@ -34,15 +34,15 @@ class TransactionManager(Elaboratable):
         assert transaction.manager is self and method.manager is self
         if (transaction, method) in self.methodargs:
             raise RuntimeError("Method can't be called twice from the same transaction")
-        self.transactions[transaction].append(method)
-        self.methods[method].append(transaction)
+        self.methods_by_transaction[transaction].append(method)
+        self.transactions_by_method[method].append(transaction)
         self.methodargs[(transaction, method)] = (arg, enable)
         return method.data_out
 
     def _conflict_graph(self):
         def endTrans(end):
             if isinstance(end, Method):
-                return self.methods[end]
+                return self.transactions_by_method[end]
             else:
                 return [end]
 
@@ -52,12 +52,12 @@ class TransactionManager(Elaboratable):
             gr[transaction].add(transaction2)
             gr[transaction2].add(transaction)
 
-        for transaction in self.transactions.keys():
+        for transaction in self.methods_by_transaction.keys():
             gr[transaction] = set()
 
-        for transaction, methods in self.transactions.items():
+        for transaction, methods in self.methods_by_transaction.items():
             for method in methods:
-                for transaction2 in self.methods[method]:
+                for transaction2 in self.transactions_by_method[method]:
                     if transaction is not transaction2:
                         addEdge(transaction, transaction2)
 
@@ -77,7 +77,7 @@ class TransactionManager(Elaboratable):
             sched = Scheduler(len(cc))
             m.submodules += sched
             for k, transaction in enumerate(cc):
-                methods = self.transactions[transaction]
+                methods = self.methods_by_transaction[transaction]
                 ready = Signal(len(methods))
                 for n, method in enumerate(methods):
                     m.d.comb += ready[n].eq(method.ready)
@@ -85,7 +85,7 @@ class TransactionManager(Elaboratable):
                 m.d.comb += sched.requests[k].eq(transaction.request & runnable)
                 m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
 
-        for method, transactions in self.methods.items():
+        for method, transactions in self.transactions_by_method.items():
             granted = Signal(len(transactions))
             for n, transaction in enumerate(transactions):
                 (tdata, enable) = self.methodargs[(transaction, method)]
