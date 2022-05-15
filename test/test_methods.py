@@ -55,13 +55,15 @@ class TestFourCircuit(TestCaseWithSimulator):
 
     def sim_step(self):
         yield self.circ.en.eq(1)
-        yield
-        yield
+        #yield
+        #yield
+        yield Settle()
         self.assertEqual((yield self.circ.out), 4)
 
         yield self.circ.en.eq(0)
-        yield
-        yield
+        #yield
+        #yield
+        yield Settle()
         self.assertEqual((yield self.circ.out), 0)
 
     def test(self):
@@ -72,5 +74,6 @@ class TestFourCircuit(TestCaseWithSimulator):
                 yield from self.sim_step()
 
         with self.runSimulation(self.circ) as sim:
-            sim.add_clock(1e-6)
-            sim.add_sync_process(process)
+            #sim.add_clock(1e-6)
+            #sim.add_sync_process(process)
+            sim.add_process(process)

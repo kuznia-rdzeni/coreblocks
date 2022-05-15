@@ -1,6 +1,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from typing import Union, List
+from types import MethodType
 from amaranth import *
 from ._utils import *
 
@@ -10,7 +11,31 @@ __all__ = [
     "TransactionModule",
     "Transaction",
     "Method",
+    "eager_deterministic_cc_scheduler",
+    "trivial_roundrobin_cc_scheduler",
 ]
+
+
+def eager_deterministic_cc_scheduler(manager, m, gr, cc):
+    for k, transaction in enumerate(cc):
+        ready = [method.ready for method in manager.methods_by_transaction[transaction]]
+        runnable = Cat(ready).all()
+        conflicts = [cc[j].grant for j in range(k) if cc[j] in gr[transaction]]
+        noconflict = ~Cat(conflicts).any()
+        m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
+
+
+def trivial_roundrobin_cc_scheduler(manager, m, gr, cc):
+    sched = Scheduler(len(cc))
+    m.submodules += sched
+    for k, transaction in enumerate(cc):
+        methods = manager.methods_by_transaction[transaction]
+        ready = Signal(len(methods))
+        for n, method in enumerate(methods):
+            m.d.comb += ready[n].eq(method.ready)
+        runnable = ready.all()
+        m.d.comb += sched.requests[k].eq(transaction.request & runnable)
+        m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
 
 
 class TransactionManager(Elaboratable):
@@ -21,11 +46,12 @@ class TransactionManager(Elaboratable):
     are never granted in the same clock cycle.
     """
 
-    def __init__(self):
+    def __init__(self, cc_scheduler=eager_deterministic_cc_scheduler):
         self.methods_by_transaction = defaultdict(list)
         self.transactions_by_method = defaultdict(list)
         self.method_uses = {}
         self.conflicts = []
+        self.cc_scheduler = MethodType(cc_scheduler, self)
 
     def add_conflict(self, end1: Union["Transaction", "Method"], end2: Union["Transaction", "Method"]) -> None:
         self.conflicts.append((end1, end2))
@@ -65,16 +91,7 @@ class TransactionManager(Elaboratable):
         gr = self._conflict_graph()
 
         for cc in _graph_ccs(gr):
-            sched = Scheduler(len(cc))
-            m.submodules += sched
-            for k, transaction in enumerate(cc):
-                methods = self.methods_by_transaction[transaction]
-                ready = Signal(len(methods))
-                for n, method in enumerate(methods):
-                    m.d.comb += ready[n].eq(method.ready)
-                runnable = ready.all()
-                m.d.comb += sched.requests[k].eq(transaction.request & runnable)
-                m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
+            self.cc_scheduler(m, gr, cc)
 
         for method, transactions in self.transactions_by_method.items():
             granted = Signal(len(transactions))
@@ -125,8 +142,10 @@ class TransactionModule(Elaboratable):
             transactions and methods.
     """
 
-    def __init__(self, module):
-        self.transactionManager = TransactionManager()
+    def __init__(self, module, manager: TransactionManager = None):
+        if manager is None:
+            manager = TransactionManager()
+        self.transactionManager = manager
         self.module = module
 
     def transactionContext(self) -> TransactionContext:
