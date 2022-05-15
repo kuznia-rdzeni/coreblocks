@@ -44,16 +44,16 @@ Side effects:
 
 ----
 
-### If instruction ready
+### Get ready vector
 
 Ready when:
 - *always*
 
 Input:
-- `position` - instruction position in RS, which should be checked if it is ready to execute
+- *null*
 
 Output:
-- `inst_ready`:
+- `inst_ready` - bit vector as long as RS, where bit on `position` mean:
   - 0 - instruction is still waiting for arguments
   - 1 - instruction is ready for execute
 
