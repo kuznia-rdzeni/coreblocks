@@ -32,17 +32,28 @@ class TestbenchIO(Elaboratable):
         while (yield self.adapter.done) != 1:
             yield
 
-    def _set_input(self, name, value):
-        yield getattr(self.adapter.data_in, name).eq(value)
+    def _set_inputs(self, values: dict, field=None):
+        field = field if field is not None else self.adapter.data_in
+        for name, value in values.items():
+            if isinstance(value, dict):
+                yield from self._set_inputs(value, getattr(field, name))
+            else:
+                yield getattr(field, name).eq(value)
 
-    def _get_output(self, name):
-        return (yield getattr(self.adapter.data_out, name))
+    def _get_outputs(self, field=None):
+        field = field if field is not None else self.adapter.data_out
+        if isinstance(field, Signal):
+            return (yield field)
+        else: # field is a Record
+            result = {}
+            for name, bits, _ in field.layout:
+                result[name] = yield from self._get_outputs(getattr(field, name))
+            return result
 
     # accept data as dict to be consistent with get()
     def put(self, data: dict):
         yield from self._enable()
-        for name, value in data.items():
-            yield from self._set_input(name, value)
+        yield from self._set_inputs(data)
         yield
         yield from self._wait_until_done()
         yield from self._disable()
@@ -54,7 +65,4 @@ class TestbenchIO(Elaboratable):
         yield from self._disable()
         # return dict of all signal values in a record because amaranth doesn't support yielding records -
         # - they're neither Value nor Statement and amaranth implementation only supports these two
-        result = {}
-        for name, _, _ in self.adapter.output_fmt:
-            result[name] = yield from self._get_output(name)
-        return result
+        return (yield from self._get_outputs())
