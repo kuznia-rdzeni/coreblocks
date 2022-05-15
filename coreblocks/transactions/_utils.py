@@ -7,7 +7,7 @@ __all__ = ["RRScheduler", "_graph_ccs", "_coerce_layout"]
 class RRScheduler(Elaboratable):
     """RRScheduler
 
-    An implementation of round robin scheduler.
+    An implementation of round-robin scheduler.
 
     Parameters
     ----------
