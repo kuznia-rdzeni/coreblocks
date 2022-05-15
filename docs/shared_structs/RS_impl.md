@@ -43,7 +43,6 @@ Input:
 - `tag` - identifier of RF which is announcement on Tomasulo bus
 - `value` - value which is announcement on Tomasulo bus
 - `position` - position in RF on which comparison and replacement should take place
-- `start` - signal to start operation
 
 Output:
 - *null*
@@ -60,7 +59,6 @@ Ready when:
 
 Input:
 - `position` - identifier of RS row, which should be read
-- `start` - signal to start operation
 
 Output:
 - `opcode` - instruction identifier for FU
@@ -80,7 +78,6 @@ Ready when:
 
 Input:
 - `position` - identifier of RS row, which should be cleaned
-- `start` - signal to start operation
 
 Output:
 - *null*
@@ -111,7 +108,6 @@ Ready when:
 
 Input:
 - `position` - id of slot which should be marked as used
-- `start` - signal to start operation
 
 Output:
 - *null*

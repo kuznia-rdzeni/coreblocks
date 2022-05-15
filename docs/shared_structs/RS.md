@@ -14,13 +14,13 @@ Ready when:
 - *implementation defined*
 
 Input:
-- `start` - signal to start operation
+- *null*
 
 Output:
 - `position` - position of a free slot in RS
 
 Side effects:
-- *null*
+- Slot on `position` marked as used
 
 
 ### Insert new instruction
@@ -35,7 +35,6 @@ Input:
 - `id_out` - id of RF field where instruction output should be stored
 - `id_ROB` - id of ROB entry which is allocated for this instruction
 - `position` - position in the RS to which we should write this entry
-- `start` - signal to start operation
 
 Output:
 - *null*
@@ -52,7 +51,6 @@ Ready when:
 
 Input:
 - `position` - instruction position in RS, which should be checked if it is ready to execute
-- `start` - signal to start operation
 
 Output:
 - `inst_ready`:
@@ -69,7 +67,6 @@ Ready when:
 
 Input:
 - `position` - identifier of RS row, which should be read and cleared
-- `start` - signal to start operation
 
 Output:
 - `opcode` - instruction identifier for FU
@@ -91,7 +88,6 @@ Ready when:
 Input:
 - `tag` - identifier of RF which is announcement on Tomasulo bus
 - `value` - value which is announcement on Tomasulo bus
-- `start` - signal to start operation
 
 Output:
 - *null*
