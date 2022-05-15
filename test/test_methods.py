@@ -6,6 +6,7 @@ from .common import TestCaseWithSimulator
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
+
 class Four(Elaboratable):
     def __init__(self):
         self.one = Method(o=4)
@@ -29,6 +30,7 @@ class Four(Elaboratable):
 
         return m
 
+
 class FourCircuit(Elaboratable):
     def __init__(self):
         self.en = Signal()
@@ -47,22 +49,23 @@ class FourCircuit(Elaboratable):
 
         return tm
 
-#from amaranth.back import verilog
-#m = FourCircuit()
-#print(verilog.convert(m, ports=[m.en, m.out]))
+
+# from amaranth.back import verilog
+# m = FourCircuit()
+# print(verilog.convert(m, ports=[m.en, m.out]))
+
 
 class TestFourCircuit(TestCaseWithSimulator):
-
     def sim_step(self):
         yield self.circ.en.eq(1)
-        #yield
-        #yield
+        # yield
+        # yield
         yield Settle()
         self.assertEqual((yield self.circ.out), 4)
 
         yield self.circ.en.eq(0)
-        #yield
-        #yield
+        # yield
+        # yield
         yield Settle()
         self.assertEqual((yield self.circ.out), 0)
 
@@ -74,6 +77,6 @@ class TestFourCircuit(TestCaseWithSimulator):
                 yield from self.sim_step()
 
         with self.runSimulation(self.circ) as sim:
-            #sim.add_clock(1e-6)
-            #sim.add_sync_process(process)
+            # sim.add_clock(1e-6)
+            # sim.add_sync_process(process)
             sim.add_process(process)

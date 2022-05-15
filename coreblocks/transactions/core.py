@@ -210,7 +210,6 @@ class Transaction:
         for end in method.conflicts:
             self.manager.add_conflict(method, end)
 
-
     def use_method(self, method: "Method", arg=C(0, 0), enable=C(1)):
         self._use_method(method, arg, enable)
         for method, (arg, enable) in method.method_uses.items():
