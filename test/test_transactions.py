@@ -3,10 +3,10 @@ from amaranth.sim import *
 
 from .common import TestCaseWithSimulator
 
-from coreblocks.transactions._utils import Scheduler
+from coreblocks.transactions._utils import RRScheduler
 
 
-class TestScheduler(TestCaseWithSimulator):
+class TestRRScheduler(TestCaseWithSimulator):
     def count_test(self, sched, cnt):
         self.assertEqual(sched.count, cnt)
         self.assertEqual(len(sched.requests), cnt)
@@ -24,7 +24,7 @@ class TestScheduler(TestCaseWithSimulator):
             self.assertTrue((yield sched.valid))
 
     def test_single(self):
-        sched = Scheduler(1)
+        sched = RRScheduler(1)
         self.count_test(sched, 1)
 
         def process():
@@ -38,7 +38,7 @@ class TestScheduler(TestCaseWithSimulator):
             sim.add_sync_process(process)
 
     def test_multi(self):
-        sched = Scheduler(4)
+        sched = RRScheduler(4)
         self.count_test(sched, 4)
 
         def process():
