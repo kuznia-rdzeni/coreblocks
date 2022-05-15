@@ -24,7 +24,7 @@ class TransactionManager(Elaboratable):
     def __init__(self):
         self.methods_by_transaction = defaultdict(list)
         self.transactions_by_method = defaultdict(list)
-        self.methodargs = {}
+        self.method_uses = {}
         self.conflicts = []
 
     def add_conflict(self, end1: Union["Transaction", "Method"], end2: Union["Transaction", "Method"]) -> None:
@@ -79,7 +79,7 @@ class TransactionManager(Elaboratable):
         for method, transactions in self.transactions_by_method.items():
             granted = Signal(len(transactions))
             for n, transaction in enumerate(transactions):
-                (tdata, enable) = self.methodargs[(transaction, method)]
+                (tdata, enable) = self.method_uses[(transaction, method)]
                 m.d.comb += granted[n].eq(transaction.grant & enable)
 
                 with m.If(transaction.grant):
@@ -182,14 +182,20 @@ class Transaction:
         self.grant = Signal()
         self.manager = manager
 
-    def use_method(self, method: "Method", arg=C(0, 0), enable=C(1)):
-        if (self, method) in self.manager.methodargs:
+    def _use_method(self, method: "Method", arg, enable):
+        if method in self.manager.method_uses:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.manager.methods_by_transaction[self].append(method)
         self.manager.transactions_by_method[method].append(self)
-        self.manager.methodargs[(self, method)] = (arg, enable)
+        self.manager.method_uses[(self, method)] = (arg, enable)
         for end in method.conflicts:
             self.manager.add_conflict(method, end)
+
+
+    def use_method(self, method: "Method", arg=C(0, 0), enable=C(1)):
+        self._use_method(method, arg, enable)
+        for method, (arg, enable) in method.method_uses.items():
+            self._use_method(method, arg, enable)
 
     @contextmanager
     def context(self):
@@ -276,12 +282,16 @@ class Method:
         ``Transaction``. Typically defined by calling ``body``.
     """
 
+    current = None
+
     def __init__(self, *, i=0, o=0):
         self.ready = Signal()
         self.run = Signal()
         self.data_in = Record(_coerce_layout(i))
         self.data_out = Record(_coerce_layout(o))
         self.conflicts = []
+        self.method_uses = dict()
+        self.defined = False
 
     def add_conflict(self, end: Union["Transaction", "Method"]) -> None:
         """Registers a conflict.
@@ -335,14 +345,36 @@ class Method:
             m.d.comb += sum.eq(data_in.arg1 + data_in.arg2)
         ```
         """
-        m.d.comb += self.ready.eq(ready)
-        m.d.comb += self.data_out.eq(out)
-        with m.If(self.run):
-            yield self.data_in
+        if self.__class__.current is not None:
+            raise RuntimeError("Method body inside method body")
+        self.__class__.current = self
+        try:
+            m.d.comb += self.ready.eq(ready)
+            m.d.comb += self.data_out.eq(out)
+            with m.If(self.run):
+                yield self.data_in
+        finally:
+            self.__class__.current = None
+            self.defined = True
+
+    def _use_method(self, method: "Method", arg, enable):
+        if not method.defined:
+            raise RuntimeError("Trying to use method which is not defined yet")
+        if method in self.method_uses:
+            raise RuntimeError("Method can't be called twice in method body")
+        self.conflicts += method.conflicts
+        self.method_uses[method] = (arg, enable)
+
+    def use_method(self, method: "Method", arg=C(0, 0), enable=C(1)):
+        for _method, (_arg, _enable) in method.method_uses.items():
+            self._use_method(_method, _arg, _enable)
+        self._use_method(method, arg, enable)
 
     def __call__(self, m: Module, arg=C(0, 0), enable=C(1)):
         enable_sig = Signal()
         m.d.comb += enable_sig.eq(enable)
-        trans = Transaction.get()
-        trans.use_method(self, arg, enable_sig)
+        if Method.current is not None:
+            Method.current.use_method(self, arg, enable_sig)
+        else:
+            Transaction.get().use_method(self, arg, enable_sig)
         return self.data_out
