@@ -1,10 +1,28 @@
 import itertools
 from amaranth import *
 
-__all__ = ["Scheduler", "_graph_ccs", "_coerce_layout"]
+__all__ = ["RRScheduler", "_graph_ccs", "_coerce_layout"]
 
 
-class Scheduler(Elaboratable):
+class RRScheduler(Elaboratable):
+    """RRScheduler
+
+    An implementation of round robin scheduler.
+
+    Parameters
+    ----------
+    count : int
+        Number of agents between which scheduler should arbitrate.
+
+    Attributes
+    ----------
+    requests: Signal, in
+        Signals that the something (e.g. transaction) wants to run.
+    grant: Signal, out
+        Signals that the something (e.g. transaction) is granted to run.
+    valid : Signal, out
+        Signal that `grant` signals are valid.
+    """
     def __init__(self, count: int):
         if not isinstance(count, int) or count < 0:
             raise ValueError("Count must be a non-negative integer, not {!r}".format(count))
@@ -36,6 +54,20 @@ class Scheduler(Elaboratable):
 
 
 def _graph_ccs(gr):
+    """_graph_ccs
+
+    Find connected components in graph.
+
+    Parameters
+    ----------
+    gr : Dict[Set[T]]
+        Graph in which we should find connected components.
+
+    Returns
+    -------
+    ccs : List[List[T]]
+        Connected components from the graph `gr`.
+    """
     ccs = []
     cc = set()
     visited = set()

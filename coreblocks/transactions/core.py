@@ -16,6 +16,26 @@ __all__ = [
 
 
 def eager_deterministic_cc_scheduler(manager, m, gr, cc):
+    """eager_deterministic_cc_scheduler
+
+    This function generate eager scheduler for transaction
+    subsystem. It isn't fair, because it start transactions using
+    transaction indec in `cc` as a piority. Transaction with lowest
+    index has highest piority.
+
+    If there are two different transactions which has no conflict then
+    they will be started concurently.
+
+    Parameters
+    ----------
+    m : Module
+        Module to which signals and calculations should be connected.
+    gr : Dict[Set[Transaction]]
+        Graph of conflicts between transactions.
+    cc : List[Transaction]
+        Connected component from the graph `gr` for which scheduler
+        should be generated.
+    """
     for k, transaction in enumerate(cc):
         ready = [method.ready for method in manager.transactions[transaction]]
         runnable = Cat(ready).all()
@@ -25,7 +45,23 @@ def eager_deterministic_cc_scheduler(manager, m, gr, cc):
 
 
 def trivial_roundrobin_cc_scheduler(manager, m, gr, cc):
-    sched = Scheduler(len(cc))
+    """trivial_roundrobin_cc_scheduler
+
+    This function generate simple round robin scheduler for transaction
+    subsystem. In a one cycle there will be at most one transaction granted,
+    even if there is other ready, non-conflicting, transaction.
+
+    Parameters
+    ----------
+    m : Module
+        Module to which signals and calculations should be connected.
+    gr : Dict[Set[Transaction]]
+        Graph of conflicts between transactions.
+    cc : List[Transaction]
+        Connected component from the graph `gr` for which scheduler
+        should be generated.
+    """
+    sched = RRScheduler(len(cc))
     m.submodules += sched
     for k, transaction in enumerate(cc):
         methods = manager.transactions[transaction]
@@ -69,6 +105,19 @@ class TransactionManager(Elaboratable):
         return method.data_out
 
     def _conflict_graph(self):
+        """_conflict_graph
+
+        This function generate graph of confliction transactions. It use
+        informations passed both explicite to `TransactionManager` using
+        function `add_conflict` and implicite using data stored in
+        `self.transactions`, `self.methods`. This function should be
+        called after all transactions are registred.
+
+        Returns
+        ----------
+        gr : Dict[Set[Transaction]]
+            Graph of conflicts between transactions.
+        """
         def endTrans(end):
             if isinstance(end, Method):
                 return self.methods[end]
