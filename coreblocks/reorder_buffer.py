@@ -54,9 +54,13 @@ class ReorderBuffer(Elaboratable):
 
         with self.put.body(m, ready=put_possible, out=put_output) as arg:
             m.d.sync += self.data[self.end_cnt].eq(arg)
+            m.d.sync += self.data[self.start_cnt].done.eq(0)
             m.d.sync += self.end_cnt.eq(self.end_cnt + 1)
             m.d.comb += put_output.rob_id.eq(self.end_cnt)
 
+        # TODO: There is a potential race condition when ROB is flushed.
+        # If functional units aren't flushed, finished obsolete instructions
+        # could mark fields in ROB as done when they shouldn't.
         with self.mark_done.body(m) as arg:
             m.d.sync += self.data[arg.rob_id].done.eq(1)
 
