@@ -70,3 +70,11 @@ class TestbenchIO(Elaboratable):
         # return dict of all signal values in a record because amaranth's simulator can't read all
         # values of a Record in a single yield - it can only read Values (Signals)
         return (yield from self._get_outputs())
+
+    def putget(self, data: dict):
+        yield from self._enable()
+        yield from self._set_inputs(data)
+        yield
+        yield from self._wait_until_done()
+        yield from self._disable()
+        return (yield from self._get_outputs())
