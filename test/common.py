@@ -65,6 +65,6 @@ class TestbenchIO(Elaboratable):
         yield
         yield from self._wait_until_done()
         yield from self._disable()
-        # return dict of all signal values in a record because amaranth doesn't support yielding records -
-        # - they're neither Value nor Statement and amaranth implementation only supports these two
+        # return dict of all signal values in a record because amaranth's simulator can't read all
+        # values of a Record in a single yield - it can only read Values (Signals)
         return (yield from self._get_outputs())
