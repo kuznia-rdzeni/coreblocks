@@ -363,6 +363,8 @@ class Method:
             m.d.comb += sum.eq(data_in.arg1 + data_in.arg2)
         ```
         """
+        if self.defined:
+            raise RuntimeError("Method already defined")
         if self.__class__.current is not None:
             raise RuntimeError("Method body inside method body")
         self.__class__.current = self

@@ -159,3 +159,17 @@ class TestInvalidMethods(TestCase):
                 return m
 
         self.assertRaisesRegex(RuntimeError, "not defined", lambda: Cycle().elaborate(platform=None))
+
+    def testRedefine(self):
+        class Redefine(Elaboratable):
+            def elaborate(self, platform):
+                m = Module()
+                meth = Method()
+
+                with meth.body(m):
+                    pass
+
+                with meth.body(m):
+                    pass
+
+        self.assertRaisesRegex(RuntimeError, "already defined", lambda: Redefine().elaborate(platform=None))
