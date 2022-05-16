@@ -33,7 +33,8 @@ class TestbenchIO(Elaboratable):
             yield
 
     def _set_inputs(self, values: dict, field=None):
-        field = field if field is not None else self.adapter.data_in
+        if field is None:
+            field = self.adapter.data_in
         for name, value in values.items():
             if isinstance(value, dict):
                 yield from self._set_inputs(value, getattr(field, name))
@@ -41,7 +42,8 @@ class TestbenchIO(Elaboratable):
                 yield getattr(field, name).eq(value)
 
     def _get_outputs(self, field=None):
-        field = field if field is not None else self.adapter.data_out
+        if field is None:
+            field = self.adapter.data_out
         if isinstance(field, Signal):
             return (yield field)
         else: # field is a Record
