@@ -5,7 +5,7 @@ from coreblocks.transactions.core import TransactionModule
 
 from .common import TestCaseWithSimulator, TestbenchIO
 
-from coreblocks.reorder_buffer import ReorderBuffer, in_layout
+from coreblocks.reorder_buffer import ReorderBuffer, in_layout, id_layout
 
 from queue import Queue
 from random import randint, seed
@@ -17,8 +17,8 @@ class TestElaboratable(Elaboratable):
         tm = TransactionModule(m)
         with tm.transactionContext():
             rb = ReorderBuffer()
-            self.io_in = TestbenchIO(rb.put, i=in_layout)
-            self.io_update = TestbenchIO(rb.mark_done, i=in_layout)
+            self.io_in = TestbenchIO(rb.put, i=in_layout, o=id_layout)
+            self.io_update = TestbenchIO(rb.mark_done, i=id_layout)
             self.io_out = TestbenchIO(rb.retire, o=in_layout)
 
             m.submodules.rb = rb
@@ -39,8 +39,8 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 phys_reg = self.regs_left_queue.get()
                 # print(log_reg, phys_reg)
                 regs = {"dst_reg": log_reg, "phys_dst_reg": phys_reg}
-                yield from self.m.io_in.put(regs)
-                self.execute_list.append(regs)
+                rob_id = yield from self.m.io_in.putget(regs)
+                self.execute_list.append(rob_id)
                 self.retire_queue.put(regs)
 
     def do_updates(self):
@@ -50,8 +50,8 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 yield
             else:
                 idx = randint(0, len(self.execute_list) - 1)
-                regs = self.execute_list.pop(idx)
-                yield from self.m.io_update.put(regs)
+                rob_id = self.execute_list.pop(idx)
+                yield from self.m.io_update.put(rob_id)
 
     def do_retire(self):
         yield Passive()
@@ -84,8 +84,3 @@ class TestReorderBuffer(TestCaseWithSimulator):
             sim.add_sync_process(self.gen_input)
             sim.add_sync_process(self.do_updates)
             sim.add_sync_process(self.do_retire)
-
-
-if __name__ == "__main__":
-    t = TestReorderBuffer()
-    t.test_single()
