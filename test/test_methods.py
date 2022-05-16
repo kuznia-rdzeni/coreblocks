@@ -1,3 +1,4 @@
+# amaranth: UnusedElaboratable=no
 from amaranth import *
 from amaranth.sim import *
 
@@ -5,6 +6,8 @@ from .common import TestCaseWithSimulator
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
+
+from unittest import TestCase
 
 
 class Four(Elaboratable):
@@ -80,3 +83,79 @@ class TestFourCircuit(TestCaseWithSimulator):
             # sim.add_clock(1e-6)
             # sim.add_sync_process(process)
             sim.add_process(process)
+
+
+class TestInvalidMethods(TestCase):
+    def testTwice(self):
+        class Twice(Elaboratable):
+            def elaborate(self, platform):
+                m = Module()
+                meth1 = Method()
+                meth2 = Method()
+
+                with meth1.body(m):
+                    pass
+
+                with meth2.body(m):
+                    meth1(m)
+                    meth1(m)
+
+                return m
+
+        self.assertRaisesRegex(RuntimeError, "called twice", lambda: Twice().elaborate(platform=None))
+
+    def testDiamond(self):
+        class Diamond(Elaboratable):
+            def elaborate(self, platform):
+                m = Module()
+                meth1 = Method()
+                meth2 = Method()
+                meth3 = Method()
+                meth4 = Method()
+
+                with meth1.body(m):
+                    pass
+
+                with meth2.body(m):
+                    meth1(m)
+
+                with meth3.body(m):
+                    meth1(m)
+
+                with meth4.body(m):
+                    meth2(m)
+                    meth3(m)
+
+                return m
+
+        self.assertRaisesRegex(RuntimeError, "called twice", lambda: Diamond().elaborate(platform=None))
+
+    def testLoop(self):
+        class Loop(Elaboratable):
+            def elaborate(self, platform):
+                m = Module()
+                meth1 = Method()
+
+                with meth1.body(m):
+                    meth1(m)
+
+                return m
+
+        self.assertRaisesRegex(RuntimeError, "not defined", lambda: Loop().elaborate(platform=None))
+
+    def testCycle(self):
+        class Cycle(Elaboratable):
+            def elaborate(self, platform):
+                m = Module()
+                meth1 = Method()
+                meth2 = Method()
+
+                with meth1.body(m):
+                    meth2(m)
+
+                with meth2.body(m):
+                    meth1(m)
+
+                return m
+
+        self.assertRaisesRegex(RuntimeError, "not defined", lambda: Cycle().elaborate(platform=None))
