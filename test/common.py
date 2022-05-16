@@ -3,7 +3,6 @@ from contextlib import contextmanager
 
 from amaranth import *
 from amaranth.sim import *
-from coreblocks.transactions.lib import AdapterTrans
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
