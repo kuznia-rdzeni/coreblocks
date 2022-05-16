@@ -5,6 +5,7 @@ from amaranth import *
 from amaranth.sim import *
 from coreblocks.transactions.lib import AdapterTrans
 
+
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
     def runSimulation(self, module):
@@ -12,6 +13,7 @@ class TestCaseWithSimulator(unittest.TestCase):
         yield sim
         with sim.write_vcd("test.vcd", "test.gtkw"):
             sim.run()
+
 
 class TestbenchIO(Elaboratable):
     def __init__(self, *args, **kwargs):
@@ -46,7 +48,7 @@ class TestbenchIO(Elaboratable):
             field = self.adapter.data_out
         if isinstance(field, Signal):
             return (yield field)
-        else: # field is a Record
+        else:  # field is a Record
             result = {}
             for name, bits, _ in field.layout:
                 result[name] = yield from self._get_outputs(getattr(field, name))
