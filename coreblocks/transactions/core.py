@@ -12,6 +12,7 @@ __all__ = [
     "Method",
     "eager_deterministic_cc_scheduler",
     "trivial_roundrobin_cc_scheduler",
+    "define_method",
 ]
 
 
@@ -250,6 +251,20 @@ class Transaction:
         if cls.current is None:
             raise RuntimeError("No current transaction")
         return cls.current
+
+
+def define_method(m, method, ready=C(1)):
+    def decorator(func):
+        out = Record.like(method.data_out)
+        ret_out = None
+
+        with method.body(m, ready=ready, out=out) as arg:
+            ret_out = func(arg)
+
+        if ret_out is not None:
+            m.d.comb += out.eq(ret_out)
+
+    return decorator
 
 
 class Method:
