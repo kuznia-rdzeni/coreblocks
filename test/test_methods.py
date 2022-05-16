@@ -173,3 +173,24 @@ class TestInvalidMethods(TestCase):
                     pass
 
         self.assertRaisesRegex(RuntimeError, "already defined", lambda: Redefine().elaborate(platform=None))
+
+    def testUndefinedInTrans(self):
+        class Undefined(Elaboratable):
+            def __init__(self):
+                self.meth = Method(i=1)
+
+            def elaborate(self, platform):
+                return Module()
+
+        class Circuit(Elaboratable):
+            def elaborate(self, platform):
+                m = Module()
+                tm = TransactionModule(m)
+
+                with tm.transactionContext():
+                    m.submodules.undefined = undefined = Undefined()
+                    m.submodules.adapter = AdapterTrans(undefined.meth)
+
+                return tm
+
+        self.assertRaisesRegex(RuntimeError, "not defined", lambda: Fragment.get(Circuit(), platform=None))

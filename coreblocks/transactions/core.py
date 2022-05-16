@@ -202,6 +202,8 @@ class Transaction:
         self.manager = manager
 
     def _use_method(self, method: "Method", arg, enable):
+        if not method.defined:
+            raise RuntimeError("Trying to use method which is not defined yet")
         if method in self.manager.method_uses:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.manager.methods_by_transaction[self].append(method)
