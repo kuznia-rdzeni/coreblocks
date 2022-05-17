@@ -253,6 +253,37 @@ class Transaction:
         return cls.current
 
 
+"""Define a method.
+
+This decorator allows to define transactional methods in more
+elegant way using Python's ``def`` syntax.
+
+The decorated function should take one argument, which will be a
+record with input signals and return a record with output signals.
+
+Parameters
+----------
+m : Module
+    Module in which operations on signals should be executed.
+method : Method
+    The method whose body is going to be defined.
+ready : Signal
+    Signal to indicate if the method is ready to be run. By
+    default it is ``Const(1)``, so the method is always ready.
+    Assigned combinatorially to the ``ready`` attribute.
+
+Example
+-------
+```
+m = Module()
+my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
+@define_method(m, my_sum_method)
+def _(data_in):
+    return data_in.arg1 + data_in.arg2
+```
+"""
+
+
 def define_method(m, method, ready=C(1)):
     def decorator(func):
         out = Record.like(method.data_out)
