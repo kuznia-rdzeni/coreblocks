@@ -214,4 +214,9 @@ class WishboneArbiter(Elaboratable):
         # same time as another one
         m.d.comb += self.arb_enable.eq((~masterArray[m.submodules.rr.grant].cyc) | (~self.prev_cyc))
 
+        # Disable slave when round robin is not valid at start of new request
+        # This prevents chaning grant and muxes during Wishbone cycle
+        with m.If((~m.submodules.rr.valid) & self.arb_enable):
+            m.d.comb += self.slaveWb.stb.eq(0)
+
         return m
