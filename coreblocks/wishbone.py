@@ -194,7 +194,7 @@ class WishboneArbiter(Elaboratable):
             m.d.comb += self.masters[i].err.eq((m.submodules.rr.grant == i) & self.slaveWb.err)
             m.d.comb += self.masters[i].rty.eq((m.submodules.rr.grant == i) & self.slaveWb.rty)
             # remaining S->M signals are shared, master will only accept response if bus termination signal is present
-            m.d.comb += self.slaveWb.connect(self.masters[i], include=["dat_r"])
+            m.d.comb += self.masters[i].dat_r.eq(self.slaveWb.dat_r)
 
         # combine reset singnal
         m.d.comb += self.slaveWb.rst.eq(reduce(operator.or_, [self.masters[i].rst for i in range(len(self.masters))]))
