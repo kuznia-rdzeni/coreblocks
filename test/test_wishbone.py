@@ -5,9 +5,53 @@ from amaranth.sim import Simulator
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
-from coreblocks.genparams import GenParams
 
 from .common import *
+
+
+class WishboneInterfaceWrapper:
+    def __init__(self, wishbone_record):
+        self.wb = wishbone_record
+
+    def master_set(self, addr, data, we):
+        yield self.wb.dat_w.eq(data)
+        yield self.wb.adr.eq(addr)
+        yield self.wb.we.eq(we)
+        yield self.wb.cyc.eq(1)
+        yield self.wb.stb.eq(1)
+
+    def master_release(self, release_cyc=1):
+        yield self.wb.stb.eq(0)
+        if release_cyc:
+            yield self.wb.cyc.eq(0)
+
+    def master_verify(self, exp_data=0):
+        assert (yield self.wb.ack)
+        assert (yield self.wb.dat_r) == exp_data
+
+    def slave_wait(self):
+        while not ((yield self.wb.stb) and (yield self.wb.cyc)):
+            yield
+
+    def slave_verify(self, exp_addr, exp_data, exp_we):
+        assert (yield self.wb.stb) and (yield self.wb.cyc)
+
+        assert (yield self.wb.adr) == exp_addr
+        assert (yield self.wb.we == exp_we)
+        if exp_we:
+            assert (yield self.wb.dat_w) == exp_data
+
+    def slave_respond(self, data, ack=1, err=0, rty=0):
+        assert (yield self.wb.stb) and (yield self.wb.cyc)
+
+        yield self.wb.dat_r.eq(data)
+        yield self.wb.ack.eq(ack)
+        yield self.wb.err.eq(err)
+        yield self.wb.rty.eq(rty)
+        yield
+        yield self.wb.ack.eq(0)
+        yield self.wb.err.eq(0)
+        yield self.wb.rty.eq(0)
 
 
 class TestWishboneMaster(TestCaseWithSimulator):
@@ -19,7 +63,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
             m = Module()
             tm = TransactionModule(m)
             with tm.transactionContext():
-                m.submodules.wbm = self.wbm = wbm = WishboneMaster(GenParams())
+                m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
                 m.submodules.rqa = self.requestAdapter = AdapterTrans(wbm.request, i=wbm.requestLayout)
                 m.submodules.rsa = self.resultAdapter = AdapterTrans(wbm.result, o=wbm.resultLayout)
             return tm
@@ -27,112 +71,56 @@ class TestWishboneMaster(TestCaseWithSimulator):
     def test_manual(self):
         twbm = TestWishboneMaster.WishboneMasterTestModule()
 
+        def make_request(addr, data, we):
+            yield twbm.requestAdapter.data_in.addr.eq(addr)
+            yield twbm.requestAdapter.data_in.data.eq(data)
+            yield twbm.requestAdapter.data_in.we.eq(we)
+            yield twbm.requestAdapter.en.eq(1)
+            while not (yield twbm.requestAdapter.done):
+                yield
+            assert (yield twbm.requestAdapter.done)
+            yield twbm.requestAdapter.en.eq(0)
+
+        def get_response(err=0):
+            yield twbm.resultAdapter.en.eq(1)
+            while not (yield twbm.resultAdapter.done):
+                yield
+            yield twbm.resultAdapter.en.eq(0)
+            assert (yield twbm.resultAdapter.data_out.err) == err
+            return (yield twbm.resultAdapter.data_out.data)
+
         def process():
             wbm = twbm.wbm
-            requestAdapter = twbm.requestAdapter
-            resultAdapter = twbm.resultAdapter
+            wwb = WishboneInterfaceWrapper(wbm.wbMaster)
 
-            yield
-            # reset cycle
-            assert (yield wbm.wbMaster.rst)
-            yield
-            assert not (yield wbm.wbMaster.cyc)
-            assert not (yield wbm.wbMaster.stb)
-            yield
-            # request read
-            assert (yield wbm.request.ready)
-            assert not (yield wbm.result.ready)
-            yield requestAdapter.data_in.addr.eq(2)
-            yield requestAdapter.data_in.we.eq(0)
-            yield requestAdapter.en.eq(1)
-            yield
-            assert (yield requestAdapter.done)
-            yield requestAdapter.en.eq(0)
-            yield
-            # assert making new request is unavaliable (parameters cannot change)
-            # and check busy state
-            assert not (yield wbm.request.ready)
-            assert not (yield wbm.result.ready)
-            yield
-            assert (yield wbm.wbMaster.adr == 2)
-            assert (yield wbm.wbMaster.cyc)
-            assert (yield wbm.wbMaster.stb)
-            assert not (yield wbm.wbMaster.we)
-            yield
-            assert (yield wbm.wbMaster.adr == 2)
-            # simulate delayed response
-            yield
-            yield
-            yield wbm.wbMaster.dat_r.eq(3)
-            yield wbm.wbMaster.ack.eq(1)
+            # read request
+            yield from make_request(2, 0, 0)
             yield
             assert not (yield wbm.request.ready)
-            assert not (yield wbm.result.ready)
-            yield wbm.wbMaster.ack.eq(0)
-            # response should be available in the next cycle
-            yield resultAdapter.en.eq(1)
+            yield from wwb.slave_verify(2, 0, 0)
+            yield from wwb.slave_respond(8)
+            assert (yield from get_response()) == 8
+
+            # write request
+            yield from make_request(3, 5, we=1)
             yield
-            # response should be ready, but until not read, making new request should be unavaliable
-            assert (yield wbm.result.ready)
-            assert not (yield wbm.request.ready)
-            assert not (yield wbm.wbMaster.cyc)
-            assert not (yield wbm.wbMaster.stb)
-            # verify outut of result tranaction and if it was executed in the same clock cycle
-            assert (yield resultAdapter.done)
-            assert (yield resultAdapter.data_out.data) == 3
-            yield resultAdapter.en.eq(0)
+            yield from wwb.slave_verify(3, 5, exp_we=1)
+            yield from wwb.slave_respond(0)
+            yield from get_response()
+
+            # RTY and ERR responese
+            yield from make_request(2, 0, 0)
             yield
-            # after fetching result only request method should be ready
-            assert (yield wbm.request.ready)
-            assert not (yield wbm.result.ready)
+            yield from wwb.slave_wait()
+            yield from wwb.slave_verify(2, 0, 0)
+            yield from wwb.slave_respond(1, ack=0, err=0, rty=1)
             yield
-            # check if request is not repeated
-            assert (yield wbm.request.ready)
-            yield
-            # make write req
-            yield requestAdapter.data_in.addr.eq(3)
-            yield requestAdapter.data_in.data.eq(4)
-            yield requestAdapter.data_in.we.eq(1)
-            yield requestAdapter.en.eq(1)
-            yield
-            assert (yield requestAdapter.done)
-            yield requestAdapter.en.eq(0)
-            yield
-            assert not (yield wbm.request.ready)
-            assert (yield wbm.wbMaster.dat_w) == 4
-            # minimal 1-cycle delay
-            # make rty response
-            yield wbm.wbMaster.rty.eq(1)
-            yield
-            # expect restart of cycle
-            yield wbm.wbMaster.rty.eq(0)
-            yield
-            assert (yield wbm.wbMaster.cyc)
-            assert not (yield wbm.wbMaster.stb)
-            assert not (yield wbm.request.ready)
-            assert not (yield wbm.result.ready)
-            yield
-            assert (yield wbm.wbMaster.cyc)
-            assert (yield wbm.wbMaster.stb)
-            assert (yield wbm.wbMaster.dat_w) == 4
-            # make err response
-            yield wbm.wbMaster.err.eq(1)
-            yield
-            yield wbm.wbMaster.err.eq(0)
-            yield
-            assert (yield wbm.result.ready)
-            yield resultAdapter.en.eq(1)
-            yield
-            assert (yield resultAdapter.done)
-            assert (yield resultAdapter.data_out.err)
-            assert not (yield wbm.request.ready)
-            yield resultAdapter.en.eq(0)
-            yield
-            assert (yield wbm.request.ready)
-            assert not (yield wbm.result.ready)
-            assert not (yield wbm.wbMaster.cyc)
-            assert not (yield wbm.wbMaster.stb)
-            yield
+            assert not (yield wwb.wb.stb)
+            assert not (yield wbm.result.ready)  # verify cycle restart
+            yield from wwb.slave_wait()
+            yield from wwb.slave_verify(2, 0, 0)
+            yield from wwb.slave_respond(1, ack=1, err=1, rty=0)
+            assert (yield from get_response(err=1))
 
         with self.runSimulation(twbm) as sim:
             sim.add_clock(1e-6)
@@ -141,46 +129,37 @@ class TestWishboneMaster(TestCaseWithSimulator):
 
 class TestWishboneMuxer(TestCaseWithSimulator):
     def test_manual(self):
-        wbRecord = Record(WishboneLayout(GenParams()).wb_layout)
-        mux = WishboneMuxer(wbRecord, [Record.like(wbRecord, name=f"sl{i}") for i in range(2)], Signal(1))
+        wb_master = WishboneInterfaceWrapper(Record(WishboneLayout(WishboneParameters()).wb_layout))
+        slaves = [WishboneInterfaceWrapper(Record.like(wb_master.wb, name=f"sl{i}")) for i in range(2)]
+        mux = WishboneMuxer(wb_master.wb, [s.wb for s in slaves], Signal(1))
 
         def process():
-            yield mux.masterWb.cyc.eq(0)
-            yield mux.masterWb.stb.eq(0)
-            yield
-            yield mux.masterWb.cyc.eq(1)
-            yield mux.masterWb.stb.eq(1)
-            yield mux.masterWb.we.eq(1)
+            # check full communiaction
+            yield from wb_master.master_set(2, 0, 1)
             yield mux.sselTGA.eq(0)
-            yield mux.masterWb.adr.eq(2)
             yield
-            assert (yield mux.slaves[0].cyc)
-            assert (yield mux.slaves[0].stb)
-            assert not (yield mux.slaves[1].stb)
-            assert (yield mux.slaves[0].we)
-            yield mux.slaves[0].ack.eq(1)
-            yield mux.slaves[0].dat_r.eq(4)
-            yield mux.slaves[1].dat_r.eq(3)
+            yield from slaves[0].slave_verify(2, 0, 1)
+            assert not (yield slaves[1].wb.stb)
+            yield from slaves[0].slave_respond(4)
+            yield from wb_master.master_verify(4)
+            yield from wb_master.master_release(release_cyc=0)
             yield
-            assert (yield mux.masterWb.ack)
-            assert (yield mux.masterWb.dat_r) == 4
-            yield mux.slaves[0].ack.eq(0)
-            yield mux.masterWb.stb.eq(0)
-            yield
-            assert (yield mux.slaves[0].cyc)
-            assert (yield mux.slaves[1].cyc)
-            assert not (yield mux.slaves[0].stb)
-            assert (yield mux.masterWb.dat_r) == 4
-            yield mux.masterWb.stb.eq(1)
+            # select without releasing cyc (only on stb)
+            yield from wb_master.master_set(3, 0, 0)
             yield mux.sselTGA.eq(1)
             yield
-            assert not (yield mux.slaves[0].stb)
-            assert (yield mux.slaves[1].stb)
-            assert (yield mux.slaves[1].cyc)
-            assert (yield mux.masterWb.dat_r) == 3
-            yield mux.masterWb.cyc.eq(0)
-            yield mux.masterWb.stb.eq(0)
+            assert not (yield slaves[0].wb.stb)
+            yield from slaves[1].slave_verify(3, 0, 0)
+            yield from slaves[1].slave_respond(5)
+            yield from wb_master.master_verify(5)
+            yield from wb_master.master_release()
             yield
+
+            # normal selection
+            yield from wb_master.master_set(6, 0, 0)
+            yield mux.sselTGA.eq(0)
+            yield
+            yield from slaves[0].slave_verify(6, 0, 0)
 
         with self.runSimulation(mux) as sim:
             sim.add_clock(1e-6)
@@ -189,93 +168,58 @@ class TestWishboneMuxer(TestCaseWithSimulator):
 
 class TestWishboneAribiter(TestCaseWithSimulator):
     def test_manual(self):
-        wbRecord = Record(WishboneLayout(GenParams()).wb_layout)
-        arb = WishboneArbiter(wbRecord, [Record.like(wbRecord, name=f"mst{i}") for i in range(2)])
+        slave = WishboneInterfaceWrapper(Record(WishboneLayout(WishboneParameters()).wb_layout))
+        masters = [WishboneInterfaceWrapper(Record.like(slave.wb, name=f"mst{i}")) for i in range(2)]
+        arb = WishboneArbiter(slave.wb, [m.wb for m in masters])
 
         def process():
-            yield arb.masters[0].cyc.eq(0)
-            yield arb.masters[0].stb.eq(0)
-            yield arb.masters[1].cyc.eq(0)
-            yield arb.masters[1].stb.eq(0)
-            yield arb.masters[1].rst.eq(1)
+            yield from masters[0].master_set(2, 3, 1)
+            yield from slave.slave_wait()
+            yield from slave.slave_verify(2, 3, 1)
+            yield from masters[1].master_set(1, 4, 1)
+            yield from slave.slave_respond(0)
+
+            yield from masters[0].master_verify()
+            assert not (yield masters[1].wb.ack)
+            yield from masters[0].master_release()
             yield
-            assert (yield arb.slaveWb.rst)
-            assert not (yield wbRecord.cyc)
-            yield arb.masters[0].cyc.eq(1)
-            yield arb.masters[0].stb.eq(1)
-            yield arb.masters[0].adr.eq(2)
-            yield arb.masters[0].dat_w.eq(3)
-            yield arb.masters[1].rst.eq(0)
+
+            # check if bus is granted to next master if previous ends cycle
+            yield from slave.slave_wait()
+            yield from slave.slave_verify(1, 4, 1)
+            yield from slave.slave_respond(0)
+            yield from masters[1].master_verify()
+            assert not (yield masters[0].wb.ack)
+            yield from masters[1].master_release()
             yield
-            assert (yield wbRecord.dat_w) == 3
-            assert (yield wbRecord.adr) == 2
-            assert (yield wbRecord.cyc)
-            assert (yield wbRecord.stb)
-            yield arb.masters[1].cyc.eq(1)
-            yield arb.masters[1].stb.eq(1)
-            yield arb.masters[1].dat_w.eq(4)
-            yield arb.slaveWb.ack.eq(1)
+
+            # check round robin behaviour (2 masters requesting *2)
+            yield from masters[0].master_set(1, 0, 0)
+            yield from masters[1].master_set(2, 0, 0)
+            yield from slave.slave_wait()
+            yield from slave.slave_verify(1, 0, 0)
+            yield from slave.slave_respond(3)
+            yield from masters[0].master_verify(3)
+            yield from masters[0].master_release()
+            yield from masters[1].master_release()
             yield
-            assert (yield wbRecord.dat_w) == 3
-            yield arb.masters[0].stb.eq(0)
-            yield arb.slaveWb.ack.eq(0)
+            assert not (yield slave.wb.cyc)
+
+            yield from masters[0].master_set(1, 0, 0)
+            yield from masters[1].master_set(2, 0, 0)
+            yield from slave.slave_wait()
+            yield from slave.slave_verify(2, 0, 0)
+            yield from slave.slave_respond(0)
+            yield from masters[1].master_verify()
+
+            # check if releasing stb keeps grant
+            yield from masters[1].master_release(release_cyc=0)
             yield
-            assert not (yield wbRecord.stb)
-            assert (yield wbRecord.cyc)
-            assert (yield wbRecord.dat_w) == 3
-            yield arb.masters[0].stb.eq(1)
-            yield arb.masters[0].adr.eq(5)
-            yield
-            assert (yield wbRecord.dat_w) == 3
-            assert (yield wbRecord.adr) == 5
-            assert (yield wbRecord.cyc)
-            assert (yield wbRecord.stb)
-            yield arb.slaveWb.ack.eq(1)
-            yield
-            assert (yield arb.masters[0].ack)
-            assert not (yield arb.masters[1].ack)
-            yield arb.slaveWb.ack.eq(0)
-            yield arb.masters[0].cyc.eq(0)
-            yield arb.masters[0].stb.eq(0)
-            yield
-            assert not (yield wbRecord.cyc)
-            assert not (yield wbRecord.stb)
-            yield
-            assert (yield wbRecord.cyc)
-            assert (yield wbRecord.stb)
-            assert (yield wbRecord.dat_w) == 4
-            yield arb.slaveWb.ack.eq(1)
-            yield
-            assert not (yield arb.masters[0].ack)
-            assert (yield arb.masters[1].ack)
-            yield arb.slaveWb.ack.eq(0)
-            yield arb.masters[1].stb.eq(0)
-            yield arb.masters[1].cyc.eq(0)
-            yield
-            assert not (yield wbRecord.cyc)
-            assert not (yield wbRecord.stb)
-            yield
-            yield
-            yield arb.masters[0].cyc.eq(1)
-            yield arb.masters[0].stb.eq(1)
-            yield arb.masters[1].cyc.eq(1)
-            yield arb.masters[1].stb.eq(1)
-            yield
-            yield
-            assert (yield wbRecord.dat_w) == 3
-            yield arb.masters[0].cyc.eq(0)
-            yield arb.masters[0].stb.eq(0)
-            yield arb.masters[1].cyc.eq(0)
-            yield arb.masters[1].stb.eq(0)
-            yield
-            assert not (yield wbRecord.cyc)
-            yield arb.masters[0].cyc.eq(1)
-            yield arb.masters[0].stb.eq(1)
-            yield arb.masters[1].cyc.eq(1)
-            yield arb.masters[1].stb.eq(1)
-            yield
-            yield
-            assert (yield wbRecord.dat_w) == 4
+            yield from masters[1].master_set(3, 0, 0)
+            yield from slave.slave_wait()
+            yield from slave.slave_verify(3, 0, 0)
+            yield from slave.slave_respond(0)
+            yield from masters[1].master_verify()
 
         with self.runSimulation(arb) as sim:
             sim.add_clock(1e-6)
