@@ -72,6 +72,7 @@ class WishboneMaster(Elaboratable):
         m = Module()
 
         def FSMWBCycStart(request):
+            # internal FSM function that starts Wishbone cycle
             m.d.sync += self.wbMaster.cyc.eq(1)
             m.d.sync += self.wbMaster.stb.eq(1)
             m.d.sync += self.wbMaster.adr.eq(request.addr)
@@ -93,11 +94,11 @@ class WishboneMaster(Elaboratable):
                 m.d.sync += self.wbMaster.stb.eq(0)
                 m.d.sync += self.wbMaster.cyc.eq(0)
 
-                with self.request.body(m, ready=(self.ready & ~self.res_ready)):
+                with self.request.body(m, ready=(self.ready & ~self.res_ready)) as request:
                     m.d.sync += self.ready.eq(0)
-                    m.d.sync += self.txn_req.connect(self.request.data_in)
+                    m.d.sync += self.txn_req.connect(request)
                     # do WBCycStart state in the same clock cycle
-                    FSMWBCycStart(self.request.data_in)
+                    FSMWBCycStart(request)
 
             with m.State("WBCycStart"):
                 FSMWBCycStart(self.txn_req)
@@ -182,11 +183,18 @@ class WishboneArbiter(Elaboratable):
     def elaborate(self, plaform):
         m = Module()
 
+        m.d.sync += self.prev_cyc.eq(self.slaveWb.cyc)
+
         m.submodules.rr = RoundRobin(count=len(self.masters))
         m.d.comb += [self.req_signal[i].eq(self.masters[i].cyc) for i in range(len(self.masters))]
         m.d.comb += m.submodules.rr.requests.eq(Mux(self.arb_enable, self.req_signal, 0))
 
-        m.d.sync += self.prev_cyc.eq(self.slaveWb.cyc)
+        masterArray = Array([master for master in self.masters])
+        # If master ends wb cycle, enable rr input to select new master on next cycle if avaliable (cyc off for 1 cycle)
+        # If selcted master is active, disable rr request input to preserve grant signal and correct rr state.
+        # prev_cyc is used to select next master in new bus cycle, if previously selected master asserts cyc at the
+        # same time as another one
+        m.d.comb += self.arb_enable.eq((~masterArray[m.submodules.rr.grant].cyc) | (~self.prev_cyc))
 
         for i in range(len(self.masters)):
             # mux S->M termination signals
@@ -206,13 +214,6 @@ class WishboneArbiter(Elaboratable):
                     m.d.comb += self.masters[i].connect(
                         self.slaveWb, include=["dat_w", "cyc", "lock", "adr", "we", "sel", "stb"]
                     )
-
-        masterArray = Array([master for master in self.masters])
-        # If master ends wb cycle, enable rr input to select new master on next cycle if avaliable (cyc off for 1 cycle)
-        # If selcted master is active, disable rr request input to preserve grant signal and correct rr state.
-        # prev_cyc is used to select next master in new bus cycle, if previously selected master asserts cyc at the
-        # same time as another one
-        m.d.comb += self.arb_enable.eq((~masterArray[m.submodules.rr.grant].cyc) | (~self.prev_cyc))
 
         # Disable slave when round robin is not valid at start of new request
         # This prevents chaning grant and muxes during Wishbone cycle
