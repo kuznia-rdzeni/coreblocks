@@ -66,7 +66,7 @@ class TestbenchIO(Elaboratable):
         return (yield self.adapter.done)
 
     def _wait_until_done(self):
-        while (yield self.adapter.done) != 1:
+        while not (yield from self.done()):
             yield
 
     def call_init(self, data: dict = {}):
@@ -74,7 +74,7 @@ class TestbenchIO(Elaboratable):
         yield from set_inputs(data, self.adapter.data_in)
 
     def call_result(self):
-        if (yield self.adapter.done):
+        if (yield from self.done()):
             return (yield from get_outputs(self.adapter.data_out))
         return None
 

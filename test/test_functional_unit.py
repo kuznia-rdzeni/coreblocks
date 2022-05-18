@@ -1,0 +1,193 @@
+import random
+from collections import deque
+import operator
+
+from amaranth import *
+from amaranth.sim import *
+
+from coreblocks.transactions import *
+from coreblocks.transactions.lib import *
+
+from .common import TestCaseWithSimulator, TestbenchIO
+
+from coreblocks.functional_unit import *
+from coreblocks.genparams import GenParams
+
+
+def _cast_to_int32(x):
+    return -int(0x100000000 - x) if (x > 0x7FFFFFFF) else x
+
+
+class TestAlu(TestCaseWithSimulator):
+    TEST_INPUTS = [
+        (312123, 4),
+        (115478972, 312351066),
+        (55, 10),
+        (0, 0),
+        (4294967295, 1),
+        (0, 4294967295),
+        (4294967295, 1),
+        (4294967295, 4294967295),
+        (4294967293, 2),
+        (2, 0),
+    ]
+
+    def setUp(self):
+        self.gen = GenParams()
+        self.alu = Alu(self.gen)
+
+        random.seed(42)
+
+        # Supply hand-written tests with random test inputs
+        self.test_inputs = TestAlu.TEST_INPUTS
+        max_int = 2**self.gen.isa.xlen - 1
+        for i in range(20):
+            self.test_inputs.append((random.randint(0, max_int), random.randint(0, max_int)))
+
+    def yield_signals(self, op, in1, in2):
+        yield self.alu.op.eq(op)
+        yield self.alu.in1.eq(in1)
+        yield self.alu.in2.eq(in2)
+        yield Settle()
+
+        return (yield self.alu.out)
+
+    def check_op(self, op, out_fn):
+        def process():
+            for (in1, in2) in self.test_inputs:
+                returned_out = yield from self.yield_signals(op, C(in1, self.gen.isa.xlen), C(in2, self.gen.isa.xlen))
+                mask = 2**self.gen.isa.xlen - 1
+                correct_out = out_fn(in1 & mask, in2 & mask) & mask
+                self.assertEqual(returned_out, correct_out)
+
+        with self.runSimulation(self.alu) as sim:
+            sim.add_process(process)
+
+    def test_add(self):
+        self.check_op(AluOp.Op.ADD, operator.add)
+
+    def test_sll(self):
+        self.check_op(AluOp.Op.SLL, lambda in1, in2: in1 << (in2 & 0x1F))
+
+    def test_seq(self):
+        self.check_op(AluOp.Op.SEQ, operator.eq)
+
+    def test_sne(self):
+        self.check_op(AluOp.Op.SNE, operator.ne)
+
+    def test_xor(self):
+        self.check_op(AluOp.Op.XOR, operator.xor)
+
+    def test_srl(self):
+        self.check_op(AluOp.Op.SRL, lambda in1, in2: in1 >> (in2 & 0x1F))
+
+    def test_or(self):
+        self.check_op(AluOp.Op.OR, operator.or_)
+
+    def test_and(self):
+        self.check_op(AluOp.Op.AND, operator.and_)
+
+    def test_sub(self):
+        self.check_op(AluOp.Op.SUB, operator.sub)
+
+    def test_sra(self):
+        def sra(in1, in2):
+            in2 = in2 & 0x1F
+            if in1 & 2**31 != 0:
+                return (((2**32) - 1) << 32 | in1) >> in2
+            else:
+                return in1 >> in2
+
+        self.check_op(AluOp.Op.SRA, sra)
+
+    def test_slt(self):
+        self.check_op(AluOp.Op.SLT, lambda in1, in2: _cast_to_int32(in1) < _cast_to_int32(in2))
+
+    def test_sge(self):
+        self.check_op(AluOp.Op.SGE, lambda in1, in2: _cast_to_int32(in1) >= _cast_to_int32(in2))
+
+    def test_sltu(self):
+        self.check_op(AluOp.Op.SLTU, operator.lt)
+
+    def test_sgeu(self):
+        self.check_op(AluOp.Op.SGEU, operator.ge)
+
+
+class AluFuncUnitTestCircuit(Elaboratable):
+    def __init__(self, gen: GenParams):
+        self.gen = gen
+
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        with tm.transactionContext():
+            m.submodules.func_unit = func_unit = AluFuncUnit(self.gen)
+
+            # mocked input and output
+            m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
+            m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
+
+        return tm
+
+
+class TestAluFuncUnit(TestCaseWithSimulator):
+    def setUp(self):
+        self.gen = GenParams()
+        self.m = AluFuncUnitTestCircuit(self.gen)
+
+        random.seed(42)
+        self.requests = deque()
+        self.responses = deque()
+        max_int = 2**self.gen.isa.xlen - 1
+        for i in range(50):
+            data1 = random.randint(0, max_int)
+            data2 = random.randint(0, max_int)
+            rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
+            op = AluOp.Op.ADD
+            result = (data1 + data2) & max_int
+
+            self.requests.append({"data1": data1, "data2": data2, "rob_id": rob_id, "op": op})
+            self.responses.append({"rob_id": rob_id, "result": result})
+
+    def test_randomized(self):
+        def random_wait():
+            for i in range(random.randint(0, 5)):
+                yield
+
+        def consumer():
+            while self.responses:
+                expected = self.responses.pop()
+                result = yield from self.m.accept.call()
+                self.assertDictEqual(expected, result)
+                yield from random_wait()
+
+        def producer():
+            while self.requests:
+                req = self.requests.pop()
+                yield from self.m.issue.call(req)
+                yield from random_wait()
+
+        with self.runSimulation(self.m) as sim:
+            sim.add_clock(1e-6)
+            sim.add_sync_process(producer)
+            sim.add_sync_process(consumer)
+
+    def test_pipeline(self):
+        def consumer():
+            while self.responses:
+                expected = self.responses.pop()
+                result = yield from self.m.accept.call()
+                self.assertDictEqual(expected, result)
+
+        def producer():
+            while self.requests:
+                req = self.requests.pop()
+                yield from self.m.issue.call_init(req)
+                yield
+                self.assertTrue((yield from self.m.issue.is_done()))
+
+        with self.runSimulation(self.m) as sim:
+            sim.add_clock(1e-6)
+            sim.add_sync_process(producer)
+            sim.add_sync_process(consumer)
