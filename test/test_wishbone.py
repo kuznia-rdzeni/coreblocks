@@ -4,7 +4,6 @@ from coreblocks.wishbone import *
 from amaranth.sim import Simulator
 
 from coreblocks.transactions import TransactionModule
-from coreblocks.transactions.lib import AdapterTrans
 
 from .common import *
 
@@ -64,52 +63,35 @@ class TestWishboneMaster(TestCaseWithSimulator):
             tm = TransactionModule(m)
             with tm.transactionContext():
                 m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
-                m.submodules.rqa = self.requestAdapter = AdapterTrans(wbm.request, i=wbm.requestLayout)
-                m.submodules.rsa = self.resultAdapter = AdapterTrans(wbm.result, o=wbm.resultLayout)
+                m.submodules.rqa = self.requestAdapter = TestbenchIO(wbm.request, i=wbm.requestLayout)
+                m.submodules.rsa = self.resultAdapter = TestbenchIO(wbm.result, o=wbm.resultLayout)
             return tm
 
     def test_manual(self):
         twbm = TestWishboneMaster.WishboneMasterTestModule()
-
-        def make_request(addr, data, we):
-            yield twbm.requestAdapter.data_in.addr.eq(addr)
-            yield twbm.requestAdapter.data_in.data.eq(data)
-            yield twbm.requestAdapter.data_in.we.eq(we)
-            yield twbm.requestAdapter.en.eq(1)
-            while not (yield twbm.requestAdapter.done):
-                yield
-            assert (yield twbm.requestAdapter.done)
-            yield twbm.requestAdapter.en.eq(0)
-
-        def get_response(err=0):
-            yield twbm.resultAdapter.en.eq(1)
-            while not (yield twbm.resultAdapter.done):
-                yield
-            yield twbm.resultAdapter.en.eq(0)
-            assert (yield twbm.resultAdapter.data_out.err) == err
-            return (yield twbm.resultAdapter.data_out.data)
 
         def process():
             wbm = twbm.wbm
             wwb = WishboneInterfaceWrapper(wbm.wbMaster)
 
             # read request
-            yield from make_request(2, 0, 0)
+            yield from twbm.requestAdapter.call({"addr": 2, "data": 0, "we": 0})
             yield
             assert not (yield wbm.request.ready)
             yield from wwb.slave_verify(2, 0, 0)
             yield from wwb.slave_respond(8)
-            assert (yield from get_response()) == 8
+            resp = yield from twbm.resultAdapter.call()
+            assert (resp["data"]) == 8
 
             # write request
-            yield from make_request(3, 5, we=1)
+            yield from twbm.requestAdapter.call({"addr": 3, "data": 5, "we": 1})
             yield
             yield from wwb.slave_verify(3, 5, exp_we=1)
             yield from wwb.slave_respond(0)
-            yield from get_response()
+            yield from twbm.resultAdapter.call()
 
             # RTY and ERR responese
-            yield from make_request(2, 0, 0)
+            yield from twbm.requestAdapter.call({"addr": 2, "data": 0, "we": 0})
             yield
             yield from wwb.slave_wait()
             yield from wwb.slave_verify(2, 0, 0)
@@ -120,7 +102,9 @@ class TestWishboneMaster(TestCaseWithSimulator):
             yield from wwb.slave_wait()
             yield from wwb.slave_verify(2, 0, 0)
             yield from wwb.slave_respond(1, ack=1, err=1, rty=0)
-            assert (yield from get_response(err=1))
+            resp = yield from twbm.resultAdapter.call()
+            assert resp["data"] == 1
+            assert resp["err"]
 
         with self.runSimulation(twbm) as sim:
             sim.add_clock(1e-6)
