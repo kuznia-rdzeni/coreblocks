@@ -49,24 +49,23 @@ class TestbenchIO(Elaboratable):
         if isinstance(field, Signal):
             return (yield field)
         else:  # field is a Record
+            # return dict of all signal values in a record because amaranth's simulator can't read all
+            # values of a Record in a single yield - it can only read Values (Signals)
             result = {}
             for name, bits, _ in field.layout:
                 result[name] = yield from self._get_outputs(getattr(field, name))
             return result
 
-    # accept data as dict to be consistent with get()
-    def put(self, data: dict):
+    def call_init(self, data: dict = {}):
         yield from self._enable()
         yield from self._set_inputs(data)
-        yield
-        yield from self._wait_until_done()
-        yield from self._disable()
 
-    def get(self):
-        yield from self._enable()
-        yield
+    def call_do(self):
         yield from self._wait_until_done()
         yield from self._disable()
-        # return dict of all signal values in a record because amaranth's simulator can't read all
-        # values of a Record in a single yield - it can only read Values (Signals)
         return (yield from self._get_outputs())
+
+    def call(self, data: dict = {}):
+        yield from self.call_init(data)
+        yield
+        return (yield from self.call_do())
