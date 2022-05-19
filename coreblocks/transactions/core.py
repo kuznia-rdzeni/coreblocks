@@ -1,9 +1,9 @@
 from contextlib import contextmanager
-from typing import Union, List, Optional, Any, Callable, TypeVar, Iterator
+from typing import Union, List, Optional, Dict, Tuple, Set, Iterator
 from types import MethodType
 from amaranth import *
 from ._utils import *
-from ..type.utils import Wires, SimpleWires
+from .._typing import ValueLike
 
 __all__ = [
     "TransactionManager",
@@ -49,9 +49,9 @@ class TransactionManager(Elaboratable):
     """
 
     def __init__(self, cc_scheduler=eager_deterministic_cc_scheduler):
-        self.transactions = {}
-        self.methods = {}
-        self.methodargs = {}
+        self.transactions: Dict[Transaction, List[Method]] = {}
+        self.methods: Dict[Method, List[Transaction]] = {}
+        self.methodargs: Dict[Tuple[Transaction, Method], Tuple[ValueLike, ValueLike]] = {}
         self.conflicts = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
@@ -59,7 +59,7 @@ class TransactionManager(Elaboratable):
         self.conflicts.append((end1, end2))
 
     def use_method(
-        self, transaction: "Transaction", method: "Method", arg: Wires = C(0, 0), enable: SimpleWires = C(1)
+        self, transaction: "Transaction", method: "Method", arg: ValueLike = C(0, 0), enable: ValueLike = C(1)
     ) -> Record:
         assert transaction.manager is self and method.manager is self
         if (transaction, method) in self.methodargs:
@@ -80,7 +80,7 @@ class TransactionManager(Elaboratable):
             else:
                 return [end]
 
-        gr = {}
+        gr: Dict[Transaction, Set[Transaction]] = {}
 
         def addEdge(transaction, transaction2):
             gr[transaction].add(transaction2)
@@ -159,7 +159,7 @@ class TransactionModule(Elaboratable):
             transactions and methods.
     """
 
-    def __init__(self, module, manager: Optional[TransactionManager] = None):
+    def __init__(self, module: Module, manager: Optional[TransactionManager] = None):
         if manager is None:
             manager = TransactionManager()
         self.transactionManager = manager
@@ -219,7 +219,7 @@ class Transaction:
         self.manager = manager
 
     @contextmanager
-    def context(self):
+    def context(self) -> Iterator["Transaction"]:
         if self.__class__.current is not None:
             raise RuntimeError("Transaction inside transaction")
         self.__class__.current = self
@@ -229,7 +229,7 @@ class Transaction:
             self.__class__.current = None
 
     @contextmanager
-    def body(self, m: Module, *, request: SimpleWires = C(1)) -> Iterator["Transaction"]:
+    def body(self, m: Module, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
         m.d.comb += self.request.eq(request)
         with self.context():
             with m.If(self.grant):
@@ -257,7 +257,7 @@ class Transaction:
         return cls.current
 
 
-def def_method(m: Module, method: "Method", ready: SimpleWires = C(1)):
+def def_method(m: Module, method: "Method", ready: ValueLike = C(1)):
     """Define a method.
 
     This decorator allows to define transactional methods in more
@@ -347,7 +347,7 @@ class Method:
         ``Transaction``. Typically defined by calling ``body``.
     """
 
-    def __init__(self, *, i=0, o=0, manager: Optional[TransactionManager] = None):
+    def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0, manager: Optional[TransactionManager] = None):
         if manager is None:
             manager = TransactionContext.get()
         self.ready = Signal()
@@ -372,7 +372,7 @@ class Method:
         self.manager.add_conflict(self, end)
 
     @contextmanager
-    def body(self, m: Module, *, ready: SimpleWires = C(1), out: Wires = C(0, 0)) -> Iterator[Record]:
+    def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
         """Define method body
 
         The ``body`` function should be used to define body of
@@ -414,7 +414,7 @@ class Method:
         with m.If(self.run):
             yield self.data_in
 
-    def __call__(self, m: Module, arg: Wires = C(0, 0), enable: SimpleWires = C(1)) -> Record:
+    def __call__(self, m: Module, arg: ValueLike = C(0, 0), enable: ValueLike = C(1)) -> Record:
         enable_sig = Signal()
         m.d.comb += enable_sig.eq(enable)
         trans = Transaction.get()

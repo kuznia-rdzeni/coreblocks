@@ -10,10 +10,11 @@
 
   "ignore": [
   ],
-  "stubPath": "./typings",
 
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
+
+  "stubPath": "./ci/typings",
 
   "pythonVersion": "3.10",
   "pythonPlatform": "Linux"

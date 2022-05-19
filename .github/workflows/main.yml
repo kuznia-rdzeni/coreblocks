@@ -52,4 +52,4 @@ jobs:
         run: ./scripts/lint.sh verify
 
       - name: Check types
-        run: pyright
+        run: pyright --lib
