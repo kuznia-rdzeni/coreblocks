@@ -77,7 +77,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                     item = self.expected_rename.get_nowait()
                     if item is None:
                         return
-                    result = yield from self.m.out.get()
+                    result = yield from self.m.out.call()
                     self.check_renamed(result, item)
                     # recycle physical register number
                     if item['rphys_out'] != 0:
@@ -97,7 +97,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                 self.expected_rename.put({'rphys_1': rphys_1, 'rphys_2': rphys_2, 'rlog_out': rlog_out, 'rphys_out': rphys_out})
                 self.current_RAT[rlog_out] = rphys_out
 
-                yield from self.m.instr_inp.put({'rlog_1': rlog_1, 'rlog_2': rlog_2, 'rlog_out': rlog_out})
+                yield from self.m.instr_inp.call({'rlog_1': rlog_1, 'rlog_2': rlog_2, 'rlog_out': rlog_out})
 
             self.expected_rename.put(None)
             self.recycled_regs.put(None)
@@ -108,7 +108,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                     reg = self.recycled_regs.get_nowait()
                     if reg is None:
                         return
-                    yield from self.m.free_rf_inp.put({'data': reg})
+                    yield from self.m.free_rf_inp.call({'data': reg})
                 except queue.Empty:
                     yield
 
