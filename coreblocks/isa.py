@@ -8,7 +8,7 @@ __all__ = ["InstrType", "Opcode", "Funct3", "Funct7", "Funct12", "OpType", "Exte
 @unique
 class InstrType(Enum):
     R = 0
-    I = 1
+    I = 1  # noqa: E741
     S = 2
     B = 3
     U = 4
@@ -77,7 +77,7 @@ class OpType(Enum):
 @unique
 class Extension(IntFlag):
     E = 0x001
-    I = 0x002
+    I = 0x002  # noqa: E741
     M = 0x004
     A = 0x008
     F = 0x010
