@@ -4,7 +4,7 @@ from typing import Union
 
 from amaranth import *
 from amaranth.sim import *
-from coreblocks.transactions.lib import AdapterTrans
+from coreblocks.transactions.lib import AdapterBase
 
 
 def set_inputs(values: dict, field: Record):
@@ -37,18 +37,18 @@ class TestCaseWithSimulator(unittest.TestCase):
 
 
 class TestbenchIO(Elaboratable):
-    def __init__(self, *args, **kwargs):
-        self.adapter = AdapterTrans(*args, **kwargs)
+    def __init__(self, adapter: AdapterBase):
+        self.adapter = adapter
 
     def elaborate(self, platform):
         m = Module()
         m.submodules += self.adapter
         return m
 
-    def _enable(self):
+    def enable(self):
         yield self.adapter.en.eq(1)
 
-    def _disable(self):
+    def disable(self):
         yield self.adapter.en.eq(0)
 
     def _wait_until_done(self):
@@ -56,13 +56,18 @@ class TestbenchIO(Elaboratable):
             yield
 
     def call_init(self, data: dict = {}):
-        yield from self._enable()
+        yield from self.enable()
         yield from set_inputs(data, self.adapter.data_in)
 
+    def call_result(self):
+        if (yield self.adapter.done):
+            return (yield from get_outputs(self.adapter.data_out))
+
     def call_do(self):
-        yield from self._wait_until_done()
-        yield from self._disable()
-        return (yield from get_outputs(self.adapter.data_out))
+        while not (outputs := (yield from self.call_result())):
+            yield
+        yield from self.disable()
+        return outputs
 
     def call(self, data: dict = {}):
         yield from self.call_init(data)
