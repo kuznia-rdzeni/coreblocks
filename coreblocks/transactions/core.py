@@ -17,10 +17,11 @@ __all__ = [
 
 
 def eager_deterministic_cc_scheduler(manager, m, gr, cc):
-    for k, transaction in enumerate(cc):
+    ccl = list(cc)
+    for k, transaction in enumerate(ccl):
         ready = [method.ready for method in manager.transactions[transaction]]
         runnable = Cat(ready).all()
-        conflicts = [cc[j].grant for j in range(k) if cc[j] in gr[transaction]]
+        conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
         noconflict = ~Cat(conflicts).any()
         m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
 
