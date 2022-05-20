@@ -47,9 +47,7 @@ class TransactionManager(Elaboratable):
     """
 
     def __init__(self, cc_scheduler=eager_deterministic_cc_scheduler):
-        self.methods_by_transaction = defaultdict(list)
-        self.transactions_by_method = defaultdict(list)
-        self.method_uses = {}
+        self.transactions = []
         self.conflicts = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
@@ -85,8 +83,33 @@ class TransactionManager(Elaboratable):
 
         return gr
 
+    def _call_graph(self, transaction, method=None, arg=None, enable=None):
+        if method is None:
+            for method, (arg, enable) in transaction.method_uses.items():
+                self._call_graph(transaction, method, arg, enable)
+            return
+        if not method.defined:
+            raise RuntimeError("Trying to use method which is not defined yet")
+        if method in self.method_uses[transaction]:
+            raise RuntimeError("Method can't be called twice from the same transaction")
+        self.method_uses[transaction][method] = (arg, enable)
+        self.methods_by_transaction[transaction].append(method)
+        self.transactions_by_method[method].append(transaction)
+        self.conflicts += method.conflicts
+        for method, (arg, enable) in method.method_uses.items():
+            self._call_graph(transaction, method, arg, enable)
+
     def elaborate(self, platform):
         m = Module()
+
+        self.methods_by_transaction = defaultdict(list)
+        self.transactions_by_method = defaultdict(list)
+        self.method_uses = defaultdict(dict)
+
+        for transaction in self.transactions:
+            for end in transaction.conflicts:
+                self.add_conflict(transaction, end)
+            self._call_graph(transaction)
 
         gr = self._conflict_graph()
 
@@ -96,7 +119,7 @@ class TransactionManager(Elaboratable):
         for method, transactions in self.transactions_by_method.items():
             granted = Signal(len(transactions))
             for n, transaction in enumerate(transactions):
-                (tdata, enable) = self.method_uses[(transaction, method)]
+                (tdata, enable) = self.method_uses[transaction][method]
                 m.d.comb += granted[n].eq(transaction.grant & enable)
 
                 with m.If(transaction.grant):
@@ -197,25 +220,16 @@ class Transaction:
     def __init__(self, *, manager: TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
+        manager.transactions.append(self)
         self.request = Signal()
         self.grant = Signal()
-        self.manager = manager
+        self.method_uses = dict()
+        self.conflicts = []
 
-    def _use_method(self, method: "Method", arg, enable):
-        if not method.defined:
-            raise RuntimeError("Trying to use method which is not defined yet")
-        if method in self.manager.method_uses:
+    def use_method(self, method: "Method", arg, enable):
+        if method in self.method_uses:
             raise RuntimeError("Method can't be called twice from the same transaction")
-        self.manager.methods_by_transaction[self].append(method)
-        self.manager.transactions_by_method[method].append(self)
-        self.manager.method_uses[(self, method)] = (arg, enable)
-        for end in method.conflicts:
-            self.manager.add_conflict(method, end)
-
-    def use_method(self, method: "Method", arg=C(0, 0), enable=C(1)):
-        self._use_method(method, arg, enable)
-        for method, (arg, enable) in method.method_uses.items():
-            self._use_method(method, arg, enable)
+        self.method_uses[method] = (arg, enable)
 
     @contextmanager
     def context(self):
@@ -247,7 +261,7 @@ class Transaction:
         end: Transaction or Method
             The conflicting ``Transaction`` or ``Method``
         """
-        self.manager.add_conflict(self, end)
+        self.conflicts.append(end)
 
     @classmethod
     def get(cls) -> "Transaction":
@@ -282,9 +296,6 @@ class Method:
     o: int or record layout
         The format of ``data_in``.
         An ``int`` corresponds to a ``Record`` with a single ``data`` field.
-    manager: TransactionManager
-        The ``TransactionManager`` controlling this ``Method``.
-        If omitted, the manager is received from ``TransactionContext``.
 
     Attributes
     ----------
@@ -379,18 +390,10 @@ class Method:
             self.__class__.current = None
             self.defined = True
 
-    def _use_method(self, method: "Method", arg, enable):
-        if not method.defined:
-            raise RuntimeError("Trying to use method which is not defined yet")
+    def use_method(self, method: "Method", arg, enable):
         if method in self.method_uses:
-            raise RuntimeError("Method can't be called twice in method body")
-        self.conflicts += method.conflicts
+            raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[method] = (arg, enable)
-
-    def use_method(self, method: "Method", arg=C(0, 0), enable=C(1)):
-        for _method, (_arg, _enable) in method.method_uses.items():
-            self._use_method(_method, _arg, _enable)
-        self._use_method(method, arg, enable)
 
     def __call__(self, m: Module, arg=C(0, 0), enable=C(1)):
         enable_sig = Signal()
