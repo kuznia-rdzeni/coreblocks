@@ -115,11 +115,10 @@ class AdapterTrans(AdapterBase):
         data_in = Signal.like(self.data_in)
         m.d.comb += data_in.eq(self.data_in)
 
-        m.d.comb += self.done.eq(self.iface.run)
-
         with Transaction().body(m, request=self.en):
             data_out = self.iface(m, arg=data_in)
             m.d.comb += self.data_out.eq(data_out)
+            m.d.comb += self.done.eq(1)
 
         return m
 
@@ -134,6 +133,7 @@ class Adapter(AdapterBase):
 
         with self.iface.body(m, ready=self.en, out=data_in) as data_out:
             m.d.comb += self.data_out.eq(data_out)
+            m.d.comb += self.done.eq(1)
 
         return m
 
