@@ -15,7 +15,7 @@ sub_help(){
 sub_verify() {
     python3 -m flake8 \
       --max-line-length=$MAX_LINE_LENGTH \
-      --ignore=F401,F403,F405 .
+      --extend-ignore=F401,F403,F405,E203 .
     exit $?
 }
 

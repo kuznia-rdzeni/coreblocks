@@ -23,12 +23,15 @@ class FIFO(Elaboratable):
 
         m.submodules.fifo = fifo = amaranth.lib.fifo.SyncFIFO(width=self.width, depth=self.depth)
 
-        with self.write.body(m, ready=fifo.w_rdy) as arg:
+        @def_method(m, self.write, ready=fifo.w_rdy)
+        def _(arg):
             m.d.comb += fifo.w_en.eq(1)
             m.d.comb += fifo.w_data.eq(arg)
 
-        with self.read.body(m, ready=fifo.r_rdy, out=fifo.r_data):
+        @def_method(m, self.read, ready=fifo.r_rdy)
+        def _(arg):
             m.d.comb += fifo.r_en.eq(1)
+            return fifo.r_data
 
         return m
 
@@ -54,8 +57,10 @@ class ClickIn(Elaboratable):
         get_ready = Signal()
         get_data = Signal.like(self.dat)
 
-        with self.get.body(m, ready=get_ready, out=get_data):
+        @def_method(m, self.get, ready=get_ready)
+        def _(arg):
             m.d.sync += get_ready.eq(0)
+            return get_data
 
         with m.If(~btn2 & btn1):
             m.d.sync += get_ready.eq(1)
@@ -81,7 +86,8 @@ class ClickOut(Elaboratable):
         m.d.sync += btn1.eq(self.btn)
         m.d.sync += btn2.eq(btn1)
 
-        with self.put.body(m, ready=~btn2 & btn1) as arg:
+        @def_method(m, self.put, ready=~btn2 & btn1)
+        def _(arg):
             m.d.sync += self.dat.eq(arg)
 
         return m

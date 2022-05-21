@@ -54,6 +54,10 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 0b1111, 0b1000)
             yield from self.sim_step(sched, 0b1111, 0b0001)
 
+            yield from self.sim_step(sched, 0b0000, 0b0000)
+            yield from self.sim_step(sched, 0b0010, 0b0010)
+            yield from self.sim_step(sched, 0b0010, 0b0010)
+
         with self.runSimulation(sched) as sim:
             sim.add_clock(1e-6)
             sim.add_sync_process(process)

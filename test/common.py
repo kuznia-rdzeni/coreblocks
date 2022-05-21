@@ -1,9 +1,31 @@
 import unittest
 from contextlib import contextmanager
+from typing import Union
 
 from amaranth import *
 from amaranth.sim import *
 from coreblocks.transactions.lib import AdapterTrans
+
+
+def set_inputs(values: dict, field: Record):
+    for name, value in values.items():
+        if isinstance(value, dict):
+            yield from set_inputs(value, getattr(field, name))
+        else:
+            yield getattr(field, name).eq(value)
+
+
+def get_outputs(field: Union["Record", "Signal"]):
+    if isinstance(field, Signal):
+        return (yield field)
+    else:  # field is a Record
+        # return dict of all signal values in a record because amaranth's simulator can't read all
+        # values of a Record in a single yield - it can only read Values (Signals)
+        result = {}
+        for name, bits, _ in field.layout:
+            result[name] = yield from get_outputs(getattr(field, name))
+        return result
+
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
@@ -12,6 +34,7 @@ class TestCaseWithSimulator(unittest.TestCase):
         yield sim
         with sim.write_vcd("test.vcd", "test.gtkw"):
             sim.run()
+
 
 class TestbenchIO(Elaboratable):
     def __init__(self, *args, **kwargs):
@@ -32,36 +55,14 @@ class TestbenchIO(Elaboratable):
         while (yield self.adapter.done) != 1:
             yield
 
-    def _set_inputs(self, values: dict, field=None):
-        if field is None:
-            field = self.adapter.data_in
-        for name, value in values.items():
-            if isinstance(value, dict):
-                yield from self._set_inputs(value, getattr(field, name))
-            else:
-                yield getattr(field, name).eq(value)
-
-    def _get_outputs(self, field=None):
-        if field is None:
-            field = self.adapter.data_out
-        if isinstance(field, Signal):
-            return (yield field)
-        else:  # field is a Record
-            # return dict of all signal values in a record because amaranth's simulator can't read all
-            # values of a Record in a single yield - it can only read Values (Signals)
-            result = {}
-            for name, bits, _ in field.layout:
-                result[name] = yield from self._get_outputs(getattr(field, name))
-            return result
-
     def call_init(self, data: dict = {}):
         yield from self._enable()
-        yield from self._set_inputs(data)
+        yield from set_inputs(data, self.adapter.data_in)
 
     def call_do(self):
         yield from self._wait_until_done()
         yield from self._disable()
-        return (yield from self._get_outputs())
+        return (yield from get_outputs(self.adapter.data_out))
 
     def call(self, data: dict = {}):
         yield from self.call_init(data)
