@@ -5,7 +5,6 @@ repos:
   - id: trailing-whitespace
   - id: end-of-file-fixer
   - id: requirements-txt-fixer
-  - id: double-quote-string-fixer
   - id: mixed-line-ending
   - id: check-docstring-first
   - id: check-json
@@ -27,3 +26,4 @@ repos:
       entry: scripts/lint.sh
       language: script
       types: [python]
+      args: ['format']

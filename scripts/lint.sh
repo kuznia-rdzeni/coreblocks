@@ -3,7 +3,7 @@
 MAX_LINE_LENGTH=120
 
 prog_name=$(basename $0)
-  
+
 sub_help(){
     echo "Usage: $prog_name subcommand [filename ...]\n"
     echo "Subcommands:"
@@ -24,7 +24,7 @@ sub_format(){
 
     sub_verify
 }
-  
+
 subcommand=$1
 case $subcommand in
     "" | "-h" | "--help")
