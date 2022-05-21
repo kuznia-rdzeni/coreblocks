@@ -16,11 +16,14 @@ repos:
   - id: check-merge-conflict
   - id: check-symlinks
 
-- repo: https://github.com/pre-commit/mirrors-autopep8
-  rev: v1.5.7
-  hooks:
-  - id: autopep8
-
 - repo: meta
   hooks:
   - id: check-useless-excludes
+
+- repo: local
+  hooks:
+    - id: lint-python
+      name: lint-python
+      entry: scripts/lint.sh
+      language: script
+      types: [python]

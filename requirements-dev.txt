@@ -2,3 +2,4 @@ amaranth==0.3
 amaranth-yosys==0.10.0.dev46
 black==22.3.0
 flake8==4.0.1
+pre-commit==2.16.0
