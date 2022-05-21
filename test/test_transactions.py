@@ -159,11 +159,10 @@ class TestTransactionConflict(TestCaseWithSimulator):
         def chk(x):
             if self.out1_expected and x == self.out1_expected[0]:
                 self.assertEqual(x, self.out1_expected.popleft())
-                return
-            if self.out2_expected and x == self.out2_expected[0]:
+            elif self.out2_expected and x == self.out2_expected[0]:
                 self.assertEqual(x, self.out2_expected.popleft())
-                return True
-            return False
+            else:
+                self.fail("%d not found in both queues" % x)
 
         return self.make_process(self.m.out, prob, self.out_data, tgt, chk)
 
