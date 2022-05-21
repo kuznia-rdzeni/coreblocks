@@ -9,13 +9,33 @@ from coreblocks.transactions import Method
 
 
 class WishboneParameters:
+    """Paramters of Wisbone bus
+    Parameters
+    ----------
+    data_width: int
+        Width of dat_r and dat_w Wishbone signals. Defaults to 64
+    addr_width: int
+        Width of adr Wishbone singal. Defaults to 64
+    """
+
     def __init__(self, *, data_width=64, addr_width=64):
         self.data_width = data_width
         self.addr_width = addr_width
 
 
 class WishboneLayout:
-    # this layout may be used by multiple Wishbone classes and is parametrisable
+    """Wishbone bus Layout generator
+    Parameters
+    ----------
+    wb_params: WishboneParameters
+       Parameters used to generate Wisbone layout
+
+    Attributes
+    ----------
+    wb_layout: Record
+        Record of Wishbone bus
+    """
+
     def __init__(self, wb_params: WishboneParameters):
         self.wb_layout = [
             ("dat_r", wb_params.data_width, DIR_FANIN),
@@ -33,15 +53,28 @@ class WishboneLayout:
         ]
 
 
-# Simple cpu to Wishbone master interface
 class WishboneMaster(Elaboratable):
-    # WishboneMaster.wbMaster is WB bus output (as WishboneLayout record)
-    #
-    # Methods avaliable to CPU:
-    # .request - Method that starts new Wishbone request. Ready when no request is currently executed.
-    #            Takes requestLayout as argument.
-    # .result  - Method that becomes ready when Wishbone request finishes.
-    #            Returns state of request (error or success) and data (in case of read request) as resultLayout.
+    """Wishbone bus master interface.
+
+    Paramters
+    ---------
+    wb_params: WishboneParameters
+        Parameters for bus generation.
+
+    Attributes
+    ----------
+    wbMaster: Record (like WishboneLayout)
+        Wishbone bus output
+    request: Method
+        Transactional method to start a new Wishbone request.
+        Ready when no request is being executed and previous result is read.
+        Takes ```requestLayout``` as argument.
+    result: Method
+        Transactional method to read previous request result.
+        Becomes ready after Wishbone request is completed.
+        Returns state of request (error or success) and data (in case of read request) as ```resultLayout```.
+    """
+
     def __init__(self, wb_params: WishboneParameters):
         self.wb_layout = WishboneLayout(wb_params).wb_layout
         self.wbMaster = Record(self.wb_layout)
@@ -122,10 +155,22 @@ class WishboneMaster(Elaboratable):
         return m
 
 
-# connects one master to multiple slaves
 class WishboneMuxer(Elaboratable):
-    # masterWb - wbRecord of  master interface, slaves - list of slave wbRecords, sselTGA - slave select signal
-    # set sselTGA (wishbone address tag) every time when asserting wishbone STB, to select destionation interface
+    """Wishbone Muxer
+    Connects one master to multiple slaves.
+
+    Paramters
+    ---------
+    masterWb: Record (like WishboneLayout)
+        Record of master inteface.
+    slaves: List[Record]
+        List of connected slaves Wisbone Records (like WishboneLayout)
+    sselTGA: Signal
+        Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
+        to a slave. This signal is a Wisnone TGA (address tag), so it needs to be valid every time Wisbone STB
+        is asserted.
+    """
+
     def __init__(self, masterWb: Record, slaves: List[Record], sselTGA: Signal):
         self.masterWb = masterWb
         self.slaves = slaves
@@ -172,7 +217,18 @@ class WishboneMuxer(Elaboratable):
 
 # connects multiple masters to one slave
 class WishboneArbiter(Elaboratable):
-    # slaveWb - wbRecord of slave interface, masters - list of wbRecords for master interfaces
+    """Wishbone Arbiter
+    Connects multiple masters to one slave.
+    Bus is requested by asserting CYC signal and is granted to masters in a round robin manner.
+
+    Paramters
+    ---------
+    slaveWb: Record (like WishboneLayout)
+        Record of slave inteface.
+    masters: List[Record]
+        List of master interface Records.
+    """
+
     def __init__(self, slaveWb: Record, masters: List[Record]):
         self.slaveWb = slaveWb
         self.masters = masters
