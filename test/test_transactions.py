@@ -94,14 +94,8 @@ class TransactionConflictTestCircuit(Elaboratable):
 @parameterized_class(
     ("name", "scheduler"),
     [
-        (
-            "trivial_roundrobin",
-            (trivial_roundrobin_cc_scheduler,),
-        ),
-        (
-            "eager_deterministic",
-            (eager_deterministic_cc_scheduler,),
-        ),
+        ("trivial_roundrobin", trivial_roundrobin_cc_scheduler),
+        ("eager_deterministic", eager_deterministic_cc_scheduler),
     ],
 )
 class TestTransactionConflict(TestCaseWithSimulator):
@@ -112,7 +106,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
         self.in_expected = deque()
         self.out1_expected = deque()
         self.out2_expected = deque()
-        self.m = TransactionConflictTestCircuit(self.scheduler[0])
+        self.m = TransactionConflictTestCircuit(self.__class__.scheduler)
 
         random.seed(42)
 
