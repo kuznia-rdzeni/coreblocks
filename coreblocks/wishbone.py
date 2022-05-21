@@ -131,6 +131,7 @@ class WishboneMuxer(Elaboratable):
         self.sselTGA = sselTGA
 
         selectBits = sselTGA.shape().width
+        assert selectBits == len(slaves)
         self.txn_sel = Signal(selectBits)
         self.txn_sel_r = Signal(selectBits)
 
@@ -154,7 +155,7 @@ class WishboneMuxer(Elaboratable):
                 self.slaves[i], include=["dat_w", "rst", "cyc", "lock", "adr", "we", "sel"]
             )
             # use stb as select
-            m.d.comb += self.slaves[i].stb.eq((self.txn_sel == i) & self.masterWb.stb)
+            m.d.comb += self.slaves[i].stb.eq(self.txn_sel[i] & self.masterWb.stb)
 
         # bus termination signals S->M should be ORed
         m.d.comb += self.masterWb.ack.eq(reduce(operator.or_, [self.slaves[i].ack for i in range(len(self.slaves))]))
@@ -162,7 +163,7 @@ class WishboneMuxer(Elaboratable):
         m.d.comb += self.masterWb.rty.eq(reduce(operator.or_, [self.slaves[i].rty for i in range(len(self.slaves))]))
         with m.Switch(self.txn_sel):
             for i in range(len(self.slaves)):
-                with m.Case(i):
+                with m.Case(("-" * (len(self.slaves) - i - 1)) + "1" + ("-" * i)):
                     # mux S->M data
                     m.d.comb += self.masterWb.connect(self.slaves[i], include=["dat_r"])
         return m

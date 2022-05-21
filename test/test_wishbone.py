@@ -114,13 +114,14 @@ class TestWishboneMaster(TestCaseWithSimulator):
 class TestWishboneMuxer(TestCaseWithSimulator):
     def test_manual(self):
         wb_master = WishboneInterfaceWrapper(Record(WishboneLayout(WishboneParameters()).wb_layout))
-        slaves = [WishboneInterfaceWrapper(Record.like(wb_master.wb, name=f"sl{i}")) for i in range(2)]
-        mux = WishboneMuxer(wb_master.wb, [s.wb for s in slaves], Signal(1))
+        num_slaves = 4
+        slaves = [WishboneInterfaceWrapper(Record.like(wb_master.wb, name=f"sl{i}")) for i in range(num_slaves)]
+        mux = WishboneMuxer(wb_master.wb, [s.wb for s in slaves], Signal(num_slaves))
 
         def process():
             # check full communiaction
             yield from wb_master.master_set(2, 0, 1)
-            yield mux.sselTGA.eq(0)
+            yield mux.sselTGA.eq(0b0001)
             yield
             yield from slaves[0].slave_verify(2, 0, 1)
             assert not (yield slaves[1].wb.stb)
@@ -130,7 +131,7 @@ class TestWishboneMuxer(TestCaseWithSimulator):
             yield
             # select without releasing cyc (only on stb)
             yield from wb_master.master_set(3, 0, 0)
-            yield mux.sselTGA.eq(1)
+            yield mux.sselTGA.eq(0b0010)
             yield
             assert not (yield slaves[0].wb.stb)
             yield from slaves[1].slave_verify(3, 0, 0)
@@ -141,9 +142,11 @@ class TestWishboneMuxer(TestCaseWithSimulator):
 
             # normal selection
             yield from wb_master.master_set(6, 0, 0)
-            yield mux.sselTGA.eq(0)
+            yield mux.sselTGA.eq(0b1000)
             yield
-            yield from slaves[0].slave_verify(6, 0, 0)
+            yield from slaves[3].slave_verify(6, 0, 0)
+            yield from slaves[3].slave_respond(1)
+            yield from wb_master.master_verify(1)
 
         with self.runSimulation(mux) as sim:
             sim.add_clock(1e-6)
