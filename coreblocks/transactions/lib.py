@@ -124,6 +124,9 @@ class AdapterTrans(AdapterBase):
 
 
 class Adapter(AdapterBase):
+    def __init__(self, *, i=0, o=0):
+        super().__init__(Method(i=i, o=o))
+
     def elaborate(self, platform):
         m = Module()
 
