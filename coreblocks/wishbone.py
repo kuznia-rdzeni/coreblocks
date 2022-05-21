@@ -2,6 +2,7 @@ from amaranth import *
 from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
 from amaranth.lib.scheduler import RoundRobin
 from functools import reduce
+from typing import List
 import operator
 
 from coreblocks.transactions import Method
@@ -58,7 +59,7 @@ class WishboneMaster(Elaboratable):
 
         self.ports = list(self.wbMaster.fields.values())
 
-    def generate_layouts(self, wb_params):
+    def generate_layouts(self, wb_params: WishboneParameters):
         # generate method layouts locally
         self.requestLayout = [
             ("addr", wb_params.addr_width, DIR_FANIN),
@@ -125,7 +126,7 @@ class WishboneMaster(Elaboratable):
 class WishboneMuxer(Elaboratable):
     # masterWb - wbRecord of  master interface, slaves - list of slave wbRecords, sselTGA - slave select signal
     # set sselTGA (wishbone address tag) every time when asserting wishbone STB, to select destionation interface
-    def __init__(self, masterWb, slaves, sselTGA):
+    def __init__(self, masterWb: Record, slaves: List[Record], sselTGA: Signal):
         self.masterWb = masterWb
         self.slaves = slaves
         self.sselTGA = sselTGA
@@ -172,7 +173,7 @@ class WishboneMuxer(Elaboratable):
 # connects multiple masters to one slave
 class WishboneArbiter(Elaboratable):
     # slaveWb - wbRecord of slave interface, masters - list of wbRecords for master interfaces
-    def __init__(self, slaveWb, masters):
+    def __init__(self, slaveWb: Record, masters: List[Record]):
         self.slaveWb = slaveWb
         self.masters = masters
 
