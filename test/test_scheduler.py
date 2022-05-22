@@ -5,9 +5,10 @@ from amaranth.back import verilog
 from amaranth.sim import Simulator
 from coreblocks.transactions import TransactionModule, TransactionContext
 from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans
-from coreblocks.scheduler import RegAllocation, Renaming, RAT
+from coreblocks.scheduler import RegAllocation, Renaming, ROBAllocate, RAT
 from coreblocks.layouts import SchedulerLayouts
 from coreblocks.genparams import GenParams
+from coreblocks.reorder_buffer import ReorderBuffer, id_layout as rob_id_layout
 from .common import TestCaseWithSimulator, TestbenchIO
 
 class RegAllocAndRenameTestCircuit(Elaboratable):
@@ -40,8 +41,18 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
                                                         layouts=layouts,
                                                         gen_params=self.gen_params)
 
+            m.submodules.rob = self.rob = ReorderBuffer()
+            m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(layouts.rob_allocate_out, 2)
+            m.submodules.rob_alloc = rob_alloc = ROBAllocate(get_instr=rename_out_buf.read,
+                                                             push_instr=rob_alloc_out_buf.write,
+                                                             rob_put=self.rob.put,
+                                                             layouts=layouts,
+                                                             gen_params=self.gen_params)
+
             # mocked input and output
-            m.submodules.output = self.out = TestbenchIO(rename_out_buf.read, o=renaming.output_layout)
+            m.submodules.output = self.out = TestbenchIO(rob_alloc_out_buf.read, o=layouts.rob_allocate_out)
+            m.submodules.rob_markdone = self.rob_done = TestbenchIO(self.rob.mark_done, i=rob_id_layout)
+            m.submodules.rob_retire = self.rob_retire = TestbenchIO(self.rob.retire)
             m.submodules.instr_input = self.instr_inp = TestbenchIO(instr_fifo.write, i=layouts.instr_layout)
             m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(free_rf_fifo.write, i=[('data', self.gen_params.phys_regs_bits)])
 
@@ -53,6 +64,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
         self.expected_phys_reg = queue.Queue()
         self.current_RAT = [x for x in range(0, 32)]
         self.recycled_regs = queue.Queue()
+        self.recycled_ROB_entries = queue.Queue()
         self.gen_params = GenParams()
         self.m = RegAllocAndRenameTestCircuit(self.gen_params)
 
@@ -78,10 +90,14 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                     if item is None:
                         return
                     result = yield from self.m.out.call()
+                    result['rlog_out'] = (yield self.m.rob.data[result['rob_id']].dst_reg)
+
                     self.check_renamed(result, item)
                     # recycle physical register number
                     if item['rphys_out'] != 0:
                         self.recycle_phys_reg(item['rphys_out'])
+                    # recycle ROB entry
+                    self.recycled_ROB_entries.put(result['rob_id'])
                 except queue.Empty:
                     yield
 
@@ -101,6 +117,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
 
             self.expected_rename.put(None)
             self.recycled_regs.put(None)
+            self.recycled_ROB_entries.put(None)
             
         def bench_free_rf_input():
             while True:
@@ -112,8 +129,24 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                 except queue.Empty:
                     yield
 
+        def bench_rob_mark_done():
+            while True:
+                try:
+                    entry = self.recycled_ROB_entries.get_nowait()
+                    if entry is None:
+                        return
+                    yield from self.m.rob_done.call({'rob_id': entry})
+                except queue.Empty:
+                    yield
+
+        def bench_rob_retire():
+            yield from self.m.rob_retire._enable()
+
+
         with self.runSimulation(self.m) as sim:
             sim.add_clock(1e-6)
             sim.add_sync_process(bench_output)
             sim.add_sync_process(bench_instr_input)
             sim.add_sync_process(bench_free_rf_input)
+            sim.add_sync_process(bench_rob_mark_done)
+            sim.add_sync_process(bench_rob_retire)

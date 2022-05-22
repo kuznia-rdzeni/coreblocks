@@ -2,6 +2,7 @@ from amaranth import *
 from coreblocks.transactions import Method, Transaction
 from coreblocks.layouts import SchedulerLayouts
 from coreblocks.genparams import GenParams
+from coreblocks.reorder_buffer import in_layout as rob_in_layout, id_layout as rob_out_layout
 
 class RegAllocation(Elaboratable):
     def __init__(self, *, get_instr : Method, push_instr : Method, get_free_reg : Method, layouts : SchedulerLayouts, gen_params : GenParams):
@@ -57,6 +58,38 @@ class Renaming(Elaboratable):
             m.d.comb += data_out.rphys_out.eq(instr.rphys_out)
             m.d.comb += data_out.rphys_1.eq(renamed_regs.rphys_1)
             m.d.comb += data_out.rphys_2.eq(renamed_regs.rphys_2)
+            self.push_instr(m, data_out)
+
+        return m
+
+class ROBAllocate(Elaboratable):
+    def __init__(self, *, get_instr : Method, push_instr : Method, rob_put : Method, layouts : SchedulerLayouts, gen_params : GenParams):
+        self.input_layout = layouts.rob_allocate_in
+        self.output_layout = layouts.rob_allocate_out
+        self.gen_params = gen_params
+
+        self.get_instr = get_instr
+        self.push_instr = push_instr
+        self.rob_put = rob_put
+
+    def elaborate(self, platform):
+        m = Module()
+
+        data_out = Record(self.output_layout)
+        rob_req = Record(rob_in_layout)
+
+        with Transaction().body(m):
+            instr = self.get_instr(m)
+
+            m.d.comb += rob_req.dst_reg.eq(instr.rlog_out)
+            m.d.comb += rob_req.phys_dst_reg.eq(instr.rphys_out)
+            rob_id = self.rob_put(m, rob_req)
+
+            m.d.comb += data_out.rphys_1.eq(instr.rphys_1)
+            m.d.comb += data_out.rphys_2.eq(instr.rphys_2)
+            m.d.comb += data_out.rphys_out.eq(instr.rphys_out)
+            m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
+
             self.push_instr(m, data_out)
 
         return m

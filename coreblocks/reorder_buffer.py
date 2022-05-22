@@ -16,12 +16,12 @@ id_layout = [
 ]
 
 out_layout = [
-    ("dst_reg", log_rob_len),
+    ("dst_reg", log_reg_cnt),
     ("phys_dst_reg", log_phys_reg_cnt),
 ]
 
 internal_layout = [
-    ("dst_reg", log_rob_len),
+    ("dst_reg", log_reg_cnt),
     ("phys_dst_reg", log_phys_reg_cnt),
     ("done", 1),
 ]
@@ -33,7 +33,7 @@ class ReorderBuffer(Elaboratable):
 
         self.put = ts.Method(i=in_layout, o=id_layout)
         self.mark_done = ts.Method(i=id_layout)
-        self.retire = ts.Method(o=in_layout)
+        self.retire = ts.Method(o=out_layout)
         self.data = Array(Record(internal_layout) for _ in range(2**log_rob_len))
 
         self.start_cnt = Signal(log_rob_len)
@@ -44,17 +44,19 @@ class ReorderBuffer(Elaboratable):
 
         put_possible = self.end_cnt != self.start_cnt - 1
 
-        output = Record(in_layout)
+        output = Record(out_layout)
 
         with self.retire.body(m, ready=self.data[self.start_cnt].done, out=output):
             m.d.comb += output.eq(self.data[self.start_cnt])
             m.d.sync += self.start_cnt.eq(self.start_cnt + 1)
+            m.d.sync += self.data[self.start_cnt].done.eq(0)
 
         put_output = Record(id_layout)
 
         with self.put.body(m, ready=put_possible, out=put_output) as arg:
-            m.d.sync += self.data[self.end_cnt].eq(arg)
-            m.d.sync += self.data[self.start_cnt].done.eq(0)
+            m.d.sync += self.data[self.end_cnt].dst_reg.eq(arg.dst_reg)
+            m.d.sync += self.data[self.end_cnt].phys_dst_reg.eq(arg.phys_dst_reg)
+            m.d.sync += self.data[self.end_cnt].done.eq(0)
             m.d.sync += self.end_cnt.eq(self.end_cnt + 1)
             m.d.comb += put_output.rob_id.eq(self.end_cnt)
 
