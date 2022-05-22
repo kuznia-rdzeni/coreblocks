@@ -4,6 +4,7 @@ from coreblocks.wishbone import *
 from amaranth.sim import Simulator
 
 from coreblocks.transactions import TransactionModule
+from coreblocks.transactions.lib import AdapterTrans
 
 from .common import *
 
@@ -63,8 +64,8 @@ class TestWishboneMaster(TestCaseWithSimulator):
             tm = TransactionModule(m)
             with tm.transactionContext():
                 m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
-                m.submodules.rqa = self.requestAdapter = TestbenchIO(wbm.request, i=wbm.requestLayout)
-                m.submodules.rsa = self.resultAdapter = TestbenchIO(wbm.result, o=wbm.resultLayout)
+                m.submodules.rqa = self.requestAdapter = TestbenchIO(AdapterTrans(wbm.request))
+                m.submodules.rsa = self.resultAdapter = TestbenchIO(AdapterTrans(wbm.result))
             return tm
 
     def test_manual(self):
