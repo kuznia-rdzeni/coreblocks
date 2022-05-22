@@ -381,7 +381,8 @@ def def_method(m: Module, method: Method, ready=C(1)):
     elegant way using Python's ``def`` syntax.
 
     The decorated function should take one argument, which will be a
-    record with input signals and return a record with output signals.
+    record with input signals and return output values.
+    The returned value can be either a record of a dictionary of outputs.
 
     Parameters
     ----------
@@ -412,7 +413,22 @@ def def_method(m: Module, method: Method, ready=C(1)):
         with method.body(m, ready=ready, out=out) as arg:
             ret_out = func(arg)
 
+        def connect_with_possibly_dict(dst, src):
+            if isinstance(src, dict):
+                if not isinstance(dst, Record):
+                    raise TypeError("Cannot connect a dict of signals to a non-record.")
+
+                for k, v in src.items():
+                    connect_with_possibly_dict(dst[k], v)
+
+                # Make sure all fields of the record are specified in the dict.
+                for field_name, _, _ in dst.layout:
+                    if field_name not in src:
+                        raise KeyError("Field {} is not specified in the dict.".format(field_name))
+            else:
+                m.d.comb += dst.eq(src)
+
         if ret_out is not None:
-            m.d.comb += out.eq(ret_out)
+            connect_with_possibly_dict(out, ret_out)
 
     return decorator
