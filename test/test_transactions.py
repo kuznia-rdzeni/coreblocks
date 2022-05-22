@@ -100,9 +100,9 @@ class TransactionConflictTestCircuit(Elaboratable):
 )
 class TestTransactionConflict(TestCaseWithSimulator):
     def setUp(self):
-        self.in1_data = range(0, 100)
-        self.in2_data = range(100, 200)
-        self.out_data = range(200, 400)
+        self.in1_stream = range(0, 100)
+        self.in2_stream = range(100, 200)
+        self.out_stream = range(200, 400)
         self.in_expected = deque()
         self.out1_expected = deque()
         self.out2_expected = deque()
@@ -135,7 +135,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
         def chk(x):
             self.assertEqual(x, self.in_expected.popleft())
 
-        return self.make_process(self.m.in1, prob, self.in1_data, tgt, chk)
+        return self.make_process(self.m.in1, prob, self.in1_stream, tgt, chk)
 
     def make_in2_process(self, prob: float):
         def tgt(x):
@@ -144,7 +144,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
         def chk(x):
             self.assertEqual(x, self.in_expected.popleft())
 
-        return self.make_process(self.m.in2, prob, self.in2_data, tgt, chk)
+        return self.make_process(self.m.in2, prob, self.in2_stream, tgt, chk)
 
     def make_out_process(self, prob: float):
         def tgt(x):
@@ -158,7 +158,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
             else:
                 self.fail("%d not found in both queues" % x)
 
-        return self.make_process(self.m.out, prob, self.out_data, tgt, chk)
+        return self.make_process(self.m.out, prob, self.out_stream, tgt, chk)
 
     @parameterized.expand(
         [
