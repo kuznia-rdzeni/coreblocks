@@ -134,9 +134,11 @@ class Adapter(AdapterBase):
         data_in = Signal.like(self.data_in)
         m.d.comb += data_in.eq(self.data_in)
 
-        with self.iface.body(m, ready=self.en, out=data_in) as data_out:
-            m.d.comb += self.data_out.eq(data_out)
+        @def_method(m, self.iface, ready=self.en)
+        def _(arg):
+            m.d.comb += self.data_out.eq(arg)
             m.d.comb += self.done.eq(1)
+            return data_in
 
         return m
 
