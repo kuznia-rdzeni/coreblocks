@@ -2,7 +2,7 @@ from amaranth import *
 from .core import *
 from ._utils import _coerce_layout
 
-__all__ = ["FIFO", "ClickIn", "ClickOut", "AdapterTrans", "ConnectTrans", "CatTrans"]
+__all__ = ["FIFO", "ClickIn", "ClickOut", "AdapterTrans", "Adapter", "ConnectTrans", "CatTrans"]
 
 # FIFOs
 
@@ -96,15 +96,36 @@ class ClickOut(Elaboratable):
 # Testbench-friendly input/output
 
 
-class AdapterTrans(Elaboratable):
-    def __init__(self, iface: Method, i=0, o=0):
+class AdapterBase(Elaboratable):
+    def __init__(self, iface: Method):
         self.iface = iface
         self.en = Signal()
         self.done = Signal()
-        self.data_in = Record(_coerce_layout(i))
-        self.data_out = Record(_coerce_layout(o))
+        self.data_in = Record.like(iface.data_in)
+        self.data_out = Record.like(iface.data_out)
         self.input_fmt = self.data_in.layout
         self.output_fmt = self.data_out.layout
+
+
+class AdapterTrans(AdapterBase):
+    def elaborate(self, platform):
+        m = Module()
+
+        # this forces data_in signal to appear in VCD dumps
+        data_in = Signal.like(self.data_in)
+        m.d.comb += data_in.eq(self.data_in)
+
+        with Transaction().body(m, request=self.en):
+            data_out = self.iface(m, arg=data_in)
+            m.d.comb += self.data_out.eq(data_out)
+            m.d.comb += self.done.eq(1)
+
+        return m
+
+
+class Adapter(AdapterBase):
+    def __init__(self, *, i=0, o=0):
+        super().__init__(Method(i=i, o=o))
 
     def elaborate(self, platform):
         m = Module()
@@ -113,11 +134,11 @@ class AdapterTrans(Elaboratable):
         data_in = Signal.like(self.data_in)
         m.d.comb += data_in.eq(self.data_in)
 
-        m.d.comb += self.done.eq(self.iface.run)
-
-        with Transaction().body(m, request=self.en):
-            data_out = self.iface(m, arg=data_in)
-            m.d.comb += self.data_out.eq(data_out)
+        @def_method(m, self.iface, ready=self.en)
+        def _(arg):
+            m.d.comb += self.data_out.eq(arg)
+            m.d.comb += self.done.eq(1)
+            return data_in
 
         return m
 
