@@ -62,6 +62,7 @@ class TestbenchIO(Elaboratable):
     def call_result(self):
         if (yield self.adapter.done):
             return (yield from get_outputs(self.adapter.data_out))
+        return None
 
     def call_do(self):
         while not (outputs := (yield from self.call_result())):
