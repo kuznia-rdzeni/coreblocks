@@ -15,6 +15,7 @@ sub_help(){
 sub_verify() {
     python3 -m flake8 \
       --max-line-length=$MAX_LINE_LENGTH \
+      --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak" \
       --extend-ignore=F401,F403,F405,E203 $@
 }
 
