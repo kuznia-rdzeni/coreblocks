@@ -382,7 +382,7 @@ def def_method(m: Module, method: Method, ready=C(1)):
 
     The decorated function should take one argument, which will be a
     record with input signals and return output values.
-    The returned value can be either a record of a dictionary of outputs.
+    The returned value can be either a record or a dictionary of outputs.
 
     Parameters
     ----------
