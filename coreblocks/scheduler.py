@@ -4,8 +4,17 @@ from coreblocks.layouts import SchedulerLayouts
 from coreblocks.genparams import GenParams
 from coreblocks.reorder_buffer import in_layout as rob_in_layout, id_layout as rob_out_layout
 
+
 class RegAllocation(Elaboratable):
-    def __init__(self, *, get_instr : Method, push_instr : Method, get_free_reg : Method, layouts : SchedulerLayouts, gen_params : GenParams):
+    def __init__(
+        self,
+        *,
+        get_instr: Method,
+        push_instr: Method,
+        get_free_reg: Method,
+        layouts: SchedulerLayouts,
+        gen_params: GenParams
+    ):
         self.get_free_reg = get_free_reg
         self.gen_params = gen_params
         self.input_layout = layouts.reg_alloc_in
@@ -33,8 +42,11 @@ class RegAllocation(Elaboratable):
 
         return m
 
+
 class Renaming(Elaboratable):
-    def __init__(self, *, get_instr : Method, push_instr : Method, rename : Method, layouts : SchedulerLayouts, gen_params : GenParams):
+    def __init__(
+        self, *, get_instr: Method, push_instr: Method, rename: Method, layouts: SchedulerLayouts, gen_params: GenParams
+    ):
         self.input_layout = layouts.renaming_in
         self.output_layout = layouts.renaming_out
         self.gen_params = gen_params
@@ -45,10 +57,7 @@ class Renaming(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        data_in = Record(self.input_layout)
         data_out = Record(self.output_layout)
-        rphys_1 = Signal(self.gen_params.phys_regs_bits)
-        rphys_2 = Signal(self.gen_params.phys_regs_bits)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -62,8 +71,17 @@ class Renaming(Elaboratable):
 
         return m
 
+
 class ROBAllocate(Elaboratable):
-    def __init__(self, *, get_instr : Method, push_instr : Method, rob_put : Method, layouts : SchedulerLayouts, gen_params : GenParams):
+    def __init__(
+        self,
+        *,
+        get_instr: Method,
+        push_instr: Method,
+        rob_put: Method,
+        layouts: SchedulerLayouts,
+        gen_params: GenParams
+    ):
         self.input_layout = layouts.rob_allocate_in
         self.output_layout = layouts.rob_allocate_out
         self.gen_params = gen_params
@@ -94,11 +112,12 @@ class ROBAllocate(Elaboratable):
 
         return m
 
+
 class RAT(Elaboratable):
-    def __init__(self, *, layouts : SchedulerLayouts, gen_params : GenParams):
+    def __init__(self, *, layouts: SchedulerLayouts, gen_params: GenParams):
         self.input_layout = layouts.rat_rename_in
         self.output_layout = layouts.rat_rename_out
-        
+
         self.gen_params = gen_params
         self.entries = Array((Signal(self.gen_params.phys_regs_bits, reset=i) for i in range(32)))
 
