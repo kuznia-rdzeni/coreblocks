@@ -1,7 +1,7 @@
 # Proposition of Reservation Station implementation
 
-Here is an example proposition how to implement RS. If you want you can follow this proposition, if you don't, feel free
-to change anything you want.
+Here is an example proposition how to implement RS using transaction framework for internal communication. If you want
+you can follow this proposition, if you don't, feel free to change anything you want.
 
 
 ## Internal data
@@ -29,15 +29,10 @@ Assumptions:
 - when an entry in the RS is released then their entry in this table is switched from `1` to `0`
 
 
-
-
 ## Internal methods
 
 
 ### Compare and substitute
-
-Ready when:
-- *always*
 
 Input:
 - `tag` - identifier of RF which is announcement on Tomasulo bus
@@ -53,9 +48,6 @@ Side effects:
 
 
 ### Read row
-
-Ready when:
-- *implementation defined*
 
 Input:
 - `position` - identifier of RS row, which should be read
@@ -73,9 +65,6 @@ Side effects:
 
 ### Clean row
 
-Ready when:
-- *implementation defined*
-
 Input:
 - `position` - identifier of RS row, which should be cleaned
 
@@ -88,9 +77,6 @@ Side effects:
 
 ### Get free slot
 
-Ready when:
-- there is a free slot in the RS
-
 Input:
 - *null*
 
@@ -102,9 +88,6 @@ Side effects:
 
 
 ### Mark slot as used
-
-Ready when:
-- *implementation defined*
 
 Input:
 - `position` - id of slot which should be marked as used
@@ -125,10 +108,6 @@ Methods in transaction:
 - ["Get free slot"](#get-free-slot)
 - ["Mark slot as used"](#mark-slot-as-used)
 
-Ready when:
-- ["Mark slot as used"](#mark-slot-as-used) is ready and
-- ["Get free slot"](#get-free-slot) is ready
-
 
 ### Compare and substitute all
 
@@ -144,7 +123,3 @@ Ready when:
 Methods in transaction:
 - ["Read row"](#read-row)
 - ["Clean row"](#clean-row)
-
-Ready when:
-- ["Read row"](#read-row) is ready and
-- ["Clean row"](#clean-row) is ready

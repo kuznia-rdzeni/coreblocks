@@ -10,9 +10,6 @@ is ready it should be woken up by wakeup logic and dispatched to the correct FU.
 
 ### Get slot and mark as used
 
-Ready when:
-- *implementation defined*
-
 Input:
 - *null*
 
@@ -24,9 +21,6 @@ Side effects:
 
 
 ### Insert new instruction
-
-Ready when:
-- *implementation defined*
 
 Input:
 - `opcode` - instruction identifier for FU
@@ -46,9 +40,6 @@ Side effects:
 
 ### Get ready vector
 
-Ready when:
-- *always*
-
 Input:
 - *null*
 
@@ -61,9 +52,6 @@ Side effects:
 - *null*
 
 ### Read and clean row
-
-Ready when:
-- *implementation defined*
 
 Input:
 - `position` - identifier of RS row, which should be read and cleared
@@ -81,9 +69,6 @@ Side effects:
 ----
 
 ### Compare and substitute all
-
-Ready when:
-- **always**
 
 Input:
 - `tag` - identifier of RF which is announcement on Tomasulo bus
@@ -112,9 +97,3 @@ Output:
 In initial state:
 - all `v` fields should have value `0`
 - all fields in "Used slots table" should have value `0`
-
-
-## Remarks
-
-- I assume that the identifier of the RS row to be read and cleaned during dispatching to FU will be provided by the
-  wakeup logic
