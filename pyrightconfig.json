@@ -1,0 +1,20 @@
+{
+  "include": [
+    "coreblocks"
+  ],
+  
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__"
+  ],
+
+  "ignore": [
+  ],
+  "stubPath": "./typings",
+
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+
+  "pythonVersion": "3.10",
+  "pythonPlatform": "Linux"
+}

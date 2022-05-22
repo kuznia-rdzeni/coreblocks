@@ -1,8 +1,9 @@
 from contextlib import contextmanager
-from typing import Union, List
+from typing import Union, List, Optional, Any, Callable, TypeVar, Iterator
 from types import MethodType
 from amaranth import *
 from ._utils import *
+from ..type.utils import Wires, SimpleWires
 
 __all__ = [
     "TransactionManager",
@@ -57,7 +58,9 @@ class TransactionManager(Elaboratable):
     def add_conflict(self, end1: Union["Transaction", "Method"], end2: Union["Transaction", "Method"]) -> None:
         self.conflicts.append((end1, end2))
 
-    def use_method(self, transaction: "Transaction", method: "Method", arg=C(0, 0), enable=C(1)):
+    def use_method(
+        self, transaction: "Transaction", method: "Method", arg: Wires = C(0, 0), enable: SimpleWires = C(1)
+    ) -> Record:
         assert transaction.manager is self and method.manager is self
         if (transaction, method) in self.methodargs:
             raise RuntimeError("Method can't be called twice from the same transaction")
@@ -156,7 +159,7 @@ class TransactionModule(Elaboratable):
             transactions and methods.
     """
 
-    def __init__(self, module, manager: TransactionManager = None):
+    def __init__(self, module, manager: Optional[TransactionManager] = None):
         if manager is None:
             manager = TransactionManager()
         self.transactionManager = manager
@@ -208,7 +211,7 @@ class Transaction:
 
     current = None
 
-    def __init__(self, *, manager: TransactionManager = None):
+    def __init__(self, *, manager: Optional[TransactionManager] = None):
         if manager is None:
             manager = TransactionContext.get()
         self.request = Signal()
@@ -226,7 +229,7 @@ class Transaction:
             self.__class__.current = None
 
     @contextmanager
-    def body(self, m: Module, *, request=C(1)):
+    def body(self, m: Module, *, request: SimpleWires = C(1)) -> Iterator["Transaction"]:
         m.d.comb += self.request.eq(request)
         with self.context():
             with m.If(self.grant):
@@ -254,23 +257,48 @@ class Transaction:
         return cls.current
 
 
-def _connect_rec_with_possibly_dict(dst, src):
-    if isinstance(src, dict):
-        if not isinstance(dst, Record):
-            raise TypeError("Cannot connect a dict of signals to a non-record.")
+def def_method(m: Module, method: "Method", ready: SimpleWires = C(1)):
+    """Define a method.
 
-        exprs = []
-        for k, v in src.items():
-            exprs += _connect_rec_with_possibly_dict(dst[k], v)
+    This decorator allows to define transactional methods in more
+    elegant way using Python's ``def`` syntax.
 
-        # Make sure all fields of the record are specified in the dict.
-        for field_name, _, _ in dst.layout:
-            if field_name not in src:
-                raise KeyError("Field {} is not specified in the dict.".format(field_name))
+    The decorated function should take one argument, which will be a
+    record with input signals and return a record with output signals.
 
-        return exprs
-    else:
-        return [dst.eq(src)]
+    Parameters
+    ----------
+    m : Module
+        Module in which operations on signals should be executed.
+    method : Method
+        The method whose body is going to be defined.
+    ready : Signal
+        Signal to indicate if the method is ready to be run. By
+        default it is ``Const(1)``, so the method is always ready.
+        Assigned combinatorially to the ``ready`` attribute.
+
+    Example
+    -------
+    ```
+    m = Module()
+    my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
+    @def_method(m, my_sum_method)
+    def _(data_in):
+        return data_in.arg1 + data_in.arg2
+    ```
+    """
+
+    def decorator(func):
+        out = Record.like(method.data_out)
+        ret_out = None
+
+        with method.body(m, ready=ready, out=out) as arg:
+            ret_out = func(arg)
+
+        if ret_out is not None:
+            m.d.comb += out.eq(ret_out)
+
+    return decorator
 
 
 class Method:
@@ -319,7 +347,7 @@ class Method:
         ``Transaction``. Typically defined by calling ``body``.
     """
 
-    def __init__(self, *, i=0, o=0, manager: TransactionManager = None):
+    def __init__(self, *, i=0, o=0, manager: Optional[TransactionManager] = None):
         if manager is None:
             manager = TransactionContext.get()
         self.ready = Signal()
@@ -344,7 +372,7 @@ class Method:
         self.manager.add_conflict(self, end)
 
     @contextmanager
-    def body(self, m: Module, *, ready=C(1), out=C(0, 0)):
+    def body(self, m: Module, *, ready: SimpleWires = C(1), out: Wires = C(0, 0)) -> Iterator[Record]:
         """Define method body
 
         The ``body`` function should be used to define body of
@@ -386,64 +414,8 @@ class Method:
         with m.If(self.run):
             yield self.data_in
 
-    def __call__(self, m: Module, arg=C(0, 0), enable=C(1)):
+    def __call__(self, m: Module, arg: Wires = C(0, 0), enable: SimpleWires = C(1)) -> Record:
         enable_sig = Signal()
-        arg_rec = Record.like(self.data_in)
-
-        # TODO: These connections should be moved from here.
-        # This function is called under Transaction context, so
-        # every connection we make here is unnecessarily multiplexed
-        # by transaction.grant signal. Thus, it adds superfluous
-        # complexity to the circuit. One of the solutions would be
-        # to temporarily save the connections and add them to the
-        # combinatorial domain at a better moment.
         m.d.comb += enable_sig.eq(enable)
-        m.d.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
-
         trans = Transaction.get()
-        return self.manager.use_method(trans, self, arg_rec, enable_sig)
-
-
-def def_method(m: Module, method: Method, ready=C(1)):
-    """Define a method.
-
-    This decorator allows to define transactional methods in more
-    elegant way using Python's ``def`` syntax.
-
-    The decorated function should take one argument, which will be a
-    record with input signals and return output values.
-    The returned value can be either a record or a dictionary of outputs.
-
-    Parameters
-    ----------
-    m : Module
-        Module in which operations on signals should be executed.
-    method : Method
-        The method whose body is going to be defined.
-    ready : Signal
-        Signal to indicate if the method is ready to be run. By
-        default it is ``Const(1)``, so the method is always ready.
-        Assigned combinatorially to the ``ready`` attribute.
-
-    Example
-    -------
-    ```
-    m = Module()
-    my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
-    @def_method(m, my_sum_method)
-    def _(data_in):
-        return data_in.arg1 + data_in.arg2
-    ```
-    """
-
-    def decorator(func):
-        out = Record.like(method.data_out)
-        ret_out = None
-
-        with method.body(m, ready=ready, out=out) as arg:
-            ret_out = func(arg)
-
-        if ret_out is not None:
-            m.d.comb += _connect_rec_with_possibly_dict(out, ret_out)
-
-    return decorator
+        return self.manager.use_method(trans, self, arg, enable_sig)
