@@ -85,11 +85,7 @@ class TransactionManager(Elaboratable):
 
         return gr
 
-    def _call_graph(self, transaction, method=None, arg=None, enable=None):
-        if method is None:
-            for method, (arg, enable) in transaction.method_uses.items():
-                self._call_graph(transaction, method, arg, enable)
-            return
+    def _call_graph(self, transaction, method, arg, enable):
         if not method.defined:
             raise RuntimeError("Trying to use method which is not defined yet")
         if method in self.method_uses[transaction]:
@@ -111,7 +107,8 @@ class TransactionManager(Elaboratable):
         for transaction in self.transactions:
             for end in transaction.conflicts:
                 self.add_conflict(transaction, end)
-            self._call_graph(transaction)
+            for method, (arg, enable) in transaction.method_uses.items():
+                self._call_graph(transaction, method, arg, enable)
 
         gr = self._conflict_graph()
 
