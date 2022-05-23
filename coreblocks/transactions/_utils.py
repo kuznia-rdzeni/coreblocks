@@ -22,6 +22,7 @@ class Scheduler(Elaboratable):
         with m.Switch(grant_reg):
             for i in range(self.count):
                 with m.Case("-" * (self.count - i - 1) + "1" + "-" * i):
+                    m.d.comb += self.grant.eq(grant_reg)
                     for j in itertools.chain(reversed(range(i)), reversed(range(i + 1, self.count))):
                         with m.If(self.requests[j]):
                             m.d.comb += self.grant.eq(1 << j)

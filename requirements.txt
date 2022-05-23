@@ -1,0 +1,2 @@
+amaranth==0.3
+amaranth-yosys==0.10.0.dev46

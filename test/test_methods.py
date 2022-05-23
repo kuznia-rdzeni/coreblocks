@@ -46,7 +46,7 @@ class FourCircuit(Elaboratable):
 
         with tm.transactionContext():
             m.submodules.four = four = self.four
-            m.submodules.out = out = AdapterTrans(four.four, o=4)
+            m.submodules.out = out = AdapterTrans(four.four)
             m.d.comb += out.en.eq(C(1))
             m.d.comb += four.en.eq(self.en)
             m.d.comb += self.out.eq(out.data_out)
