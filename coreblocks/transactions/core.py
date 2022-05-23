@@ -56,6 +56,9 @@ class TransactionManager(Elaboratable):
     def add_conflict(self, end1: Union["Transaction", "Method"], end2: Union["Transaction", "Method"]) -> None:
         self.conflicts.append((end1, end2))
 
+    def add_transaction(self, transaction):
+        self.transactions.append(transaction)
+
     def _conflict_graph(self):
         def endTrans(end):
             if isinstance(end, Method):
@@ -220,7 +223,7 @@ class Transaction:
     def __init__(self, *, manager: TransactionManager = None):
         if manager is None:
             manager = TransactionContext.get()
-        manager.transactions.append(self)
+        manager.add_transaction(self)
         self.request = Signal()
         self.grant = Signal()
         self.method_uses = dict()
