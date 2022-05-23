@@ -1,36 +1,21 @@
 #!/bin/sh
 
-# This file is a fork of GitHub Wiki Action plugin by Andrew Chen Wang
-# https://github.com/Andrew-Chen-Wang/github-wiki-action
-
-# This script assumes there is rsync and git installed in executing container.
-
-if [ -z "$GH_TOKEN" ]; then
-  echo "GH_TOKEN ENV is missing."
+if [ -z "$GH_TOKEN" ] || [ -z "$GH_MAIL" ] || [ -z "$GH_NAME" ]; then
+  echo "Environment configuration missing, exiting... "
   exit 1
 fi
 
-if [ -z "$GH_MAIL" ]; then
-  echo "GH_MAIL ENV is missing."
-  exit 1
-fi
-
-if [ -z "$GH_NAME" ]; then
-  echo "GH_NAME ENV is missing."
-  exit 1
-fi
-
-TEMP_CLONE_FOLDER="temp_wiki_$GITHUB_SHA"
+TEMP_DIR="temp_$GITHUB_SHA"
 REPO=$GITHUB_REPOSITORY
-WIKI_DIR="docs/"
+DOCS_DIR="docs/"
 
 # Disable Safe Repository checks
 git config --global --add safe.directory "/github/workspace"
-git config --global --add safe.directory "/github/workspace/$TEMP_CLONE_FOLDER"
+git config --global --add safe.directory "/github/workspace/$TEMP_DIR"
 
 # Clone wiki
-echo "Cloning wiki git..."
-git clone https://$GH_NAME:$GH_TOKEN@github.com/$REPO.wiki.git $TEMP_CLONE_FOLDER
+echo "Cloning wiki..."
+git clone https://$GH_NAME:$GH_TOKEN@github.com/$REPO.wiki.git $TEMP_DIR
 
 # Get commit message
 message=$(git log -1 --format=%B)
@@ -39,10 +24,10 @@ echo $message
 
 # Copy files
 echo "Copying files to Wiki"
-rsync -av --delete $WIKI_DIR $TEMP_CLONE_FOLDER/ --exclude .git
+rsync -av --delete $DOCS_DIR $TEMP_DIR/ --exclude .git
 
 # Setup credentials for wiki
-cd $TEMP_CLONE_FOLDER
+cd $TEMP_DIR
 git config user.name $GH_NAME
 git config user.email $GH_MAIL
 
