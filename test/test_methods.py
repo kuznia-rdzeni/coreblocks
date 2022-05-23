@@ -10,11 +10,7 @@ from coreblocks.transactions.lib import *
 from unittest import TestCase
 
 
-def elab(module):
-    return Fragment.get(module, platform=None)
-
-
-class MultiAdapter(Elaboratable):
+class AdapterCircuit(Elaboratable):
     def __init__(self, module, methods):
         self.module = module
         self.methods = methods
@@ -32,6 +28,10 @@ class MultiAdapter(Elaboratable):
 
 
 class TestInvalidMethods(TestCase):
+    def assert_re(self, msg, m):
+        with self.assertRaisesRegex(RuntimeError, msg):
+            Fragment.get(m, platform=None)
+
     def testTwice(self):
         class Twice(Elaboratable):
             def __init__(self):
@@ -50,8 +50,7 @@ class TestInvalidMethods(TestCase):
 
                 return m
 
-        m = Twice()
-        self.assertRaisesRegex(RuntimeError, "called twice", lambda: elab(MultiAdapter(m, [m.meth2])))
+        self.assert_re("called twice", Twice())
 
     def testDiamond(self):
         class Diamond(Elaboratable):
@@ -80,7 +79,7 @@ class TestInvalidMethods(TestCase):
                 return m
 
         m = Diamond()
-        self.assertRaisesRegex(RuntimeError, "called twice", lambda: elab(MultiAdapter(m, [m.meth4])))
+        self.assert_re("called twice", AdapterCircuit(m, [m.meth4]))
 
     def testLoop(self):
         class Loop(Elaboratable):
@@ -96,7 +95,7 @@ class TestInvalidMethods(TestCase):
                 return m
 
         m = Loop()
-        self.assertRaisesRegex(RuntimeError, "called twice", lambda: elab(MultiAdapter(m, [m.meth1])))
+        self.assert_re("called twice", AdapterCircuit(m, [m.meth1]))
 
     def testCycle(self):
         class Cycle(Elaboratable):
@@ -116,7 +115,7 @@ class TestInvalidMethods(TestCase):
                 return m
 
         m = Cycle()
-        self.assertRaisesRegex(RuntimeError, "called twice", lambda: elab(MultiAdapter(m, [m.meth1])))
+        self.assert_re("called twice", AdapterCircuit(m, [m.meth1]))
 
     def testRedefine(self):
         class Redefine(Elaboratable):
@@ -130,7 +129,7 @@ class TestInvalidMethods(TestCase):
                 with meth.body(m):
                     pass
 
-        self.assertRaisesRegex(RuntimeError, "already defined", lambda: Redefine().elaborate(platform=None))
+        self.assert_re("already defined", Redefine())
 
     def testUndefinedInTrans(self):
         class Undefined(Elaboratable):
@@ -151,7 +150,7 @@ class TestInvalidMethods(TestCase):
 
                 return tm
 
-        self.assertRaisesRegex(RuntimeError, "not defined", lambda: Fragment.get(Circuit(), platform=None))
+        self.assert_re("not defined", Circuit())
 
 
 WIDTH = 8
