@@ -1,6 +1,8 @@
-from coreblocks import genparams
 from .genparams import GenParams
 
+__all__ = [
+    "ROBLayouts",
+]
 
 class ROBLayouts:
     def __init__(self, gen_params: GenParams):
