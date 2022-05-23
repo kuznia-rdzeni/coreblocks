@@ -65,6 +65,8 @@ class TestISA(unittest.TestCase):
         ISATestEntry("rv32fdc", False),
         ISATestEntry("rv64imadc", False),
         ISATestEntry("RV32g_c", False),
+        ISATestEntry("rvima", False),
+        ISATestEntry("rv42i", False),
     ]
 
     def do_test(self, test):

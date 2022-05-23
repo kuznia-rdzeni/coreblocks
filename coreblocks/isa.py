@@ -147,8 +147,14 @@ class ISA:
         xlen_str = "".join(takewhile(str.isdigit, isa_str[2:]))
         extensions_str = isa_str[len(xlen_str) + 2 :]
 
+        if not len(xlen_str):
+            raise RuntimeError("Empty inative base integer ISA width string")
+
         self.xlen = int(xlen_str)
         self.xlen_log = self.xlen.bit_length() - 1
+
+        if self.xlen not in [32, 64, 128]:
+            raise RuntimeError("Invalid inative base integer ISA width %d" % self.xlen)
 
         if len(extensions_str) == 0:
             raise RuntimeError("Empty ISA extensions string")
