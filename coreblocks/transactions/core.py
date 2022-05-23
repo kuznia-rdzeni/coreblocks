@@ -10,13 +10,13 @@ __all__ = [
     "TransactionModule",
     "Transaction",
     "Method",
-    "eager_deterministic_cc_scheduler",
-    "trivial_roundrobin_cc_scheduler",
+    "eager_deterministic_cc_arbiter",
+    "trivial_roundrobin_cc_arbiter",
     "def_method",
 ]
 
 
-def eager_deterministic_cc_scheduler(manager, m, gr, cc):
+def eager_deterministic_cc_arbiter(manager, m, gr, cc):
     ccl = list(cc)
     for k, transaction in enumerate(ccl):
         ready = [method.ready for method in manager.transactions[transaction]]
@@ -26,7 +26,7 @@ def eager_deterministic_cc_scheduler(manager, m, gr, cc):
         m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
 
 
-def trivial_roundrobin_cc_scheduler(manager, m, gr, cc):
+def trivial_roundrobin_cc_arbiter(manager, m, gr, cc):
     sched = Scheduler(len(cc))
     m.submodules += sched
     for k, transaction in enumerate(cc):
@@ -47,12 +47,12 @@ class TransactionManager(Elaboratable):
     are never granted in the same clock cycle.
     """
 
-    def __init__(self, cc_scheduler=eager_deterministic_cc_scheduler):
+    def __init__(self, cc_arbiter=eager_deterministic_cc_arbiter):
         self.transactions = {}
         self.methods = {}
         self.methodargs = {}
         self.conflicts = []
-        self.cc_scheduler = MethodType(cc_scheduler, self)
+        self.cc_arbiter = MethodType(cc_arbiter, self)
 
     def add_conflict(self, end1: Union["Transaction", "Method"], end2: Union["Transaction", "Method"]) -> None:
         self.conflicts.append((end1, end2))
@@ -105,7 +105,7 @@ class TransactionManager(Elaboratable):
         gr = self._conflict_graph()
 
         for cc in _graph_ccs(gr):
-            self.cc_scheduler(m, gr, cc)
+            self.cc_arbiter(m, gr, cc)
 
         for method, transactions in self.methods.items():
             granted = Signal(len(transactions))

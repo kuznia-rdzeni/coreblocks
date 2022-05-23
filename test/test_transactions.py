@@ -13,7 +13,7 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.transactions._utils import Scheduler
 
-from coreblocks.transactions.core import trivial_roundrobin_cc_scheduler, eager_deterministic_cc_scheduler
+from coreblocks.transactions.core import trivial_roundrobin_cc_arbiter, eager_deterministic_cc_arbiter
 
 
 class TestScheduler(TestCaseWithSimulator):
@@ -74,12 +74,12 @@ class TestScheduler(TestCaseWithSimulator):
 
 
 class TransactionConflictTestCircuit(Elaboratable):
-    def __init__(self, scheduler):
-        self.scheduler = scheduler
+    def __init__(self, arbiter):
+        self.arbiter = arbiter
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m, TransactionManager(self.scheduler))
+        tm = TransactionModule(m, TransactionManager(self.arbiter))
         with tm.transactionContext():
             adapter = Adapter(i=32, o=32)
             m.submodules.out = self.out = TestbenchIO(adapter)
@@ -92,10 +92,10 @@ class TransactionConflictTestCircuit(Elaboratable):
 
 
 @parameterized_class(
-    ("name", "scheduler"),
+    ("name", "arbiter"),
     [
-        ("trivial_roundrobin", trivial_roundrobin_cc_scheduler),
-        ("eager_deterministic", eager_deterministic_cc_scheduler),
+        ("trivial_roundrobin", trivial_roundrobin_cc_arbiter),
+        ("eager_deterministic", eager_deterministic_cc_arbiter),
     ],
 )
 class TestTransactionConflict(TestCaseWithSimulator):
@@ -106,7 +106,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
         self.in_expected = deque()
         self.out1_expected = deque()
         self.out2_expected = deque()
-        self.m = TransactionConflictTestCircuit(self.__class__.scheduler)
+        self.m = TransactionConflictTestCircuit(self.__class__.arbiter)
 
         random.seed(42)
 
