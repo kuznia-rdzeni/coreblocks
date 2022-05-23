@@ -404,6 +404,7 @@ class Method:
             Transaction.get().use_method(self, arg, enable_sig)
         return self.data_out
 
+
 def def_method(m: Module, method: Method, ready=C(1)):
     """Define a method.
 
