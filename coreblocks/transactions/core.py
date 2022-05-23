@@ -53,9 +53,6 @@ class TransactionManager(Elaboratable):
         self.conflicts = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
-    def add_conflict(self, end1: Union["Transaction", "Method"], end2: Union["Transaction", "Method"]) -> None:
-        self.conflicts.append((end1, end2))
-
     def add_transaction(self, transaction):
         self.transactions.append(transaction)
 
@@ -97,7 +94,7 @@ class TransactionManager(Elaboratable):
         self.methods_by_transaction[transaction].append(method)
         self.transactions_by_method[method].append(transaction)
         for end in method.conflicts:
-            self.add_conflict(method, end)
+            self.conflicts.append((method, end))
         for method, (arg, enable) in method.method_uses.items():
             self._call_graph(transaction, method, arg, enable)
 
@@ -110,7 +107,7 @@ class TransactionManager(Elaboratable):
 
         for transaction in self.transactions:
             for end in transaction.conflicts:
-                self.add_conflict(transaction, end)
+                self.conflicts.append((transaction, end))
             for method, (arg, enable) in transaction.method_uses.items():
                 self._call_graph(transaction, method, arg, enable)
 
