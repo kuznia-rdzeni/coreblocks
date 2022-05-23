@@ -93,7 +93,8 @@ class TransactionManager(Elaboratable):
         self.method_uses[transaction][method] = (arg, enable)
         self.methods_by_transaction[transaction].append(method)
         self.transactions_by_method[method].append(transaction)
-        self.conflicts += method.conflicts
+        for end in method.conflicts:
+            self.add_conflict(method, end)
         for method, (arg, enable) in method.method_uses.items():
             self._call_graph(transaction, method, arg, enable)
 
