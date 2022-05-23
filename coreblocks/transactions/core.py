@@ -99,7 +99,6 @@ class TransactionManager(Elaboratable):
             self._call_graph(transaction, method, arg, enable)
 
     def elaborate(self, platform):
-        m = Module()
 
         self.methods_by_transaction = defaultdict(list)
         self.transactions_by_method = defaultdict(list)
@@ -112,6 +111,8 @@ class TransactionManager(Elaboratable):
                 self._call_graph(transaction, method, arg, enable)
 
         gr = self._conflict_graph()
+
+        m = Module()
 
         for cc in _graph_ccs(gr):
             self.cc_scheduler(m, gr, cc)
