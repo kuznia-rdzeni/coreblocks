@@ -4,8 +4,8 @@ from amaranth import *
 
 from .genparams import GenParams
 from .layouts import ROBLayouts
-from coreblocks import genparams
 
+__all__ = ["ReorderBuffer"]
 
 class ReorderBuffer(Elaboratable):
     def __init__(self, gen_params : GenParams) -> None:
@@ -16,27 +16,26 @@ class ReorderBuffer(Elaboratable):
         self.retire = ts.Method(o=self.layouts.data_layout)
         self.data = Array(Record(self.layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
-
     def elaborate(self, platform) -> Module:
         m = Module()
 
-        start_cnt = Signal(self.params.rob_entries_bits)
-        end_cnt = Signal(self.params.rob_entries_bits)
+        start_idx = Signal(self.params.rob_entries_bits)
+        end_idx = Signal(self.params.rob_entries_bits)
 
-        put_possible = end_cnt != start_cnt - 1
+        put_possible = end_idx != start_idx - 1
 
-        @tl.def_method(m, self.retire, ready=self.data[start_cnt].done)
+        @tl.def_method(m, self.retire, ready=self.data[start_idx].done)
         def _(arg):
-            m.d.sync += start_cnt.eq(start_cnt + 1)
-            m.d.sync += self.data[start_cnt].done.eq(0)
-            return self.data[start_cnt].rob_data
+            m.d.sync += start_idx.eq(start_idx + 1)
+            m.d.sync += self.data[start_idx].done.eq(0)
+            return self.data[start_idx].rob_data
 
         @tl.def_method(m, self.put, ready=put_possible)
         def _(arg):
-            m.d.sync += self.data[end_cnt].rob_data.eq(arg)
-            m.d.sync += self.data[end_cnt].done.eq(0)
-            m.d.sync += end_cnt.eq(end_cnt + 1)
-            return end_cnt
+            m.d.sync += self.data[end_idx].rob_data.eq(arg)
+            m.d.sync += self.data[end_idx].done.eq(0)
+            m.d.sync += end_idx.eq(end_idx + 1)
+            return end_idx
 
         # TODO: There is a potential race condition when ROB is flushed.
         # If functional units aren't flushed, finished obsolete instructions
