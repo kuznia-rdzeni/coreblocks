@@ -2,66 +2,47 @@ from . import transactions as ts
 from .transactions import lib as tl
 from amaranth import *
 
-log_rob_len = 7
-log_reg_cnt = 5
-log_phys_reg_cnt = 8
-
-in_layout = [
-    ("dst_reg", log_reg_cnt),
-    ("phys_dst_reg", log_phys_reg_cnt),
-]
-
-id_layout = [
-    ("rob_id", log_rob_len),
-]
-
-out_layout = [
-    ("dst_reg", log_rob_len),
-    ("phys_dst_reg", log_phys_reg_cnt),
-]
-
-internal_layout = [
-    ("dst_reg", log_rob_len),
-    ("phys_dst_reg", log_phys_reg_cnt),
-    ("done", 1),
-]
+from .genparams import GenParams
+from .layouts import ROBLayouts
+from coreblocks import genparams
 
 
 class ReorderBuffer(Elaboratable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, gen_params : GenParams) -> None:
+        self.params = gen_params
+        self.layouts = ROBLayouts(gen_params)
+        self.put = ts.Method(i=self.layouts.data_layout, o=self.layouts.id_layout)
+        self.mark_done = ts.Method(i=self.layouts.id_layout)
+        self.retire = ts.Method(o=self.layouts.data_layout)
+        self.data = Array(Record(self.layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
-        self.put = ts.Method(i=in_layout, o=id_layout)
-        self.mark_done = ts.Method(i=id_layout)
-        self.retire = ts.Method(o=in_layout)
-        self.data = Array(Record(internal_layout) for _ in range(2**log_rob_len))
-
-        self.start_cnt = Signal(log_rob_len)
-        self.end_cnt = Signal(log_rob_len)
 
     def elaborate(self, platform) -> Module:
         m = Module()
 
-        put_possible = self.end_cnt != self.start_cnt - 1
+        start_cnt = Signal(self.params.rob_entries_bits)
+        end_cnt = Signal(self.params.rob_entries_bits)
 
-        output = Record(in_layout)
+        put_possible = end_cnt != start_cnt - 1
 
-        with self.retire.body(m, ready=self.data[self.start_cnt].done, out=output):
-            m.d.comb += output.eq(self.data[self.start_cnt])
-            m.d.sync += self.start_cnt.eq(self.start_cnt + 1)
+        @tl.def_method(m, self.retire, ready=self.data[start_cnt].done)
+        def _(arg):
+            m.d.sync += start_cnt.eq(start_cnt + 1)
+            m.d.sync += self.data[start_cnt].done.eq(0)
+            return self.data[start_cnt].rob_data
 
-        put_output = Record(id_layout)
-
-        with self.put.body(m, ready=put_possible, out=put_output) as arg:
-            m.d.sync += self.data[self.end_cnt].eq(arg)
-            m.d.sync += self.data[self.start_cnt].done.eq(0)
-            m.d.sync += self.end_cnt.eq(self.end_cnt + 1)
-            m.d.comb += put_output.rob_id.eq(self.end_cnt)
+        @tl.def_method(m, self.put, ready=put_possible)
+        def _(arg):
+            m.d.sync += self.data[end_cnt].rob_data.eq(arg)
+            m.d.sync += self.data[end_cnt].done.eq(0)
+            m.d.sync += end_cnt.eq(end_cnt + 1)
+            return end_cnt
 
         # TODO: There is a potential race condition when ROB is flushed.
         # If functional units aren't flushed, finished obsolete instructions
         # could mark fields in ROB as done when they shouldn't.
-        with self.mark_done.body(m) as arg:
+        @tl.def_method(m, self.mark_done)
+        def _(arg):
             m.d.sync += self.data[arg.rob_id].done.eq(1)
 
         return m
