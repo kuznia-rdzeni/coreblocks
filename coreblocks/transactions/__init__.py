@@ -6,4 +6,5 @@ __all__ = [
     "TransactionModule",
     "Transaction",
     "Method",
+    "def_method",
 ]
