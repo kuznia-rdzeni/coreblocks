@@ -10,11 +10,11 @@ __all__ = ["ReorderBuffer"]
 class ReorderBuffer(Elaboratable):
     def __init__(self, gen_params : GenParams) -> None:
         self.params = gen_params
-        self.layouts = ROBLayouts(gen_params)
-        self.put = ts.Method(i=self.layouts.data_layout, o=self.layouts.id_layout)
-        self.mark_done = ts.Method(i=self.layouts.id_layout)
-        self.retire = ts.Method(o=self.layouts.data_layout)
-        self.data = Array(Record(self.layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
+        layouts = ROBLayouts(gen_params)
+        self.put = ts.Method(i=layouts.data_layout, o=layouts.id_layout)
+        self.mark_done = ts.Method(i=layouts.id_layout)
+        self.retire = ts.Method(o=layouts.data_layout)
+        self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
     def elaborate(self, platform) -> Module:
         m = Module()

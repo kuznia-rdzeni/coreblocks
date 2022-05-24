@@ -11,7 +11,7 @@ from coreblocks.layouts import ROBLayouts
 from coreblocks.genparams import GenParams
 
 from queue import Queue
-from random import randint, seed
+from random import Random
 
 
 class TestElaboratable(Elaboratable):
@@ -41,7 +41,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             if self.regs_left_queue.empty():
                 yield
             else:
-                log_reg = randint(0, 31)
+                log_reg = self.rand.randint(0, self.log_regs-1)
                 phys_reg = self.regs_left_queue.get()
                 # print(log_reg, phys_reg)
                 regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
@@ -56,7 +56,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             if len(self.to_execute_list) == 0:
                 yield
             else:
-                idx = randint(0, len(self.to_execute_list) - 1)
+                idx = self.rand.randint(0, len(self.to_execute_list) - 1)
                 rob_id, executed = self.to_execute_list.pop(idx)
                 self.executed_list.append(executed)
                 yield from self.m.io_update.call(rob_id)
@@ -82,7 +82,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
                     break
 
     def test_single(self):
-        # print("running")
+        self.rand = Random(0)
         self.test_steps = 1000
         m = TestElaboratable()
         self.m = m
@@ -95,7 +95,8 @@ class TestReorderBuffer(TestCaseWithSimulator):
         for i in range(2**gp.phys_regs_bits):
             self.regs_left_queue.put(i)
 
-        seed(0)
+        self.log_regs = 2**gp.log_regs_bits
+        
         with self.runSimulation(m) as sim:
             sim.add_clock(1e-6)
             sim.add_sync_process(self.gen_input)
