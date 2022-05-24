@@ -254,6 +254,25 @@ class Transaction:
         return cls.current
 
 
+def _connect_rec_with_possibly_dict(dst, src):
+    if isinstance(src, dict):
+        if not isinstance(dst, Record):
+            raise TypeError("Cannot connect a dict of signals to a non-record.")
+
+        exprs = []
+        for k, v in src.items():
+            exprs += _connect_rec_with_possibly_dict(dst[k], v)
+
+        # Make sure all fields of the record are specified in the dict.
+        for field_name, _, _ in dst.layout:
+            if field_name not in src:
+                raise KeyError("Field {} is not specified in the dict.".format(field_name))
+
+        return exprs
+    else:
+        return [dst.eq(src)]
+
+
 class Method:
     """Transactional method.
 
@@ -369,9 +388,20 @@ class Method:
 
     def __call__(self, m: Module, arg=C(0, 0), enable=C(1)):
         enable_sig = Signal()
+        arg_rec = Record.like(self.data_in)
+
+        # TODO: These connections should be moved from here.
+        # This function is called under Transaction context, so
+        # every connection we make here is unnecessarily multiplexed
+        # by transaction.grant signal. Thus, it adds superfluous
+        # complexity to the circuit. One of the solutions would be
+        # to temporarily save the connections and add them to the
+        # combinatorial domain at a better moment.
         m.d.comb += enable_sig.eq(enable)
+        m.d.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
+
         trans = Transaction.get()
-        return self.manager.use_method(trans, self, arg, enable_sig)
+        return self.manager.use_method(trans, self, arg_rec, enable_sig)
 
 
 def def_method(m: Module, method: Method, ready=C(1)):
@@ -413,22 +443,7 @@ def def_method(m: Module, method: Method, ready=C(1)):
         with method.body(m, ready=ready, out=out) as arg:
             ret_out = func(arg)
 
-        def connect_with_possibly_dict(dst, src):
-            if isinstance(src, dict):
-                if not isinstance(dst, Record):
-                    raise TypeError("Cannot connect a dict of signals to a non-record.")
-
-                for k, v in src.items():
-                    connect_with_possibly_dict(dst[k], v)
-
-                # Make sure all fields of the record are specified in the dict.
-                for field_name, _, _ in dst.layout:
-                    if field_name not in src:
-                        raise KeyError("Field {} is not specified in the dict.".format(field_name))
-            else:
-                m.d.comb += dst.eq(src)
-
         if ret_out is not None:
-            connect_with_possibly_dict(out, ret_out)
+            m.d.comb += _connect_rec_with_possibly_dict(out, ret_out)
 
     return decorator
