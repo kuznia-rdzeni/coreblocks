@@ -7,8 +7,9 @@ from .layouts import ROBLayouts
 
 __all__ = ["ReorderBuffer"]
 
+
 class ReorderBuffer(Elaboratable):
-    def __init__(self, gen_params : GenParams) -> None:
+    def __init__(self, gen_params: GenParams) -> None:
         self.params = gen_params
         layouts = ROBLayouts(gen_params)
         self.put = ts.Method(i=layouts.data_layout, o=layouts.id_layout)
