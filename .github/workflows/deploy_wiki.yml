@@ -7,6 +7,7 @@ on:
       - '.github/workflows/deploy_wiki.yml'
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
   deploy-wiki:
