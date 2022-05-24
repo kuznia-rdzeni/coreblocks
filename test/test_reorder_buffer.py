@@ -41,7 +41,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             if self.regs_left_queue.empty():
                 yield
             else:
-                log_reg = self.rand.randint(0, self.log_regs-1)
+                log_reg = self.rand.randint(0, self.log_regs - 1)
                 phys_reg = self.regs_left_queue.get()
                 # print(log_reg, phys_reg)
                 regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
@@ -96,7 +96,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             self.regs_left_queue.put(i)
 
         self.log_regs = 2**gp.log_regs_bits
-        
+
         with self.runSimulation(m) as sim:
             sim.add_clock(1e-6)
             sim.add_sync_process(self.gen_input)
