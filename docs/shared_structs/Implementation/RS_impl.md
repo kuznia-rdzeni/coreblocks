@@ -35,8 +35,8 @@ Assumptions:
 ### Compare and substitute
 
 Input:
-- `tag` - identifier of RF which is announcement on Tomasulo bus
-- `value` - value which is announcement on Tomasulo bus
+- `tag` - identifier of RF which is announced on the Tomasulo bus
+- `value` - value which is announced on the Tomasulo bus
 - `position` - position in RF on which comparison and replacement should take place
 
 Output:
@@ -50,7 +50,7 @@ Side effects:
 ### Read row
 
 Input:
-- `position` - identifier of RS row, which should be read
+- `position` - identifier of RS row which should be read
 
 Output:
 - `opcode` - instruction identifier for FU
@@ -66,7 +66,7 @@ Side effects:
 ### Clean row
 
 Input:
-- `position` - identifier of RS row, which should be cleaned
+- `position` - identifier of RS row which should be cleaned
 
 Output:
 - *null*

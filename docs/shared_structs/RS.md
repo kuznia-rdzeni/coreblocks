@@ -54,7 +54,7 @@ Side effects:
 ### Read and clean row
 
 Input:
-- `position` - identifier of RS row, which should be read and cleared
+- `position` - identifier of RS row which should be read and cleared
 
 Output:
 - `opcode` - instruction identifier for FU
@@ -71,8 +71,8 @@ Side effects:
 ### Compare and substitute all
 
 Input:
-- `tag` - identifier of RF which is announcement on Tomasulo bus
-- `value` - value which is announcement on Tomasulo bus
+- `tag` - identifier of RF which is announced on the Tomasulo bus
+- `value` - value which is announced on the Tomasulo bus
 
 Output:
 - *null*
