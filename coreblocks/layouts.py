@@ -4,6 +4,7 @@ __all__ = [
     "ROBLayouts",
 ]
 
+
 class ROBLayouts:
     def __init__(self, gen_params: GenParams):
         self.data_layout = [
@@ -19,4 +20,3 @@ class ROBLayouts:
             ("rob_data", self.data_layout),
             ("done", 1),
         ]
-
