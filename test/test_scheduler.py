@@ -6,7 +6,8 @@ from amaranth.back import verilog
 from amaranth.sim import Simulator, Settle
 from coreblocks.transactions import TransactionModule, TransactionContext
 from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans, Adapter
-from coreblocks.scheduler import RegAllocation, Renaming, ROBAllocate, RAT
+from coreblocks.scheduler import RegAllocation, Renaming, ROBAllocation
+from coreblocks.rat import RAT
 from coreblocks.layouts import SchedulerLayouts
 from coreblocks.genparams import GenParams
 from coreblocks.reorder_buffer import ReorderBuffer
@@ -48,7 +49,7 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
 
             m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
             method_out = Adapter(o=layouts.rob_allocate_out, i=layouts.rob_allocate_out)
-            m.submodules.rob_alloc = ROBAllocate(
+            m.submodules.rob_alloc = ROBAllocation(
                 get_instr=rename_out_buf.read,
                 push_instr=method_out.iface,
                 rob_put=self.rob.put,

@@ -1,8 +1,9 @@
 from amaranth import *
 from coreblocks.transactions import Method, Transaction
-from coreblocks.transactions.lib import def_method
 from coreblocks.layouts import SchedulerLayouts, ROBLayouts
 from coreblocks.genparams import GenParams
+
+__all__ = ["RegAllocation", "Renaming", "RobAllocation"]
 
 
 class RegAllocation(Elaboratable):
@@ -66,7 +67,7 @@ class Renaming(Elaboratable):
         return m
 
 
-class ROBAllocate(Elaboratable):
+class ROBAllocation(Elaboratable):
     def __init__(self, *, get_instr: Method, push_instr: Method, rob_put: Method, gen_params: GenParams):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
@@ -97,30 +98,5 @@ class ROBAllocate(Elaboratable):
             m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
 
             self.push_instr(m, data_out)
-
-        return m
-
-
-class RAT(Elaboratable):
-    def __init__(self, *, gen_params: GenParams):
-        self.gen_params = gen_params
-        layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.rat_rename_in
-        self.output_layout = layouts.rat_rename_out
-
-        self.entries = Array((Signal(self.gen_params.phys_regs_bits, reset=i) for i in range(32)))
-
-        self.if_rename = Method(i=self.input_layout, o=self.output_layout)
-
-    def elaborate(self, platform):
-        m = Module()
-        renamed = Record(self.output_layout)
-
-        @def_method(m, self.if_rename)
-        def _(arg):
-            m.d.comb += renamed.rphys_1.eq(self.entries[arg.rlog_1])
-            m.d.comb += renamed.rphys_2.eq(self.entries[arg.rlog_2])
-            m.d.sync += self.entries[arg.rlog_out].eq(arg.rphys_out)
-            return renamed
 
         return m
