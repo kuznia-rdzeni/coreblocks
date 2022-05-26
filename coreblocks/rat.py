@@ -20,13 +20,9 @@ class RAT(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        renamed = Record(self.output_layout)
 
         @def_method(m, self.if_rename)
         def _(arg):
-            m.d.comb += renamed.rphys_1.eq(self.entries[arg.rlog_1])
-            m.d.comb += renamed.rphys_2.eq(self.entries[arg.rlog_2])
             m.d.sync += self.entries[arg.rlog_out].eq(arg.rphys_out)
-            return renamed
-
+            return {"rphys_1": self.entries[arg.rlog_1], "rphys_2": self.entries[arg.rlog_2]}
         return m
