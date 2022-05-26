@@ -1,5 +1,6 @@
 from amaranth import *
 from coreblocks.transactions import Method, Transaction
+from coreblocks.transactions.lib import def_method
 from coreblocks.layouts import SchedulerLayouts, ROBLayouts
 from coreblocks.genparams import GenParams
 
@@ -131,8 +132,11 @@ class RAT(Elaboratable):
         m = Module()
         renamed = Record(self.output_layout)
 
-        with self.if_rename.body(m, out=renamed) as arg:
+        @def_method(m, self.if_rename)
+        def _(arg):
             m.d.comb += renamed.rphys_1.eq(self.entries[arg.rlog_1])
             m.d.comb += renamed.rphys_2.eq(self.entries[arg.rlog_2])
             m.d.sync += self.entries[arg.rlog_out].eq(arg.rphys_out)
+            return renamed
+
         return m
