@@ -4,6 +4,7 @@ from amaranth.sim import *
 from coreblocks.transactions.core import TransactionModule
 
 from .common import TestCaseWithSimulator, TestbenchIO
+from coreblocks.transactions.lib import AdapterTrans
 
 from coreblocks.reorder_buffer import ReorderBuffer, in_layout, id_layout
 
@@ -17,9 +18,9 @@ class TestElaboratable(Elaboratable):
         tm = TransactionModule(m)
         with tm.transactionContext():
             rb = ReorderBuffer()
-            self.io_in = TestbenchIO(rb.put, i=in_layout, o=id_layout)
-            self.io_update = TestbenchIO(rb.mark_done, i=id_layout)
-            self.io_out = TestbenchIO(rb.retire, o=in_layout)
+            self.io_in = TestbenchIO(AdapterTrans(rb.put))
+            self.io_update = TestbenchIO(AdapterTrans(rb.mark_done))
+            self.io_out = TestbenchIO(AdapterTrans(rb.retire))
 
             m.submodules.rb = rb
             m.submodules.io_in = self.io_in

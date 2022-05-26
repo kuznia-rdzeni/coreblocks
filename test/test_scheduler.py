@@ -58,13 +58,11 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
             )
 
             # mocked input and output
-            m.submodules.output = self.out = TestbenchIO(rob_alloc_out_buf.read, o=layouts.rob_allocate_out)
-            m.submodules.rob_markdone = self.rob_done = TestbenchIO(self.rob.mark_done, i=rob_id_layout)
-            m.submodules.rob_retire = self.rob_retire = TestbenchIO(self.rob.retire)
-            m.submodules.instr_input = self.instr_inp = TestbenchIO(instr_fifo.write, i=layouts.instr_layout)
-            m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(
-                free_rf_fifo.write, i=[("data", self.gen_params.phys_regs_bits)]
-            )
+            m.submodules.output = self.out = TestbenchIO(AdapterTrans(rob_alloc_out_buf.read))
+            m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
+            m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
+            m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
+            m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
 
         return tm
 
@@ -153,7 +151,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                     yield
 
         def bench_rob_retire():
-            yield from self.m.rob_retire._enable()
+            yield from self.m.rob_retire.enable()
 
         with self.runSimulation(self.m) as sim:
             sim.add_clock(1e-6)
