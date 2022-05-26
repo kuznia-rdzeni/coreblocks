@@ -12,14 +12,16 @@ __all__ = [
     "Method",
     "eager_deterministic_cc_scheduler",
     "trivial_roundrobin_cc_scheduler",
+    "def_method",
 ]
 
 
 def eager_deterministic_cc_scheduler(manager, m, gr, cc):
-    for k, transaction in enumerate(cc):
+    ccl = list(cc)
+    for k, transaction in enumerate(ccl):
         ready = [method.ready for method in manager.transactions[transaction]]
         runnable = Cat(ready).all()
-        conflicts = [cc[j].grant for j in range(k) if cc[j] in gr[transaction]]
+        conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
         noconflict = ~Cat(conflicts).any()
         m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
 
@@ -370,3 +372,63 @@ class Method:
         m.d.comb += enable_sig.eq(enable)
         trans = Transaction.get()
         return self.manager.use_method(trans, self, arg, enable_sig)
+
+
+def def_method(m: Module, method: Method, ready=C(1)):
+    """Define a method.
+
+    This decorator allows to define transactional methods in more
+    elegant way using Python's ``def`` syntax.
+
+    The decorated function should take one argument, which will be a
+    record with input signals and return output values.
+    The returned value can be either a record or a dictionary of outputs.
+
+    Parameters
+    ----------
+    m : Module
+        Module in which operations on signals should be executed.
+    method : Method
+        The method whose body is going to be defined.
+    ready : Signal
+        Signal to indicate if the method is ready to be run. By
+        default it is ``Const(1)``, so the method is always ready.
+        Assigned combinatorially to the ``ready`` attribute.
+
+    Example
+    -------
+    ```
+    m = Module()
+    my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
+    @def_method(m, my_sum_method)
+    def _(data_in):
+        return data_in.arg1 + data_in.arg2
+    ```
+    """
+
+    def decorator(func):
+        out = Record.like(method.data_out)
+        ret_out = None
+
+        with method.body(m, ready=ready, out=out) as arg:
+            ret_out = func(arg)
+
+        def connect_with_possibly_dict(dst, src):
+            if isinstance(src, dict):
+                if not isinstance(dst, Record):
+                    raise TypeError("Cannot connect a dict of signals to a non-record.")
+
+                for k, v in src.items():
+                    connect_with_possibly_dict(dst[k], v)
+
+                # Make sure all fields of the record are specified in the dict.
+                for field_name, _, _ in dst.layout:
+                    if field_name not in src:
+                        raise KeyError("Field {} is not specified in the dict.".format(field_name))
+            else:
+                m.d.comb += dst.eq(src)
+
+        if ret_out is not None:
+            connect_with_possibly_dict(out, ret_out)
+
+    return decorator
