@@ -1,4 +1,5 @@
 from typing import TypeVar, Type
+from .isa import ISA
 
 __all__ = ["GenParams"]
 
@@ -17,9 +18,9 @@ class DependentCache:
 
 
 class GenParams(DependentCache):
-    log_regs_bits = 5
-
-    def __init__(self, phys_regs_bits=8, rob_entries_bits=7):
+    def __init__(self, isa_str, *, phys_regs_bits=8, rob_entries_bits=7):
         super().__init__()
+        self.isa = ISA(isa_str)
+
         self.phys_regs_bits = phys_regs_bits
         self.rob_entries_bits = rob_entries_bits

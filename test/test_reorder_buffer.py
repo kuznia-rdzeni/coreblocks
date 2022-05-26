@@ -16,7 +16,7 @@ from random import Random
 
 class TestElaboratable(Elaboratable):
     def elaborate(self, platform):
-        gp = GenParams()
+        gp = GenParams("rv32i")
         m = Module()
         tm = TransactionModule(m)
 
@@ -91,11 +91,11 @@ class TestReorderBuffer(TestCaseWithSimulator):
         self.to_execute_list = []
         self.executed_list = []
         self.retire_queue = Queue()
-        gp = GenParams()
+        gp = GenParams("rv32i")
         for i in range(2**gp.phys_regs_bits):
             self.regs_left_queue.put(i)
 
-        self.log_regs = 2**gp.log_regs_bits
+        self.log_regs = 2**gp.isa.xlen_log
 
         with self.runSimulation(m) as sim:
             sim.add_clock(1e-6)

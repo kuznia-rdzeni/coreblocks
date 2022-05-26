@@ -73,7 +73,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
         self.free_ROB_entries_queue = queue.Queue()
         self.current_RAT = [x for x in range(0, 32)]
 
-        self.gen_params = GenParams()
+        self.gen_params = GenParams("rv32i")
         self.m = RegAllocAndRenameTestCircuit(self.gen_params)
 
         random.seed(42)
