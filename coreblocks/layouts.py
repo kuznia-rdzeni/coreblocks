@@ -1,8 +1,6 @@
 from coreblocks.genparams import GenParams
 
-__all__ = [
-    "SchedulerLayouts", "ROBLayouts"
-]
+__all__ = ["SchedulerLayouts", "ROBLayouts"]
 
 
 class SchedulerLayouts:

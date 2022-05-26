@@ -6,14 +6,7 @@ from coreblocks.genparams import GenParams
 
 
 class RegAllocation(Elaboratable):
-    def __init__(
-        self,
-        *,
-        get_instr: Method,
-        push_instr: Method,
-        get_free_reg: Method,
-        gen_params: GenParams
-    ):
+    def __init__(self, *, get_instr: Method, push_instr: Method, get_free_reg: Method, gen_params: GenParams):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
         self.input_layout = layouts.reg_alloc_in
@@ -45,9 +38,7 @@ class RegAllocation(Elaboratable):
 
 
 class Renaming(Elaboratable):
-    def __init__(
-        self, *, get_instr: Method, push_instr: Method, rename: Method, gen_params: GenParams
-    ):
+    def __init__(self, *, get_instr: Method, push_instr: Method, rename: Method, gen_params: GenParams):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
         self.input_layout = layouts.renaming_in
@@ -76,14 +67,7 @@ class Renaming(Elaboratable):
 
 
 class ROBAllocate(Elaboratable):
-    def __init__(
-        self,
-        *,
-        get_instr: Method,
-        push_instr: Method,
-        rob_put: Method,
-        gen_params: GenParams
-    ):
+    def __init__(self, *, get_instr: Method, push_instr: Method, rob_put: Method, gen_params: GenParams):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
         self.input_layout = layouts.rob_allocate_in
