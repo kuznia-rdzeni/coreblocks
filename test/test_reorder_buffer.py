@@ -2,22 +2,27 @@ from amaranth import *
 from amaranth.sim import *
 
 from coreblocks.transactions.core import TransactionModule
-
-from .common import TestCaseWithSimulator, TestbenchIO
 from coreblocks.transactions.lib import AdapterTrans
 
-from coreblocks.reorder_buffer import ReorderBuffer, in_layout, id_layout
+from .common import TestCaseWithSimulator, TestbenchIO
+
+from coreblocks.reorder_buffer import ReorderBuffer
+from coreblocks.layouts import ROBLayouts
+from coreblocks.genparams import GenParams
 
 from queue import Queue
-from random import randint, seed
+from random import Random
 
 
 class TestElaboratable(Elaboratable):
     def elaborate(self, platform):
+        gp = GenParams()
         m = Module()
         tm = TransactionModule(m)
+
         with tm.transactionContext():
-            rb = ReorderBuffer()
+            rb = ReorderBuffer(gp)
+
             self.io_in = TestbenchIO(AdapterTrans(rb.put))
             self.io_update = TestbenchIO(AdapterTrans(rb.mark_done))
             self.io_out = TestbenchIO(AdapterTrans(rb.retire))
@@ -36,10 +41,10 @@ class TestReorderBuffer(TestCaseWithSimulator):
             if self.regs_left_queue.empty():
                 yield
             else:
-                log_reg = randint(0, 31)
+                log_reg = self.rand.randint(0, self.log_regs - 1)
                 phys_reg = self.regs_left_queue.get()
                 # print(log_reg, phys_reg)
-                regs = {"dst_reg": log_reg, "phys_dst_reg": phys_reg}
+                regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
                 rob_id = yield from self.m.io_in.call(regs)
                 self.to_execute_list.append((rob_id, phys_reg))
                 self.retire_queue.put(regs)
@@ -51,7 +56,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             if len(self.to_execute_list) == 0:
                 yield
             else:
-                idx = randint(0, len(self.to_execute_list) - 1)
+                idx = self.rand.randint(0, len(self.to_execute_list) - 1)
                 rob_id, executed = self.to_execute_list.pop(idx)
                 self.executed_list.append(executed)
                 yield from self.m.io_update.call(rob_id)
@@ -65,7 +70,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 regs = self.retire_queue.get()
                 results = yield from self.m.io_out.call()
                 # print(results)
-                phys_reg = results["phys_dst_reg"]
+                phys_reg = results["rp_dst"]
                 assert phys_reg in self.executed_list
                 self.executed_list.remove(phys_reg)
                 # print(self.executed_list)
@@ -77,7 +82,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
                     break
 
     def test_single(self):
-        # print("running")
+        self.rand = Random(0)
         self.test_steps = 1000
         m = TestElaboratable()
         self.m = m
@@ -86,11 +91,12 @@ class TestReorderBuffer(TestCaseWithSimulator):
         self.to_execute_list = []
         self.executed_list = []
         self.retire_queue = Queue()
-
-        for i in range(128):
+        gp = GenParams()
+        for i in range(2**gp.phys_regs_bits):
             self.regs_left_queue.put(i)
 
-        seed(0)
+        self.log_regs = 2**gp.log_regs_bits
+
         with self.runSimulation(m) as sim:
             sim.add_clock(1e-6)
             sim.add_sync_process(self.gen_input)

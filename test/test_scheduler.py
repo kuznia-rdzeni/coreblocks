@@ -8,7 +8,7 @@ from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans
 from coreblocks.scheduler import RegAllocation, Renaming, ROBAllocate, RAT
 from coreblocks.layouts import SchedulerLayouts
 from coreblocks.genparams import GenParams
-from coreblocks.reorder_buffer import ReorderBuffer, id_layout as rob_id_layout
+from coreblocks.reorder_buffer import ReorderBuffer
 from .common import TestCaseWithSimulator, TestbenchIO
 
 
@@ -47,7 +47,7 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
                 gen_params=self.gen_params,
             )
 
-            m.submodules.rob = self.rob = ReorderBuffer()
+            m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
             m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(layouts.rob_allocate_out, 2)
             m.submodules.rob_alloc = ROBAllocate(
                 get_instr=rename_out_buf.read,
@@ -99,7 +99,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
                     if item is None:
                         return
                     result = yield from self.m.out.call()
-                    result["rlog_out"] = yield self.m.rob.data[result["rob_id"]].dst_reg
+                    result["rlog_out"] = yield self.m.rob.data[result["rob_id"]].rob_data.rl_dst
 
                     self.check_renamed(result, item)
                     # recycle physical register number

@@ -1,8 +1,7 @@
 from amaranth import *
 from coreblocks.transactions import Method, Transaction
-from coreblocks.layouts import SchedulerLayouts
+from coreblocks.layouts import SchedulerLayouts, ROBLayouts
 from coreblocks.genparams import GenParams
-from coreblocks.reorder_buffer import in_layout as rob_in_layout, id_layout as rob_out_layout
 
 
 class RegAllocation(Elaboratable):
@@ -94,13 +93,13 @@ class ROBAllocate(Elaboratable):
         m = Module()
 
         data_out = Record(self.output_layout)
-        rob_req = Record(rob_in_layout)
+        rob_req = Record(self.gen_params.get(ROBLayouts).data_layout)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
 
-            m.d.comb += rob_req.dst_reg.eq(instr.rlog_out)
-            m.d.comb += rob_req.phys_dst_reg.eq(instr.rphys_out)
+            m.d.comb += rob_req.rl_dst.eq(instr.rlog_out)
+            m.d.comb += rob_req.rp_dst.eq(instr.rphys_out)
             rob_id = self.rob_put(m, rob_req)
 
             m.d.comb += data_out.rphys_1.eq(instr.rphys_1)
