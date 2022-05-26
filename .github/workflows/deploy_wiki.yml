@@ -1,0 +1,24 @@
+name: Deploy Wiki
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy_wiki.yml'
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Push documentation
+        run: ./ci/push_docs.sh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_MAIL: ${{ secrets.YOUR_MAIL }}
+          GH_NAME: ${{ github.repository_owner }}
