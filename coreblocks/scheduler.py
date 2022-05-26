@@ -11,15 +11,16 @@ class RegAllocation(Elaboratable):
         get_instr: Method,
         push_instr: Method,
         get_free_reg: Method,
-        layouts: SchedulerLayouts,
         gen_params: GenParams
     ):
-        self.get_free_reg = get_free_reg
         self.gen_params = gen_params
+        layouts = gen_params.get(SchedulerLayouts)
         self.input_layout = layouts.reg_alloc_in
         self.output_layout = layouts.reg_alloc_out
+
         self.get_instr = get_instr
         self.push_instr = push_instr
+        self.get_free_reg = get_free_reg
 
     def elaborate(self, platform):
         m = Module()
@@ -44,11 +45,13 @@ class RegAllocation(Elaboratable):
 
 class Renaming(Elaboratable):
     def __init__(
-        self, *, get_instr: Method, push_instr: Method, rename: Method, layouts: SchedulerLayouts, gen_params: GenParams
+        self, *, get_instr: Method, push_instr: Method, rename: Method, gen_params: GenParams
     ):
+        self.gen_params = gen_params
+        layouts = gen_params.get(SchedulerLayouts)
         self.input_layout = layouts.renaming_in
         self.output_layout = layouts.renaming_out
-        self.gen_params = gen_params
+
         self.get_instr = get_instr
         self.push_instr = push_instr
         self.rename = rename
@@ -78,12 +81,13 @@ class ROBAllocate(Elaboratable):
         get_instr: Method,
         push_instr: Method,
         rob_put: Method,
-        layouts: SchedulerLayouts,
         gen_params: GenParams
     ):
+        self.gen_params = gen_params
+        layouts = gen_params.get(SchedulerLayouts)
         self.input_layout = layouts.rob_allocate_in
         self.output_layout = layouts.rob_allocate_out
-        self.gen_params = gen_params
+        self.rob_req_layout = gen_params.get(ROBLayouts).data_layout
 
         self.get_instr = get_instr
         self.push_instr = push_instr
@@ -93,7 +97,7 @@ class ROBAllocate(Elaboratable):
         m = Module()
 
         data_out = Record(self.output_layout)
-        rob_req = Record(self.gen_params.get(ROBLayouts).data_layout)
+        rob_req = Record(self.rob_req_layout)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -113,11 +117,12 @@ class ROBAllocate(Elaboratable):
 
 
 class RAT(Elaboratable):
-    def __init__(self, *, layouts: SchedulerLayouts, gen_params: GenParams):
+    def __init__(self, *, gen_params: GenParams):
+        self.gen_params = gen_params
+        layouts = gen_params.get(SchedulerLayouts)
         self.input_layout = layouts.rat_rename_in
         self.output_layout = layouts.rat_rename_out
 
-        self.gen_params = gen_params
         self.entries = Array((Signal(self.gen_params.phys_regs_bits, reset=i) for i in range(32)))
 
         self.if_rename = Method(i=self.input_layout, o=self.output_layout)

@@ -33,17 +33,15 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
                 get_instr=instr_fifo.read,
                 push_instr=alloc_rename_buf.write,
                 get_free_reg=free_rf_fifo.read,
-                layouts=layouts,
                 gen_params=self.gen_params,
             )
 
-            m.submodules.rat = rat = RAT(layouts=layouts, gen_params=self.gen_params)
+            m.submodules.rat = rat = RAT(gen_params=self.gen_params)
             m.submodules.rename_out_buf = rename_out_buf = FIFO(layouts.renaming_out, 2)
             m.submodules.renaming = Renaming(
                 get_instr=alloc_rename_buf.read,
                 push_instr=rename_out_buf.write,
                 rename=rat.if_rename,
-                layouts=layouts,
                 gen_params=self.gen_params,
             )
 
@@ -53,7 +51,6 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
                 get_instr=rename_out_buf.read,
                 push_instr=rob_alloc_out_buf.write,
                 rob_put=self.rob.put,
-                layouts=layouts,
                 gen_params=self.gen_params,
             )
 
