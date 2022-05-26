@@ -25,14 +25,14 @@ class RegAllocation(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            with m.If(instr.rlog_out != 0):
+            with m.If(instr.rl_dst != 0):
                 reg_id = self.get_free_reg(m)
                 m.d.comb += free_reg.eq(reg_id)
 
-            m.d.comb += data_out.rlog_1.eq(instr.rlog_1)
-            m.d.comb += data_out.rlog_2.eq(instr.rlog_2)
-            m.d.comb += data_out.rlog_out.eq(instr.rlog_out)
-            m.d.comb += data_out.rphys_out.eq(free_reg)
+            m.d.comb += data_out.rl_s1.eq(instr.rl_s1)
+            m.d.comb += data_out.rl_s2.eq(instr.rl_s2)
+            m.d.comb += data_out.rl_dst.eq(instr.rl_dst)
+            m.d.comb += data_out.rp_dst.eq(free_reg)
             self.push_instr(m, data_out)
 
         return m
@@ -58,10 +58,10 @@ class Renaming(Elaboratable):
             instr = self.get_instr(m)
             renamed_regs = self.rename(m, instr)
 
-            m.d.comb += data_out.rlog_out.eq(instr.rlog_out)
-            m.d.comb += data_out.rphys_out.eq(instr.rphys_out)
-            m.d.comb += data_out.rphys_1.eq(renamed_regs.rphys_1)
-            m.d.comb += data_out.rphys_2.eq(renamed_regs.rphys_2)
+            m.d.comb += data_out.rl_dst.eq(instr.rl_dst)
+            m.d.comb += data_out.rp_dst.eq(instr.rp_dst)
+            m.d.comb += data_out.rp_s1.eq(renamed_regs.rp_s1)
+            m.d.comb += data_out.rp_s2.eq(renamed_regs.rp_s2)
             self.push_instr(m, data_out)
 
         return m
@@ -88,13 +88,13 @@ class ROBAllocation(Elaboratable):
         with Transaction().body(m):
             instr = self.get_instr(m)
 
-            m.d.comb += rob_req.rl_dst.eq(instr.rlog_out)
-            m.d.comb += rob_req.rp_dst.eq(instr.rphys_out)
+            m.d.comb += rob_req.rl_dst.eq(instr.rl_dst)
+            m.d.comb += rob_req.rp_dst.eq(instr.rp_dst)
             rob_id = self.rob_put(m, rob_req)
 
-            m.d.comb += data_out.rphys_1.eq(instr.rphys_1)
-            m.d.comb += data_out.rphys_2.eq(instr.rphys_2)
-            m.d.comb += data_out.rphys_out.eq(instr.rphys_out)
+            m.d.comb += data_out.rp_s1.eq(instr.rp_s1)
+            m.d.comb += data_out.rp_s2.eq(instr.rp_s2)
+            m.d.comb += data_out.rp_dst.eq(instr.rp_dst)
             m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
 
             self.push_instr(m, data_out)

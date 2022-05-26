@@ -110,15 +110,15 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
 
     def make_output_process(self):
         def after_call(got, expected):
-            rlog_out = yield self.m.rob.data[got["rob_id"]].rob_data.rl_dst
-            self.assertEqual(got["rphys_1"], expected["rphys_1"])
-            self.assertEqual(got["rphys_2"], expected["rphys_2"])
-            self.assertEqual(got["rphys_out"], expected["rphys_out"])
-            self.assertEqual(rlog_out, expected["rlog_out"])
+            rl_dst = yield self.m.rob.data[got["rob_id"]].rob_data.rl_dst
+            self.assertEqual(got["rp_s1"], expected["rp_s1"])
+            self.assertEqual(got["rp_s2"], expected["rp_s2"])
+            self.assertEqual(got["rp_dst"], expected["rp_dst"])
+            self.assertEqual(rl_dst, expected["rl_dst"])
 
             # recycle physical register number
-            if got["rphys_out"] != 0:
-                self.free_phys_reg(got["rphys_out"])
+            if got["rp_dst"] != 0:
+                self.free_phys_reg(got["rp_dst"])
             # recycle ROB entry
             self.free_ROB_entries_queue.put({"rob_id": got["rob_id"]})
 
@@ -129,19 +129,19 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
             yield from self.m.rob_retire.enable()
 
             for i in range(500):
-                rlog_1 = random.randint(0, 31)
-                rlog_2 = random.randint(0, 31)
-                rlog_out = random.randint(0, 31)
-                rphys_1 = self.current_RAT[rlog_1]
-                rphys_2 = self.current_RAT[rlog_2]
-                rphys_out = self.expected_phys_reg_queue.get() if rlog_out != 0 else 0
+                rl_s1 = random.randint(0, 31)
+                rl_s2 = random.randint(0, 31)
+                rl_dst = random.randint(0, 31)
+                rp_s1 = self.current_RAT[rl_s1]
+                rp_s2 = self.current_RAT[rl_s2]
+                rp_dst = self.expected_phys_reg_queue.get() if rl_dst != 0 else 0
 
                 self.expected_rename_queue.put(
-                    {"rphys_1": rphys_1, "rphys_2": rphys_2, "rlog_out": rlog_out, "rphys_out": rphys_out}
+                    {"rp_s1": rp_s1, "rp_s2": rp_s2, "rl_dst": rl_dst, "rp_dst": rp_dst}
                 )
-                self.current_RAT[rlog_out] = rphys_out
+                self.current_RAT[rl_dst] = rp_dst
 
-                yield from self.m.instr_inp.call({"rlog_1": rlog_1, "rlog_2": rlog_2, "rlog_out": rlog_out})
+                yield from self.m.instr_inp.call({"rl_s1": rl_s1, "rl_s2": rl_s2, "rl_dst": rl_dst})
 
             # Terminate other processes
             self.expected_rename_queue.put(None)

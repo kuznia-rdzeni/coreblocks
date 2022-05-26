@@ -23,6 +23,6 @@ class RAT(Elaboratable):
 
         @def_method(m, self.if_rename)
         def _(arg):
-            m.d.sync += self.entries[arg.rlog_out].eq(arg.rphys_out)
-            return {"rphys_1": self.entries[arg.rlog_1], "rphys_2": self.entries[arg.rlog_2]}
+            m.d.sync += self.entries[arg.rl_dst].eq(arg.rp_dst)
+            return {"rp_s1": self.entries[arg.rl_s1], "rp_s2": self.entries[arg.rl_s2]}
         return m
