@@ -33,6 +33,7 @@ class RegAllocation(Elaboratable):
             m.d.comb += data_out.rl_s2.eq(instr.rl_s2)
             m.d.comb += data_out.rl_dst.eq(instr.rl_dst)
             m.d.comb += data_out.rp_dst.eq(free_reg)
+            m.d.comb += data_out.opcode.eq(instr.opcode)
             self.push_instr(m, data_out)
 
         return m
@@ -62,6 +63,7 @@ class Renaming(Elaboratable):
             m.d.comb += data_out.rp_dst.eq(instr.rp_dst)
             m.d.comb += data_out.rp_s1.eq(renamed_regs.rp_s1)
             m.d.comb += data_out.rp_s2.eq(renamed_regs.rp_s2)
+            m.d.comb += data_out.opcode.eq(instr.opcode)
             self.push_instr(m, data_out)
 
         return m
@@ -96,6 +98,7 @@ class ROBAllocation(Elaboratable):
             m.d.comb += data_out.rp_s2.eq(instr.rp_s2)
             m.d.comb += data_out.rp_dst.eq(instr.rp_dst)
             m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
+            m.d.comb += data_out.opcode.eq(instr.opcode)
 
             self.push_instr(m, data_out)
 

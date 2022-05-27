@@ -9,29 +9,34 @@ class SchedulerLayouts:
             ("rl_s1", gen_params.isa.xlen_log),
             ("rl_s2", gen_params.isa.xlen_log),
             ("rl_dst", gen_params.isa.xlen_log),
+            ("opcode", gen_params.isa.ilen),
         ]
         self.reg_alloc_out = self.renaming_in = [
             ("rl_s1", gen_params.isa.xlen_log),
             ("rl_s2", gen_params.isa.xlen_log),
             ("rl_dst", gen_params.isa.xlen_log),
             ("rp_dst", gen_params.phys_regs_bits),
+            ("opcode", gen_params.isa.ilen),
         ]
         self.renaming_out = self.rob_allocate_in = [
             ("rp_s1", gen_params.phys_regs_bits),
             ("rp_s2", gen_params.phys_regs_bits),
             ("rl_dst", gen_params.isa.xlen_log),
             ("rp_dst", gen_params.phys_regs_bits),
+            ("opcode", gen_params.isa.ilen),
         ]
         self.rob_allocate_out = [
             ("rp_s1", gen_params.phys_regs_bits),
             ("rp_s2", gen_params.phys_regs_bits),
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
+            ("opcode", gen_params.isa.ilen),
         ]
         self.instr_layout = [
             ("rl_s1", gen_params.isa.xlen_log),
             ("rl_s2", gen_params.isa.xlen_log),
             ("rl_dst", gen_params.isa.xlen_log),
+            ("opcode", gen_params.isa.ilen),
         ]
 
 
