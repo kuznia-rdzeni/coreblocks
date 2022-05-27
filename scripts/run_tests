@@ -27,9 +27,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--list", action="store_true", help="List all tests")
     parser.add_argument("-t", "--trace", action="store_true", help="Dump waveforms")
-    parser.add_argument(
-        "--trace-type", type=str, choices=["vcd-only", "gtkwave"], default="vcd-only", help="Format of the waveform"
-    )
     parser.add_argument("-v", "--verbosity", type=int, choices=[1, 2], default=1, help="Verbosity level")
     parser.add_argument("test_name", nargs="?")
 
@@ -45,7 +42,7 @@ def main():
     runner = unittest.TextTestRunner(verbosity=args.verbosity)
 
     if args.trace:
-        os.environ["__COREBLOCKS_DUMP_TRACES"] = args.trace_type
+        os.environ["__COREBLOCKS_DUMP_TRACES"] = "1"
 
     if args.test_name:
         if args.test_name not in tests:
