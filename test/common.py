@@ -38,8 +38,14 @@ class TestCaseWithSimulator(unittest.TestCase):
 
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_dir = "test/__traces__"
+            vcd_file = f"{traces_dir}/{test_name}.vcd"
+
+            gtkw_file = None
+            if os.environ["__COREBLOCKS_DUMP_TRACES"] == "gtkwave":
+                gtkw_file = f"{traces_dir}/{test_name}.gtkw"
+
             os.makedirs(traces_dir, exist_ok=True)
-            with sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw"):
+            with sim.write_vcd(vcd_file=vcd_file, gtkw_file=gtkw_file):
                 sim.run()
         else:
             sim.run()
