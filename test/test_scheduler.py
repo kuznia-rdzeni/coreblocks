@@ -1,6 +1,6 @@
 import random
 import queue
-from typing import Callable, Union
+from typing import Callable, Optional
 from amaranth import *
 from amaranth.back import verilog
 from amaranth.sim import Simulator, Settle
@@ -43,7 +43,7 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
             m.submodules.renaming = Renaming(
                 get_instr=alloc_rename_buf.read,
                 push_instr=rename_out_buf.write,
-                rename=rat.if_rename,
+                rename=rat.rename,
                 gen_params=self.gen_params,
             )
 
@@ -68,13 +68,13 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
 
 class TestRegAllocAndRename(TestCaseWithSimulator):
     def setUp(self):
+        self.gen_params = GenParams("rv32i")
         self.expected_rename_queue = queue.Queue()
         self.expected_phys_reg_queue = queue.Queue()
         self.free_regs_queue = queue.Queue()
         self.free_ROB_entries_queue = queue.Queue()
-        self.current_RAT = [x for x in range(0, 32)]
+        self.current_RAT = [x for x in range(0, self.gen_params.isa.reg_cnt)]
 
-        self.gen_params = GenParams("rv32i")
         self.m = RegAllocAndRenameTestCircuit(self.gen_params)
 
         random.seed(42)
@@ -89,7 +89,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
         self,
         io: TestbenchIO,
         q: queue.Queue,
-        after_call: Union[Callable[[dict, dict], None], None] = None,
+        after_call: Optional[Callable[[dict, dict], None]] = None,
         input_io=False,
     ):
         def queue_process():
@@ -130,10 +130,11 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
             yield from self.m.rob_retire.enable()
 
             for i in range(500):
-                rl_s1 = random.randint(0, 31)
-                rl_s2 = random.randint(0, 31)
-                rl_dst = random.randint(0, 31)
-                opcode = random.randint(0, 2**32-1)
+                rl_s1 = random.randint(0, self.gen_params.isa.reg_cnt - 1)
+                rl_s2 = random.randint(0, self.gen_params.isa.reg_cnt - 1)
+                rl_dst = random.randint(0, self.gen_params.isa.reg_cnt - 1)
+                # Note: opcode is currently a placeholder
+                opcode = random.randint(0, 2**32 - 1)
                 rp_s1 = self.current_RAT[rl_s1]
                 rp_s2 = self.current_RAT[rl_s2]
                 rp_dst = self.expected_phys_reg_queue.get() if rl_dst != 0 else 0
