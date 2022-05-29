@@ -9,23 +9,33 @@ sub_help(){
     echo "Subcommands:"
     echo "    format   Format the code"
     echo "    verify   Verify formatting without making any changes"
+    echo "    types    Verify typing"
+    echo "    all      Run all checks"
     echo ""
 }
 
 sub_verify() {
     python3 -m flake8 \
       --max-line-length=$MAX_LINE_LENGTH \
-      --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak" \
+      --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak,ci,stubs" \
       --extend-ignore=F401,F403,F405,E203 $@
-
-    pyright
 }
 
 sub_format(){
     python3 -m black \
-      --line-length $MAX_LINE_LENGTH --exclude ci $@
+      --line-length $MAX_LINE_LENGTH \
+      --extend-exclude "stubs|ci" $@
 
     sub_verify
+}
+
+sub_types(){
+    pyright
+}
+
+sub_all(){
+  sub_format $@
+  sub_types
 }
 
 subcommand=$1

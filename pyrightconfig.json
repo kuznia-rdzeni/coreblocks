@@ -14,7 +14,7 @@
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
 
-  "stubPath": "./ci/typings",
+  "stubPath": "./stubs",
 
   "pythonVersion": "3.10",
   "pythonPlatform": "Linux"
