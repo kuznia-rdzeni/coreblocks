@@ -198,7 +198,8 @@ class WishboneMuxer(Elaboratable):
         for i in range(len(self.slaves)):
             # connect all M->S signals except stb
             m.d.comb += self.masterWb.connect(
-                self.slaves[i], include=["dat_w", "rst", "cyc", "lock", "adr", "we", "sel"]
+                self.slaves[i],
+                include=["dat_w", "rst", "cyc", "lock", "adr", "we", "sel"],
             )
             # use stb as select
             m.d.comb += self.slaves[i].stb.eq(self.txn_sel[i] & self.masterWb.stb)
@@ -270,7 +271,8 @@ class WishboneArbiter(Elaboratable):
             for i in range(len(self.masters)):
                 with m.Case(i):
                     m.d.comb += self.masters[i].connect(
-                        self.slaveWb, include=["dat_w", "cyc", "lock", "adr", "we", "sel", "stb"]
+                        self.slaveWb,
+                        include=["dat_w", "cyc", "lock", "adr", "we", "sel", "stb"],
                     )
 
         # Disable slave when round robin is not valid at start of new request

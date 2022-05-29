@@ -2,7 +2,15 @@ from amaranth import *
 from .core import *
 from ._utils import _coerce_layout
 
-__all__ = ["FIFO", "ClickIn", "ClickOut", "AdapterTrans", "Adapter", "ConnectTrans", "CatTrans"]
+__all__ = [
+    "FIFO",
+    "ClickIn",
+    "ClickOut",
+    "AdapterTrans",
+    "Adapter",
+    "ConnectTrans",
+    "CatTrans",
+]
 
 # FIFOs
 

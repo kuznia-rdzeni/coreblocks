@@ -59,7 +59,11 @@ class TransactionManager(Elaboratable):
         self.conflicts.append((end1, end2))
 
     def use_method(
-        self, transaction: "Transaction", method: "Method", arg: ValueLike = C(0, 0), enable: ValueLike = C(1)
+        self,
+        transaction: "Transaction",
+        method: "Method",
+        arg: ValueLike = C(0, 0),
+        enable: ValueLike = C(1),
     ) -> Record:
         assert transaction.manager is self and method.manager is self
         if (transaction, method) in self.methodargs:
@@ -407,7 +411,7 @@ class Method:
         return self.manager.use_method(trans, self, arg_rec, enable_sig)
 
 
-def def_method(m: Module, method: Method, ready: ValueLike=C(1)):
+def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     """Define a method.
 
     This decorator allows to define transactional methods in more

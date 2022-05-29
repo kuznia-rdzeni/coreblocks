@@ -17,11 +17,13 @@ sub_verify() {
       --max-line-length=$MAX_LINE_LENGTH \
       --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak" \
       --extend-ignore=F401,F403,F405,E203 $@
+
+    pyright
 }
 
 sub_format(){
     python3 -m black \
-      --line-length $MAX_LINE_LENGTH $@
+      --line-length $MAX_LINE_LENGTH --exclude ci $@
 
     sub_verify
 }
