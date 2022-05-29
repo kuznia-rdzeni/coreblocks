@@ -91,10 +91,9 @@ class AdapterCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        with tm.transactionContext():
-            m.submodules += self.module
-            for method in self.methods:
-                m.submodules += AdapterTrans(method)
+        m.submodules += self.module
+        for method in self.methods:
+            m.submodules += AdapterTrans(method)
 
         return tm
 
@@ -216,9 +215,8 @@ class TestInvalidMethods(TestCase):
                 m = Module()
                 tm = TransactionModule(m)
 
-                with tm.transactionContext():
-                    m.submodules.undefined = undefined = Undefined()
-                    m.submodules.adapter = AdapterTrans(undefined.meth)
+                m.submodules.undefined = undefined = Undefined()
+                m.submodules.adapter = AdapterTrans(undefined.meth)
 
                 return tm
 
@@ -260,12 +258,11 @@ class QuadrupleCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        with tm.transactionContext():
-            m.submodules.quadruple = self.quadruple
-            m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(self.quadruple.quadruple))
-            # so that Amaranth allows us to use add_clock
-            dummy = Signal()
-            m.d.sync += dummy.eq(1)
+        m.submodules.quadruple = self.quadruple
+        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(self.quadruple.quadruple))
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
 
         return tm
 

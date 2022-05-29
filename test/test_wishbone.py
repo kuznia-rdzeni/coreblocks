@@ -62,10 +62,9 @@ class TestWishboneMaster(TestCaseWithSimulator):
         def elaborate(self, plaform):
             m = Module()
             tm = TransactionModule(m)
-            with tm.transactionContext():
-                m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
-                m.submodules.rqa = self.requestAdapter = TestbenchIO(AdapterTrans(wbm.request))
-                m.submodules.rsa = self.resultAdapter = TestbenchIO(AdapterTrans(wbm.result))
+            m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
+            m.submodules.rqa = self.requestAdapter = TestbenchIO(AdapterTrans(wbm.request))
+            m.submodules.rsa = self.resultAdapter = TestbenchIO(AdapterTrans(wbm.result))
             return tm
 
     def test_manual(self):
