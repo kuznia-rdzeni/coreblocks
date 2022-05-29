@@ -5,6 +5,10 @@
 The reservation station is used to store instructions which wait for their operands to be ready.  When the instruction
 is ready it should be woken up by wakeup logic and dispatched to the correct FU.
 
+### Reset / Initial state
+
+In initial state all rows are marked as invalid.
+
 
 ## External interface methods
 
@@ -14,7 +18,7 @@ Input:
 - *null*
 
 Output:
-- `position` - position of a free slot in RS
+- `position` - of a free slot in RS
 
 Side effects:
 - Slot on `position` marked as used
@@ -23,12 +27,12 @@ Side effects:
 ### Insert new instruction
 
 Input:
-- `opcode` - instruction identifier for FU
-- `id_rs1` - id of RF field where `src1` should be stored
-- `id_rs2` - id of RF field where `src2` should be stored
-- `id_out` - id of RF field where instruction output should be stored
+- `opcode` - instruction opcode for FU
+- `id_rs1` - id of RS field where `src1` should be stored
+- `id_rs2` - id of RS field where `src2` should be stored
+- `id_out` - id of RS field where instruction output should be stored
 - `id_ROB` - id of ROB entry which is allocated for this instruction
-- `position` - position in the RS to which we should write this entry
+- `position` - in the RS to which we should write this entry
 
 Output:
 - *null*
@@ -54,46 +58,34 @@ Side effects:
 ### Read and clean row
 
 Input:
-- `position` - identifier of RS row which should be read and cleared
+- `position` - of RS row which should be read and cleared
 
 Output:
-- `opcode` - instruction identifier for FU
+- `opcode` - instruction opcode for FU
 - `val_rs1` - value of first operand
 - `val_rs2` - value of second operand
-- `id_out` - id of RF field where instruction output should be stored
+- `id_out` - id of RS field where instruction output should be stored
 - `id_ROB` - id of ROB entry which is allocated for this instruction
 
 Side effects:
-- `v` bit for entry on `position` set to `0`
+- RS row on `position` marked as invalid
 
 ----
 
 ### Compare and substitute all
 
 Input:
-- `tag` - identifier of RF which is announced on the Tomasulo bus
-- `value` - value which is announced on the Tomasulo bus
+- `tag` - for which RS should be checked for
+- `value` - value which should be written to fields of RS with matching tag
 
 Output:
 - *null*
 
 Side effects:
-- Substituting `tag` with `value` for each row of RS
+- For each row of RS if in this row are fields tagged with `tag` store
+  `value` in these fields.
 
 
 ## External interface signals
 
-### If free slot
-
-Output:
-- `free`
-  - 0 -> no free slot
-  - 1 -> there is a free slot
-
-
-
-## Reset / Initial state
-
-In initial state:
-- all `v` fields should have value `0`
-- all fields in "Used slots table" should have value `0`
+- `free`: one-bit signal indicating if there is a free slot in the RS
