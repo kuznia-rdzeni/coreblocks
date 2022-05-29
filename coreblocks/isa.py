@@ -2,7 +2,7 @@ from itertools import takewhile
 from enum import unique, Enum, IntFlag
 
 
-__all__ = ["InstrType", "Opcode", "Funct3", "Funct7", "Funct12", "OpType", "Extension", "ISA"]
+__all__ = ["InstrType", "Opcode", "Funct3", "Funct7", "Funct12", "OpType", "Extension", "FenceTarget", "FenceFm", "ISA"]
 
 
 @unique
@@ -54,6 +54,20 @@ class Funct12(Enum):
 
 
 @unique
+class FenceTarget(IntFlag):
+    MEM_W = 0b0001
+    MEM_R = 0b0010
+    DEV_O = 0b0100
+    DEV_I = 0b1000
+
+
+@unique
+class FenceFm(Enum):
+    NONE = 0b0000
+    TSO = 0b1000
+
+
+@unique
 class OpType(Enum):
     UNKNOWN = 0
     ARITHMETIC = 1
@@ -66,12 +80,13 @@ class OpType(Enum):
     BRANCH = 8
     LOAD = 9
     STORE = 10
-    IFENCE = 11
+    FENCE = 11
     ECALL = 12
     EBREAK = 13
     MRET = 14
     WFI = 15
     CSR = 16
+    IFENCE = 17
 
 
 @unique
@@ -83,21 +98,14 @@ class Extension(IntFlag):
     F = 0x010
     D = 0x020
     C = 0x040
-    ZICSR = 0x080
-    ZIFENCE = 0x100
+    ZIFENCE = 0x080
+    ZICSR = 0x100
 
 
 _extension_map = {
     "e": Extension.E,
     "i": Extension.I,
-    "g": Extension.I
-    | Extension.M
-    | Extension.A
-    | Extension.F
-    | Extension.D
-    | Extension.C
-    | Extension.ZICSR
-    | Extension.ZIFENCE,
+    "g": Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.ZICSR | Extension.ZIFENCE,
     "m": Extension.M,
     "a": Extension.A,
     "f": Extension.F,
@@ -112,20 +120,41 @@ class ISA:
     """
     ``ISA`` is a class that gathers all ISA-specific configurations.
 
+    For each of the numeric configuration value ``val``, a corresponding
+    ``val_log`` field is provided.
+
     Parameters
     ----------
     isa_str: str
              String identifying a specific RISC-V ISA. Please refer to GCC's
              machine-dependent ``arch`` option for details.
+
+    Configuration constants
+    ----------
+    xlen:
+        Native integer register width.
+    reg_cnt:
+        Number of integer registers.
+    ilen:
+        Maximum instruction length.
+    extensions:
+        All supported extensions in the form of a bitwise or of `Extension`.
     """
 
     def __init__(self, isa_str: str):
         if isa_str[0:2] != "rv":
             raise RuntimeError("Invalid ISA string " + isa_str)
-        regwidth_str = "".join(takewhile(str.isdigit, isa_str[2:]))
-        extensions_str = isa_str[len(regwidth_str) + 2 :]
+        xlen_str = "".join(takewhile(str.isdigit, isa_str[2:]))
+        extensions_str = isa_str[len(xlen_str) + 2 :]
 
-        self.reg_width = int(regwidth_str)
+        if not len(xlen_str):
+            raise RuntimeError("Empty inative base integer ISA width string")
+
+        self.xlen = int(xlen_str)
+        self.xlen_log = self.xlen.bit_length() - 1
+
+        if self.xlen not in [32, 64, 128]:
+            raise RuntimeError("Invalid inative base integer ISA width %d" % self.xlen)
 
         if len(extensions_str) == 0:
             raise RuntimeError("Empty ISA extensions string")
@@ -148,18 +177,23 @@ class ISA:
             else:
                 for e in es:
                     if e not in _extension_map.keys():
-                        raise RuntimeError("Unknown extension letter in ISA " "extensions string " + e)
+                        raise RuntimeError("Unknown extension letter in ISA extensions string " + e)
                     parseExtension(e)
 
         if self.extensions & (Extension.E | Extension.I) == (Extension.E | Extension.I):
-            raise RuntimeError("ISA extension string contains both E and I " "extensions")
+            raise RuntimeError("ISA extension string contains both E and I extensions")
+
+        if (self.extensions & Extension.E) and self.xlen != 32:
+            raise RuntimeError("ISA extension E with XLEN != 32")
+
+        if self.extensions & (Extension.F | Extension.D) == Extension.D:
+            raise RuntimeError("ISA extension D requires the F extension to be supported")
 
         if self.extensions & Extension.E:
             self.reg_cnt = 16
         else:
-            self.reg_cnt = self.reg_width
+            self.reg_cnt = 32
+        self.reg_cnt_log = self.reg_cnt.bit_length() - 1
 
-        if self.extensions & Extension.C:
-            self.inst_width = 16
-        else:
-            self.inst_width = 32
+        self.ilen = 32
+        self.ilen_log = self.ilen.bit_length() - 1

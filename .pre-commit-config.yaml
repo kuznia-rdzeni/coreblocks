@@ -1,0 +1,29 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.0.1
+  hooks:
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+  - id: requirements-txt-fixer
+  - id: mixed-line-ending
+  - id: check-docstring-first
+  - id: check-json
+  - id: check-yaml
+  - id: check-xml
+  - id: check-case-conflict
+  - id: check-executables-have-shebangs
+  - id: check-merge-conflict
+  - id: check-symlinks
+
+- repo: meta
+  hooks:
+  - id: check-useless-excludes
+
+- repo: local
+  hooks:
+    - id: lint-python
+      name: lint-python
+      entry: scripts/lint.sh
+      language: script
+      types: [python]
+      args: ['format']
