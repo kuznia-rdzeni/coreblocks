@@ -270,25 +270,6 @@ class QuadrupleCircuit(Elaboratable):
         return tm
 
 
-class QuadrupleSub(Elaboratable):
-    def __init__(self):
-        self.id = Method(i=WIDTH, o=WIDTH)
-        self.double = Method(i=WIDTH, o=WIDTH)
-
-    def elaborate(self, platform):
-        m = Module()
-
-        @def_method(m, self.id)
-        def _(arg):
-            return arg
-
-        @def_method(m, self.double)
-        def _(arg):
-            return 2 * self.id(m, arg)
-
-        return m
-
-
 class Quadruple2(Elaboratable):
     def __init__(self):
         self.quadruple = Method(i=WIDTH, o=WIDTH)
@@ -296,7 +277,7 @@ class Quadruple2(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.sub = QuadrupleSub()
+        m.submodules.sub = Quadruple()
 
         @def_method(m, self.quadruple)
         def _(arg):
