@@ -34,7 +34,7 @@ When an entry in the RS is released, the corresponding entry in this table is sw
 
 Input:
 - `tag` - field in RS which should be compared with `id_rsX` to check if there is need to store `value`
-- `value` - value which should be stored in RS field if tag match
+- `value` - value which should be stored in RS field if tag matches
 - `position` - position in RS on which comparison and replacement should take place
 
 Output:
