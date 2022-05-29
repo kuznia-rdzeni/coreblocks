@@ -407,7 +407,7 @@ class Method:
         return self.manager.use_method(trans, self, arg_rec, enable_sig)
 
 
-def def_method(m: Module, method: Method, ready=C(1)):
+def def_method(m: Module, method: Method, ready: ValueLike=C(1)):
     """Define a method.
 
     This decorator allows to define transactional methods in more
