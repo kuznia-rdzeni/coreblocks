@@ -1,7 +1,12 @@
 import itertools
+from typing import List, Set, Iterable, TypeVar, Mapping, Union
 from amaranth import *
+from .._typing import LayoutLike
 
-__all__ = ["Scheduler", "_graph_ccs", "_coerce_layout"]
+__all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout"]
+
+
+T = TypeVar("T")
 
 
 class Scheduler(Elaboratable):
@@ -36,7 +41,7 @@ class Scheduler(Elaboratable):
         return m
 
 
-def _graph_ccs(gr):
+def _graph_ccs(gr: Mapping[T, Iterable[T]]) -> List[Set[T]]:
     ccs = []
     cc = set()
     visited = set()
@@ -57,7 +62,10 @@ def _graph_ccs(gr):
     return ccs
 
 
-def _coerce_layout(int_or_layout):
+MethodLayout = Union[int, LayoutLike]
+
+
+def _coerce_layout(int_or_layout: MethodLayout) -> LayoutLike:
     if isinstance(int_or_layout, int):
         return [("data", int_or_layout)]
     else:
