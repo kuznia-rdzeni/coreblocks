@@ -90,15 +90,15 @@ class ReorderBuffer(Elaboratable):
         #* helpers
 
         m.d.comb += self.next.eq(Mux(self.last == self.last_allowed, 0, self.last + 1))
-        m.d.comb += self.first_valid.eq(not self.is_empty and self.valid[self.first])
+        m.d.comb += self.first_valid.eq(~self.is_empty & self.valid[self.first])
 
         #* methods implementations
 
         # uses: wrport
-        with self.put.body(m, ready = self.is_empty or (self.next != self.first), out=put_out) as arg:
+        with self.put.body(m, ready = self.is_empty | self.next != self.first, out=put_out) as arg:
             m.d.comb += [
                 wrport.addr.eq(self.next),
-                wrport.data.eq(Cat(arg.entry_valid, arg.entry_data)),
+                wrport.data.eq(arg.entry_data),
                 wrport.en.eq(C(1))
             ]
             m.d.sync += [
@@ -108,37 +108,22 @@ class ReorderBuffer(Elaboratable):
             ]
 
         # uses: rdport
-        with self.discard.body(m, ready = self.first_valid and not self.is_empty, out=discard_out) as arg:
+        with self.discard.body(m, ready = self.first_valid, out=discard_out) as arg:
             m.d.comb += [
                 rdport.addr.eq(self.first),
-                discard_out.data.eq(rdport.data)
+                discard_out['entry_data'].eq(rdport.data)
             ]
             m.d.sync += [
                 self.first.eq(Mux(self.first == self.last,
                                   self.first,
                                   Mux(self.first != self.last_allowed, self.first + 1, 0)
                                   )),
-                self.is_empty.eq(self.first == self.last),
-                self.first_valid.eq(TODO) # TODO uh needs to read in the same cycle
+                self.is_empty.eq(self.first == self.last)
             ]
 
         # uses: rdport, wrport
         # TODO this readiness check is inaccurate: ideally it would check arguments
-        # TODO this reads and writes at the same address, either:
-        #   1. requires async read to perform in a single cycle (confirm)
-        #   2. must be done in two cycles otherwise
-        with self.mark_done.body(m, ready = not self.is_empty) as arg:
-            rdata_rec = Record(layouts.entry_layout)
-            wdata_rec = Record(layouts.entry_layout)
-            m.d.comb += [
-                rdport.addr.eq(arg.id),
-                wrport.addr.eq(arg.id),
-                rdata_rec.eq(rwport.data),
-                wdata_rec.eq(rwport.data),
-                wdata_rec['entry_valid'].eq(C(1)), # TODO hopefully this overrides eq above
-                                                   # (otherwise need intermediate record)
-                wrport.en.eq(C(1)) # see TODO above
-            ]
-            m.d.sync += self.first_valid.eq(Mux(arg.id == TODO), TODO, TODO)
+        with self.mark_done.body(m, ready = ~self.is_empty) as arg:
+            m.d.sync += self.valid[arg.id].eq(C(1))
 
         return m
