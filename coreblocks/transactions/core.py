@@ -1,9 +1,10 @@
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Union, List
+from typing import Union, List, Optional, Dict, Tuple, Set, Iterator
 from types import MethodType
 from amaranth import *
 from ._utils import *
+from .._typing import ValueLike
 
 __all__ = [
     "TransactionManager",
@@ -49,8 +50,8 @@ class TransactionManager(Elaboratable):
     """
 
     def __init__(self, cc_scheduler=eager_deterministic_cc_scheduler):
-        self.transactions = []
-        self.conflicts = []
+        self.transactions : List[Transaction] = []
+        self.conflicts: List[Tuple[Transaction | Method, Transaction | Method]] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
     def add_transaction(self, transaction):
@@ -63,7 +64,7 @@ class TransactionManager(Elaboratable):
             else:
                 return [end]
 
-        gr = {}
+        gr: Dict[Transaction, Set[Transaction]] = {}
 
         def addEdge(transaction, transaction2):
             gr[transaction].add(transaction2)
@@ -166,7 +167,7 @@ class TransactionModule(Elaboratable):
             transactions and methods.
     """
 
-    def __init__(self, module, manager: TransactionManager = None):
+    def __init__(self, module: Module, manager: Optional[TransactionManager] = None):
         if manager is None:
             manager = TransactionManager()
         self.transactionManager = manager
@@ -218,7 +219,7 @@ class Transaction:
 
     current = None
 
-    def __init__(self, *, manager: TransactionManager = None):
+    def __init__(self, *, manager: Optional[TransactionManager] = None):
         if manager is None:
             manager = TransactionContext.get()
         manager.add_transaction(self)
@@ -233,7 +234,7 @@ class Transaction:
         self.method_uses[method] = (arg, enable)
 
     @contextmanager
-    def context(self):
+    def context(self) -> Iterator["Transaction"]:
         if self.__class__.current is not None:
             raise RuntimeError("Transaction inside transaction")
         self.__class__.current = self
@@ -243,7 +244,7 @@ class Transaction:
             self.__class__.current = None
 
     @contextmanager
-    def body(self, m: Module, *, request=C(1)):
+    def body(self, m: Module, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
         m.d.comb += self.request.eq(request)
         with self.context():
             with m.If(self.grant):
@@ -335,7 +336,7 @@ class Method:
 
     current = None
 
-    def __init__(self, *, i=0, o=0):
+    def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0, manager: Optional[TransactionManager] = None):
         self.ready = Signal()
         self.run = Signal()
         self.data_in = Record(_coerce_layout(i))
@@ -359,7 +360,7 @@ class Method:
         self.conflicts.append(end)
 
     @contextmanager
-    def body(self, m: Module, *, ready=C(1), out=C(0, 0)):
+    def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
         """Define method body
 
         The ``body`` function should be used to define body of
@@ -415,7 +416,7 @@ class Method:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[method] = (arg, enable)
 
-    def __call__(self, m: Module, arg=C(0, 0), enable=C(1)):
+    def __call__(self, m: Module, arg: ValueLike = C(0, 0), enable: ValueLike = C(1)) -> Record:
         enable_sig = Signal()
         arg_rec = Record.like(self.data_in)
 
