@@ -1,5 +1,7 @@
 from typing import TypeVar, Type
 
+from coreblocks.isa import ISA
+
 __all__ = ["GenParams"]
 
 T = TypeVar("T")
@@ -17,5 +19,7 @@ class DependentCache:
 
 
 class GenParams(DependentCache):
-    def __init__(self):
+    def __init__(self, isa_str: str):
         super().__init__()
+
+        self.isa = ISA(isa_str)

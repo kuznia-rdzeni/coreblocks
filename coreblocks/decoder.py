@@ -139,14 +139,14 @@ _csr_encodings = [
 # Encodings groupped by extensions
 #
 
-_i_encodigns = [
+_i_encodings = [
     _arithmetic_encodings,
     _compare_encodings,
     _logic_encodings,
     _shift_encodings,
     _auipc_encodings,
     _lui_encodings,
-    _jump_encodigns,
+    _jump_encodings,
     _branch_encodings,
     _load_encodings,
     _store_encodings,
@@ -154,10 +154,10 @@ _i_encodigns = [
     _ecall_encodings,
     _ebreak_encodings,
     _mret_encodings,
-    _wfi_encodigns,
+    _wfi_encodings,
 ]
 
-_zifence_encodigns = [
+_zifence_encodings = [
     _ifence_encodings,
 ]
 
@@ -187,15 +187,15 @@ class InstrDecoder(Elaboratable):
         self.funct12 = Signal(Funct12)
 
         # Destination register
-        self.rd = Signal(gen.isa.rcnt_log)
+        self.rd = Signal(gen.isa.reg_cnt_log)
         self.rd_v = Signal()
 
         # First source register
-        self.rs1 = Signal(gen.isa.rcnt_log)
+        self.rs1 = Signal(gen.isa.reg_cnt_log)
         self.rs1_v = Signal()
 
         # Second source register
-        self.rs2 = Signal(gen.isa.rcnt_log)
+        self.rs2 = Signal(gen.isa.reg_cnt_log)
         self.rs2_v = Signal()
 
         # Immediate
@@ -206,6 +206,9 @@ class InstrDecoder(Elaboratable):
         self.pred = Signal(FenceTarget)
         self.fm = Signal(FenceFm)
 
+        # CSR address
+        self.csr = Signal(gen.isa.csr_alen)
+
         # Operation type
         self.op = Signal(OpType)
 
@@ -213,18 +216,24 @@ class InstrDecoder(Elaboratable):
         self.illegal = Signal()
 
     def _extract(self, start, sig):
-        sig.eq(self.instr[start : start + len(sig)])
+        return sig.eq(self.instr[start : start + len(sig)])
 
-    def _match(self, encodings):
+    def _match(self, extension_encodings):
         return reduce(
             or_,
-            starmap(
-                lambda enc: (self.opcode == enc.opcode if enc.opcode is not None else 1)
-                & (self.funct3 == enc.funct3 if enc.funct3 is not None else 1)
-                & (self.funct7 == enc.funct7 if enc.funct7 is not None else 1)
-                & (self.funct12 == enc.funct12 if enc.funct12 is not Nonde else 1)
-                & ((self.rd == 0) & (self.rs1 == 0) if enc.funct3 == Funct3.PRIV else 1),
-                encodings,
+            map(
+                lambda encodings: reduce(
+                    or_,
+                    map(
+                        lambda enc: (self.opcode == enc.opcode if enc.opcode is not None else 1)
+                        & (self.funct3 == enc.funct3 if enc.funct3 is not None else 1)
+                        & (self.funct7 == enc.funct7 if enc.funct7 is not None else 1)
+                        & (self.funct12 == enc.funct12 if enc.funct12 is not None else 1)
+                        & ((self.rd == 0) & (self.rs1 == 0) if enc.funct3 in [Funct3.FENCE, Funct3.PRIV] else 1),
+                        encodings,
+                    ),
+                ),
+                extension_encodings,
             ),
         )
 
@@ -279,6 +288,9 @@ class InstrDecoder(Elaboratable):
         bimm13 = Signal(signed(13))
         uimm20 = Signal(unsigned(20))
         jimm20 = Signal(signed(21))
+        uimm5 = Signal(unsigned(5))
+
+        instr = self.instr
 
         m.d.comb += [
             self._extract(20, iimm12),
@@ -286,6 +298,7 @@ class InstrDecoder(Elaboratable):
             bimm13.eq(Cat(0, instr[8:12], instr[25:31], instr[7], instr[31])),
             self._extract(12, uimm20),
             jimm20.eq(Cat(0, instr[21:31], instr[20], instr[12:20], instr[31])),
+            self._extract(15, uimm5),
         ]
 
         with m.Switch(itype):
@@ -308,19 +321,23 @@ class InstrDecoder(Elaboratable):
             self._extract(28, self.fm),
         ]
 
+        # CSR address
+
+        m.d.comb += self._extract(20, self.csr)
+
         # Operation type
 
         op_mask = Signal(len(list(OpType)) - 1)
         extensions = self.gen.isa.extensions
 
         m.d.comb += op_mask.eq(0)
+        self.extension_cnt = 0
 
         def enumerateEncodings(extension_encodings):
-            for i, encodings in enumerate(extension_encodings):
-                m.d.comb += self.op_mask[i].eq(self._match(encodings))
+            m.d.comb += op_mask[self.extension_cnt].eq(self._match(extension_encodings))
+            self.extension_cnt += 1
 
-        if extensions & (Extension.E | Extension.I):
-            enumerateEncodings(_i_encodings)
+        enumerateEncodings(_i_encodings)
 
         if extensions & Extension.ZIFENCE:
             enumerateEncodings(_zifence_encodings)
@@ -328,12 +345,18 @@ class InstrDecoder(Elaboratable):
         if extensions & Extension.ZICSR:
             enumerateEncodings(_zicsr_encodings)
 
+        m.d.comb += self.op.eq(OpType.UNKNOWN)
         with m.Switch(op_mask):
-            for i in len(op_mask):
+            for i in range(self.extension_cnt):
                 with m.Case("-" * (len(op_mask) - i - 1) + "1" + "-" * i):
                     m.d.comb += self.op.eq(i + 1)
-            with m.Default():
-                m.d.comb += self.op.eq(OpType.UNKNOWN)
+        #    with m.Default():
+        #        m.d.comb += self.op.eq(OpType.UNKNOWN)
+
+        # Immediate correction
+
+        with m.If(self.op == OpType.CSR):
+            m.d.comb += self.imm.eq(uimm5)
 
         # Illegal instruction detection
 

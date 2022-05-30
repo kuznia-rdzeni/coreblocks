@@ -1,5 +1,5 @@
 from itertools import takewhile
-from enum import unique, Enum, IntFlag
+from enum import unique, Enum, IntEnum, IntFlag
 
 
 __all__ = ["InstrType", "Opcode", "Funct3", "Funct7", "Funct12", "OpType", "Extension", "FenceTarget", "FenceFm", "ISA"]
@@ -16,7 +16,7 @@ class InstrType(Enum):
 
 
 @unique
-class Opcode(Enum):
+class Opcode(IntEnum):
     OP_IMM = 0b00100
     LUI = 0b01101
     AUIPC = 0b00101
@@ -30,7 +30,7 @@ class Opcode(Enum):
     SYSTEM = 0b11100
 
 
-class Funct3(Enum):
+class Funct3(IntEnum):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = 0b000
     BNE = H = SLL = FENCEI = CSRRW = 0b001
     W = SLT = CSRRS = 0b010
@@ -41,12 +41,12 @@ class Funct3(Enum):
     BGEU = AND = CSRRCI = 0b111
 
 
-class Funct7(Enum):
+class Funct7(IntEnum):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = 0b0100000
 
 
-class Funct12(Enum):
+class Funct12(IntEnum):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
     MRET = 0b001100000010
@@ -62,13 +62,13 @@ class FenceTarget(IntFlag):
 
 
 @unique
-class FenceFm(Enum):
+class FenceFm(IntEnum):
     NONE = 0b0000
     TSO = 0b1000
 
 
 @unique
-class OpType(Enum):
+class OpType(IntEnum):
     UNKNOWN = 0
     ARITHMETIC = 1
     COMPARE = 2
@@ -85,8 +85,8 @@ class OpType(Enum):
     EBREAK = 13
     MRET = 14
     WFI = 15
-    CSR = 16
-    IFENCE = 17
+    IFENCE = 16
+    CSR = 17
 
 
 @unique
@@ -121,7 +121,7 @@ class ISA:
     ``ISA`` is a class that gathers all ISA-specific configurations.
 
     For each of the numeric configuration value ``val``, a corresponding
-    ``val_log`` field is provided.
+    ``val_log`` field is provided if relevant.
 
     Parameters
     ----------
@@ -137,6 +137,8 @@ class ISA:
         Number of integer registers.
     ilen:
         Maximum instruction length.
+    csr_alen:
+        CSR address width.
     extensions:
         All supported extensions in the form of a bitwise or of `Extension`.
     """
@@ -197,3 +199,5 @@ class ISA:
 
         self.ilen = 32
         self.ilen_log = self.ilen.bit_length() - 1
+
+        self.csr_alen = 12
