@@ -40,17 +40,17 @@ class TestElaboratable(Elaboratable):
 class TestReorderBuffer(TestCaseWithSimulator):
     def gen_input(self):
         for _ in range(self.test_steps):
-            if self.regs_left_queue.empty():
+            while self.regs_left_queue.empty():
                 yield
-            else:
-                while self.rand.random() < 0.5:
-                    yield  # to slow down puts
-                log_reg = self.rand.randint(0, self.log_regs - 1)
-                phys_reg = self.regs_left_queue.get()
-                regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
-                rob_id = yield from self.m.io_in.call(regs)
-                self.to_execute_list.append((rob_id, phys_reg))
-                self.retire_queue.put(regs)
+
+            while self.rand.random() < 0.5:
+                yield  # to slow down puts
+            log_reg = self.rand.randint(0, self.log_regs - 1)
+            phys_reg = self.regs_left_queue.get()
+            regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
+            rob_id = yield from self.m.io_in.call(regs)
+            self.to_execute_list.append((rob_id, phys_reg))
+            self.retire_queue.put(regs)
 
     def do_updates(self):
         yield Passive()
@@ -134,7 +134,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
         yield from self.do_single_update()
 
         for i in range(self.test_steps - 1):
-            _ = yield from self.m.io_out.call()
+            yield from self.m.io_out.call()
 
         yield from self.m.io_out.enable()
         yield
