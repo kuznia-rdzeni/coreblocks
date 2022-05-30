@@ -52,7 +52,7 @@ class TransactionManager(Elaboratable):
         self.transactions: Dict[Transaction, List[Method]] = {}
         self.methods: Dict[Method, List[Transaction]] = {}
         self.methodargs: Dict[Tuple[Transaction, Method], Tuple[ValueLike, ValueLike]] = {}
-        self.conflicts = []
+        self.conflicts: List[Tuple[Transaction | Method, Transaction | Method]] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
     def add_conflict(self, end1: Union["Transaction", "Method"], end2: Union["Transaction", "Method"]) -> None:

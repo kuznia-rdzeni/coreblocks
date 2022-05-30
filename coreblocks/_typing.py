@@ -1,11 +1,10 @@
-from typing import Union, List, Tuple, Type, Any
+from typing import List, Tuple, Type, Any
 from enum import Enum
 from amaranth import *
 from amaranth.hdl.ast import ValueCastable
 from amaranth.hdl.rec import Direction, Layout
 
-FragmentLike = Union[Fragment, Elaboratable]
-ValueLike = Union[Value, int, Enum, ValueCastable]
-ShapeLike = Union[Shape, int, range, Type[Enum]]
-# TODO: recursive definition: LayoutLike instead of Any
-LayoutLike = Union[Layout, List[Union[Tuple[str, Union[ShapeLike, Any]], Tuple[str, Union[ShapeLike, Any], Direction]]]]
+FragmentLike = Fragment | Elaboratable
+ValueLike = Value | int | Enum | ValueCastable
+ShapeLike = Shape | int | range | Type[Enum]
+LayoutLike = Layout | List[Tuple[str, ShapeLike | "LayoutLike"] | Tuple[str, ShapeLike | "LayoutLike", Direction]]
