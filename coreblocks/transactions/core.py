@@ -1,3 +1,4 @@
+from collections import defaultdict
 from contextlib import contextmanager
 from typing import Union, List, Optional, Dict, Tuple, Set, Iterator
 from types import MethodType
@@ -20,7 +21,7 @@ __all__ = [
 def eager_deterministic_cc_scheduler(manager, m, gr, cc):
     ccl = list(cc)
     for k, transaction in enumerate(ccl):
-        ready = [method.ready for method in manager.transactions[transaction]]
+        ready = [method.ready for method in manager.methods_by_transaction[transaction]]
         runnable = Cat(ready).all()
         conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
         noconflict = ~Cat(conflicts).any()
@@ -31,7 +32,7 @@ def trivial_roundrobin_cc_scheduler(manager, m, gr, cc):
     sched = Scheduler(len(cc))
     m.submodules += sched
     for k, transaction in enumerate(cc):
-        methods = manager.transactions[transaction]
+        methods = manager.methods_by_transaction[transaction]
         ready = Signal(len(methods))
         for n, method in enumerate(methods):
             m.d.comb += ready[n].eq(method.ready)
@@ -49,34 +50,17 @@ class TransactionManager(Elaboratable):
     """
 
     def __init__(self, cc_scheduler=eager_deterministic_cc_scheduler):
-        self.transactions: Dict[Transaction, List[Method]] = {}
-        self.methods: Dict[Method, List[Transaction]] = {}
-        self.methodargs: Dict[Tuple[Transaction, Method], Tuple[ValueLike, ValueLike]] = {}
+        self.transactions : List[Transaction] = []
         self.conflicts: List[Tuple[Transaction | Method, Transaction | Method]] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
-    def add_conflict(self, end1: Union["Transaction", "Method"], end2: Union["Transaction", "Method"]) -> None:
-        self.conflicts.append((end1, end2))
-
-    def use_method(
-        self, transaction: "Transaction", method: "Method", arg: ValueLike = C(0, 0), enable: ValueLike = C(1)
-    ) -> Record:
-        assert transaction.manager is self and method.manager is self
-        if (transaction, method) in self.methodargs:
-            raise RuntimeError("Method can't be called twice from the same transaction")
-        if transaction not in self.transactions:
-            self.transactions[transaction] = []
-        if method not in self.methods:
-            self.methods[method] = []
-        self.transactions[transaction].append(method)
-        self.methods[method].append(transaction)
-        self.methodargs[(transaction, method)] = (arg, enable)
-        return method.data_out
+    def add_transaction(self, transaction):
+        self.transactions.append(transaction)
 
     def _conflict_graph(self):
         def endTrans(end):
             if isinstance(end, Method):
-                return self.methods[end]
+                return self.transactions_by_method[end]
             else:
                 return [end]
 
@@ -86,12 +70,12 @@ class TransactionManager(Elaboratable):
             gr[transaction].add(transaction2)
             gr[transaction2].add(transaction)
 
-        for transaction in self.transactions.keys():
+        for transaction in self.methods_by_transaction.keys():
             gr[transaction] = set()
 
-        for transaction, methods in self.transactions.items():
+        for transaction, methods in self.methods_by_transaction.items():
             for method in methods:
-                for transaction2 in self.methods[method]:
+                for transaction2 in self.transactions_by_method[method]:
                     if transaction is not transaction2:
                         addEdge(transaction, transaction2)
 
@@ -102,18 +86,42 @@ class TransactionManager(Elaboratable):
 
         return gr
 
+    def _call_graph(self, transaction, method, arg, enable):
+        if not method.defined:
+            raise RuntimeError("Trying to use method which is not defined yet")
+        if method in self.method_uses[transaction]:
+            raise RuntimeError("Method can't be called twice from the same transaction")
+        self.method_uses[transaction][method] = (arg, enable)
+        self.methods_by_transaction[transaction].append(method)
+        self.transactions_by_method[method].append(transaction)
+        for end in method.conflicts:
+            self.conflicts.append((method, end))
+        for method, (arg, enable) in method.method_uses.items():
+            self._call_graph(transaction, method, arg, enable)
+
     def elaborate(self, platform):
-        m = Module()
+
+        self.methods_by_transaction = defaultdict(list)
+        self.transactions_by_method = defaultdict(list)
+        self.method_uses = defaultdict(dict)
+
+        for transaction in self.transactions:
+            for end in transaction.conflicts:
+                self.conflicts.append((transaction, end))
+            for method, (arg, enable) in transaction.method_uses.items():
+                self._call_graph(transaction, method, arg, enable)
 
         gr = self._conflict_graph()
+
+        m = Module()
 
         for cc in _graph_ccs(gr):
             self.cc_scheduler(m, gr, cc)
 
-        for method, transactions in self.methods.items():
+        for method, transactions in self.transactions_by_method.items():
             granted = Signal(len(transactions))
             for n, transaction in enumerate(transactions):
-                (tdata, enable) = self.methodargs[(transaction, method)]
+                (tdata, enable) = self.method_uses[transaction][method]
                 m.d.comb += granted[n].eq(transaction.grant & enable)
 
                 with m.If(transaction.grant):
@@ -214,9 +222,16 @@ class Transaction:
     def __init__(self, *, manager: Optional[TransactionManager] = None):
         if manager is None:
             manager = TransactionContext.get()
+        manager.add_transaction(self)
         self.request = Signal()
         self.grant = Signal()
-        self.manager = manager
+        self.method_uses = dict()
+        self.conflicts = []
+
+    def use_method(self, method: "Method", arg, enable):
+        if method in self.method_uses:
+            raise RuntimeError("Method can't be called twice from the same transaction")
+        self.method_uses[method] = (arg, enable)
 
     @contextmanager
     def context(self) -> Iterator["Transaction"]:
@@ -248,7 +263,7 @@ class Transaction:
         end: Transaction or Method
             The conflicting ``Transaction`` or ``Method``
         """
-        self.manager.add_conflict(self, end)
+        self.conflicts.append(end)
 
     @classmethod
     def get(cls) -> "Transaction":
@@ -302,9 +317,6 @@ class Method:
     o: int or record layout
         The format of ``data_in``.
         An ``int`` corresponds to a ``Record`` with a single ``data`` field.
-    manager: TransactionManager
-        The ``TransactionManager`` controlling this ``Method``.
-        If omitted, the manager is received from ``TransactionContext``.
 
     Attributes
     ----------
@@ -322,29 +334,30 @@ class Method:
         ``Transaction``. Typically defined by calling ``body``.
     """
 
+    current = None
+
     def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0, manager: Optional[TransactionManager] = None):
-        if manager is None:
-            manager = TransactionContext.get()
         self.ready = Signal()
         self.run = Signal()
-        self.manager = manager
         self.data_in = Record(_coerce_layout(i))
         self.data_out = Record(_coerce_layout(o))
+        self.conflicts = []
+        self.method_uses = dict()
+        self.defined = False
 
     def add_conflict(self, end: Union["Transaction", "Method"]) -> None:
         """Registers a conflict.
 
-        The ``TransactionManager`` is informed that given ``Transaction``
-        or ``Method`` cannot execute simultaneously with this ``Method``.
-        Typical reason is using a common resource (register write
-        or memory port).
+        Record that that the given ``Transaction`` or ``Method`` cannot execute
+        simultaneously with this ``Method``.  Typical reason is using a common
+        resource (register write or memory port).
 
         Parameters
         ----------
         end: Transaction or Method
             The conflicting ``Transaction`` or ``Method``
         """
-        self.manager.add_conflict(self, end)
+        self.conflicts.append(end)
 
     @contextmanager
     def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
@@ -384,10 +397,24 @@ class Method:
             m.d.comb += sum.eq(data_in.arg1 + data_in.arg2)
         ```
         """
-        m.d.comb += self.ready.eq(ready)
-        m.d.comb += self.data_out.eq(out)
-        with m.If(self.run):
-            yield self.data_in
+        if self.defined:
+            raise RuntimeError("Method already defined")
+        if self.__class__.current is not None:
+            raise RuntimeError("Method body inside method body")
+        self.__class__.current = self
+        try:
+            m.d.comb += self.ready.eq(ready)
+            m.d.comb += self.data_out.eq(out)
+            with m.If(self.run):
+                yield self.data_in
+        finally:
+            self.__class__.current = None
+            self.defined = True
+
+    def use_method(self, method: "Method", arg, enable):
+        if method in self.method_uses:
+            raise RuntimeError("Method can't be called twice from the same transaction")
+        self.method_uses[method] = (arg, enable)
 
     def __call__(self, m: Module, arg: ValueLike = C(0, 0), enable: ValueLike = C(1)) -> Record:
         enable_sig = Signal()
@@ -402,9 +429,11 @@ class Method:
         # combinatorial domain at a better moment.
         m.d.comb += enable_sig.eq(enable)
         m.d.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
-
-        trans = Transaction.get()
-        return self.manager.use_method(trans, self, arg_rec, enable_sig)
+        if Method.current is not None:
+            Method.current.use_method(self, arg_rec, enable_sig)
+        else:
+            Transaction.get().use_method(self, arg_rec, enable_sig)
+        return self.data_out
 
 
 def def_method(m: Module, method: Method, ready=C(1)):
