@@ -19,7 +19,7 @@ class DependentCache:
 class GenParams(DependentCache):
     log_regs_bits = 5
 
-    def __init__(self, phys_regs_bits=8, rob_entries_bits=7):
+    def __init__(self, phys_regs_bits=7, rob_entries_bits=8):
         super().__init__()
         self.phys_regs_bits = phys_regs_bits
         self.rob_entries_bits = rob_entries_bits
