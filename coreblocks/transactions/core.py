@@ -50,7 +50,7 @@ class TransactionManager(Elaboratable):
     """
 
     def __init__(self, cc_scheduler=eager_deterministic_cc_scheduler):
-        self.transactions : List[Transaction] = []
+        self.transactions: List[Transaction] = []
         self.conflicts: List[Tuple[Transaction | Method, Transaction | Method]] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
@@ -273,22 +273,22 @@ class Transaction:
 
 
 def _connect_rec_with_possibly_dict(dst, src):
-    if isinstance(src, dict):
-        if not isinstance(dst, Record):
-            raise TypeError("Cannot connect a dict of signals to a non-record.")
-
-        exprs = []
-        for k, v in src.items():
-            exprs += _connect_rec_with_possibly_dict(dst[k], v)
-
-        # Make sure all fields of the record are specified in the dict.
-        for field_name, _, _ in dst.layout:
-            if field_name not in src:
-                raise KeyError("Field {} is not specified in the dict.".format(field_name))
-
-        return exprs
-    else:
+    if not isinstance(src, dict):
         return [dst.eq(src)]
+
+    if not isinstance(dst, Record):
+        raise TypeError("Cannot connect a dict of signals to a non-record.")
+
+    exprs = []
+    for k, v in src.items():
+        exprs += _connect_rec_with_possibly_dict(dst[k], v)
+
+    # Make sure all fields of the record are specified in the dict.
+    for field_name, _, _ in dst.layout:
+        if field_name not in src:
+            raise KeyError("Field {} is not specified in the dict.".format(field_name))
+
+    return exprs
 
 
 class Method:
