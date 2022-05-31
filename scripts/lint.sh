@@ -12,18 +12,31 @@ sub_help(){
     echo ""
 }
 
-sub_verify() {
+sub_verify_flake8() {
     python3 -m flake8 \
       --max-line-length=$MAX_LINE_LENGTH \
       --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak" \
       --extend-ignore=F401,F403,F405,E203 $@
 }
 
+sub_verify_black() {
+    python3 -m black \
+        --line-length $MAX_LINE_LENGTH \
+        --check $@
+}
+
+sub_verify() {
+    sub_verify_black $@
+    BLACK_RET=$?
+    sub_verify_flake8 $@
+    return $([[ $? == 0 ]] && [[ $BLACK_RET == 0 ]])
+}
+
 sub_format(){
     python3 -m black \
       --line-length $MAX_LINE_LENGTH $@
 
-    sub_verify
+    sub_verify_flake8 $@
 }
 
 subcommand=$1
