@@ -26,10 +26,7 @@ sub_verify_black() {
 }
 
 sub_verify() {
-    sub_verify_black $@
-    BLACK_RET=$?
-    sub_verify_flake8 $@
-    return $([[ $? == 0 ]] && [[ $BLACK_RET == 0 ]])
+    sub_verify_flake8 $@ && sub_verify_black $@
 }
 
 sub_format(){
