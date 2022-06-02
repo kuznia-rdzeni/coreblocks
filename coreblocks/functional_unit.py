@@ -6,8 +6,6 @@ from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
 
-from coreblocks.lib import *
-
 from coreblocks.genparams import GenParams
 
 from coreblocks.transactions._utils import *
@@ -117,23 +115,18 @@ class AluFuncUnit(Elaboratable):
         m = Module()
 
         m.submodules.alu = alu = Alu(self.gen)
-        m.submodules.pipe = pipe = Pipe(self.gen.get(FuncUnitLayouts).accept)
+        m.submodules.fifo = fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
 
-        @def_method(m, self.accept, ready=pipe.sink.valid)
+        @def_method(m, self.accept)
         def _(arg):
-            m.d.comb += pipe.sink.ready.eq(1)
+            return fifo.read(m)
 
-            return pipe.sink.payload
-
-        @def_method(m, self.issue, ready=pipe.source.ready)
+        @def_method(m, self.issue)
         def _(arg):
             m.d.comb += alu.op.eq(arg.op)
             m.d.comb += alu.in1.eq(arg.data1)
             m.d.comb += alu.in2.eq(arg.data2)
 
-            m.d.comb += pipe.source.payload.result.eq(alu.out)
-            m.d.comb += pipe.source.payload.rob_id.eq(arg.rob_id)
-
-            m.d.comb += pipe.source.valid.eq(1)
+            fifo.write(m, arg={"rob_id": arg.rob_id, "result": alu.out})
 
         return m
