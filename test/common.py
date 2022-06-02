@@ -60,6 +60,9 @@ class TestbenchIO(Elaboratable):
     def disable(self):
         yield self.adapter.en.eq(0)
 
+    def done(self):
+        return (yield self.adapter.done)
+
     def _wait_until_done(self):
         while (yield self.adapter.done) != 1:
             yield
