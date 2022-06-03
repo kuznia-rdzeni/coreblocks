@@ -26,6 +26,7 @@ sub_verify_flake8() {
 sub_verify_black() {
     python3 -m black \
         --line-length $MAX_LINE_LENGTH \
+        --extend-exclude "stubs|ci" $@ \
         --check $@
 }
 
