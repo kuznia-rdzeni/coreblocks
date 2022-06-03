@@ -423,6 +423,12 @@ class TestConditionals(TestCaseWithSimulator):
             self.assertTrue((yield from circ.out.done()))
             self.assertTrue((yield from circ.tb.done()))
 
+            # the argument is still 1 but the method is not called
+            yield from circ.tb.disable()
+            yield Settle()
+            self.assertFalse((yield from circ.out.done()))
+            self.assertFalse((yield from circ.tb.done()))
+
         with self.runSimulation(circ) as sim:
             sim.add_clock(1e-6)
             sim.add_sync_process(process)
