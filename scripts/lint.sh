@@ -7,8 +7,10 @@ prog_name=$(basename $0)
 sub_help(){
     echo "Usage: $prog_name subcommand [filename ...]\n"
     echo "Subcommands:"
-    echo "    format   Format the code"
-    echo "    verify   Verify formatting without making any changes"
+    echo "    format          Format the code"
+    echo "    verify          Verify formatting without making any changes"
+    echo "    verify_flake8   Verify formatting using flake8 only"
+    echo "    verify_black    Verify formatting using black only"
     echo ""
 }
 
