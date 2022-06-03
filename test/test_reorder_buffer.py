@@ -20,19 +20,17 @@ class TestElaboratable(Elaboratable):
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
+        rb = ReorderBuffer(self.gp)
 
-        with tm.transactionContext():
-            rb = ReorderBuffer(self.gp)
+        self.rb = rb
+        self.io_in = TestbenchIO(AdapterTrans(rb.put))
+        self.io_update = TestbenchIO(AdapterTrans(rb.mark_done))
+        self.io_out = TestbenchIO(AdapterTrans(rb.retire))
 
-            self.rb = rb
-            self.io_in = TestbenchIO(AdapterTrans(rb.put))
-            self.io_update = TestbenchIO(AdapterTrans(rb.mark_done))
-            self.io_out = TestbenchIO(AdapterTrans(rb.retire))
-
-            m.submodules.rb = rb
-            m.submodules.io_in = self.io_in
-            m.submodules.io_update = self.io_update
-            m.submodules.io_out = self.io_out
+        m.submodules.rb = rb
+        m.submodules.io_in = self.io_in
+        m.submodules.io_update = self.io_update
+        m.submodules.io_out = self.io_out
 
         return tm
 
@@ -72,12 +70,12 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 self.m.io_out.enable()
                 yield
                 is_ready = yield self.m.io_out.adapter.done
-                assert is_ready == 0  # transaction should not be ready if there is nothing to retire
+                self.assertEqual(is_ready, 0)  # transaction should not be ready if there is nothing to retire
             else:
                 regs = self.retire_queue.get()
                 results = yield from self.m.io_out.call()
                 phys_reg = results["rp_dst"]
-                assert phys_reg in self.executed_list
+                self.assertIn(phys_reg, self.executed_list)
                 self.executed_list.remove(phys_reg)
 
                 self.assertEqual(results, regs)
@@ -139,7 +137,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
         yield from self.m.io_out.enable()
         yield
         res = yield self.m.io_out.adapter.done
-        assert res == 0  # should be disabled, since we have read all elements
+        self.assertEqual(res, 0)  # should be disabled, since we have read all elements
 
     def test_single(self):
         self.rand = Random(0)
