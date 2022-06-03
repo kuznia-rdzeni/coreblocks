@@ -306,7 +306,7 @@ class Transaction:
         return cls.current
 
 
-def _connect_rec_with_possibly_dict(dst: ValueLike | Record, src: RecordDict) -> list[Assign]:
+def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> list[Assign]:
     if not isinstance(src, dict):
         return [dst.eq(src)]
 
@@ -369,9 +369,9 @@ class Method:
         calling ``body``.
     """
 
-    current: "Method" = None
+    current: Optional["Method"] = None
 
-    def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0, manager: Optional[TransactionManager] = None):
+    def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0):
         self.ready = Signal()
         self.run = Signal()
         self.data_in = Record(_coerce_layout(i))
@@ -504,7 +504,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     ```
     """
 
-    def decorator(func: Callable[[Record], RecordDict]):
+    def decorator(func: Callable[[Record], Optional[RecordDict]]):
         out = Record.like(method.data_out)
         ret_out = None
 

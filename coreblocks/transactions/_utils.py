@@ -43,10 +43,10 @@ class Scheduler(Elaboratable):
 
 ROGraph: TypeAlias = Mapping[T, Iterable[T]]
 Graph: TypeAlias = dict[T, set[T]]
-GraphCC: TypeAlias = list[set[T]]
+GraphCC: TypeAlias = set[T]
 
 
-def _graph_ccs(gr: ROGraph[T]) -> GraphCC[T]:
+def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
     ccs = []
     cc = set()
     visited = set()
