@@ -30,7 +30,7 @@ def get_outputs(field: Union["Record", "Signal"]):
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def runSimulation(self, module):
+    def runSimulation(self, module, deadline=1e-2):
         test_name = unittest.TestCase.id(self)
 
         sim = Simulator(module)
@@ -40,9 +40,13 @@ class TestCaseWithSimulator(unittest.TestCase):
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
             with sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw"):
-                sim.run()
+                self.run_sim_limited(sim, deadline)
         else:
-            sim.run()
+            self.run_sim_limited(sim, deadline)
+
+    def run_sim_limited(self, sim, deadline):
+        sim.run_until(deadline)
+        self.assertFalse(sim.advance(), "Simulation time limit exceeded")
 
 
 class TestbenchIO(Elaboratable):
