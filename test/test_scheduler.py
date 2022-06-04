@@ -6,9 +6,9 @@ from amaranth.back import verilog
 from amaranth.sim import Simulator, Settle
 from coreblocks.transactions import TransactionModule, TransactionContext
 from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans, Adapter
-from coreblocks.scheduler import RegAllocation, Renaming, ROBAllocation
+from coreblocks.scheduler import *
 from coreblocks.rat import RAT
-from coreblocks.layouts import SchedulerLayouts
+from coreblocks.layouts import SchedulerLayouts, RSLayouts
 from coreblocks.genparams import GenParams
 from coreblocks.reorder_buffer import ReorderBuffer
 from .common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO
@@ -22,7 +22,8 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        layouts = SchedulerLayouts(self.gen_params)
+        layouts = self.gen_params.get(SchedulerLayouts)
+        rs_layouts = self.gen_params.get(RSLayouts)
 
         with tm.transactionContext():
             m.submodules.instr_fifo = instr_fifo = FIFO(layouts.instr_layout, 16)
@@ -48,16 +49,38 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
             )
 
             m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
-            method_out = Adapter(o=layouts.rob_allocate_out, i=layouts.rob_allocate_out)
+            m.submodules.reg_alloc_out_buf = reg_alloc_out_buf = FIFO(layouts.rob_allocate_out, 2)
             m.submodules.rob_alloc = ROBAllocation(
                 get_instr=rename_out_buf.read,
-                push_instr=method_out.iface,
+                push_instr=reg_alloc_out_buf.write,
                 rob_put=self.rob.put,
                 gen_params=self.gen_params,
             )
 
+            # mocked RS
+            method_rs_alloc = Adapter(i=rs_layouts.rs_allocate_out, o=rs_layouts.rs_allocate_out)
+            method_rs_insert = Adapter(i=rs_layouts.rs_insert_in, o=rs_layouts.rs_insert_in)
+
+            m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
+            m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(layouts.rs_select_out, 2)
+            m.submodules.rs_select = RSSelection(
+                get_instr=reg_alloc_out_buf.read,
+                push_instr=rs_select_out_buf.write,
+                rs_alloc=method_rs_alloc.iface,
+                gen_params=self.gen_params,
+            )
+
+            m.submodules.rs_insert = RSInsertion(
+                get_instr=rs_select_out_buf.read,
+                rs_insert=method_rs_insert.iface,
+                rf_read1=self.rf.read1,
+                rf_read2=self.rf.read2,
+                gen_params=self.gen_params,
+            )
+
             # mocked input and output
-            m.submodules.output = self.out = TestbenchIO(method_out)
+            m.submodules.output = self.out = TestbenchIO(method_rs_insert)
+            m.submodules.rs_allocate = self.rs_allocate = TestbenchIO(method_rs_alloc)
             m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
             m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
             m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
@@ -151,8 +174,14 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
             self.free_regs_queue.put(None)
             self.free_ROB_entries_queue.put(None)
 
+        def rs_alloc_process():
+            for i in range(500):
+                random_entry = random.randint(0, self.gen_params.rs_entries - 1)
+                yield from self.m.rs_allocate.call({"entry_id": random_entry})
+
         with self.runSimulation(self.m) as sim:
             sim.add_sync_process(self.make_output_process())
             sim.add_sync_process(self.make_queue_process(self.m.rob_done, self.free_ROB_entries_queue, input_io=True))
             sim.add_sync_process(self.make_queue_process(self.m.free_rf_inp, self.free_regs_queue, input_io=True))
             sim.add_sync_process(instr_input_process)
+            sim.add_sync_process(rs_alloc_process)
