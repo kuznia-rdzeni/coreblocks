@@ -52,8 +52,8 @@ jobs:
           python -m pip install --upgrade pip
           pip3 install -r requirements-dev.txt
 
-      - name: Lint
-        run: ./scripts/lint.sh verify
+      - name: Check format
+        run: ./scripts/lint.sh check_format
 
       - name: Check types
-        run: pyright
+        run: ./scripts/lint.sh check_types
