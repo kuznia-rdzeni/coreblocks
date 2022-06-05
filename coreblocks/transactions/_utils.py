@@ -71,12 +71,12 @@ def _graph_ccs(gr: Mapping[T, Iterable[T]]) -> List[Set[T]]:
 
     Parameters
     ----------
-    gr : Dict[Set[T]]
+    gr : Mapping[T, Iterable[T]]
         Graph in which we should find connected components.
 
     Returns
     -------
-    ccs : List[List[T]]
+    ccs : List[Set[T]]
         Connected components from the graph `gr`.
     """
     ccs = []
