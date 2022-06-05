@@ -7,23 +7,35 @@ prog_name=$(basename $0)
 sub_help(){
     echo "Usage: $prog_name subcommand [filename ...]\n"
     echo "Subcommands:"
-    echo "    format   Format the code"
-    echo "    verify   Verify formatting without making any changes"
+    echo "    format          Format the code"
+    echo "    verify          Verify formatting without making any changes"
+    echo "    verify_flake8   Verify formatting using flake8 only"
+    echo "    verify_black    Verify formatting using black only"
     echo ""
 }
 
-sub_verify() {
+sub_verify_flake8() {
     python3 -m flake8 \
       --max-line-length=$MAX_LINE_LENGTH \
       --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak" \
       --extend-ignore=F401,F403,F405,E203 $@
 }
 
+sub_verify_black() {
+    python3 -m black \
+        --line-length $MAX_LINE_LENGTH \
+        --check $@
+}
+
+sub_verify() {
+    sub_verify_flake8 $@ && sub_verify_black $@
+}
+
 sub_format(){
     python3 -m black \
       --line-length $MAX_LINE_LENGTH $@
 
-    sub_verify
+    sub_verify_flake8 $@
 }
 
 subcommand=$1
