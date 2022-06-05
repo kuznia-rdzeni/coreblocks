@@ -202,10 +202,10 @@ class Transaction:
     it runs is ready.
 
     A ``Transaction`` cannot execute concurrently with another, conflicting
-    ``Transaction''. Conflicts between ``Transaction``s are either explicit
+    ``Transaction``. Conflicts between ``Transaction``s are either explicit
     or implicit. An explicit conflict is added using the ``add_conflict``
     method. Implicit conflicts arise between pairs of ``Transaction``s
-    which use the same ``Method''.
+    which use the same ``Method``.
 
     A module which defines a ``Transaction`` should use ``body`` to
     describe used methods and the transaction's effect on the module state.
