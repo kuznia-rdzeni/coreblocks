@@ -25,9 +25,9 @@ sub_check_format_flake8() {
 
 sub_check_format_black() {
     python3 -m black \
-        --line-length $MAX_LINE_LENGTH \
-        --extend-exclude "stubs|ci" $@ \
-        --check $@
+      --line-length $MAX_LINE_LENGTH \
+      --extend-exclude "stubs|ci" $@ \
+      --check $@
 }
 
 sub_check_format() {
@@ -47,8 +47,7 @@ sub_check_types(){
 }
 
 sub_verify(){
-  sub_check_format $@
-  sub_check_types
+    sub_check_format $@ && sub_check_types
 }
 
 subcommand=$1
