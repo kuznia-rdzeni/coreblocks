@@ -2,19 +2,17 @@
 
 ## Overview
 
-Reorder buffer have to buffer incoming instructions in program order to allow us too precisely handle exceptions during
-out of order execution and to commit machine state in correct order.
+Reorder buffer have to store incoming instructions in program order to allow us too precisely handle exceptions during
+out of order execution and to commit machine state in correct order. It usually store: PC, id of logical output
+register, id of physical output register, done bit and valid bit. It should allow to check if the oldest instructions
+are marked as done, to have possibility to commit ready, the oldest, instructions to machine state.
 
 
 ## External methods
 
 ### Insert to free slot
 
-Ready when:
-- *implementation defined*
-
 Input:
-- `start` - signal to start operation
 - `PC` - program counter
 - `id_out` - id of RF field where instruction output should be stored
 - `log_out` - identifier of logical registry where instruction output should be committed
@@ -28,12 +26,8 @@ Side effects:
 
 ### Mark entry as done
 
-Ready when:
-- *implementation defined*
-
 Input:
 - `position` - position in the ROB which should be marked as done
-- `start` - signal to start operation
 
 Output:
 - *null*
@@ -43,11 +37,8 @@ Side effects:
 
 ### Check if entry can be committed
 
-Ready when:
-- *implementation defined*
-
 Input:
-- `start` - signal to start operation
+- *null*
 
 Output:
 - `if_commit`
@@ -59,11 +50,8 @@ Side effects:
 
 ### Get oldest instruction data
 
-Ready when:
-- *implementation defined*
-
 Input:
-- `start` - signal to start operation
+- *null*
 
 Output:
 - PC - program counter
@@ -75,11 +63,8 @@ Side effects:
 
 ### Get oldest instruction index
 
-Ready when:
-- *implementation defined*
-
 Input:
-- `start` - signal to start operation
+- *null*
 
 Output:
 - `position` - identifier of the oldest instruction
@@ -89,11 +74,7 @@ Side effects:
 
 ### Clean entry
 
-Ready when:
-- *implementation defined*
-
 Input:
-- `start` - signal to start operation
 - `position` - ROB entry index which should be cleaned
 
 Output:

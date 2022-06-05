@@ -3,14 +3,14 @@
 ## Overview
 
 This block is responsible for allocation of a free entry in ROB for a new instruction.
+First it should find an empty entry in ROB, then mark it as used and fill it with
+instruction data and metadata. Especially it should set `done` bit in ROB on 0, to mark
+that this instruction hasn't finished yet.
 
 
 ## External Interface Methods
 
 ### Insert new instruction
-
-Ready when:
-- *implementation defined*
 
 Input:
 - `opcode_maj` - major instruction identifier
@@ -21,7 +21,6 @@ Input:
 - `log_out` - logical identifier of output registry
 - `imm` - immediate
 - `PC` - program counter
-- `start` - signal to start operation
 
 Output:
 - *null*
@@ -31,4 +30,3 @@ Side effects:
   - Find a free slot in ROB
   - Mark this slot as used
   - Fill this slot with needed data
-- Execute ["Route new instruction"](../scheduler/RS_selection.md#route-new-instruction) in RS\_selection

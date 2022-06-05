@@ -8,11 +8,8 @@ This FIFO should be used as an buffer and store instruction between frontend and
 
 ### Get new instruction
 
-Ready when:
-- *implementation defined*
-
 Input:
-- `start` - signal to start operation
+- *null*
 
 Output:
 - `opcode_maj` - major instruction identifier
@@ -29,11 +26,7 @@ Side effects:
 
 ### Put new instruction
 
-Ready when:
-- *implementation defined*
-
 Input:
-- `start` - signal to start operation
 - `opcode_maj` - major instruction identifier
 - `opcode_min` - minor instruction identifier for FU
 - `log_rs1` - id of logical register with first input argument

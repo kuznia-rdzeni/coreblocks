@@ -14,9 +14,6 @@ register which was allocated in previous step.
 
 ### Insert new instruction
 
-Ready when:
-- *implementation defined*
-
 Input:
 - `opcode_maj` - major instruction identifier
 - `opcode_min` - minor instruction identifier for FU
@@ -26,11 +23,9 @@ Input:
 - `log_out` - id of logical register for output result
 - `imm` - immediate
 - `PC` - program counter
-- `start` - signal to start operation
 
 Output:
 - *null*
 
 Side effects:
 - `F-RAT[log_out]=id_out`
-- Execute ["Insert new instruction"](../scheduler/ROB_allocation.md#insert-new-instruction) in ROB\_allocation

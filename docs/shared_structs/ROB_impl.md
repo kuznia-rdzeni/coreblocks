@@ -26,11 +26,8 @@ ROB is a memory with associated list of free ROB entries. If this list is empty 
 
 ### Get free entry
 
-Ready when:
-- *implementation defined*
-
 Input:
-- `start` - signal to start operation
+- *null*
 
 Output:
 - `id_ROB` - id of free ROB entry
@@ -41,15 +38,11 @@ Side effects:
 
 ### Insert instruction to entry
 
-Ready when:
-- *implementation defined*
-
 Input:
 - `PC` - program counter
 - `id_out` - id of RF field where instruction output should be stored
 - `log_out` - identifier of logical registry where instruction output should be committed
 - `position` - position in the ROB to which we should write this entry
-- `start` - signal to start operation
 
 Output:
 - *null*
@@ -67,12 +60,7 @@ Methods in transaction:
 - ["Get free entry"](#get-free-entry)
 - ["Insert instruction to entry"](#insert-instruction-to-entry)
 
-Ready when:
-- ["Get free entry"](#get-free-entry) is ready
-- ["Insert instruction to entry"](#insert-instruction-to-entry) is ready
-
 Input:
-- `start` - signal to start operation
 - `PC` - program counter
 - `id_out` - id of RF field where instruction output should be stored
 - `log_out` - identifier of logical registry where instruction output should be committed
