@@ -10,10 +10,11 @@ import amaranth.lib.fifo
 
 
 class FIFO(Elaboratable):
-    def __init__(self, layout, depth):
+    def __init__(self, layout, depth, fifoType=amaranth.lib.fifo.SyncFIFO):
         layout = _coerce_layout(layout)
         self.width = len(Record(layout))
         self.depth = depth
+        self.fifoType = fifoType
 
         self.read = Method(o=layout)
         self.write = Method(i=layout)
@@ -21,7 +22,9 @@ class FIFO(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.fifo = fifo = amaranth.lib.fifo.SyncFIFO(width=self.width, depth=self.depth)
+        m.submodules.fifo = fifo = self.fifoType(width=self.width, depth=self.depth)
+
+        assert fifo.fwft  # the read method requires FWFT behavior
 
         @def_method(m, self.write, ready=fifo.w_rdy)
         def _(arg):
