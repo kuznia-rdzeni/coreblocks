@@ -191,10 +191,21 @@ class TransactionModule(Elaboratable):
 class Transaction:
     """Transaction.
 
-    A ``Transaction`` allows to simultaneously access multiple ``Method``s
-    in a single clock cycle. It is granted by the ``TransactionManager``
-    only when every ``Method`` it needs is ready, and no conflicting
-    ``Transaction`` is already granted.
+    A ``Transaction`` represents a task which needs to be regularly done.
+    Execution of a ``Transaction`` always lasts a single clock cycle.
+    A ``Transaction`` signals readiness for execution by setting the
+    ``request`` signal. If the conditions for its execution are met, it
+    can be granted by the ``TransactionManager``.
+
+    A ``Transaction`` can, as part of its execution, call a number of
+    ``Method``s. A ``Transaction`` can be granted only if every ``Method``
+    it runs is ready.
+
+    A ``Transaction`` cannot execute concurrently with another, conflicting
+    ``Transaction``. Conflicts between ``Transaction``s are either explicit
+    or implicit. An explicit conflict is added using the ``add_conflict``
+    method. Implicit conflicts arise between pairs of ``Transaction``s
+    which use the same ``Method``.
 
     A module which defines a ``Transaction`` should use ``body`` to
     describe used methods and the transaction's effect on the module state.
@@ -245,6 +256,22 @@ class Transaction:
 
     @contextmanager
     def body(self, m: Module, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
+        """Defines the ``Transaction`` body.
+
+        This context manager allows to conveniently define the actions
+        performed by a ``Transaction`` when it's granted. Each assignment
+        added to a domain under ``body`` is guarded by the ``grant`` signal.
+        ``Method`` calls can be performed under ``body``.
+
+        Parameters
+        ----------
+        m: Module
+            The module where the ``Transaction`` is defined.
+        request: Signal
+            Indicates that the ``Transaction`` wants to be executed. By
+            default it is ``Const(1)``, so it wants to be executed in
+            every clock cycle.
+        """
         m.d.comb += self.request.eq(request)
         with self.context():
             with m.If(self.grant):
@@ -294,20 +321,20 @@ def _connect_rec_with_possibly_dict(dst, src):
 class Method:
     """Transactional method.
 
-    A ``Method`` serves to interface a module with external ``Transaction``s.
-    It can be called by at most one ``Transaction`` in a given clock cycle.
+    A ``Method`` serves to interface a module with external ``Transaction``s
+    or ``Method``s. It can be called by at most once in a given clock cycle.
     When a given ``Method`` is required by multiple ``Transaction``s
-    simultenaously, at most one of them is granted by the
-    ``TransactionManager``, and the rest of them must wait.
-    Calling a ``Method`` always takes a single clock cycle.
+    (either directly, or indirectly via another ``Method``) simultenaously,
+    at most one of them is granted by the ``TransactionManager``, and the rest
+    of them must wait. Calling a ``Method`` always takes a single clock cycle.
 
-    Data is combinatorially transferred between ``Method``s and
-    ``Transaction``s using Amaranth ``Record``s. The transfer can take place
-    in both directions at the same time: from ``Method`` to ``Transaction``
-    (``data_out``) and from ``Transaction`` to ``Method`` (``data_in``).
+    Data is combinatorially transferred between to and from ``Method``s
+    using Amaranth ``Record``s. The transfer can take place in both directions
+    at the same time: from the called ``Method`` to the caller (``data_out``)
+    and from the caller to the called ``Method`` (``data_in``).
 
-    A module which defines a ``Method`` should use ``body`` to describe
-    the method's effect on the module state.
+    A module which defines a ``Method`` should use ``body`` or ``def_method``
+    to describe the method's effect on the module state.
 
     Parameters
     ----------
@@ -327,11 +354,12 @@ class Method:
         Signals that the method is called in the current cycle by some
         ``Transaction``. Defined by the ``TransactionManager``.
     data_in: Record, out
-        Contains the data passed to the ``Method`` by the calling
-        ``Transaction``.
+        Contains the data passed to the ``Method`` by the caller
+        (a ``Transaction`` or another ``Method``).
     data_out: Record, in
-        Contains the data passed from the ``Method`` to the calling
-        ``Transaction``. Typically defined by calling ``body``.
+        Contains the data passed from the ``Method`` to the caller
+        (a ``Transaction`` or another ``Method``). Typically defined by
+        calling ``body``.
     """
 
     current = None
@@ -364,9 +392,9 @@ class Method:
         """Define method body
 
         The ``body`` function should be used to define body of
-        a method. It use ``ready`` and ``ret`` signals provided by
-        user to feed internal transactions logic and to pass this data
-        to method users.
+        a method. It uses the ``ready`` and ``ret`` signals provided by
+        the user to feed internal transactions logic and to pass this data
+        to method users. Inside the body, other ``Method``s can be called.
 
         Parameters
         ----------
@@ -379,13 +407,14 @@ class Method:
             Assigned combinatorially to the ``ready`` attribute.
         out : Record, in
             Data generated by the ``Method``, which will be passed to
-            the calling ``Transaction``. Assigned combinatorially to
-            the ``data_out`` attribute.
+            the caller (a ``Transaction`` or another ``Method``). Assigned
+            combinatorially to the ``data_out`` attribute.
 
         Returns
         -------
         data_in : Record, out
-            Data passed from the calling ``Transaction`` to the ``Method``.
+            Data passed from the caller (a ``Transaction`` or another
+            ``Method``) to this ``Method``.
 
         Example
         -------
