@@ -28,9 +28,9 @@ Side effects:
 
 Input:
 - `opcode` - instruction opcode for FU
-- `id_rs1` - id of RS field where `src1` should be stored
-- `id_rs2` - id of RS field where `src2` should be stored
-- `id_out` - id of RS field where instruction output should be stored
+- `id_rs1` - id of RF field where `src1` should be stored
+- `id_rs2` - id of RF field where `src2` should be stored
+- `id_out` - id of RF field where instruction output should be stored
 - `id_ROB` - id of ROB entry which is allocated for this instruction
 - `position` - in the RS to which we should write this entry
 
@@ -64,7 +64,7 @@ Output:
 - `opcode` - instruction opcode for FU
 - `val_rs1` - value of first operand
 - `val_rs2` - value of second operand
-- `id_out` - id of RS field where instruction output should be stored
+- `id_out` - id of RF field where instruction output should be stored
 - `id_ROB` - id of ROB entry which is allocated for this instruction
 
 Side effects:
@@ -75,7 +75,7 @@ Side effects:
 ### Compare and substitute all
 
 Input:
-- `tag` - for which RS should be checked for
+- `tag` - from RF for which RS should be checked for
 - `value` - value which should be written to fields of RS with matching tag
 
 Output:

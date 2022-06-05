@@ -33,7 +33,7 @@ When an entry in the RS is released, the corresponding entry in this table is sw
 ### Compare and substitute
 
 Input:
-- `tag` - field in RS which should be compared with `id_rsX` to check if there is need to store `value`
+- `tag` - identifier of field in RF which should be compared with `id_rsX` to check if there is need to store `value`
 - `value` - value which should be stored in RS field if tag matches
 - `position` - position in RS on which comparison and replacement should take place
 
@@ -54,7 +54,7 @@ Output:
 - `opcode` - instruction opcode for FU
 - `val_rs1` - value of first operand
 - `val_rs2` - value of second operand
-- `id_out` - id of RS field where instruction output should be stored
+- `id_out` - id of RF field where instruction output should be stored
 - `id_ROB` - id of ROB entry which is allocated for this instruction
 
 Side effects:
