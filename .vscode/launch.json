@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "configurations": [
+        {
+            "name": "Test all",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/run_tests",
+            "console": "integratedTerminal",
+            "args": []
+        },
+        {
+            "name": "Run test",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/run_tests",
+            "console": "integratedTerminal",
+            "args": ["${input:testName}"]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testName",
+            "description": "Test to run",
+            "default": "",
+            "type": "promptString"
+        }
+    ]
+}

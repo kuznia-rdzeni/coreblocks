@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Lint format",
+            "type": "shell",
+            "options": {"cwd" : "${workspaceFolder}"},
+            "args": ["format"],
+            "command": "./scripts/lint.sh",
+            "group":
+                {
+                    "kind": "build",
+                    "isDefault": false
+                }
+        },
+        {
+            "label": "Lint verify",
+            "type":"shell",
+            "options": {"cwd" : "${workspaceFolder}"},
+            "args": ["verify"],
+            "command": "./scripts/lint.sh",
+            "group":
+                {
+                    "kind": "test",
+                    "isDefault": false
+                }
+        }
+    ]
+}
