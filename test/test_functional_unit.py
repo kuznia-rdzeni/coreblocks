@@ -14,8 +14,12 @@ from coreblocks.functional_unit import *
 from coreblocks.genparams import GenParams
 
 
-def _cast_to_int32(x):
-    return -int(0x100000000 - x) if (x > 0x7FFFFFFF) else x
+def _cast_to_int_xlen(x, xlen):
+    if xlen == 32:
+        return -int(0x100000000 - x) if (x > 0x7FFFFFFF) else x
+    elif xlen == 64:
+        return -int(0x10000000000000000 - x) if (x > 0x7FFFFFFFFFFFFFFF) else x
+    return 0
 
 
 class TestAlu(TestCaseWithSimulator):
@@ -64,53 +68,54 @@ class TestAlu(TestCaseWithSimulator):
             sim.add_process(process)
 
     def test_add(self):
-        self.check_op(AluOp.Op.ADD, operator.add)
+        self.check_op(AluFn.Fn.ADD, operator.add)
 
     def test_sll(self):
-        self.check_op(AluOp.Op.SLL, lambda in1, in2: in1 << (in2 & 0x1F))
+        self.check_op(AluFn.Fn.SLL, lambda in1, in2: in1 << (in2 & (self.gen.isa.xlen - 1)))
 
     def test_seq(self):
-        self.check_op(AluOp.Op.SEQ, operator.eq)
+        self.check_op(AluFn.Fn.SEQ, operator.eq)
 
     def test_sne(self):
-        self.check_op(AluOp.Op.SNE, operator.ne)
+        self.check_op(AluFn.Fn.SNE, operator.ne)
 
     def test_xor(self):
-        self.check_op(AluOp.Op.XOR, operator.xor)
+        self.check_op(AluFn.Fn.XOR, operator.xor)
 
     def test_srl(self):
-        self.check_op(AluOp.Op.SRL, lambda in1, in2: in1 >> (in2 & 0x1F))
+        self.check_op(AluFn.Fn.SRL, lambda in1, in2: in1 >> (in2 & (self.gen.isa.xlen - 1)))
 
     def test_or(self):
-        self.check_op(AluOp.Op.OR, operator.or_)
+        self.check_op(AluFn.Fn.OR, operator.or_)
 
     def test_and(self):
-        self.check_op(AluOp.Op.AND, operator.and_)
+        self.check_op(AluFn.Fn.AND, operator.and_)
 
     def test_sub(self):
-        self.check_op(AluOp.Op.SUB, operator.sub)
+        self.check_op(AluFn.Fn.SUB, operator.sub)
 
     def test_sra(self):
         def sra(in1, in2):
-            in2 = in2 & 0x1F
-            if in1 & 2**31 != 0:
-                return (((2**32) - 1) << 32 | in1) >> in2
+            xlen = self.gen.isa.xlen
+            in2 = in2 & (xlen - 1)
+            if in1 & 2**(xlen - 1) != 0:
+                return (((2**xlen) - 1) << xlen | in1) >> in2
             else:
                 return in1 >> in2
 
-        self.check_op(AluOp.Op.SRA, sra)
+        self.check_op(AluFn.Fn.SRA, sra)
 
     def test_slt(self):
-        self.check_op(AluOp.Op.SLT, lambda in1, in2: _cast_to_int32(in1) < _cast_to_int32(in2))
+        self.check_op(AluFn.Fn.SLT, lambda in1, in2: _cast_to_int_xlen(in1, self.gen.isa.xlen) < _cast_to_int_xlen(in2, self.gen.isa.xlen))
 
     def test_sge(self):
-        self.check_op(AluOp.Op.SGE, lambda in1, in2: _cast_to_int32(in1) >= _cast_to_int32(in2))
+        self.check_op(AluFn.Fn.SGE, lambda in1, in2: _cast_to_int_xlen(in1, self.gen.isa.xlen) >= _cast_to_int_xlen(in2, self.gen.isa.xlen))
 
     def test_sltu(self):
-        self.check_op(AluOp.Op.SLTU, operator.lt)
+        self.check_op(AluFn.Fn.SLTU, operator.lt)
 
     def test_sgeu(self):
-        self.check_op(AluOp.Op.SGEU, operator.ge)
+        self.check_op(AluFn.Fn.SGEU, operator.ge)
 
 
 class AluFuncUnitTestCircuit(Elaboratable):
@@ -144,7 +149,7 @@ class TestAluFuncUnit(TestCaseWithSimulator):
             data1 = random.randint(0, max_int)
             data2 = random.randint(0, max_int)
             rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
-            op = AluOp.Op.ADD
+            op = AluFn.Fn.ADD
             result = (data1 + data2) & max_int
 
             self.requests.append({"data1": data1, "data2": data2, "rob_id": rob_id, "op": op})

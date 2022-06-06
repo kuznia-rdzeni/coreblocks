@@ -10,12 +10,12 @@ from coreblocks.genparams import GenParams
 
 from coreblocks.transactions._utils import *
 
-__all__ = ["AluOp", "Alu", "FuncUnitLayouts", "AluFuncUnit"]
+__all__ = ["AluFn", "Alu", "FuncUnitLayouts", "AluFuncUnit"]
 
 
-class AluOp(Signal):
+class AluFn(Signal):
     @unique
-    class Op(IntEnum):
+    class Fn(IntEnum):
         ADD = 0  # Addition
         SLL = 1  # Logic left shift
         SEQ = 2  # Set if equal
@@ -32,14 +32,14 @@ class AluOp(Signal):
         SGEU = 15  # Set if greater than or equal to (unsigned)
 
     def __init__(self, *args, **kwargs):
-        super().__init__(AluOp.Op, *args, **kwargs)
+        super().__init__(AluFn.Fn, *args, **kwargs)
 
 
 class Alu(Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen
 
-        self.op = AluOp()
+        self.op = AluFn()
         self.in1 = Signal(gen.isa.xlen)
         self.in2 = Signal(gen.isa.xlen)
 
@@ -52,33 +52,33 @@ class Alu(Elaboratable):
         xlen_log = self.gen.isa.xlen_log
 
         with m.Switch(self.op):
-            with m.Case(AluOp.Op.ADD):
+            with m.Case(AluFn.Fn.ADD):
                 m.d.comb += self.out.eq(self.in1 + self.in2)
-            with m.Case(AluOp.Op.SLL):
+            with m.Case(AluFn.Fn.SLL):
                 m.d.comb += self.out.eq(self.in1 << self.in2[0:xlen_log])
-            with m.Case(AluOp.Op.SEQ):
+            with m.Case(AluFn.Fn.SEQ):
                 m.d.comb += self.out.eq(self.in1 == self.in2)
-            with m.Case(AluOp.Op.SNE):
+            with m.Case(AluFn.Fn.SNE):
                 m.d.comb += self.out.eq(self.in1 != self.in2)
-            with m.Case(AluOp.Op.XOR):
+            with m.Case(AluFn.Fn.XOR):
                 m.d.comb += self.out.eq(self.in1 ^ self.in2)
-            with m.Case(AluOp.Op.SRL):
+            with m.Case(AluFn.Fn.SRL):
                 m.d.comb += self.out.eq(self.in1 >> self.in2[0:xlen_log])
-            with m.Case(AluOp.Op.OR):
+            with m.Case(AluFn.Fn.OR):
                 m.d.comb += self.out.eq(self.in1 | self.in2)
-            with m.Case(AluOp.Op.AND):
+            with m.Case(AluFn.Fn.AND):
                 m.d.comb += self.out.eq(self.in1 & self.in2)
-            with m.Case(AluOp.Op.SUB):
+            with m.Case(AluFn.Fn.SUB):
                 m.d.comb += self.out.eq(self.in1 - self.in2)
-            with m.Case(AluOp.Op.SRA):
+            with m.Case(AluFn.Fn.SRA):
                 m.d.comb += self.out.eq(Cat(self.in1, Repl(self.in1[xlen - 1], xlen)) >> self.in2[0:xlen_log])
-            with m.Case(AluOp.Op.SLT):
+            with m.Case(AluFn.Fn.SLT):
                 m.d.comb += self.out.eq(self.in1.as_signed() < self.in2.as_signed())
-            with m.Case(AluOp.Op.SGE):
+            with m.Case(AluFn.Fn.SGE):
                 m.d.comb += self.out.eq(self.in1.as_signed() >= self.in2.as_signed())
-            with m.Case(AluOp.Op.SLTU):
+            with m.Case(AluFn.Fn.SLTU):
                 m.d.comb += self.out.eq(self.in1 < self.in2)
-            with m.Case(AluOp.Op.SGEU):
+            with m.Case(AluFn.Fn.SGEU):
                 m.d.comb += self.out.eq(self.in1 >= self.in2)
 
             with m.Default():
@@ -86,18 +86,17 @@ class Alu(Elaboratable):
 
         return m
 
-
 class FuncUnitLayouts:
     def __init__(self, gen: GenParams):
         self.issue = [
-            ("rob_id", gen.rob_entries_bits),
+            ("instr_tag", gen.rob_entries_bits),
             ("data1", gen.isa.xlen),
             ("data2", gen.isa.xlen),
-            ("op", AluOp.Op),
+            ("op", AluFn.Fn),
         ]
 
         self.accept = [
-            ("rob_id", gen.rob_entries_bits),
+            ("instr_tag", gen.rob_entries_bits),
             ("result", gen.isa.xlen),
         ]
 
@@ -127,6 +126,6 @@ class AluFuncUnit(Elaboratable):
             m.d.comb += alu.in1.eq(arg.data1)
             m.d.comb += alu.in2.eq(arg.data2)
 
-            fifo.write(m, arg={"rob_id": arg.rob_id, "result": alu.out})
+            fifo.write(m, arg={"instr_tag": arg.instr_tag, "result": alu.out})
 
         return m
