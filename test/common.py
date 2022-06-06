@@ -1,4 +1,5 @@
 import unittest
+import os
 from contextlib import contextmanager
 from typing import Union
 
@@ -30,9 +31,17 @@ def get_outputs(field: Union["Record", "Signal"]):
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
     def runSimulation(self, module):
+        test_name = unittest.TestCase.id(self)
+
         sim = Simulator(module)
         yield sim
-        with sim.write_vcd("test.vcd", "test.gtkw"):
+
+        if "__COREBLOCKS_DUMP_TRACES" in os.environ:
+            traces_dir = "test/__traces__"
+            os.makedirs(traces_dir, exist_ok=True)
+            with sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw"):
+                sim.run()
+        else:
             sim.run()
 
 
@@ -50,6 +59,9 @@ class TestbenchIO(Elaboratable):
 
     def disable(self):
         yield self.adapter.en.eq(0)
+
+    def done(self):
+        return (yield self.adapter.done)
 
     def _wait_until_done(self):
         while (yield self.adapter.done) != 1:

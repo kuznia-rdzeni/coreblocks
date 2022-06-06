@@ -80,14 +80,13 @@ class TransactionConflictTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m, TransactionManager(self.scheduler))
-        with tm.transactionContext():
-            adapter = Adapter(i=32, o=32)
-            m.submodules.out = self.out = TestbenchIO(adapter)
-            m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
-            m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))
-            # so that Amaranth allows us to use add_clock
-            dummy = Signal()
-            m.d.sync += dummy.eq(1)
+        adapter = Adapter(i=32, o=32)
+        m.submodules.out = self.out = TestbenchIO(adapter)
+        m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
+        m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
         return tm
 
 
