@@ -122,7 +122,7 @@ _wfi_encodings = [
     Encoding(Opcode.SYSTEM, Funct3.PRIV, None, Funct12.WFI),  # wfi
 ]
 
-_ifence_encodings = [
+_fencei_encodings = [
     Encoding(Opcode.MISC_MEM, Funct3.FENCEI),  # fence.i
 ]
 
@@ -157,8 +157,8 @@ _i_encodings = [
     _wfi_encodings,
 ]
 
-_zifence_encodings = [
-    _ifence_encodings,
+_zifencei_encodings = [
+    _fencei_encodings,
 ]
 
 _zicsr_encodings = [
@@ -218,22 +218,18 @@ class InstrDecoder(Elaboratable):
     def _extract(self, start, sig):
         return sig.eq(self.instr[start : start + len(sig)])
 
-    def _match(self, extension_encodings):
+    def _match(self, encodings):
         return reduce(
             or_,
             map(
-                lambda encodings: reduce(
-                    or_,
-                    map(
-                        lambda enc: (self.opcode == enc.opcode if enc.opcode is not None else 1)
-                        & (self.funct3 == enc.funct3 if enc.funct3 is not None else 1)
-                        & (self.funct7 == enc.funct7 if enc.funct7 is not None else 1)
-                        & (self.funct12 == enc.funct12 if enc.funct12 is not None else 1)
-                        & ((self.rd == 0) & (self.rs1 == 0) if enc.funct3 in [Funct3.FENCE, Funct3.PRIV] else 1),
-                        encodings,
-                    ),
+                lambda enc: (self.opcode == enc.opcode if enc.opcode is not None else 1)
+                & (self.funct3 == enc.funct3 if enc.funct3 is not None else 1)
+                & (self.funct7 == enc.funct7 if enc.funct7 is not None else 1)
+                & (self.funct12 == enc.funct12 if enc.funct12 is not None else 1)
+                & (
+                    (self.rd == 0) & (self.rs1 == 0) if enc.opcode == Opcode.SYSTEM and enc.funct3 == Funct3.PRIV else 1
                 ),
-                extension_encodings,
+                encodings,
             ),
         )
 
@@ -301,6 +297,9 @@ class InstrDecoder(Elaboratable):
             self._extract(15, uimm5),
         ]
 
+        with m.If((self.funct3 == Funct3.SLL) | (self.funct3 == Funct3.SR)):
+            m.d.comb += iimm12[5:11].eq(0)
+
         with m.Switch(itype):
             with m.Case(InstrType.I):
                 m.d.comb += self.imm.eq(iimm12)
@@ -331,27 +330,32 @@ class InstrDecoder(Elaboratable):
         extensions = self.gen.isa.extensions
 
         m.d.comb += op_mask.eq(0)
-        self.extension_cnt = 0
+        for i, encodings in enumerate(_i_encodings):
+            m.d.comb += op_mask[i].eq(self._match(encodings))
 
-        def enumerateEncodings(extension_encodings):
-            m.d.comb += op_mask[self.extension_cnt].eq(self._match(extension_encodings))
-            self.extension_cnt += 1
+        off = len(_i_encodings)
 
-        enumerateEncodings(_i_encodings)
+        if extensions & Extension.ZIFENCEI:
+            for i, encodings in enumerate(_zifencei_encodings):
+                m.d.comb += op_mask[i + off].eq(self._match(encodings))
 
-        if extensions & Extension.ZIFENCE:
-            enumerateEncodings(_zifence_encodings)
+        off += len(_zifencei_encodings)
 
         if extensions & Extension.ZICSR:
-            enumerateEncodings(_zicsr_encodings)
+            for i, encodings in enumerate(_zicsr_encodings):
+                m.d.comb += op_mask[i + off].eq(self._match(encodings))
+
+        off += len(_zicsr_encodings)
 
         m.d.comb += self.op.eq(OpType.UNKNOWN)
         with m.Switch(op_mask):
-            for i in range(self.extension_cnt):
+            for i in range(off):
                 with m.Case("-" * (len(op_mask) - i - 1) + "1" + "-" * i):
                     m.d.comb += self.op.eq(i + 1)
-        #    with m.Default():
-        #        m.d.comb += self.op.eq(OpType.UNKNOWN)
+            with m.Default():
+                m.d.comb += self.op.eq(OpType.UNKNOWN)
+
+        # m.d.comb += self.op.eq(op_mask)
 
         # Immediate correction
 

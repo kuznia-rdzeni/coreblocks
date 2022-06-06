@@ -85,7 +85,7 @@ class OpType(IntEnum):
     EBREAK = 13
     MRET = 14
     WFI = 15
-    IFENCE = 16
+    FENCEI = 16
     CSR = 17
 
 
@@ -98,21 +98,21 @@ class Extension(IntFlag):
     F = 0x010
     D = 0x020
     C = 0x040
-    ZIFENCE = 0x080
+    ZIFENCEI = 0x080
     ZICSR = 0x100
 
 
 _extension_map = {
     "e": Extension.E,
     "i": Extension.I,
-    "g": Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.ZICSR | Extension.ZIFENCE,
+    "g": Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.ZICSR | Extension.ZIFENCEI,
     "m": Extension.M,
     "a": Extension.A,
     "f": Extension.F,
     "d": Extension.D,
     "c": Extension.C,
     "zicsr": Extension.ZICSR,
-    "zifence": Extension.ZIFENCE,
+    "zifencei": Extension.ZIFENCEI,
 }
 
 

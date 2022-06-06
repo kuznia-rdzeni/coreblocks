@@ -73,15 +73,15 @@ class TestDecoder(TestCaseWithSimulator):
         # LUI
         InstrTest(0x001230B7, Opcode.LUI, rd=1, imm=0x123 << 12, op=OpType.LUI),
         # Jump
-        InstrTest(0x000000EF, Opcode.JAL, rd=1, imm=0x50, op=OpType.JUMP),
-        InstrTest(0xFFE100E7, Opcode.JALR, Funct3.JALR, rd=1, rs2=2, imm=0xFFFFFFFE, op=OpType.JUMP),
+        InstrTest(0x000000EF, Opcode.JAL, rd=1, imm=0, op=OpType.JUMP),
+        InstrTest(0xFFE100E7, Opcode.JALR, Funct3.JALR, rd=1, rs1=2, imm=0xFFFFFFFE, op=OpType.JUMP),
         # Branch
-        InstrTest(0x00209463, Opcode.BRANCH, Funct3.BEQ, rs1=1, rs2=2, imm=0x68 << 1, op=OpType.BRANCH),
-        InstrTest(0x00310463, Opcode.BRANCH, Funct3.BNE, rs1=2, rs2=3, imm=0x60 << 1, op=OpType.BRANCH),
-        InstrTest(0x00524463, Opcode.BRANCH, Funct3.BLT, rs1=3, rs2=4, imm=0x78 << 1, op=OpType.BRANCH),
-        InstrTest(0x0041D463, Opcode.BRANCH, Funct3.BGE, rs1=4, rs2=5, imm=0x70 << 1, op=OpType.BRANCH),
-        InstrTest(0x00736463, Opcode.BRANCH, Funct3.BLTU, rs1=5, rs2=6, imm=0x88 << 1, op=OpType.BRANCH),
-        InstrTest(0x0062F463, Opcode.BRANCH, Funct3.BGEU, rs1=6, rs2=7, imm=0x80 << 1, op=OpType.BRANCH),
+        InstrTest(0x00209463, Opcode.BRANCH, Funct3.BNE, rs1=1, rs2=2, imm=4 << 1, op=OpType.BRANCH),
+        InstrTest(0x00310463, Opcode.BRANCH, Funct3.BEQ, rs1=2, rs2=3, imm=4 << 1, op=OpType.BRANCH),
+        InstrTest(0x0041D463, Opcode.BRANCH, Funct3.BGE, rs1=3, rs2=4, imm=4 << 1, op=OpType.BRANCH),
+        InstrTest(0x00524463, Opcode.BRANCH, Funct3.BLT, rs1=4, rs2=5, imm=4 << 1, op=OpType.BRANCH),
+        InstrTest(0x0062F463, Opcode.BRANCH, Funct3.BGEU, rs1=5, rs2=6, imm=4 << 1, op=OpType.BRANCH),
+        InstrTest(0x00736463, Opcode.BRANCH, Funct3.BLTU, rs1=6, rs2=7, imm=4 << 1, op=OpType.BRANCH),
         # Load
         InstrTest(0x00B48403, Opcode.LOAD, Funct3.B, rd=8, rs1=9, imm=11, op=OpType.LOAD),
         InstrTest(0x00C54483, Opcode.LOAD, Funct3.BU, rd=9, rs1=10, imm=12, op=OpType.LOAD),
@@ -89,9 +89,9 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x00E65583, Opcode.LOAD, Funct3.HU, rd=11, rs1=12, imm=14, op=OpType.LOAD),
         InstrTest(0x00F6A603, Opcode.LOAD, Funct3.W, rd=12, rs1=13, imm=15, op=OpType.LOAD),
         # Store
-        InstrTest(0x00D70823, Opcode.STORE, Funct3.B, rd=13, rs1=14, imm=16, op=OpType.STORE),
-        InstrTest(0x00E798A3, Opcode.STORE, Funct3.H, rd=14, rs1=15, imm=17, op=OpType.STORE),
-        InstrTest(0x00F82923, Opcode.STORE, Funct3.W, rd=15, rs1=16, imm=18, op=OpType.STORE),
+        InstrTest(0x00D70823, Opcode.STORE, Funct3.B, rs1=14, rs2=13, imm=16, op=OpType.STORE),
+        InstrTest(0x00E798A3, Opcode.STORE, Funct3.H, rs1=15, rs2=14, imm=17, op=OpType.STORE),
+        InstrTest(0x00F82923, Opcode.STORE, Funct3.W, rs1=16, rs2=15, imm=18, op=OpType.STORE),
         # Fence
         InstrTest(
             0x0320000F,
@@ -113,24 +113,24 @@ class TestDecoder(TestCaseWithSimulator):
         # WFI
         InstrTest(0x10500073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI, rd=0, rs1=0, op=OpType.WFI),
     ]
-    DECODER_TESTS_ZIFENCE = [
-        InstrTest(0x0000100F, Opcode.MISC_MEM, Funct3.FENCEI, rd=0, rs1=0, imm=0, op=OpType.IFENCE),
+    DECODER_TESTS_ZIFENCEI = [
+        InstrTest(0x0000100F, Opcode.MISC_MEM, Funct3.FENCEI, rd=0, rs1=0, imm=0, op=OpType.FENCEI),
     ]
     DECODER_TESTS_ZICSR = [
         InstrTest(0x001A9A73, Opcode.SYSTEM, Funct3.CSRRW, rd=20, rs1=21, csr=0x01, op=OpType.CSR),
         InstrTest(0x002B2AF3, Opcode.SYSTEM, Funct3.CSRRS, rd=21, rs1=22, csr=0x02, op=OpType.CSR),
         InstrTest(0x004BBB73, Opcode.SYSTEM, Funct3.CSRRC, rd=22, rs1=23, csr=0x04, op=OpType.CSR),
-        InstrTest(0x001FDA73, Opcode.SYSTEM, Funct3.CSRRWI, rd=23, imm=0x1F, csr=0x08, op=OpType.CSR),
-        InstrTest(0x0027EAF3, Opcode.SYSTEM, Funct3.CSRRSI, rd=24, imm=0xF, csr=0x10, op=OpType.CSR),
-        InstrTest(0x00407B73, Opcode.SYSTEM, Funct3.CSRRCI, rd=25, imm=0x0, csr=0x20, op=OpType.CSR),
+        InstrTest(0x001FDA73, Opcode.SYSTEM, Funct3.CSRRWI, rd=20, imm=0x1F, csr=0x01, op=OpType.CSR),
+        InstrTest(0x0027EAF3, Opcode.SYSTEM, Funct3.CSRRSI, rd=21, imm=0xF, csr=0x02, op=OpType.CSR),
+        InstrTest(0x00407B73, Opcode.SYSTEM, Funct3.CSRRCI, rd=22, imm=0x0, csr=0x04, op=OpType.CSR),
     ]
 
     def setUp(self):
         gen = GenParams("rv32gc")
         self.decoder = InstrDecoder(gen)
+        self.cnt = 1
 
     def do_test(self, test):
-        print("test")
         def process():
             yield self.decoder.instr.eq(test.encoding)
             yield Settle()
@@ -173,13 +173,21 @@ class TestDecoder(TestCaseWithSimulator):
             if test.csr is not None:
                 self.assertEqual((yield self.decoder.csr), test.csr)
 
-            #self.assertEqual((yield self.decoder.op), test.op)
+            self.assertEqual((yield self.decoder.op), test.op)
 
-            #self.assertEqual((yield self.decoder.illegal), test.illegal)
+            self.assertEqual((yield self.decoder.illegal), test.illegal)
 
         with self.runSimulation(self.decoder) as sim:
             sim.add_process(process)
 
     def test_i(self):
         for test in self.DECODER_TESTS_I:
+            self.do_test(test)
+
+    def test_zifencei(self):
+        for test in self.DECODER_TESTS_ZIFENCEI:
+            self.do_test(test)
+
+    def test_zicsr(self):
+        for test in self.DECODER_TESTS_ZICSR:
             self.do_test(test)

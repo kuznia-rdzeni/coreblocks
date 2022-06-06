@@ -23,7 +23,7 @@ class TestISA(unittest.TestCase):
             Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.C,
         ),
         ISATestEntry(
-            "rv32imafdc_zifence_zicsr",
+            "rv32imafdc_zifencei_zicsr",
             True,
             32,
             32,
@@ -33,11 +33,11 @@ class TestISA(unittest.TestCase):
             | Extension.F
             | Extension.D
             | Extension.C
-            | Extension.ZIFENCE
+            | Extension.ZIFENCEI
             | Extension.ZICSR,
         ),
         ISATestEntry(
-            "rv32i_m_a_f_d_c_zifence_zicsr",
+            "rv32i_m_a_f_d_c_zifencei_zicsr",
             True,
             32,
             32,
@@ -47,7 +47,7 @@ class TestISA(unittest.TestCase):
             | Extension.F
             | Extension.D
             | Extension.C
-            | Extension.ZIFENCE
+            | Extension.ZIFENCEI
             | Extension.ZICSR,
         ),
         ISATestEntry("rv32ec_zicsr", True, 32, 16, Extension.E | Extension.C | Extension.ZICSR),
@@ -57,7 +57,7 @@ class TestISA(unittest.TestCase):
             True,
             64,
             32,
-            Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.ZIFENCE | Extension.ZICSR,
+            Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.ZIFENCEI | Extension.ZICSR,
         ),
         ISATestEntry("rv32", False),
         ISATestEntry("rv32ie", False),
