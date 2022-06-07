@@ -4,26 +4,47 @@
         {
             "label": "Lint format",
             "type": "shell",
-            "options": {"cwd" : "${workspaceFolder}"},
-            "args": ["format"],
             "command": "./scripts/lint.sh",
-            "group":
-                {
-                    "kind": "build",
-                    "isDefault": false
-                }
+            "args": [
+                "format"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "none",
+                "isDefault": false
+            },
+            "problemMatcher": []
         },
         {
             "label": "Lint verify",
-            "type":"shell",
-            "options": {"cwd" : "${workspaceFolder}"},
-            "args": ["verify"],
+            "type": "shell",
             "command": "./scripts/lint.sh",
-            "group":
-                {
-                    "kind": "test",
-                    "isDefault": false
+            "args": [
+                "verify"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "none",
+                "isDefault": false
+            },
+            "problemMatcher": {
+                "owner": "python",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 4
                 }
+            }
         }
     ]
 }
