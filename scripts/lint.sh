@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Make sure coreblock environment is active
-MAIN_DIR=${PWD%%coreblocks*}coreblocks/
+MAIN_DIR=${PWD%%coreblocks*}coreblocks
 . $MAIN_DIR/scripts/activate_environment.sh
 
 MAX_LINE_LENGTH=120

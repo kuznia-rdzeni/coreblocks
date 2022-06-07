@@ -4,7 +4,7 @@
 if [ COREBLOCKS_ENV != "active" ]; then
 
     # Set all the paths
-    MAIN_DIR=${PWD%%coreblocks*}coreblocks/
+    MAIN_DIR=${PWD%%coreblocks*}coreblocks
     SCRIPTS_PATH=$MAIN_DIR/scripts
 
     # Set python venv if present
