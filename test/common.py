@@ -1,6 +1,6 @@
 import unittest
 import os
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from typing import Union
 
 from amaranth import *
@@ -39,14 +39,12 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
-            with sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw"):
-                self.run_sim_limited(sim, deadline)
+            ctx = sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw")
         else:
-            self.run_sim_limited(sim, deadline)
+            ctx = nullcontext()
 
-    def run_sim_limited(self, sim, deadline):
-        sim.run_until(deadline)
-        self.assertFalse(sim.advance(), "Simulation time limit exceeded")
+        with ctx:
+            sim.run()
 
 
 class TestbenchIO(Elaboratable):
