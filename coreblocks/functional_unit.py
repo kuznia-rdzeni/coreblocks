@@ -100,7 +100,6 @@ class FuncUnitLayouts:
             ("result", gen.isa.xlen),
         ]
 
-
 class AluFuncUnit(Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen

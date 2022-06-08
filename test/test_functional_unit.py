@@ -37,7 +37,7 @@ class TestAlu(TestCaseWithSimulator):
     ]
 
     def setUp(self):
-        self.gen = GenParams()
+        self.gen = GenParams("rv32i")
         self.alu = Alu(self.gen)
 
         random.seed(42)
@@ -126,19 +126,18 @@ class AluFuncUnitTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        with tm.transactionContext():
-            m.submodules.func_unit = func_unit = AluFuncUnit(self.gen)
+        m.submodules.func_unit = func_unit = AluFuncUnit(self.gen)
 
-            # mocked input and output
-            m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-            m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
+        # mocked input and output
+        m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
+        m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
 
         return tm
 
 
 class TestAluFuncUnit(TestCaseWithSimulator):
     def setUp(self):
-        self.gen = GenParams()
+        self.gen = GenParams("rv32i")
         self.m = AluFuncUnitTestCircuit(self.gen)
 
         random.seed(42)
@@ -148,12 +147,12 @@ class TestAluFuncUnit(TestCaseWithSimulator):
         for i in range(50):
             data1 = random.randint(0, max_int)
             data2 = random.randint(0, max_int)
-            rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
+            instr_tag = random.randint(0, 2**self.gen.rob_entries_bits - 1)
             op = AluFn.Fn.ADD
             result = (data1 + data2) & max_int
 
-            self.requests.append({"data1": data1, "data2": data2, "rob_id": rob_id, "op": op})
-            self.responses.append({"rob_id": rob_id, "result": result})
+            self.requests.append({"data1": data1, "data2": data2, "instr_tag": instr_tag, "op": op})
+            self.responses.append({"instr_tag": instr_tag, "result": result})
 
     def test_randomized(self):
         def random_wait():
@@ -190,7 +189,7 @@ class TestAluFuncUnit(TestCaseWithSimulator):
                 req = self.requests.pop()
                 yield from self.m.issue.call_init(req)
                 yield
-                self.assertTrue((yield from self.m.issue.is_done()))
+                self.assertTrue((yield from self.m.issue.done()))
 
         with self.runSimulation(self.m) as sim:
             sim.add_clock(1e-6)
