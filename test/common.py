@@ -8,10 +8,10 @@ from amaranth.sim import *
 from coreblocks.transactions.lib import AdapterBase
 
 
-RecordDict = dict[str, Union[int, "RecordDict"]]
+RecordIntDict = dict[str, Union[int, "RecordIntDict"]]
 
 
-def set_inputs(values: RecordDict, field: Record):
+def set_inputs(values: RecordIntDict, field: Record):
     for name, value in values.items():
         if isinstance(value, dict):
             yield from set_inputs(value, getattr(field, name))
@@ -72,7 +72,7 @@ class TestbenchIO(Elaboratable):
         while (yield self.adapter.done) != 1:
             yield
 
-    def call_init(self, data: RecordDict = {}):
+    def call_init(self, data: RecordIntDict = {}):
         yield from self.enable()
         yield from set_inputs(data, self.adapter.data_in)
 
@@ -87,7 +87,7 @@ class TestbenchIO(Elaboratable):
         yield from self.disable()
         return outputs
 
-    def call(self, data: RecordDict = {}):
+    def call(self, data: RecordIntDict = {}):
         yield from self.call_init(data)
         yield
         return (yield from self.call_do())
