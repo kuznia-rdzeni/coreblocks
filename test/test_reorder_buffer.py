@@ -88,7 +88,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
         self.test_steps = 2000
-        gp = GenParams(phys_regs_bits=5, rob_entries_bits=6)  # smaller size means better coverage
+        gp = GenParams("rv32i", phys_regs_bits=5, rob_entries_bits=6)  # smaller size means better coverage
         m = TestElaboratable(gp)
         self.m = m
 
@@ -99,7 +99,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
         for i in range(2**gp.phys_regs_bits):
             self.regs_left_queue.put(i)
 
-        self.log_regs = 2**gp.log_regs_bits
+        self.log_regs = 2**gp.isa.xlen_log
 
         with self.runSimulation(m) as sim:
             sim.add_clock(1e-6)
@@ -142,13 +142,13 @@ class TestFullDoneCase(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
 
-        gp = GenParams()
+        gp = GenParams("rv32i")
         self.test_steps = 2**gp.rob_entries_bits
         m = TestElaboratable(gp)
         self.m = m
         self.to_execute_list = []
 
-        self.log_regs = 2**gp.log_regs_bits
+        self.log_regs = 2**gp.isa.reg_cnt_log
         self.phys_regs = 2**gp.phys_regs_bits
 
         with self.runSimulation(m) as sim:
