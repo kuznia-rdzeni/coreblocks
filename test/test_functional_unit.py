@@ -1,3 +1,4 @@
+from lib2to3.pgen2.token import OP
 import random
 from collections import deque
 import operator
@@ -10,7 +11,8 @@ from coreblocks.transactions.lib import *
 
 from .common import TestCaseWithSimulator, TestbenchIO
 
-from coreblocks.functional_unit import *
+from coreblocks.functional_unit import AluFn, Alu, AluFuncUnit
+from coreblocks.isa import *
 from coreblocks.genparams import GenParams
 
 
@@ -48,18 +50,18 @@ class TestAlu(TestCaseWithSimulator):
         for i in range(20):
             self.test_inputs.append((random.randint(0, max_int), random.randint(0, max_int)))
 
-    def yield_signals(self, op, in1, in2):
-        yield self.alu.op.eq(op)
+    def yield_signals(self, fn, in1, in2):
+        yield self.alu.fn.eq(fn)
         yield self.alu.in1.eq(in1)
         yield self.alu.in2.eq(in2)
         yield Settle()
 
         return (yield self.alu.out)
 
-    def check_op(self, op, out_fn):
+    def check_fn(self, fn, out_fn):
         def process():
             for (in1, in2) in self.test_inputs:
-                returned_out = yield from self.yield_signals(op, C(in1, self.gen.isa.xlen), C(in2, self.gen.isa.xlen))
+                returned_out = yield from self.yield_signals(fn, C(in1, self.gen.isa.xlen), C(in2, self.gen.isa.xlen))
                 mask = 2**self.gen.isa.xlen - 1
                 correct_out = out_fn(in1 & mask, in2 & mask) & mask
                 self.assertEqual(returned_out, correct_out)
@@ -68,54 +70,45 @@ class TestAlu(TestCaseWithSimulator):
             sim.add_process(process)
 
     def test_add(self):
-        self.check_op(AluFn.Fn.ADD, operator.add)
+        self.check_fn(AluFn.Fn.ADD, operator.add)
 
     def test_sll(self):
-        self.check_op(AluFn.Fn.SLL, lambda in1, in2: in1 << (in2 & (self.gen.isa.xlen - 1)))
-
-    def test_seq(self):
-        self.check_op(AluFn.Fn.SEQ, operator.eq)
-
-    def test_sne(self):
-        self.check_op(AluFn.Fn.SNE, operator.ne)
+        self.check_fn(AluFn.Fn.SLL, lambda in1, in2: in1 << (in2 & (self.gen.isa.xlen - 1)))
 
     def test_xor(self):
-        self.check_op(AluFn.Fn.XOR, operator.xor)
+        self.check_fn(AluFn.Fn.XOR, operator.xor)
 
     def test_srl(self):
-        self.check_op(AluFn.Fn.SRL, lambda in1, in2: in1 >> (in2 & (self.gen.isa.xlen - 1)))
+        self.check_fn(AluFn.Fn.SRL, lambda in1, in2: in1 >> (in2 & (self.gen.isa.xlen - 1)))
 
     def test_or(self):
-        self.check_op(AluFn.Fn.OR, operator.or_)
+        self.check_fn(AluFn.Fn.OR, operator.or_)
 
     def test_and(self):
-        self.check_op(AluFn.Fn.AND, operator.and_)
+        self.check_fn(AluFn.Fn.AND, operator.and_)
 
     def test_sub(self):
-        self.check_op(AluFn.Fn.SUB, operator.sub)
+        self.check_fn(AluFn.Fn.SUB, operator.sub)
 
     def test_sra(self):
         def sra(in1, in2):
             xlen = self.gen.isa.xlen
             in2 = in2 & (xlen - 1)
-            if in1 & 2**(xlen - 1) != 0:
+            if in1 & 2 ** (xlen - 1) != 0:
                 return (((2**xlen) - 1) << xlen | in1) >> in2
             else:
                 return in1 >> in2
 
-        self.check_op(AluFn.Fn.SRA, sra)
+        self.check_fn(AluFn.Fn.SRA, sra)
 
     def test_slt(self):
-        self.check_op(AluFn.Fn.SLT, lambda in1, in2: _cast_to_int_xlen(in1, self.gen.isa.xlen) < _cast_to_int_xlen(in2, self.gen.isa.xlen))
-
-    def test_sge(self):
-        self.check_op(AluFn.Fn.SGE, lambda in1, in2: _cast_to_int_xlen(in1, self.gen.isa.xlen) >= _cast_to_int_xlen(in2, self.gen.isa.xlen))
+        self.check_fn(
+            AluFn.Fn.SLT,
+            lambda in1, in2: _cast_to_int_xlen(in1, self.gen.isa.xlen) < _cast_to_int_xlen(in2, self.gen.isa.xlen),
+        )
 
     def test_sltu(self):
-        self.check_op(AluFn.Fn.SLTU, operator.lt)
-
-    def test_sgeu(self):
-        self.check_op(AluFn.Fn.SGEU, operator.ge)
+        self.check_fn(AluFn.Fn.SLTU, operator.lt)
 
 
 class AluFuncUnitTestCircuit(Elaboratable):
@@ -148,10 +141,10 @@ class TestAluFuncUnit(TestCaseWithSimulator):
             data1 = random.randint(0, max_int)
             data2 = random.randint(0, max_int)
             instr_tag = random.randint(0, 2**self.gen.rob_entries_bits - 1)
-            op = AluFn.Fn.ADD
+            exec_fn = {"op_type": OpType.ARITHMETIC, "funct3": Funct3.ADD, "funct7": Funct7.ADD}
             result = (data1 + data2) & max_int
 
-            self.requests.append({"data1": data1, "data2": data2, "instr_tag": instr_tag, "op": op})
+            self.requests.append({"data1": data1, "data2": data2, "instr_tag": instr_tag, "fn": exec_fn})
             self.responses.append({"instr_tag": instr_tag, "result": result})
 
     def test_randomized(self):

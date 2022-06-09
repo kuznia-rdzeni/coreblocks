@@ -1,6 +1,21 @@
 from coreblocks.genparams import GenParams
+from coreblocks.isa import *
 
-__all__ = ["SchedulerLayouts", "ROBLayouts"]
+__all__ = [
+    "SchedulerLayouts",
+    "ROBLayouts",
+    "CommonLayouts",
+    "FuncUnitLayouts",
+]
+
+
+class CommonLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.exec_fn = [
+            ("op_type", OpType),
+            ("funct3", Funct3),
+            ("funct7", Funct7),
+        ]
 
 
 class SchedulerLayouts:
@@ -66,4 +81,23 @@ class ROBLayouts:
         self.internal_layout = [
             ("rob_data", self.data_layout),
             ("done", 1),
+        ]
+
+
+class FuncUnitLayouts:
+    def __init__(self, gen: GenParams):
+        common = gen.get(CommonLayouts)
+
+        self.instr_tag = gen.rob_entries_bits
+
+        self.issue = [
+            ("instr_tag", self.instr_tag),
+            ("data1", gen.isa.xlen),
+            ("data2", gen.isa.xlen),
+            ("fn", common.exec_fn),
+        ]
+
+        self.accept = [
+            ("instr_tag", self.instr_tag),
+            ("result", gen.isa.xlen),
         ]
