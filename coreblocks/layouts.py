@@ -95,9 +95,11 @@ class FuncUnitLayouts:
             ("data1", gen.isa.xlen),
             ("data2", gen.isa.xlen),
             ("fn", common.exec_fn),
+            ("rp_dst", gen.phys_regs_bits),
         ]
 
         self.accept = [
             ("instr_tag", self.instr_tag),
             ("result", gen.isa.xlen),
+            ("rp_dst", gen.phys_regs_bits),
         ]
