@@ -1,6 +1,6 @@
 import unittest
 import os
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from typing import Union
 
 from amaranth import *
@@ -39,9 +39,11 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
-            with sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw"):
-                sim.run()
+            ctx = sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw")
         else:
+            ctx = nullcontext()
+
+        with ctx:
             sim.run()
 
 
