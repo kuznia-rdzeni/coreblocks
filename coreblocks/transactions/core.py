@@ -1,7 +1,7 @@
 from ast import Assign
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Callable, TypeAlias, Union, Optional, Tuple, Iterator
+from typing import Callable, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
 from types import MethodType
 from amaranth import *
 from ._utils import *
@@ -22,7 +22,7 @@ __all__ = [
 ConflictGraph: TypeAlias = Graph["Transaction"]
 ConflictGraphCC: TypeAlias = GraphCC["Transaction"]
 TransactionScheduler: TypeAlias = Callable[["TransactionManager", Module, ConflictGraph, ConflictGraphCC], None]
-RecordDict: TypeAlias = ValueLike | dict[str, "RecordDict"]
+RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 
 
 def eager_deterministic_cc_scheduler(manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC):

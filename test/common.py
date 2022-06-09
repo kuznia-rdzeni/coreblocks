@@ -1,7 +1,7 @@
 import unittest
 import os
 from contextlib import contextmanager, nullcontext
-from typing import Union, Generator, TypeVar, Optional, Any
+from typing import Mapping, Union, Generator, TypeVar, Optional, Any
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -11,7 +11,7 @@ from coreblocks.transactions.lib import AdapterBase
 
 
 T = TypeVar("T")
-RecordIntDict = dict[str, Union[int, "RecordIntDict"]]
+RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 TestGen = Generator[Command | Value | Statement | None, Any, T]
 
 
