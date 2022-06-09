@@ -7,35 +7,47 @@ prog_name=$(basename $0)
 sub_help(){
     echo "Usage: $prog_name subcommand [filename ...]\n"
     echo "Subcommands:"
-    echo "    format          Format the code"
-    echo "    verify          Verify formatting without making any changes"
-    echo "    verify_flake8   Verify formatting using flake8 only"
-    echo "    verify_black    Verify formatting using black only"
+    echo "    format                Format the code"
+    echo "    check_format          Verify formatting without making any changes"
+    echo "    check_format_flake8   Verify formatting using flake8 only"
+    echo "    check_format_black    Verify formatting using black only"
+    echo "    check_types           Verify typing"
+    echo "    verify                Run all checks"
     echo ""
 }
 
-sub_verify_flake8() {
+sub_check_format_flake8() {
     python3 -m flake8 \
       --max-line-length=$MAX_LINE_LENGTH \
-      --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak" \
+      --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak,ci,stubs" \
       --extend-ignore=F401,F403,F405,E203 $@
 }
 
-sub_verify_black() {
+sub_check_format_black() {
     python3 -m black \
-        --line-length $MAX_LINE_LENGTH \
-        --check $@
+      --line-length $MAX_LINE_LENGTH \
+      --extend-exclude "stubs|ci" $@ \
+      --check $@
 }
 
-sub_verify() {
-    sub_verify_flake8 $@ && sub_verify_black $@
+sub_check_format() {
+    sub_check_format_flake8 $@ && sub_check_format_black $@
 }
 
 sub_format(){
     python3 -m black \
-      --line-length $MAX_LINE_LENGTH $@
+      --line-length $MAX_LINE_LENGTH \
+      --extend-exclude "stubs|ci" $@
 
-    sub_verify_flake8 $@
+    sub_check_format_flake8 $@
+}
+
+sub_check_types(){
+    pyright
+}
+
+sub_verify(){
+    sub_check_format $@ && sub_check_types
 }
 
 subcommand=$1
