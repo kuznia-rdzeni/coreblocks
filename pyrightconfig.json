@@ -1,0 +1,21 @@
+{
+  "include": [
+    "coreblocks"
+  ],
+  
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__"
+  ],
+
+  "ignore": [
+  ],
+
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+
+  "stubPath": "./stubs",
+
+  "pythonVersion": "3.10",
+  "pythonPlatform": "Linux"
+}
