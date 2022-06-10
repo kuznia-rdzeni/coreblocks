@@ -44,7 +44,6 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 0, 0)
 
         with self.runSimulation(sched) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
     def test_multi(self):
@@ -69,7 +68,6 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 0b0010, 0b0010)
 
         with self.runSimulation(sched) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
 
@@ -168,7 +166,6 @@ class TestTransactionConflict(TestCaseWithSimulator):
     )
     def test_calls(self, name, prob1, prob2, probout):
         with self.runSimulation(self.m) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(self.make_in1_process(prob1))
             sim.add_sync_process(self.make_in2_process(prob2))
             sim.add_sync_process(self.make_out_process(probout))

@@ -32,6 +32,9 @@ class TestDefMethod(TestCaseWithSimulator):
 
             m.submodules += self.transactionManager
 
+            # so that Amaranth allows us to use add_clock
+            dummy = Signal()
+            m.d.sync += dummy.eq(1)
             return m
 
     def do_test_definition(self, definer):
@@ -297,7 +300,6 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
                 self.assertEqual(out["data"], n * 4)
 
         with self.runSimulation(circ) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
 
@@ -430,7 +432,6 @@ class TestConditionals(TestCaseWithSimulator):
             self.assertFalse((yield from circ.tb.done()))
 
         with self.runSimulation(circ) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
     @parameterized.expand(
@@ -453,5 +454,4 @@ class TestConditionals(TestCaseWithSimulator):
             self.assertTrue((yield from circ.tb.done()))
 
         with self.runSimulation(circ) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
