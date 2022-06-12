@@ -11,7 +11,7 @@ from coreblocks.rat import RAT
 from coreblocks.layouts import SchedulerLayouts
 from coreblocks.genparams import GenParams
 from coreblocks.reorder_buffer import ReorderBuffer
-from .common import TestCaseWithSimulator, TestbenchIO
+from .common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO
 
 
 class RegAllocAndRenameTestCircuit(Elaboratable):
@@ -89,7 +89,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
         self,
         io: TestbenchIO,
         q: queue.Queue,
-        after_call: Optional[Callable[[dict, dict], None]] = None,
+        after_call: Optional[Callable[[RecordIntDict, RecordIntDict], TestGen[None]]] = None,
         input_io=False,
     ):
         def queue_process():
