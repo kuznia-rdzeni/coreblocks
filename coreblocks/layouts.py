@@ -88,10 +88,8 @@ class FuncUnitLayouts:
     def __init__(self, gen: GenParams):
         common = gen.get(CommonLayouts)
 
-        self.instr_tag = gen.rob_entries_bits
-
         self.issue = [
-            ("instr_tag", self.instr_tag),
+            ("rob_id", gen.rob_entries_bits),
             ("data1", gen.isa.xlen),
             ("data2", gen.isa.xlen),
             ("fn", common.exec_fn),
@@ -99,7 +97,7 @@ class FuncUnitLayouts:
         ]
 
         self.accept = [
-            ("instr_tag", self.instr_tag),
+            ("rob_id", gen.rob_entries_bits),
             ("result", gen.isa.xlen),
             ("rp_dst", gen.phys_regs_bits),
         ]

@@ -138,6 +138,6 @@ class AluFuncUnit(Elaboratable):
             m.d.comb += alu.in1.eq(arg.data1)
             m.d.comb += alu.in2.eq(arg.data2)
 
-            fifo.write(m, arg={"instr_tag": arg.instr_tag, "result": alu.out, "rp_dst": arg.rp_dst})
+            fifo.write(m, arg={"rob_id": arg.rob_id, "result": alu.out, "rp_dst": arg.rp_dst})
 
         return m

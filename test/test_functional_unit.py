@@ -139,15 +139,13 @@ class TestAluFuncUnit(TestCaseWithSimulator):
         for i in range(50):
             data1 = random.randint(0, max_int)
             data2 = random.randint(0, max_int)
-            instr_tag = random.randint(0, 2**self.gen.rob_entries_bits - 1)
+            rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
             rp_dst = random.randint(0, 2**self.gen.phys_regs_bits - 1)
             exec_fn = {"op_type": OpType.ARITHMETIC, "funct3": Funct3.ADD, "funct7": Funct7.ADD}
             result = (data1 + data2) & max_int
 
-            self.requests.append(
-                {"data1": data1, "data2": data2, "instr_tag": instr_tag, "fn": exec_fn, "rp_dst": rp_dst}
-            )
-            self.responses.append({"instr_tag": instr_tag, "result": result, "rp_dst": rp_dst})
+            self.requests.append({"data1": data1, "data2": data2, "rob_id": rob_id, "fn": exec_fn, "rp_dst": rp_dst})
+            self.responses.append({"rob_id": rob_id, "result": result, "rp_dst": rp_dst})
 
     def test_randomized(self):
         def random_wait():
