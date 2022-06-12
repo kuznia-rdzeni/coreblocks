@@ -3,7 +3,7 @@ from coreblocks.transactions import Method, Transaction
 from coreblocks.layouts import SchedulerLayouts, ROBLayouts
 from coreblocks.genparams import GenParams
 
-__all__ = ["RegAllocation", "Renaming", "RobAllocation"]
+__all__ = ["RegAllocation", "Renaming", "ROBAllocation"]
 
 
 class RegAllocation(Elaboratable):
