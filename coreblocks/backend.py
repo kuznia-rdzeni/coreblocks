@@ -23,19 +23,17 @@ def FUArbitration(Elaboratable):
         for i in range(self.count):
             m.comb += rr.requests[i].eq(self.get_results[i].ready)
 
-        data = Record(self.lay_result)
-
-        with Transaction().body(m, request=rr.valid):
-            with OneHotSwitch(m, rr.grant) as i:
-                m.comb += data.eq(self.get_results[i](m))
-            m.comb += self.m_put_result(m,data)
+        for i in range(self.count):
+            with Transaction().body(m):
+                self.m_put_result(m, self.get_results[i](m))
 
         return m
 
 
 def ResultAnnouncemet(Elaboratable):
-    def __init__(self, *, gen:GenParams, get_result: Method, rob_mark_done: Method,
-            rs_write_val : Method, rf_write_val : Method):
+    def __init__(
+        self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_write_val: Method, rf_write_val: Method
+    ):
         self.m_get_result = get_result
         self.m_rob_mark_done = mark_done
         self.m_rs_write_val = rs_write_val
@@ -54,16 +52,10 @@ def ResultAnnouncemet(Elaboratable):
         m.comb += rob_data.rob_id.eq(result.instr_tag)
 
         rf_data = Record(self.lay_rf_write)
-        m.comb += [ 
-            rf_data.reg_id.eq(result.rp_dst),
-            rf_data.reg_val.eq(result.result)
-            ]
+        m.comb += [rf_data.reg_id.eq(result.rp_dst), rf_data.reg_val.eq(result.result)]
 
         rs_data = Record(self.lay_rs_write)
-        m.comb += [
-            rs_data.reg_id.eq(result.rp_dst),
-            rs_data.value.eq(result.result)
-            ]
+        m.comb += [rs_data.reg_id.eq(result.rp_dst), rs_data.value.eq(result.result)]
 
         with Transaction().body(m):
             m.comb += result.eq(self.m_get_result(m))
