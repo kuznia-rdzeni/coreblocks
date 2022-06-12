@@ -2,6 +2,7 @@
 
 import unittest
 import argparse
+import re
 import sys
 import os
 
@@ -52,7 +53,7 @@ def main():
         os.environ["__COREBLOCKS_DUMP_TRACES"] = "1"
 
     if args.test_name:
-        matches = [test for name, test in tests.items() if args.test_name in name]
+        matches = [test for name, test in tests.items() if re.compile(args.test_name).search(name)]
         if not matches:
             print(f"Could not find test matching '{args.test_name}'")
             sys.exit(1)
