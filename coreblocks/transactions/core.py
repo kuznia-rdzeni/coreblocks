@@ -37,9 +37,9 @@ def eager_deterministic_cc_scheduler(manager, m, gr, cc):
     m : Module
         Module to which signals and calculations should be connected.
     gr : Dict[Set[Transaction]]
-        Graph of conflicts between transactions.
+        Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : List[Transaction]
-        Connected component from the graph `gr` for which scheduler
+        Connected components of the graph `gr` for which scheduler
         should be generated.
     """
     ccl = list(cc)
@@ -68,9 +68,9 @@ def trivial_roundrobin_cc_scheduler(manager, m, gr, cc):
     m : Module
         Module to which signals and calculations should be connected.
     gr : Dict[Set[Transaction]]
-        Graph of conflicts between transactions.
+        Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : List[Transaction]
-        Connected component from the graph `gr` for which scheduler
+        Connected components of the graph `gr` for which scheduler
         should be generated.
     """
     sched = Scheduler(len(cc))
@@ -121,7 +121,7 @@ class TransactionManager(Elaboratable):
         Returns
         ----------
         gr : Dict[Set[Transaction]]
-            Graph of conflicts between transactions.
+            Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
         """
 
         def endTrans(end):
