@@ -70,3 +70,30 @@ class ROBLayouts:
             ("rob_data", self.data_layout),
             ("done", 1),
         ]
+
+
+class RSLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.data_layout = [
+            ("rp_s1", gen_params.phys_regs_bits),
+            ("rp_s2", gen_params.phys_regs_bits),
+            ("rp_dst", gen_params.phys_regs_bits),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("opcode", gen_params.isa.ilen),
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
+        ]
+
+        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
+
+        self.select_out = [("rs_entry_id", gen_params.rs_entries_bits)]
+
+        self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
+
+        self.push_out = [
+            ("rp_s1", gen_params.phys_regs_bits),
+            ("rp_s2", gen_params.phys_regs_bits),
+            ("rp_dst", gen_params.phys_regs_bits),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("opcode", gen_params.isa.ilen),
+        ]
