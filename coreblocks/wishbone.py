@@ -76,6 +76,7 @@ class WishboneMaster(Elaboratable):
     """
 
     def __init__(self, wb_params: WishboneParameters):
+        self.wb_params = wb_params
         self.wb_layout = WishboneLayout(wb_params).wb_layout
         self.wbMaster = Record(self.wb_layout)
         self.generate_layouts(wb_params)
