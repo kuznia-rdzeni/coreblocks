@@ -1,12 +1,23 @@
+from contextlib import contextmanager
 import itertools
 from typing import List, Set, Iterable, TypeVar, Mapping, Union
 from amaranth import *
 from .._typing import LayoutLike
 
-__all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout"]
+__all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout", "OneHotSwitch"]
 
 
 T = TypeVar("T")
+
+
+def OneHotSwitch(m, in_signal: Signal, *, default=False):
+    count = len(in_signal)
+    with m.Switch(in_signal):
+        for i in range(count):
+            with m.Case("-" * (count - i - 1) + "1" + "-" * i):
+                yield i
+        yield -1
+    return
 
 
 class Scheduler(Elaboratable):
@@ -24,15 +35,15 @@ class Scheduler(Elaboratable):
 
         grant_reg = Signal.like(self.grant)
 
-        with m.Switch(grant_reg):
-            for i in range(self.count):
-                with m.Case("-" * (self.count - i - 1) + "1" + "-" * i):
-                    m.d.comb += self.grant.eq(grant_reg)
-                    for j in itertools.chain(reversed(range(i)), reversed(range(i + 1, self.count))):
-                        with m.If(self.requests[j]):
-                            m.d.comb += self.grant.eq(1 << j)
-            with m.Case():
-                m.d.comb += self.grant.eq(0)
+        for i in OneHotSwitch(m, grant_reg, default=True):
+            if i >= 0:
+                m.d.comb += self.grant.eq(grant_reg)
+                for j in itertools.chain(reversed(range(i)), reversed(range(i + 1, self.count))):
+                    with m.If(self.requests[j]):
+                        m.d.comb += self.grant.eq(1 << j)
+            else:
+                with m.Case():
+                    m.d.comb += self.grant.eq(0)
 
         m.d.comb += self.valid.eq(self.requests.any())
 

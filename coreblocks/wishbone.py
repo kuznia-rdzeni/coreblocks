@@ -6,6 +6,7 @@ from typing import List
 import operator
 
 from coreblocks.transactions import Method
+from coreblocks.transactions._utils import OneHotSwitch
 
 
 class WishboneParameters:
@@ -208,11 +209,9 @@ class WishboneMuxer(Elaboratable):
         m.d.comb += self.masterWb.ack.eq(reduce(operator.or_, [self.slaves[i].ack for i in range(len(self.slaves))]))
         m.d.comb += self.masterWb.err.eq(reduce(operator.or_, [self.slaves[i].err for i in range(len(self.slaves))]))
         m.d.comb += self.masterWb.rty.eq(reduce(operator.or_, [self.slaves[i].rty for i in range(len(self.slaves))]))
-        with m.Switch(self.txn_sel):
-            for i in range(len(self.slaves)):
-                with m.Case(("-" * (len(self.slaves) - i - 1)) + "1" + ("-" * i)):
-                    # mux S->M data
-                    m.d.comb += self.masterWb.connect(self.slaves[i], include=["dat_r"])
+        for i in OneHotSwitch(m, self.txn_sel):
+            # mux S->M data
+            m.d.comb += self.masterWb.connect(self.slaves[i], include=["dat_r"])
         return m
 
 
