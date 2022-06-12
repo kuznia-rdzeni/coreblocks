@@ -16,7 +16,8 @@ def OneHotSwitch(m, in_signal: Signal, *, default=False):
         for i in range(count):
             with m.Case("-" * (count - i - 1) + "1" + "-" * i):
                 yield i
-        yield -1
+        if default:
+            yield -1
     return
 
 
