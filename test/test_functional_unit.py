@@ -1,4 +1,3 @@
-from lib2to3.pgen2.token import OP
 import random
 from collections import deque
 import operator
