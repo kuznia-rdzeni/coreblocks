@@ -47,6 +47,7 @@ class TestCaseWithSimulator(unittest.TestCase):
 
         with ctx:
             sim.run_until(clk_period * max_cycles)
+            self.assertFalse(sim.advance(), "Simulation time limit exceeded")
 
 
 class TestbenchIO(Elaboratable):
