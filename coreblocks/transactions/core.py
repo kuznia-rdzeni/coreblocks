@@ -26,6 +26,29 @@ RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 
 
 def eager_deterministic_cc_scheduler(manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC):
+    """eager_deterministic_cc_scheduler
+
+    This function generates an eager scheduler for the transaction
+    subsystem. It isn't fair, because it starts transactions using
+    transaction index in `cc` as a priority. Transaction with the lowest
+    index has the highest priority.
+
+    If there are two different transactions which have no conflicts then
+    they will be started concurrently.
+
+    Parameters
+    ----------
+    manager : TransactionManager
+        TransactionManager which uses this instance of scheduler for
+        arbitrating which agent should get a grant signal.
+    m : Module
+        Module to which signals and calculations should be connected.
+    gr : Mapping[Iterable[Transaction]]
+        Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
+    cc : Set[Transaction]
+        Connected components of the graph `gr` for which scheduler
+        should be generated.
+    """
     ccl = list(cc)
     for k, transaction in enumerate(ccl):
         ready = [method.ready for method in manager.methods_by_transaction[transaction]]
@@ -36,6 +59,27 @@ def eager_deterministic_cc_scheduler(manager: "TransactionManager", m: Module, g
 
 
 def trivial_roundrobin_cc_scheduler(manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC):
+    """trivial_roundrobin_cc_scheduler
+
+    This function generates a simple round-robin scheduler for the transaction
+    subsystem. In a one cycle there will be at most one transaction granted
+    (in a given connected component of the conflict graph), even if there is
+    another ready, non-conflicting, transaction. It is mainly for testing
+    purposes.
+
+    Parameters
+    ----------
+    manager : TransactionManager
+        TransactionManager which uses this instance of scheduler for
+        arbitrating which agent should get grant signal.
+    m : Module
+        Module to which signals and calculations should be connected.
+    gr : Mapping[Iterable[Transaction]]
+        Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
+    cc : Set[Transaction]
+        Connected components of the graph `gr` for which scheduler
+        should be generated.
+    """
     sched = Scheduler(len(cc))
     m.submodules += sched
     for k, transaction in enumerate(cc):
@@ -65,6 +109,28 @@ class TransactionManager(Elaboratable):
         self.transactions.append(transaction)
 
     def _conflict_graph(self) -> ConflictGraph:
+        """_conflict_graph
+
+        This function generates the graph of transaction conflicts. Conflicts
+        between transactions can be explicit or implicit. Two transactions
+        conflict explicitly, if a conflict was added between the transactions
+        or the methods used by them via `add_conflict`. Two transactions
+        conflict implicitly if they are both using the same method.
+
+        Created graph is undirected. Transactions are nodes in that graph
+        and conflict between two transactions is marked as an edge. In such
+        representation connected components are sets of transactions which can
+        potentially conflict so there is a need to arbitrate between them.
+        On the other hand when two transactions are in different connected
+        components, then they can be scheduled independently, because they
+        will have no conflicts.
+
+        Returns
+        ----------
+        gr : Mapping[Iterable[Transaction]]
+            Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
+        """
+
         def endTrans(end: Transaction | Method):
             if isinstance(end, Method):
                 return self.transactions_by_method[end]
