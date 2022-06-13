@@ -53,7 +53,8 @@ def main():
         os.environ["__COREBLOCKS_DUMP_TRACES"] = "1"
 
     if args.test_name:
-        matches = [test for name, test in tests.items() if re.compile(args.test_name).search(name)]
+        pattern = re.compile(args.test_name)
+        matches = [test for name, test in tests.items() if pattern.search(name)]
         if not matches:
             print(f"Could not find test matching '{args.test_name}'")
             sys.exit(1)
