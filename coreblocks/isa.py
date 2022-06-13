@@ -2,7 +2,18 @@ from itertools import takewhile
 from enum import unique, Enum, IntEnum, IntFlag
 
 
-__all__ = ["InstrType", "Opcode", "Funct3", "Funct7", "Funct12", "OpType", "Extension", "FenceTarget", "FenceFm", "ISA"]
+__all__ = [
+    "InstrType",
+    "Opcode",
+    "Funct3",
+    "Funct7",
+    "Funct12",
+    "OpType",
+    "Extension",
+    "FenceTarget",
+    "FenceFm",
+    "ISA",
+]
 
 
 @unique
