@@ -70,14 +70,16 @@ class TestbenchIO(Elaboratable):
 
     def call_result(self):
         if (yield self.adapter.done):
-            return (yield from get_outputs(self.adapter.data_out))
-        return None
+            return (True, (yield from get_outputs(self.adapter.data_out)))
+        return (False, None)
 
     def call_do(self):
-        while not (outputs := (yield from self.call_result())):
+        while True:
+            outputs = (yield from self.call_result())
+            if outputs[0]: break
             yield
         yield from self.disable()
-        return outputs
+        return outputs[1]
 
     def call(self, data: dict = {}):
         yield from self.call_init(data)
