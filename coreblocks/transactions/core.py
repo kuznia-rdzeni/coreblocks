@@ -108,7 +108,6 @@ class TransactionManager(Elaboratable):
     def add_transaction(self, transaction: "Transaction"):
         self.transactions.append(transaction)
 
-
     def _conflict_graph(self) -> ConflictGraph:
         """_conflict_graph
 
@@ -131,7 +130,7 @@ class TransactionManager(Elaboratable):
         gr : Mapping[Iterable[Transaction]]
             Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
         """
-      
+
         def endTrans(end: Transaction | Method):
             if isinstance(end, Method):
                 return self.transactions_by_method[end]
