@@ -1,10 +1,39 @@
 import itertools
+from typing import Iterable, TypeAlias, TypeVar, Mapping
 from amaranth import *
+from .._typing import LayoutLike
 
-__all__ = ["Scheduler", "_graph_ccs", "_coerce_layout"]
+__all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout", "ROGraph", "Graph", "GraphCC"]
+
+
+T = TypeVar("T")
 
 
 class Scheduler(Elaboratable):
+    """Scheduler
+
+    An implementation of a round-robin scheduler, which is used in the
+    transaction subsystem. It is based on Amaranth's round-robin scheduler
+    but instead of using binary numbers, it uses one-hot encoding for the
+    ``grant`` output signal.
+
+    Parameters
+    ----------
+    count : int
+        Number of agents between which the scheduler should arbitrate.
+
+    Attributes
+    ----------
+    requests: Signal(count), in
+        Signals that something (e.g. a transaction) wants to run. When i-th
+        bit is high, then the i-th agent requests the grant signal.
+    grant: Signal(count), out
+        Signals that something (e.g. transaction) is granted to run. It uses
+        one-hot encoding.
+    valid : Signal(1), out
+        Signal that `grant` signals are valid.
+    """
+
     def __init__(self, count: int):
         if not isinstance(count, int) or count < 0:
             raise ValueError("Count must be a non-negative integer, not {!r}".format(count))
@@ -36,7 +65,27 @@ class Scheduler(Elaboratable):
         return m
 
 
-def _graph_ccs(gr):
+ROGraph: TypeAlias = Mapping[T, Iterable[T]]
+Graph: TypeAlias = dict[T, set[T]]
+GraphCC: TypeAlias = set[T]
+
+
+def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
+    """_graph_ccs
+
+    Find connected components in a graph.
+
+    Parameters
+    ----------
+    gr : Mapping[T, Iterable[T]]
+        Graph in which we should find connected components. Encoded using
+        adjacency lists.
+
+    Returns
+    -------
+    ccs : List[Set[T]]
+        Connected components of the graph `gr`.
+    """
     ccs = []
     cc = set()
     visited = set()
@@ -57,7 +106,10 @@ def _graph_ccs(gr):
     return ccs
 
 
-def _coerce_layout(int_or_layout):
+MethodLayout = int | LayoutLike
+
+
+def _coerce_layout(int_or_layout: MethodLayout) -> LayoutLike:
     if isinstance(int_or_layout, int):
         return [("data", int_or_layout)]
     else:

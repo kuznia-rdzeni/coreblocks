@@ -62,10 +62,9 @@ class TestWishboneMaster(TestCaseWithSimulator):
         def elaborate(self, plaform):
             m = Module()
             tm = TransactionModule(m)
-            with tm.transactionContext():
-                m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
-                m.submodules.rqa = self.requestAdapter = TestbenchIO(AdapterTrans(wbm.request))
-                m.submodules.rsa = self.resultAdapter = TestbenchIO(AdapterTrans(wbm.result))
+            m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
+            m.submodules.rqa = self.requestAdapter = TestbenchIO(AdapterTrans(wbm.request))
+            m.submodules.rsa = self.resultAdapter = TestbenchIO(AdapterTrans(wbm.result))
             return tm
 
     def test_manual(self):
@@ -108,7 +107,6 @@ class TestWishboneMaster(TestCaseWithSimulator):
             assert resp["err"]
 
         with self.runSimulation(twbm) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
 
@@ -150,7 +148,6 @@ class TestWishboneMuxer(TestCaseWithSimulator):
             yield from wb_master.master_verify(1)
 
         with self.runSimulation(mux) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
 
@@ -210,5 +207,4 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             yield from masters[1].master_verify()
 
         with self.runSimulation(arb) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)

@@ -16,8 +16,7 @@ class WishboneMasterTransCircuit(Elaboratable):
 
         self.m = Module()
         self.tm = TransactionModule(self.m)
-        with self.tm.transactionContext():
-            self.wbm = WishboneMaster()
+        self.wbm = WishboneMaster()
 
         self.ports = [
             self.input.data,
@@ -31,18 +30,17 @@ class WishboneMasterTransCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = self.m
-        with self.tm.transactionContext():
-            m.submodules.wmb = self.wbm
-            m.submodules.inp = inp = ClickIn(self.input.shape().width)
-            m.submodules.out = out = ClickOut(self.output.shape().width)
+        m.submodules.wmb = self.wbm
+        m.submodules.inp = inp = ClickIn(self.input.shape().width)
+        m.submodules.out = out = ClickOut(self.output.shape().width)
 
-            m.submodules.idt = ConnectTrans(inp.get, self.wbm.request)
-            m.submodules.dot = ConnectTrans(self.wbm.result, out.put)
+        m.submodules.idt = ConnectTrans(inp.get, self.wbm.request)
+        m.submodules.dot = ConnectTrans(self.wbm.result, out.put)
 
-            m.d.comb += inp.btn.eq(self.input_btn)
-            m.d.comb += inp.dat.eq(self.input)
-            m.d.comb += self.output.eq(out.dat)
-            m.d.comb += out.btn.eq(self.output_btn)
+        m.d.comb += inp.btn.eq(self.input_btn)
+        m.d.comb += inp.dat.eq(self.input)
+        m.d.comb += self.output.eq(out.dat)
+        m.d.comb += out.btn.eq(self.output_btn)
 
         return self.tm
 

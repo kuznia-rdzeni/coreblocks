@@ -1,8 +1,16 @@
 from amaranth import *
 from .core import *
-from ._utils import _coerce_layout
+from ._utils import _coerce_layout, MethodLayout
 
-__all__ = ["FIFO", "ClickIn", "ClickOut", "AdapterTrans", "Adapter", "ConnectTrans", "CatTrans"]
+__all__ = [
+    "FIFO",
+    "ClickIn",
+    "ClickOut",
+    "AdapterTrans",
+    "Adapter",
+    "ConnectTrans",
+    "CatTrans",
+]
 
 # FIFOs
 
@@ -10,10 +18,11 @@ import amaranth.lib.fifo
 
 
 class FIFO(Elaboratable):
-    def __init__(self, layout, depth):
+    def __init__(self, layout, depth, fifoType=amaranth.lib.fifo.SyncFIFO):
         layout = _coerce_layout(layout)
         self.width = len(Record(layout))
         self.depth = depth
+        self.fifoType = fifoType
 
         self.read = Method(o=layout)
         self.write = Method(i=layout)
@@ -21,7 +30,9 @@ class FIFO(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.fifo = fifo = amaranth.lib.fifo.SyncFIFO(width=self.width, depth=self.depth)
+        m.submodules.fifo = fifo = self.fifoType(width=self.width, depth=self.depth)
+
+        assert fifo.fwft  # the read method requires FWFT behavior
 
         @def_method(m, self.write, ready=fifo.w_rdy)
         def _(arg):
@@ -40,10 +51,10 @@ class FIFO(Elaboratable):
 
 
 class ClickIn(Elaboratable):
-    def __init__(self, width=1):
-        self.get = Method(o=width)
+    def __init__(self, layout: MethodLayout = 1):
+        self.get = Method(o=layout)
         self.btn = Signal()
-        self.dat = Signal(width)
+        self.dat = Record(_coerce_layout(layout))
 
     def elaborate(self, platform):
         m = Module()
@@ -73,10 +84,10 @@ class ClickIn(Elaboratable):
 
 
 class ClickOut(Elaboratable):
-    def __init__(self, width=1):
-        self.put = Method(i=width)
+    def __init__(self, layout: MethodLayout = 1):
+        self.put = Method(i=layout)
         self.btn = Signal()
-        self.dat = Signal(width)
+        self.dat = Record(_coerce_layout(layout))
 
     def elaborate(self, platform):
         m = Module()
@@ -124,7 +135,7 @@ class AdapterTrans(AdapterBase):
 
 
 class Adapter(AdapterBase):
-    def __init__(self, *, i=0, o=0):
+    def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0):
         super().__init__(Method(i=i, o=o))
 
     def elaborate(self, platform):

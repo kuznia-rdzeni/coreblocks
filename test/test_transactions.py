@@ -4,7 +4,7 @@ from amaranth.sim import *
 import random
 
 from collections import deque
-from typing import Iterable, Callable
+from typing import Iterable, Callable, cast
 from parameterized import parameterized, parameterized_class
 
 from .common import TestCaseWithSimulator, TestbenchIO
@@ -13,7 +13,11 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.transactions._utils import Scheduler
 
-from coreblocks.transactions.core import trivial_roundrobin_cc_scheduler, eager_deterministic_cc_scheduler
+from coreblocks.transactions.core import (
+    TransactionScheduler,
+    trivial_roundrobin_cc_scheduler,
+    eager_deterministic_cc_scheduler,
+)
 
 
 class TestScheduler(TestCaseWithSimulator):
@@ -44,7 +48,6 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 0, 0)
 
         with self.runSimulation(sched) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
     def test_multi(self):
@@ -69,7 +72,6 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 0b0010, 0b0010)
 
         with self.runSimulation(sched) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
 
@@ -80,14 +82,13 @@ class TransactionConflictTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m, TransactionManager(self.scheduler))
-        with tm.transactionContext():
-            adapter = Adapter(i=32, o=32)
-            m.submodules.out = self.out = TestbenchIO(adapter)
-            m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
-            m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))
-            # so that Amaranth allows us to use add_clock
-            dummy = Signal()
-            m.d.sync += dummy.eq(1)
+        adapter = Adapter(i=32, o=32)
+        m.submodules.out = self.out = TestbenchIO(adapter)
+        m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
+        m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
         return tm
 
 
@@ -99,6 +100,8 @@ class TransactionConflictTestCircuit(Elaboratable):
     ],
 )
 class TestTransactionConflict(TestCaseWithSimulator):
+    scheduler: TransactionScheduler
+
     def setUp(self):
         self.in1_stream = range(0, 100)
         self.in2_stream = range(100, 200)
@@ -116,7 +119,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
         assert not self.out2_expected
 
     def make_process(
-        self, io: TestbenchIO, prob: float, src: Iterable[int], tgt: Callable[int, None], chk: Callable[int, None]
+        self, io: TestbenchIO, prob: float, src: Iterable[int], tgt: Callable[[int], None], chk: Callable[[int], None]
     ):
         def process():
             for i in src:
@@ -124,33 +127,33 @@ class TestTransactionConflict(TestCaseWithSimulator):
                     yield
                 tgt(i)
                 r = yield from io.call({"data": i})
-                chk(r["data"])
+                chk(cast(int, r["data"]))
 
         return process
 
     def make_in1_process(self, prob: float):
-        def tgt(x):
+        def tgt(x: int):
             self.out1_expected.append(x)
 
-        def chk(x):
+        def chk(x: int):
             self.assertEqual(x, self.in_expected.popleft())
 
         return self.make_process(self.m.in1, prob, self.in1_stream, tgt, chk)
 
     def make_in2_process(self, prob: float):
-        def tgt(x):
+        def tgt(x: int):
             self.out2_expected.append(x)
 
-        def chk(x):
+        def chk(x: int):
             self.assertEqual(x, self.in_expected.popleft())
 
         return self.make_process(self.m.in2, prob, self.in2_stream, tgt, chk)
 
     def make_out_process(self, prob: float):
-        def tgt(x):
+        def tgt(x: int):
             self.in_expected.append(x)
 
-        def chk(x):
+        def chk(x: int):
             if self.out1_expected and x == self.out1_expected[0]:
                 self.out1_expected.popleft()
             elif self.out2_expected and x == self.out2_expected[0]:
@@ -169,7 +172,6 @@ class TestTransactionConflict(TestCaseWithSimulator):
     )
     def test_calls(self, name, prob1, prob2, probout):
         with self.runSimulation(self.m) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(self.make_in1_process(prob1))
             sim.add_sync_process(self.make_in2_process(prob2))
             sim.add_sync_process(self.make_out_process(probout))
