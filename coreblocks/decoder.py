@@ -17,17 +17,10 @@ _rs2_itypes = [InstrType.R, InstrType.S, InstrType.B]
 
 
 class Encoding:
-    def __init__(self, opcode, funct3=None, funct7=None, funct12=None):
-        assert isinstance(opcode, Opcode)
+    def __init__(self, opcode: Opcode, funct3: Funct3 = None, funct7: Funct7 = None, funct12: Funct12 = None):
         self.opcode = opcode
-
-        assert (funct3 is None) or isinstance(funct3, Funct3)
         self.funct3 = funct3
-
-        assert (funct7 is None) or isinstance(funct7, Funct7)
         self.funct7 = funct7
-
-        assert (funct12 is None) or isinstance(funct12, Funct12)
         self.funct12 = funct12
 
 
