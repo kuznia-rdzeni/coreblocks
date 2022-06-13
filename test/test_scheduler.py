@@ -7,6 +7,7 @@ from amaranth.sim import Simulator, Settle
 from coreblocks.transactions import TransactionModule, TransactionContext
 from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans, Adapter
 from coreblocks.scheduler import *
+from coreblocks.rf import RegisterFile
 from coreblocks.rat import RAT
 from coreblocks.layouts import SchedulerLayouts, RSLayouts
 from coreblocks.genparams import GenParams
