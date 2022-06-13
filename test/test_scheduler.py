@@ -152,7 +152,6 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
             self.free_ROB_entries_queue.put(None)
 
         with self.runSimulation(self.m) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(self.make_output_process())
             sim.add_sync_process(self.make_queue_process(self.m.rob_done, self.free_ROB_entries_queue, input_io=True))
             sim.add_sync_process(self.make_queue_process(self.m.free_rf_inp, self.free_regs_queue, input_io=True))
