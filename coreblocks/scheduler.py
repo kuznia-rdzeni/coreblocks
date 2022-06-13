@@ -198,7 +198,7 @@ class RegisterFile(Elaboratable):
             forward = being_written == arg.reg_id
             return {
                 "reg_val": Mux(forward, written_value, self.entries[arg.reg_id].reg_val),
-                "valid": Mux(forward, 1, self.entries[arg.reg_id].valid)
+                "valid": Mux(forward, 1, self.entries[arg.reg_id].valid),
             }
 
         @def_method(m, self.read2)
@@ -207,7 +207,7 @@ class RegisterFile(Elaboratable):
             forward = being_written == arg.reg_id
             return {
                 "reg_val": Mux(forward, written_value, self.entries[arg.reg_id].reg_val),
-                "valid": Mux(forward, 1, self.entries[arg.reg_id].valid)
+                "valid": Mux(forward, 1, self.entries[arg.reg_id].valid),
             }
 
         @def_method(m, self.write)
