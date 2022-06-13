@@ -7,6 +7,8 @@ from .common import TestCaseWithSimulator, TestbenchIO
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
+from parameterized import parameterized
+
 from unittest import TestCase
 
 
@@ -30,6 +32,9 @@ class TestDefMethod(TestCaseWithSimulator):
 
             m.submodules += self.transactionManager
 
+            # so that Amaranth allows us to use add_clock
+            dummy = Signal()
+            m.d.sync += dummy.eq(1)
             return m
 
     def do_test_definition(self, definer):
@@ -295,5 +300,158 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
                 self.assertEqual(out["data"], n * 4)
 
         with self.runSimulation(circ) as sim:
-            sim.add_clock(1e-6)
+            sim.add_sync_process(process)
+
+
+class ConditionalCallCircuit(Elaboratable):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        meth = Method(i=1)
+
+        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
+        m.submodules.out = self.out = TestbenchIO(Adapter())
+
+        @def_method(m, meth)
+        def _(arg):
+            with m.If(arg):
+                self.out.adapter.iface(m)
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
+        return tm
+
+
+class ConditionalMethodCircuit1(Elaboratable):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        meth = Method()
+
+        self.ready = Signal()
+        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
+
+        @def_method(m, meth, ready=self.ready)
+        def _(arg):
+            pass
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+        return tm
+
+
+class ConditionalMethodCircuit2(Elaboratable):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        meth = Method()
+
+        self.ready = Signal()
+        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
+
+        with m.If(self.ready):
+
+            @def_method(m, meth)
+            def _(arg):
+                pass
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+        return tm
+
+
+class ConditionalTransactionCircuit1(Elaboratable):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        self.ready = Signal()
+        m.submodules.tb = self.tb = TestbenchIO(Adapter())
+
+        with tm.transactionContext():
+            with Transaction().body(m, request=self.ready):
+                self.tb.adapter.iface(m)
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+        return tm
+
+
+class ConditionalTransactionCircuit2(Elaboratable):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        self.ready = Signal()
+        m.submodules.tb = self.tb = TestbenchIO(Adapter())
+
+        with tm.transactionContext():
+            with m.If(self.ready):
+                with Transaction().body(m):
+                    self.tb.adapter.iface(m)
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+        return tm
+
+
+class TestConditionals(TestCaseWithSimulator):
+    def testConditionalCall(self):
+        circ = ConditionalCallCircuit()
+
+        def process():
+            yield from circ.out.disable()
+            yield from circ.tb.call_init({"data": 0})
+            yield Settle()
+            self.assertFalse((yield from circ.out.done()))
+            self.assertFalse((yield from circ.tb.done()))
+
+            yield from circ.out.enable()
+            yield Settle()
+            self.assertFalse((yield from circ.out.done()))
+            self.assertTrue((yield from circ.tb.done()))
+
+            yield from circ.tb.call_init({"data": 1})
+            yield Settle()
+            self.assertTrue((yield from circ.out.done()))
+            self.assertTrue((yield from circ.tb.done()))
+
+            # the argument is still 1 but the method is not called
+            yield from circ.tb.disable()
+            yield Settle()
+            self.assertFalse((yield from circ.out.done()))
+            self.assertFalse((yield from circ.tb.done()))
+
+        with self.runSimulation(circ) as sim:
+            sim.add_sync_process(process)
+
+    @parameterized.expand(
+        [
+            (ConditionalMethodCircuit1(),),
+            (ConditionalMethodCircuit2(),),
+            (ConditionalTransactionCircuit1(),),
+            (ConditionalTransactionCircuit2(),),
+        ]
+    )
+    def testConditional(self, circ):
+        def process():
+            yield from circ.tb.enable()
+            yield circ.ready.eq(0)
+            yield Settle()
+            self.assertFalse((yield from circ.tb.done()))
+
+            yield circ.ready.eq(1)
+            yield Settle()
+            self.assertTrue((yield from circ.tb.done()))
+
+        with self.runSimulation(circ) as sim:
             sim.add_sync_process(process)

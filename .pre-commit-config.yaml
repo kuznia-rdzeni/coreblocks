@@ -26,4 +26,4 @@ repos:
       entry: scripts/lint.sh
       language: script
       types: [python]
-      args: ['format']
+      args: ['verify']

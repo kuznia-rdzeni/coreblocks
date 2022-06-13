@@ -1,9 +1,9 @@
 import itertools
-from typing import List, Set, Iterable, TypeVar, Mapping, Union
+from typing import Iterable, TypeAlias, TypeVar, Mapping
 from amaranth import *
 from .._typing import LayoutLike
 
-__all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout"]
+__all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout", "ROGraph", "Graph", "GraphCC"]
 
 
 T = TypeVar("T")
@@ -65,7 +65,12 @@ class Scheduler(Elaboratable):
         return m
 
 
-def _graph_ccs(gr: Mapping[T, Iterable[T]]) -> List[Set[T]]:
+ROGraph: TypeAlias = Mapping[T, Iterable[T]]
+Graph: TypeAlias = dict[T, set[T]]
+GraphCC: TypeAlias = set[T]
+
+
+def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
     """_graph_ccs
 
     Find connected components in a graph.
@@ -101,7 +106,7 @@ def _graph_ccs(gr: Mapping[T, Iterable[T]]) -> List[Set[T]]:
     return ccs
 
 
-MethodLayout = Union[int, LayoutLike]
+MethodLayout = int | LayoutLike
 
 
 def _coerce_layout(int_or_layout: MethodLayout) -> LayoutLike:
