@@ -25,4 +25,4 @@ class GenParams(DependentCache):
         self.phys_regs_bits = phys_regs_bits
         self.rob_entries_bits = rob_entries_bits
         self.rs_entries = rs_entries
-        self.rs_entries_bits = rs_entries.bit_length() - 1
+        self.rs_entries_bits = (rs_entries - 1).bit_length()
