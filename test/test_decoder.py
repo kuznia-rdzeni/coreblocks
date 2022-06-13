@@ -49,6 +49,7 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x02A28213, Opcode.OP_IMM, Funct3.ADD, rd=4, rs1=5, imm=42, op=OpType.ARITHMETIC),
         InstrTest(0x003100B3, Opcode.OP, Funct3.ADD, Funct7.ADD, rd=1, rs1=2, rs2=3, op=OpType.ARITHMETIC),
         InstrTest(0x40418133, Opcode.OP, Funct3.ADD, Funct7.SUB, rd=2, rs1=3, rs2=4, op=OpType.ARITHMETIC),
+        InstrTest(0x001230B7, Opcode.OP_IMM, Funct3.ADD, rd=1, imm=0x123 << 12, op=OpType.ARITHMETIC),
         # Compare
         InstrTest(0x07BF2A13, Opcode.OP_IMM, Funct3.SLT, rd=20, rs1=30, imm=123, op=OpType.COMPARE),
         InstrTest(0x0FFFBA93, Opcode.OP_IMM, Funct3.SLTU, rd=21, rs1=31, imm=0xFF, op=OpType.COMPARE),
@@ -70,8 +71,6 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x4192D7B3, Opcode.OP, Funct3.SR, Funct7.SA, rd=15, rs1=5, rs2=25, op=OpType.SHIFT),
         # AUIPC
         InstrTest(0x00777F17, Opcode.AUIPC, rd=30, imm=0x777 << 12, op=OpType.AUIPC),
-        # LUI
-        InstrTest(0x001230B7, Opcode.LUI, rd=1, imm=0x123 << 12, op=OpType.LUI),
         # Jump
         InstrTest(0x000000EF, Opcode.JAL, rd=1, imm=0, op=OpType.JUMP),
         InstrTest(0xFFE100E7, Opcode.JALR, Funct3.JALR, rd=1, rs1=2, imm=0xFFFFFFFE, op=OpType.JUMP),
@@ -124,6 +123,10 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x0027EAF3, Opcode.SYSTEM, Funct3.CSRRSI, rd=21, imm=0xF, csr=0x02, op=OpType.CSR),
         InstrTest(0x00407B73, Opcode.SYSTEM, Funct3.CSRRCI, rd=22, imm=0x0, csr=0x04, op=OpType.CSR),
     ]
+    DECODER_TESTS_ILLEGAL = [
+        InstrTest(0xFFFFFFFF, Opcode.OP_IMM, illegal=1),
+        InstrTest(0x003160FF, Opcode.OP, Funct3.OR, Funct7.OR, rd=1, rs1=2, rs2=3, op=OpType.LOGIC, illegal=1),
+    ]
 
     def setUp(self):
         gen = GenParams("rv32gc")
@@ -134,6 +137,10 @@ class TestDecoder(TestCaseWithSimulator):
         def process():
             yield self.decoder.instr.eq(test.encoding)
             yield Settle()
+
+            self.assertEqual((yield self.decoder.illegal), test.illegal)
+            if test.illegal:
+                return
 
             self.assertEqual((yield self.decoder.opcode), test.opcode)
 
@@ -175,8 +182,6 @@ class TestDecoder(TestCaseWithSimulator):
 
             self.assertEqual((yield self.decoder.op), test.op)
 
-            self.assertEqual((yield self.decoder.illegal), test.illegal)
-
         with self.runSimulation(self.decoder) as sim:
             sim.add_process(process)
 
@@ -190,4 +195,8 @@ class TestDecoder(TestCaseWithSimulator):
 
     def test_zicsr(self):
         for test in self.DECODER_TESTS_ZICSR:
+            self.do_test(test)
+
+    def test_illegal(self):
+        for test in self.DECODER_TESTS_ILLEGAL:
             self.do_test(test)

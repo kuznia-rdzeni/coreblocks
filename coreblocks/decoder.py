@@ -1,6 +1,7 @@
 from functools import reduce
 from itertools import starmap
 from operator import or_
+from typing import Union
 
 from amaranth import *
 
@@ -17,7 +18,13 @@ _rs2_itypes = [InstrType.R, InstrType.S, InstrType.B]
 
 
 class Encoding:
-    def __init__(self, opcode: Opcode, funct3: Funct3 = None, funct7: Funct7 = None, funct12: Funct12 = None):
+    def __init__(
+        self,
+        opcode: Opcode,
+        funct3: Union[Funct3, None] = None,
+        funct7: Union[Funct7, None] = None,
+        funct12: Union[Funct12, None] = None,
+    ):
         self.opcode = opcode
         self.funct3 = funct3
         self.funct7 = funct7
@@ -32,6 +39,7 @@ _arithmetic_encodings = [
     Encoding(Opcode.OP_IMM, Funct3.ADD),  # addi
     Encoding(Opcode.OP, Funct3.ADD, Funct7.ADD),  # add
     Encoding(Opcode.OP, Funct3.ADD, Funct7.SUB),  # sub
+    Encoding(Opcode.LUI),  # lui
 ]
 
 _compare_encodings = [
@@ -61,10 +69,6 @@ _shift_encodings = [
 
 _auipc_encodings = [
     Encoding(Opcode.AUIPC),  # auipc
-]
-
-_lui_encodings = [
-    Encoding(Opcode.LUI),  # lui
 ]
 
 _jump_encodings = [
@@ -138,7 +142,6 @@ _i_encodings = [
     _logic_encodings,
     _shift_encodings,
     _auipc_encodings,
-    _lui_encodings,
     _jump_encodings,
     _branch_encodings,
     _load_encodings,
@@ -348,7 +351,15 @@ class InstrDecoder(Elaboratable):
             with m.Default():
                 m.d.comb += self.op.eq(OpType.UNKNOWN)
 
-        # m.d.comb += self.op.eq(op_mask)
+        # Instruction simplification
+
+        # lui rd, imm -> addi rd, x0, (imm << 12)
+        with m.If(self.opcode == Opcode.LUI):
+            m.d.comb += [
+                self.opcode.eq(Opcode.OP_IMM),
+                self.funct3.eq(Funct3.ADD),
+                self.rs1.eq(0),
+            ]
 
         # Immediate correction
 

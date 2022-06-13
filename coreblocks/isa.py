@@ -86,18 +86,17 @@ class OpType(IntEnum):
     LOGIC = 3
     SHIFT = 4
     AUIPC = 5
-    LUI = 6
-    JUMP = 7
-    BRANCH = 8
-    LOAD = 9
-    STORE = 10
-    FENCE = 11
-    ECALL = 12
-    EBREAK = 13
-    MRET = 14
-    WFI = 15
-    FENCEI = 16
-    CSR = 17
+    JUMP = 6
+    BRANCH = 7
+    LOAD = 8
+    STORE = 9
+    FENCE = 10
+    ECALL = 11
+    EBREAK = 12
+    MRET = 13
+    WFI = 14
+    FENCEI = 15
+    CSR = 16
 
 
 @unique
