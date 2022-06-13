@@ -1,6 +1,7 @@
+from ast import Assign
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Union, List, Optional, Dict, Tuple, Set, Iterator
+from typing import Callable, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
 from types import MethodType
 from amaranth import *
 from ._utils import *
@@ -18,7 +19,13 @@ __all__ = [
 ]
 
 
-def eager_deterministic_cc_scheduler(manager, m, gr, cc):
+ConflictGraph: TypeAlias = Graph["Transaction"]
+ConflictGraphCC: TypeAlias = GraphCC["Transaction"]
+TransactionScheduler: TypeAlias = Callable[["TransactionManager", Module, ConflictGraph, ConflictGraphCC], None]
+RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
+
+
+def eager_deterministic_cc_scheduler(manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC):
     ccl = list(cc)
     for k, transaction in enumerate(ccl):
         ready = [method.ready for method in manager.methods_by_transaction[transaction]]
@@ -28,7 +35,7 @@ def eager_deterministic_cc_scheduler(manager, m, gr, cc):
         m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
 
 
-def trivial_roundrobin_cc_scheduler(manager, m, gr, cc):
+def trivial_roundrobin_cc_scheduler(manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC):
     sched = Scheduler(len(cc))
     m.submodules += sched
     for k, transaction in enumerate(cc):
@@ -49,24 +56,24 @@ class TransactionManager(Elaboratable):
     are never granted in the same clock cycle.
     """
 
-    def __init__(self, cc_scheduler=eager_deterministic_cc_scheduler):
-        self.transactions: List[Transaction] = []
-        self.conflicts: List[Tuple[Transaction | Method, Transaction | Method]] = []
+    def __init__(self, cc_scheduler: TransactionScheduler = eager_deterministic_cc_scheduler):
+        self.transactions: list[Transaction] = []
+        self.conflicts: list[Tuple[Transaction | Method, Transaction | Method]] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
-    def add_transaction(self, transaction):
+    def add_transaction(self, transaction: "Transaction"):
         self.transactions.append(transaction)
 
-    def _conflict_graph(self):
-        def endTrans(end):
+    def _conflict_graph(self) -> ConflictGraph:
+        def endTrans(end: Transaction | Method):
             if isinstance(end, Method):
                 return self.transactions_by_method[end]
             else:
                 return [end]
 
-        gr: Dict[Transaction, Set[Transaction]] = {}
+        gr: ConflictGraph = {}
 
-        def addEdge(transaction, transaction2):
+        def addEdge(transaction: Transaction, transaction2: Transaction):
             gr[transaction].add(transaction2)
             gr[transaction2].add(transaction)
 
@@ -86,7 +93,7 @@ class TransactionManager(Elaboratable):
 
         return gr
 
-    def _call_graph(self, transaction, method, arg, enable):
+    def _call_graph(self, transaction: "Transaction", method: "Method", arg: ValueLike, enable: ValueLike):
         if not method.defined:
             raise RuntimeError("Trying to use method which is not defined yet")
         if method in self.method_uses[transaction]:
@@ -101,9 +108,9 @@ class TransactionManager(Elaboratable):
 
     def elaborate(self, platform):
 
-        self.methods_by_transaction = defaultdict(list)
-        self.transactions_by_method = defaultdict(list)
-        self.method_uses = defaultdict(dict)
+        self.methods_by_transaction = defaultdict[Transaction, list[Method]](list)
+        self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
+        self.method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
 
         for transaction in self.transactions:
             for end in transaction.conflicts:
@@ -133,7 +140,7 @@ class TransactionManager(Elaboratable):
 
 
 class TransactionContext:
-    stack: List[TransactionManager] = []
+    stack: list[TransactionManager] = []
 
     def __init__(self, manager: TransactionManager):
         self.manager = manager
@@ -299,14 +306,14 @@ class Transaction:
         return cls.current
 
 
-def _connect_rec_with_possibly_dict(dst, src):
+def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> list[Assign]:
     if not isinstance(src, dict):
         return [dst.eq(src)]
 
     if not isinstance(dst, Record):
         raise TypeError("Cannot connect a dict of signals to a non-record.")
 
-    exprs = []
+    exprs: list[Assign] = []
     for k, v in src.items():
         exprs += _connect_rec_with_possibly_dict(dst[k], v)
 
@@ -362,15 +369,15 @@ class Method:
         calling ``body``.
     """
 
-    current = None
+    current: Optional["Method"] = None
 
-    def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0, manager: Optional[TransactionManager] = None):
+    def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0):
         self.ready = Signal()
         self.run = Signal()
         self.data_in = Record(_coerce_layout(i))
         self.data_out = Record(_coerce_layout(o))
-        self.conflicts = []
-        self.method_uses = dict()
+        self.conflicts: list[Transaction | Method] = []
+        self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.defined = False
 
     def add_conflict(self, end: Union["Transaction", "Method"]) -> None:
@@ -440,12 +447,12 @@ class Method:
             self.__class__.current = None
             self.defined = True
 
-    def use_method(self, method: "Method", arg, enable):
+    def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
         if method in self.method_uses:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[method] = (arg, enable)
 
-    def __call__(self, m: Module, arg: ValueLike = C(0, 0), enable: ValueLike = C(1)) -> Record:
+    def __call__(self, m: Module, arg: RecordDict = C(0, 0), enable: ValueLike = C(1)) -> Record:
         enable_sig = Signal()
         arg_rec = Record.like(self.data_in)
 
@@ -497,7 +504,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     ```
     """
 
-    def decorator(func):
+    def decorator(func: Callable[[Record], Optional[RecordDict]]):
         out = Record.like(method.data_out)
         ret_out = None
 
