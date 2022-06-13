@@ -107,7 +107,6 @@ class TestWishboneMaster(TestCaseWithSimulator):
             assert resp["err"]
 
         with self.runSimulation(twbm) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
 
@@ -149,7 +148,6 @@ class TestWishboneMuxer(TestCaseWithSimulator):
             yield from wb_master.master_verify(1)
 
         with self.runSimulation(mux) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
 
 
@@ -209,5 +207,4 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             yield from masters[1].master_verify()
 
         with self.runSimulation(arb) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(process)
