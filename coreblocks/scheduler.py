@@ -178,6 +178,7 @@ class RegisterFile(Elaboratable):
         self.gen_params = gen_params
         layouts = gen_params.get(RFLayouts)
         self.internal_layout = [("reg_val", gen_params.isa.xlen_log), ("valid", 1)]
+        self.read_layout = layouts.rf_read_out
         self.entries = Array(Record(self.internal_layout) for _ in range(2**gen_params.phys_regs_bits))
 
         self.read1 = Method(i=layouts.rf_read_in, o=layouts.rf_read_out)
@@ -193,19 +194,21 @@ class RegisterFile(Elaboratable):
 
         @def_method(m, self.read1)
         def _(arg):
-            # Forwarding
-            with m.If(being_written != arg.reg_id):
-                return {"reg_val": self.entries[arg.reg_id].reg_val, "valid": self.entries[arg.reg_id].valid}
-            with m.Else():
-                return {"reg_val": written_value, "valid": 1}
+            forward = Signal()
+            forward = being_written == arg.reg_id
+            return {
+                "reg_val": Mux(forward, written_value, self.entries[arg.reg_id].reg_val),
+                "valid": Mux(forward, 1, self.entries[arg.reg_id].valid)
+            }
 
         @def_method(m, self.read2)
         def _(arg):
-            # Forwarding
-            with m.If(being_written != arg.reg_id):
-                return {"reg_val": self.entries[arg.reg_id].reg_val, "valid": self.entries[arg.reg_id].valid}
-            with m.Else():
-                return {"reg_val": written_value, "valid": 1}
+            forward = Signal()
+            forward = being_written == arg.reg_id
+            return {
+                "reg_val": Mux(forward, written_value, self.entries[arg.reg_id].reg_val),
+                "valid": Mux(forward, 1, self.entries[arg.reg_id].valid)
+            }
 
         @def_method(m, self.write)
         def _(arg):
