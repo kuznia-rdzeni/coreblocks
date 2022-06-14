@@ -114,8 +114,6 @@ class AdapterBase(Elaboratable):
         self.done = Signal()
         self.data_in = Record.like(iface.data_in)
         self.data_out = Record.like(iface.data_out)
-        self.input_fmt = self.data_in.layout
-        self.output_fmt = self.data_out.layout
 
 
 class AdapterTrans(AdapterBase):
