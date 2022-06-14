@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.sim import Settle
 
 from collections import deque
 import random
@@ -62,18 +63,32 @@ class TestWakeupSelect(TestCaseWithSimulator):
     def rs_process(self):
         rs_entries = 1 << self.m.layouts.rs_entries_bits
         rs = [None for _ in range(rs_entries)]
-        self.m.ready_mock.enable()
-        self.m.take_row_mock.enable()
+        yield from self.m.take_row_mock.enable()
+        yield from self.m.issue_mock.enable()
+        yield Settle()
         for _ in range(self.cycles):
             self.maybe_insert(rs)
 
             ready = Cat(entry is not None for entry in rs)
             yield from self.m.ready_mock.call_init({"data": ready})
+            if any(entry is not None for entry in rs):
+                yield from self.m.ready_mock.enable()
+            else:
+                yield from self.m.ready_mock.disable()
+            print('rdy_bits', (yield self.m.ready_mock.adapter.iface.data_in['data']))
+            #yield self.m.ready_mock.adapter.iface.data_in['data'].eq(1)
+            yield Settle()
+            #print((yield self.m.ready_mock.adapter.iface.data_in['data']))
+            print('rdy', ready)
+            print('tr', (yield self.m.take_row_mock.adapter.iface.data_in['data']))
             take_position = yield from self.m.take_row_mock.call_result()
             if take_position is not None:
+                print('tp', take_position)
                 self.taken.append(rs[take_position])
                 yield from self.m.take_row_mock.call_init(rs[take_position])
                 rs[take_position] = None
+                if all(entry is None for entry in rs):
+                    yield from self.m.ready_mock.disable()
             yield
 
     def fu_process(self):
