@@ -21,8 +21,8 @@ class WakeupTestCircuit(Elaboratable):
         tm = TransactionModule(m)
 
         with tm.transactionContext():
-            ready_mock = Adapter(o=self.layouts.rs_entries_bits)
-            take_row_mock = Adapter(i=self.layouts.rs_entries_bits, o=self.layouts.rs_out)
+            ready_mock = Adapter(o=self.layouts.rs_entries)
+            take_row_mock = Adapter(i=self.layouts.rs_entries, o=self.layouts.rs_out)
             issue_mock = Adapter(i=self.layouts.rs_out)
             m.submodules.ready_mock = self.ready_mock = TestbenchIO(ready_mock)
             m.submodules.take_row_mock = self.take_row_mock = TestbenchIO(take_row_mock)
@@ -41,7 +41,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
     def setUp(self):
         self.gen = GenParams("rv32i")
         self.m = WakeupTestCircuit(self.gen)
-        self.cycles = 40
+        self.cycles = 50
         self.taken = deque()
 
         random.seed(42)
@@ -57,50 +57,49 @@ class TestWakeupSelect(TestCaseWithSimulator):
                 if entry is None:
                     if empty_idx == 0:
                         rs[i] = self.random_entry()
-                        break
+                        return 1
                     empty_idx -= 1
+        return 0
 
-    def rs_process(self):
-        rs_entries = 1 << self.m.layouts.rs_entries_bits
-        rs = [None for _ in range(rs_entries)]
+    def process(self):
+        inserted_count = 0
+        issued_count = 0
+        rs = [None for _ in range(self.m.layouts.rs_entries)]
+
         yield from self.m.take_row_mock.enable()
         yield from self.m.issue_mock.enable()
         yield Settle()
         for _ in range(self.cycles):
-            self.maybe_insert(rs)
-
+            inserted_count += self.maybe_insert(rs)
             ready = Cat(entry is not None for entry in rs)
+
             yield from self.m.ready_mock.call_init({"data": ready})
             if any(entry is not None for entry in rs):
                 yield from self.m.ready_mock.enable()
             else:
                 yield from self.m.ready_mock.disable()
-            print('rdy_bits', (yield self.m.ready_mock.adapter.iface.data_in['data']))
-            #yield self.m.ready_mock.adapter.iface.data_in['data'].eq(1)
+
             yield Settle()
-            #print((yield self.m.ready_mock.adapter.iface.data_in['data']))
-            print('rdy', ready)
-            print('tr', (yield self.m.take_row_mock.adapter.iface.data_in['data']))
+
             take_position = yield from self.m.take_row_mock.call_result()
             if take_position is not None:
-                print('tp', take_position)
+                take_position = take_position['data']
+                assert rs[take_position] is not None
+
                 self.taken.append(rs[take_position])
                 yield from self.m.take_row_mock.call_init(rs[take_position])
                 rs[take_position] = None
-                if all(entry is None for entry in rs):
-                    yield from self.m.ready_mock.disable()
-            yield
 
-    def fu_process(self):
-        yield from self.m.issue_mock.enable()
-        for _ in range(self.cycles):
-            entry = yield from self.m.issue_mock.call_result()
-            if entry is not None:
-                assert entry == self.taken.popleft()
+                yield Settle()
+
+                issued = yield from self.m.issue_mock.call_result()
+                if issued is not None:
+                    assert issued == self.taken.popleft()
+                    issued_count += 1
             yield
+        assert inserted_count > 0
+        assert inserted_count == issued_count
 
     def test(self):
         with self.runSimulation(self.m) as sim:
-            sim.add_clock(1e-6)
-            sim.add_sync_process(self.rs_process)
-            sim.add_sync_process(self.fu_process)
+            sim.add_sync_process(self.process)

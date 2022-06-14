@@ -36,3 +36,4 @@ class RSLayouts:
             ("id_rob", gen_params.rob_entries_bits),
         ]
         self.rs_entries_bits = 4
+        self.rs_entries = 1 << self.rs_entries_bits
