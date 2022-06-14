@@ -159,8 +159,9 @@ class RSInsertion(Elaboratable):
             self.rs_insert(
                 m,
                 {
-                    "rp_s1": instr.rp_s1,
-                    "rp_s2": instr.rp_s2,
+                    # when operand value is valid the convention is to set operand source to 0
+                    "rp_s1": Mux(source1.valid, 0, instr.rp_s1),
+                    "rp_s2": Mux(source2.valid, 0, instr.rp_s2),
                     "rp_dst": instr.rp_dst,
                     "rob_id": instr.rob_id,
                     "opcode": instr.opcode,

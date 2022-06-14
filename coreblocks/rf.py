@@ -28,19 +28,23 @@ class RegisterFile(Elaboratable):
         @def_method(m, self.read1)
         def _(arg):
             forward = Signal()
+            is_zero = Signal()
             forward = being_written == arg.reg_id
+            is_zero = arg.reg_id == 0
             return {
-                "reg_val": Mux(forward, written_value, self.entries[arg.reg_id].reg_val),
-                "valid": Mux(forward, 1, self.entries[arg.reg_id].valid),
+                "reg_val": Mux(forward, written_value, Mux(is_zero, 0, self.entries[arg.reg_id].reg_val)),
+                "valid": Mux((forward) | (is_zero), 1, self.entries[arg.reg_id].valid),
             }
 
         @def_method(m, self.read2)
         def _(arg):
             forward = Signal()
+            is_zero = Signal()
             forward = being_written == arg.reg_id
+            is_zero = arg.reg_id == 0
             return {
-                "reg_val": Mux(forward, written_value, self.entries[arg.reg_id].reg_val),
-                "valid": Mux(forward, 1, self.entries[arg.reg_id].valid),
+                "reg_val": Mux(forward, written_value, Mux(is_zero, 0, self.entries[arg.reg_id].reg_val)),
+                "valid": Mux((forward) | (is_zero), 1, self.entries[arg.reg_id].valid),
             }
 
         @def_method(m, self.write)
