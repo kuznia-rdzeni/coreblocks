@@ -83,7 +83,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
 
             take_position = yield from self.m.take_row_mock.call_result()
             if take_position is not None:
-                take_position = take_position['data']
+                take_position = take_position["data"]
                 assert rs[take_position] is not None
 
                 self.taken.append(rs[take_position])
