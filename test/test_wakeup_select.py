@@ -84,7 +84,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
             take_position = yield from self.m.take_row_mock.call_result()
             if take_position is not None:
                 take_position = take_position["data"]
-                assert rs[take_position] is not None
+                self.assertIsNotNone(rs[take_position])
 
                 self.taken.append(rs[take_position])
                 yield from self.m.take_row_mock.call_init(rs[take_position])
@@ -94,11 +94,11 @@ class TestWakeupSelect(TestCaseWithSimulator):
 
                 issued = yield from self.m.issue_mock.call_result()
                 if issued is not None:
-                    assert issued == self.taken.popleft()
+                    self.assertEqual(issued, self.taken.popleft())
                     issued_count += 1
             yield
-        assert inserted_count > 0
-        assert inserted_count == issued_count
+        self.assertNotEqual(inserted_count, 0)
+        self.assertEqual(inserted_count, issued_count)
 
     def test(self):
         with self.runSimulation(self.m) as sim:
