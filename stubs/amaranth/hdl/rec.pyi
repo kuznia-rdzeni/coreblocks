@@ -40,7 +40,7 @@ class Record(ValueCastable):
     fields: OrderedDict
 
     @staticmethod
-    def like(other, *, name=..., name_suffix=..., src_loc_at=...) -> Record:
+    def like(other: Record, *, name=..., name_suffix=..., src_loc_at=...) -> Record:
         ...
     
     def __init__(self, layout, *, name=..., fields=..., src_loc_at=...) -> None:
@@ -55,82 +55,82 @@ class Record(ValueCastable):
     def __neg__(self) -> Value:
         ...
 
-    def __add__(self, other) -> Value:
+    def __add__(self, other: ValueLike) -> Value:
         ...
 
-    def __radd__(self, other) -> Value:
+    def __radd__(self, other: ValueLike) -> Value:
         ...
 
-    def __sub__(self, other) -> Value:
+    def __sub__(self, other: ValueLike) -> Value:
         ...
 
-    def __rsub__(self, other) -> Value:
+    def __rsub__(self, other: ValueLike) -> Value:
         ...
 
-    def __mul__(self, other) -> Value:
+    def __mul__(self, other: ValueLike) -> Value:
         ...
 
-    def __rmul__(self, other) -> Value:
+    def __rmul__(self, other: ValueLike) -> Value:
         ...
 
-    def __mod__(self, other) -> Value:
+    def __mod__(self, other: ValueLike) -> Value:
         ...
 
-    def __rmod__(self, other) -> Value:
+    def __rmod__(self, other: ValueLike) -> Value:
         ...
 
-    def __floordiv__(self, other) -> Value:
+    def __floordiv__(self, other: ValueLike) -> Value:
         ...
 
-    def __rfloordiv__(self, other) -> Value:
+    def __rfloordiv__(self, other: ValueLike) -> Value:
         ...
 
-    def __lshift__(self, other) -> Value:
+    def __lshift__(self, other: ValueLike) -> Value:
         ...
 
-    def __rlshift__(self, other) -> Value:
+    def __rlshift__(self, other: ValueLike) -> Value:
         ...
 
-    def __rshift__(self, other) -> Value:
+    def __rshift__(self, other: ValueLike) -> Value:
         ...
 
-    def __rrshift__(self, other) -> Value:
+    def __rrshift__(self, other: ValueLike) -> Value:
         ...
 
-    def __and__(self, other) -> Value:
+    def __and__(self, other: ValueLike) -> Value:
         ...
 
-    def __rand__(self, other) -> Value:
+    def __rand__(self, other: ValueLike) -> Value:
         ...
 
-    def __xor__(self, other) -> Value:
+    def __xor__(self, other: ValueLike) -> Value:
         ...
 
-    def __rxor__(self, other) -> Value:
+    def __rxor__(self, other: ValueLike) -> Value:
         ...
 
-    def __or__(self, other) -> Value:
+    def __or__(self, other: ValueLike) -> Value:
         ...
 
-    def __ror__(self, other) -> Value:
+    def __ror__(self, other: ValueLike) -> Value:
         ...
 
-    def __eq__(self, other) -> Value:
+    def __eq__(self, other: ValueLike) -> Value:
         ...
 
-    def __ne__(self, other) -> Value:
+    def __ne__(self, other: ValueLike) -> Value:
         ...
 
-    def __lt__(self, other) -> Value:
+    def __lt__(self, other: ValueLike) -> Value:
         ...
 
-    def __le__(self, other) -> Value:
+    def __le__(self, other: ValueLike) -> Value:
         ...
 
-    def __gt__(self, other) -> Value:
+    def __gt__(self, other: ValueLike) -> Value:
         ...
 
-    def __ge__(self, other) -> Value:
+    def __ge__(self, other: ValueLike) -> Value:
         ...
 
     def __abs__(self) -> Value:
@@ -154,13 +154,13 @@ class Record(ValueCastable):
     def xor(self) -> Value:
         ...
 
-    def implies(premise, conclusion) -> Value:
+    def implies(premise, conclusion: ValueLike) -> Value:
         ...
 
-    def bit_select(self, offset, width: int) -> Value:
+    def bit_select(self, offset: ValueLike, width: int) -> Value:
         ...
 
-    def word_select(self, offset, width: int) -> Value:
+    def word_select(self, offset: ValueLike, width: int) -> Value:
         ...
 
     def matches(self, *patterns) -> Value:
