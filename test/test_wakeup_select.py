@@ -20,19 +20,18 @@ class WakeupTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        with tm.transactionContext():
-            ready_mock = Adapter(o=self.layouts.rs_entries)
-            take_row_mock = Adapter(i=self.layouts.rs_entries, o=self.layouts.rs_out)
-            issue_mock = Adapter(i=self.layouts.rs_out)
-            m.submodules.ready_mock = self.ready_mock = TestbenchIO(ready_mock)
-            m.submodules.take_row_mock = self.take_row_mock = TestbenchIO(take_row_mock)
-            m.submodules.issue_mock = self.issue_mock = TestbenchIO(issue_mock)
-            m.submodules.wakeup_select = WakeupSelect(
-                get_ready=ready_mock.iface, take_row=take_row_mock.iface, issue=issue_mock.iface
-            )
+        ready_mock = Adapter(o=self.layouts.rs_entries)
+        take_row_mock = Adapter(i=self.layouts.rs_entries, o=self.layouts.rs_out)
+        issue_mock = Adapter(i=self.layouts.rs_out)
+        m.submodules.ready_mock = self.ready_mock = TestbenchIO(ready_mock)
+        m.submodules.take_row_mock = self.take_row_mock = TestbenchIO(take_row_mock)
+        m.submodules.issue_mock = self.issue_mock = TestbenchIO(issue_mock)
+        m.submodules.wakeup_select = WakeupSelect(
+            get_ready=ready_mock.iface, take_row=take_row_mock.iface, issue=issue_mock.iface
+        )
 
-            dummy = Signal()
-            m.d.sync += dummy.eq(1)
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
 
         return tm
 
