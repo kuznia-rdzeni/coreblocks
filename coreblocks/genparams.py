@@ -24,16 +24,3 @@ class GenParams(DependentCache):
 
         self.phys_regs_bits = phys_regs_bits
         self.rob_entries_bits = rob_entries_bits
-
-
-class RSLayouts:
-    def __init__(self, gen_params: GenParams):
-        self.rs_out = [
-            ("opcode", gen_params.isa.ilen),
-            ("val1", gen_params.isa.xlen),
-            ("val2", gen_params.isa.xlen),
-            ("id_out", gen_params.isa.xlen_log),
-            ("id_rob", gen_params.rob_entries_bits),
-        ]
-        self.rs_entries_bits = 4
-        self.rs_entries = 1 << self.rs_entries_bits

@@ -4,7 +4,8 @@ from amaranth.sim import Settle
 from collections import deque
 import random
 
-from coreblocks.genparams import *
+from coreblocks.genparams import GenParams
+from coreblocks.layouts import RSLayouts
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.wakeup_select import *
