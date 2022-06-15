@@ -1,7 +1,7 @@
 from typing import TypeVar, Type
 from .isa import ISA
 
-__all__ = ["GenParams", "RSLayouts"]
+__all__ = ["GenParams"]
 
 T = TypeVar("T")
 
