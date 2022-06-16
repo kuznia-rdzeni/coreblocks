@@ -5,7 +5,7 @@ from coreblocks.transactions.core import *
 
 class WakeupSelect(Elaboratable):
     def __init__(self, *, get_ready, take_row, issue):
-        self.get_ready = get_ready # assumption: ready only if nonzero result
+        self.get_ready = get_ready  # assumption: ready only if nonzero result
         self.take_row = take_row
         self.issue = issue
 
