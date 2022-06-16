@@ -1,3 +1,4 @@
+from typing import Optional, cast
 from amaranth import *
 from amaranth.sim import Settle
 
@@ -10,7 +11,7 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.wakeup_select import *
 
-from .common import TestCaseWithSimulator, TestbenchIO
+from .common import RecordIntDict, TestCaseWithSimulator, TestbenchIO
 
 
 class WakeupTestCircuit(Elaboratable):
@@ -46,10 +47,10 @@ class TestWakeupSelect(TestCaseWithSimulator):
 
         random.seed(42)
 
-    def random_entry(self):
+    def random_entry(self) -> RecordIntDict:
         return {key: random.randrange(width) for (key, width) in self.m.layouts.rs_out}
 
-    def maybe_insert(self, rs):
+    def maybe_insert(self, rs: list[Optional[RecordIntDict]]):
         empty_entries = sum(1 for entry in rs if entry is None)
         if empty_entries > 0 and random.random() < 0.5:
             empty_idx = random.randrange(empty_entries)
@@ -64,7 +65,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
     def process(self):
         inserted_count = 0
         issued_count = 0
-        rs = [None for _ in range(self.m.layouts.rs_entries)]
+        rs: list[Optional[RecordIntDict]] = [None for _ in range(self.m.layouts.rs_entries)]
 
         yield from self.m.take_row_mock.enable()
         yield from self.m.issue_mock.enable()
@@ -83,11 +84,13 @@ class TestWakeupSelect(TestCaseWithSimulator):
 
             take_position = yield from self.m.take_row_mock.call_result()
             if take_position is not None:
-                take_position = take_position["data"]
-                self.assertIsNotNone(rs[take_position])
+                take_position = cast(int, take_position["data"])
+                entry = rs[take_position]
+                self.assertIsNotNone(entry)
+                entry = cast(RecordIntDict, entry)  # for type checking
 
-                self.taken.append(rs[take_position])
-                yield from self.m.take_row_mock.call_init(rs[take_position])
+                self.taken.append(entry)
+                yield from self.m.take_row_mock.call_init(entry)
                 rs[take_position] = None
 
                 yield Settle()

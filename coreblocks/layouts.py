@@ -68,6 +68,7 @@ class ROBLayouts:
             ("done", 1),
         ]
 
+
 class RSLayouts:
     def __init__(self, gen_params: GenParams):
         self.rs_out = [

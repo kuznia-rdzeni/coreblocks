@@ -8,14 +8,16 @@ from amaranth.hdl.ast import Statement
 from amaranth.sim import *
 from amaranth.sim.core import Command
 from coreblocks.transactions.lib import AdapterBase
+from coreblocks._typing import ValueLike
 
 
 T = TypeVar("T")
+RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 TestGen = Generator[Command | Value | Statement | None, Any, T]
 
 
-def set_inputs(values: RecordIntDict, field: Record) -> TestGen[None]:
+def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
     for name, value in values.items():
         if isinstance(value, dict):
             yield from set_inputs(value, getattr(field, name))
@@ -80,7 +82,7 @@ class TestbenchIO(Elaboratable):
         while (yield self.adapter.done) != 1:
             yield
 
-    def call_init(self, data: RecordIntDict = {}) -> TestGen[None]:
+    def call_init(self, data: RecordValueDict = {}) -> TestGen[None]:
         yield from self.enable()
         yield from set_inputs(data, self.adapter.data_in)
 
