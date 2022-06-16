@@ -2,7 +2,7 @@ from amaranth import *
 from coreblocks.transactions import Method, Transaction
 from coreblocks.layouts import SchedulerLayouts, ROBLayouts
 from coreblocks.genparams import GenParams
-from coreblocks.utils import assign
+from coreblocks.utils import AssignType, assign
 
 __all__ = ["RegAllocation", "Renaming", "ROBAllocation"]
 
@@ -57,7 +57,7 @@ class Renaming(Elaboratable):
             instr = self.get_instr(m)
             renamed_regs = self.rename(m, instr)
 
-            m.d.comb += assign(data_out, instr, fromAll=False)
+            m.d.comb += assign(data_out, instr, fields={"rl_dst", "rp_dst", "opcode"})
             m.d.comb += assign(data_out, renamed_regs)
             self.push_instr(m, data_out)
 
@@ -85,12 +85,10 @@ class ROBAllocation(Elaboratable):
         with Transaction().body(m):
             instr = self.get_instr(m)
 
-            m.d.comb += rob_req.rl_dst.eq(instr.rl_dst)
-            m.d.comb += rob_req.rp_dst.eq(instr.rp_dst)
-            m.d.comb += assign(rob_req, instr, fromAll=False)
+            m.d.comb += assign(rob_req, instr, fields={"rl_dst", "rp_dst"})
             rob_id = self.rob_put(m, rob_req)
 
-            m.d.comb += assign(data_out, instr, fromAll=False)
+            m.d.comb += assign(data_out, instr, fields={"rp_s1", "rp_s2", "rp_dst", "opcode"})
             m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
 
             self.push_instr(m, data_out)
