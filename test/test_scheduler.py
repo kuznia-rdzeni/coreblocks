@@ -73,7 +73,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
         self.expected_phys_reg_queue = queue.Queue()
         self.free_regs_queue = queue.Queue()
         self.free_ROB_entries_queue = queue.Queue()
-        self.current_RAT = [x for x in range(0, self.gen_params.isa.reg_cnt)]
+        self.current_RAT = [0 for _ in range(0, self.gen_params.isa.reg_cnt)]
 
         self.m = RegAllocAndRenameTestCircuit(self.gen_params)
 
