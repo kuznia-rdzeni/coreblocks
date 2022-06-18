@@ -59,7 +59,7 @@ class RetirementTest(TestCaseWithSimulator):
                 rat_state[rl] = rp
                 self.rat_map_q.put({"rl_dst": rl, "rp_dst": rp})
                 self.submit_q.put({"rl_dst": rl, "rp_dst": rp})
-                # note: overwiriting rp with the same value or duplicate rp in rat (except 0) is not possible in
+                # note: overwriting rp with the same value or duplicate rp in rat (except 0) is not possible in
                 # complete processor, therefore special checks in retirement and tests for that cases are not included
 
     def test_rand(self):
@@ -72,13 +72,12 @@ class RetirementTest(TestCaseWithSimulator):
         def free_reg_process():
             while not self.rf_exp_q.empty():
                 reg = yield from retc.free_rf_adapter.call()
-                self.assertFalse(self.rf_exp_q.empty())
                 self.assertEqual(reg["data"], self.rf_exp_q.get())
 
         def rat_process():
             while not self.rat_map_q.empty():
                 current_map = self.rat_map_q.get()
-                # this test waits for next rat pair correctly set and will timeout if setting fails
+                # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
                 while (yield retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
                     yield
 

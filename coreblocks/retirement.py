@@ -18,8 +18,8 @@ class Retirement(Elaboratable):
             # set rl_dst -> rp_dst in R-RAT
             rat_out = self.rat_put(m, {"rl_dst": rob_entry.rl_dst, "rp_dst": rob_entry.rp_dst})
 
-            # put old r1_dst to free RF list
-            with m.If(rat_out.old_rp_dst):  # don't put r0 to free list - reserved to no-return instructions
+            # put old rl_dst to free RF list
+            with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
                 self.free_rf_put(m, rat_out.old_rp_dst)
 
         return m
