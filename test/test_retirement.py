@@ -3,8 +3,8 @@ from coreblocks.retirement import *
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
 from coreblocks.rat import RAT
-from coreblocks.reorder_buffer import ReorderBuffer
 from coreblocks.layouts import ROBLayouts
+from coreblocks.genparams import GenParams
 
 from .common import *
 import queue
@@ -31,7 +31,7 @@ class RetirementTestCircuit(Elaboratable):
             m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.data_layout))
 
             m.submodules.retirement = self.retirement = Retirement(
-                self.gen_params, self.mock_rob_retire.adapter.iface, self.rat.commit, self.free_rf.write
+                self.mock_rob_retire.adapter.iface, self.rat.commit, self.free_rf.write
             )
 
             m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
