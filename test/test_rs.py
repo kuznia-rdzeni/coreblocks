@@ -76,7 +76,6 @@ class TestRSMethodInsert(TestCaseWithSimulator):
         self.check_list = create_check_list(self.gp, self.insert_list)
 
         with self.runSimulation(self.m) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(self.insert_process)
             sim.add_sync_process(self.check_process)
 
@@ -123,7 +122,6 @@ class TestRSMethodSelect(TestCaseWithSimulator):
         self.check_list = create_check_list(self.gp, self.insert_list)
 
         with self.runSimulation(self.m) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(self.insert_process)
             sim.add_sync_process(self.check_process)
 
