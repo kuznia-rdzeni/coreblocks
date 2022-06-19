@@ -42,9 +42,11 @@ class RS(Elaboratable):
         push_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
         push_possible = push_vector.any()
 
+        m.d.comb += m.submodules.enc_push.i.eq(push_vector)
+        m.d.comb += m.submodules.enc_select.i.eq(select_vector)
+
         @def_method(m, self.select, ready=select_possible)
         def _(arg) -> Signal:
-            m.d.comb += m.submodules.enc_select.i.eq(select_vector)
             m.d.sync += self.data[m.submodules.enc_select.o].rec_reserved.eq(1)
             return m.submodules.enc_select.o
 
@@ -68,7 +70,6 @@ class RS(Elaboratable):
 
         @def_method(m, self.push, ready=push_possible)
         def _(arg) -> Record:
-            m.d.comb += m.submodules.enc_push.i.eq(push_vector)
             m.d.sync += self.data[m.submodules.enc_push.o].rec_reserved.eq(0)
             m.d.sync += self.data[m.submodules.enc_push.o].rec_full.eq(0)
             return self.data[m.submodules.enc_push.o].rs_data
