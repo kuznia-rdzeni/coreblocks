@@ -1,6 +1,7 @@
 import random
 import queue
-from typing import Callable, Optional
+from collections import namedtuple
+from typing import Callable, Optional, Iterable
 from amaranth import *
 from amaranth.back import verilog
 from amaranth.sim import Simulator, Settle
@@ -15,7 +16,7 @@ from coreblocks.reorder_buffer import ReorderBuffer
 from .common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO
 
 
-class RegAllocAndRenameTestCircuit(Elaboratable):
+class SchedulerTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
@@ -82,6 +83,8 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
             # mocked input and output
             m.submodules.output = self.out = TestbenchIO(method_rs_insert)
             m.submodules.rs_allocate = self.rs_allocate = TestbenchIO(method_rs_alloc)
+            m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write))
+            m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free))
             m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
             m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
             m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
@@ -90,18 +93,27 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
         return tm
 
 
-class TestRegAllocAndRename(TestCaseWithSimulator):
+class TestScheduler(TestCaseWithSimulator):
     def setUp(self):
         self.gen_params = GenParams("rv32i")
         self.expected_rename_queue = queue.Queue()
         self.expected_phys_reg_queue = queue.Queue()
         self.free_regs_queue = queue.Queue()
         self.free_ROB_entries_queue = queue.Queue()
+        self.expected_rs_entry_queue = queue.Queue()
         self.current_RAT = [x for x in range(0, self.gen_params.isa.reg_cnt)]
 
-        self.m = RegAllocAndRenameTestCircuit(self.gen_params)
+        self.m = SchedulerTestCircuit(self.gen_params)
+
+        self.instr_count = 500
 
         random.seed(42)
+        RFEntry = namedtuple("RFEntry", ["value", "valid"])
+        self.RF_state = [
+            RFEntry(random.randint(0, self.gen_params.isa.xlen - 1), random.randint(0, 1))
+            for _ in range(2**self.gen_params.phys_regs_bits)
+        ]
+        self.RF_state[0] = RFEntry(0, 1)
         for i in range(1, 2**self.gen_params.phys_regs_bits):
             self.free_phys_reg(i)
 
@@ -112,33 +124,50 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
     def make_queue_process(
         self,
         io: TestbenchIO,
-        q: queue.Queue,
+        queues: Iterable[queue.Queue],
         after_call: Optional[Callable[[RecordIntDict, RecordIntDict], TestGen[None]]] = None,
         input_io=False,
     ):
         def queue_process():
             while True:
-                try:
-                    item = q.get_nowait()
-                    # None signals to end the process
-                    if item is None:
-                        return
-                    result = yield from io.call(item if input_io else {})
-                    if after_call is not None:
-                        yield Settle()
-                        yield from after_call(result, item)
-                except queue.Empty:
-                    yield
+                item = {}
+                for q in queues:
+                    # merging of dicts from multiple queues
+                    partial_item = None
+                    # retry until we get an element
+                    while partial_item is None:
+                        try:
+                            # get element from one queue
+                            partial_item = q.get_nowait()
+                            # None signals to end the process
+                            if partial_item is None:
+                                return
+                        except queue.Empty:
+                            yield
+                        else:
+                            # merge queue element with all previous ones (dict merge)
+                            item = item | partial_item
+
+                result = yield from io.call(item if input_io else {})
+                if after_call is not None:
+                    yield Settle()
+                    yield from after_call(result, item)
 
         return queue_process
 
     def make_output_process(self):
         def after_call(got, expected):
             rl_dst = yield self.m.rob.data[got["rob_id"]].rob_data.rl_dst
-            self.assertEqual(got["rp_s1"], expected["rp_s1"])
-            self.assertEqual(got["rp_s2"], expected["rp_s2"])
+            s1 = self.RF_state[expected["rp_s1"]]
+            s2 = self.RF_state[expected["rp_s2"]]
+
+            self.assertEqual(got["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
+            self.assertEqual(got["rp_s2"], expected["rp_s2"] if not s2.valid else 0)
             self.assertEqual(got["rp_dst"], expected["rp_dst"])
             self.assertEqual(got["opcode"], expected["opcode"])
+            self.assertEqual(got["rs_entry_id"], expected["rs_entry_id"])
+            self.assertEqual(got["s1_val"], s1.value if s1.valid else 0)
+            self.assertEqual(got["s2_val"], s2.value if s2.valid else 0)
             self.assertEqual(rl_dst, expected["rl_dst"])
 
             # recycle physical register number
@@ -147,13 +176,19 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
             # recycle ROB entry
             self.free_ROB_entries_queue.put({"rob_id": got["rob_id"]})
 
-        return self.make_queue_process(self.m.out, self.expected_rename_queue, after_call, input_io=False)
+        return self.make_queue_process(
+            self.m.out, [self.expected_rename_queue, self.expected_rs_entry_queue], after_call, input_io=False
+        )
 
     def test_randomized(self):
         def instr_input_process():
             yield from self.m.rob_retire.enable()
+            for i in range(2**self.gen_params.phys_regs_bits - 1):
+                yield from self.m.rf_write.call({"reg_id": i, "reg_val": self.RF_state[i].value})
+                if not self.RF_state[i].valid:
+                    yield from self.m.rf_free.call({"reg_id": i})
 
-            for i in range(500):
+            for i in range(self.instr_count):
                 rl_s1 = random.randint(0, self.gen_params.isa.reg_cnt - 1)
                 rl_s2 = random.randint(0, self.gen_params.isa.reg_cnt - 1)
                 rl_dst = random.randint(0, self.gen_params.isa.reg_cnt - 1)
@@ -176,13 +211,15 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
             self.free_ROB_entries_queue.put(None)
 
         def rs_alloc_process():
-            for i in range(500):
+            for i in range(self.instr_count):
                 random_entry = random.randint(0, self.gen_params.rs_entries - 1)
+                self.expected_rs_entry_queue.put({"rs_entry_id": random_entry})
                 yield from self.m.rs_allocate.call({"entry_id": random_entry})
+            self.expected_rs_entry_queue.put(None)
 
         with self.runSimulation(self.m) as sim:
             sim.add_sync_process(self.make_output_process())
-            sim.add_sync_process(self.make_queue_process(self.m.rob_done, self.free_ROB_entries_queue, input_io=True))
-            sim.add_sync_process(self.make_queue_process(self.m.free_rf_inp, self.free_regs_queue, input_io=True))
+            sim.add_sync_process(self.make_queue_process(self.m.rob_done, [self.free_ROB_entries_queue], input_io=True))
+            sim.add_sync_process(self.make_queue_process(self.m.free_rf_inp, [self.free_regs_queue], input_io=True))
             sim.add_sync_process(instr_input_process)
             sim.add_sync_process(rs_alloc_process)
