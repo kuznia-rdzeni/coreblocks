@@ -2,7 +2,7 @@ from coreblocks.retirement import *
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
-from coreblocks.rat import RAT
+from coreblocks.rat import RRAT
 from coreblocks.layouts import ROBLayouts
 from coreblocks.genparams import GenParams
 
@@ -21,7 +21,7 @@ class RetirementTestCircuit(Elaboratable):
 
         rob_layouts = self.gen_params.get(ROBLayouts)
 
-        m.submodules.r_rat = self.rat = RAT(gen_params=self.gen_params)
+        m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(
             self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
         )
@@ -29,7 +29,7 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.data_layout))
 
         m.submodules.retirement = self.retirement = Retirement(
-            self.mock_rob_retire.adapter.iface, self.rat.commit, self.free_rf.write
+            rob_retire=self.mock_rob_retire.adapter.iface, r_rat_commit=self.rat.commit, free_rf_put=self.free_rf.write
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -45,11 +45,11 @@ class RetirementTest(TestCaseWithSimulator):
         self.submit_q = deque()
 
         random.seed(8)
-        cycles = 256
+        self.cycles = 256
 
         rat_state = [0 for _ in range(self.gen_params.isa.reg_cnt)]
 
-        for _ in range(cycles):
+        for _ in range(self.cycles):
             rl = random.randint(0, self.gen_params.isa.reg_cnt - 1)
             rp = random.randint(1, 2**self.gen_params.phys_regs_bits - 1) if rl != 0 else 0
             if rl != 0:
@@ -58,27 +58,31 @@ class RetirementTest(TestCaseWithSimulator):
                 rat_state[rl] = rp
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
                 self.submit_q.append({"rl_dst": rl, "rp_dst": rp})
-            # note: overwriting with the same rp or havng duplicate nonzero rps in rat shouldn't happen in reality
-            # (and the retirement code doesn't have any special behaviour in these cases), but in this simple test
-            # we don't care to make sure that the randomly generated inputs are correct in this way.
+            # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
+            # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
+            # test we don't care to make sure that the randomly generated inputs are correct in this way.
 
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
         def submit_process():
-            while len(self.submit_q):
+            while self.submit_q:
                 yield from retc.mock_rob_retire.call(self.submit_q.popleft())
 
         def free_reg_process():
-            while len(self.rf_exp_q):
+            while self.rf_exp_q:
                 reg = yield from retc.free_rf_adapter.call()
                 self.assertEqual(reg["data"], self.rf_exp_q.popleft())
 
         def rat_process():
-            while len(self.rat_map_q):
+            while self.rat_map_q:
                 current_map = self.rat_map_q.popleft()
+                wait_cycles = 0
                 # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
                 while (yield retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
+                    wait_cycles += 1
+                    if wait_cycles >= self.cycles + 10:
+                        self.fail("RAT entry was not updated")
                     yield
 
         with self.runSimulation(retc) as sim:

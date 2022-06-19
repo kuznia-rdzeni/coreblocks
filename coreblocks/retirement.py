@@ -4,9 +4,9 @@ from coreblocks.transactions.core import Method, Transaction
 
 
 class Retirement(Elaboratable):
-    def __init__(self, rob_retire: Method, r_rat_put: Method, free_rf_put: Method):
+    def __init__(self, *, rob_retire: Method, r_rat_commit: Method, free_rf_put: Method):
         self.rob_retire = rob_retire
-        self.rat_put = r_rat_put
+        self.rat_put = r_rat_commit
         self.free_rf_put = free_rf_put
 
     def elaborate(self, platform):
