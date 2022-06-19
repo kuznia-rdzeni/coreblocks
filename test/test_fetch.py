@@ -9,6 +9,7 @@ from .common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.fetch import Fetch
 from coreblocks.genparams import GenParams
+from coreblocks.layouts import FetchLayouts
 
 from queue import Queue
 from random import Random
@@ -32,7 +33,7 @@ class TestElaboratable(Elaboratable):
         )
 
         self.wbm = WishboneMaster(wb_params)
-        fifo = FIFO(self.wbm.resultLayout, depth=2)
+        fifo = FIFO(self.gp.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
         self.fetch = Fetch(self.gp, self.wbm, fifo.write)
 
@@ -48,14 +49,13 @@ class TestElaboratable(Elaboratable):
 
 class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        super().setUp()
         self.gp = GenParams("rv32i")
         self.test_module = TestElaboratable(self.gp)
         self.instr_queue = Queue()
-        self.last_addr = -(self.gp.isa.ilen // 8)
-        self.rand = Random(0)
 
     def wishbone_slave(self):
+        rand = Random(0)
+        last_addr = -(self.gp.isa.ilen_bytes)
 
         yield Passive()
 
@@ -63,16 +63,15 @@ class TestFetch(TestCaseWithSimulator):
             yield from self.test_module.io_in.slave_wait()
 
             addr = yield self.test_module.io_in.wb.adr
-            # print(addr)
-            self.assertEqual(addr, self.last_addr + (self.gp.isa.ilen // 8))
+            self.assertEqual(addr, last_addr + (self.gp.isa.ilen_bytes))
 
-            if self.rand.random() < 0.5:
-                data = self.rand.randint(0, self.gp.isa.ilen - 1)
+            data = rand.randint(0, 2**self.gp.isa.ilen - 1)
+
+            if rand.random() < 0.5:
                 self.instr_queue.put(data)
                 yield from self.test_module.io_in.slave_respond(data)
-                self.last_addr = addr
+                last_addr = addr
             else:
-                data = self.rand.randint(0, self.gp.isa.ilen - 1)
                 yield from self.test_module.io_in.slave_respond(data, err=1)
 
             yield  # If this yield is removed the test fails, but it seems to me that it shouldn't.
@@ -80,12 +79,10 @@ class TestFetch(TestCaseWithSimulator):
     def fetch_out_check(self):
         for i in range(100):
             v = yield from self.test_module.io_out.call()
-            # print(v)
             self.assertEqual(v["data"], self.instr_queue.get())
 
     def test(self):
 
         with self.runSimulation(self.test_module) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.fetch_out_check)

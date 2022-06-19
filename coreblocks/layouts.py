@@ -67,3 +67,10 @@ class ROBLayouts:
             ("rob_data", self.data_layout),
             ("done", 1),
         ]
+
+
+class FetchLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.raw_instr = [
+            ("data", gen_params.isa.ilen),
+        ]
