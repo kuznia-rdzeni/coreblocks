@@ -91,8 +91,8 @@ class RSLayouts:
         self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
 
         self.push_out = [
-            ("rp_s1", gen_params.phys_regs_bits),
-            ("rp_s2", gen_params.phys_regs_bits),
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
             ("opcode", gen_params.isa.ilen),
