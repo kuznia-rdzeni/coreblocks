@@ -34,9 +34,6 @@ def assign(lhs: Signal | Record, rhs: ValueLike, *, fields: AssignFields = Assig
             if name not in rhs.fields:
                 raise ValueError("Field {} not present in rhs".format(name))
 
-            if isinstance(fields, Iterable) and name not in fields:
-                continue
-
             subFields = fields
             if isinstance(fields, Mapping):
                 subFields = fields[name]
