@@ -1,9 +1,9 @@
-from ast import Assign
 from collections import defaultdict
 from contextlib import contextmanager
 from typing import Callable, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
 from types import MethodType
 from amaranth import *
+from amaranth.hdl.ast import Assign
 from ._utils import *
 from .._typing import ValueLike
 
