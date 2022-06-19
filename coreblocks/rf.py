@@ -25,6 +25,12 @@ class RegisterFile(Elaboratable):
         being_written = Signal(self.gen_params.phys_regs_bits)
         written_value = Signal(self.gen_params.isa.xlen_log)
 
+        # Register 0 always valid (this field won't be updated in methods below) - not sure
+        # how to set 0th entry valid signal at initialization stage so doing it here instead
+        # with a 1-cycle delay. I believe this has to be in sync domain like every other
+        # RF entry or else bad things will happen.
+        m.d.sync += self.entries[0].valid.eq(1)
+
         @def_method(m, self.read1)
         def _(arg):
             forward = Signal()
@@ -45,11 +51,13 @@ class RegisterFile(Elaboratable):
 
         @def_method(m, self.write)
         def _(arg):
+            zero_reg = Signal()
+            zero_reg = arg.reg_id == 0
             m.d.comb += being_written.eq(arg.reg_id)
-            m.d.comb += written_value.eq(arg.reg_val)
-            with m.If(arg.reg_id != 0):
+            m.d.comb += written_value.eq(Mux(zero_reg, 0, arg.reg_val))
+            with m.If(not zero_reg):
                 m.d.sync += self.entries[arg.reg_id].reg_val.eq(arg.reg_val)
-            m.d.sync += self.entries[arg.reg_id].valid.eq(1)
+                m.d.sync += self.entries[arg.reg_id].valid.eq(1)
 
         @def_method(m, self.free)
         def _(arg):
