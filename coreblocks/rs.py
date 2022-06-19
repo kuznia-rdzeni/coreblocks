@@ -30,9 +30,16 @@ class RS(Elaboratable):
 
         m.submodules.enc_select = PriorityEncoder(width=2**self.gen_params.rs_entries_bits)
         m.submodules.enc_push = PriorityEncoder(width=2**self.gen_params.rs_entries_bits)
+
+        for record in self.data:
+            m.d.comb += record.rec_ready.eq(
+                ~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full.bool()
+            )
+
         select_vector = Cat(~record.rec_reserved for record in self.data)
         select_possible = select_vector.any()
-        push_vector = Cat(record.rec_ready for record in self.data)
+
+        push_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
         push_possible = push_vector.any()
 
         @def_method(m, self.select, ready=select_possible)
@@ -46,7 +53,6 @@ class RS(Elaboratable):
             m.d.sync += self.data[arg.rs_entry_id].rs_data.eq(arg.rs_data)
             m.d.sync += self.data[arg.rs_entry_id].rec_full.eq(1)
             m.d.sync += self.data[arg.rs_entry_id].rec_reserved.eq(1)
-            m.d.sync += self.data[arg.rs_entry_id].rec_ready.eq(~arg.rs_data.rp_s1.bool() & ~arg.rs_data.rp_s2.bool())
 
         @def_method(m, self.update)
         def _(arg) -> None:
@@ -60,14 +66,11 @@ class RS(Elaboratable):
                         m.d.sync += record.rs_data.rp_s2.eq(0)
                         m.d.sync += record.rs_data.s2_val.eq(arg.value)
 
-                    m.d.sync += record.rec_ready.eq(~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool())
-
         @def_method(m, self.push, ready=push_possible)
         def _(arg) -> Record:
             m.d.comb += m.submodules.enc_push.i.eq(push_vector)
             m.d.sync += self.data[m.submodules.enc_push.o].rec_reserved.eq(0)
             m.d.sync += self.data[m.submodules.enc_push.o].rec_full.eq(0)
-            m.d.sync += self.data[m.submodules.enc_push.o].rec_ready.eq(0)
             return self.data[m.submodules.enc_push.o].rs_data
 
         return m
