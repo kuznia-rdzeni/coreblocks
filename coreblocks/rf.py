@@ -55,7 +55,7 @@ class RegisterFile(Elaboratable):
             zero_reg = arg.reg_id == 0
             m.d.comb += being_written.eq(arg.reg_id)
             m.d.comb += written_value.eq(Mux(zero_reg, 0, arg.reg_val))
-            with m.If(not zero_reg):
+            with m.If(~(zero_reg)):
                 m.d.sync += self.entries[arg.reg_id].reg_val.eq(arg.reg_val)
                 m.d.sync += self.entries[arg.reg_id].valid.eq(1)
 
