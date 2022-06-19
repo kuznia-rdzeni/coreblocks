@@ -80,15 +80,20 @@ class TestRSMethodInsert(TestCaseWithSimulator):
             sim.add_sync_process(self.check_process)
 
     def insert_process(self):
-        for record in self.insert_list:
+        # After each insert, entry should be marked as full
+        for index, record in enumerate(self.insert_list):
+            self.assertEqual((yield self.m.rs.data[index].rec_full), 0)
             yield from self.m.io_insert.call(record)
+            yield Settle()
+            self.assertEqual((yield self.m.rs.data[index].rec_full), 1)
+
         self.done_lock.release()
 
     def check_process(self):
         while self.done_lock.locked():
             yield
 
-        yield Settle()
+        # Check data integrity
         for expected, record in zip(self.check_list, self.m.rs.data):
             self.assertEqual((yield record.rec_full), expected["rec_full"])
             self.assertEqual((yield record.rec_ready), expected["rec_ready"])
@@ -126,27 +131,41 @@ class TestRSMethodSelect(TestCaseWithSimulator):
             sim.add_sync_process(self.check_process)
 
     def insert_process(self):
-        for record in self.insert_list:
+        # In the beginning the select method should be ready and id should be selectable
+        for index, record in enumerate(self.insert_list):
+            self.assertEqual((yield self.m.rs.select.ready), 1)
+            self.assertEqual((yield from self.m.io_select.call())["rs_entry_id"], index)
+            yield Settle()
+            self.assertEqual((yield self.m.rs.data[index].rec_reserved), 1)
             yield from self.m.io_insert.call(record)
         self.done_lock.release()
 
     def check_process(self):
-        self.assertEqual((yield self.m.rs.select.ready), 1)
-        self.assertEqual((yield from self.m.io_select.call())["rs_entry_id"], 0)
-
         while self.done_lock.locked():
             yield
         yield Settle()
 
+        # Check if RS state is as expected
         for expected, record in zip(self.check_list, self.m.rs.data):
             self.assertEqual((yield record.rec_full), expected["rec_full"])
             self.assertEqual((yield record.rec_ready), expected["rec_ready"])
             self.assertEqual((yield record.rec_reserved), expected["rec_reserved"])
-            if expected["rs_data"]:
-                for key in expected["rs_data"]:
-                    self.assertEqual((yield getattr(record.rs_data, key)), expected["rs_data"][key])
+
+        # Reserve the last entry, then select ready should be false
         self.assertEqual((yield self.m.rs.select.ready), 1)
         self.assertEqual((yield from self.m.io_select.call())["rs_entry_id"], 3)
+        yield Settle()
+        self.assertEqual((yield self.m.rs.select.ready), 0)
+
+        # After push, select ready should be true, with 0 index returned
+        yield from self.m.io_push.call()
+        yield Settle()
+        self.assertEqual((yield self.m.rs.select.ready), 1)
+        self.assertEqual((yield from self.m.io_select.call())["rs_entry_id"], 0)
+
+        # After reservation, select is false again
+        yield Settle()
+        self.assertEqual((yield self.m.rs.select.ready), 0)
 
 
 class TestRSMethodUpdate(TestCaseWithSimulator):
