@@ -9,9 +9,6 @@ from .common import TestCaseWithSimulator, TestbenchIO
 from coreblocks.rs import RS
 from coreblocks.genparams import GenParams
 
-from threading import Lock
-from typing import Any
-
 
 def create_check_list(gp: GenParams, insert_list: list[dict]) -> list[dict]:
     check_list = [
@@ -56,8 +53,6 @@ class TestRSMethodInsert(TestCaseWithSimulator):
     def test_insert(self):
         self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
         self.m = TestElaboratable(self.gp)
-        self.done_lock = Lock()
-        self.done_lock.acquire()
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -76,10 +71,9 @@ class TestRSMethodInsert(TestCaseWithSimulator):
         self.check_list = create_check_list(self.gp, self.insert_list)
 
         with self.runSimulation(self.m) as sim:
-            sim.add_sync_process(self.insert_process)
-            sim.add_sync_process(self.check_process)
+            sim.add_sync_process(self.simulation_process)
 
-    def insert_process(self):
+    def simulation_process(self):
         # After each insert, entry should be marked as full
         for index, record in enumerate(self.insert_list):
             self.assertEqual((yield self.m.rs.data[index].rec_full), 0)
@@ -87,13 +81,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
             yield Settle()
             self.assertEqual((yield self.m.rs.data[index].rec_full), 1)
 
-        self.done_lock.release()
-
-    def check_process(self):
-        while self.done_lock.locked():
-            yield
         yield Settle()
-
         # Check data integrity
         for expected, record in zip(self.check_list, self.m.rs.data):
             self.assertEqual((yield record.rec_full), expected["rec_full"])
@@ -108,8 +96,6 @@ class TestRSMethodSelect(TestCaseWithSimulator):
     def test_select(self):
         self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
         self.m = TestElaboratable(self.gp)
-        self.done_lock = Lock()
-        self.done_lock.acquire()
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -128,10 +114,9 @@ class TestRSMethodSelect(TestCaseWithSimulator):
         self.check_list = create_check_list(self.gp, self.insert_list)
 
         with self.runSimulation(self.m) as sim:
-            sim.add_sync_process(self.insert_process)
-            sim.add_sync_process(self.check_process)
+            sim.add_sync_process(self.simulation_process)
 
-    def insert_process(self):
+    def simulation_process(self):
         # In the beginning the select method should be ready and id should be selectable
         for index, record in enumerate(self.insert_list):
             self.assertEqual((yield self.m.rs.select.ready), 1)
@@ -139,11 +124,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
             yield Settle()
             self.assertEqual((yield self.m.rs.data[index].rec_reserved), 1)
             yield from self.m.io_insert.call(record)
-        self.done_lock.release()
 
-    def check_process(self):
-        while self.done_lock.locked():
-            yield
         yield Settle()
 
         # Check if RS state is as expected
@@ -173,8 +154,6 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
     def test_update(self):
         self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
         self.m = TestElaboratable(self.gp)
-        self.done_lock = Lock()
-        self.done_lock.acquire()
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -193,19 +172,12 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         self.check_list = create_check_list(self.gp, self.insert_list)
 
         with self.runSimulation(self.m) as sim:
-            sim.add_sync_process(self.insert_process)
-            sim.add_sync_process(self.check_process)
+            sim.add_sync_process(self.simulation_process)
 
-    def insert_process(self):
+    def simulation_process(self):
         # Insert all reacords
         for record in self.insert_list:
             yield from self.m.io_insert.call(record)
-
-        self.done_lock.release()
-
-    def check_process(self):
-        while self.done_lock.locked():
-            yield
 
         yield Settle()
         # Check data integrity
@@ -258,8 +230,6 @@ class TestRSMethodPush(TestCaseWithSimulator):
     def test_push(self):
         self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
         self.m = TestElaboratable(self.gp)
-        self.done_lock = Lock()
-        self.done_lock.acquire()
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -278,19 +248,12 @@ class TestRSMethodPush(TestCaseWithSimulator):
         self.check_list = create_check_list(self.gp, self.insert_list)
 
         with self.runSimulation(self.m) as sim:
-            sim.add_sync_process(self.insert_process)
-            sim.add_sync_process(self.check_process)
+            sim.add_sync_process(self.simulation_process)
 
-    def insert_process(self):
+    def simulation_process(self):
         # After each insert, entry should be marked as full
         for record in self.insert_list:
             yield from self.m.io_insert.call(record)
-
-        self.done_lock.release()
-
-    def check_process(self):
-        while self.done_lock.locked():
-            yield
         yield Settle()
 
         # Check data integrity
