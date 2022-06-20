@@ -2,9 +2,11 @@ from amaranth import *
 
 from coreblocks.transactions.core import *
 
+__all__ = ["WakeupSelect"]
+
 
 class WakeupSelect(Elaboratable):
-    def __init__(self, *, get_ready, take_row, issue):
+    def __init__(self, *, get_ready: Method, take_row: Method, issue: Method):
         self.get_ready = get_ready  # assumption: ready only if nonzero result
         self.take_row = take_row
         self.issue = issue
