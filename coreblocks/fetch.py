@@ -11,7 +11,7 @@ class Fetch(Elaboratable):
         self.bus = bus
         self.cont = cont
 
-        self.pc = Signal(bus.wb_params.addr_width)
+        self.pc = Signal(bus.wb_params.addr_width, reset=gen_params.start_pc)
 
     def elaborate(self, platform) -> Module:
         m = Module()
