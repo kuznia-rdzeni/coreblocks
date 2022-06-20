@@ -38,10 +38,12 @@ def get_outputs(field: Record) -> TestGen[RecordIntDict]:
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def runSimulation(self, module):
+    def runSimulation(self, module, max_cycles=10e4):
         test_name = unittest.TestCase.id(self)
+        clk_period = 1e-6
 
         sim = Simulator(module)
+        sim.add_clock(clk_period)
         yield sim
 
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
@@ -52,7 +54,8 @@ class TestCaseWithSimulator(unittest.TestCase):
             ctx = nullcontext()
 
         with ctx:
-            sim.run()
+            sim.run_until(clk_period * max_cycles)
+            self.assertFalse(sim.advance(), "Simulation time limit exceeded")
 
 
 class TestbenchIO(Elaboratable):

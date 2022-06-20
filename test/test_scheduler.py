@@ -7,7 +7,7 @@ from amaranth.sim import Simulator, Settle
 from coreblocks.transactions import TransactionModule, TransactionContext
 from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans, Adapter
 from coreblocks.scheduler import RegAllocation, Renaming, ROBAllocation
-from coreblocks.rat import RAT
+from coreblocks.rat import FRAT
 from coreblocks.layouts import SchedulerLayouts
 from coreblocks.genparams import GenParams
 from coreblocks.reorder_buffer import ReorderBuffer
@@ -38,7 +38,7 @@ class RegAllocAndRenameTestCircuit(Elaboratable):
                 gen_params=self.gen_params,
             )
 
-            m.submodules.rat = rat = RAT(gen_params=self.gen_params)
+            m.submodules.rat = rat = FRAT(gen_params=self.gen_params)
             m.submodules.rename_out_buf = rename_out_buf = FIFO(layouts.renaming_out, 2)
             m.submodules.renaming = Renaming(
                 get_instr=alloc_rename_buf.read,
@@ -73,7 +73,7 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
         self.expected_phys_reg_queue = queue.Queue()
         self.free_regs_queue = queue.Queue()
         self.free_ROB_entries_queue = queue.Queue()
-        self.current_RAT = [x for x in range(0, self.gen_params.isa.reg_cnt)]
+        self.current_RAT = [0 for _ in range(0, self.gen_params.isa.reg_cnt)]
 
         self.m = RegAllocAndRenameTestCircuit(self.gen_params)
 
@@ -152,7 +152,6 @@ class TestRegAllocAndRename(TestCaseWithSimulator):
             self.free_ROB_entries_queue.put(None)
 
         with self.runSimulation(self.m) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(self.make_output_process())
             sim.add_sync_process(self.make_queue_process(self.m.rob_done, self.free_ROB_entries_queue, input_io=True))
             sim.add_sync_process(self.make_queue_process(self.m.free_rf_inp, self.free_regs_queue, input_io=True))
