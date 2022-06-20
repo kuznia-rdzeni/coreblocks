@@ -10,18 +10,18 @@ __all__ = ["RS"]
 class RS(Elaboratable):
     def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
-        layouts = gen_params.get(RSLayouts)
+        self.layouts = gen_params.get(RSLayouts)
         self.internal_layout = [
-            ("rs_data", layouts.data_layout),
+            ("rs_data", self.layouts.data_layout),
             ("rec_full", 1),
             ("rec_ready", 1),
             ("rec_reserved", 1),
         ]
 
-        self.insert = Method(i=layouts.insert_in)
-        self.select = Method(o=layouts.select_out)
-        self.update = Method(i=layouts.update_in)
-        self.push = Method(o=layouts.push_out)
+        self.insert = Method(i=self.layouts.insert_in)
+        self.select = Method(o=self.layouts.select_out)
+        self.update = Method(i=self.layouts.update_in)
+        self.push = Method(o=self.layouts.push_out)
 
         self.data = Array(Record(self.internal_layout) for _ in range(2**self.gen_params.rs_entries_bits))
 
@@ -41,6 +41,7 @@ class RS(Elaboratable):
 
         push_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
         push_possible = push_vector.any()
+        push_data_out = Record(self.layouts.push_out)
 
         m.d.comb += m.submodules.enc_push.i.eq(push_vector)
         m.d.comb += m.submodules.enc_select.i.eq(select_vector)
@@ -70,8 +71,14 @@ class RS(Elaboratable):
 
         @def_method(m, self.push, ready=push_possible)
         def _(arg) -> Record:
-            m.d.sync += self.data[m.submodules.enc_push.o].rec_reserved.eq(0)
-            m.d.sync += self.data[m.submodules.enc_push.o].rec_full.eq(0)
-            return self.data[m.submodules.enc_push.o].rs_data
+            record = self.data[m.submodules.enc_push.o]
+            m.d.sync += record.rec_reserved.eq(0)
+            m.d.sync += record.rec_full.eq(0)
+            m.d.comb += push_data_out.s1_val.eq(record.rs_data.s1_val)
+            m.d.comb += push_data_out.s2_val.eq(record.rs_data.s2_val)
+            m.d.comb += push_data_out.rp_dst.eq(record.rs_data.rp_dst)
+            m.d.comb += push_data_out.rob_id.eq(record.rs_data.rob_id)
+            m.d.comb += push_data_out.opcode.eq(record.rs_data.opcode)
+            return push_data_out
 
         return m

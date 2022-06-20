@@ -197,7 +197,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
     def insert_process(self):
         # Insert all reacords
-        for index, record in enumerate(self.insert_list):
+        for record in self.insert_list:
             yield from self.m.io_insert.call(record)
 
         self.done_lock.release()
@@ -255,9 +255,90 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
 class TestRSMethodPush(TestCaseWithSimulator):
     def test_push(self):
-        pass
+        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
+        self.m = TestElaboratable(self.gp)
+        self.done_lock = Lock()
+        self.done_lock.acquire()
+        self.insert_list = [
+            {
+                "rs_entry_id": id,
+                "rs_data": {
+                    "rp_s1": id * 2,
+                    "rp_s2": id * 2,
+                    "rp_dst": id * 2,
+                    "rob_id": id,
+                    "opcode": 1,
+                    "s1_val": id,
+                    "s2_val": id,
+                },
+            }
+            for id in range(2**self.gp.rs_entries_bits)
+        ]
+        self.check_list = create_check_list(self.gp, self.insert_list)
 
+        with self.runSimulation(self.m) as sim:
+            sim.add_sync_process(self.insert_process)
+            sim.add_sync_process(self.check_process)
 
-class TestRSFull(TestCaseWithSimulator):
-    def test_full(self):
-        pass
+    def insert_process(self):
+        # After each insert, entry should be marked as full
+        for record in self.insert_list:
+            yield from self.m.io_insert.call(record)
+
+        self.done_lock.release()
+
+    def check_process(self):
+        while self.done_lock.locked():
+            yield
+
+        # Check data integrity
+        for expected, record in zip(self.check_list, self.m.rs.data):
+            self.assertEqual((yield record.rec_full), expected["rec_full"])
+            self.assertEqual((yield record.rec_ready), expected["rec_ready"])
+            self.assertEqual((yield record.rec_reserved), expected["rec_reserved"])
+            if expected["rs_data"]:
+                for key in expected["rs_data"]:
+                    self.assertEqual((yield getattr(record.rs_data, key)), expected["rs_data"][key])
+
+        # Push first instruction
+        self.assertEqual((yield self.m.rs.push.ready), 1)
+        data = yield from self.m.io_push.call()
+        for key in data:
+            self.assertEqual(data[key], self.check_list[0]["rs_data"][key])
+        yield Settle()
+        self.assertEqual((yield self.m.rs.push.ready), 0)
+
+        # Update second instuction and push it
+        TAG = 2
+        VALUE_SPX = 1
+        yield from self.m.io_update.call({"tag": TAG, "value": VALUE_SPX})
+        yield Settle()
+        self.assertEqual((yield self.m.rs.push.ready), 1)
+        data = yield from self.m.io_push.call()
+        for key in data:
+            self.assertEqual(data[key], self.check_list[1]["rs_data"][key])
+        yield Settle()
+        self.assertEqual((yield self.m.rs.push.ready), 0)
+
+        # Insert two new ready instructions and push them
+        TAG = 0
+        VALUE_SPX = 3030
+        ENTRY_DATA = {"rp_s1": TAG, "rp_s2": TAG, "rp_dst": 1, "rob_id": 12, "opcode": 1, "s1_val": 0, "s2_val": 0}
+
+        for index in range(2):
+            yield from self.m.io_insert.call({"rs_entry_id": index, "rs_data": ENTRY_DATA})
+            yield Settle()
+            self.assertEqual((yield self.m.rs.data[index].rec_ready), 1)
+            self.assertEqual((yield self.m.rs.push.ready), 1)
+
+        data = yield from self.m.io_push.call()
+        for key in data:
+            self.assertEqual(data[key], ENTRY_DATA[key])
+        yield Settle()
+        self.assertEqual((yield self.m.rs.push.ready), 1)
+
+        data = yield from self.m.io_push.call()
+        for key in data:
+            self.assertEqual(data[key], ENTRY_DATA[key])
+        yield Settle()
+        self.assertEqual((yield self.m.rs.push.ready), 0)
