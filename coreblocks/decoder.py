@@ -234,8 +234,10 @@ class InstrDecoder(Elaboratable):
 
         # Opcode and funct
 
+        opcode = Signal(Opcode)
+
         m.d.comb += [
-            self._extract(2, self.opcode),
+            self._extract(2, opcode),
             self._extract(12, self.funct3),
             self._extract(25, self.funct7),
             self._extract(20, self.funct12),
@@ -246,7 +248,7 @@ class InstrDecoder(Elaboratable):
         itype = Signal(InstrType)
         opcode_iv = Signal()
 
-        with m.Switch(self.opcode):
+        with m.Switch(opcode):
             with m.Case(Opcode.OP_IMM, Opcode.JALR, Opcode.LOAD, Opcode.MISC_MEM, Opcode.SYSTEM):
                 m.d.comb += itype.eq(InstrType.I)
             with m.Case(Opcode.LUI, Opcode.AUIPC):
@@ -354,12 +356,14 @@ class InstrDecoder(Elaboratable):
         # Instruction simplification
 
         # lui rd, imm -> addi rd, x0, (imm << 12)
-        with m.If(self.opcode == Opcode.LUI):
+        with m.If(opcode == Opcode.LUI):
             m.d.comb += [
                 self.opcode.eq(Opcode.OP_IMM),
                 self.funct3.eq(Funct3.ADD),
                 self.rs1.eq(0),
             ]
+        with m.Else():
+            m.d.comb += self.opcode.eq(opcode)
 
         # Immediate correction
 
