@@ -1,6 +1,21 @@
 from coreblocks.genparams import GenParams
+from coreblocks.isa import *
 
-__all__ = ["SchedulerLayouts", "ROBLayouts"]
+__all__ = [
+    "SchedulerLayouts",
+    "ROBLayouts",
+    "CommonLayouts",
+    "FuncUnitLayouts",
+]
+
+
+class CommonLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.exec_fn = [
+            ("op_type", OpType),
+            ("funct3", Funct3),
+            ("funct7", Funct7),
+        ]
 
 
 class SchedulerLayouts:
@@ -81,6 +96,9 @@ class RATLayouts:
         ]
         self.rat_rename_out = [("rp_s1", gen_params.phys_regs_bits), ("rp_s2", gen_params.phys_regs_bits)]
 
+        self.rat_commit_in = [("rl_dst", gen_params.isa.reg_cnt_log), ("rp_dst", gen_params.phys_regs_bits)]
+        self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
+
 
 class ROBLayouts:
     def __init__(self, gen_params: GenParams):
@@ -96,4 +114,23 @@ class ROBLayouts:
         self.internal_layout = [
             ("rob_data", self.data_layout),
             ("done", 1),
+        ]
+
+
+class FuncUnitLayouts:
+    def __init__(self, gen: GenParams):
+        common = gen.get(CommonLayouts)
+
+        self.issue = [
+            ("rob_id", gen.rob_entries_bits),
+            ("data1", gen.isa.xlen),
+            ("data2", gen.isa.xlen),
+            ("fn", common.exec_fn),
+            ("rp_dst", gen.phys_regs_bits),
+        ]
+
+        self.accept = [
+            ("rob_id", gen.rob_entries_bits),
+            ("result", gen.isa.xlen),
+            ("rp_dst", gen.phys_regs_bits),
         ]
