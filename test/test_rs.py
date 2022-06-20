@@ -92,6 +92,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
     def check_process(self):
         while self.done_lock.locked():
             yield
+        yield Settle()
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m.rs.data):
@@ -290,6 +291,7 @@ class TestRSMethodPush(TestCaseWithSimulator):
     def check_process(self):
         while self.done_lock.locked():
             yield
+        yield Settle()
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m.rs.data):
