@@ -1,6 +1,6 @@
 from re import L
 from amaranth import Elaboratable, Module
-from amaranth.sim import Passive
+from amaranth.sim import Passive, Settle
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, FIFO
@@ -65,6 +65,9 @@ class TestFetch(TestCaseWithSimulator):
             addr = yield self.test_module.io_in.wb.adr
             self.assertEqual(addr, last_addr + (self.gp.isa.ilen_bytes))
 
+            while rand.random() < 0.5:
+                yield
+
             data = rand.randint(0, 2**self.gp.isa.ilen - 1)
 
             if rand.random() < 0.5:
@@ -74,7 +77,7 @@ class TestFetch(TestCaseWithSimulator):
             else:
                 yield from self.test_module.io_in.slave_respond(data, err=1)
 
-            yield  # If this yield is removed the test fails, but it seems to me that it shouldn't.
+            yield Settle()
 
     def fetch_out_check(self):
         for i in range(100):
