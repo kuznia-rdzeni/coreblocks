@@ -112,13 +112,14 @@ class AdapterBase(Elaboratable):
         self.iface = iface
         self.en = Signal()
         self.done = Signal()
-        self.data_in = Record.like(iface.data_in)
-        self.data_out = Record.like(iface.data_out)
-        self.input_fmt = self.data_in.layout
-        self.output_fmt = self.data_out.layout
 
 
 class AdapterTrans(AdapterBase):
+    def __init__(self, iface: Method):
+        super().__init__(iface)
+        self.data_in = Record.like(iface.data_in)
+        self.data_out = Record.like(iface.data_out)
+
     def elaborate(self, platform):
         m = Module()
 
@@ -137,6 +138,8 @@ class AdapterTrans(AdapterBase):
 class Adapter(AdapterBase):
     def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0):
         super().__init__(Method(i=i, o=o))
+        self.data_in = Record.like(self.iface.data_out)
+        self.data_out = Record.like(self.iface.data_in)
 
     def elaborate(self, platform):
         m = Module()

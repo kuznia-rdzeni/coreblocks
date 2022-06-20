@@ -43,7 +43,7 @@ sub_format(){
 }
 
 sub_check_types(){
-    pyright
+    python3 -m pyright
 }
 
 sub_verify(){
