@@ -166,7 +166,6 @@ class TestAluFuncUnit(TestCaseWithSimulator):
                 yield from random_wait()
 
         with self.runSimulation(self.m) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
 
@@ -185,6 +184,5 @@ class TestAluFuncUnit(TestCaseWithSimulator):
                 self.assertTrue((yield from self.m.issue.done()))
 
         with self.runSimulation(self.m) as sim:
-            sim.add_clock(1e-6)
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)

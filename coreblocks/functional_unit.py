@@ -73,6 +73,10 @@ class Alu(Elaboratable):
             with m.Default():
                 m.d.comb += self.out.eq(0)
 
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
         return m
 
 
