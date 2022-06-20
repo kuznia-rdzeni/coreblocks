@@ -189,5 +189,3 @@ class RSLayouts:
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
         ]
-        self.rs_entries_bits = 4
-        self.rs_entries = 1 << self.rs_entries_bits
