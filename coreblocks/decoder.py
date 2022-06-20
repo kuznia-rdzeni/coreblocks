@@ -232,6 +232,10 @@ class InstrDecoder(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        # XXX: we always assume the synchronous domain to be present.
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
         # Opcode and funct
 
         opcode = Signal(Opcode)
