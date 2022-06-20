@@ -92,7 +92,7 @@ class FetchLayouts:
         self.raw_instr = [
             ("data", gen_params.isa.ilen),
         ]
-    
+
 
 class FuncUnitLayouts:
     def __init__(self, gen: GenParams):

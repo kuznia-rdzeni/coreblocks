@@ -55,7 +55,7 @@ class TestFetch(TestCaseWithSimulator):
 
     def wishbone_slave(self):
         rand = Random(0)
-        last_addr = self.gp.start_pc-(self.gp.isa.ilen_bytes)
+        last_addr = self.gp.start_pc - (self.gp.isa.ilen_bytes)
 
         yield Passive()
 
