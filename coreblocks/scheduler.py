@@ -2,7 +2,7 @@ from amaranth import *
 from coreblocks.transactions import Method, Transaction
 from coreblocks.layouts import SchedulerLayouts, ROBLayouts
 from coreblocks.genparams import GenParams
-from coreblocks.utils import AssignType, assign
+from coreblocks.utils import assign
 
 __all__ = ["RegAllocation", "Renaming", "ROBAllocation"]
 

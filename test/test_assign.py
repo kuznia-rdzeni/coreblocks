@@ -17,8 +17,8 @@ layout_a_alt = [("a", 2)]
 @parameterized_class(
     ["name", "f", "g", "h"],
     [
-        ("normal", lambda l: l, lambda x: x, lambda x: x),
-        ("rec", lambda l: [("x", l)], lambda x: {"x": x}, lambda x: x.x),
+        ("normal", lambda l: l, lambda x: x, lambda r: r),
+        ("rec", lambda l: [("x", l)], lambda x: {"x": x}, lambda r: r.x),
     ],
 )
 class TestAssign(TestCase):
