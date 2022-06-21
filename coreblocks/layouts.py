@@ -1,6 +1,21 @@
 from coreblocks.genparams import GenParams
+from coreblocks.isa import *
 
-__all__ = ["SchedulerLayouts", "ROBLayouts"]
+__all__ = [
+    "SchedulerLayouts",
+    "ROBLayouts",
+    "CommonLayouts",
+    "FuncUnitLayouts",
+]
+
+
+class CommonLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.exec_fn = [
+            ("op_type", OpType),
+            ("funct3", Funct3),
+            ("funct7", Funct7),
+        ]
 
 
 class SchedulerLayouts:
@@ -101,3 +116,22 @@ class RSLayouts:
         ]
 
         self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
+
+
+class FuncUnitLayouts:
+    def __init__(self, gen: GenParams):
+        common = gen.get(CommonLayouts)
+
+        self.issue = [
+            ("rob_id", gen.rob_entries_bits),
+            ("data1", gen.isa.xlen),
+            ("data2", gen.isa.xlen),
+            ("fn", common.exec_fn),
+            ("rp_dst", gen.phys_regs_bits),
+        ]
+
+        self.accept = [
+            ("rob_id", gen.rob_entries_bits),
+            ("result", gen.isa.xlen),
+            ("rp_dst", gen.phys_regs_bits),
+        ]
