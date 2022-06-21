@@ -65,7 +65,7 @@ def assign(lhs: Signal | Record, rhs: ValueLike, *, fields: AssignFields = Assig
         elif fields is AssignType.ALL:
             names = set(lhs.fields) | set(rhs.fields)
         else:
-            names = iter(fields)
+            names = set(fields)
 
         for name in names:
             if name not in lhs.fields:

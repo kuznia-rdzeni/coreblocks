@@ -59,17 +59,20 @@ class TestAssign(TestCase):
 
     @parameterized.expand(
         [
-            (layout_ab, layout_a, AssignType.RHS),
-            (layout_a, layout_a, AssignType.ALL),
-            (layout_ab, layout_ac, AssignType.COMMON),
+            ("rhs", layout_ab, layout_a, AssignType.RHS),
+            ("all", layout_a, layout_a, AssignType.ALL),
+            ("common", layout_ab, layout_ac, AssignType.COMMON),
+            ("set", layout_ab, layout_ab, {"a"}),
+            ("list", layout_ab, layout_ab, ["a", "a"]),
         ]
     )
-    def test_assign_a(self, layout1: LayoutLike, layout2: LayoutLike, atype: AssignType):
+    def test_assign_a(self, name, layout1: LayoutLike, layout2: LayoutLike, atype: AssignType):
         f = self.__class__.f
+        g = self.__class__.g
         h = self.__class__.h
         lhs = Record(f(layout1))
         rhs = Record(f(layout2))
-        alist = list(assign(lhs, rhs, fields=atype))
+        alist = list(assign(lhs, rhs, fields=g(atype)))
         self.assertEqual(len(alist), 1)
         self.assertIs(alist[0].lhs, h(lhs).a)
         self.assertIs(alist[0].rhs, h(rhs).a)
