@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import AbstractSet, Iterable, Mapping
+from typing import Iterable, Mapping
 from amaranth import *
 from amaranth.hdl.ast import Assign
 from coreblocks._typing import ValueLike
@@ -14,7 +14,7 @@ class AssignType(Enum):
     ALL = 3
 
 
-AssignFields = AssignType | AbstractSet[str] | Mapping[str, "AssignFields"]
+AssignFields = AssignType | Iterable[str] | Mapping[str, "AssignFields"]
 
 
 def assign(lhs: Signal | Record, rhs: ValueLike, *, fields: AssignFields = AssignType.RHS) -> Iterable[Assign]:
@@ -37,7 +37,7 @@ def assign(lhs: Signal | Record, rhs: ValueLike, *, fields: AssignFields = Assig
             subFields = fields
             if isinstance(fields, Mapping):
                 subFields = fields[name]
-            elif isinstance(fields, AbstractSet):
+            elif isinstance(fields, Iterable):
                 subFields = AssignType.ALL
 
             yield from assign(lhs.fields[name], rhs.fields[name], fields=subFields)
