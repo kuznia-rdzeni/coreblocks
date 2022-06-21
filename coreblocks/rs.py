@@ -21,7 +21,8 @@ class RS(Elaboratable):
         self.insert = Method(i=self.layouts.insert_in)
         self.select = Method(o=self.layouts.select_out)
         self.update = Method(i=self.layouts.update_in)
-        self.push = Method(o=self.layouts.push_out)
+        self.take = Method(i=self.layouts.take_in, o=self.layouts.take_out)
+        self.get_ready_list = Method(o=self.layouts.get_ready_list_out)
 
         self.data = Array(Record(self.internal_layout) for _ in range(2**self.gen_params.rs_entries_bits))
 
@@ -29,7 +30,6 @@ class RS(Elaboratable):
         m = Module()
 
         m.submodules.enc_select = PriorityEncoder(width=2**self.gen_params.rs_entries_bits)
-        m.submodules.enc_push = PriorityEncoder(width=2**self.gen_params.rs_entries_bits)
 
         for record in self.data:
             m.d.comb += record.rec_ready.eq(
@@ -39,11 +39,13 @@ class RS(Elaboratable):
         select_vector = Cat(~record.rec_reserved for record in self.data)
         select_possible = select_vector.any()
 
-        push_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
-        push_possible = push_vector.any()
-        push_data_out = Record(self.layouts.push_out)
+        take_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
+        take_possible = take_vector.any()
+        take_data_out = Record(self.layouts.take_out)
 
-        m.d.comb += m.submodules.enc_push.i.eq(push_vector)
+        ready_list = Record(self.layouts.get_ready_list_out)
+
+        m.d.comb += ready_list.ready_list.eq(take_vector)
         m.d.comb += m.submodules.enc_select.i.eq(select_vector)
 
         @def_method(m, self.select, ready=select_possible)
@@ -69,16 +71,20 @@ class RS(Elaboratable):
                         m.d.sync += record.rs_data.rp_s2.eq(0)
                         m.d.sync += record.rs_data.s2_val.eq(arg.value)
 
-        @def_method(m, self.push, ready=push_possible)
+        @def_method(m, self.take, ready=take_possible)
         def _(arg) -> Record:
-            record = self.data[m.submodules.enc_push.o]
+            record = self.data[arg.rs_entry_id]
             m.d.sync += record.rec_reserved.eq(0)
             m.d.sync += record.rec_full.eq(0)
-            m.d.comb += push_data_out.s1_val.eq(record.rs_data.s1_val)
-            m.d.comb += push_data_out.s2_val.eq(record.rs_data.s2_val)
-            m.d.comb += push_data_out.rp_dst.eq(record.rs_data.rp_dst)
-            m.d.comb += push_data_out.rob_id.eq(record.rs_data.rob_id)
-            m.d.comb += push_data_out.opcode.eq(record.rs_data.opcode)
-            return push_data_out
+            m.d.comb += take_data_out.s1_val.eq(record.rs_data.s1_val)
+            m.d.comb += take_data_out.s2_val.eq(record.rs_data.s2_val)
+            m.d.comb += take_data_out.rp_dst.eq(record.rs_data.rp_dst)
+            m.d.comb += take_data_out.rob_id.eq(record.rs_data.rob_id)
+            m.d.comb += take_data_out.opcode.eq(record.rs_data.opcode)
+            return take_data_out
+
+        @def_method(m, self.get_ready_list)
+        def _(arg) -> Record:
+            return ready_list
 
         return m

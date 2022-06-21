@@ -90,10 +90,14 @@ class RSLayouts:
 
         self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
 
-        self.push_out = [
+        self.take_in = [("rs_entry_id", gen_params.rs_entries_bits)]
+
+        self.take_out = [
             ("s1_val", gen_params.isa.xlen),
             ("s2_val", gen_params.isa.xlen),
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
             ("opcode", gen_params.isa.ilen),
         ]
+
+        self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]

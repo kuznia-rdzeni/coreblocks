@@ -38,13 +38,15 @@ class TestElaboratable(Elaboratable):
         self.io_select = TestbenchIO(AdapterTrans(rs.select))
         self.io_insert = TestbenchIO(AdapterTrans(rs.insert))
         self.io_update = TestbenchIO(AdapterTrans(rs.update))
-        self.io_push = TestbenchIO(AdapterTrans(rs.push))
+        self.io_take = TestbenchIO(AdapterTrans(rs.take))
+        self.io_get_ready_list = TestbenchIO(AdapterTrans(rs.get_ready_list))
 
         m.submodules.rs = rs
         m.submodules.io_select = self.io_select
         m.submodules.io_insert = self.io_insert
         m.submodules.io_update = self.io_update
-        m.submodules.io_push = self.io_push
+        m.submodules.io_take = self.io_take
+        m.submodules.io_get_ready_list = self.io_get_ready_list
 
         return tm
 
@@ -80,8 +82,8 @@ class TestRSMethodInsert(TestCaseWithSimulator):
             yield from self.m.io_insert.call(record)
             yield Settle()
             self.assertEqual((yield self.m.rs.data[index].rec_full), 1)
-
         yield Settle()
+
         # Check data integrity
         for expected, record in zip(self.check_list, self.m.rs.data):
             self.assertEqual((yield record.rec_full), expected["rec_full"])
@@ -124,7 +126,6 @@ class TestRSMethodSelect(TestCaseWithSimulator):
             yield Settle()
             self.assertEqual((yield self.m.rs.data[index].rec_reserved), 1)
             yield from self.m.io_insert.call(record)
-
         yield Settle()
 
         # Check if RS state is as expected
@@ -139,8 +140,8 @@ class TestRSMethodSelect(TestCaseWithSimulator):
         yield Settle()
         self.assertEqual((yield self.m.rs.select.ready), 0)
 
-        # After push, select ready should be true, with 0 index returned
-        yield from self.m.io_push.call()
+        # After take, select ready should be true, with 0 index returned
+        yield from self.m.io_take.call()
         yield Settle()
         self.assertEqual((yield self.m.rs.select.ready), 1)
         self.assertEqual((yield from self.m.io_select.call())["rs_entry_id"], 0)
@@ -178,8 +179,8 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         # Insert all reacords
         for record in self.insert_list:
             yield from self.m.io_insert.call(record)
-
         yield Settle()
+
         # Check data integrity
         for expected, record in zip(self.check_list, self.m.rs.data):
             self.assertEqual((yield record.rec_full), expected["rec_full"])
@@ -226,8 +227,8 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
             self.assertEqual((yield self.m.rs.data[index].rec_ready), 1)
 
 
-class TestRSMethodPush(TestCaseWithSimulator):
-    def test_push(self):
+class TestRSMethodTake(TestCaseWithSimulator):
+    def test_take(self):
         self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
@@ -265,27 +266,27 @@ class TestRSMethodPush(TestCaseWithSimulator):
                 for key in expected["rs_data"]:
                     self.assertEqual((yield getattr(record.rs_data, key)), expected["rs_data"][key])
 
-        # Push first instruction
-        self.assertEqual((yield self.m.rs.push.ready), 1)
-        data = yield from self.m.io_push.call()
+        # Take first instruction
+        self.assertEqual((yield self.m.rs.take.ready), 1)
+        data = yield from self.m.io_take.call({"rs_entry_id": 0})
         for key in data:
             self.assertEqual(data[key], self.check_list[0]["rs_data"][key])
         yield Settle()
-        self.assertEqual((yield self.m.rs.push.ready), 0)
+        self.assertEqual((yield self.m.rs.take.ready), 0)
 
-        # Update second instuction and push it
+        # Update second instuction and take it
         TAG = 2
         VALUE_SPX = 1
         yield from self.m.io_update.call({"tag": TAG, "value": VALUE_SPX})
         yield Settle()
-        self.assertEqual((yield self.m.rs.push.ready), 1)
-        data = yield from self.m.io_push.call()
+        self.assertEqual((yield self.m.rs.take.ready), 1)
+        data = yield from self.m.io_take.call({"rs_entry_id": 1})
         for key in data:
             self.assertEqual(data[key], self.check_list[1]["rs_data"][key])
         yield Settle()
-        self.assertEqual((yield self.m.rs.push.ready), 0)
+        self.assertEqual((yield self.m.rs.take.ready), 0)
 
-        # Insert two new ready instructions and push them
+        # Insert two new ready instructions and take them
         TAG = 0
         VALUE_SPX = 3030
         ENTRY_DATA = {"rp_s1": TAG, "rp_s2": TAG, "rp_dst": 1, "rob_id": 12, "opcode": 1, "s1_val": 0, "s2_val": 0}
@@ -294,16 +295,63 @@ class TestRSMethodPush(TestCaseWithSimulator):
             yield from self.m.io_insert.call({"rs_entry_id": index, "rs_data": ENTRY_DATA})
             yield Settle()
             self.assertEqual((yield self.m.rs.data[index].rec_ready), 1)
-            self.assertEqual((yield self.m.rs.push.ready), 1)
+            self.assertEqual((yield self.m.rs.take.ready), 1)
 
-        data = yield from self.m.io_push.call()
+        data = yield from self.m.io_take.call({"rs_entry_id": 0})
         for key in data:
             self.assertEqual(data[key], ENTRY_DATA[key])
         yield Settle()
-        self.assertEqual((yield self.m.rs.push.ready), 1)
+        self.assertEqual((yield self.m.rs.take.ready), 1)
 
-        data = yield from self.m.io_push.call()
+        data = yield from self.m.io_take.call({"rs_entry_id": 1})
         for key in data:
             self.assertEqual(data[key], ENTRY_DATA[key])
         yield Settle()
-        self.assertEqual((yield self.m.rs.push.ready), 0)
+        self.assertEqual((yield self.m.rs.take.ready), 0)
+
+
+class TestRSMethodGetReadyList(TestCaseWithSimulator):
+    def test_get_ready_list(self):
+        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
+        self.m = TestElaboratable(self.gp)
+        self.insert_list = [
+            {
+                "rs_entry_id": id,
+                "rs_data": {
+                    "rp_s1": id // 2,
+                    "rp_s2": id // 2,
+                    "rp_dst": id * 2,
+                    "rob_id": id,
+                    "opcode": 1,
+                    "s1_val": id,
+                    "s2_val": id,
+                },
+            }
+            for id in range(2**self.gp.rs_entries_bits)
+        ]
+        self.check_list = create_check_list(self.gp, self.insert_list)
+
+        with self.runSimulation(self.m) as sim:
+            sim.add_sync_process(self.simulation_process)
+
+    def simulation_process(self):
+        # After each insert, entry should be marked as full
+        for record in self.insert_list:
+            yield from self.m.io_insert.call(record)
+        yield Settle()
+
+        # Check ready vector integrity
+        ready_list = (yield from self.m.io_get_ready_list.call())["ready_list"]
+        self.assertEqual(ready_list, 0b0011)
+
+        # Take first record and check ready vector integrity
+        yield from self.m.io_take.call({"rs_entry_id": 0})
+        yield Settle()
+        ready_list = (yield from self.m.io_get_ready_list.call())["ready_list"]
+        self.assertEqual(ready_list, 0b0010)
+
+        # Take second record and check ready vector integrity
+        yield from self.m.io_take.call({"rs_entry_id": 1})
+        yield Settle()
+        ready_list = (yield from self.m.io_get_ready_list.call())["ready_list"]
+        self.assertEqual(ready_list, 0b0000)
