@@ -1,8 +1,7 @@
-from contextlib import contextmanager
 import itertools
-from typing import Iterable, TypeAlias, TypeVar, Mapping, Optional
+from typing import Iterable, Literal, TypeAlias, TypeVar, Mapping, Optional, overload
 from amaranth import *
-from .._typing import LayoutLike, ValueLike
+from .._typing import LayoutLike
 
 __all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout", "ROGraph", "Graph", "GraphCC", "OneHotSwitch"]
 
@@ -10,7 +9,17 @@ __all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout", "ROGraph
 T = TypeVar("T")
 
 
-def OneHotSwitch(m, in_signal: Signal, *, default : bool =False) -> Iterable[Optional[int]] | Iterable[int]:
+@overload
+def OneHotSwitch(m: Module, in_signal: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
+    ...
+
+
+@overload
+def OneHotSwitch(m: Module, in_signal: Value, *, default: Literal[False] = False) -> Iterable[int]:
+    ...
+
+
+def OneHotSwitch(m: Module, in_signal: Value, *, default: bool = False) -> Iterable[Optional[int]]:
     count = len(in_signal)
     with m.Switch(in_signal):
         for i in range(count):
