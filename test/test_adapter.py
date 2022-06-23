@@ -51,9 +51,6 @@ class Consumer(Elaboratable):
 
       return m
 
-def testbenchIO(method):
-  return TestbenchIO(AdapterTrans(method))
-
 class TestElaboratable(Elaboratable):
   def __init__(self):
     self.m = Module()
@@ -61,8 +58,8 @@ class TestElaboratable(Elaboratable):
     
     self.echo = Echo()
     self.consumer = Consumer()
-    self.io_echo = testbenchIO(self.echo.action)
-    self.io_consume = testbenchIO(self.consumer.action)
+    self.io_echo = TestbenchIO(AdapterTrans(self.echo.action))
+    self.io_consume = TestbenchIO(AdapterTrans(self.consumer.action))
     
   def elaborate(self, platform):
     m = self.m
