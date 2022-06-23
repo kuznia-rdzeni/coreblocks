@@ -38,7 +38,7 @@ def get_outputs(field: Record) -> TestGen[RecordIntDict]:
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def runSimulation(self, module, max_cycles=10e4, extraSignals=()):
+    def runSimulation(self, module, max_cycles=10e4, extra_signals=()):
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
@@ -49,7 +49,7 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
-            ctx = sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw", traces=extraSignals)
+            ctx = sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw", traces=extra_signals)
         else:
             ctx = nullcontext()
 
