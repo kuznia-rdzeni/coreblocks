@@ -74,6 +74,7 @@ class TestElaboratable(Elaboratable):
 class TestAdapterTrans(TestCaseWithSimulator):
     def proc(self):
         for _ in range(3):
+          # this would previously timeout if the output layout was empty (as is in this case)
           yield from self.t.io_consume.call()
         for expected in [4, 1, 0]:
           obtained = (yield from self.t.io_echo.call({"data": expected}))["data"]
