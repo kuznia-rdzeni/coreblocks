@@ -77,7 +77,7 @@ class TestAdapterTrans(TestCaseWithSimulator):
           yield from self.t.io_consume.call()
         for expected in [4, 1, 0]:
           obtained = (yield from self.t.io_echo.call({"data": C(expected)}))["data"]
-          assert expected == obtained, f'expected: {expected}, got: {obtained}'
+          self.assertEqual(expected, obtained)
 
     def test_single(self):
         self.t = t = TestElaboratable()
