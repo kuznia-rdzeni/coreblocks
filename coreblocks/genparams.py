@@ -18,7 +18,7 @@ class DependentCache:
 
 
 class GenParams(DependentCache):
-    def __init__(self, isa_str, *, phys_regs_bits=8, rob_entries_bits=7, rs_entries=4):
+    def __init__(self, isa_str, *, phys_regs_bits=7, rob_entries_bits=8, rs_entries=4):
         super().__init__()
         self.isa = ISA(isa_str)
 
