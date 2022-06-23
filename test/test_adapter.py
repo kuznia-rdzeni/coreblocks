@@ -32,7 +32,8 @@ class Echo(Elaboratable):
 
 
 class Consumer(Elaboratable):
-    def __init__(self):
+    def __init__(self, const):
+        self.const = const
         self.data_bits = 8
 
         self.layout_in = [("data", self.data_bits)]
@@ -49,7 +50,7 @@ class Consumer(Elaboratable):
 
         @def_method(m, self.action, ready=C(1))
         def _(arg):
-            return C(0)
+            return self.const
 
         return m
 
@@ -60,26 +61,27 @@ class TestElaboratable(Elaboratable):
         self.tm = TransactionModule(self.m)
 
         self.echo = Echo()
-        self.consumer = Consumer()
+        self.consumers = [Consumer(x) for x in [None, 0, 1, 5]]
         self.io_echo = TestbenchIO(AdapterTrans(self.echo.action))
-        self.io_consume = TestbenchIO(AdapterTrans(self.consumer.action))
+        self.io_consume = [TestbenchIO(AdapterTrans(c.action)) for c in self.consumers]
 
     def elaborate(self, platform):
         m = self.m
 
         m.submodules.echo = self.echo
         m.submodules.io_echo = self.io_echo
-        m.submodules.consumer = self.consumer
-        m.submodules.io_consume = self.io_consume
+        m.submodules += self.consumers
+        m.submodules += self.io_consume
 
         return self.tm
 
 
 class TestAdapterTrans(TestCaseWithSimulator):
     def proc(self):
-        for _ in range(3):
-            # this would previously timeout if the output layout was empty (as is in this case)
-            yield from self.t.io_consume.call()
+        for do_consume in self.t.io_consume:
+            for _ in range(3):
+                # this would previously timeout if the output layout was empty (as is in this case)
+                print((yield from do_consume.call()))
         for expected in [4, 1, 0]:
             obtained = (yield from self.t.io_echo.call({"data": expected}))["data"]
             self.assertEqual(expected, obtained)
