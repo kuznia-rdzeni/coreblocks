@@ -90,7 +90,7 @@ class TestbenchIO(Elaboratable):
         return None
 
     def call_do(self) -> TestGen[RecordIntDict]:
-        while None is (outputs := (yield from self.call_result())):
+        while (outputs := (yield from self.call_result())) is None:
             yield
         yield from self.disable()
         return outputs
