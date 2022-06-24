@@ -95,37 +95,104 @@ class TestScheduler(TestCaseWithSimulator):
         self.free_regs_queue.put({"data": reg_id})
         self.expected_phys_reg_queue.put(reg_id)
 
+    def queue_gather(self, queues: Iterable[queue.Queue]):
+        # Iterate over all 'queues' and take one element from each, gathering
+        # all key-value pairs into 'item'.
+        item = {}
+        for q in queues:
+            partial_item = None
+            # retry until we get an element
+            while partial_item is None:
+                try:
+                    # get element from one queue
+                    partial_item = q.get_nowait()
+                    # None signals to end the process
+                    if partial_item is None:
+                        return None
+                except queue.Empty:
+                    # if no element available, wait and retry on the next clock cycle
+                    yield
+                else:
+                    # merge queue element with all previous ones (dict merge)
+                    item = item | partial_item
+        return item
+
     def make_queue_process(
         self,
+        *,
         io: TestbenchIO,
-        queues: Iterable[queue.Queue],
-        after_call: Optional[Callable[[RecordIntDict, RecordIntDict], TestGen[None]]] = None,
-        input_io=False,
+        input_queues: Optional[Iterable[queue.Queue]] = None,
+        output_queues: Optional[Iterable[queue.Queue]] = None,
+        check: Optional[Callable[[RecordIntDict, RecordIntDict], TestGen[None]]] = None,
     ):
+        """Create queue gather-and-test process
+
+        This function returns a simulation process that does the following steps:
+        1. Gathers dicts from multiple ``queues`` (one dict from each) and joins
+           them together
+        2. ``io`` is called with items gathered from ``input_queues``
+        3. If ``check`` was supplied, it's called with the results returned from
+           call in step 2. and items gathered from ``output_queues``
+        Steps 1-3 are repeated until one of the queues receives None
+
+        Intention is to simplify writing tests with queues: ``input_queues`` lets
+        the user specify multiple data sources (queues) from which to gather
+        arguments for call to ``io``, and multiple data sources (queues) from which
+        to gather reference values to test against the results from the call to ``io``.
+
+        Parameters
+        ----------
+        io : TestbenchIO
+            TestbenchIO to call with items gathered from ``input_queues``.
+        input_queues : Queue[dict], optional
+            Queue of dictionaries containing fields and values of a record to call
+            ``io`` with. Different fields may be split across multiple queues.
+            Fields with the same name in different queues must not be used.
+        output_queues : Queue[dict], optional
+            Queue of dictionaries containing reference fields and values to compare
+            results of ``io`` call with. Different fields may be split across
+            multiple queues. Fields with the same name in different queues must
+            not be used,
+        check : Callable[[dict, dict], TestGen]
+            Testbench generator which will be called with parameters ``result``
+            and ``outputs``, meaning results from the call to ``io`` and item
+            gathered from ``output_queues``.
+
+        Returns
+        -------
+        Callable[None, TestGen]
+            Simulation process performing steps described above.
+
+        Raises
+        ------
+        ValueError
+            If neither ``input_queues`` nor ``output_queues`` are supplied.
+        """
+
         def queue_process():
             while True:
-                item = {}
-                for q in queues:
-                    # merging of dicts from multiple queues
-                    partial_item = None
-                    # retry until we get an element
-                    while partial_item is None:
-                        try:
-                            # get element from one queue
-                            partial_item = q.get_nowait()
-                            # None signals to end the process
-                            if partial_item is None:
-                                return
-                        except queue.Empty:
-                            yield
-                        else:
-                            # merge queue element with all previous ones (dict merge)
-                            item = item | partial_item
+                inputs = {}
+                outputs = {}
+                # gather items from both queues
+                if input_queues is not None:
+                    inputs = yield from self.queue_gather(input_queues)
+                if output_queues is not None:
+                    outputs = yield from self.queue_gather(output_queues)
 
-                result = yield from io.call(item if input_io else {})
-                if after_call is not None:
+                # Check if queues signalled to end the process
+                if inputs is None or outputs is None:
+                    return
+
+                result = yield from io.call(inputs)
+
+                # this could possibly be extended to automatically compare 'results' and
+                # 'outputs' if check is None but that needs some dict deepcompare
+                if check is not None:
                     yield Settle()
-                    yield from after_call(result, item)
+                    yield from check(result, outputs)
+
+        if output_queues is None and input_queues is None:
+            raise ValueError("Either output_queues or input_queues must be supplied")
 
         return queue_process
 
@@ -151,7 +218,7 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_ROB_entries_queue.put({"rob_id": got["rob_id"]})
 
         return self.make_queue_process(
-            self.m.out, [self.expected_rename_queue, self.expected_rs_entry_queue], after_call, input_io=False
+            io=self.m.out, output_queues=[self.expected_rename_queue, self.expected_rs_entry_queue], check=after_call
         )
 
     def test_randomized(self):
@@ -193,7 +260,9 @@ class TestScheduler(TestCaseWithSimulator):
 
         with self.runSimulation(self.m) as sim:
             sim.add_sync_process(self.make_output_process())
-            sim.add_sync_process(self.make_queue_process(self.m.rob_done, [self.free_ROB_entries_queue], input_io=True))
-            sim.add_sync_process(self.make_queue_process(self.m.free_rf_inp, [self.free_regs_queue], input_io=True))
+            sim.add_sync_process(
+                self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue])
+            )
+            sim.add_sync_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
             sim.add_sync_process(instr_input_process)
             sim.add_sync_process(rs_alloc_process)
