@@ -20,7 +20,7 @@ class CommonLayouts:
 
 class SchedulerLayouts:
     def __init__(self, gen_params: GenParams):
-        self.reg_alloc_in = [
+        self.reg_alloc_in = self.scheduler_accept_instr = [
             ("rl_s1", gen_params.isa.reg_cnt_log),
             ("rl_s2", gen_params.isa.reg_cnt_log),
             ("rl_dst", gen_params.isa.reg_cnt_log),

@@ -28,57 +28,18 @@ class SchedulerTestCircuit(Elaboratable):
         rs_layouts = self.gen_params.get(RSLayouts)
 
         with tm.transactionContext():
+            # data structures
             m.submodules.instr_fifo = instr_fifo = FIFO(layouts.instr_layout, 16)
             m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
                 self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
             )
-
-            m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(layouts.reg_alloc_out, 2)
-            m.submodules.reg_alloc = RegAllocation(
-                get_instr=instr_fifo.read,
-                push_instr=alloc_rename_buf.write,
-                get_free_reg=free_rf_fifo.read,
-                gen_params=self.gen_params,
-            )
-
-            m.submodules.rat = rat = FRAT(gen_params=self.gen_params)
-            m.submodules.rename_out_buf = rename_out_buf = FIFO(layouts.renaming_out, 2)
-            m.submodules.renaming = Renaming(
-                get_instr=alloc_rename_buf.read,
-                push_instr=rename_out_buf.write,
-                rename=rat.rename,
-                gen_params=self.gen_params,
-            )
-
+            m.submodules.rat = rat = RAT(gen_params=self.gen_params)
             m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
-            m.submodules.reg_alloc_out_buf = reg_alloc_out_buf = FIFO(layouts.rob_allocate_out, 2)
-            m.submodules.rob_alloc = ROBAllocation(
-                get_instr=rename_out_buf.read,
-                push_instr=reg_alloc_out_buf.write,
-                rob_put=self.rob.put,
-                gen_params=self.gen_params,
-            )
+            m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
 
             # mocked RS
             method_rs_alloc = Adapter(i=rs_layouts.rs_allocate_out, o=rs_layouts.rs_allocate_out)
             method_rs_insert = Adapter(i=rs_layouts.rs_insert_in, o=rs_layouts.rs_insert_in)
-
-            m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
-            m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(layouts.rs_select_out, 2)
-            m.submodules.rs_select = RSSelection(
-                get_instr=reg_alloc_out_buf.read,
-                push_instr=rs_select_out_buf.write,
-                rs_alloc=method_rs_alloc.iface,
-                gen_params=self.gen_params,
-            )
-
-            m.submodules.rs_insert = RSInsertion(
-                get_instr=rs_select_out_buf.read,
-                rs_insert=method_rs_insert.iface,
-                rf_read1=self.rf.read1,
-                rf_read2=self.rf.read2,
-                gen_params=self.gen_params,
-            )
 
             # mocked input and output
             m.submodules.output = self.out = TestbenchIO(method_rs_insert)
@@ -89,6 +50,19 @@ class SchedulerTestCircuit(Elaboratable):
             m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
             m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
             m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
+
+            # main scheduler
+            m.submodules.scheduler = self.scheduler = Scheduler(
+                get_instr=instr_fifo.read,
+                get_free_reg=free_rf_fifo.read,
+                rat_rename=rat.rename,
+                rob_put=self.rob.put,
+                rf_read1=self.rf.read1,
+                rf_read2=self.rf.read2,
+                rs_alloc=method_rs_alloc.iface,
+                rs_insert=method_rs_insert.iface,
+                gen_params=self.gen_params,
+            )
 
         return tm
 
