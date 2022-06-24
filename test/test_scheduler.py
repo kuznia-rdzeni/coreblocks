@@ -1,6 +1,5 @@
 import random
-import queue
-from collections import namedtuple
+from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
 from amaranth.back import verilog
@@ -38,8 +37,8 @@ class SchedulerTestCircuit(Elaboratable):
             m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
 
             # mocked RS
-            method_rs_alloc = Adapter(i=rs_layouts.rs_allocate_out, o=rs_layouts.rs_allocate_out)
-            method_rs_insert = Adapter(i=rs_layouts.rs_insert_in, o=rs_layouts.rs_insert_in)
+            method_rs_alloc = Adapter(o=rs_layouts.rs_allocate_out)
+            method_rs_insert = Adapter(i=rs_layouts.rs_insert_in)
 
             # mocked input and output
             m.submodules.output = self.out = TestbenchIO(method_rs_insert)
@@ -70,11 +69,11 @@ class SchedulerTestCircuit(Elaboratable):
 class TestScheduler(TestCaseWithSimulator):
     def setUp(self):
         self.gen_params = GenParams("rv32i")
-        self.expected_rename_queue = queue.Queue()
-        self.expected_phys_reg_queue = queue.Queue()
-        self.free_regs_queue = queue.Queue()
-        self.free_ROB_entries_queue = queue.Queue()
-        self.expected_rs_entry_queue = queue.Queue()
+        self.expected_rename_queue = deque()
+        self.expected_phys_reg_queue = deque()
+        self.free_regs_queue = deque()
+        self.free_ROB_entries_queue = deque()
+        self.expected_rs_entry_queue = deque()
         self.current_RAT = [0 for _ in range(0, self.gen_params.isa.reg_cnt)]
         self.instr_count = 500
         self.m = SchedulerTestCircuit(self.gen_params)
@@ -83,20 +82,20 @@ class TestScheduler(TestCaseWithSimulator):
 
         # set up static RF state lookup table
         RFEntry = namedtuple("RFEntry", ["value", "valid"])
-        self.RF_state = [
+        self.rf_state = [
             RFEntry(random.randint(0, self.gen_params.isa.xlen - 1), random.randint(0, 1))
             for _ in range(2**self.gen_params.phys_regs_bits)
         ]
-        self.RF_state[0] = RFEntry(0, 1)
+        self.rf_state[0] = RFEntry(0, 1)
 
         for i in range(1, 2**self.gen_params.phys_regs_bits):
             self.free_phys_reg(i)
 
     def free_phys_reg(self, reg_id):
-        self.free_regs_queue.put({"data": reg_id})
-        self.expected_phys_reg_queue.put(reg_id)
+        self.free_regs_queue.append({"data": reg_id})
+        self.expected_phys_reg_queue.append(reg_id)
 
-    def queue_gather(self, queues: Iterable[queue.Queue]):
+    def queue_gather(self, queues: Iterable[deque]):
         # Iterate over all 'queues' and take one element from each, gathering
         # all key-value pairs into 'item'.
         item = {}
@@ -104,33 +103,33 @@ class TestScheduler(TestCaseWithSimulator):
             partial_item = None
             # retry until we get an element
             while partial_item is None:
-                try:
-                    # get element from one queue
-                    partial_item = q.get_nowait()
+                # get element from one queue
+                if len(q) > 0:
+                    partial_item = q.popleft()
                     # None signals to end the process
                     if partial_item is None:
                         return None
-                except queue.Empty:
+                else:
                     # if no element available, wait and retry on the next clock cycle
                     yield
-                else:
-                    # merge queue element with all previous ones (dict merge)
-                    item = item | partial_item
+
+            # merge queue element with all previous ones (dict merge)
+            item = item | partial_item
         return item
 
     def make_queue_process(
         self,
         *,
         io: TestbenchIO,
-        input_queues: Optional[Iterable[queue.Queue]] = None,
-        output_queues: Optional[Iterable[queue.Queue]] = None,
+        input_queues: Optional[Iterable[deque]] = None,
+        output_queues: Optional[Iterable[deque]] = None,
         check: Optional[Callable[[RecordIntDict, RecordIntDict], TestGen[None]]] = None,
     ):
         """Create queue gather-and-test process
 
         This function returns a simulation process that does the following steps:
         1. Gathers dicts from multiple ``queues`` (one dict from each) and joins
-           them together
+           them together (items from queues are popped using popleft)
         2. ``io`` is called with items gathered from ``input_queues``
         3. If ``check`` was supplied, it's called with the results returned from
            call in step 2. and items gathered from ``output_queues``
@@ -145,15 +144,16 @@ class TestScheduler(TestCaseWithSimulator):
         ----------
         io : TestbenchIO
             TestbenchIO to call with items gathered from ``input_queues``.
-        input_queues : Queue[dict], optional
+        input_queues : deque[dict], optional
             Queue of dictionaries containing fields and values of a record to call
             ``io`` with. Different fields may be split across multiple queues.
             Fields with the same name in different queues must not be used.
-        output_queues : Queue[dict], optional
+            Dictionaries are popped from the deques using popleft.
+        output_queues : deque[dict], optional
             Queue of dictionaries containing reference fields and values to compare
             results of ``io`` call with. Different fields may be split across
             multiple queues. Fields with the same name in different queues must
-            not be used,
+            not be used. Dictionaries are popped from the deques using popleft.
         check : Callable[[dict, dict], TestGen]
             Testbench generator which will be called with parameters ``result``
             and ``outputs``, meaning results from the call to ``io`` and item
@@ -198,10 +198,10 @@ class TestScheduler(TestCaseWithSimulator):
         return queue_process
 
     def make_output_process(self):
-        def after_call(got, expected):
+        def check(got, expected):
             rl_dst = yield self.m.rob.data[got["rob_id"]].rob_data.rl_dst
-            s1 = self.RF_state[expected["rp_s1"]]
-            s2 = self.RF_state[expected["rp_s2"]]
+            s1 = self.rf_state[expected["rp_s1"]]
+            s2 = self.rf_state[expected["rp_s2"]]
 
             # if source operand register ids are 0 then we already have values
             self.assertEqual(got["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
@@ -217,20 +217,20 @@ class TestScheduler(TestCaseWithSimulator):
             if got["rp_dst"] != 0:
                 self.free_phys_reg(got["rp_dst"])
             # recycle ROB entry
-            self.free_ROB_entries_queue.put({"rob_id": got["rob_id"]})
+            self.free_ROB_entries_queue.append({"rob_id": got["rob_id"]})
 
         return self.make_queue_process(
-            io=self.m.out, output_queues=[self.expected_rename_queue, self.expected_rs_entry_queue], check=after_call
+            io=self.m.out, output_queues=[self.expected_rename_queue, self.expected_rs_entry_queue], check=check
         )
 
     def test_randomized(self):
         def instr_input_process():
             yield from self.m.rob_retire.enable()
 
-            # set up RF to reflect our static RF_state reference lookup table
+            # set up RF to reflect our static rf_state reference lookup table
             for i in range(2**self.gen_params.phys_regs_bits - 1):
-                yield from self.m.rf_write.call({"reg_id": i, "reg_val": self.RF_state[i].value})
-                if not self.RF_state[i].valid:
+                yield from self.m.rf_write.call({"reg_id": i, "reg_val": self.rf_state[i].value})
+                if not self.rf_state[i].valid:
                     yield from self.m.rf_free.call({"reg_id": i})
 
             for i in range(self.instr_count):
@@ -241,9 +241,9 @@ class TestScheduler(TestCaseWithSimulator):
                 opcode = random.randint(0, 2**32 - 1)
                 rp_s1 = self.current_RAT[rl_s1]
                 rp_s2 = self.current_RAT[rl_s2]
-                rp_dst = self.expected_phys_reg_queue.get() if rl_dst != 0 else 0
+                rp_dst = self.expected_phys_reg_queue.popleft() if rl_dst != 0 else 0
 
-                self.expected_rename_queue.put(
+                self.expected_rename_queue.append(
                     {"rp_s1": rp_s1, "rp_s2": rp_s2, "rl_dst": rl_dst, "rp_dst": rp_dst, "opcode": opcode}
                 )
                 self.current_RAT[rl_dst] = rp_dst
@@ -251,18 +251,18 @@ class TestScheduler(TestCaseWithSimulator):
                 yield from self.m.instr_inp.call({"rl_s1": rl_s1, "rl_s2": rl_s2, "rl_dst": rl_dst, "opcode": opcode})
 
             # Terminate other processes
-            self.expected_rename_queue.put(None)
-            self.free_regs_queue.put(None)
-            self.free_ROB_entries_queue.put(None)
+            self.expected_rename_queue.append(None)
+            self.free_regs_queue.append(None)
+            self.free_ROB_entries_queue.append(None)
 
         def rs_alloc_process():
             for i in range(self.instr_count):
                 random_entry = random.randint(0, self.gen_params.rs_entries - 1)
-                self.expected_rs_entry_queue.put({"rs_entry_id": random_entry})
+                self.expected_rs_entry_queue.append({"rs_entry_id": random_entry})
                 yield from self.m.rs_allocate.call({"entry_id": random_entry})
-            self.expected_rs_entry_queue.put(None)
+            self.expected_rs_entry_queue.append(None)
 
-        with self.runSimulation(self.m) as sim:
+        with self.runSimulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.make_output_process())
             sim.add_sync_process(
                 self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue])

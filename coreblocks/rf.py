@@ -33,8 +33,7 @@ class RegisterFile(Elaboratable):
 
         @def_method(m, self.read1)
         def _(arg):
-            forward = Signal()
-            forward = being_written == arg.reg_id
+            forward: Signal = being_written == arg.reg_id
             return {
                 "reg_val": Mux(forward, written_value, self.entries[arg.reg_id].reg_val),
                 "valid": Mux(forward, 1, self.entries[arg.reg_id].valid),
@@ -42,8 +41,7 @@ class RegisterFile(Elaboratable):
 
         @def_method(m, self.read2)
         def _(arg):
-            forward = Signal()
-            forward = being_written == arg.reg_id
+            forward: Signal = being_written == arg.reg_id
             return {
                 "reg_val": Mux(forward, written_value, self.entries[arg.reg_id].reg_val),
                 "valid": Mux(forward, 1, self.entries[arg.reg_id].valid),
@@ -51,8 +49,7 @@ class RegisterFile(Elaboratable):
 
         @def_method(m, self.write)
         def _(arg):
-            zero_reg = Signal()
-            zero_reg = arg.reg_id == 0
+            zero_reg: Signal = arg.reg_id == 0
             m.d.comb += being_written.eq(arg.reg_id)
             m.d.comb += written_value.eq(Mux(zero_reg, 0, arg.reg_val))
             with m.If(~(zero_reg)):
