@@ -7,7 +7,7 @@ from amaranth.back import verilog
 from amaranth.sim import Simulator, Settle
 from coreblocks.transactions import TransactionModule, TransactionContext
 from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans, Adapter
-from coreblocks.scheduler import RegAllocation, Renaming, ROBAllocation, RSSelection, RSInsertion
+from coreblocks.scheduler import Scheduler
 from coreblocks.rf import RegisterFile
 from coreblocks.rat import FRAT
 from coreblocks.layouts import SchedulerLayouts, RSLayouts
@@ -33,7 +33,7 @@ class SchedulerTestCircuit(Elaboratable):
             m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
                 self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
             )
-            m.submodules.rat = rat = RAT(gen_params=self.gen_params)
+            m.submodules.rat = rat = FRAT(gen_params=self.gen_params)
             m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
             m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
 
