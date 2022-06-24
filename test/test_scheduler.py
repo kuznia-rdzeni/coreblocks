@@ -76,18 +76,19 @@ class TestScheduler(TestCaseWithSimulator):
         self.free_ROB_entries_queue = queue.Queue()
         self.expected_rs_entry_queue = queue.Queue()
         self.current_RAT = [0 for _ in range(0, self.gen_params.isa.reg_cnt)]
-
+        self.instr_count = 500
         self.m = SchedulerTestCircuit(self.gen_params)
 
-        self.instr_count = 500
-
         random.seed(42)
+
+        # set up static RF state lookup table
         RFEntry = namedtuple("RFEntry", ["value", "valid"])
         self.RF_state = [
             RFEntry(random.randint(0, self.gen_params.isa.xlen - 1), random.randint(0, 1))
             for _ in range(2**self.gen_params.phys_regs_bits)
         ]
         self.RF_state[0] = RFEntry(0, 1)
+
         for i in range(1, 2**self.gen_params.phys_regs_bits):
             self.free_phys_reg(i)
 
@@ -202,6 +203,7 @@ class TestScheduler(TestCaseWithSimulator):
             s1 = self.RF_state[expected["rp_s1"]]
             s2 = self.RF_state[expected["rp_s2"]]
 
+            # if source operand register ids are 0 then we already have values
             self.assertEqual(got["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
             self.assertEqual(got["rp_s2"], expected["rp_s2"] if not s2.valid else 0)
             self.assertEqual(got["rp_dst"], expected["rp_dst"])
@@ -224,6 +226,8 @@ class TestScheduler(TestCaseWithSimulator):
     def test_randomized(self):
         def instr_input_process():
             yield from self.m.rob_retire.enable()
+
+            # set up RF to reflect our static RF_state reference lookup table
             for i in range(2**self.gen_params.phys_regs_bits - 1):
                 yield from self.m.rf_write.call({"reg_id": i, "reg_val": self.RF_state[i].value})
                 if not self.RF_state[i].valid:

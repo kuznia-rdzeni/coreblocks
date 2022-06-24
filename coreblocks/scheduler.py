@@ -4,7 +4,7 @@ from coreblocks.transactions.lib import FIFO
 from coreblocks.layouts import SchedulerLayouts, ROBLayouts
 from coreblocks.genparams import GenParams
 
-__all__ = ["RegAllocation", "Renaming", "ROBAllocation", "RSSelection", "RSInsertion", "Scheduler"]
+__all__ = ["Scheduler"]
 
 
 class RegAllocation(Elaboratable):
