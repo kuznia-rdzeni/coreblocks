@@ -47,7 +47,7 @@ class Scheduler(Elaboratable):
         grant_reg = Signal.like(self.grant)
 
         for i in OneHotSwitch(m, grant_reg, default=True):
-            if i:
+            if i is not None:
                 m.d.comb += self.grant.eq(grant_reg)
                 for j in itertools.chain(reversed(range(i)), reversed(range(i + 1, self.count))):
                     with m.If(self.requests[j]):
