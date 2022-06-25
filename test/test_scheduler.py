@@ -104,7 +104,7 @@ class TestScheduler(TestCaseWithSimulator):
             # retry until we get an element
             while partial_item is None:
                 # get element from one queue
-                if len(q) > 0:
+                if q:
                     partial_item = q.popleft()
                     # None signals to end the process
                     if partial_item is None:
