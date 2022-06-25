@@ -552,6 +552,9 @@ class Statement:
 
 @final
 class Assign(Statement):
+    lhs: Value
+    rhs: Value
+
     def __init__(self, lhs, rhs, *, src_loc_at=...) -> None:
         ...
     
