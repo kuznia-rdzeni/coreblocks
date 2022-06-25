@@ -2,6 +2,7 @@
 
 import unittest
 import argparse
+import re
 import sys
 import os
 
@@ -52,11 +53,13 @@ def main():
         os.environ["__COREBLOCKS_DUMP_TRACES"] = "1"
 
     if args.test_name:
-        if args.test_name not in tests:
-            print(f"Could not find test '{args.test_name}'")
+        pattern = re.compile(args.test_name)
+        matches = [test for name, test in tests.items() if pattern.search(name)]
+        if not matches:
+            print(f"Could not find test matching '{args.test_name}'")
             sys.exit(1)
 
-        to_run = tests[args.test_name]
+        to_run = unittest.TestSuite(matches)
     else:
         to_run = suite
 
