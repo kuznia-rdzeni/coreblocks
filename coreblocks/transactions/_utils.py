@@ -1,34 +1,13 @@
 import itertools
-from typing import Iterable, Literal, TypeAlias, TypeVar, Mapping, Optional, overload
+from typing import Iterable, TypeAlias, TypeVar, Mapping
 from amaranth import *
 from .._typing import LayoutLike
+from coreblocks.utils import OneHotSwitch
 
-__all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout", "ROGraph", "Graph", "GraphCC", "OneHotSwitch"]
+__all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout", "ROGraph", "Graph", "GraphCC"]
 
 
 T = TypeVar("T")
-
-
-@overload
-def OneHotSwitch(m: Module, in_signal: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
-    ...
-
-
-@overload
-def OneHotSwitch(m: Module, in_signal: Value, *, default: Literal[False] = False) -> Iterable[int]:
-    ...
-
-
-def OneHotSwitch(m: Module, in_signal: Value, *, default: bool = False) -> Iterable[Optional[int]]:
-    count = len(in_signal)
-    with m.Switch(in_signal):
-        for i in range(count):
-            with m.Case("-" * (count - i - 1) + "1" + "-" * i):
-                yield i
-        if default:
-            with m.Case():
-                yield None
-    return
 
 
 class Scheduler(Elaboratable):

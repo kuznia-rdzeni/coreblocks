@@ -1,11 +1,33 @@
 from enum import Enum
-from typing import Iterable, Mapping
+from typing import Iterable, Literal, Mapping, Optional, overload
 from amaranth import *
 from amaranth.hdl.ast import Assign
 from coreblocks._typing import ValueLike
 
 
-__all__ = ["AssignType", "assign"]
+__all__ = ["AssignType", "assign", "OneHotSwitch"]
+
+
+@overload
+def OneHotSwitch(m: Module, in_signal: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
+    ...
+
+
+@overload
+def OneHotSwitch(m: Module, in_signal: Value, *, default: Literal[False] = False) -> Iterable[int]:
+    ...
+
+
+def OneHotSwitch(m: Module, in_signal: Value, *, default: bool = False) -> Iterable[Optional[int]]:
+    count = len(in_signal)
+    with m.Switch(in_signal):
+        for i in range(count):
+            with m.Case("-" * (count - i - 1) + "1" + "-" * i):
+                yield i
+        if default:
+            with m.Case():
+                yield None
+    return
 
 
 class AssignType(Enum):

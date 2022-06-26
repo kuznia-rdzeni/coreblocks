@@ -6,7 +6,7 @@ from typing import List
 import operator
 
 from coreblocks.transactions import Method
-from coreblocks.transactions._utils import OneHotSwitch
+from coreblocks.utils import OneHotSwitch
 
 
 class WishboneParameters:
