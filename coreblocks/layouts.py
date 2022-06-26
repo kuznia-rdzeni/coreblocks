@@ -17,6 +17,15 @@ class CommonLayouts:
             ("funct7", Funct7),
         ]
 
+        self.regs_l = [
+            ("rl_s1", gen_params.isa.reg_cnt_log),
+            ("rl_s1_v", 1),
+            ("rl_s2", gen_params.isa.reg_cnt_log),
+            ("rl_s2_v", 1),
+            ("rl_dst", gen_params.isa.reg_cnt_log),
+            ("rl_dst_v", 1),
+        ]
+
 
 class SchedulerLayouts:
     def __init__(self, gen_params: GenParams):
@@ -121,6 +130,18 @@ class FetchLayouts:
     def __init__(self, gen_params: GenParams):
         self.raw_instr = [
             ("data", gen_params.isa.ilen),
+        ]
+
+
+class DecodeLayouts:
+    def __init__(self, gen: GenParams):
+        common = gen.get(CommonLayouts)
+        self.decoded_instr = [
+            ("opcode", Opcode),
+            ("illegal", 1),
+            ("exec_fn", common.exec_fn),
+            ("regs_l", common.regs_l),
+            ("imm", gen.isa.xlen),
         ]
 
 
