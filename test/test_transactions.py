@@ -4,7 +4,7 @@ from amaranth.sim import *
 import random
 
 from collections import deque
-from typing import Iterable, Callable, cast
+from typing import Iterable, Callable
 from parameterized import parameterized, parameterized_class
 
 from .common import TestCaseWithSimulator, TestbenchIO
@@ -127,7 +127,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
                     yield
                 tgt(i)
                 r = yield from io.call({"data": i})
-                chk(cast(int, r["data"]))
+                chk(r["data"])
 
         return process
 
