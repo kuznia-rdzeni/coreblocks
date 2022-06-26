@@ -12,6 +12,7 @@ from coreblocks.transactions.lib import AdapterBase
 
 T = TypeVar("T")
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
+RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
 
 
@@ -84,18 +85,18 @@ class TestbenchIO(Elaboratable):
         yield from self.enable()
         yield from set_inputs(data, self.adapter.data_in)
 
-    def call_result(self) -> TestGen[Optional[RecordIntDict]]:
+    def call_result(self) -> TestGen[Optional[RecordIntDictRet]]:
         if (yield self.adapter.done):
             return (yield from get_outputs(self.adapter.data_out))
         return None
 
-    def call_do(self) -> TestGen[RecordIntDict]:
+    def call_do(self) -> TestGen[RecordIntDictRet]:
         while not (outputs := (yield from self.call_result())):
             yield
         yield from self.disable()
         return outputs
 
-    def call(self, data: RecordIntDict = {}) -> TestGen[RecordIntDict]:
+    def call(self, data: RecordIntDict = {}) -> TestGen[RecordIntDictRet]:
         yield from self.call_init(data)
         yield
         return (yield from self.call_do())
