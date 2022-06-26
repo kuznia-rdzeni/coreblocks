@@ -5,6 +5,8 @@ __all__ = [
     "SchedulerLayouts",
     "ROBLayouts",
     "CommonLayouts",
+    "FetchLayouts",
+    "DecodeLayouts",
     "FuncUnitLayouts",
 ]
 
