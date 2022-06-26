@@ -117,6 +117,13 @@ class ROBLayouts:
         ]
 
 
+class FetchLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.raw_instr = [
+            ("data", gen_params.isa.ilen),
+        ]
+
+
 class FuncUnitLayouts:
     def __init__(self, gen: GenParams):
         common = gen.get(CommonLayouts)
