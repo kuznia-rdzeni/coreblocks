@@ -1,5 +1,5 @@
 from itertools import takewhile
-from enum import unique, Enum, IntFlag
+from enum import unique, Enum, IntEnum, IntFlag
 
 
 __all__ = [
@@ -27,7 +27,7 @@ class InstrType(Enum):
 
 
 @unique
-class Opcode(Enum):
+class Opcode(IntEnum):
     OP_IMM = 0b00100
     LUI = 0b01101
     AUIPC = 0b00101
@@ -41,7 +41,7 @@ class Opcode(Enum):
     SYSTEM = 0b11100
 
 
-class Funct3(Enum):
+class Funct3(IntEnum):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = 0b000
     BNE = H = SLL = FENCEI = CSRRW = 0b001
     W = SLT = CSRRS = 0b010
@@ -52,12 +52,12 @@ class Funct3(Enum):
     BGEU = AND = CSRRCI = 0b111
 
 
-class Funct7(Enum):
+class Funct7(IntEnum):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = 0b0100000
 
 
-class Funct12(Enum):
+class Funct12(IntEnum):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
     MRET = 0b001100000010
@@ -73,31 +73,30 @@ class FenceTarget(IntFlag):
 
 
 @unique
-class FenceFm(Enum):
+class FenceFm(IntEnum):
     NONE = 0b0000
     TSO = 0b1000
 
 
 @unique
-class OpType(Enum):
+class OpType(IntEnum):
     UNKNOWN = 0
     ARITHMETIC = 1
     COMPARE = 2
     LOGIC = 3
     SHIFT = 4
     AUIPC = 5
-    LUI = 6
-    JUMP = 7
-    BRANCH = 8
-    LOAD = 9
-    STORE = 10
-    FENCE = 11
-    ECALL = 12
-    EBREAK = 13
-    MRET = 14
-    WFI = 15
+    JUMP = 6
+    BRANCH = 7
+    LOAD = 8
+    STORE = 9
+    FENCE = 10
+    ECALL = 11
+    EBREAK = 12
+    MRET = 13
+    WFI = 14
+    FENCEI = 15
     CSR = 16
-    IFENCE = 17
 
 
 @unique
@@ -109,21 +108,21 @@ class Extension(IntFlag):
     F = 0x010
     D = 0x020
     C = 0x040
-    ZIFENCE = 0x080
+    ZIFENCEI = 0x080
     ZICSR = 0x100
 
 
 _extension_map = {
     "e": Extension.E,
     "i": Extension.I,
-    "g": Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.ZICSR | Extension.ZIFENCE,
+    "g": Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.ZICSR | Extension.ZIFENCEI,
     "m": Extension.M,
     "a": Extension.A,
     "f": Extension.F,
     "d": Extension.D,
     "c": Extension.C,
     "zicsr": Extension.ZICSR,
-    "zifence": Extension.ZIFENCE,
+    "zifencei": Extension.ZIFENCEI,
 }
 
 
@@ -132,7 +131,7 @@ class ISA:
     ``ISA`` is a class that gathers all ISA-specific configurations.
 
     For each of the numeric configuration value ``val``, a corresponding
-    ``val_log`` field is provided.
+    ``val_log`` field is provided if relevant.
 
     Parameters
     ----------
@@ -148,6 +147,8 @@ class ISA:
         Number of integer registers.
     ilen:
         Maximum instruction length.
+    csr_alen:
+        CSR address width.
     extensions:
         All supported extensions in the form of a bitwise or of `Extension`.
     """
@@ -209,3 +210,5 @@ class ISA:
         self.ilen = 32
         self.ilen_bytes = self.ilen // 8
         self.ilen_log = self.ilen.bit_length() - 1
+
+        self.csr_alen = 12
