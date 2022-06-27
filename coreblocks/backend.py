@@ -30,7 +30,7 @@ def FUArbitration(Elaboratable):
         return m
 
 
-def ResultAnnouncemet(Elaboratable):
+def ResultAnnouncement(Elaboratable):
     def __init__(
         self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_write_val: Method, rf_write_val: Method
     ):
