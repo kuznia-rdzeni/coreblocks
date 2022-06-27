@@ -49,7 +49,7 @@ class Consumer(Elaboratable):
 
         @def_method(m, self.action, ready=C(1))
         def _(arg):
-            return C(0)
+            return None
 
         return m
 
