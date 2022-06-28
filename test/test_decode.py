@@ -1,7 +1,4 @@
-from collections import deque
-from re import L
 from amaranth import Elaboratable, Module
-from amaranth.sim import Passive, Settle
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, FIFO
@@ -12,8 +9,6 @@ from coreblocks.decode import Decode
 from coreblocks.genparams import GenParams
 from coreblocks.layouts import FetchLayouts, DecodeLayouts
 from coreblocks.isa import OpType, Opcode, Funct3, Funct7
-
-from random import Random
 
 
 class TestElaboratable(Elaboratable):

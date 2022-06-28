@@ -1,4 +1,4 @@
-from amaranth import Record, Module, Signal, Elaboratable
+from amaranth import *
 from .transactions import Method, Transaction
 from .genparams import GenParams
 from .layouts import DecodeLayouts
