@@ -2,6 +2,7 @@ from amaranth import *
 from coreblocks.transactions import Method, Transaction
 from coreblocks.transactions._utils import Scheduler as RoundRobinOneHot
 from coreblocks.transactions._utils import OneHotSwitch
+from coreblocks.transactions.lib import ConnectTrans
 from coreblocks.layouts import *
 from coreblocks.genparams import GenParams
 
@@ -20,14 +21,8 @@ class FUArbitration(Elaboratable):
     def elaborate(self, platfrom):
         m = Module()
 
-        m.submodules.rr = rr = RoundRobinOneHot(self.count)
-
         for i in range(self.count):
-            m.d.comb += rr.requests[i].eq(self.get_results[i].ready)
-
-        for i in range(self.count):
-            with Transaction().body(m):
-                self.m_put_result(m, self.get_results[i](m))
+            setattr(m.submodules, f"FU_input_{i}", ConnectTrans(self.m_put_result, self.get_results[i]))
 
         return m
 
