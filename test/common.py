@@ -39,7 +39,7 @@ def get_outputs(field: Record) -> TestGen[RecordIntDict]:
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def runSimulation(self, module, max_cycles=10e4):
+    def runSimulation(self, module, max_cycles=10e4, extra_signals=()):
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
@@ -50,7 +50,7 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
-            ctx = sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw")
+            ctx = sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw", traces=extra_signals)
         else:
             ctx = nullcontext()
 
@@ -90,8 +90,8 @@ class TestbenchIO(Elaboratable):
             return (yield from get_outputs(self.adapter.data_out))
         return None
 
-    def call_do(self) -> TestGen[RecordIntDictRet]:
-        while not (outputs := (yield from self.call_result())):
+    def call_do(self) -> TestGen[RecordIntDict]:
+        while (outputs := (yield from self.call_result())) is None:
             yield
         yield from self.disable()
         return outputs
