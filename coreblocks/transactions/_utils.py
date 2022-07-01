@@ -1,10 +1,20 @@
 import itertools
-from typing import Iterable, TypeAlias, TypeVar, Mapping
+import inspect
+from typing import Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
 from .._typing import LayoutLike
 from coreblocks.utils import OneHotSwitch
 
-__all__ = ["Scheduler", "_graph_ccs", "MethodLayout", "_coerce_layout", "ROGraph", "Graph", "GraphCC"]
+__all__ = [
+    "Scheduler",
+    "_graph_ccs",
+    "MethodLayout",
+    "_coerce_layout",
+    "ROGraph",
+    "Graph",
+    "GraphCC",
+    "get_caller_class_name",
+]
 
 
 T = TypeVar("T")
@@ -114,3 +124,13 @@ def _coerce_layout(int_or_layout: MethodLayout) -> LayoutLike:
         return [("data", int_or_layout)]
     else:
         return int_or_layout
+
+
+def get_caller_class_name(default: Optional[str] = None) -> str:
+    caller_frame = inspect.stack()[2].frame
+    if "self" in caller_frame.f_locals:
+        return caller_frame.f_locals["self"].__class__.__name__
+    elif default is not None:
+        return default
+    else:
+        raise RuntimeError("Not called from a method")

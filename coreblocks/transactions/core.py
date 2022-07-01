@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from typing import Callable, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
 from types import MethodType
 from amaranth import *
+from amaranth import tracer
 from amaranth.hdl.ast import Assign
 from ._utils import *
 from .._typing import ValueLike
@@ -287,12 +288,19 @@ class Transaction:
 
     Parameters
     ----------
+    name: str or None
+        Name hint for this ``Transaction``. If ``None`` (default) the name is
+        inferred from the variable name this ``Transaction`` is assigned to.
+        If the ``Transaction`` was not assigned, the name is inferred from
+        the class name where the ``Transaction`` was constructed.
     manager: TransactionManager
         The ``TransactionManager`` controlling this ``Transaction``.
         If omitted, the manager is received from ``TransactionContext``.
 
     Attributes
     ----------
+    name: str
+        Name of this ``Transaction``.
     request: Signal, in
         Signals that the transaction wants to run. If omitted, the transaction
         is always ready. Defined in the constructor.
@@ -303,7 +311,8 @@ class Transaction:
 
     current = None
 
-    def __init__(self, *, manager: Optional[TransactionManager] = None):
+    def __init__(self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None):
+        self.name = name or tracer.get_var_name(depth=2, default=get_caller_class_name(default="$transaction"))
         if manager is None:
             manager = TransactionContext.get()
         manager.add_transaction(self)
@@ -371,6 +380,9 @@ class Transaction:
             raise RuntimeError("No current transaction")
         return cls.current
 
+    def __repr__(self) -> str:
+        return "(transaction {})".format(self.name)
+
 
 def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> list[Assign]:
     if not isinstance(src, dict):
@@ -411,6 +423,9 @@ class Method:
 
     Parameters
     ----------
+    name: str or None
+        Name hint for this ``Method``. If ``None`` (default) the name is
+        inferred from the variable name this ``Method`` is assigned to.
     i: int or record layout
         The format of ``data_in``.
         An ``int`` corresponds to a ``Record`` with a single ``data`` field.
@@ -420,6 +435,8 @@ class Method:
 
     Attributes
     ----------
+    name: str
+        Name of this ``Method``.
     ready: Signal, in
         Signals that the method is ready to run in the current cycle.
         Typically defined by calling ``body``.
@@ -437,7 +454,8 @@ class Method:
 
     current: Optional["Method"] = None
 
-    def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0):
+    def __init__(self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0):
+        self.name = name or tracer.get_var_name(depth=2, default="$method")
         self.ready = Signal()
         self.run = Signal()
         self.data_in = Record(_coerce_layout(i))
@@ -536,6 +554,9 @@ class Method:
         else:
             Transaction.get().use_method(self, arg_rec, enable_sig)
         return self.data_out
+
+    def __repr__(self) -> str:
+        return "(method {})".format(self.name)
 
 
 def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
