@@ -10,6 +10,7 @@ __all__ = [
     "Adapter",
     "ConnectTrans",
     "CatTrans",
+    "ManyToOneConnectTrans",
 ]
 
 # FIFOs
@@ -174,6 +175,24 @@ class ConnectTrans(Elaboratable):
 
             m.d.comb += data1.eq(self.method1(m, data2))
             m.d.comb += data2.eq(self.method2(m, data1))
+
+        return m
+
+
+class ManyToOneConnectTrans(Elaboratable):
+    def __init__(self, *, get_results: list[Method], put_result: Method):
+        self.get_results = get_results
+        self.m_put_result = put_result
+
+        self.count = len(self.get_results)
+
+    def elaborate(self, platfrom):
+        m = Module()
+
+        for i in range(self.count):
+            setattr(
+                m.submodules, f"ManyToOneConnectTrans_input_{i}", ConnectTrans(self.m_put_result, self.get_results[i])
+            )
 
         return m
 

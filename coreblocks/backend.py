@@ -6,25 +6,7 @@ from coreblocks.transactions.lib import ConnectTrans
 from coreblocks.layouts import *
 from coreblocks.genparams import GenParams
 
-__all__ = ["FUArbitration", "ResultAnnouncement"]
-
-
-class FUArbitration(Elaboratable):
-    def __init__(self, *, gen: GenParams, get_results: list[Method], put_result: Method):
-        self.lay_result = gen.get(FuncUnitLayouts).accept
-
-        self.get_results = get_results
-        self.m_put_result = put_result
-
-        self.count = len(self.get_results)
-
-    def elaborate(self, platfrom):
-        m = Module()
-
-        for i in range(self.count):
-            setattr(m.submodules, f"FU_input_{i}", ConnectTrans(self.m_put_result, self.get_results[i]))
-
-        return m
+__all__ = ["ResultAnnouncement"]
 
 
 class ResultAnnouncement(Elaboratable):

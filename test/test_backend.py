@@ -6,8 +6,8 @@ from amaranth import *
 from amaranth.back import verilog
 from amaranth.sim import Simulator, Settle
 from coreblocks.transactions import TransactionModule, TransactionContext
-from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans, Adapter
-from coreblocks.backend import FUArbitration, ResultAnnouncement
+from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans, Adapter, ManyToOneConnectTrans
+from coreblocks.backend import ResultAnnouncement
 from coreblocks.layouts import *
 from coreblocks.genparams import GenParams
 from .common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO
@@ -45,8 +45,8 @@ class BackendTestCircuit(Elaboratable):
             # Create FUArbiter, which will serialize results from different FU's
             serialized_results_fifo = FIFO(self.lay_result, 16)
             m.submodules.serialized_results_fifo = serialized_results_fifo
-            m.submodules.fu_arbitration = FUArbitration(
-                gen=self.gen, get_results=get_results, put_result=serialized_results_fifo.write
+            m.submodules.fu_arbitration = ManyToOneConnectTrans(
+                get_results=get_results, put_result=serialized_results_fifo.write
             )
 
             # Create stubs for interfaces used by result announcement
