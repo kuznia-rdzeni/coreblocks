@@ -1,3 +1,4 @@
+from unittest.case import TestCase
 from amaranth import *
 from amaranth.sim import *
 
@@ -18,6 +19,31 @@ from coreblocks.transactions.core import (
     trivial_roundrobin_cc_scheduler,
     eager_deterministic_cc_scheduler,
 )
+
+
+class TestNames(TestCase):
+    def test_names(self):
+        mgr = TransactionManager()
+        mgr._MustUse__silence = True
+
+        class T:
+            def __init__(self):
+                Transaction(manager=mgr)
+
+        T()
+        self.assertEqual(mgr.transactions[0].name, "T")
+
+        t = Transaction(name="x", manager=mgr)
+        self.assertEqual(t.name, "x")
+
+        t = Transaction(manager=mgr)
+        self.assertEqual(t.name, "t")
+
+        m = Method(name="x")
+        self.assertEqual(m.name, "x")
+
+        m = Method()
+        self.assertEqual(m.name, "m")
 
 
 class TestScheduler(TestCaseWithSimulator):
