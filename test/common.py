@@ -12,6 +12,7 @@ from coreblocks.transactions.lib import AdapterBase
 
 T = TypeVar("T")
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
+RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
 
 
@@ -38,7 +39,7 @@ def get_outputs(field: Record) -> TestGen[RecordIntDict]:
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def runSimulation(self, module, max_cycles=10e4):
+    def runSimulation(self, module, max_cycles=10e4, extra_signals=()):
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
@@ -49,7 +50,7 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
-            ctx = sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw")
+            ctx = sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw", traces=extra_signals)
         else:
             ctx = nullcontext()
 
@@ -84,18 +85,18 @@ class TestbenchIO(Elaboratable):
         yield from self.enable()
         yield from set_inputs(data, self.adapter.data_in)
 
-    def call_result(self) -> TestGen[Optional[RecordIntDict]]:
+    def call_result(self) -> TestGen[Optional[RecordIntDictRet]]:
         if (yield self.adapter.done):
             return (yield from get_outputs(self.adapter.data_out))
         return None
 
     def call_do(self) -> TestGen[RecordIntDict]:
-        while not (outputs := (yield from self.call_result())):
+        while (outputs := (yield from self.call_result())) is None:
             yield
         yield from self.disable()
         return outputs
 
-    def call(self, data: RecordIntDict = {}) -> TestGen[RecordIntDict]:
+    def call(self, data: RecordIntDict = {}) -> TestGen[RecordIntDictRet]:
         yield from self.call_init(data)
         yield
         return (yield from self.call_do())

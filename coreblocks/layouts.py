@@ -5,6 +5,8 @@ __all__ = [
     "SchedulerLayouts",
     "ROBLayouts",
     "CommonLayouts",
+    "FetchLayouts",
+    "DecodeLayouts",
     "FuncUnitLayouts",
 ]
 
@@ -15,6 +17,15 @@ class CommonLayouts:
             ("op_type", OpType),
             ("funct3", Funct3),
             ("funct7", Funct7),
+        ]
+
+        self.regs_l = [
+            ("rl_s1", gen_params.isa.reg_cnt_log),
+            ("rl_s1_v", 1),
+            ("rl_s2", gen_params.isa.reg_cnt_log),
+            ("rl_s2_v", 1),
+            ("rl_dst", gen_params.isa.reg_cnt_log),
+            ("rl_dst_v", 1),
         ]
 
 
@@ -41,18 +52,48 @@ class SchedulerLayouts:
             ("rp_dst", gen_params.phys_regs_bits),
             ("opcode", gen_params.isa.ilen),
         ]
-        self.rob_allocate_out = [
+        self.rob_allocate_out = self.rs_select_in = [
             ("rp_s1", gen_params.phys_regs_bits),
             ("rp_s2", gen_params.phys_regs_bits),
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
             ("opcode", gen_params.isa.ilen),
         ]
+        self.rs_select_out = self.rs_insert_in = [
+            ("rp_s1", gen_params.phys_regs_bits),
+            ("rp_s2", gen_params.phys_regs_bits),
+            ("rp_dst", gen_params.phys_regs_bits),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("opcode", gen_params.isa.ilen),
+            ("rs_entry_id", gen_params.rs_entries_bits),
+        ]
         self.instr_layout = [
             ("rl_s1", gen_params.isa.reg_cnt_log),
             ("rl_s2", gen_params.isa.reg_cnt_log),
             ("rl_dst", gen_params.isa.reg_cnt_log),
             ("opcode", gen_params.isa.ilen),
+        ]
+
+
+class RFLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.rf_read_in = self.rf_free = [("reg_id", gen_params.phys_regs_bits)]
+        self.rf_read_out = [("reg_val", gen_params.isa.xlen_log), ("valid", 1)]
+        self.rf_write = [("reg_id", gen_params.phys_regs_bits), ("reg_val", gen_params.isa.xlen_log)]
+
+
+class RSLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.rs_allocate_out = [("entry_id", gen_params.rs_entries_bits)]
+        self.rs_insert_in = [
+            ("rp_s1", gen_params.phys_regs_bits),
+            ("rp_s2", gen_params.phys_regs_bits),
+            ("rp_dst", gen_params.phys_regs_bits),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("opcode", gen_params.isa.ilen),
+            ("rs_entry_id", gen_params.rs_entries_bits),
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
         ]
 
 
@@ -116,6 +157,25 @@ class RSLayouts:
         ]
 
         self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
+
+
+class FetchLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.raw_instr = [
+            ("data", gen_params.isa.ilen),
+        ]
+
+
+class DecodeLayouts:
+    def __init__(self, gen: GenParams):
+        common = gen.get(CommonLayouts)
+        self.decoded_instr = [
+            ("opcode", Opcode),
+            ("illegal", 1),
+            ("exec_fn", common.exec_fn),
+            ("regs_l", common.regs_l),
+            ("imm", gen.isa.xlen),
+        ]
 
 
 class FuncUnitLayouts:
