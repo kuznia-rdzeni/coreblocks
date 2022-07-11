@@ -82,21 +82,6 @@ class RFLayouts:
         self.rf_write = [("reg_id", gen_params.phys_regs_bits), ("reg_val", gen_params.isa.xlen_log)]
 
 
-class RSLayouts:
-    def __init__(self, gen_params: GenParams):
-        self.rs_allocate_out = [("entry_id", gen_params.rs_entries_bits)]
-        self.rs_insert_in = [
-            ("rp_s1", gen_params.phys_regs_bits),
-            ("rp_s2", gen_params.phys_regs_bits),
-            ("rp_dst", gen_params.phys_regs_bits),
-            ("rob_id", gen_params.rob_entries_bits),
-            ("opcode", gen_params.isa.ilen),
-            ("rs_entry_id", gen_params.rs_entries_bits),
-            ("s1_val", gen_params.isa.xlen),
-            ("s2_val", gen_params.isa.xlen),
-        ]
-
-
 class RATLayouts:
     def __init__(self, gen_params: GenParams):
         self.rat_rename_in = [
