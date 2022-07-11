@@ -53,7 +53,7 @@ class TestElaboratable(Elaboratable):
 
 class TestRSMethodInsert(TestCaseWithSimulator):
     def test_insert(self):
-        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
+        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -96,7 +96,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
 
 class TestRSMethodSelect(TestCaseWithSimulator):
     def test_select(self):
-        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
+        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -153,7 +153,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
 
 class TestRSMethodUpdate(TestCaseWithSimulator):
     def test_update(self):
-        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
+        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -229,7 +229,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
 class TestRSMethodTake(TestCaseWithSimulator):
     def test_take(self):
-        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
+        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -312,7 +312,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
 
 class TestRSMethodGetReadyList(TestCaseWithSimulator):
     def test_get_ready_list(self):
-        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries_bits=2)
+        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
