@@ -82,21 +82,6 @@ class RFLayouts:
         self.rf_write = [("reg_id", gen_params.phys_regs_bits), ("reg_val", gen_params.isa.xlen_log)]
 
 
-class RSLayouts:
-    def __init__(self, gen_params: GenParams):
-        self.rs_allocate_out = [("entry_id", gen_params.rs_entries_bits)]
-        self.rs_insert_in = [
-            ("rp_s1", gen_params.phys_regs_bits),
-            ("rp_s2", gen_params.phys_regs_bits),
-            ("rp_dst", gen_params.phys_regs_bits),
-            ("rob_id", gen_params.rob_entries_bits),
-            ("opcode", gen_params.isa.ilen),
-            ("rs_entry_id", gen_params.rs_entries_bits),
-            ("s1_val", gen_params.isa.xlen),
-            ("s2_val", gen_params.isa.xlen),
-        ]
-
-
 class RATLayouts:
     def __init__(self, gen_params: GenParams):
         self.rat_rename_in = [
@@ -126,6 +111,37 @@ class ROBLayouts:
             ("rob_data", self.data_layout),
             ("done", 1),
         ]
+
+
+class RSLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.data_layout = [
+            ("rp_s1", gen_params.phys_regs_bits),
+            ("rp_s2", gen_params.phys_regs_bits),
+            ("rp_dst", gen_params.phys_regs_bits),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("opcode", gen_params.isa.ilen),
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
+        ]
+
+        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
+
+        self.select_out = [("rs_entry_id", gen_params.rs_entries_bits)]
+
+        self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
+
+        self.take_in = [("rs_entry_id", gen_params.rs_entries_bits)]
+
+        self.take_out = [
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
+            ("rp_dst", gen_params.phys_regs_bits),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("opcode", gen_params.isa.ilen),
+        ]
+
+        self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
 
 
 class FetchLayouts:

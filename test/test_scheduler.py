@@ -37,8 +37,8 @@ class SchedulerTestCircuit(Elaboratable):
             m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
 
             # mocked RS
-            method_rs_alloc = Adapter(o=rs_layouts.rs_allocate_out)
-            method_rs_insert = Adapter(i=rs_layouts.rs_insert_in)
+            method_rs_alloc = Adapter(o=rs_layouts.select_out)
+            method_rs_insert = Adapter(i=rs_layouts.insert_in)
 
             # mocked input and output
             m.submodules.output = self.out = TestbenchIO(method_rs_insert)
@@ -199,25 +199,25 @@ class TestScheduler(TestCaseWithSimulator):
 
     def make_output_process(self):
         def check(got, expected):
-            rl_dst = yield self.m.rob.data[got["rob_id"]].rob_data.rl_dst
+            rl_dst = yield self.m.rob.data[got["rs_data"]["rob_id"]].rob_data.rl_dst
             s1 = self.rf_state[expected["rp_s1"]]
             s2 = self.rf_state[expected["rp_s2"]]
 
             # if source operand register ids are 0 then we already have values
-            self.assertEqual(got["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
-            self.assertEqual(got["rp_s2"], expected["rp_s2"] if not s2.valid else 0)
-            self.assertEqual(got["rp_dst"], expected["rp_dst"])
-            self.assertEqual(got["opcode"], expected["opcode"])
+            self.assertEqual(got["rs_data"]["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
+            self.assertEqual(got["rs_data"]["rp_s2"], expected["rp_s2"] if not s2.valid else 0)
+            self.assertEqual(got["rs_data"]["rp_dst"], expected["rp_dst"])
+            self.assertEqual(got["rs_data"]["opcode"], expected["opcode"])
             self.assertEqual(got["rs_entry_id"], expected["rs_entry_id"])
-            self.assertEqual(got["s1_val"], s1.value if s1.valid else 0)
-            self.assertEqual(got["s2_val"], s2.value if s2.valid else 0)
+            self.assertEqual(got["rs_data"]["s1_val"], s1.value if s1.valid else 0)
+            self.assertEqual(got["rs_data"]["s2_val"], s2.value if s2.valid else 0)
             self.assertEqual(rl_dst, expected["rl_dst"])
 
             # recycle physical register number
-            if got["rp_dst"] != 0:
-                self.free_phys_reg(got["rp_dst"])
+            if got["rs_data"]["rp_dst"] != 0:
+                self.free_phys_reg(got["rs_data"]["rp_dst"])
             # recycle ROB entry
-            self.free_ROB_entries_queue.append({"rob_id": got["rob_id"]})
+            self.free_ROB_entries_queue.append({"rob_id": got["rs_data"]["rob_id"]})
 
         return self.make_queue_process(
             io=self.m.out, output_queues=[self.expected_rename_queue, self.expected_rs_entry_queue], check=check
@@ -259,7 +259,7 @@ class TestScheduler(TestCaseWithSimulator):
             for i in range(self.instr_count):
                 random_entry = random.randint(0, self.gen_params.rs_entries - 1)
                 self.expected_rs_entry_queue.append({"rs_entry_id": random_entry})
-                yield from self.m.rs_allocate.call({"entry_id": random_entry})
+                yield from self.m.rs_allocate.call({"rs_entry_id": random_entry})
             self.expected_rs_entry_queue.append(None)
 
         with self.runSimulation(self.m, max_cycles=1500) as sim:

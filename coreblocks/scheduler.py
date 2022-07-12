@@ -122,7 +122,7 @@ class RSSelection(Elaboratable):
                     "rp_dst": instr.rp_dst,
                     "rob_id": instr.rob_id,
                     "opcode": instr.opcode,
-                    "rs_entry_id": allocated_field.entry_id,
+                    "rs_entry_id": allocated_field.rs_entry_id,
                 },
             )
 
@@ -152,14 +152,16 @@ class RSInsertion(Elaboratable):
                 m,
                 {
                     # when operand value is valid the convention is to set operand source to 0
-                    "rp_s1": Mux(source1.valid, 0, instr.rp_s1),
-                    "rp_s2": Mux(source2.valid, 0, instr.rp_s2),
-                    "rp_dst": instr.rp_dst,
-                    "rob_id": instr.rob_id,
-                    "opcode": instr.opcode,
+                    "rs_data": {
+                        "rp_s1": Mux(source1.valid, 0, instr.rp_s1),
+                        "rp_s2": Mux(source2.valid, 0, instr.rp_s2),
+                        "rp_dst": instr.rp_dst,
+                        "rob_id": instr.rob_id,
+                        "opcode": instr.opcode,
+                        "s1_val": Mux(source1.valid, source1.reg_val, 0),
+                        "s2_val": Mux(source2.valid, source2.reg_val, 0),
+                    },
                     "rs_entry_id": instr.rs_entry_id,
-                    "s1_val": Mux(source1.valid, source1.reg_val, 0),
-                    "s2_val": Mux(source2.valid, source2.reg_val, 0),
                 },
             )
 
