@@ -110,9 +110,8 @@ class TestBackend(TestCaseWithSimulator):
 
         def producer():
             inputs = self.fu_inputs[i]
-            while inputs:
-                input = inputs.pop()
-                input_dict = {"rob_id": input[0], "result": input[1], "rp_dst": input[2]}
+            for rob_id, result, rp_dst in inputs:
+                input_dict = {"rob_id": rob_id, "result": result, "rp_dst": rp_dst}
                 yield from getattr(self.m, f"fu_fifo_{i}_in").call_init(input_dict)
                 yield from self.random_wait()
             self.producer_end[i] = True
