@@ -46,35 +46,42 @@ class SchedulerLayouts:
             ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
-            ("regs_p", [
-                ("rp_dst", gen_params.phys_regs_bits)
-            ]),
+            ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
             ("imm", gen_params.isa.xlen),
         ]
         self.renaming_out = self.rob_allocate_in = [
             ("opcode", Opcode),
             ("illegal", 1),
             ("exec_fn", common.exec_fn),
-            ("regs_l", [
-                ("rl_dst", gen_params.isa.reg_cnt_log),
-                ("rl_dst_v", 1),
-            ]),
-            ("regs_p", [
-                ("rp_dst", gen_params.phys_regs_bits),
-                ("rp_s1", gen_params.phys_regs_bits),
-                ("rp_s2", gen_params.phys_regs_bits),
-            ]),
+            (
+                "regs_l",
+                [
+                    ("rl_dst", gen_params.isa.reg_cnt_log),
+                    ("rl_dst_v", 1),
+                ],
+            ),
+            (
+                "regs_p",
+                [
+                    ("rp_dst", gen_params.phys_regs_bits),
+                    ("rp_s1", gen_params.phys_regs_bits),
+                    ("rp_s2", gen_params.phys_regs_bits),
+                ],
+            ),
             ("imm", gen_params.isa.xlen),
         ]
         self.rob_allocate_out = self.rs_select_in = [
             ("opcode", Opcode),
             ("illegal", 1),
             ("exec_fn", common.exec_fn),
-            ("regs_p", [
-                ("rp_dst", gen_params.phys_regs_bits),
-                ("rp_s1", gen_params.phys_regs_bits),
-                ("rp_s2", gen_params.phys_regs_bits),
-            ]),
+            (
+                "regs_p",
+                [
+                    ("rp_dst", gen_params.phys_regs_bits),
+                    ("rp_s1", gen_params.phys_regs_bits),
+                    ("rp_s2", gen_params.phys_regs_bits),
+                ],
+            ),
             ("rob_id", gen_params.rob_entries_bits),
             ("imm", gen_params.isa.xlen),
         ]
@@ -82,11 +89,14 @@ class SchedulerLayouts:
             ("opcode", Opcode),
             ("illegal", 1),
             ("exec_fn", common.exec_fn),
-            ("regs_p", [
-                ("rp_dst", gen_params.phys_regs_bits),
-                ("rp_s1", gen_params.phys_regs_bits),
-                ("rp_s2", gen_params.phys_regs_bits),
-            ]),
+            (
+                "regs_p",
+                [
+                    ("rp_dst", gen_params.phys_regs_bits),
+                    ("rp_s1", gen_params.phys_regs_bits),
+                    ("rp_s2", gen_params.phys_regs_bits),
+                ],
+            ),
             ("rob_id", gen_params.rob_entries_bits),
             ("rs_entry_id", gen_params.rs_entries_bits),
             ("imm", gen_params.isa.xlen),

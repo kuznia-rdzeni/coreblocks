@@ -24,7 +24,6 @@ class SchedulerTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        layouts = self.gen_params.get(SchedulerLayouts)
         rs_layouts = self.gen_params.get(RSLayouts)
         decode_layouts = self.gen_params.get(DecodeLayouts)
 
@@ -244,7 +243,7 @@ class TestScheduler(TestCaseWithSimulator):
                 op_type = random.choice(list(OpType)).value
                 funct3 = random.choice(list(Funct3)).value
                 funct7 = random.choice(list(Funct7)).value
-                immediate = random.randint(0, 2**32-1)
+                immediate = random.randint(0, 2**32 - 1)
                 rp_s1 = self.current_RAT[rl_s1]
                 rp_s2 = self.current_RAT[rl_s2]
                 rp_dst = self.expected_phys_reg_queue.popleft() if rl_dst != 0 else 0
@@ -254,10 +253,11 @@ class TestScheduler(TestCaseWithSimulator):
                 )
                 self.current_RAT[rl_dst] = rp_dst
 
-                yield from self.m.instr_inp.call({
+                yield from self.m.instr_inp.call(
+                    {
                         "opcode": opcode,
                         "illegal": 0,
-                        "exec_fn":  {
+                        "exec_fn": {
                             "op_type": op_type,
                             "funct3": funct3,
                             "funct7": funct7,
@@ -271,7 +271,8 @@ class TestScheduler(TestCaseWithSimulator):
                             "rl_dst_v": 1,
                         },
                         "imm": immediate,
-                    })
+                    }
+                )
             # Terminate other processes
             self.expected_rename_queue.append(None)
             self.free_regs_queue.append(None)

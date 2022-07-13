@@ -56,12 +56,15 @@ class Renaming(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            renamed_regs = self.rename(m, {
-                "rl_s1": instr.regs_l.rl_s1,
-                "rl_s2": instr.regs_l.rl_s2,
-                "rl_dst": instr.regs_l.rl_dst,
-                "rp_dst": instr.regs_p.rp_dst,
-            })
+            renamed_regs = self.rename(
+                m,
+                {
+                    "rl_s1": instr.regs_l.rl_s1,
+                    "rl_s2": instr.regs_l.rl_s2,
+                    "rl_dst": instr.regs_l.rl_dst,
+                    "rp_dst": instr.regs_p.rp_dst,
+                },
+            )
 
             m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
@@ -91,10 +94,13 @@ class ROBAllocation(Elaboratable):
         with Transaction().body(m):
             instr = self.get_instr(m)
 
-            rob_id = self.rob_put(m, {
-                "rl_dst": instr.regs_l.rl_dst,
-                "rp_dst": instr.regs_p.rp_dst,
-            })
+            rob_id = self.rob_put(
+                m,
+                {
+                    "rl_dst": instr.regs_l.rl_dst,
+                    "rp_dst": instr.regs_p.rp_dst,
+                },
+            )
 
             m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
             m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
