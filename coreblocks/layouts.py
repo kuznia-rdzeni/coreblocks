@@ -180,12 +180,3 @@ class FuncUnitLayouts:
             ("result", gen.isa.xlen),
             ("rp_dst", gen.phys_regs_bits),
         ]
-class RSLayouts:
-    def __init__(self, gen_params: GenParams):
-        self.rs_out = [
-            ("opcode", gen_params.isa.ilen),
-            ("val1", gen_params.isa.xlen),
-            ("val2", gen_params.isa.xlen),
-            ("rp_dst", gen_params.phys_regs_bits),
-            ("rob_id", gen_params.rob_entries_bits),
-        ]

@@ -24,8 +24,8 @@ class WakeupTestCircuit(Elaboratable):
         tm = TransactionModule(m)
 
         ready_mock = Adapter(o=self.gen_params.rs_entries)
-        take_row_mock = Adapter(i=self.gen_params.rs_entries_bits, o=self.layouts.rs_out)
-        issue_mock = Adapter(i=self.layouts.rs_out)
+        take_row_mock = Adapter(i=self.gen_params.rs_entries_bits, o=self.layouts.take_out)
+        issue_mock = Adapter(i=self.layouts.take_out)
         m.submodules.ready_mock = self.ready_mock = TestbenchIO(ready_mock)
         m.submodules.take_row_mock = self.take_row_mock = TestbenchIO(take_row_mock)
         m.submodules.issue_mock = self.issue_mock = TestbenchIO(issue_mock)
@@ -41,7 +41,7 @@ class WakeupTestCircuit(Elaboratable):
 
 class TestWakeupSelect(TestCaseWithSimulator):
     def setUp(self):
-        self.gen = GenParams("rv32i")
+        self.gen = GenParams("rv32i", rs_entries=16)
         self.m = WakeupTestCircuit(self.gen)
         self.cycles = 50
         self.taken = deque()
@@ -49,7 +49,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
         random.seed(42)
 
     def random_entry(self) -> RecordIntDict:
-        return {key: random.randrange(width) for (key, width) in self.m.layouts.rs_out}
+        return {key: random.randrange(width) for (key, width) in self.m.layouts.take_out}
 
     def maybe_insert(self, rs: list[Optional[RecordIntDict]]):
         empty_entries = sum(1 for entry in rs if entry is None)
