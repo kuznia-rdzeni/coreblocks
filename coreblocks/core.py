@@ -34,7 +34,7 @@ class Core(Elaboratable):
         m.submodules.ROB = rob = ReorderBuffer(gen_params=self.gen_params)
         m.submodules.RS = rs = RS(gen_params=self.gen_params)
 
-        m.submodules.fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
+        m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
         m.submodules.decode = Decode(
             gen_params=self.gen_params, get_raw=self.get_raw_instr, push_decoded=fifo_decode.write
         )
