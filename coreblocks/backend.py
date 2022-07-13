@@ -18,11 +18,6 @@ class ResultAnnouncement(Elaboratable):
         self.m_rs_write_val = rs_write_val
         self.m_rf_write_val = rf_write_val
 
-        self.lay_result = gen.get(FuncUnitLayouts).accept
-        self.lay_rob_mark_done = gen.get(ROBLayouts).id_layout
-        self.lay_rs_write = gen.get(RSLayouts).insert_in
-        self.lay_rf_write = gen.get(RFLayouts).rf_write
-
     def elaborate(self, platform):
         m = Module()
 
