@@ -25,7 +25,7 @@ class BackendTestCircuit(Elaboratable):
 
         self.lay_result = self.gen.get(FuncUnitLayouts).accept
         self.lay_rob_mark_done = self.gen.get(ROBLayouts).id_layout
-        self.lay_rs_write = self.gen.get(RSLayouts).rs_announce_val
+        self.lay_rs_write = self.gen.get(RSLayouts).update_in
         self.lay_rf_write = self.gen.get(RFLayouts).rf_write
 
         with tm.transactionContext():
