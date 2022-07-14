@@ -68,8 +68,9 @@ class Renaming(Elaboratable):
 
             m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
-            m.d.comb += assign(data_out.regs_p, instr.regs_p)
-            m.d.comb += assign(data_out.regs_p, renamed_regs)
+            m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
+            m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
+            m.d.comb += data_out.regs_p.rp_s2.eq(renamed_regs.rp_s2)
             self.push_instr(m, data_out)
 
         return m
