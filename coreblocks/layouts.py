@@ -30,6 +30,12 @@ class CommonLayouts:
             ("rl_dst_v", 1),
         ]
 
+        self.regs_p = [
+            ("rp_dst", gen_params.phys_regs_bits),
+            ("rp_s1", gen_params.phys_regs_bits),
+            ("rp_s2", gen_params.phys_regs_bits),
+        ]
+
 
 class SchedulerLayouts:
     def __init__(self, gen_params: GenParams):
@@ -60,28 +66,14 @@ class SchedulerLayouts:
                     ("rl_dst_v", 1),
                 ],
             ),
-            (
-                "regs_p",
-                [
-                    ("rp_dst", gen_params.phys_regs_bits),
-                    ("rp_s1", gen_params.phys_regs_bits),
-                    ("rp_s2", gen_params.phys_regs_bits),
-                ],
-            ),
+            ("regs_p", common.regs_p),
             ("imm", gen_params.isa.xlen),
         ]
         self.rob_allocate_out = self.rs_select_in = [
             ("opcode", Opcode),
             ("illegal", 1),
             ("exec_fn", common.exec_fn),
-            (
-                "regs_p",
-                [
-                    ("rp_dst", gen_params.phys_regs_bits),
-                    ("rp_s1", gen_params.phys_regs_bits),
-                    ("rp_s2", gen_params.phys_regs_bits),
-                ],
-            ),
+            ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
             ("imm", gen_params.isa.xlen),
         ]
@@ -89,14 +81,7 @@ class SchedulerLayouts:
             ("opcode", Opcode),
             ("illegal", 1),
             ("exec_fn", common.exec_fn),
-            (
-                "regs_p",
-                [
-                    ("rp_dst", gen_params.phys_regs_bits),
-                    ("rp_s1", gen_params.phys_regs_bits),
-                    ("rp_s2", gen_params.phys_regs_bits),
-                ],
-            ),
+            ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
             ("rs_entry_id", gen_params.rs_entries_bits),
             ("imm", gen_params.isa.xlen),
