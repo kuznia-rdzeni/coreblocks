@@ -170,6 +170,7 @@ class RSInsertion(Elaboratable):
                         "exec_fn": instr.exec_fn,
                         "s1_val": Mux(source1.valid, source1.reg_val, 0),
                         "s2_val": Mux(source2.valid, source2.reg_val, 0),
+                        "imm": instr.imm,
                     },
                     "rs_entry_id": instr.rs_entry_id,
                 },
