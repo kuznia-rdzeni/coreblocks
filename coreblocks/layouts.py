@@ -189,6 +189,7 @@ class FuncUnitLayouts:
             ("rp_dst", gen.phys_regs_bits),
             ("rob_id", gen.rob_entries_bits),
             ("exec_fn", common.exec_fn),
+            ("imm", gen.isa.xlen),
         ]
 
         self.accept = [
