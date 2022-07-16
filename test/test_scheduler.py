@@ -208,7 +208,7 @@ class TestScheduler(TestCaseWithSimulator):
             self.assertEqual(got["rs_data"]["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
             self.assertEqual(got["rs_data"]["rp_s2"], expected["rp_s2"] if not s2.valid else 0)
             self.assertEqual(got["rs_data"]["rp_dst"], expected["rp_dst"])
-            self.assertEqual(got["rs_data"]["opcode"], expected["opcode"])
+            self.assertEqual(got["rs_data"]["exec_fn"], expected["exec_fn"])
             self.assertEqual(got["rs_entry_id"], expected["rs_entry_id"])
             self.assertEqual(got["rs_data"]["s1_val"], s1.value if s1.valid else 0)
             self.assertEqual(got["rs_data"]["s2_val"], s2.value if s2.valid else 0)
@@ -249,7 +249,18 @@ class TestScheduler(TestCaseWithSimulator):
                 rp_dst = self.expected_phys_reg_queue.popleft() if rl_dst != 0 else 0
 
                 self.expected_rename_queue.append(
-                    {"rp_s1": rp_s1, "rp_s2": rp_s2, "rl_dst": rl_dst, "rp_dst": rp_dst, "opcode": opcode}
+                    {
+                        "rp_s1": rp_s1,
+                        "rp_s2": rp_s2,
+                        "rl_dst": rl_dst,
+                        "rp_dst": rp_dst,
+                        "opcode": opcode,
+                        "exec_fn": {
+                            "op_type": op_type,
+                            "funct3": funct3,
+                            "funct7": funct7,
+                        },
+                    }
                 )
                 self.current_RAT[rl_dst] = rp_dst
 

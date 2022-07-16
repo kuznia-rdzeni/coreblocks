@@ -166,7 +166,7 @@ class RSInsertion(Elaboratable):
                         "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
                         "rp_dst": instr.regs_p.rp_dst,
                         "rob_id": instr.rob_id,
-                        "opcode": instr.opcode,
+                        "exec_fn": instr.exec_fn,
                         "s1_val": Mux(source1.valid, source1.reg_val, 0),
                         "s2_val": Mux(source2.valid, source2.reg_val, 0),
                     },

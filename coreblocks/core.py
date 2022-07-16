@@ -21,7 +21,7 @@ class Core(Elaboratable):
     def __init__(self, *, gen_params: GenParams, get_raw_instr: Method):
         self.gen_params = gen_params
         self.get_raw_instr = get_raw_instr
-        self.put_reg = Method(i=[("reg",self.gen_params.phys_regs_bits)])
+        self.put_reg = Method(i=[("reg", self.gen_params.phys_regs_bits)])
 
     def elaborate(self, platform):
         m = Module()
@@ -62,7 +62,9 @@ class Core(Elaboratable):
         )
 
         m.submodules.alu = alu = AluFuncUnit(gen=self.gen_params)
-        m.submodules.wakeup_select = WakeupSelect(get_ready=rs.get_ready_list, take_row=rs.take, issue=alu.issue)
+        m.submodules.wakeup_select = WakeupSelect(
+            gen_params=self.gen_params, get_ready=rs.get_ready_list, take_row=rs.take, issue=alu.issue
+        )
         m.submodules.announcement = ResultAnnouncement(
             gen=self.gen_params,
             get_result=alu.accept,

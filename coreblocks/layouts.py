@@ -143,12 +143,13 @@ class ROBLayouts:
 
 class RSLayouts:
     def __init__(self, gen_params: GenParams):
+        common = gen_params.get(CommonLayouts)
         self.data_layout = [
             ("rp_s1", gen_params.phys_regs_bits),
             ("rp_s2", gen_params.phys_regs_bits),
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
-            ("opcode", gen_params.isa.ilen),
+            ("exec_fn", common.exec_fn),
             ("s1_val", gen_params.isa.xlen),
             ("s2_val", gen_params.isa.xlen),
         ]
@@ -166,7 +167,7 @@ class RSLayouts:
             ("s2_val", gen_params.isa.xlen),
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
-            ("opcode", gen_params.isa.ilen),
+            ("exec_fn", common.exec_fn),
         ]
 
         self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
@@ -196,11 +197,11 @@ class FuncUnitLayouts:
         common = gen.get(CommonLayouts)
 
         self.issue = [
-            ("rob_id", gen.rob_entries_bits),
-            ("data1", gen.isa.xlen),
-            ("data2", gen.isa.xlen),
-            ("fn", common.exec_fn),
+            ("s1_val", gen.isa.xlen),
+            ("s2_val", gen.isa.xlen),
             ("rp_dst", gen.phys_regs_bits),
+            ("rob_id", gen.rob_entries_bits),
+            ("exec_fn", common.exec_fn),
         ]
 
         self.accept = [

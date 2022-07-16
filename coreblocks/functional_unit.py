@@ -136,11 +136,11 @@ class AluFuncUnit(Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.fn)
+            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             m.d.comb += alu.fn.eq(decoder.alu_fn)
 
-            m.d.comb += alu.in1.eq(arg.data1)
-            m.d.comb += alu.in2.eq(arg.data2)
+            m.d.comb += alu.in1.eq(arg.s1_val)
+            m.d.comb += alu.in2.eq(arg.s2_val)
 
             fifo.write(m, arg={"rob_id": arg.rob_id, "result": alu.out, "rp_dst": arg.rp_dst})
 
