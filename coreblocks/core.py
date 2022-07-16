@@ -21,30 +21,27 @@ class Core(Elaboratable):
     def __init__(self, *, gen_params: GenParams, get_raw_instr: Method):
         self.gen_params = gen_params
         self.get_raw_instr = get_raw_instr
-        self.put_reg = Method(i=[("reg", self.gen_params.phys_regs_bits)])
+
+        self.free_rf_fifo = FIFO(
+            self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
+        )
+        self.FRAT = FRAT(gen_params=self.gen_params)
+        self.RRAT = RRAT(gen_params=self.gen_params)
+        self.RF = RegisterFile(gen_params=self.gen_params)
+        self.ROB = ReorderBuffer(gen_params=self.gen_params)
+        self.RS = RS(gen_params=self.gen_params)
 
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
-            self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
-        )
+        m.submodules.free_rf_fifo = free_rf_fifo = self.free_rf_fifo
+        m.submodules.FRAT = frat = self.FRAT
+        m.submodules.RRAT = rrat = self.RRAT
+        m.submodules.RF = rf = self.RF
+        m.submodules.ROB = rob = self.ROB
+        m.submodules.RS = rs = self.RS
 
-        @def_method(m, self.put_reg)
-        def _(arg):
-            free_rf_fifo.write(m, arg.reg)
-
-        m.submodules.FRAT = frat = FRAT(gen_params=self.gen_params)
-        m.submodules.RRAT = rrat = RRAT(gen_params=self.gen_params)
-        m.submodules.RF = rf = RegisterFile(gen_params=self.gen_params)
-        m.submodules.ROB = rob = ReorderBuffer(gen_params=self.gen_params)
-        m.submodules.RS = rs = RS(gen_params=self.gen_params)
-
-        self.RF = rf
-        self.RRAT = rrat
-        self.FRAT = frat
-
-        m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 1)
+        m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
         m.submodules.decode = Decode(
             gen_params=self.gen_params, get_raw=self.get_raw_instr, push_decoded=fifo_decode.write
         )
