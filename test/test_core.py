@@ -34,6 +34,7 @@ class TestElaboratable(Elaboratable):
 
         return tm
 
+
 def gen_riscv_add_instr(dst, src1, src2):
     return 0b0110011 | dst << 7 | src1 << 15 | src2 << 20
 
@@ -41,19 +42,19 @@ def gen_riscv_add_instr(dst, src1, src2):
 class TestCore(TestCaseWithSimulator):
     def run_test(self):
 
-        # this test first provokes allocation of physical registers, 
-        # then sets the values in those registers, and finally runs 
+        # this test first provokes allocation of physical registers,
+        # then sets the values in those registers, and finally runs
         # an actual computation.
 
-        # The test sets values in the reg file by hand, 
+        # The test sets values in the reg file by hand,
         # as I am not sure if we support OpImm instructions or not.
 
         for i in range(2**self.m.gp.phys_regs_bits - 1):
-            yield from self.m.reg_feed_in.call({"reg":i+1})
+            yield from self.m.reg_feed_in.call({"reg": i + 1})
 
         # provoking allocation of physical register
         for i in range(self.m.gp.isa.reg_cnt - 1):
-            yield from self.m.io_in.call({"data": gen_riscv_add_instr(i+1, 0, 0)})
+            yield from self.m.io_in.call({"data": gen_riscv_add_instr(i + 1, 0, 0)})
 
         # waiting for the retirement rat to be set
         for i in range(100):
@@ -64,7 +65,7 @@ class TestCore(TestCaseWithSimulator):
 
         for i in range(self.m.gp.isa.reg_cnt):
             print("r", i, (yield self.m.core.RRAT.entries[i]))
-        
+
         # writing values to physical registers
         yield self.m.core.RF.entries[(yield self.m.core.RRAT.entries[1])].reg_val.eq(1)
         yield self.m.core.RF.entries[(yield self.m.core.RRAT.entries[2])].reg_val.eq(2)
@@ -106,4 +107,3 @@ class TestCore(TestCaseWithSimulator):
 
         with self.runSimulation(m) as sim:
             sim.add_sync_process(self.run_test)
-

@@ -80,7 +80,7 @@ class RS(Elaboratable):
             m.d.comb += take_data_out.s2_val.eq(record.rs_data.s2_val)
             m.d.comb += take_data_out.rp_dst.eq(record.rs_data.rp_dst)
             m.d.comb += take_data_out.rob_id.eq(record.rs_data.rob_id)
-            m.d.comb += take_data_out.opcode.eq(record.rs_data.opcode)
+            m.d.comb += take_data_out.exec_fn.eq(record.rs_data.exec_fn)
             return take_data_out
 
         @def_method(m, self.get_ready_list)

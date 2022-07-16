@@ -3,6 +3,8 @@ from amaranth import *
 from amaranth.sim import Settle
 
 from collections import deque
+from enum import Enum
+from inspect import isclass
 import random
 
 from coreblocks.genparams import GenParams
@@ -30,7 +32,7 @@ class WakeupTestCircuit(Elaboratable):
         m.submodules.take_row_mock = self.take_row_mock = TestbenchIO(take_row_mock)
         m.submodules.issue_mock = self.issue_mock = TestbenchIO(issue_mock)
         m.submodules.wakeup_select = WakeupSelect(
-            get_ready=ready_mock.iface, take_row=take_row_mock.iface, issue=issue_mock.iface
+            gen_params=self.gen_params, get_ready=ready_mock.iface, take_row=take_row_mock.iface, issue=issue_mock.iface
         )
 
         dummy = Signal()
@@ -48,8 +50,16 @@ class TestWakeupSelect(TestCaseWithSimulator):
 
         random.seed(42)
 
-    def random_entry(self) -> RecordIntDict:
-        return {key: random.randrange(width) for (key, width) in self.m.layouts.take_out}
+    def random_entry(self, layout) -> RecordIntDict:
+        result = {}
+        for (key, width_or_layout) in layout:
+            if isinstance(width_or_layout, int):
+                result[key] = random.randrange(width_or_layout)
+            elif isclass(width_or_layout) and issubclass(width_or_layout, Enum):
+                result[key] = random.choice(list(width_or_layout))
+            else:
+                result[key] = self.random_entry(width_or_layout)
+        return result
 
     def maybe_insert(self, rs: list[Optional[RecordIntDict]]):
         empty_entries = sum(1 for entry in rs if entry is None)
@@ -58,7 +68,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
             for i, entry in enumerate(rs):
                 if entry is None:
                     if empty_idx == 0:
-                        rs[i] = self.random_entry()
+                        rs[i] = self.random_entry(self.m.layouts.take_out)
                         return 1
                     empty_idx -= 1
         return 0

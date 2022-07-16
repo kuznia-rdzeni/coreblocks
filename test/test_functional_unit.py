@@ -144,7 +144,9 @@ class TestAluFuncUnit(TestCaseWithSimulator):
             exec_fn = {"op_type": OpType.ARITHMETIC, "funct3": Funct3.ADD, "funct7": Funct7.ADD}
             result = (data1 + data2) & max_int
 
-            self.requests.append({"data1": data1, "data2": data2, "rob_id": rob_id, "fn": exec_fn, "rp_dst": rp_dst})
+            self.requests.append(
+                {"s1_val": data1, "s2_val": data2, "rob_id": rob_id, "exec_fn": exec_fn, "rp_dst": rp_dst}
+            )
             self.responses.append({"rob_id": rob_id, "result": result, "rp_dst": rp_dst})
 
     def test_randomized(self):
