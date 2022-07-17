@@ -1,5 +1,5 @@
 from amaranth import Elaboratable, Module
-from amaranth.sim import Passive
+from amaranth.sim import Settle
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, FIFO
@@ -73,6 +73,7 @@ class TestCore(TestCaseWithSimulator):
         yield from self.m.rf_write.call({"reg_id": (yield self.m.core.RRAT.entries[2]), "reg_val": 2})
         yield from self.m.rf_write.call({"reg_id": (yield self.m.core.RRAT.entries[3]), "reg_val": 3})
 
+        yield Settle()
         for i in range(self.m.gp.isa.reg_cnt):
             print(i, (yield self.m.core.RF.entries[(yield self.m.core.RRAT.entries[i])].reg_val))
 
@@ -94,7 +95,7 @@ class TestCore(TestCaseWithSimulator):
         self.assertEqual((yield self.m.core.RF.entries[(yield self.m.core.RRAT.entries[4])].reg_val), 6)
 
     def test_single(self):
-        gp = GenParams("rv32i", phys_regs_bits=5, rob_entries_bits=6)
+        gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
         m = TestElaboratable(gp)
         self.m = m
 
