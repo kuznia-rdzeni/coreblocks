@@ -27,12 +27,14 @@ class TestElaboratable(Elaboratable):
         self.reg_feed_in = TestbenchIO(AdapterTrans(self.core.free_rf_fifo.write))
         self.io_in = TestbenchIO(AdapterTrans(self.fifo_in.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
+        self.reset = TestbenchIO(AdapterTrans(self.core.reset))
 
         m.submodules.fifo_in = self.fifo_in
         m.submodules.reg_feed_in = self.reg_feed_in
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
+        m.submodules.reset = self.reset
 
         return tm
 
@@ -42,6 +44,10 @@ def gen_riscv_add_instr(dst, src1, src2):
 
 
 class TestCore(TestCaseWithSimulator):
+    def reset_core(self):
+        yield from self.m.reset.call()
+        yield Settle()
+
     def check_RAT_alloc(self, rat, expected_alloc_count=None):
         allocated = []
         for i in range(self.m.gp.isa.reg_cnt):
@@ -71,7 +77,7 @@ class TestCore(TestCaseWithSimulator):
     def push_instr(self, opcode):
         yield from self.m.io_in.call({"data": opcode})
 
-    def run_test(self):
+    def simple_process(self):
         # this test first provokes allocation of physical registers,
         # then sets the values in those registers, and finally runs
         # an actual computation.
@@ -120,11 +126,9 @@ class TestCore(TestCaseWithSimulator):
         # 1 + 2 + 3 = 6
         self.assertEqual((yield from self.get_arch_reg_val(4)), 6)
 
-    def test_single(self):
+    def test_simple(self):
         gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
-        m = TestElaboratable(gp)
-        self.m = m
-
+        self.m = TestElaboratable(gp)
         self.regs_left_queue = Queue()
         self.to_execute_list = []
         self.executed_list = []
@@ -134,5 +138,5 @@ class TestCore(TestCaseWithSimulator):
 
         self.log_regs = 2**gp.isa.xlen_log
 
-        with self.runSimulation(m) as sim:
-            sim.add_sync_process(self.run_test)
+        with self.runSimulation(self.m) as sim:
+            sim.add_sync_process(self.simple_process)

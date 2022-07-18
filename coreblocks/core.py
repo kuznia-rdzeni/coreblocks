@@ -22,17 +22,21 @@ class Core(Elaboratable):
         self.gen_params = gen_params
         self.get_raw_instr = get_raw_instr
 
-        self.free_rf_fifo = FIFO(
-            self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
-        )
+        self.free_rf_fifo = FIFO(self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits)
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
         self.RS = RS(gen_params=self.gen_params)
 
+        self.reset = Method()
+
     def elaborate(self, platform):
         m = Module()
+
+        @def_method(m, self.reset)
+        def _(arg):
+            m.d.comb += ResetSignal().eq(1)
 
         m.submodules.free_rf_fifo = free_rf_fifo = self.free_rf_fifo
         m.submodules.FRAT = frat = self.FRAT
