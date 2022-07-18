@@ -99,7 +99,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
         for i in range(2**gp.phys_regs_bits):
             self.regs_left_queue.put(i)
 
-        self.log_regs = 2**gp.isa.xlen_log
+        self.log_regs = gp.isa.reg_cnt
 
         with self.runSimulation(m) as sim:
             sim.add_sync_process(self.gen_input)
@@ -147,7 +147,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
         self.m = m
         self.to_execute_list = []
 
-        self.log_regs = 2**gp.isa.reg_cnt_log
+        self.log_regs = gp.isa.reg_cnt
         self.phys_regs = 2**gp.phys_regs_bits
 
         with self.runSimulation(m) as sim:
