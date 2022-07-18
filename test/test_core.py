@@ -43,6 +43,10 @@ def gen_riscv_add_instr(dst, src1, src2):
     return 0b0110011 | dst << 7 | src1 << 15 | src2 << 20
 
 
+def gen_riscv_lui_instr(dst, imm):
+    return 0b0110111 | dst << 7 | imm << 12
+
+
 class TestCore(TestCaseWithSimulator):
     def reset_core(self):
         yield from self.m.reset.call()
@@ -115,6 +119,7 @@ class TestCore(TestCaseWithSimulator):
         # issuing actual instructions for the test
         yield from self.push_instr(gen_riscv_add_instr(4, 1, 2))
         yield from self.push_instr(gen_riscv_add_instr(4, 3, 4))
+        yield from self.push_instr(gen_riscv_lui_instr(5, 1))
 
         # waiting for the instructions to be processed
         for i in range(50):
@@ -125,6 +130,7 @@ class TestCore(TestCaseWithSimulator):
         self.assertEqual((yield from self.get_arch_reg_val(3)), 3)
         # 1 + 2 + 3 = 6
         self.assertEqual((yield from self.get_arch_reg_val(4)), 6)
+        self.assertEqual((yield from self.get_arch_reg_val(5)), 1 << 12)
 
     def test_simple(self):
         gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
