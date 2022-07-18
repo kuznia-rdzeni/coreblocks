@@ -10,7 +10,7 @@ class RegisterFile(Elaboratable):
     def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
         layouts = gen_params.get(RFLayouts)
-        self.internal_layout = [("reg_val", gen_params.isa.xlen_log), ("valid", 1)]
+        self.internal_layout = [("reg_val", gen_params.isa.xlen), ("valid", 1)]
         self.read_layout = layouts.rf_read_out
         self.entries = Array(Record(self.internal_layout) for _ in range(2**gen_params.phys_regs_bits))
 
@@ -23,7 +23,7 @@ class RegisterFile(Elaboratable):
         m = Module()
 
         being_written = Signal(self.gen_params.phys_regs_bits)
-        written_value = Signal(self.gen_params.isa.xlen_log)
+        written_value = Signal(self.gen_params.isa.xlen)
 
         # Register 0 always valid (this field won't be updated in methods below) - not sure
         # how to set 0th entry valid signal at initialization stage so doing it here instead

@@ -78,8 +78,8 @@ class SchedulerLayouts:
 class RFLayouts:
     def __init__(self, gen_params: GenParams):
         self.rf_read_in = self.rf_free = [("reg_id", gen_params.phys_regs_bits)]
-        self.rf_read_out = [("reg_val", gen_params.isa.xlen_log), ("valid", 1)]
-        self.rf_write = [("reg_id", gen_params.phys_regs_bits), ("reg_val", gen_params.isa.xlen_log)]
+        self.rf_read_out = [("reg_val", gen_params.isa.xlen), ("valid", 1)]
+        self.rf_write = [("reg_id", gen_params.phys_regs_bits), ("reg_val", gen_params.isa.xlen)]
 
 
 class RATLayouts:
