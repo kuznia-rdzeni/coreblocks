@@ -100,6 +100,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
 
             self.assertIsNotNone(result)
 
+            # this is needed to make the typechecker happy
             if result is None:
                 continue
 
