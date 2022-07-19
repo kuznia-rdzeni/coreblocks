@@ -8,6 +8,8 @@ __all__ = [
     "FetchLayouts",
     "DecodeLayouts",
     "FuncUnitLayouts",
+    "RSLayouts",
+    "RFLayouts",
 ]
 
 
