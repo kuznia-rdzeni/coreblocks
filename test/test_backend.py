@@ -122,14 +122,24 @@ class TestBackend(TestCaseWithSimulator):
         yield from self.m.rs_announce_val_tbio.enable()
         yield from self.m.rob_mark_done_tbio.enable()
         while reduce(and_, self.producer_end, True):
-            rf_result = yield from self.m.rf_announce_val_tbio.call_do()
+            # All 3 methods (in RF, RS and ROB) need to be enabled for the result
+            # announcement transaction to take place. We want to have at least one
+            # method disabled most of the time, so that the transaction is performed
+            # only when we enable it inside the loop. Otherwise the transaction could
+            # get executed at any time, particularly when we wouldn't be monitoring it
+            yield from self.m.rf_announce_val_tbio.enable()
+
+            rf_result = yield from self.m.rf_announce_val_tbio.call_result()
             rs_result = yield from self.m.rs_announce_val_tbio.call_result()
             rob_result = yield from self.m.rob_mark_done_tbio.call_result()
+
+            yield from self.m.rf_announce_val_tbio.disable()
 
             self.assertIsNotNone(rf_result)
             self.assertIsNotNone(rs_result)
             self.assertIsNotNone(rob_result)
 
+            # this is needed to make the typechecker happy
             if rf_result is None or rs_result is None or rob_result is None:
                 continue
 
