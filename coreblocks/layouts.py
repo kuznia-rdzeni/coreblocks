@@ -137,6 +137,7 @@ class RSLayouts:
             ("exec_fn", common.exec_fn),
             ("s1_val", gen_params.isa.xlen),
             ("s2_val", gen_params.isa.xlen),
+            ("imm", gen_params.isa.xlen),
         ]
 
         self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
@@ -153,6 +154,7 @@ class RSLayouts:
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
             ("exec_fn", common.exec_fn),
+            ("imm", gen_params.isa.xlen),
         ]
 
         self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
