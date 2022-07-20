@@ -70,6 +70,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "imm": id,
                 },
             }
             for id in range(2**self.gp.rs_entries_bits)
@@ -112,6 +113,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "imm": id,
                 },
             }
             for id in range(2**self.gp.rs_entries_bits - 1)
@@ -173,6 +175,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "imm": id,
                 },
             }
             for id in range(2**self.gp.rs_entries_bits)
@@ -260,6 +263,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "imm": id,
                 },
             }
             for id in range(2**self.gp.rs_entries_bits)
@@ -314,6 +318,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
             },
             "s1_val": 0,
             "s2_val": 0,
+            "imm": 1,
         }
 
         for index in range(2):
@@ -354,6 +359,7 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "imm": id,
                 },
             }
             for id in range(2**self.gp.rs_entries_bits)
