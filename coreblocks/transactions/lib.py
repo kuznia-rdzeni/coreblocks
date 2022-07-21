@@ -1,5 +1,6 @@
 from amaranth import *
 from .core import *
+from .core import DebugSignals
 from ._utils import _coerce_layout, MethodLayout
 
 __all__ = [
@@ -113,6 +114,9 @@ class AdapterBase(Elaboratable):
         self.iface = iface
         self.en = Signal()
         self.done = Signal()
+
+    def debug_signals(self) -> DebugSignals:
+        return [self.en, self.done, self.data_in, self.data_out]
 
 
 class AdapterTrans(AdapterBase):

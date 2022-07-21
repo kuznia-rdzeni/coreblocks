@@ -1,6 +1,6 @@
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Callable, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
+from typing import Callable, Iterable, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
 from types import MethodType
 from amaranth import *
 from amaranth import tracer
@@ -20,6 +20,7 @@ __all__ = [
 ]
 
 
+DebugSignals: TypeAlias = Signal | Record | Iterable["DebugSignals"] | Mapping[str, "DebugSignals"]
 ConflictGraph: TypeAlias = Graph["Transaction"]
 ConflictGraphCC: TypeAlias = GraphCC["Transaction"]
 TransactionScheduler: TypeAlias = Callable[["TransactionManager", Module, ConflictGraph, ConflictGraphCC], None]
@@ -383,6 +384,9 @@ class Transaction:
     def __repr__(self) -> str:
         return "(transaction {})".format(self.name)
 
+    def debug_signals(self) -> DebugSignals:
+        return [self.request, self.grant]
+
 
 def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> list[Assign]:
     if not isinstance(src, dict):
@@ -557,6 +561,9 @@ class Method:
 
     def __repr__(self) -> str:
         return "(method {})".format(self.name)
+
+    def debug_signals(self) -> DebugSignals:
+        return [self.ready, self.run, self.data_in, self.data_out]
 
 
 def def_method(m: Module, method: Method, ready: ValueLike = C(1)):

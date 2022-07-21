@@ -30,7 +30,11 @@ class _VCDWriter:
     def close(self, timestamp):
         ...
     
-
+    vcd_file: Any
+    gtkw_file: Any
+    gtkw_save: Any
+    gtkw_names: Any
+    vcd_writer: Any
 
 class _Timeline:
     def __init__(self) -> None:

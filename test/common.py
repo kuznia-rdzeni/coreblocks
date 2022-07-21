@@ -1,14 +1,16 @@
 import unittest
 import os
 from contextlib import contextmanager, nullcontext
-from typing import Mapping, Union, Generator, TypeVar, Optional, Any
+from typing import Callable, Mapping, Union, Generator, TypeVar, Optional, Any, cast
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
 from amaranth.sim import *
 from amaranth.sim.core import Command
+from coreblocks.transactions.core import DebugSignals
 from coreblocks.transactions.lib import AdapterBase
 from coreblocks._typing import ValueLike
+from .gtkw_extension import write_vcd_ext
 
 
 T = TypeVar("T")
@@ -52,7 +54,19 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
-            ctx = sim.write_vcd(f"{traces_dir}/{test_name}.vcd", f"{traces_dir}/{test_name}.gtkw", traces=extra_signals)
+
+            # Signal handling is hacky and accesses Simulator internals.
+            # TODO: try to merge with Amaranth.
+            if isinstance(extra_signals, Callable):
+                extra_signals = extra_signals()
+            clocks = [d.clk for d in cast(Any, sim)._fragment.domains.values()]
+
+            ctx = write_vcd_ext(
+                cast(Any, sim)._engine,
+                f"{traces_dir}/{test_name}.vcd",
+                f"{traces_dir}/{test_name}.gtkw",
+                traces=[clocks, extra_signals],
+            )
         else:
             ctx = nullcontext()
 
@@ -102,3 +116,6 @@ class TestbenchIO(Elaboratable):
         yield from self.call_init(data)
         yield
         return (yield from self.call_do())
+
+    def debug_signals(self) -> DebugSignals:
+        return self.adapter.debug_signals()
