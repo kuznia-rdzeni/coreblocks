@@ -16,6 +16,10 @@ _rs1_itypes = [InstrType.R, InstrType.I, InstrType.S, InstrType.B]
 
 _rs2_itypes = [InstrType.R, InstrType.S, InstrType.B]
 
+_funct3_itypes = [InstrType.R, InstrType.I, InstrType.S, InstrType.B]
+
+_funct7_itypes = [InstrType.R]
+
 
 class Encoding:
     def __init__(
@@ -179,8 +183,11 @@ class InstrDecoder(Elaboratable):
         # Opcode and funct
         self.opcode = Signal(Opcode)
         self.funct3 = Signal(Funct3)
+        self.funct3_v = Signal()
         self.funct7 = Signal(Funct7)
+        self.funct7_v = Signal()
         self.funct12 = Signal(Funct12)
+        self.funct12_v = Signal()
 
         # Destination register
         self.rd = Signal(gen.isa.reg_cnt_log)
@@ -236,16 +243,10 @@ class InstrDecoder(Elaboratable):
         dummy = Signal()
         m.d.sync += dummy.eq(1)
 
-        # Opcode and funct
+        # Opcode
 
         opcode = Signal(Opcode)
-
-        m.d.comb += [
-            self._extract(2, opcode),
-            self._extract(12, self.funct3),
-            self._extract(25, self.funct7),
-            self._extract(20, self.funct12),
-        ]
+        m.d.comb += self._extract(2, opcode)
 
         # Instruction type
 
@@ -267,6 +268,23 @@ class InstrDecoder(Elaboratable):
                 m.d.comb += itype.eq(InstrType.S)
             with m.Default():
                 m.d.comb += opcode_iv.eq(1)
+
+        # Decode funct
+
+        m.d.comb += self.funct3_v.eq(reduce(or_, (itype == t for t in _funct3_itypes)))
+        with m.If(self.funct3_v):
+            m.d.comb += self._extract(12, self.funct3)
+
+        m.d.comb += self.funct7_v.eq(
+            reduce(or_, (itype == t for t in _funct7_itypes))
+            | ((opcode == Opcode.OP_IMM) & ((self.funct3 == Funct3.SLL) | (self.funct3 == Funct3.SR)))
+        )
+        with m.If(self.funct7_v):
+            m.d.comb += self._extract(25, self.funct7)
+
+        m.d.comb += self.funct12_v.eq((opcode == Opcode.SYSTEM) & (self.funct3 == Funct3.PRIV))
+        with m.If(self.funct12_v):
+            m.d.comb += self._extract(20, self.funct12)
 
         # Destination and source registers
 
@@ -364,6 +382,7 @@ class InstrDecoder(Elaboratable):
             m.d.comb += [
                 self.opcode.eq(Opcode.OP_IMM),
                 self.funct3.eq(Funct3.ADD),
+                self.funct3_v.eq(1),
                 self.rs1.eq(0),
             ]
         with m.Else():
