@@ -144,14 +144,14 @@ class TestDecoder(TestCaseWithSimulator):
 
             self.assertEqual((yield self.decoder.opcode), test.opcode)
 
-            if test.funct3 is not None:
-                self.assertEqual((yield self.decoder.funct3), test.funct3)
+            self.assertEqual((yield self.decoder.funct3), test.funct3 if test.funct3 is not None else 0)
+            self.assertEqual((yield self.decoder.funct3_v), test.funct3 is not None)
 
-            if test.funct7 is not None:
-                self.assertEqual((yield self.decoder.funct7), test.funct7)
+            self.assertEqual((yield self.decoder.funct7), test.funct7 if test.funct7 is not None else 0)
+            self.assertEqual((yield self.decoder.funct7_v), test.funct7 is not None)
 
-            if test.funct12 is not None:
-                self.assertEqual((yield self.decoder.funct12), test.funct12)
+            self.assertEqual((yield self.decoder.funct12), test.funct12 if test.funct12 is not None else 0)
+            self.assertEqual((yield self.decoder.funct12_v), test.funct12 is not None)
 
             if test.rd is not None:
                 self.assertEqual((yield self.decoder.rd_v), 1)
