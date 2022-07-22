@@ -386,6 +386,7 @@ class Signal(Value, DUID):
     def __repr__(self) -> str:
         ...
     
+    decoder: Any
 
 
 @final
