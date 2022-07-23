@@ -10,8 +10,23 @@ from coreblocks.core import Core
 from coreblocks.genparams import GenParams
 from coreblocks.layouts import FetchLayouts
 
+import random
 from queue import Queue
-from random import Random
+from riscvmodel.insn import (
+    InstructionADDI,
+    InstructionSLTI,
+    InstructionSLTIU,
+    InstructionXORI,
+    InstructionORI,
+    InstructionANDI,
+    InstructionSLLI,
+    InstructionSRLI,
+    InstructionSRAI,
+    InstructionLUI,
+)
+from riscvmodel.model import Model
+from riscvmodel.isa import InstructionRType, get_insns
+from riscvmodel.variant import RV32I
 
 
 class TestElaboratable(Elaboratable):
@@ -81,15 +96,18 @@ class TestCore(TestCaseWithSimulator):
     def push_instr(self, opcode):
         yield from self.m.io_in.call({"data": opcode})
 
-    def simple_process(self):
+    def init_regs(self):
+        for i in range(2**self.m.gp.phys_regs_bits - 1):
+            yield from self.m.reg_feed_in.call({"data": i + 1})
+
+    def run_test(self):
         # this test first provokes allocation of physical registers,
         # then sets the values in those registers, and finally runs
         # an actual computation.
 
         # The test sets values in the reg file by hand
 
-        for i in range(2**self.m.gp.phys_regs_bits - 1):
-            yield from self.m.reg_feed_in.call({"data": i + 1})
+        yield from self.init_regs()
 
         # provoking allocation of physical register
         for i in range(self.m.gp.isa.reg_cnt - 1):
@@ -134,15 +152,65 @@ class TestCore(TestCaseWithSimulator):
 
     def test_simple(self):
         gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
-        self.m = TestElaboratable(gp)
-        self.regs_left_queue = Queue()
-        self.to_execute_list = []
-        self.executed_list = []
-        self.retire_queue = Queue()
-        for i in range(2**gp.phys_regs_bits):
-            self.regs_left_queue.put(i)
+        m = TestElaboratable(gp)
+        self.m = m
 
-        self.log_regs = 2**gp.isa.xlen_log
+        with self.runSimulation(m) as sim:
+            sim.add_sync_process(self.run_test)
 
-        with self.runSimulation(self.m) as sim:
-            sim.add_sync_process(self.simple_process)
+    def compare_core_states(self, sw_core):
+        for i in range(self.gp.isa.reg_cnt):
+            reg_val = sw_core.state.intreg.regs[i].value
+            unsigned_val = reg_val if reg_val >= 0 else reg_val + 2**32
+            self.assertEqual((yield from self.get_arch_reg_val(i)), unsigned_val)
+
+    def randomized_input(self):
+        instructions = get_insns(cls=InstructionRType)
+        instructions += [
+            InstructionADDI,
+            InstructionSLTI,
+            InstructionSLTIU,
+            InstructionXORI,
+            InstructionORI,
+            InstructionANDI,
+            InstructionSLLI,
+            InstructionSRLI,
+            InstructionSRAI,
+            InstructionLUI,
+        ]
+
+        software_core = Model(RV32I)
+
+        yield from self.init_regs()
+        # allocate some random values for registers
+        for i in range(self.gp.isa.reg_cnt):
+            instr_init = InstructionADDI(rd=i, rs1=0, imm=random.randint(-(2**11), 2**11 - 1))
+            software_core.execute(instr_init)
+            yield from self.push_instr(instr_init.encode())
+
+        for i in range(50):
+            yield
+
+        yield from self.compare_core_states(software_core)
+
+        # generate random instruction stream
+        for i in range(self.instr_count):
+            instr = random.choice(instructions)()
+            instr.randomize(RV32I)
+            software_core.execute(instr)
+            yield from self.push_instr(instr.encode())
+
+        for i in range(50):
+            yield
+
+        yield from self.compare_core_states(software_core)
+
+    def test_randomized(self):
+        self.gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
+        m = TestElaboratable(self.gp)
+        self.m = m
+        self.instr_count = 300
+        random.seed(42)
+
+        with self.runSimulation(m) as sim:
+            sim.add_sync_process(self.randomized_input)

@@ -74,7 +74,7 @@ class Core(Elaboratable):
             rf_write_val=rf.write,
         )
         m.submodules.retirement = Retirement(
-            rob_retire=rob.retire, r_rat_commit=rrat.commit, free_rf_put=free_rf_fifo.write
+            rob_retire=rob.retire, r_rat_commit=rrat.commit, free_rf_put=free_rf_fifo.write, rf_free=rf.free
         )
 
         return m

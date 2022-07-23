@@ -3,7 +3,7 @@ from coreblocks.retirement import *
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
 from coreblocks.rat import RRAT
-from coreblocks.layouts import ROBLayouts
+from coreblocks.layouts import ROBLayouts, RFLayouts
 from coreblocks.genparams import GenParams
 
 from .common import *
@@ -20,6 +20,7 @@ class RetirementTestCircuit(Elaboratable):
         tm = TransactionModule(m)
 
         rob_layouts = self.gen_params.get(ROBLayouts)
+        rf_layouts = self.gen_params.get(RFLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(
@@ -28,8 +29,14 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.data_layout))
 
+        rf_free_method = Adapter(i=rf_layouts.rf_free)
+        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(rf_free_method)
+
         m.submodules.retirement = self.retirement = Retirement(
-            rob_retire=self.mock_rob_retire.adapter.iface, r_rat_commit=self.rat.commit, free_rf_put=self.free_rf.write
+            rob_retire=self.mock_rob_retire.adapter.iface,
+            r_rat_commit=self.rat.commit,
+            free_rf_put=self.free_rf.write,
+            rf_free=rf_free_method.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -43,6 +50,7 @@ class RetirementTest(TestCaseWithSimulator):
         self.rf_exp_q = deque()
         self.rat_map_q = deque()
         self.submit_q = deque()
+        self.rf_free_q = deque()
 
         random.seed(8)
         self.cycles = 256
@@ -55,6 +63,7 @@ class RetirementTest(TestCaseWithSimulator):
             if rl != 0:
                 if rat_state[rl] != 0:  # phys reg 0 shouldn't be marked as free
                     self.rf_exp_q.append(rat_state[rl])
+                self.rf_free_q.append(rat_state[rl])
                 rat_state[rl] = rp
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
                 self.submit_q.append({"rl_dst": rl, "rp_dst": rp})
@@ -85,7 +94,13 @@ class RetirementTest(TestCaseWithSimulator):
                         self.fail("RAT entry was not updated")
                     yield
 
+        def rf_free_process():
+            while self.rf_free_q:
+                reg = yield from retc.mock_rf_free.call()
+                self.assertEqual(reg["reg_id"], self.rf_free_q.popleft())
+
         with self.runSimulation(retc) as sim:
             sim.add_sync_process(submit_process)
             sim.add_sync_process(free_reg_process)
             sim.add_sync_process(rat_process)
+            sim.add_sync_process(rf_free_process)
