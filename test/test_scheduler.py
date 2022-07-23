@@ -9,9 +9,10 @@ from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans, Adapte
 from coreblocks.scheduler import Scheduler
 from coreblocks.rf import RegisterFile
 from coreblocks.rat import FRAT
-from coreblocks.layouts import SchedulerLayouts, RSLayouts
+from coreblocks.layouts import SchedulerLayouts, RSLayouts, DecodeLayouts
 from coreblocks.genparams import GenParams
 from coreblocks.reorder_buffer import ReorderBuffer
+from coreblocks.isa import Opcode, OpType, Funct3, Funct7
 from .common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO
 
 
@@ -23,12 +24,12 @@ class SchedulerTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        layouts = self.gen_params.get(SchedulerLayouts)
         rs_layouts = self.gen_params.get(RSLayouts)
+        decode_layouts = self.gen_params.get(DecodeLayouts)
 
         with tm.transactionContext():
             # data structures
-            m.submodules.instr_fifo = instr_fifo = FIFO(layouts.instr_layout, 16)
+            m.submodules.instr_fifo = instr_fifo = FIFO(decode_layouts.decoded_instr, 16)
             m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
                 self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
             )
@@ -207,7 +208,7 @@ class TestScheduler(TestCaseWithSimulator):
             self.assertEqual(got["rs_data"]["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
             self.assertEqual(got["rs_data"]["rp_s2"], expected["rp_s2"] if not s2.valid else 0)
             self.assertEqual(got["rs_data"]["rp_dst"], expected["rp_dst"])
-            self.assertEqual(got["rs_data"]["opcode"], expected["opcode"])
+            self.assertEqual(got["rs_data"]["exec_fn"], expected["exec_fn"])
             self.assertEqual(got["rs_entry_id"], expected["rs_entry_id"])
             self.assertEqual(got["rs_data"]["s1_val"], s1.value if s1.valid else 0)
             self.assertEqual(got["rs_data"]["s2_val"], s2.value if s2.valid else 0)
@@ -237,19 +238,52 @@ class TestScheduler(TestCaseWithSimulator):
                 rl_s1 = random.randint(0, self.gen_params.isa.reg_cnt - 1)
                 rl_s2 = random.randint(0, self.gen_params.isa.reg_cnt - 1)
                 rl_dst = random.randint(0, self.gen_params.isa.reg_cnt - 1)
-                # Note: opcode is currently a placeholder
-                opcode = random.randint(0, 2**32 - 1)
+
+                opcode = random.choice(list(Opcode)).value
+                op_type = random.choice(list(OpType)).value
+                funct3 = random.choice(list(Funct3)).value
+                funct7 = random.choice(list(Funct7)).value
+                immediate = random.randint(0, 2**32 - 1)
                 rp_s1 = self.current_RAT[rl_s1]
                 rp_s2 = self.current_RAT[rl_s2]
                 rp_dst = self.expected_phys_reg_queue.popleft() if rl_dst != 0 else 0
 
                 self.expected_rename_queue.append(
-                    {"rp_s1": rp_s1, "rp_s2": rp_s2, "rl_dst": rl_dst, "rp_dst": rp_dst, "opcode": opcode}
+                    {
+                        "rp_s1": rp_s1,
+                        "rp_s2": rp_s2,
+                        "rl_dst": rl_dst,
+                        "rp_dst": rp_dst,
+                        "opcode": opcode,
+                        "exec_fn": {
+                            "op_type": op_type,
+                            "funct3": funct3,
+                            "funct7": funct7,
+                        },
+                    }
                 )
                 self.current_RAT[rl_dst] = rp_dst
 
-                yield from self.m.instr_inp.call({"rl_s1": rl_s1, "rl_s2": rl_s2, "rl_dst": rl_dst, "opcode": opcode})
-
+                yield from self.m.instr_inp.call(
+                    {
+                        "opcode": opcode,
+                        "illegal": 0,
+                        "exec_fn": {
+                            "op_type": op_type,
+                            "funct3": funct3,
+                            "funct7": funct7,
+                        },
+                        "regs_l": {
+                            "rl_s1": rl_s1,
+                            "rl_s1_v": 1,
+                            "rl_s2": rl_s2,
+                            "rl_s2_v": 1,
+                            "rl_dst": rl_dst,
+                            "rl_dst_v": 1,
+                        },
+                        "imm": immediate,
+                    }
+                )
             # Terminate other processes
             self.expected_rename_queue.append(None)
             self.free_regs_queue.append(None)

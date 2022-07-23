@@ -4,7 +4,7 @@ from amaranth.sim import Settle
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
-from .common import TestCaseWithSimulator, TestbenchIO
+from .common import TestCaseWithSimulator, TestbenchIO, get_outputs
 
 from coreblocks.rs import RS
 from coreblocks.genparams import GenParams
@@ -63,9 +63,14 @@ class TestRSMethodInsert(TestCaseWithSimulator):
                     "rp_s2": id * 2 + 1,
                     "rp_dst": id * 2,
                     "rob_id": id,
-                    "opcode": 1,
+                    "exec_fn": {
+                        "op_type": 1,
+                        "funct3": 2,
+                        "funct7": 3,
+                    },
                     "s1_val": id,
                     "s2_val": id,
+                    "imm": id,
                 },
             }
             for id in range(2**self.gp.rs_entries_bits)
@@ -86,12 +91,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m.rs.data):
-            self.assertEqual((yield record.rec_full), expected["rec_full"])
-            self.assertEqual((yield record.rec_ready), expected["rec_ready"])
-            self.assertEqual((yield record.rec_reserved), expected["rec_reserved"])
-            if expected["rs_data"]:
-                for key in expected["rs_data"]:
-                    self.assertEqual((yield getattr(record.rs_data, key)), expected["rs_data"][key])
+            self.assertEqual(expected, (yield from get_outputs(record)))
 
 
 class TestRSMethodSelect(TestCaseWithSimulator):
@@ -106,9 +106,14 @@ class TestRSMethodSelect(TestCaseWithSimulator):
                     "rp_s2": id * 2,
                     "rp_dst": id * 2,
                     "rob_id": id,
-                    "opcode": 1,
+                    "exec_fn": {
+                        "op_type": 1,
+                        "funct3": 2,
+                        "funct7": 3,
+                    },
                     "s1_val": id,
                     "s2_val": id,
+                    "imm": id,
                 },
             }
             for id in range(2**self.gp.rs_entries_bits - 1)
@@ -163,9 +168,14 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
                     "rp_s2": id * 2 + 1,
                     "rp_dst": id * 2,
                     "rob_id": id,
-                    "opcode": 1,
+                    "exec_fn": {
+                        "op_type": 1,
+                        "funct3": 2,
+                        "funct7": 3,
+                    },
                     "s1_val": id,
                     "s2_val": id,
+                    "imm": id,
                 },
             }
             for id in range(2**self.gp.rs_entries_bits)
@@ -183,12 +193,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m.rs.data):
-            self.assertEqual((yield record.rec_full), expected["rec_full"])
-            self.assertEqual((yield record.rec_ready), expected["rec_ready"])
-            self.assertEqual((yield record.rec_reserved), expected["rec_reserved"])
-            if expected["rs_data"]:
-                for key in expected["rs_data"]:
-                    self.assertEqual((yield getattr(record.rs_data, key)), expected["rs_data"][key])
+            self.assertEqual(expected, (yield from get_outputs(record)))
 
         # Update second entry first SP, instruction should be not ready
         VALUE_SP1 = 1010
@@ -210,7 +215,19 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         # Insert new insturction to entries 0 and 1, check if update of multiple tags works
         TAG = 4
         VALUE_SPX = 3030
-        DATA = {"rp_s1": TAG, "rp_s2": TAG, "rp_dst": 1, "rob_id": 12, "opcode": 1, "s1_val": 0, "s2_val": 0}
+        DATA = {
+            "rp_s1": TAG,
+            "rp_s2": TAG,
+            "rp_dst": 1,
+            "rob_id": 12,
+            "exec_fn": {
+                "op_type": 1,
+                "funct3": 2,
+                "funct7": 3,
+            },
+            "s1_val": 0,
+            "s2_val": 0,
+        }
 
         for index in range(2):
             yield from self.m.io_insert.call({"rs_entry_id": index, "rs_data": DATA})
@@ -239,9 +256,14 @@ class TestRSMethodTake(TestCaseWithSimulator):
                     "rp_s2": id * 2,
                     "rp_dst": id * 2,
                     "rob_id": id,
-                    "opcode": 1,
+                    "exec_fn": {
+                        "op_type": 1,
+                        "funct3": 2,
+                        "funct7": 3,
+                    },
                     "s1_val": id,
                     "s2_val": id,
+                    "imm": id,
                 },
             }
             for id in range(2**self.gp.rs_entries_bits)
@@ -259,12 +281,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m.rs.data):
-            self.assertEqual((yield record.rec_full), expected["rec_full"])
-            self.assertEqual((yield record.rec_ready), expected["rec_ready"])
-            self.assertEqual((yield record.rec_reserved), expected["rec_reserved"])
-            if expected["rs_data"]:
-                for key in expected["rs_data"]:
-                    self.assertEqual((yield getattr(record.rs_data, key)), expected["rs_data"][key])
+            self.assertEqual(expected, (yield from get_outputs(record)))
 
         # Take first instruction
         self.assertEqual((yield self.m.rs.take.ready), 1)
@@ -289,7 +306,20 @@ class TestRSMethodTake(TestCaseWithSimulator):
         # Insert two new ready instructions and take them
         TAG = 0
         VALUE_SPX = 3030
-        ENTRY_DATA = {"rp_s1": TAG, "rp_s2": TAG, "rp_dst": 1, "rob_id": 12, "opcode": 1, "s1_val": 0, "s2_val": 0}
+        ENTRY_DATA = {
+            "rp_s1": TAG,
+            "rp_s2": TAG,
+            "rp_dst": 1,
+            "rob_id": 12,
+            "exec_fn": {
+                "op_type": 1,
+                "funct3": 2,
+                "funct7": 3,
+            },
+            "s1_val": 0,
+            "s2_val": 0,
+            "imm": 1,
+        }
 
         for index in range(2):
             yield from self.m.io_insert.call({"rs_entry_id": index, "rs_data": ENTRY_DATA})
@@ -322,9 +352,14 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
                     "rp_s2": id // 2,
                     "rp_dst": id * 2,
                     "rob_id": id,
-                    "opcode": 1,
+                    "exec_fn": {
+                        "op_type": 1,
+                        "funct3": 2,
+                        "funct7": 3,
+                    },
                     "s1_val": id,
                     "s2_val": id,
+                    "imm": id,
                 },
             }
             for id in range(2**self.gp.rs_entries_bits)

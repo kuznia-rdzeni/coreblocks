@@ -1,12 +1,16 @@
 from amaranth import *
 
+from coreblocks.genparams import GenParams
+from coreblocks.layouts import FuncUnitLayouts
+from coreblocks.utils import assign, AssignType
 from coreblocks.transactions.core import *
 
 __all__ = ["WakeupSelect"]
 
 
 class WakeupSelect(Elaboratable):
-    def __init__(self, *, get_ready: Method, take_row: Method, issue: Method):
+    def __init__(self, *, gen_params: GenParams, get_ready: Method, take_row: Method, issue: Method):
+        self.gen_params = gen_params
         self.get_ready = get_ready  # assumption: ready only if nonzero result
         self.take_row = take_row
         self.issue = issue
@@ -21,6 +25,10 @@ class WakeupSelect(Elaboratable):
             for i in range(ready_width):
                 with m.If(ready[i]):
                     m.d.comb += last.eq(i)
-            self.issue(m, self.take_row(m, last))
+
+            row = self.take_row(m, last)
+            issue_rec = Record(self.gen_params.get(FuncUnitLayouts).issue)
+            m.d.comb += assign(issue_rec, row, fields=AssignType.ALL)
+            self.issue(m, issue_rec)
 
         return m

@@ -3,7 +3,7 @@ from coreblocks.transactions import Method, Transaction
 from coreblocks.transactions.lib import FIFO
 from coreblocks.layouts import SchedulerLayouts, ROBLayouts
 from coreblocks.genparams import GenParams
-from coreblocks.utils import assign
+from coreblocks.utils import assign, AssignType
 
 __all__ = ["Scheduler"]
 
@@ -27,12 +27,12 @@ class RegAllocation(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            with m.If(instr.rl_dst != 0):
+            with m.If(instr.regs_l.rl_dst != 0):
                 reg_id = self.get_free_reg(m)
                 m.d.comb += free_reg.eq(reg_id)
 
             m.d.comb += assign(data_out, instr)
-            m.d.comb += data_out.rp_dst.eq(free_reg)
+            m.d.comb += data_out.regs_p.rp_dst.eq(free_reg)
             self.push_instr(m, data_out)
 
         return m
@@ -56,10 +56,21 @@ class Renaming(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            renamed_regs = self.rename(m, instr)
+            renamed_regs = self.rename(
+                m,
+                {
+                    "rl_s1": instr.regs_l.rl_s1,
+                    "rl_s2": instr.regs_l.rl_s2,
+                    "rl_dst": instr.regs_l.rl_dst,
+                    "rp_dst": instr.regs_p.rp_dst,
+                },
+            )
 
-            m.d.comb += assign(data_out, instr, fields={"rl_dst", "rp_dst", "opcode"})
-            m.d.comb += assign(data_out, renamed_regs)
+            m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm"})
+            m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
+            m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
+            m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
+            m.d.comb += data_out.regs_p.rp_s2.eq(renamed_regs.rp_s2)
             self.push_instr(m, data_out)
 
         return m
@@ -71,7 +82,6 @@ class ROBAllocation(Elaboratable):
         layouts = gen_params.get(SchedulerLayouts)
         self.input_layout = layouts.rob_allocate_in
         self.output_layout = layouts.rob_allocate_out
-        self.rob_req_layout = gen_params.get(ROBLayouts).data_layout
 
         self.get_instr = get_instr
         self.push_instr = push_instr
@@ -81,15 +91,19 @@ class ROBAllocation(Elaboratable):
         m = Module()
 
         data_out = Record(self.output_layout)
-        rob_req = Record(self.rob_req_layout)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
 
-            m.d.comb += assign(rob_req, instr, fields={"rl_dst", "rp_dst"})
-            rob_id = self.rob_put(m, rob_req)
+            rob_id = self.rob_put(
+                m,
+                {
+                    "rl_dst": instr.regs_l.rl_dst,
+                    "rp_dst": instr.regs_p.rp_dst,
+                },
+            )
 
-            m.d.comb += assign(data_out, instr, fields={"rp_s1", "rp_s2", "rp_dst", "opcode"})
+            m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
             m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
 
             self.push_instr(m, data_out)
@@ -111,20 +125,16 @@ class RSSelection(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        data_out = Record(self.output_layout)
+
         with Transaction().body(m):
             instr = self.get_instr(m)
             allocated_field = self.rs_alloc(m)
-            self.push_instr(
-                m,
-                {
-                    "rp_s1": instr.rp_s1,
-                    "rp_s2": instr.rp_s2,
-                    "rp_dst": instr.rp_dst,
-                    "rob_id": instr.rob_id,
-                    "opcode": instr.opcode,
-                    "rs_entry_id": allocated_field.rs_entry_id,
-                },
-            )
+
+            m.d.comb += assign(data_out, instr)
+            m.d.comb += data_out.rs_entry_id.eq(allocated_field.rs_entry_id)
+
+            self.push_instr(m, data_out)
 
         return m
 
@@ -145,21 +155,22 @@ class RSInsertion(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            source1 = self.rf_read1(m, {"reg_id": instr.rp_s1})
-            source2 = self.rf_read2(m, {"reg_id": instr.rp_s2})
+            source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
+            source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
 
             self.rs_insert(
                 m,
                 {
                     # when operand value is valid the convention is to set operand source to 0
                     "rs_data": {
-                        "rp_s1": Mux(source1.valid, 0, instr.rp_s1),
-                        "rp_s2": Mux(source2.valid, 0, instr.rp_s2),
-                        "rp_dst": instr.rp_dst,
+                        "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
+                        "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
+                        "rp_dst": instr.regs_p.rp_dst,
                         "rob_id": instr.rob_id,
-                        "opcode": instr.opcode,
+                        "exec_fn": instr.exec_fn,
                         "s1_val": Mux(source1.valid, source1.reg_val, 0),
                         "s2_val": Mux(source2.valid, source2.reg_val, 0),
+                        "imm": instr.imm,
                     },
                     "rs_entry_id": instr.rs_entry_id,
                 },
