@@ -197,7 +197,14 @@ class TestTransactionConflict(TestCaseWithSimulator):
         ]
     )
     def test_calls(self, name, prob1, prob2, probout):
-        with self.runSimulation(self.m) as sim:
+        def debug_signals():
+            return {
+                "in1": self.m.in1.debug_signals(),
+                "in2": self.m.in2.debug_signals(),
+                "out": self.m.out.debug_signals(),
+            }
+
+        with self.runSimulation(self.m, extra_signals=debug_signals) as sim:
             sim.add_sync_process(self.make_in1_process(prob1))
             sim.add_sync_process(self.make_in2_process(prob2))
             sim.add_sync_process(self.make_out_process(probout))
