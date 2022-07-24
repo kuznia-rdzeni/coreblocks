@@ -29,14 +29,13 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.data_layout))
 
-        rf_free_method = Adapter(i=rf_layouts.rf_free)
-        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(rf_free_method)
+        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
 
         m.submodules.retirement = self.retirement = Retirement(
             rob_retire=self.mock_rob_retire.adapter.iface,
             r_rat_commit=self.rat.commit,
             free_rf_put=self.free_rf.write,
-            rf_free=rf_free_method.iface,
+            rf_free=self.mock_rf_free.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
