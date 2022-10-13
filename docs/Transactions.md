@@ -141,5 +141,9 @@ Such a transaction is included in the library -- it's named `AdapterTrans`.
 
 The transaction framework is designed to facilitate code re-use.
 It includes a library, which contains `Elaboratable`s providing useful methods and transactions.
+The most useful ones are:
 
-TODO
+* `ConnectTrans`, for connecting two methods together with a transaction.
+* `FIFO`, for queues accessed with two methods, `read` and `write`.
+* `Adapter` and `AdapterTrans`, for communicating with transactions and methods from plain Amaranth code.
+  These are very useful in testbenches.
