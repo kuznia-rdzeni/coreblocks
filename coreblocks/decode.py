@@ -7,6 +7,23 @@ from .decoder import InstrDecoder
 
 class Decode(Elaboratable):
     def __init__(self, gen_params: GenParams, get_raw: Method, push_decoded: Method) -> None:
+        """
+        Simple decode unit. This is a transactional interface, which instantiate a
+        submodule `InstrDecoder`. This `InstrDecoder` make actual decoding in
+        combinatorial manner.
+
+        Parameters
+        ----------
+        gen_params : GenParams
+            Instance of GenParams with parameters which should be used to generate
+            fetch unit.
+        get_raw : Method
+            Method which is invoked to get raw instruction from previous step
+            (e.g. from fetch unit) it use `FetchLayout`.
+        push_decoded : Method
+            Method which is invoked to send decoded data to the next step.
+            It has layout as described by `DecodeLayouts`.
+        """
         self.gp = gen_params
         self.get_raw = get_raw
         self.push_decoded = push_decoded
