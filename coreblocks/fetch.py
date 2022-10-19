@@ -8,7 +8,7 @@ from .wishbone import WishboneMaster
 class Fetch(Elaboratable):
     def __init__(self, gen_params: GenParams, bus: WishboneMaster, cont: Method) -> None:
         """
-        Simple fetch unit. It have PC inside and increment it by `isa.ilen_bytes`
+        Simple fetch unit. It has a PC inside and increments it by `isa.ilen_bytes`
         after each fetch.
 
         Parameters
@@ -17,8 +17,8 @@ class Fetch(Elaboratable):
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
         bus : WishboneMaster
-            Instance of WishboneMaster which is connected to memory with instructions
-            which should be executed by core.
+            Instance of WishboneMaster connected to memory with instructions
+            to be executed by the core.
         cont : Method
             Method which should be invoked to send fetched data to the next step.
             It has layout as described by `FetchLayout`.

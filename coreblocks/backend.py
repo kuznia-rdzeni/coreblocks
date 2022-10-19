@@ -14,15 +14,15 @@ class ResultAnnouncement(Elaboratable):
         self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_write_val: Method, rf_write_val: Method
     ):
         """
-        Simple result announce unit. It take an executed instruction and send
-        its results to ROB, RF and RS. In ROB there is written, that instruction
-        ended its execution, in RF there is saved value of instruction. Value
-        is also send to RS in case if there is an instruction which wait for
+        Simple result announce unit. It takes an executed instruction and sends
+        its results to ROB, RF and RS. ROB marks the instruction as completed.
+        The RF stores the result value of the instruction. The value
+        is also sent to RS in case if there is an instruction which waits for
         this value.
 
-        Method `get_result` get already serialized instruction results, so in
-        case in which we have more than one FU, then they outputs should be connected by
-        `ManyToOneConnectTrans` to FIFO.
+        Method `get_result` gets already serialized instruction results, so in
+        case in which we have more than one FU, then their outputs should be connected by
+        `ManyToOneConnectTrans` to a FIFO.
 
         Parameters
         ----------
@@ -31,18 +31,18 @@ class ResultAnnouncement(Elaboratable):
             fetch unit.
         get_result : Method
             Method which is invoked to get results of next ready instruction,
-            which should be announced in core. This method assume, that results
+            which should be announced in core. This method assumes that results
             from different FUs are already serialized.
         rob_mark_done : Method
             Method which is invoked to mark that instruction ended without exception.
-            It use layout with one field "rob_id",
+            It uses layout with one field "rob_id",
         rs_write_val : Method
-            Method which is invoked to pass  value which is an output of ended instruction
+            Method which is invoked to pass value which is an output of finished instruction
             to RS, so that RS can save it if there are instructions which wait for it.
-            It use layout with two fields "tag" and "value".
+            It uses layout with two fields "tag" and "value".
         rf_write_val : Method
-            Method which is invoked to save value which is an output of ended instruction to RF.
-            It use layout with two fields "reg_id" and "reg_val".
+            Method which is invoked to save value which is an output of finished instruction to RF.
+            It uses layout with two fields "reg_id" and "reg_val".
         """
         self.m_get_result = get_result
         self.m_rob_mark_done = rob_mark_done
