@@ -5,7 +5,6 @@ from enum import IntEnum, unique
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
-from coreblocks.transactions._utils import *
 
 from coreblocks.genparams import GenParams
 from coreblocks.isa import *

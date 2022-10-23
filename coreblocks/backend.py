@@ -1,17 +1,15 @@
 from amaranth import *
-from coreblocks.transactions import Method, Transaction
-from coreblocks.transactions._utils import Scheduler as RoundRobinOneHot
-from coreblocks.transactions._utils import OneHotSwitch
-from coreblocks.transactions.lib import ConnectTrans
-from coreblocks.layouts import *
+
 from coreblocks.genparams import GenParams
+from coreblocks.transactions import Method, Transaction
 
 __all__ = ["ResultAnnouncement"]
 
 
 class ResultAnnouncement(Elaboratable):
     def __init__(
-        self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_write_val: Method, rf_write_val: Method
+            self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_write_val: Method,
+            rf_write_val: Method
     ):
         """
         Simple result announce unit. It takes an executed instruction and sends
