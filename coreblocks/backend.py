@@ -8,8 +8,7 @@ __all__ = ["ResultAnnouncement"]
 
 class ResultAnnouncement(Elaboratable):
     def __init__(
-            self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_write_val: Method,
-            rf_write_val: Method
+        self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_write_val: Method, rf_write_val: Method
     ):
         """
         Simple result announce unit. It takes an executed instruction and sends
