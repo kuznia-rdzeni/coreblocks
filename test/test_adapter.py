@@ -1,5 +1,4 @@
 from amaranth import *
-from amaranth.sim import Passive
 
 from coreblocks.transactions import TransactionModule, Method, def_method
 from coreblocks.transactions.lib import AdapterTrans

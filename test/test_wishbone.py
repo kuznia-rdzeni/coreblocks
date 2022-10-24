@@ -1,7 +1,6 @@
 # Testbench for WishboneMaster, WishboneMuxer and WishboneArbiter
 
 from coreblocks.wishbone import *
-from amaranth.sim import Simulator
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
