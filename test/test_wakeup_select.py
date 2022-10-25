@@ -10,7 +10,7 @@ import random
 from coreblocks.genparams import GenParams
 from coreblocks.layouts import RSLayouts
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import Adapter, AdapterTrans
+from coreblocks.transactions.lib import Adapter
 from coreblocks.wakeup_select import *
 
 from .common import RecordIntDict, TestCaseWithSimulator, TestbenchIO

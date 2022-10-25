@@ -3,14 +3,12 @@ from operator import and_
 from functools import reduce
 
 from amaranth import *
-from amaranth.back import verilog
-from amaranth.sim import Simulator, Settle
-from coreblocks.transactions import TransactionModule, TransactionContext
-from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans, Adapter, ManyToOneConnectTrans
+from coreblocks.transactions import TransactionModule
+from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter, ManyToOneConnectTrans
 from coreblocks.backend import ResultAnnouncement
 from coreblocks.layouts import *
 from coreblocks.genparams import GenParams
-from .common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO
+from .common import TestCaseWithSimulator, TestbenchIO
 
 
 class BackendTestCircuit(Elaboratable):

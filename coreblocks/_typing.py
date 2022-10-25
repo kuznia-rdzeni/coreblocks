@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple, Type, Any
+from typing import Sequence, Tuple, Type
 from enum import Enum
 from amaranth import *
 from amaranth.hdl.ast import ValueCastable
