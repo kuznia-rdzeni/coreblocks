@@ -1,7 +1,8 @@
 -r requirements.txt
 black==22.3.0
 flake8==4.0.1
-pre-commit==2.16.0
-parameterized==0.8.1
-pyright==1.1.251
 git+https://github.com/kristopher38/riscv-python-model@b5d0737#riscv-model
+markupsafe==2.0.1
+parameterized==0.8.1
+pre-commit==2.16.0
+pyright==1.1.251
