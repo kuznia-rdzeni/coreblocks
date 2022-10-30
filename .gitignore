@@ -21,3 +21,6 @@ venv.bak/
 
 # Tests outputs
 test/__traces__
+
+# Synthesis
+build/

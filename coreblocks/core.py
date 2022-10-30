@@ -36,7 +36,8 @@ class Core(Elaboratable):
 
         @def_method(m, self.reset)
         def _(arg):
-            m.d.comb += ResetSignal().eq(1)
+            # m.d.sync += ResetSignal().eq(1)
+            pass
 
         m.submodules.free_rf_fifo = free_rf_fifo = self.free_rf_fifo
         m.submodules.FRAT = frat = self.FRAT
