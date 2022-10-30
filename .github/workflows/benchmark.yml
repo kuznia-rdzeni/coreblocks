@@ -30,5 +30,13 @@ jobs:
           python -m pip install --upgrade pip
           pip3 install -r requirements-dev.txt
 
+      - name: Install synthesize packages
+        run: |
+            apt-get build-essential clang bison flex \
+              libreadline-dev gawk tcl-dev libffi-dev git \
+              graphviz xdot pkg-config python3 libboost-system-dev \
+              libboost-python-dev libboost-filesystem-dev zlib1g-dev \
+              yosys nextpnr-ice40 icestorm
+
       - name: Synthesize
         run: python ./scripts/synthesize
