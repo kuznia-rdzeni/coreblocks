@@ -22,5 +22,5 @@ jobs:
 
       - name: Debug
         run: |
-          ls -l
           ls -l build
+          cat build/top.tim
