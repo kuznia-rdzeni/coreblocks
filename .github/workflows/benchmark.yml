@@ -15,21 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.10'
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip3 install -r requirements-dev.txt
-
       - name: Synthesize
         uses: docker://vuush/amaranth-synth:latest
         with:
-          args: /bin/sh -c "chmod +x ./scripts/synthesize && ./scripts/synthesize"
+          args: /bin/sh -c "pip3 install -r requirements-dev.txt && chmod +x ./scripts/synthesize && ./scripts/synthesize"
