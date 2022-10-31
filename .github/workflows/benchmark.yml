@@ -19,3 +19,8 @@ jobs:
         uses: docker://vuush/amaranth-synth:latest
         with:
           args: /bin/sh -c "pip3 install -r requirements-dev.txt && chmod +x ./scripts/synthesize && ./scripts/synthesize"
+
+      - name: Debug
+        run: |
+          ls -l
+          ls -l build
