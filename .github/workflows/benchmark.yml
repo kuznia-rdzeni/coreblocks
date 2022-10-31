@@ -32,4 +32,4 @@ jobs:
       - name: Synthesize
         uses: docker://vuush/amaranth-synth:latest
         with:
-          args: /bin/sh -c "chmod +x ./scripts/synthesize && python ./scripts/synthesize"
+          args: /bin/sh -c "chmod +x ./scripts/synthesize && ./scripts/synthesize"
