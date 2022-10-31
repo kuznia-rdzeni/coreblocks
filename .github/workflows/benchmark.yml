@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    container: docker://vuush/amaranth-synth:latest
     steps:
       - uses: actions/checkout@v3
 
@@ -29,25 +29,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip3 install -r requirements-dev.txt
-
-      - name: Install synthesize packages
-        run: |
-            sudo apt-get install build-essential clang bison flex \
-              libreadline-dev gawk tcl-dev libffi-dev git mercurial \
-              graphviz xdot pkg-config libboost-all-dev libftdi-dev \
-              libeigen3-dev zlib1g-dev \
-              yosys
-
-            git clone https://github.com/YosysHQ/icestorm.git icestorm
-            cd icestorm
-            make -j$(nproc)
-            sudo make install
-
-            git clone https://github.com/YosysHQ/nextpnr nextpnr
-            cd nextpnr
-            cmake . -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=/usr/local .
-            make -j$(nproc)
-            sudo make install
 
       - name: Synthesize
         run: python ./scripts/synthesize
