@@ -7,6 +7,7 @@ from amaranth import tracer
 from amaranth.hdl.ast import Assign
 from ._utils import *
 from .._typing import ValueLike
+from .graph import OwnershipGraph
 
 __all__ = [
     "TransactionManager",
@@ -206,78 +207,21 @@ class TransactionManager(Elaboratable):
 
         return m
 
-    def dump_visual_remember(self, owner):
-        owner_id = id(owner)
-        if owner_id not in self.owners:
-            print('New owner', owner)
-            tp = owner.__class__
-            count = self.owner_counters[tp]
-            self.owner_counters[tp] = count + 1
-            name = tp.__name__
-            if count:
-                name += str(count)
-            self.owner_names[owner_id] = name
-            self.owner_graph[owner_id] = []
-            for field, obj in vars(owner).items():
-                if not field.startswith('_'):
-                    self.owner_labels[id(obj)] = f"{field} {obj.__class__.__name__}"
-                    self.owner_graph[owner_id].append(id(obj))
-                    if not isinstance(obj, Method) and isinstance(obj, Elaboratable):
-                        self.dump_visual_remember(obj)
-
-    def dump_visual_id(self, x: 'Transaction | Method', add=False):
-        self.dump_visual_remember(x.owner)
-        owner_id = id(x.owner)
-        if add:
-            self.owners[owner_id].append(x)
-        return f'{self.owner_names[owner_id]}_{x.name}'
-
-    def dump_visual_owner(self, fp, owner, indent=''):
-        subowners = self.owner_graph[owner]
-        del self.owner_graph[owner]
-        indent += '    '
-        owned = self.owners[owner]
-        fp.write(f'{indent}subgraph cluster_{self.owner_names[owner]} {{\n')
-        fp.write(f'{indent}    label="{self.owner_labels.get(owner, self.owner_names[owner])}";\n')
-        for x in owned:
-            fp.write(f'{indent}    {self.dump_visual_id(x)} [label="{x.name}"];\n')
-        for subowner in subowners:
-            if subowner in self.owner_graph:
-                self.dump_visual_owner(fp, subowner, indent)
-        fp.write(f'{indent}}}\n')
-
-    def dump_visual_graph(self, fp, root=None):
-        fp.write('digraph G {\n')
-        self.owner_counters = defaultdict(int)
-        self.owner_names = {}
-        self.owner_labels = {}
-        self.owners: defaultdict[list[Transaction | Method]] = defaultdict(list)
-        self.owner_graph = {}
+    def dump_dot(self, fp, fragment):
+        graph = OwnershipGraph(fragment)
+        fp.write("digraph G {\n")
 
         for method, transactions in self.transactions_by_method.items():
-            self.dump_visual_id(method, True)
-            for transaction in transactions:
-                self.dump_visual_id(transaction, True)
-
-        if root is not None:
-            self.dump_visual_remember(root)
-            # self.dump_visual_owner(fp, root)
-
-        print('Done I guess?')
-
-        for owner in self.owner_names:
-            if owner not in self.owner_labels:
-                self.dump_visual_owner(fp, owner)
-
-        for method, transactions in self.transactions_by_method.items():
-            fp.write('    {\n')
+            fp.write("    {")
             for i, transaction in enumerate(transactions):
                 if i:
-                    fp.write(', ')
-                fp.write(self.dump_visual_id(transaction))
-            fp.write(f'}} -> {self.dump_visual_id(method)}')
+                    fp.write(", ")
+                fp.write(graph.get_name(transaction, True))
+            fp.write(f"}} -> {graph.get_name(method, True)}\n")
 
-        fp.write('}\n')
+        graph.dump_dot(fp)
+        fp.write("}\n")
+        return graph
 
 
 class TransactionContext:
