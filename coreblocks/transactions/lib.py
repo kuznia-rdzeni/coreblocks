@@ -1,3 +1,4 @@
+from typing import Callable, Tuple, Optional
 from amaranth import *
 from .core import *
 from .core import DebugSignals
@@ -280,6 +281,65 @@ class Adapter(AdapterBase):
         return m
 
 
+# Method transformer
+
+
+class MethodTransformer(Elaboratable):
+    """Method transformer.
+
+    Takes a target method and creates a transformed method which calls the
+    original target method, transforming the input and output using
+    combinational logic. The transformation functions take two parameters,
+    a ``Module`` and the ``Record`` being transformed. They should only
+    use the combinatorial domain. (The need for modules is a limitation
+    of Amaranth records.)
+
+    Parameters
+    ----------
+    target: Method
+        The target method.
+    i_transform: (function, int or record layout), optional
+        Input transformation. If specified, it should be a pair of a
+        function and a input layout for the transformed method.
+        If not present, input is not transformed.
+    o_transform: (function, int or record layout), optional
+        Output transformation. If specified, it should be a pair of a
+        function and a output layout for the transformed method.
+        If not present, output is not transformed.
+
+    Attributes
+    ----------
+    method: Method
+        The transformed method.
+    """
+
+    def __init__(
+        self,
+        target: Method,
+        *,
+        i_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], Record]]] = None,
+        o_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], Record]]] = None,
+    ):
+        if i_transform is None:
+            i_transform = (target.data_in.layout, lambda _, x: x)
+        if o_transform is None:
+            o_transform = (target.data_out.layout, lambda _, x: x)
+
+        self.target = target
+        self.method = Method(i=i_transform[0], o=o_transform[0])
+        self.i_fun = i_transform[1]
+        self.o_fun = o_transform[1]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        @def_method(m, self.method)
+        def _(arg):
+            return self.o_fun(m, self.target(m, self.i_fun(m, arg)))
+
+        return m
+
+
 # Example transactions
 
 
@@ -312,6 +372,52 @@ class ConnectTrans(Elaboratable):
 
             m.d.comb += data1.eq(self.method1(m, data2))
             m.d.comb += data2.eq(self.method2(m, data1))
+
+        return m
+
+
+class ConnectAndTransformTrans(Elaboratable):
+    """Connecting transaction with transformations.
+
+        Behaves like ``ConnectTrans``, but modifies the transferred data using
+        combinational functions. Equivalent to a combination of ``ConnectTrans``
+        and ``MethodTransformer``. The transformation functions take two
+        parameters, a ``Module`` and the ``Record`` being transformed.
+
+        Parameters
+        ----------
+        method1: Method
+            First method.
+        method2: Method
+            Second method, and the method being transformed.
+        i_fun: function, optional
+            Input transformation (``method1`` to ``method2``).
+        o_fun: function, optional
+            Output transformation (``method2`` to ``method1``).
+    `"""
+
+    def __init__(
+        self,
+        method1: Method,
+        method2: Method,
+        *,
+        i_fun: Optional[Callable[[Module, Record], Record]] = None,
+        o_fun: Optional[Callable[[Module, Record], Record]] = None,
+    ):
+        self.method1 = method1
+        self.method2 = method2
+        self.i_fun = i_fun or (lambda _, x: x)
+        self.o_fun = o_fun or (lambda _, x: x)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.transformer = transformer = MethodTransformer(
+            self.method2,
+            i_transform=(self.method1.data_out.layout, self.i_fun),
+            o_transform=(self.method1.data_in.layout, self.o_fun),
+        )
+        m.submodules.connect = ConnectTrans(self.method1, transformer.method)
 
         return m
 
