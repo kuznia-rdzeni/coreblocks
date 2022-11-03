@@ -300,15 +300,16 @@ class WishboneMemorySlave(Elaboratable):
                     with m.If(~self.bus.we):
                         m.d.comb += rdport.addr.eq(self.bus.adr)
                         # asserting rdport.en not required in case of a transparent port
+                        m.next = "Read"
                     with m.Else():
                         m.d.comb += wrport.addr.eq(self.bus.adr)
                         m.d.comb += wrport.en.eq(1)
                         m.d.comb += wrport.data.eq(self.bus.dat_w)
-                    m.next = "Finish"
+                        # writes can be ack'd earlier than reads because they don't return any data
+                        m.d.comb += self.bus.ack.eq(1)
 
-            with m.State("Finish"):
-                with m.If(~self.bus.we):
-                    m.d.comb += self.bus.dat_r.eq(rdport.data)
+            with m.State("Read"):
+                m.d.comb += self.bus.dat_r.eq(rdport.data)
                 # ack can only be asserted when stb is asserted
                 m.d.comb += self.bus.ack.eq(self.bus.stb)
                 m.next = "Start"

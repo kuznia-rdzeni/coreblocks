@@ -4,7 +4,6 @@ import random
 
 from coreblocks.wishbone import *
 
-from coreblocks.genparams import GenParams
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
@@ -213,8 +212,7 @@ class TestWishboneAribiter(TestCaseWithSimulator):
 
 
 class WishboneMemorySlaveCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams, wb_params: WishboneParameters):
-        self.gen_params = gen_params
+    def __init__(self, wb_params: WishboneParameters):
         self.wb_params = wb_params
 
     def elaborate(self, platform):
@@ -226,27 +224,15 @@ class WishboneMemorySlaveCircuit(Elaboratable):
         m.submodules.request = self.request = TestbenchIO(AdapterTrans(self.mem_master.request))
         m.submodules.result = self.result = TestbenchIO(AdapterTrans(self.mem_master.result))
 
-        # amaranth's record connection doesn't work so I'm doing this by hand,
-        # but maybe I'm missing something
-        # self.mem_master.wbMaster.connect(self.mem_slave.bus)
-        m.d.comb += [
-            self.mem_master.wbMaster.ack.eq(self.mem_slave.bus.ack),
-            self.mem_master.wbMaster.dat_r.eq(self.mem_slave.bus.dat_r),
-            self.mem_slave.bus.stb.eq(self.mem_master.wbMaster.stb),
-            self.mem_slave.bus.cyc.eq(self.mem_master.wbMaster.cyc),
-            self.mem_slave.bus.adr.eq(self.mem_master.wbMaster.adr),
-            self.mem_slave.bus.dat_w.eq(self.mem_master.wbMaster.dat_w),
-            self.mem_slave.bus.we.eq(self.mem_master.wbMaster.we),
-        ]
+        m.d.comb += self.mem_master.wbMaster.connect(self.mem_slave.bus)
 
         return tm
 
 
 class TestWishboneMemorySlave(TestCaseWithSimulator):
     def setUp(self):
-        self.gen_params = GenParams("rv32i")
         self.wb_params = WishboneParameters(data_width=32, addr_width=8)
-        self.m = WishboneMemorySlaveCircuit(gen_params=self.gen_params, wb_params=self.wb_params)
+        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params)
         self.memsize = 2**self.wb_params.addr_width
         self.iters = 300
         random.seed(42)
