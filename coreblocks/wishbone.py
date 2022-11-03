@@ -37,20 +37,20 @@ class WishboneLayout:
         Record of Wishbone bus
     """
 
-    def __init__(self, wb_params: WishboneParameters):
+    def __init__(self, wb_params: WishboneParameters, master=True):
         self.wb_layout = [
-            ("dat_r", wb_params.data_width, DIR_FANIN),
-            ("dat_w", wb_params.data_width, DIR_FANOUT),
-            ("rst", 1, DIR_FANOUT),
-            ("ack", 1, DIR_FANIN),
-            ("adr", wb_params.addr_width, DIR_FANOUT),
-            ("cyc", 1, DIR_FANOUT),
-            ("err", 1, DIR_FANIN),
-            ("lock", 1, DIR_FANOUT),
-            ("rty", 1, DIR_FANIN),
-            ("sel", 1, DIR_FANOUT),
-            ("stb", 1, DIR_FANOUT),
-            ("we", 1, DIR_FANOUT),
+            ("dat_r", wb_params.data_width, DIR_FANIN if master else DIR_FANOUT),
+            ("dat_w", wb_params.data_width, DIR_FANOUT if master else DIR_FANIN),
+            ("rst", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("ack", 1, DIR_FANIN if master else DIR_FANOUT),
+            ("adr", wb_params.addr_width, DIR_FANOUT if master else DIR_FANIN),
+            ("cyc", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("err", 1, DIR_FANIN if master else DIR_FANOUT),
+            ("lock", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("rty", 1, DIR_FANIN if master else DIR_FANOUT),
+            ("sel", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("stb", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("we", 1, DIR_FANOUT if master else DIR_FANIN),
         ]
 
 
@@ -279,5 +279,38 @@ class WishboneArbiter(Elaboratable):
         # This prevents chaning grant and muxes during Wishbone cycle
         with m.If((~m.submodules.rr.valid) & self.arb_enable):
             m.d.comb += self.slaveWb.stb.eq(0)
+
+        return m
+
+
+class WishboneMemorySlave(Elaboratable):
+    def __init__(self, wb_params: WishboneParameters):
+        self.mem = Memory(width=wb_params.data_width, depth=2**wb_params.addr_width)
+        self.bus = Record(WishboneLayout(wb_params, master=False).wb_layout)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.rdport = rdport = self.mem.read_port()
+        m.submodules.wrport = wrport = self.mem.write_port()
+
+        with m.FSM():
+            with m.State("Start"):
+                with m.If(self.bus.stb & self.bus.cyc):
+                    with m.If(~self.bus.we):
+                        m.d.comb += rdport.addr.eq(self.bus.adr)
+                        # asserting rdport.en not required in case of a transparent port
+                    with m.Else():
+                        m.d.comb += wrport.addr.eq(self.bus.adr)
+                        m.d.comb += wrport.en.eq(1)
+                        m.d.comb += wrport.data.eq(self.bus.dat_w)
+                    m.next = "Finish"
+
+            with m.State("Finish"):
+                with m.If(~self.bus.we):
+                    m.d.comb += self.bus.dat_r.eq(rdport.data)
+                # ack can only be asserted when stb is asserted
+                m.d.comb += self.bus.ack.eq(self.bus.stb)
+                m.next = "Start"
 
         return m
