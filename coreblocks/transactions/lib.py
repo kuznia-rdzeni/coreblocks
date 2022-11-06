@@ -378,22 +378,22 @@ class ConnectTrans(Elaboratable):
 class ConnectAndTransformTrans(Elaboratable):
     """Connecting transaction with transformations.
 
-        Behaves like ``ConnectTrans``, but modifies the transferred data using
-        functions or ``Method``s. Equivalent to a combination of
-        ``ConnectTrans`` and ``MethodTransformer``. The transformation
-        functions take two parameters, a ``Module`` and the ``Record`` being
-        transformed.
+    Behaves like ``ConnectTrans``, but modifies the transferred data using
+    functions or ``Method``s. Equivalent to a combination of
+    ``ConnectTrans`` and ``MethodTransformer``. The transformation
+    functions take two parameters, a ``Module`` and the ``Record`` being
+    transformed.
 
-        Parameters
-        ----------
-        method1: Method
-            First method.
-        method2: Method
-            Second method, and the method being transformed.
-        i_fun: function or Method, optional
-            Input transformation (``method1`` to ``method2``).
-        o_fun: function or Method, optional
-            Output transformation (``method2`` to ``method1``).
+    Parameters
+    ----------
+    method1: Method
+        First method.
+    method2: Method
+        Second method, and the method being transformed.
+    i_fun: function or Method, optional
+        Input transformation (``method1`` to ``method2``).
+    o_fun: function or Method, optional
+        Output transformation (``method2`` to ``method1``).
     """
 
     def __init__(
