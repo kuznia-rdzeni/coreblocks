@@ -394,7 +394,7 @@ class ConnectAndTransformTrans(Elaboratable):
             Input transformation (``method1`` to ``method2``).
         o_fun: function or Method, optional
             Output transformation (``method2`` to ``method1``).
-    `"""
+    """
 
     def __init__(
         self,
