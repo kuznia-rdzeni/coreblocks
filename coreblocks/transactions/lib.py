@@ -288,21 +288,20 @@ class MethodTransformer(Elaboratable):
     """Method transformer.
 
     Takes a target method and creates a transformed method which calls the
-    original target method, transforming the input and output using
-    combinational logic. The transformation functions take two parameters,
-    a ``Module`` and the ``Record`` being transformed. They should only
-    use the combinatorial domain. (The need for modules is a limitation
-    of Amaranth records.)
+    original target method, transforming the input and output values.
+    The transformation functions take two parameters, a ``Module`` and the
+    ``Record`` being transformed. Alternatively, a ``Method`` can be
+    passed.
 
     Parameters
     ----------
     target: Method
         The target method.
-    i_transform: (function, int or record layout), optional
+    i_transform: (int or record layout, function or Method), optional
         Input transformation. If specified, it should be a pair of a
         function and a input layout for the transformed method.
         If not present, input is not transformed.
-    o_transform: (function, int or record layout), optional
+    o_transform: (int or record layout, function or Method), optional
         Output transformation. If specified, it should be a pair of a
         function and a output layout for the transformed method.
         If not present, output is not transformed.
@@ -380,9 +379,10 @@ class ConnectAndTransformTrans(Elaboratable):
     """Connecting transaction with transformations.
 
         Behaves like ``ConnectTrans``, but modifies the transferred data using
-        combinational functions. Equivalent to a combination of ``ConnectTrans``
-        and ``MethodTransformer``. The transformation functions take two
-        parameters, a ``Module`` and the ``Record`` being transformed.
+        functions or ``Method``s. Equivalent to a combination of
+        ``ConnectTrans`` and ``MethodTransformer``. The transformation
+        functions take two parameters, a ``Module`` and the ``Record`` being
+        transformed.
 
         Parameters
         ----------
@@ -390,9 +390,9 @@ class ConnectAndTransformTrans(Elaboratable):
             First method.
         method2: Method
             Second method, and the method being transformed.
-        i_fun: function, optional
+        i_fun: function or Method, optional
             Input transformation (``method1`` to ``method2``).
-        o_fun: function, optional
+        o_fun: function or Method, optional
             Output transformation (``method2`` to ``method1``).
     `"""
 
