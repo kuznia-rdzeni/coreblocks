@@ -5,6 +5,7 @@ from functools import reduce
 from amaranth import *
 from amaranth.sim.core import Passive, Settle
 from coreblocks.transactions import *
+from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import Adapter, AdapterTrans, ManyToOneConnectTrans, MethodTransformer
 from coreblocks._typing import LayoutLike
 from .common import TestCaseWithSimulator, TestbenchIO
@@ -129,9 +130,10 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
 
 
 class MethodTransformerTestCircuit(Elaboratable):
-    def __init__(self, iosize: int, use_methods: bool):
+    def __init__(self, iosize: int, use_methods: bool, use_dicts: bool):
         self.iosize = iosize
         self.use_methods = use_methods
+        self.use_dicts = use_dicts
 
     def elaborate(self, platform):
         m = Module()
@@ -140,6 +142,29 @@ class MethodTransformerTestCircuit(Elaboratable):
         # dummy signal
         s = Signal()
         m.d.sync += s.eq(1)
+
+        def itransform_rec(m: Module, v: Record) -> Record:
+            s = Record.like(v)
+            m.d.comb += s.data.eq(v.data + 1)
+            return s
+
+        def otransform_rec(m: Module, v: Record) -> Record:
+            s = Record.like(v)
+            m.d.comb += s.data.eq(v.data - 1)
+            return s
+
+        def itransform_dict(_, v: Record) -> RecordDict:
+            return {"data": v.data + 1}
+
+        def otransform_dict(_, v: Record) -> RecordDict:
+            return {"data": v.data - 1}
+
+        if self.use_dicts:
+            itransform = itransform_dict
+            otransform = otransform_dict
+        else:
+            itransform = itransform_rec
+            otransform = otransform_rec
 
         with tm.transactionContext():
             m.submodules.target = self.target = TestbenchIO(Adapter(i=self.iosize, o=self.iosize))
@@ -150,29 +175,21 @@ class MethodTransformerTestCircuit(Elaboratable):
 
                 @def_method(m, imeth)
                 def _(v: Record):
-                    return {"data": v.data + 1}
+                    return itransform(m, v)
 
                 @def_method(m, ometh)
                 def _(v: Record):
-                    return {"data": v.data - 1}
+                    return otransform(m, v)
 
                 trans = MethodTransformer(
                     self.target.adapter.iface, i_transform=(self.iosize, imeth), o_transform=(self.iosize, ometh)
                 )
             else:
 
-                def itrans(m: Module, v: Record) -> Record:
-                    s = Record.like(v)
-                    m.d.comb += s.data.eq(v.data + 1)
-                    return s
-
-                def otrans(m: Module, v: Record) -> Record:
-                    s = Record.like(v)
-                    m.d.comb += s.data.eq(v.data - 1)
-                    return s
-
                 trans = MethodTransformer(
-                    self.target.adapter.iface, i_transform=(self.iosize, itrans), o_transform=(self.iosize, otrans)
+                    self.target.adapter.iface,
+                    i_transform=(self.iosize, itransform),
+                    o_transform=(self.iosize, otransform),
                 )
 
             m.submodules.trans = trans
@@ -203,13 +220,19 @@ class TestMethodTransformer(TestCaseWithSimulator):
             yield
 
     def test_method_transformer(self):
-        self.m = MethodTransformerTestCircuit(4, False)
+        self.m = MethodTransformerTestCircuit(4, False, False)
+        with self.runSimulation(self.m) as sim:
+            sim.add_sync_process(self.source)
+            sim.add_sync_process(self.target)
+
+    def test_method_transformer_dicts(self):
+        self.m = MethodTransformerTestCircuit(4, False, True)
         with self.runSimulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_transformer_with_methods(self):
-        self.m = MethodTransformerTestCircuit(4, True)
+        self.m = MethodTransformerTestCircuit(4, True, True)
         with self.runSimulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)

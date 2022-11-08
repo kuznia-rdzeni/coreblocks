@@ -1,7 +1,7 @@
 from typing import Callable, Tuple, Optional
 from amaranth import *
 from .core import *
-from .core import DebugSignals
+from .core import DebugSignals, RecordDict
 from ._utils import _coerce_layout, MethodLayout
 
 __all__ = [
@@ -316,8 +316,8 @@ class MethodTransformer(Elaboratable):
         self,
         target: Method,
         *,
-        i_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], Record]]] = None,
-        o_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], Record]]] = None,
+        i_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], RecordDict]]] = None,
+        o_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], RecordDict]]] = None,
     ):
         if i_transform is None:
             i_transform = (target.data_in.layout, lambda _, x: x)
@@ -401,8 +401,8 @@ class ConnectAndTransformTrans(Elaboratable):
         method1: Method,
         method2: Method,
         *,
-        i_fun: Optional[Callable[[Module, Record], Record]] = None,
-        o_fun: Optional[Callable[[Module, Record], Record]] = None,
+        i_fun: Optional[Callable[[Module, Record], RecordDict]] = None,
+        o_fun: Optional[Callable[[Module, Record], RecordDict]] = None,
     ):
         self.method1 = method1
         self.method2 = method2
