@@ -251,7 +251,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 yield from self.m.request.call({"addr": addr, "data": data, "we": write})
                 res = yield from self.m.result.call()
                 if write:
-                    self.assertEqual((yield self.m.mem_slave.mem._array[addr]), data)
+                    self.assertEqual((yield self.m.mem_slave.mem[addr]), data)
                 else:
                     self.assertEqual(res["data"], mem_state[addr])
 

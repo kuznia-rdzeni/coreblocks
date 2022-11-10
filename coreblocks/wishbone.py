@@ -29,7 +29,10 @@ class WishboneLayout:
     Parameters
     ----------
     wb_params: WishboneParameters
-       Parameters used to generate Wisbone layout
+        Parameters used to generate Wisbone layout
+    master: Boolean
+        Whether the layout should be generated for the master side
+        (otherwise it's generated for the slave side)
 
     Attributes
     ----------
@@ -284,8 +287,33 @@ class WishboneArbiter(Elaboratable):
 
 
 class WishboneMemorySlave(Elaboratable):
-    def __init__(self, wb_params: WishboneParameters):
-        self.mem = Memory(width=wb_params.data_width, depth=2**wb_params.addr_width)
+    """Wishbone slave with memory
+    Wishbone slave interface with addressable memory underneath.
+
+    Paramters
+    ---------
+    wb_params: WishboneParameters
+        Parameters for bus generation.
+    **kwargs: dict
+        Keyword arguments for the underlying Amaranth's ``Memory``. If ``width`` and ``depth``
+        are not specified, then they're inferred from ``wb_params``: ``data_width`` becomes
+        ``width`` and ``2 ** addr_width`` becomes ``depth``.
+
+    Attributes
+    ----------
+    bus: Record (like WishboneLayout)
+        Wishbone bus record.
+    """
+
+    def __init__(self, wb_params: WishboneParameters, **kwargs):
+        if "width" not in kwargs:
+            kwargs["width"] = wb_params.data_width
+            if kwargs["width"] not in (8, 16, 32, 64):
+                raise RuntimeError("Memory width has to be one of: 8, 16, 32, 64")
+        if "depth" not in kwargs:
+            kwargs["depth"] = 2**wb_params.addr_width
+
+        self.mem = Memory(**kwargs)
         self.bus = Record(WishboneLayout(wb_params, master=False).wb_layout)
 
     def elaborate(self, platform):
