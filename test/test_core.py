@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from amaranth import Elaboratable, Module
 from amaranth.sim import Settle
 
@@ -9,6 +11,7 @@ from .common import TestCaseWithSimulator, TestbenchIO
 from coreblocks.core import Core
 from coreblocks.genparams import GenParams
 from coreblocks.layouts import FetchLayouts
+from coreblocks.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
 import random
 from riscvmodel.insn import (
@@ -29,26 +32,32 @@ from riscvmodel.variant import RV32I
 
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, instr_mem: Iterable[int] = None):
         self.gp = gen_params
+        self.instr_mem = instr_mem
 
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
 
-        self.fifo_in = FIFO(self.gp.get(FetchLayouts).raw_instr, 2)
-        self.core = Core(gen_params=self.gp, get_raw_instr=self.fifo_in.read)
+        wb_params = WishboneParameters(data_width=32, addr_width=32)
+        self.wb_master = WishboneMaster(wb_params=wb_params)
+        self.wb_mem_slave = WishboneMemorySlave(wb_params=wb_params, width=32, depth=1024, init=self.instr_mem)
+        self.core = Core(gen_params=self.gp, wb_master=self.wb_master)
         self.reg_feed_in = TestbenchIO(AdapterTrans(self.core.free_rf_fifo.write))
-        self.io_in = TestbenchIO(AdapterTrans(self.fifo_in.write))
+        self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
         self.reset = TestbenchIO(AdapterTrans(self.core.reset))
 
-        m.submodules.fifo_in = self.fifo_in
+        m.submodules.wb_master = self.wb_master
+        m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.reg_feed_in = self.reg_feed_in
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
         m.submodules.reset = self.reset
+
+        m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
 
         return tm
 
