@@ -28,6 +28,7 @@ class Fetch(Elaboratable):
         self.cont = cont
 
         self.pc = Signal(bus.wb_params.addr_width, reset=gen_params.start_pc)
+        self.halt_pc = Signal(bus.wb_params.addr_width, reset=2**bus.wb_params.addr_width - 1)
 
     def elaborate(self, platform) -> Module:
         m = Module()
@@ -39,15 +40,16 @@ class Fetch(Elaboratable):
             self.bus.request(m, req)
 
         with Transaction().body(m):
-            fetched = self.bus.result(m)
+            with m.If(self.pc != self.halt_pc):
+                fetched = self.bus.result(m)
 
-            with m.If(fetched.err == 0):
+                with m.If(fetched.err == 0):
 
-                out = Record(self.gp.get(FetchLayouts).raw_instr)
+                    out = Record(self.gp.get(FetchLayouts).raw_instr)
 
-                m.d.comb += out.data.eq(fetched.data)
+                    m.d.comb += out.data.eq(fetched.data)
 
-                m.d.sync += self.pc.eq(self.pc + self.gp.isa.ilen_bytes)
-                self.cont(m, out)
+                    m.d.sync += self.pc.eq(self.pc + 1)
+                    self.cont(m, out)
 
         return m

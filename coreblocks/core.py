@@ -27,6 +27,7 @@ class Core(Elaboratable):
         # make fifo_fetch visible outside of the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
         self.free_rf_fifo = FIFO(self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits)
+        self.fetch = Fetch(self.gen_params, self.wb_master, self.fifo_fetch.write)
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params)
@@ -50,7 +51,7 @@ class Core(Elaboratable):
         m.submodules.RS = rs = self.RS
 
         m.submodules.fifo_fetch = self.fifo_fetch
-        m.submodules.fetch = fetch = Fetch(self.gen_params, self.wb_master, self.fifo_fetch.write)
+        m.submodules.fetch = self.fetch
 
         m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
         m.submodules.decode = Decode(
