@@ -308,8 +308,8 @@ class WishboneMemorySlave(Elaboratable):
     def __init__(self, wb_params: WishboneParameters, **kwargs):
         if "width" not in kwargs:
             kwargs["width"] = wb_params.data_width
-            if kwargs["width"] not in (8, 16, 32, 64):
-                raise RuntimeError("Memory width has to be one of: 8, 16, 32, 64")
+        if kwargs["width"] not in (8, 16, 32, 64):
+            raise RuntimeError("Memory width has to be one of: 8, 16, 32, 64")
         if "depth" not in kwargs:
             kwargs["depth"] = 2**wb_params.addr_width
 

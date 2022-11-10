@@ -212,14 +212,15 @@ class TestWishboneAribiter(TestCaseWithSimulator):
 
 
 class WishboneMemorySlaveCircuit(Elaboratable):
-    def __init__(self, wb_params: WishboneParameters):
+    def __init__(self, wb_params: WishboneParameters, mem_args: dict):
         self.wb_params = wb_params
+        self.mem_args = mem_args
 
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
 
-        m.submodules.mem_slave = self.mem_slave = WishboneMemorySlave(self.wb_params)
+        m.submodules.mem_slave = self.mem_slave = WishboneMemorySlave(self.wb_params, **self.mem_args)
         m.submodules.mem_master = self.mem_master = WishboneMaster(self.wb_params)
         m.submodules.request = self.request = TestbenchIO(AdapterTrans(self.mem_master.request))
         m.submodules.result = self.result = TestbenchIO(AdapterTrans(self.mem_master.result))
@@ -231,10 +232,13 @@ class WishboneMemorySlaveCircuit(Elaboratable):
 
 class TestWishboneMemorySlave(TestCaseWithSimulator):
     def setUp(self):
-        self.wb_params = WishboneParameters(data_width=32, addr_width=8)
-        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params)
-        self.memsize = 2**self.wb_params.addr_width
+        self.memsize = 430 # test some weird depth
         self.iters = 300
+
+        self.addr_width = (self.memsize-1).bit_length() # nearest log2 >= log2(memsize)
+        self.wb_params = WishboneParameters(data_width=32, addr_width=self.addr_width)
+        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params, mem_args={'depth': self.memsize})
+
         random.seed(42)
 
     def test_randomized(self):
