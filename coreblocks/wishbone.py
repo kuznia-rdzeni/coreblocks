@@ -29,7 +29,7 @@ class WishboneLayout:
     Parameters
     ----------
     wb_params: WishboneParameters
-        Parameters used to generate Wisbone layout
+        Parameters used to generate Wishbone layout
     master: Boolean
         Whether the layout should be generated for the master side
         (otherwise it's generated for the slave side)
