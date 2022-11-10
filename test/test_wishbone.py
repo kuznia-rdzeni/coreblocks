@@ -232,12 +232,12 @@ class WishboneMemorySlaveCircuit(Elaboratable):
 
 class TestWishboneMemorySlave(TestCaseWithSimulator):
     def setUp(self):
-        self.memsize = 430 # test some weird depth
+        self.memsize = 430  # test some weird depth
         self.iters = 300
 
-        self.addr_width = (self.memsize-1).bit_length() # nearest log2 >= log2(memsize)
+        self.addr_width = (self.memsize - 1).bit_length()  # nearest log2 >= log2(memsize)
         self.wb_params = WishboneParameters(data_width=32, addr_width=self.addr_width)
-        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params, mem_args={'depth': self.memsize})
+        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params, mem_args={"depth": self.memsize})
 
         random.seed(42)
 
