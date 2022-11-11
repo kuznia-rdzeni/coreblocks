@@ -52,7 +52,7 @@ class FullMultiplicationTestCircuit(Elaboratable):
 
 
 def neg(x: int, xlen: int) -> int:
-    base = 2 ** xlen - 1
+    base = 2**xlen - 1
     return ((x ^ base) + 1) & base
 
 
@@ -71,17 +71,17 @@ def signed_to_int(x: int, xlen: int) -> int:
         return x
 
 
-def compute_result(i1: int, i2: int, fn : MulFn.Fn, xlen: int) -> int:
+def compute_result(i1: int, i2: int, fn: MulFn.Fn, xlen: int) -> int:
     signed_i1 = signed_to_int(i1, xlen)
     signed_i2 = signed_to_int(i2, xlen)
     if fn == MulFn.Fn.MUL:
-        return (i1 * i2) % (2 ** xlen)
+        return (i1 * i2) % (2**xlen)
     elif fn == MulFn.Fn.MULH:
-        return int_to_signed(signed_i1 * signed_i2, 2 * xlen) // (2 ** xlen)
+        return int_to_signed(signed_i1 * signed_i2, 2 * xlen) // (2**xlen)
     elif fn == MulFn.Fn.MULHU:
-        return i1 * i2 // (2 ** xlen)
+        return i1 * i2 // (2**xlen)
     elif fn == MulFn.Fn.MULHSU:
-        return int_to_signed(signed_i1 * i2, 2 * xlen) // (2 ** xlen)
+        return int_to_signed(signed_i1 * i2, 2 * xlen) // (2**xlen)
     else:
         signed_half_i1 = signed_to_int(i1 % (2 ** (xlen // 2)), xlen // 2)
         signed_half_i2 = signed_to_int(i2 % (2 ** (xlen // 2)), xlen // 2)
@@ -97,14 +97,14 @@ class FullMultiplicationTestUnit(TestCaseWithSimulator):
         self.requests = deque()
         self.responses = deque()
 
-        max_int = 2 ** self.gen.isa.xlen - 1
+        max_int = 2**self.gen.isa.xlen - 1
         mul_fns = [MulFn.Fn.MUL, MulFn.Fn.MULH, MulFn.Fn.MULHU, MulFn.Fn.MULHSU, MulFn.Fn.MULW]
         ops = {
-            MulFn.Fn.MUL:    {"op_type": OpType.ARITHMETIC,   "funct3": Funct3.MUL,    "funct7": Funct7.MULDIV},
-            MulFn.Fn.MULH:   {"op_type": OpType.ARITHMETIC,   "funct3": Funct3.MULH,   "funct7": Funct7.MULDIV},
-            MulFn.Fn.MULHU:  {"op_type": OpType.ARITHMETIC,   "funct3": Funct3.MULHU,  "funct7": Funct7.MULDIV},
-            MulFn.Fn.MULHSU: {"op_type": OpType.ARITHMETIC,   "funct3": Funct3.MULHSU, "funct7": Funct7.MULDIV},
-            MulFn.Fn.MULW:   {"op_type": OpType.ARITHMETIC_W, "funct3": Funct3.MULW,   "funct7": Funct7.MULDIV},
+            MulFn.Fn.MUL: {"op_type": OpType.ARITHMETIC, "funct3": Funct3.MUL, "funct7": Funct7.MULDIV},
+            MulFn.Fn.MULH: {"op_type": OpType.ARITHMETIC, "funct3": Funct3.MULH, "funct7": Funct7.MULDIV},
+            MulFn.Fn.MULHU: {"op_type": OpType.ARITHMETIC, "funct3": Funct3.MULHU, "funct7": Funct7.MULDIV},
+            MulFn.Fn.MULHSU: {"op_type": OpType.ARITHMETIC, "funct3": Funct3.MULHSU, "funct7": Funct7.MULDIV},
+            MulFn.Fn.MULW: {"op_type": OpType.ARITHMETIC_W, "funct3": Funct3.MULW, "funct7": Funct7.MULDIV},
         }
 
         for i in range(2000):
@@ -112,8 +112,8 @@ class FullMultiplicationTestUnit(TestCaseWithSimulator):
             data2 = random.randint(0, max_int)
             data2_is_imm = random.randint(0, 1)
             mul_fn = mul_fns[random.randint(0, len(mul_fns) - 1)]
-            rob_id = random.randint(0, 2 ** self.gen.rob_entries_bits - 1)
-            rp_dst = random.randint(0, 2 ** self.gen.phys_regs_bits - 1)
+            rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
+            rp_dst = random.randint(0, 2**self.gen.phys_regs_bits - 1)
             exec_fn = ops[mul_fn]
             result = compute_result(data1, data2, mul_fn, self.gen.isa.xlen)
 
@@ -149,7 +149,7 @@ class FullMultiplicationTestUnit(TestCaseWithSimulator):
 
 
 class AbstractUnsignedMultiplicationTestUnit(TestCaseWithSimulator):
-    def __init__(self, mul_unit: Type[MulBaseUnsigned], method_name='runTest'):
+    def __init__(self, mul_unit: Type[MulBaseUnsigned], method_name="runTest"):
         super().__init__(method_name)
         self.mul_unit = mul_unit
 
@@ -160,19 +160,23 @@ class AbstractUnsignedMultiplicationTestUnit(TestCaseWithSimulator):
         random.seed(1050)
         self.requests = deque()
         self.responses = deque()
-        max_int = 2 ** self.gen.isa.xlen - 1
+        max_int = 2**self.gen.isa.xlen - 1
         for i in range(100):
             data1 = random.randint(0, max_int)
             data2 = random.randint(0, max_int)
             result = data1 * data2
 
-            self.requests.append({
-                "i1": data1,
-                "i2": data2,
-            })
-            self.responses.append({
-                "o": result,
-            })
+            self.requests.append(
+                {
+                    "i1": data1,
+                    "i2": data2,
+                }
+            )
+            self.responses.append(
+                {
+                    "o": result,
+                }
+            )
 
     def abstract_test_pipeline(self):
         def consumer():
@@ -194,7 +198,7 @@ class AbstractUnsignedMultiplicationTestUnit(TestCaseWithSimulator):
 
 
 class FastRecursiveMultiplicationTest(AbstractUnsignedMultiplicationTestUnit):
-    def __init__(self, method_name='runTest'):
+    def __init__(self, method_name="runTest"):
         super().__init__(MulBaseUnsigned, method_name)
 
     def test_pipeline(self):
@@ -202,7 +206,7 @@ class FastRecursiveMultiplicationTest(AbstractUnsignedMultiplicationTestUnit):
 
 
 class ShiftMultiplicationTest(AbstractUnsignedMultiplicationTestUnit):
-    def __init__(self, method_name='runTest'):
+    def __init__(self, method_name="runTest"):
         super().__init__(ShiftUnsignedMul, method_name)
 
     def test_pipeline(self):
