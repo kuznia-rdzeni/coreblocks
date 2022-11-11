@@ -62,12 +62,14 @@ def int_to_signed(x: int, xlen: int) -> int:
     else:
         return x
 
+
 def signed_to_int(x: int, xlen: int) -> int:
     sign = 2 ** (xlen - 1)
     if (sign & x) == sign:
-        return -(x ^ sign)
+        return -neg(x, xlen)
     else:
         return x
+
 
 def compute_result(i1: int, i2: int, fn : MulFn.Fn, xlen: int) -> int:
     signed_i1 = signed_to_int(i1, xlen)
@@ -75,14 +77,14 @@ def compute_result(i1: int, i2: int, fn : MulFn.Fn, xlen: int) -> int:
     if fn == MulFn.Fn.MUL:
         return (i1 * i2) % (2 ** xlen)
     elif fn == MulFn.Fn.MULH:
-        return int_to_signed((signed_i1 * signed_i2) // (2 ** xlen), xlen)
+        return int_to_signed(signed_i1 * signed_i2, 2 * xlen) // (2 ** xlen)
     elif fn == MulFn.Fn.MULHU:
         return i1 * i2 // (2 ** xlen)
     elif fn == MulFn.Fn.MULHSU:
-        return int_to_signed((i1 * signed_i2) // (2 ** xlen), xlen)
+        return int_to_signed(signed_i1 * i2, 2 * xlen) // (2 ** xlen)
     else:
         signed_half_i1 = signed_to_int(i1 % (2 ** (xlen // 2)), xlen // 2)
-        signed_half_i2 = signed_to_int(i1 % (2 ** (xlen // 2)), xlen // 2)
+        signed_half_i2 = signed_to_int(i2 % (2 ** (xlen // 2)), xlen // 2)
         return int_to_signed(signed_half_i1 * signed_half_i2, xlen)
 
 
@@ -96,7 +98,7 @@ class FullMultiplicationTestUnit(TestCaseWithSimulator):
         self.responses = deque()
 
         max_int = 2 ** self.gen.isa.xlen - 1
-        mul_fns = [MulFn.Fn.MUL, MulFn.Fn.MULH, MulFn.Fn.MULHU, MulFn.Fn.MULHSU]
+        mul_fns = [MulFn.Fn.MUL, MulFn.Fn.MULH, MulFn.Fn.MULHU, MulFn.Fn.MULHSU, MulFn.Fn.MULW]
         ops = {
             MulFn.Fn.MUL:    {"op_type": OpType.ARITHMETIC,   "funct3": Funct3.MUL,    "funct7": Funct7.MULDIV},
             MulFn.Fn.MULH:   {"op_type": OpType.ARITHMETIC,   "funct3": Funct3.MULH,   "funct7": Funct7.MULDIV},
@@ -105,7 +107,7 @@ class FullMultiplicationTestUnit(TestCaseWithSimulator):
             MulFn.Fn.MULW:   {"op_type": OpType.ARITHMETIC_W, "funct3": Funct3.MULW,   "funct7": Funct7.MULDIV},
         }
 
-        for i in range(1000):
+        for i in range(2000):
             data1 = random.randint(0, max_int)
             data2 = random.randint(0, max_int)
             data2_is_imm = random.randint(0, 1)
@@ -132,7 +134,7 @@ class FullMultiplicationTestUnit(TestCaseWithSimulator):
             while self.responses:
                 expected = self.responses.pop()
                 result = yield from self.m.accept.call()
-                print(result)
+                print(expected, result)
                 self.assertDictEqual(expected, result)
 
         def producer():
