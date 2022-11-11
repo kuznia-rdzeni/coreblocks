@@ -172,13 +172,14 @@ class TestCore(TestCaseWithSimulator):
             self.assertEqual((yield from self.get_arch_reg_val(i)), unsigned_val)
 
     def randomized_input(self):
+        halt_pc = (len(self.instr_mem) - 1) * self.gp.isa.ilen_bytes
         yield from self.init_regs()
 
         # set PC to halt at specific instruction (numbered from 0)
-        yield self.m.core.fetch.halt_pc.eq(len(self.instr_mem) - 1)
+        yield self.m.core.fetch.halt_pc.eq(halt_pc)
 
         # wait for PC to go past all instruction
-        while (yield self.m.core.fetch.pc) < len(self.instr_mem) - 1:
+        while (yield self.m.core.fetch.pc) < halt_pc:
             yield
 
         # finish calculations

@@ -34,7 +34,7 @@ class Fetch(Elaboratable):
         m = Module()
 
         req = Record(self.bus.requestLayout)
-        m.d.comb += req.addr.eq(self.pc)
+        m.d.comb += req.addr.eq(self.pc >> 2)
 
         with Transaction().body(m):
             self.bus.request(m, req)
@@ -48,7 +48,7 @@ class Fetch(Elaboratable):
 
                 m.d.comb += out.data.eq(fetched.data)
 
-                m.d.sync += self.pc.eq(self.pc + 1)
+                m.d.sync += self.pc.eq(self.pc + self.gp.isa.ilen_bytes)
                 self.cont(m, out)
 
         return m
