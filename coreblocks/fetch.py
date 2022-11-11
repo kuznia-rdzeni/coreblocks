@@ -39,17 +39,16 @@ class Fetch(Elaboratable):
         with Transaction().body(m):
             self.bus.request(m, req)
 
-        with Transaction().body(m):
-            with m.If(self.pc != self.halt_pc):
-                fetched = self.bus.result(m)
+        with Transaction().body(m, request=(self.pc != self.halt_pc)):
+            fetched = self.bus.result(m)
 
-                with m.If(fetched.err == 0):
+            with m.If(fetched.err == 0):
 
-                    out = Record(self.gp.get(FetchLayouts).raw_instr)
+                out = Record(self.gp.get(FetchLayouts).raw_instr)
 
-                    m.d.comb += out.data.eq(fetched.data)
+                m.d.comb += out.data.eq(fetched.data)
 
-                    m.d.sync += self.pc.eq(self.pc + 1)
-                    self.cont(m, out)
+                m.d.sync += self.pc.eq(self.pc + 1)
+                self.cont(m, out)
 
         return m
