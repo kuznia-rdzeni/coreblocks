@@ -14,11 +14,11 @@ from coreblocks.layouts import *
 class MulFn(Signal):
     @unique
     class Fn(IntEnum):
-        MUL = 1 << 0     # Lower part multiplication
-        MULH = 1 << 1    # Upper part multiplication signed×signed
-        MULHU = 1 << 2   # Upper part multiplication unsigned×unsigned
+        MUL = 1 << 0  # Lower part multiplication
+        MULH = 1 << 1  # Upper part multiplication signed×signed
+        MULHU = 1 << 2  # Upper part multiplication unsigned×unsigned
         MULHSU = 1 << 3  # Upper part multiplication signed×unsigned
-        MULW = 1 << 4    # Multiplication of lower half of bits
+        MULW = 1 << 4  # Multiplication of lower half of bits
 
     def __init__(self, *args, **kwargs):
         super().__init__(MulFn.Fn, *args, **kwargs)
@@ -99,9 +99,11 @@ class FastRecursiveMul(Elaboratable):
         if self.n == 1:
             m.d.comb += self.r.eq(self.i1 & self.i2)
         elif self.n == 2:
-            m.d.comb += self.r.eq(((self.i1[1] & self.i2[1]) << 2) +
-                                  (((self.i1[0] & self.i2[1]) + (self.i1[1] & self.i2[0])) << 1) +
-                                  (self.i1[0] & self.i2[0]))
+            m.d.comb += self.r.eq(
+                ((self.i1[1] & self.i2[1]) << 2)
+                + (((self.i1[0] & self.i2[1]) + (self.i1[1] & self.i2[0])) << 1)
+                + (self.i1[0] & self.i2[0])
+            )
         elif self.n == 3:
             m.submodules.low_mul = low_mul = FastRecursiveMul(2)
             signal_low = Signal(unsigned(4))
@@ -109,9 +111,11 @@ class FastRecursiveMul(Elaboratable):
             m.d.comb += low_mul.i2.eq(self.i2[:2])
             m.d.comb += signal_low.eq(low_mul.r)
 
-            m.d.comb += self.r.eq(((self.i1[2] & self.i2[2]) << 4) +
-                                  ((Mux(self.i1[2], self.i2[:2], 0) + Mux(self.i2[2], self.i1[:2], 0)) << 2) +
-                                  signal_low)
+            m.d.comb += self.r.eq(
+                ((self.i1[2] & self.i2[2]) << 4)
+                + ((Mux(self.i1[2], self.i2[:2], 0) + Mux(self.i2[2], self.i1[:2], 0)) << 2)
+                + signal_low
+            )
 
             m.d.comb += self.r.eq(self.i1 * self.i2)
         else:
@@ -137,8 +141,9 @@ class FastRecursiveMul(Elaboratable):
             m.d.comb += upper_mul.i2.eq(self.i2[lower:])
             m.d.comb += signal_upper.eq(upper_mul.r)
 
-            m.d.comb += self.r.eq(signal_low + ((signal_mid - signal_low - signal_upper) << lower) +
-                                  (signal_upper << 2 * lower))
+            m.d.comb += self.r.eq(
+                signal_low + ((signal_mid - signal_low - signal_upper) << lower) + (signal_upper << 2 * lower)
+            )
 
         return m
 
