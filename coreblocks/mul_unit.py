@@ -176,8 +176,6 @@ class ShiftUnsignedMul(MulBaseUnsigned):
         return m
 
 
-
-
 class MulUnit(Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen
@@ -225,33 +223,31 @@ class MulUnit(Elaboratable):
                     m.d.sync += high_res.eq(0)
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
-                    # multiplier.issue(m, {"i1": i1, "i2": i2})
                 with m.Case(MulFn.Fn.MULH):
                     m.d.sync += negative_res.eq(i1[sign_bit] ^ i2[sign_bit])
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(Mux(i2[sign_bit], -i2, i2))
-                    # multiplier.issue(m, {"i1": Mux(i1[sign_bit], -i1, i1),
-                    #                      "i2": Mux(i2[sign_bit], -i2, i2)})
                 with m.Case(MulFn.Fn.MULHU):
                     m.d.sync += negative_res.eq(0)
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
-                    # multiplier.issue(m, {"i1": i1, "i2": i2})
                 with m.Case(MulFn.Fn.MULHSU):
                     m.d.sync += negative_res.eq(i1[sign_bit])
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(i2)
-                    # multiplier.issue(m, {"i1": Mux(i1[sign_bit], -i1, i1), "i2": i2})
                 with m.Case(MulFn.Fn.MULW):
                     m.d.sync += negative_res.eq(i1[half_sign_bit] ^ i2[half_sign_bit])
                     m.d.sync += high_res.eq(0)
-                    m.d.comb += value1.eq(Mux(i1[half_sign_bit], -(i1[:xlen]), i1[:xlen]))
-                    m.d.comb += value2.eq(Mux(i2[half_sign_bit], -(i2[:xlen]), i2[:xlen]))
-                    # multiplier.issue(m, {"i1": Mux(i1[half_sign_bit], -(i1[:xlen]), i1[:xlen]),
-                    #                      "i2": Mux(i2[half_sign_bit], -(i2[:xlen]), i2[:xlen])})
+                    i1h = Signal(xlen // 2)
+                    i2h = Signal(xlen // 2)
+                    m.d.comb += i1h.eq(Mux(i1[half_sign_bit], -i1, i1))
+                    m.d.comb += i2h.eq(Mux(i2[half_sign_bit], -i2, i2))
+                    m.d.comb += value1.eq(i1h)
+                    m.d.comb += value2.eq(i2h)
+
                 multiplier.issue(m, {"i1": value1, "i2": value2})
             m.d.sync += accepted.eq(0)
 
@@ -260,7 +256,7 @@ class MulUnit(Elaboratable):
             sign_result = Mux(negative_res, -response.o, response.o)
             result = Mux(high_res, sign_result[xlen:], sign_result[:xlen])
 
-            fifo.write(m, arg={"rob_id": rob_id, "result": result, "rp_dst":  rp_dst})
+            fifo.write(m, arg={"rob_id": rob_id, "result": result, "rp_dst": rp_dst})
             m.d.sync += accepted.eq(1)
 
         return m
