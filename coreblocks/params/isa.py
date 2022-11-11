@@ -32,6 +32,7 @@ class Opcode(IntEnum):
     LUI = 0b01101
     AUIPC = 0b00101
     OP = 0b01100
+    OP32 = 0b01110
     JAL = 0b11011
     JALR = 0b11001
     BRANCH = 0b11000
@@ -42,19 +43,20 @@ class Opcode(IntEnum):
 
 
 class Funct3(IntEnum):
-    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = 0b000
-    BNE = H = SLL = FENCEI = CSRRW = 0b001
-    W = SLT = CSRRS = 0b010
-    SLTU = CSRRC = 0b011
-    BLT = BU = XOR = 0b100
-    BGE = HU = SR = CSRRWI = 0b101
-    BLTU = OR = CSRRSI = 0b110
-    BGEU = AND = CSRRCI = 0b111
+    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
+    BNE = H = SLL = FENCEI = CSRRW = MULH = 0b001
+    W = SLT = CSRRS = MULHSU = 0b010
+    SLTU = CSRRC = MULHU = 0b011
+    BLT = BU = XOR = DIV = 0b100
+    BGE = HU = SR = CSRRWI = DIVU = 0b101
+    BLTU = OR = CSRRSI = REM = 0b110
+    BGEU = AND = CSRRCI = REMU = 0b111
 
 
 class Funct7(IntEnum):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = 0b0100000
+    MULDIV = 0b0000001
 
 
 class Funct12(IntEnum):
@@ -97,6 +99,7 @@ class OpType(IntEnum):
     WFI = 14
     FENCEI = 15
     CSR = 16
+    ARITHMETIC_W = 17
 
 
 @unique
