@@ -46,6 +46,9 @@ class ResultAnnouncement(Elaboratable):
         self.m_rs_write_val = rs_write_val
         self.m_rf_write_val = rf_write_val
 
+    def debug_signals(self):
+        return [self.m_get_result.debug_signals()]
+
     def elaborate(self, platform):
         m = Module()
 
