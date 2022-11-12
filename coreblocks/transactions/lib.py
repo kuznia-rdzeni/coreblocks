@@ -339,6 +339,59 @@ class MethodTransformer(Elaboratable):
         return m
 
 
+class MethodFilter(Elaboratable):
+    """Method filter.
+
+    Takes a target method and creates a method which calls the target method
+    only when some condition is true. The condition function takes two
+    parameters, a module and the input ``Record`` of the method. Non-zero
+    return value is interpreted as true. Alternatively to using a function,
+    a ``Method`` can be passed as a condition.
+
+    Caveat: because of the limitations of transaction scheduling, the target
+    method is locked for usage even if it is not called.
+
+    Parameters
+    ----------
+    target: Method
+        The target method.
+    condition: function or Method
+        The condition which, when true, allows the call to ``target``. When
+        false, ``default`` is returned.
+    default: Value or dict, optional
+        The default value returned from the filtered method when the condition
+        is false. If omitted, zero is returned.
+
+    Attributes
+    ----------
+    method: Method
+        The transformed method.
+    """
+
+    def __init__(
+        self, target: Method, condition: Callable[[Module, Record], RecordDict], default: Optional[RecordDict] = None
+    ):
+        if default is None:
+            default = Record.like(target.data_out)
+
+        self.target = target
+        self.method = Method.like(target)
+        self.condition = condition
+        self.default = default
+
+    def elaborate(self, platform):
+        m = Module()
+
+        @def_method(m, self.method)
+        def _(arg):
+            ret = self.default
+            with m.If(self.condition(m, arg)):
+                ret = self.target(m, arg)
+            return ret
+
+        return m
+
+
 # Example transactions
 
 

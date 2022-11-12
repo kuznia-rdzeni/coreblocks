@@ -6,7 +6,7 @@ from amaranth import *
 from amaranth.sim.core import Passive, Settle
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
-from coreblocks.transactions.lib import Adapter, AdapterTrans, ManyToOneConnectTrans, MethodTransformer
+from coreblocks.transactions.lib import Adapter, AdapterTrans, ManyToOneConnectTrans, MethodFilter, MethodTransformer
 from coreblocks._typing import LayoutLike
 from .common import TestCaseWithSimulator, TestbenchIO
 
@@ -233,6 +233,78 @@ class TestMethodTransformer(TestCaseWithSimulator):
 
     def test_method_transformer_with_methods(self):
         self.m = MethodTransformerTestCircuit(4, True, True)
+        with self.runSimulation(self.m) as sim:
+            sim.add_sync_process(self.source)
+            sim.add_sync_process(self.target)
+
+
+class MethodFilterTestCircuit(Elaboratable):
+    def __init__(self, iosize: int, use_methods: bool):
+        self.iosize = iosize
+        self.use_methods = use_methods
+
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        # dummy signal
+        s = Signal()
+        m.d.sync += s.eq(1)
+
+        with tm.transactionContext():
+            m.submodules.target = self.target = TestbenchIO(Adapter(i=self.iosize, o=self.iosize))
+
+            def condition(_, v):
+                return v[0]
+
+            if self.use_methods:
+                cmeth = Method(i=self.iosize, o=1)
+
+                @def_method(m, cmeth)
+                def _(v):
+                    return condition(m, v)
+
+                filt = MethodFilter(self.target.adapter.iface, cmeth)
+            else:
+                filt = MethodFilter(self.target.adapter.iface, condition)
+
+            m.submodules.filt = filt
+
+            m.submodules.source = self.source = TestbenchIO(AdapterTrans(filt.method))
+
+        return tm
+
+
+class TestMethodFilter(TestCaseWithSimulator):
+    m: MethodFilterTestCircuit
+
+    def source(self):
+        for i in range(2**self.m.iosize):
+            v = yield from self.m.source.call({"data": i})
+            if i & 1:
+                self.assertEqual(v["data"], (i + 1) & ((1 << self.m.iosize) - 1))
+            else:
+                self.assertEqual(v["data"], i)
+
+    def target(self):
+        yield Passive()
+        yield from self.m.target.enable()
+
+        while True:
+            yield Settle()
+            v = yield from self.m.target.call_result()
+            if v is not None:
+                yield from self.m.target.call_init({"data": v["data"] + 1})
+            yield
+
+    def test_method_filter(self):
+        self.m = MethodFilterTestCircuit(4, False)
+        with self.runSimulation(self.m) as sim:
+            sim.add_sync_process(self.source)
+            sim.add_sync_process(self.target)
+
+    def test_method_filter_with_methods(self):
+        self.m = MethodFilterTestCircuit(4, True)
         with self.runSimulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
