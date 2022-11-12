@@ -2,14 +2,13 @@ import random
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
-from amaranth.back import verilog
-from amaranth.sim import Simulator, Settle
-from coreblocks.transactions import TransactionModule, TransactionContext
-from coreblocks.transactions.lib import FIFO, ConnectTrans, AdapterTrans, Adapter
+from amaranth.sim import Settle
+from coreblocks.transactions import TransactionModule
+from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
 from coreblocks.scheduler import Scheduler
 from coreblocks.rf import RegisterFile
 from coreblocks.rat import FRAT
-from coreblocks.layouts import SchedulerLayouts, RSLayouts, DecodeLayouts
+from coreblocks.layouts import RSLayouts, DecodeLayouts
 from coreblocks.genparams import GenParams
 from coreblocks.reorder_buffer import ReorderBuffer
 from coreblocks.isa import Opcode, OpType, Funct3, Funct7

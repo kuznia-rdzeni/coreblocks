@@ -1,5 +1,4 @@
 from functools import reduce
-from itertools import starmap
 from operator import or_
 from typing import Union
 

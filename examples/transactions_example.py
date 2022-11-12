@@ -42,7 +42,6 @@ class SimpleCircuit(Elaboratable):
 
 if __name__ == "__main__":
     from amaranth.back import verilog
-    import os
 
     model = SimpleCircuit()
     with open("result.v", "w") as f:

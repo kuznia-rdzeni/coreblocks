@@ -1,5 +1,4 @@
 from collections import deque
-from re import L
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
 

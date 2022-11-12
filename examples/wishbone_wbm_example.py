@@ -2,8 +2,6 @@ from coreblocks.wishbone import *
 from transactions import TransactionModule
 from transactions.lib import *
 
-from amaranth.sim import Simulator
-
 
 # class for manual testing WishboneMaster with transaction interface
 class WishboneMasterTransCircuit(Elaboratable):
@@ -47,7 +45,6 @@ class WishboneMasterTransCircuit(Elaboratable):
 
 if __name__ == "__main__":
     from amaranth.back import verilog
-    import os
 
     model = WishboneMasterTransCircuit()
     with open("wishbone_master_trans.v", "w") as f:

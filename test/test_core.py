@@ -11,7 +11,6 @@ from coreblocks.genparams import GenParams
 from coreblocks.layouts import FetchLayouts
 
 import random
-from queue import Queue
 from riscvmodel.insn import (
     InstructionADDI,
     InstructionSLTI,
