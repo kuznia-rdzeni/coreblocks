@@ -9,6 +9,9 @@ from coreblocks.transactions.lib import *
 
 from coreblocks.genparams import GenParams
 from coreblocks.layouts import *
+from coreblocks.unsigned_mul_unit import ShiftUnsignedMul
+
+__all__ = ["MulUnit", "MulFn"]
 
 
 class MulFn(Signal):
@@ -29,7 +32,7 @@ class MulFnDecoder(Elaboratable):
         layouts = gen.get(CommonLayouts)
 
         self.exec_fn = Record(layouts.exec_fn)
-        self.mul_fn = Signal(MulFn.Fn)
+        self.mul_fn = MulFn()
 
     def elaborate(self, platform):
         m = Module()
@@ -47,136 +50,6 @@ class MulFnDecoder(Elaboratable):
 
             with m.If(cond):
                 m.d.comb += self.mul_fn.eq(op[0])
-
-        return m
-
-
-class MulBaseUnsigned(Elaboratable):
-    def __init__(self, gen: GenParams):
-        self.gen = gen
-
-        self.issue = Method(i=[("i1", gen.isa.xlen), ("i2", gen.isa.xlen)])
-        self.accept = Method(o=[("o", gen.isa.xlen * 2)])
-
-    def elaborate(self, platform):
-        m = Module()
-        res = Signal(unsigned(self.gen.isa.xlen * 2))
-
-        i1 = Signal(unsigned(self.gen.isa.xlen * 2))
-        i2 = Signal(unsigned(self.gen.isa.xlen))
-        accepted = Signal(1, reset=1)
-
-        m.submodules.mul = mul = FastRecursiveMul(self.gen.isa.xlen)
-
-        @def_method(m, self.issue, ready=accepted)
-        def _(arg):
-            m.d.sync += i1.eq(arg.i1)
-            m.d.sync += i2.eq(arg.i2)
-
-            m.d.sync += accepted.eq(0)
-
-        @def_method(m, self.accept, ready=(~accepted))
-        def _(arg):
-            m.d.comb += mul.i1.eq(i1)
-            m.d.comb += mul.i2.eq(i2)
-            m.d.comb += res.eq(mul.r)
-            m.d.sync += accepted.eq(1)
-            return {"o": res}
-
-        return m
-
-
-class FastRecursiveMul(Elaboratable):
-    def __init__(self, n):
-        self.n = n
-
-        self.i1 = Signal(unsigned(n))
-        self.i2 = Signal(unsigned(n))
-        self.r = Signal(unsigned(n * 2))
-
-    def elaborate(self, platform):
-        m = Module()
-        if self.n == 1:
-            m.d.comb += self.r.eq(self.i1 & self.i2)
-        elif self.n == 2:
-            m.d.comb += self.r.eq(
-                ((self.i1[1] & self.i2[1]) << 2)
-                + (((self.i1[0] & self.i2[1]) + (self.i1[1] & self.i2[0])) << 1)
-                + (self.i1[0] & self.i2[0])
-            )
-        elif self.n == 3:
-            m.submodules.low_mul = low_mul = FastRecursiveMul(2)
-            signal_low = Signal(unsigned(4))
-            m.d.comb += low_mul.i1.eq(self.i1[:2])
-            m.d.comb += low_mul.i2.eq(self.i2[:2])
-            m.d.comb += signal_low.eq(low_mul.r)
-
-            m.d.comb += self.r.eq(
-                ((self.i1[2] & self.i2[2]) << 4)
-                + ((Mux(self.i1[2], self.i2[:2], 0) + Mux(self.i2[2], self.i1[:2], 0)) << 2)
-                + signal_low
-            )
-
-            m.d.comb += self.r.eq(self.i1 * self.i2)
-        else:
-            upper = self.n // 2
-            lower = (self.n + 1) // 2
-            m.submodules.low_mul = low_mul = FastRecursiveMul(lower)
-            m.submodules.mid_mul = mid_mul = FastRecursiveMul(lower + 1)
-            m.submodules.upper_mul = upper_mul = FastRecursiveMul(upper)
-
-            signal_low = Signal(unsigned(2 * lower))
-            signal_mid = Signal(unsigned(2 * lower + 2))
-            signal_upper = Signal(unsigned(2 * upper))
-
-            m.d.comb += low_mul.i1.eq(self.i1[:lower])
-            m.d.comb += low_mul.i2.eq(self.i2[:lower])
-            m.d.comb += signal_low.eq(low_mul.r)
-
-            m.d.comb += mid_mul.i1.eq(self.i1[:lower] + self.i1[lower:])
-            m.d.comb += mid_mul.i2.eq(self.i2[:lower] + self.i2[lower:])
-            m.d.comb += signal_mid.eq(mid_mul.r)
-
-            m.d.comb += upper_mul.i1.eq(self.i1[lower:])
-            m.d.comb += upper_mul.i2.eq(self.i2[lower:])
-            m.d.comb += signal_upper.eq(upper_mul.r)
-
-            m.d.comb += self.r.eq(
-                signal_low + ((signal_mid - signal_low - signal_upper) << lower) + (signal_upper << 2 * lower)
-            )
-
-        return m
-
-
-class ShiftUnsignedMul(MulBaseUnsigned):
-    def __init__(self, gen: GenParams):
-        super().__init__(gen)
-
-    def elaborate(self, platform):
-        m = Module()
-        res = Signal(unsigned(self.gen.isa.xlen * 2))
-
-        i1 = Signal(unsigned(self.gen.isa.xlen * 2))
-        i2 = Signal(unsigned(self.gen.isa.xlen))
-        accepted = Signal(1, reset=1)
-
-        @def_method(m, self.issue, ready=accepted)
-        def _(arg):
-            m.d.sync += res.eq(0)
-            m.d.sync += i1.eq(arg.i1)
-            m.d.sync += i2.eq(arg.i2)
-            m.d.sync += accepted.eq(0)
-
-        @def_method(m, self.accept, ready=(~i2.bool() & ~accepted))
-        def _(arg):
-            m.d.sync += accepted.eq(1)
-            return {"o": res}
-
-        with m.If(~accepted):
-            with m.If(i2[0]):
-                m.d.sync += res.eq(res + i1)
-            m.d.sync += i1.eq(i1 << 1)
-            m.d.sync += i2.eq(i2 >> 1)
 
         return m
 
