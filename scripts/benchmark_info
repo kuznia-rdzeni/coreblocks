@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import re
+
+if __name__ == "__main__":
+    parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, parent)
+
+    synth_info_file = open("./build/top.tim", "r")
+
+    max_clock_frequency = 0
+    logic_cells_used = 0
+
+    lines = synth_info_file.readlines()
+
+    for line in lines:
+        if "Max frequency for clock" in line:
+            frequency = re.search("(\\d|\\.)+ MHz", line)
+
+            if frequency:
+                matched_string = frequency.group()
+                max_clock_frequency = float(matched_string[0 : len(matched_string) - 4])
+        elif "ICESTORM_LC" in line:
+            logic_cells = re.search("\\d+/ \\d+", line)
+
+            if logic_cells:
+                logic_cells_used = int(logic_cells.group().split("/")[0])
+
+    synth_info_file.close()
+
+    benchmark_file = open("benchmark.json", "w")
+
+    benchmark_file.write(
+        "["
+        + f'{{ "name": "Max clock frequency (Fmax)", "unit": "MHZ", "value": "{max_clock_frequency}" }},'
+        + f'{{ "name": "Device utilisation: (ICE40)", "unit": "LCs", "value": "{max_clock_frequency}" }}'
+        + "]"
+    )
+
+    benchmark_file.close()
