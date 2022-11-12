@@ -1,5 +1,7 @@
 # Testbench for WishboneMaster, WishboneMuxer and WishboneArbiter
 
+import random
+
 from coreblocks.wishbone import *
 
 from coreblocks.transactions import TransactionModule
@@ -207,3 +209,55 @@ class TestWishboneAribiter(TestCaseWithSimulator):
 
         with self.runSimulation(arb) as sim:
             sim.add_sync_process(process)
+
+
+class WishboneMemorySlaveCircuit(Elaboratable):
+    def __init__(self, wb_params: WishboneParameters, mem_args: dict):
+        self.wb_params = wb_params
+        self.mem_args = mem_args
+
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        m.submodules.mem_slave = self.mem_slave = WishboneMemorySlave(self.wb_params, **self.mem_args)
+        m.submodules.mem_master = self.mem_master = WishboneMaster(self.wb_params)
+        m.submodules.request = self.request = TestbenchIO(AdapterTrans(self.mem_master.request))
+        m.submodules.result = self.result = TestbenchIO(AdapterTrans(self.mem_master.result))
+
+        m.d.comb += self.mem_master.wbMaster.connect(self.mem_slave.bus)
+
+        return tm
+
+
+class TestWishboneMemorySlave(TestCaseWithSimulator):
+    def setUp(self):
+        self.memsize = 430  # test some weird depth
+        self.iters = 300
+
+        self.addr_width = (self.memsize - 1).bit_length()  # nearest log2 >= log2(memsize)
+        self.wb_params = WishboneParameters(data_width=32, addr_width=self.addr_width)
+        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params, mem_args={"depth": self.memsize})
+
+        random.seed(42)
+
+    def test_randomized(self):
+        def mem_op_process():
+            mem_state = [0] * self.memsize
+
+            for _ in range(self.iters):
+                addr = random.randint(0, self.memsize - 1)
+                data = random.randint(0, 2**self.wb_params.data_width - 1)
+                write = random.randint(0, 1)
+                if write:
+                    mem_state[addr] = data
+
+                yield from self.m.request.call({"addr": addr, "data": data, "we": write})
+                res = yield from self.m.result.call()
+                if write:
+                    self.assertEqual((yield self.m.mem_slave.mem[addr]), data)
+                else:
+                    self.assertEqual(res["data"], mem_state[addr])
+
+        with self.runSimulation(self.m, max_cycles=1500) as sim:
+            sim.add_sync_process(mem_op_process)
