@@ -10,6 +10,7 @@ __all__ = [
     "FuncUnitLayouts",
     "RSLayouts",
     "RFLayouts",
+    "UnsignedMulUnitLayouts",
 ]
 
 
@@ -196,4 +197,16 @@ class FuncUnitLayouts:
             ("rob_id", gen.rob_entries_bits),
             ("result", gen.isa.xlen),
             ("rp_dst", gen.phys_regs_bits),
+        ]
+
+
+class UnsignedMulUnitLayouts:
+    def __init__(self, gen: GenParams):
+        self.issue = [
+            ("i1", gen.isa.xlen),
+            ("i2", gen.isa.xlen),
+        ]
+
+        self.accept = [
+            ("o", 2 * gen.isa.xlen),
         ]
