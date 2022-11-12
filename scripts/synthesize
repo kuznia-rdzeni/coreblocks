@@ -6,11 +6,11 @@ import sys
 import argparse
 
 from amaranth.vendor.lattice_ice40 import LatticeICE40Platform
-from amaranth.build import Resource, Attrs, Pins, Clock, Connector
+from amaranth.build import Resource, Attrs, Pins, Clock, Connector, Platform
 from amaranth.build.run import LocalBuildProducts
-from amaranth import Module, Elaboratable
+from amaranth import Module, Elaboratable, Cat
 
-__all__ = ["TestElaboratable", "ICE40Platform"]
+__all__ = ["ICE40Platform"]
 
 
 class TestElaboratable(Elaboratable):
@@ -19,31 +19,31 @@ class TestElaboratable(Elaboratable):
 
         self.gp: GenParams = gen_params
 
-    def elaborate(self, platform):
-        from test.common import TestbenchIO
-
+    def elaborate(self, platform: Platform):
         from coreblocks.core import Core
         from coreblocks.layouts import FetchLayouts
         from coreblocks.transactions import TransactionModule
-        from coreblocks.transactions.lib import AdapterTrans, FIFO
+        from coreblocks.transactions.lib import FIFO, AdapterTrans
 
         m = Module()
         tm = TransactionModule(m)
 
         self.fifo_in = FIFO(self.gp.get(FetchLayouts).raw_instr, 2)
         self.core = Core(gen_params=self.gp, get_raw_instr=self.fifo_in.read)
-        self.reg_feed_in = TestbenchIO(AdapterTrans(self.core.free_rf_fifo.write))
-        self.io_in = TestbenchIO(AdapterTrans(self.fifo_in.write))
-        self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
-        self.reset = TestbenchIO(AdapterTrans(self.core.reset))
+        self.reg_feed_in = AdapterTrans(self.core.free_rf_fifo.write)
+
+        m.d.comb += self.reg_feed_in.en.eq(1)
+
+        m.d.comb += self.reg_feed_in.data_in.eq(
+            Cat((platform.request("data_in", pin_number).i) for pin_number in range(6))
+        )
+        m.d.comb += Cat((platform.request("data_out", pin_number).o) for pin_number in range(6)).eq(
+            Cat(self.core.announcement.debug_signals())
+        )
 
         m.submodules.fifo_in = self.fifo_in
         m.submodules.reg_feed_in = self.reg_feed_in
         m.submodules.c = self.core
-        m.submodules.io_in = self.io_in
-        m.submodules.rf_write = self.rf_write
-        m.submodules.reset = self.reset
-
         return tm
 
 
@@ -54,17 +54,36 @@ class ICE40Platform(LatticeICE40Platform):
     Defines clock signal and frequency, reset signal and any additional needed resources.
     """
 
+    # See the base platform class for which one to choose.
+    # This affects options passed to the toolchain so that it compiles for the correct chip.
     device = "iCE40HX8K"
     package = "CT256"
 
+    # This names the pins you want to use, and configuration options for each such pin.
     resources = [
-        Resource("clk1", 0, Pins("J3", dir="i"), Clock(12e6), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),  # GBIN6
-        Resource("rst1", 0, Pins("R9", dir="i"), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),  # GBIN5
+        Resource("clk1", 0, Pins("J3", dir="i"), Clock(12e6), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
+        Resource("rst", 0, Pins("R9", dir="i"), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
+        Resource.family("data_in", 0, default_name="data_in", ios=[Pins("A16", dir="i")]),
+        Resource.family("data_in", 1, default_name="data_in", ios=[Pins("A15", dir="i")]),
+        Resource.family("data_in", 2, default_name="data_in", ios=[Pins("B13", dir="i")]),
+        Resource.family("data_in", 3, default_name="data_in", ios=[Pins("B11", dir="i")]),
+        Resource.family("data_in", 4, default_name="data_in", ios=[Pins("A10", dir="i")]),
+        Resource.family("data_in", 5, default_name="data_in", ios=[Pins("A11", dir="i")]),
+        Resource.family("data_out", 0, default_name="data_out", ios=[Pins("B15", dir="o")]),
+        Resource.family("data_out", 1, default_name="data_out", ios=[Pins("B14", dir="o")]),
+        Resource.family("data_out", 2, default_name="data_out", ios=[Pins("A7", dir="o")]),
+        Resource.family("data_out", 3, default_name="data_out", ios=[Pins("B7", dir="o")]),
+        Resource.family("data_out", 4, default_name="data_out", ios=[Pins("A6", dir="o")]),
+        Resource.family("data_out", 5, default_name="data_out", ios=[Pins("A5", dir="o")]),
     ]
 
-    default_clk = "clk1"  # you must have a default clock resource
-    default_rst = "rst1"  # you must have a default reset resource
+    # The name of the resource that is the clock for the default clock domain.
+    default_clk = "clk1"
+    # The name of the resource that is the reset for the default clock domain.
+    default_rst = "rst"
 
+    # It isn't obvious what purpose this serves.
+    # It may have something to do with certain toolchains.
     connectors = [
         Connector(
             "j",
@@ -130,7 +149,7 @@ def main():
         "--platform",
         default="ice40",
         choices=["ice40"],
-        help="Selects platform to synthesize circuit on. Options: ice40. Default: ice40",
+        help="Selects platform to synthesize circuit on. Default: ice40",
     )
     parser.add_argument(
         "-b",
