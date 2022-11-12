@@ -96,27 +96,27 @@ class MulUnit(Elaboratable):
             i2 = Mux(arg.imm, arg.imm, arg.s2_val)
 
             with m.Switch(decoder.mul_fn):
-                with m.Case(MulFn.Fn.MUL):
+                with m.Case("----1"):
                     m.d.sync += negative_res.eq(0)
                     m.d.sync += high_res.eq(0)
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
-                with m.Case(MulFn.Fn.MULH):
+                with m.Case("---1-"):
                     m.d.sync += negative_res.eq(i1[sign_bit] ^ i2[sign_bit])
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(Mux(i2[sign_bit], -i2, i2))
-                with m.Case(MulFn.Fn.MULHU):
+                with m.Case("--1--"):
                     m.d.sync += negative_res.eq(0)
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
-                with m.Case(MulFn.Fn.MULHSU):
+                with m.Case("-1---"):
                     m.d.sync += negative_res.eq(i1[sign_bit])
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(i2)
-                with m.Case(MulFn.Fn.MULW):
+                with m.Case("1----"):
                     m.d.sync += negative_res.eq(i1[half_sign_bit] ^ i2[half_sign_bit])
                     m.d.sync += high_res.eq(0)
                     i1h = Signal(xlen // 2)
