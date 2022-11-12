@@ -47,4 +47,4 @@ jobs:
           output-file-path: './benchmark.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
-          external-data-json-path: ./cache/benchmark-data.json
+          benchmark-data-dir-path: "dev/benchmark"
