@@ -1,7 +1,7 @@
 from amaranth import *
 from coreblocks.transactions import Method, Transaction
 from coreblocks.transactions.lib import FIFO
-from coreblocks.layouts import SchedulerLayouts, ROBLayouts
+from coreblocks.layouts import SchedulerLayouts
 from coreblocks.genparams import GenParams
 from coreblocks.utils import assign, AssignType
 

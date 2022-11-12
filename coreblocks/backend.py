@@ -1,10 +1,7 @@
 from amaranth import *
-from coreblocks.transactions import Method, Transaction
-from coreblocks.transactions._utils import Scheduler as RoundRobinOneHot
-from coreblocks.transactions._utils import OneHotSwitch
-from coreblocks.transactions.lib import ConnectTrans
-from coreblocks.layouts import *
+
 from coreblocks.genparams import GenParams
+from coreblocks.transactions import Method, Transaction
 
 __all__ = ["ResultAnnouncement"]
 
