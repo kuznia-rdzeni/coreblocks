@@ -37,7 +37,7 @@ class TestElaboratable(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        wb_params = WishboneParameters(data_width=32, addr_width=32)
+        wb_params = WishboneParameters(data_width=32, addr_width=30)
         self.wb_master = WishboneMaster(wb_params=wb_params)
         self.wb_mem_slave = WishboneMemorySlave(
             wb_params=wb_params, width=32, depth=len(self.instr_mem), init=self.instr_mem
