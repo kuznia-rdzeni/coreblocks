@@ -223,6 +223,24 @@ class TransactionManager(Elaboratable):
         fp.write("}\n")
         return graph
 
+    def dump_elk(self, fp, fragment):
+        graph = OwnershipGraph(fragment)
+
+        for method, transactions in self.transactions_by_method.items():
+            graph.get_name(method, True)
+            for transaction in transactions:
+                graph.get_name(transaction, True)
+
+        graph.dump_elk(fp)
+
+        for method, transactions in self.transactions_by_method.items():
+            meth_name = graph.get_hier_name(method)
+            for transaction in transactions:
+                trans_name = graph.get_hier_name(transaction)
+                fp.write(f"edge {trans_name} -> {meth_name}\n")
+
+        return graph
+
 
 class TransactionContext:
     stack: list[TransactionManager] = []

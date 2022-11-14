@@ -118,9 +118,10 @@ class OwnershipGraph:
     def __init__(self, root):
         self.class_counters = defaultdict(int)
         self.names = {}
+        self.hier = {}
         self.labels = {}
         self.graph = {}
-        self.owned = defaultdict(list)
+        self.owned = defaultdict(set)
         self.remember(root)
 
     def remember(self, owner):
@@ -163,8 +164,14 @@ class OwnershipGraph:
     def get_name(self, obj, add=False):
         owner_id = self.remember(obj.owner)
         if add:
-            self.owned[owner_id].append(obj)
+            self.owned[owner_id].add(obj)
         return f"{self.names[owner_id]}_{obj.name}"
+
+    def get_hier_name(self, obj):
+        owner_id = self.remember(obj.owner)
+        name = f"{self.names[owner_id]}_{obj.name}"
+        hier = self.hier[owner_id]
+        return f"{hier}.{name}"
 
     def dump_dot(self, fp, owner=None, indent=""):
         if owner is None:
@@ -184,4 +191,26 @@ class OwnershipGraph:
         for subowner in subowners:
             if subowner in self.graph:
                 self.dump_dot(fp, subowner, indent)
+        fp.write(f"{indent}}}\n")
+
+    def dump_elk(self, fp, owner=None, indent=""):
+        if owner is None:
+            for owner in self.names:
+                if owner not in self.labels:
+                    self.dump_elk(fp, owner)
+            return
+
+        hier = self.hier.setdefault(owner, self.names[owner])
+
+        subowners = self.graph[owner]
+        del self.graph[owner]
+        owned = self.owned[owner]
+        fp.write(f"{indent}node {self.names[owner]} {{\n")
+        fp.write(f'{indent}    label "{self.labels.get(owner, self.names[owner])}"\n')
+        for x in owned:
+            fp.write(f'{indent}    node {self.get_name(x)} {{ label "{x.name}" }}\n')
+        for subowner in subowners:
+            if subowner in self.graph:
+                self.hier[subowner] = f"{hier}.{self.names[subowner]}"
+                self.dump_elk(fp, subowner, indent + "    ")
         fp.write(f"{indent}}}\n")

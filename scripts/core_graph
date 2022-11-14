@@ -5,6 +5,7 @@ import sys
 from argparse import ArgumentParser, FileType
 
 par = ArgumentParser()
+par.add_argument('-f', '--format', default='elk', nargs='?')
 par.add_argument('ofile', type=FileType('w'))
 
 arg = par.parse_args()
@@ -26,4 +27,5 @@ while not hasattr(core, "transactionManager"):
 mgr = core.transactionManager
 
 with arg.ofile as fp:
-    graph = mgr.dump_dot(fp, fragment)
+    dumper = getattr(mgr, 'dump_' + arg.format)
+    graph = dumper(fp, fragment)
