@@ -3,13 +3,14 @@ from enum import IntEnum, unique
 from amaranth import *
 
 from coreblocks.isa import OpType, Funct3, Funct7
+from coreblocks.mul_params import MulType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
 
 from coreblocks.genparams import GenParams
 from coreblocks.layouts import *
-from coreblocks.unsigned_mul_unit import ShiftUnsignedMul
+from coreblocks.unsigned_mul_unit import ShiftUnsignedMul, SequentialUnsignedMul, RecursiveUnsignedMul
 
 __all__ = ["MulUnit", "MulFn"]
 
@@ -68,7 +69,15 @@ class MulUnit(Elaboratable):
 
         m.submodules.fifo = fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = MulFnDecoder(self.gen)
-        m.submodules.multiplier = multiplier = ShiftUnsignedMul(self.gen)
+
+        if self.gen.mul_unit_params.mul_type == MulType.SHIFT_MUL:
+            m.submodules.multiplier = multiplier = ShiftUnsignedMul(self.gen)
+        elif self.gen.mul_unit_params.mul_type == MulType.SEQUENCE_MUL:
+            m.submodules.multiplier = multiplier = SequentialUnsignedMul(self.gen)
+        elif self.gen.mul_unit_params.mul_type == MulType.RECURSIVE_MUL:
+            m.submodules.multiplier = multiplier = RecursiveUnsignedMul(self.gen)
+        else:
+            raise Exception("None existing multiplication unit type")
 
         accepted = Signal(1, reset=1)
 

@@ -4,6 +4,7 @@ from typing import Type
 
 from amaranth import *
 
+from coreblocks.mul_params import MulUnitParams
 from coreblocks.unsigned_mul_unit import MulBaseUnsigned, ShiftUnsignedMul, SequentialUnsignedMul, RecursiveUnsignedMul
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
@@ -32,12 +33,12 @@ class UnsignedMultiplicationTestCircuit(Elaboratable):
 
 
 class AbstractUnsignedMultiplicationTestUnit(TestCaseWithSimulator):
-    def __init__(self, mul_unit: Type[MulBaseUnsigned], method_name="runTest"):
+    def __init__(self, mul_unit: Type[MulBaseUnsigned], gen: GenParams, method_name="runTest"):
         super().__init__(method_name)
         self.mul_unit = mul_unit
+        self.gen = gen
 
     def setUp(self):
-        self.gen = GenParams("rv32i")
         self.m = UnsignedMultiplicationTestCircuit(self.gen, self.mul_unit)
 
         random.seed(1050)
@@ -88,7 +89,11 @@ class AbstractUnsignedMultiplicationTestUnit(TestCaseWithSimulator):
 
 class RecursiveMultiplicationTest(AbstractUnsignedMultiplicationTestUnit):
     def __init__(self, method_name="runTest"):
-        super().__init__(RecursiveUnsignedMul, method_name)
+        super().__init__(
+            RecursiveUnsignedMul,
+            GenParams("rv32i", mul_unit_params=MulUnitParams.RecursiveMultiplicator(16)),
+            method_name,
+        )
 
     def test_pipeline(self):
         self.abstract_test_pipeline()
@@ -96,7 +101,9 @@ class RecursiveMultiplicationTest(AbstractUnsignedMultiplicationTestUnit):
 
 class ShiftMultiplicationTest(AbstractUnsignedMultiplicationTestUnit):
     def __init__(self, method_name="runTest"):
-        super().__init__(ShiftUnsignedMul, method_name)
+        super().__init__(
+            ShiftUnsignedMul, GenParams("rv32i", mul_unit_params=MulUnitParams.ShiftMultiplicator()), method_name
+        )
 
     def test_pipeline(self):
         self.abstract_test_pipeline()
@@ -104,7 +111,11 @@ class ShiftMultiplicationTest(AbstractUnsignedMultiplicationTestUnit):
 
 class SequentialMultiplicationTest(AbstractUnsignedMultiplicationTestUnit):
     def __init__(self, method_name="runTest"):
-        super().__init__(SequentialUnsignedMul, method_name)
+        super().__init__(
+            SequentialUnsignedMul,
+            GenParams("rv32i", mul_unit_params=MulUnitParams.SequanceMultiplicator(16)),
+            method_name,
+        )
 
     def test_pipeline(self):
         self.abstract_test_pipeline()
