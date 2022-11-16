@@ -8,7 +8,7 @@ from coreblocks.mul_unit import MulUnit, MulFn
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
-from .common import TestCaseWithSimulator, TestbenchIO
+from .common import TestCaseWithSimulator, TestbenchIO, signed_to_int, int_to_signed
 
 from coreblocks.genparams import GenParams
 
@@ -29,26 +29,6 @@ class FullMultiplicationTestCircuit(Elaboratable):
         m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
 
         return tm
-
-
-def neg(x: int, xlen: int) -> int:
-    base = 2**xlen - 1
-    return ((x ^ base) + 1) & base
-
-
-def int_to_signed(x: int, xlen: int) -> int:
-    if x < 0:
-        return neg(-x, xlen)
-    else:
-        return x
-
-
-def signed_to_int(x: int, xlen: int) -> int:
-    sign = 2 ** (xlen - 1)
-    if (sign & x) == sign:
-        return -neg(x, xlen)
-    else:
-        return x
 
 
 def compute_result(i1: int, i2: int, fn: MulFn.Fn, xlen: int) -> int:
