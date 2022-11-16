@@ -10,6 +10,10 @@ __all__ = ["MulBaseUnsigned", "ShiftUnsignedMul", "SequentialUnsignedMul", "Recu
 
 
 class MulBaseUnsigned(Elaboratable):
+    """
+    Abstract module creating common interface of unsigned multiplication module
+    """
+
     def __init__(self, gen: GenParams):
         self.gen = gen
 
@@ -20,6 +24,12 @@ class MulBaseUnsigned(Elaboratable):
 
 
 class DSPMulUnit(Elaboratable):
+    """
+    Module for 1 clock cycle multiplication, designed to be replaced by DSP be HDL compiler
+
+    :parameter: dsp_width: width on multiplied numbers
+    """
+
     def __init__(self, dsp_width: int):
         self.n = n = dsp_width
 
@@ -37,6 +47,13 @@ class DSPMulUnit(Elaboratable):
 
 
 class RecursiveWithSingleDSPMul(Elaboratable):
+    """
+    Module with combinatorial connection for sequential multiplication using single DSP unit.
+    It uses classic recursive multiplication algorithm
+
+    :parameter n: width of multiplied numbers
+    """
+
     def __init__(self, dsp: DSPMulUnit, n: int):
         self.n = n
         self.dsp = dsp
@@ -53,7 +70,7 @@ class RecursiveWithSingleDSPMul(Elaboratable):
             with m.If(self.reset):
                 m.d.sync += self.confirm.eq(0)
 
-            with m.If(~self.confirm.bool() & ~self.reset):
+            with m.If(~self.confirm & ~self.reset):
                 with Transaction().body(m):
                     res = self.dsp.compute(m, {"i1": self.i1, "i2": self.i2})
                     m.d.sync += self.result.eq(res)
@@ -98,12 +115,17 @@ class RecursiveWithSingleDSPMul(Elaboratable):
 
 
 class SequentialUnsignedMul(MulBaseUnsigned):
+    """
+    Module with @see{MulBaseUnsigned} interface performing sequential multiplication using single DSP unit.
+    It uses classic recursive multiplication algorithm
+    """
+
     def __init__(self, gen: GenParams):
         super().__init__(gen)
 
     def elaborate(self, platform):
         m = Module()
-        m.submodules.des = dsp = DSPMulUnit(self.gen.mul_unit_params.width)
+        m.submodules.dsp = dsp = DSPMulUnit(self.gen.mul_unit_params.width)
         m.submodules.multiplier = multiplier = RecursiveWithSingleDSPMul(dsp, self.gen.isa.xlen)
 
         accepted = Signal(1, reset=1)
@@ -132,6 +154,14 @@ class SequentialUnsignedMul(MulBaseUnsigned):
 
 
 class FastRecursiveMul(Elaboratable):
+    """
+    Module with combinatorial connection for fast recursive multiplication using as many DSPMulUnit as required for
+    one clock multiplication
+
+    :parameter n: width of multiplied numbers
+    :parameter dsp_width: width of dsp multiplication unit
+    """
+
     def __init__(self, n: int, dsp_width: int):
         self.n = n
         self.dsp_width = dsp_width
@@ -143,7 +173,10 @@ class FastRecursiveMul(Elaboratable):
     def elaborate(self, platform):
         m = Module()
         if self.n <= self.dsp_width:
-            m.d.comb += self.r.eq(self.i1 * self.i2)
+            m.submodules.dsp = dsp = DSPMulUnit(self.dsp_width)
+            with Transaction().body(m):
+                res = dsp.compute(m, {"i1": self.i1, "i2": self.i2})
+                m.d.comb += self.r.eq(res)
         else:
             upper = self.n // 2
             lower = (self.n + 1) // 2
@@ -175,6 +208,10 @@ class FastRecursiveMul(Elaboratable):
 
 
 class RecursiveUnsignedMul(MulBaseUnsigned):
+    """
+    Module with @see{MulBaseUnsigned} interface performing fast recursive multiplication withing 1 clock cycle
+    """
+
     def __init__(self, gen: GenParams):
         super().__init__(gen)
 
@@ -207,6 +244,10 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
 
 
 class ShiftUnsignedMul(MulBaseUnsigned):
+    """
+    Module with @see{MulBaseUnsigned} interface performing cheap multi clock cycle multiplication using Russian Peasants Algorithm
+    """
+
     def __init__(self, gen: GenParams):
         super().__init__(gen)
 

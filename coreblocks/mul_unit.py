@@ -2,7 +2,7 @@ from enum import IntEnum, unique
 
 from amaranth import *
 
-from coreblocks.isa import OpType, Funct3, Funct7
+from coreblocks.isa import OpType, Funct3
 from coreblocks.mul_params import MulType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
@@ -16,6 +16,10 @@ __all__ = ["MulUnit", "MulFn"]
 
 
 class MulFn(Signal):
+    """
+    Hot wire enum of 5 different multiplication operations
+    """
+
     @unique
     class Fn(IntEnum):
         MUL = 1 << 0  # Lower part multiplication
@@ -29,6 +33,10 @@ class MulFn(Signal):
 
 
 class MulFnDecoder(Elaboratable):
+    """
+    Module decoding function into hot wire MulFn
+    """
+
     def __init__(self, gen: GenParams):
         layouts = gen.get(CommonLayouts)
 
@@ -38,24 +46,36 @@ class MulFnDecoder(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        ops = [
-            (MulFn.Fn.MUL, OpType.ARITHMETIC, Funct3.MUL, Funct7.MULDIV),
-            (MulFn.Fn.MULH, OpType.ARITHMETIC, Funct3.MULH, Funct7.MULDIV),
-            (MulFn.Fn.MULHU, OpType.ARITHMETIC, Funct3.MULHU, Funct7.MULDIV),
-            (MulFn.Fn.MULHSU, OpType.ARITHMETIC, Funct3.MULHSU, Funct7.MULDIV),
-            (MulFn.Fn.MULW, OpType.ARITHMETIC_W, Funct3.MULW, Funct7.MULDIV),
-        ]
+        with m.Switch(self.exec_fn.funct3):
+            with m.Case(Funct3.MUL):
+                m.d.comb += self.mul_fn.eq(MulFn.Fn.MUL)
+            with m.Case(Funct3.MULH):
+                m.d.comb += self.mul_fn.eq(MulFn.Fn.MULH)
+            with m.Case(Funct3.MULHU):
+                m.d.comb += self.mul_fn.eq(MulFn.Fn.MULHU)
+            with m.Case(Funct3.MULHSU):
+                m.d.comb += self.mul_fn.eq(MulFn.Fn.MULHSU)
 
-        for op in ops:
-            cond = (self.exec_fn.op_type == op[1]) & (self.exec_fn.funct3 == op[2]) & (self.exec_fn.funct7 == op[3])
-
-            with m.If(cond):
-                m.d.comb += self.mul_fn.eq(op[0])
+        with m.If(self.exec_fn.op_type == OpType.ARITHMETIC_W):
+            m.d.comb += self.mul_fn.eq(MulFn.Fn.MULW)
 
         return m
 
 
+def get_input(arg: Record) -> (Signal, Signal):
+    """
+    Operation of getting two input values
+    :param arg: arguments of functional unit issue call
+    :return: two input values
+    """
+    return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
+
+
 class MulUnit(Elaboratable):
+    """
+    Module responsible of handling every kind of multiplication based on selected unsigned integer multiplication module
+    """
+
     def __init__(self, gen: GenParams):
         self.gen = gen
 
@@ -70,6 +90,7 @@ class MulUnit(Elaboratable):
         m.submodules.fifo = fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = MulFnDecoder(self.gen)
 
+        # Selecting unsigned integer multiplication module
         if self.gen.mul_unit_params.mul_type == MulType.SHIFT_MUL:
             m.submodules.multiplier = multiplier = ShiftUnsignedMul(self.gen)
         elif self.gen.mul_unit_params.mul_type == MulType.SEQUENCE_MUL:
@@ -79,53 +100,52 @@ class MulUnit(Elaboratable):
         else:
             raise Exception("None existing multiplication unit type")
 
-        accepted = Signal(1, reset=1)
+        idle = Signal(1, reset=1)  # if unit is idle
 
         rob_id = Signal(self.gen.rob_entries_bits)
         rp_dst = Signal(self.gen.phys_regs_bits)
-        value1 = Signal(self.gen.isa.xlen)
-        value2 = Signal(self.gen.isa.xlen)
-        negative_res = Signal(1)
-        high_res = Signal(1)
+        value1 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
+        value2 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
+        negative_res = Signal(1)  # if result is negative number
+        high_res = Signal(1)  # if result should contain upper part of result
 
         xlen = self.gen.isa.xlen
-        sign_bit = xlen - 1
-        half_sign_bit = xlen // 2 - 1
+        sign_bit = xlen - 1  # position of sign bit
+        half_sign_bit = xlen // 2 - 1  # position of sign bit considering only half of input being used
 
         @def_method(m, self.accept)
         def _(arg):
             return fifo.read(m)
 
-        @def_method(m, self.issue, ready=accepted)
+        @def_method(m, self.issue, ready=idle)
         def _(arg):
             m.d.sync += rob_id.eq(arg.rob_id)
             m.d.sync += rp_dst.eq(arg.rp_dst)
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
-            i1 = arg.s1_val
-            i2 = Mux(arg.imm, arg.imm, arg.s2_val)
+            i1, i2 = get_input(arg)
 
             with m.Switch(decoder.mul_fn):
-                with m.Case("----1"):
+                with m.Case("----1"):  # MUL
                     m.d.sync += negative_res.eq(0)
                     m.d.sync += high_res.eq(0)
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
-                with m.Case("---1-"):
+                with m.Case("---1-"):  # MULH
                     m.d.sync += negative_res.eq(i1[sign_bit] ^ i2[sign_bit])
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(Mux(i2[sign_bit], -i2, i2))
-                with m.Case("--1--"):
+                with m.Case("--1--"):  # MULHU
                     m.d.sync += negative_res.eq(0)
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
-                with m.Case("-1---"):
+                with m.Case("-1---"):  # MULHSU
                     m.d.sync += negative_res.eq(i1[sign_bit])
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(i2)
-                with m.Case("1----"):
+                with m.Case("1----"):  # MULW
                     m.d.sync += negative_res.eq(i1[half_sign_bit] ^ i2[half_sign_bit])
                     m.d.sync += high_res.eq(0)
                     i1h = Signal(xlen // 2)
@@ -135,15 +155,15 @@ class MulUnit(Elaboratable):
                     m.d.comb += value1.eq(i1h)
                     m.d.comb += value2.eq(i2h)
 
-                multiplier.issue(m, {"i1": value1, "i2": value2})
-            m.d.sync += accepted.eq(0)
+            multiplier.issue(m, {"i1": value1, "i2": value2})
+            m.d.sync += idle.eq(0)
 
         with Transaction().body(m):
             response = multiplier.accept(m)
-            sign_result = Mux(negative_res, -response.o, response.o)
-            result = Mux(high_res, sign_result[xlen:], sign_result[:xlen])
+            sign_result = Mux(negative_res, -response.o, response.o)  # changing sign of result
+            result = Mux(high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 
             fifo.write(m, arg={"rob_id": rob_id, "result": result, "rp_dst": rp_dst})
-            m.d.sync += accepted.eq(1)
+            m.d.sync += idle.eq(1)
 
         return m
