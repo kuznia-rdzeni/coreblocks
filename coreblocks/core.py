@@ -13,16 +13,21 @@ from coreblocks.wakeup_select import WakeupSelect
 from coreblocks.functional_unit import AluFuncUnit
 from coreblocks.backend import ResultAnnouncement
 from coreblocks.retirement import Retirement
+from coreblocks.wishbone import WishboneMaster
+from coreblocks.fetch import Fetch
 
 __all__ = ["Core"]
 
 
 class Core(Elaboratable):
-    def __init__(self, *, gen_params: GenParams, get_raw_instr: Method):
+    def __init__(self, *, gen_params: GenParams, wb_master: WishboneMaster):
         self.gen_params = gen_params
-        self.get_raw_instr = get_raw_instr
+        self.wb_master = wb_master
 
+        # make fifo_fetch visible outside of the core for injecting instructions
+        self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
         self.free_rf_fifo = FIFO(self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits)
+        self.fetch = Fetch(self.gen_params, self.wb_master, self.fifo_fetch.write)
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params)
@@ -45,9 +50,12 @@ class Core(Elaboratable):
         m.submodules.ROB = rob = self.ROB
         m.submodules.RS = rs = self.RS
 
+        m.submodules.fifo_fetch = self.fifo_fetch
+        m.submodules.fetch = self.fetch
+
         m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
         m.submodules.decode = Decode(
-            gen_params=self.gen_params, get_raw=self.get_raw_instr, push_decoded=fifo_decode.write
+            gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=fifo_decode.write
         )
 
         m.submodules.scheduler = Scheduler(
