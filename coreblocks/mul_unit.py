@@ -1,4 +1,5 @@
 from enum import IntEnum, unique
+from typing import Tuple
 
 from amaranth import *
 
@@ -62,7 +63,7 @@ class MulFnDecoder(Elaboratable):
         return m
 
 
-def get_input(arg: Record) -> (Signal, Signal):
+def get_input(arg: Record) -> Tuple[Signal, Signal]:
     """
     Operation of getting two input values
     :param arg: arguments of functional unit issue call

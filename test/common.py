@@ -41,6 +41,47 @@ def get_outputs(field: Record) -> TestGen[RecordIntDict]:
     return result
 
 
+def neg(x: int, xlen: int) -> int:
+    """
+    Changes U2 number into it's negation in U2 system
+
+    :param x: U2 number to be negated
+    :param xlen: length of of input
+    :return: x negation in U2
+    """
+    base = 2**xlen - 1
+    return ((x ^ base) + 1) & base
+
+
+def int_to_signed(x: int, xlen: int) -> int:
+    """
+    Changes Python integer into it's U2 representation
+
+    :param x: Python integer to be converted
+    :param xlen: length of of input
+    :return: U2 representation
+    """
+    if x < 0:
+        return neg(-x, xlen)
+    else:
+        return x
+
+
+def signed_to_int(x: int, xlen: int) -> int:
+    """
+    Changes U2 representation into Python integer
+
+    :param x: U2 representation
+    :param xlen: length of of input
+    :return: Python integer
+    """
+    sign = 2 ** (xlen - 1)
+    if (sign & x) == sign:
+        return -neg(x, xlen)
+    else:
+        return x
+
+
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
     def runSimulation(self, module, max_cycles=10e4, extra_signals=()):
