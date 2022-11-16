@@ -34,7 +34,7 @@ class UnsignedMultiplicationTestCircuit(Elaboratable):
 
 
 @parameterized_class(
-    ("name", "gen", "mul_unit"),
+    ("name", "mul_unit", "gen"),
     [
         (
             "recursive_multiplicator",
@@ -54,8 +54,8 @@ class UnsignedMultiplicationTestCircuit(Elaboratable):
     ],
 )
 class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
-    gen: GenParams
     mul_unit: Type[MulBaseUnsigned]
+    gen: GenParams
 
     def setUp(self):
         self.m = UnsignedMultiplicationTestCircuit(self.gen, self.mul_unit)

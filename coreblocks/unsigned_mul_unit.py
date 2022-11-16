@@ -245,7 +245,8 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
 
 class ShiftUnsignedMul(MulBaseUnsigned):
     """
-    Module with @see{MulBaseUnsigned} interface performing cheap multi clock cycle multiplication using Russian Peasants Algorithm
+    Module with @see{MulBaseUnsigned} interface performing cheap multi clock cycle multiplication using
+    Russian Peasants Algorithm
     """
 
     def __init__(self, gen: GenParams):
