@@ -19,10 +19,9 @@ class MulBaseUnsigned(Elaboratable):
         self.accept = Method(o=layout.accept)
 
 
-# Unit for connection with FPGA's multiplication hardware support
 class DSPMulUnit(Elaboratable):
-    def __init__(self, gen: GenParams):
-        self.n = n = 8
+    def __init__(self, dsp_width: int):
+        self.n = n = dsp_width
 
         self.compute = Method(i=[("i1", n), ("i2", n)], o=[("o", 2 * n)])
 
@@ -38,7 +37,7 @@ class DSPMulUnit(Elaboratable):
 
 
 class RecursiveWithSingleDSPMul(Elaboratable):
-    def __init__(self, dsp: DSPMulUnit, n):
+    def __init__(self, dsp: DSPMulUnit, n: int):
         self.n = n
         self.dsp = dsp
 
@@ -104,7 +103,7 @@ class SequentialUnsignedMul(MulBaseUnsigned):
 
     def elaborate(self, platform):
         m = Module()
-        m.submodules.des = dsp = DSPMulUnit(self.gen)
+        m.submodules.des = dsp = DSPMulUnit(self.gen.mul_unit_params.width)
         m.submodules.multiplier = multiplier = RecursiveWithSingleDSPMul(dsp, self.gen.isa.xlen)
 
         accepted = Signal(1, reset=1)
@@ -133,8 +132,9 @@ class SequentialUnsignedMul(MulBaseUnsigned):
 
 
 class FastRecursiveMul(Elaboratable):
-    def __init__(self, n):
+    def __init__(self, n: int, dsp_width: int):
         self.n = n
+        self.dsp_width = dsp_width
 
         self.i1 = Signal(unsigned(n))
         self.i2 = Signal(unsigned(n))
@@ -142,34 +142,14 @@ class FastRecursiveMul(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        if self.n == 1:
-            m.d.comb += self.r.eq(self.i1 & self.i2)
-        elif self.n == 2:
-            m.d.comb += self.r.eq(
-                ((self.i1[1] & self.i2[1]) << 2)
-                + (((self.i1[0] & self.i2[1]) + (self.i1[1] & self.i2[0])) << 1)
-                + (self.i1[0] & self.i2[0])
-            )
-        elif self.n == 3:
-            m.submodules.low_mul = low_mul = FastRecursiveMul(2)
-            signal_low = Signal(unsigned(4))
-            m.d.comb += low_mul.i1.eq(self.i1[:2])
-            m.d.comb += low_mul.i2.eq(self.i2[:2])
-            m.d.comb += signal_low.eq(low_mul.r)
-
-            m.d.comb += self.r.eq(
-                ((self.i1[2] & self.i2[2]) << 4)
-                + ((Mux(self.i1[2], self.i2[:2], 0) + Mux(self.i2[2], self.i1[:2], 0)) << 2)
-                + signal_low
-            )
-
+        if self.n <= self.dsp_width:
             m.d.comb += self.r.eq(self.i1 * self.i2)
         else:
             upper = self.n // 2
             lower = (self.n + 1) // 2
-            m.submodules.low_mul = low_mul = FastRecursiveMul(lower)
-            m.submodules.mid_mul = mid_mul = FastRecursiveMul(lower + 1)
-            m.submodules.upper_mul = upper_mul = FastRecursiveMul(upper)
+            m.submodules.low_mul = low_mul = FastRecursiveMul(lower, self.dsp_width)
+            m.submodules.mid_mul = mid_mul = FastRecursiveMul(lower + 1, self.dsp_width)
+            m.submodules.upper_mul = upper_mul = FastRecursiveMul(upper, self.dsp_width)
 
             signal_low = Signal(unsigned(2 * lower))
             signal_mid = Signal(unsigned(2 * lower + 2))
@@ -206,7 +186,7 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
         i2 = Signal(unsigned(self.gen.isa.xlen))
         accepted = Signal(1, reset=1)
 
-        m.submodules.mul = mul = FastRecursiveMul(self.gen.isa.xlen)
+        m.submodules.mul = mul = FastRecursiveMul(self.gen.isa.xlen, self.gen.mul_unit_params.width)
 
         @def_method(m, self.issue, ready=accepted)
         def _(arg):
