@@ -54,7 +54,7 @@ class TestFetch(TestCaseWithSimulator):
 
     def wishbone_slave(self):
         rand = Random(0)
-        last_addr = self.gp.start_pc - (self.gp.isa.ilen_bytes)
+        last_addr = (self.gp.start_pc >> 2) - 1
 
         yield Passive()
 
@@ -62,7 +62,7 @@ class TestFetch(TestCaseWithSimulator):
             yield from self.test_module.io_in.slave_wait()
 
             addr = yield self.test_module.io_in.wb.adr
-            self.assertEqual(addr, last_addr + (self.gp.isa.ilen_bytes))
+            self.assertEqual(addr, last_addr + 1)
 
             while rand.random() < 0.5:
                 yield
