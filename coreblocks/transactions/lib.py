@@ -384,9 +384,10 @@ class MethodFilter(Elaboratable):
 
         @def_method(m, self.method)
         def _(arg):
-            ret = self.default
+            ret = Record.like(self.target.data_out)
+            m.d.comb += ret.eq(self.default)
             with m.If(self.condition(m, arg)):
-                ret = self.target(m, arg)
+                m.d.comb += ret.eq(self.target(m, arg))
             return ret
 
         return m

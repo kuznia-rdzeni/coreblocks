@@ -284,7 +284,7 @@ class TestMethodFilter(TestCaseWithSimulator):
             if i & 1:
                 self.assertEqual(v["data"], (i + 1) & ((1 << self.m.iosize) - 1))
             else:
-                self.assertEqual(v["data"], i)
+                self.assertEqual(v["data"], 0)
 
     def target(self):
         yield Passive()
