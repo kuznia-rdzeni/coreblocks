@@ -14,14 +14,17 @@ class WishboneParameters:
     Parameters
     ----------
     data_width: int
-        Width of dat_r and dat_w Wishbone signals. Defaults to 64
+        Width of dat_r and dat_w Wishbone signals. Defaults to 64 bits
     addr_width: int
-        Width of adr Wishbone singal. Defaults to 64
+        Width of adr Wishbone singal. Defaults to 64 bits
+    granularity: int
+        The smallest unit of data transfer that a port is capable of transferring. Defaults to 8 bits
     """
 
-    def __init__(self, *, data_width=64, addr_width=64):
+    def __init__(self, *, data_width=64, addr_width=64, granularity=8):
         self.data_width = data_width
         self.addr_width = addr_width
+        self.granularity = granularity
 
 
 class WishboneLayout:
@@ -51,7 +54,7 @@ class WishboneLayout:
             ("err", 1, DIR_FANIN if master else DIR_FANOUT),
             ("lock", 1, DIR_FANOUT if master else DIR_FANIN),
             ("rty", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("sel", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("sel", wb_params.data_width // wb_params.granularity, DIR_FANOUT if master else DIR_FANIN),
             ("stb", 1, DIR_FANOUT if master else DIR_FANIN),
             ("we", 1, DIR_FANOUT if master else DIR_FANIN),
         ]
@@ -103,6 +106,7 @@ class WishboneMaster(Elaboratable):
             ("addr", wb_params.addr_width, DIR_FANIN),
             ("data", wb_params.data_width, DIR_FANIN),
             ("we", 1, DIR_FANIN),
+            ("sel", wb_params.data_width // wb_params.granularity, DIR_FANIN),
         ]
 
         self.resultLayout = [("data", wb_params.data_width), ("err", 1)]
@@ -117,6 +121,7 @@ class WishboneMaster(Elaboratable):
             m.d.sync += self.wbMaster.adr.eq(request.addr)
             m.d.sync += self.wbMaster.dat_w.eq(Mux(request.we, request.data, 0))
             m.d.sync += self.wbMaster.we.eq(request.we)
+            m.d.sync += self.wbMaster.sel.eq(request.sel)
             m.next = "WBWaitACK"
 
         with self.result.body(m, ready=self.res_ready, out=self.result_data):
@@ -312,6 +317,9 @@ class WishboneMemorySlave(Elaboratable):
             raise RuntimeError("Memory width has to be one of: 8, 16, 32, 64")
         if "depth" not in kwargs:
             kwargs["depth"] = 2**wb_params.addr_width
+        self.granularity = wb_params.granularity
+        if self.granularity not in (8, 16, 32, 64):
+            raise RuntimeError("Granularity has to be one of: 8, 16, 32, 64")
 
         self.mem = Memory(**kwargs)
         self.bus = Record(WishboneLayout(wb_params, master=False).wb_layout)
@@ -320,7 +328,7 @@ class WishboneMemorySlave(Elaboratable):
         m = Module()
 
         m.submodules.rdport = rdport = self.mem.read_port()
-        m.submodules.wrport = wrport = self.mem.write_port()
+        m.submodules.wrport = wrport = self.mem.write_port(granularity=self.granularity)
 
         with m.FSM():
             with m.State("Start"):
@@ -331,7 +339,7 @@ class WishboneMemorySlave(Elaboratable):
                         m.next = "Read"
                     with m.Else():
                         m.d.comb += wrport.addr.eq(self.bus.adr)
-                        m.d.comb += wrport.en.eq(1)
+                        m.d.comb += wrport.en.eq(self.bus.sel)
                         m.d.comb += wrport.data.eq(self.bus.dat_w)
                         # writes can be ack'd earlier than reads because they don't return any data
                         m.d.comb += self.bus.ack.eq(1)
