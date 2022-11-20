@@ -12,31 +12,72 @@ if __name__ == "__main__":
 
     max_clock_frequency = 0
     logic_cells_used = 0
+    storage_cells_used = 0
+    computation_lut4_cells_used = 0
+    computation_lut4_and_dff_cells_used = 0
 
     lines = synth_info_file.readlines()
 
     for line in lines:
         if "Max frequency for clock" in line:
-            frequency = re.search("(\\d|\\.)+ MHz", line)
+            frequency = re.findall("(\\d+\\.\\d\\d) MHz", line)[0]
 
             if frequency:
-                matched_string = frequency.group()
-                max_clock_frequency = float(matched_string[0 : len(matched_string) - 4])
+                max_clock_frequency = float(frequency)
         elif "ICESTORM_LC" in line:
-            logic_cells = re.search("\\d+/ \\d+", line)
+            logic_cells = re.findall("(\\d+)/ \\d+", line)[0]
 
             if logic_cells:
-                logic_cells_used = int(logic_cells.group().split("/")[0])
+                logic_cells_used = int(logic_cells)
+        elif "LCs used as DFF only" in line:
+            storage_cells = re.findall("(\\d+) LCs used as DFF only", line)[0]
+
+            if storage_cells:
+                storage_cells_used = int(storage_cells)
+        elif "LCs used as LUT4 only" in line:
+            computation_lut4_cells = re.findall("(\\d+) LCs used as LUT4 only", line)[0]
+
+            if computation_lut4_cells:
+                computation_lut4_cells_used = int(computation_lut4_cells)
+        elif "LCs used as LUT4 and DFF" in line:
+            computation_lut4_and_dff_cells = re.findall("(\\d+) LCs used as LUT4 and DFF", line)[0]
+
+            if computation_lut4_and_dff_cells:
+                computation_lut4_and_dff_cells_used = int(computation_lut4_and_dff_cells)
 
     synth_info_file.close()
 
     benchmark_file = open("benchmark.json", "w")
 
     benchmark_file.write(
-        "["
-        + f'{{ "name": "Max clock frequency (Fmax)", "unit": "MHZ", "value": "{max_clock_frequency}" }},'
-        + f'{{ "name": "Device utilisation: (ICE40)", "unit": "LCs", "value": "{max_clock_frequency}" }}'
-        + "]"
+        f"""
+        [
+            {{
+                "name": "Max clock frequency (Fmax)",
+                "unit": "MHz",
+                "value": "{max_clock_frequency}"
+            }},
+            {{
+                "name": "Device utilisation: (ICE40)",
+                "unit": "LCs",
+                "value": "{logic_cells_used}"
+            }},
+            {{
+                "name": "LCs used as DFF only: (ICE40)",
+                "unit": "LCs",
+                "value": "{storage_cells_used}"
+            }},
+            {{
+                "name": "LCs used as LUT4 only: (ICE40)",
+                "unit": "LCs",
+                "value": "{computation_lut4_cells_used}"
+            }},
+            {{
+                "name": "LCs used as LUT4 and DFF: (ICE40)",
+                "unit": "LCs",
+                "value": "{computation_lut4_and_dff_cells_used}"
+            }}
+        ]"""
     )
 
     benchmark_file.close()
