@@ -18,10 +18,10 @@ jobs:
       - name: Set up Python
         uses: "gabrielfalcao/pyenv-action@v9"
         with:
-            default: 3.10.3
+            default: 3.8.6
 
       - name: Create python virtual environment
-        run: pyenv local 3.10.3 && python -m venv venv
+        run: pyenv local 3.8.6 && python -m venv venv
 
       - name: Install dependencies
         run: |
