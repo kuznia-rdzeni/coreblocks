@@ -24,23 +24,32 @@ jobs:
             requirements.txt
             requirements-dev.txt
 
+      - name: Create python virtual environment
+        run: pyenv local 3.10.3 && python -mvenv .venv
+
       - name: Install dependencies
         run: |
+          source ./venv/bin/activate
           python -m pip install --upgrade pip
           pip3 install -r requirements-dev.txt
 
       - name: Synthesize
         uses: docker://vuush/amaranth-synth:latest
         with:
-          args: /bin/sh -c "pip3 install -r requirements-dev.txt && chmod +x ./scripts/synthesize && ./scripts/synthesize"
+          args: /bin/sh -c "source ./venv/bin/activate && ./scripts/synthesize"
+
+      - name: Print synthesis information
+        run: cat ./build/top.tim
 
       - name: Collect Benchmark information
         run: |
-          chmod +x ./scripts/benchmark_info
+          source ./venv/bin/activate
           ./scripts/benchmark_info
+          cat ./benchmark.json
 
       - name: Store benchmark result (Fmax)
         uses: benchmark-action/github-action-benchmark@v1
+        if: github.ref == 'refs/heads/master'
         with:
           name: Fmax and LCs
           tool: 'customBiggerIsBetter'
