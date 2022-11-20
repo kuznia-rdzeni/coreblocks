@@ -12,34 +12,32 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: docker://vuush/amaranth-synth:latest
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: "gabrielfalcao/pyenv-action@v9"
+        uses: actions/setup-python@v3
         with:
-            default: 3.8.6
-
-      - name: Create python virtual environment
-        run: pyenv local 3.8.6 && python -m venv venv
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: |
-          source ./venv/bin/activate
           python -m pip install --upgrade pip
           pip3 install -r requirements-dev.txt
 
       - name: Synthesize
-        uses: docker://vuush/amaranth-synth:latest
-        with:
-          args: /bin/sh -c "source ./venv/bin/activate && ./scripts/synthesize"
+        run: source ./venv/bin/activate && ./scripts/synthesize
 
       - name: Print synthesis information
         run: cat ./build/top.tim
 
       - name: Collect Benchmark information
         run: |
-          source ./venv/bin/activate
           ./scripts/benchmark_info
           cat ./benchmark.json
 
