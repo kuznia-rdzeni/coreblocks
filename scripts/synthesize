@@ -14,33 +14,42 @@ __all__ = ["ICE40Platform"]
 
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params, io_pins):
+    def __init__(self, gen_params, io_pins: int, instr_mem: list[int] = []):
         from coreblocks.genparams import GenParams
 
         self.gp: GenParams = gen_params
         self.io_pins: int = io_pins
+        self.instr_mem = instr_mem
 
     def elaborate(self, platform: Platform):
         from coreblocks.core import Core
         from coreblocks.layouts import FetchLayouts
         from coreblocks.transactions import TransactionModule
         from coreblocks.transactions.lib import FIFO, AdapterTrans
+        from coreblocks.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
         m = Module()
         tm = TransactionModule(m)
+        wb_params = WishboneParameters(data_width=32, addr_width=30)
 
+        self.wb_master = WishboneMaster(wb_params=wb_params)
+        self.wb_mem_slave = WishboneMemorySlave(wb_params=wb_params, width=32, depth=32, init=self.instr_mem)
         self.fifo_in = FIFO(self.gp.get(FetchLayouts).raw_instr, 2)
-        self.core = Core(gen_params=self.gp, get_raw_instr=self.fifo_in.read)
+        self.core = Core(gen_params=self.gp, wb_master=self.wb_master)
         self.reg_feed_in = AdapterTrans(self.core.free_rf_fifo.write)
 
         m.d.comb += self.reg_feed_in.en.eq(1)
+        m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
 
         m.d.comb += self.reg_feed_in.data_in.eq(platform.request("data_in", 0).i)
         m.d.comb += Cat(platform.request("data_out", 0).o).eq(Cat(self.core.announcement.debug_signals()))
 
+        m.submodules.wb_master = self.wb_master
+        m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.fifo_in = self.fifo_in
         m.submodules.reg_feed_in = self.reg_feed_in
         m.submodules.c = self.core
+
         return tm
 
 
@@ -60,14 +69,14 @@ class ICE40Platform(LatticeICE40Platform):
 
     # This names the pins you want to use, and configuration options for each such pin.
     resources = [
-        Resource("clk1", 0, Pins("J3", dir="i"), Clock(12e6), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
+        Resource("clk", 0, Pins("J3", dir="i"), Clock(12e6), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
         Resource("rst", 0, Pins("R9", dir="i"), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
         Resource("data_in", 0, Pins("A16 A15 B13 B11 A10 A11", dir="i")),
         Resource("data_out", 0, Pins("B15 B14 A7 B7 A6 A5", dir="o")),
     ]
 
     # The name of the resource that is the clock for the default clock domain.
-    default_clk = "clk1"
+    default_clk = "clk"
     # The name of the resource that is the reset for the default clock domain.
     default_rst = "rst"
 
