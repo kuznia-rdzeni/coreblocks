@@ -1,13 +1,13 @@
 from amaranth import Elaboratable, Module
 
 from coreblocks.transactions import TransactionModule
-from coreblocks.transactions.lib import AdapterTrans, FIFO
+from coreblocks.transactions.lib import AdapterTrans
 
 from .common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
 from coreblocks.genparams import GenParams
-from coreblocks.layouts import FetchLayouts
+from coreblocks.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
 import random
 from riscvmodel.insn import (
@@ -28,24 +28,32 @@ from riscvmodel.variant import RV32I
 
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, instr_mem: list[int] = []):
         self.gp = gen_params
+        self.instr_mem = instr_mem
 
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
 
-        self.fifo_in = FIFO(self.gp.get(FetchLayouts).raw_instr, 2)
-        self.core = Core(gen_params=self.gp, get_raw_instr=self.fifo_in.read)
+        wb_params = WishboneParameters(data_width=32, addr_width=30)
+        self.wb_master = WishboneMaster(wb_params=wb_params)
+        self.wb_mem_slave = WishboneMemorySlave(
+            wb_params=wb_params, width=32, depth=len(self.instr_mem), init=self.instr_mem
+        )
+        self.core = Core(gen_params=self.gp, wb_master=self.wb_master)
         self.reg_feed_in = TestbenchIO(AdapterTrans(self.core.free_rf_fifo.write))
-        self.io_in = TestbenchIO(AdapterTrans(self.fifo_in.write))
+        self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
 
-        m.submodules.fifo_in = self.fifo_in
+        m.submodules.wb_master = self.wb_master
+        m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.reg_feed_in = self.reg_feed_in
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
+
+        m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
 
         return tm
 
@@ -157,6 +165,27 @@ class TestCore(TestCaseWithSimulator):
             self.assertEqual((yield from self.get_arch_reg_val(i)), unsigned_val)
 
     def randomized_input(self):
+        halt_pc = (len(self.instr_mem) - 1) * self.gp.isa.ilen_bytes
+        yield from self.init_regs()
+
+        # set PC to halt at specific instruction (numbered from 0)
+        yield self.m.core.fetch.halt_pc.eq(halt_pc)
+
+        # wait for PC to go past all instruction
+        while (yield self.m.core.fetch.pc) < halt_pc:
+            yield
+
+        # finish calculations
+        for _ in range(50):
+            yield
+
+        yield from self.compare_core_states(self.software_core)
+
+    def test_randomized(self):
+        self.gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
+        self.instr_count = 300
+        random.seed(42)
+
         instructions = get_insns(cls=InstructionRType)
         instructions += [
             InstructionADDI,
@@ -171,38 +200,25 @@ class TestCore(TestCaseWithSimulator):
             InstructionLUI,
         ]
 
-        software_core = Model(RV32I)
-
-        yield from self.init_regs()
         # allocate some random values for registers
-        for i in range(self.gp.isa.reg_cnt):
-            instr_init = InstructionADDI(rd=i, rs1=0, imm=random.randint(-(2**11), 2**11 - 1))
-            software_core.execute(instr_init)
-            yield from self.push_instr(instr_init.encode())
-
-        for i in range(50):
-            yield
-
-        yield from self.compare_core_states(software_core)
+        init_instr_list = list(
+            InstructionADDI(rd=i, rs1=0, imm=random.randint(-(2**11), 2**11 - 1))
+            for i in range(self.gp.isa.reg_cnt)
+        )
 
         # generate random instruction stream
-        for i in range(self.instr_count):
-            instr = random.choice(instructions)()
+        instr_list = list(random.choice(instructions)() for _ in range(self.instr_count))
+        for instr in instr_list:
             instr.randomize(RV32I)
-            software_core.execute(instr)
-            yield from self.push_instr(instr.encode())
 
-        for i in range(50):
-            yield
+        self.software_core = Model(RV32I)
+        self.software_core.execute(init_instr_list)
+        self.software_core.execute(instr_list)
 
-        yield from self.compare_core_states(software_core)
+        self.instr_mem = list(map(lambda x: x.encode(), init_instr_list + instr_list))
 
-    def test_randomized(self):
-        self.gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
-        m = TestElaboratable(self.gp)
+        m = TestElaboratable(self.gp, instr_mem=self.instr_mem)
         self.m = m
-        self.instr_count = 300
-        random.seed(42)
 
         with self.runSimulation(m) as sim:
             sim.add_sync_process(self.randomized_input)
