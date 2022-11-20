@@ -1,7 +1,7 @@
-from amaranth import *
+from amaranth import Elaboratable, Module
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import FIFO
-from coreblocks.layouts import *
+from coreblocks.layouts import DecodeLayouts
 from coreblocks.genparams import GenParams
 from coreblocks.decode import Decode
 from coreblocks.rat import FRAT, RRAT
