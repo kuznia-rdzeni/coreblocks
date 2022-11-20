@@ -35,12 +35,8 @@ class TestElaboratable(Elaboratable):
 
         m.d.comb += self.reg_feed_in.en.eq(1)
 
-        m.d.comb += self.reg_feed_in.data_in.eq(
-            Cat((platform.request("data_in", pin_number).i) for pin_number in range(self.io_pins))
-        )
-        m.d.comb += Cat((platform.request("data_out", pin_number).o) for pin_number in range(self.io_pins)).eq(
-            Cat(self.core.announcement.debug_signals())
-        )
+        m.d.comb += self.reg_feed_in.data_in.eq(platform.request("data_in", 0).i)
+        m.d.comb += Cat(platform.request("data_out", 0).o).eq(Cat(self.core.announcement.debug_signals()))
 
         m.submodules.fifo_in = self.fifo_in
         m.submodules.reg_feed_in = self.reg_feed_in
@@ -66,18 +62,8 @@ class ICE40Platform(LatticeICE40Platform):
     resources = [
         Resource("clk1", 0, Pins("J3", dir="i"), Clock(12e6), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
         Resource("rst", 0, Pins("R9", dir="i"), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
-        Resource.family("data_in", 0, default_name="data_in", ios=[Pins("A16", dir="i")]),
-        Resource.family("data_in", 1, default_name="data_in", ios=[Pins("A15", dir="i")]),
-        Resource.family("data_in", 2, default_name="data_in", ios=[Pins("B13", dir="i")]),
-        Resource.family("data_in", 3, default_name="data_in", ios=[Pins("B11", dir="i")]),
-        Resource.family("data_in", 4, default_name="data_in", ios=[Pins("A10", dir="i")]),
-        Resource.family("data_in", 5, default_name="data_in", ios=[Pins("A11", dir="i")]),
-        Resource.family("data_out", 0, default_name="data_out", ios=[Pins("B15", dir="o")]),
-        Resource.family("data_out", 1, default_name="data_out", ios=[Pins("B14", dir="o")]),
-        Resource.family("data_out", 2, default_name="data_out", ios=[Pins("A7", dir="o")]),
-        Resource.family("data_out", 3, default_name="data_out", ios=[Pins("B7", dir="o")]),
-        Resource.family("data_out", 4, default_name="data_out", ios=[Pins("A6", dir="o")]),
-        Resource.family("data_out", 5, default_name="data_out", ios=[Pins("A5", dir="o")]),
+        Resource("data_in", 0, Pins("A16 A15 B13 B11 A10 A11", dir="i")),
+        Resource("data_out", 0, Pins("B15 B14 A7 B7 A6 A5", dir="o")),
     ]
 
     # The name of the resource that is the clock for the default clock domain.
