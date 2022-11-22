@@ -34,11 +34,12 @@ class WishboneInterfaceWrapper:
         while not ((yield self.wb.stb) and (yield self.wb.cyc)):
             yield
 
-    def slave_verify(self, exp_addr, exp_data, exp_we):
+    def slave_verify(self, exp_addr, exp_data, exp_we, exp_sel=0):
         assert (yield self.wb.stb) and (yield self.wb.cyc)
 
         assert (yield self.wb.adr) == exp_addr
         assert (yield self.wb.we == exp_we)
+        assert (yield self.wb.sel == exp_sel)
         if exp_we:
             assert (yield self.wb.dat_w) == exp_data
 
@@ -76,32 +77,32 @@ class TestWishboneMaster(TestCaseWithSimulator):
             wwb = WishboneInterfaceWrapper(wbm.wbMaster)
 
             # read request
-            yield from twbm.requestAdapter.call({"addr": 2, "data": 0, "we": 0})
+            yield from twbm.requestAdapter.call({"addr": 2, "data": 0, "we": 0, "sel": 1})
             yield
             assert not (yield wbm.request.ready)
-            yield from wwb.slave_verify(2, 0, 0)
+            yield from wwb.slave_verify(2, 0, 0, 1)
             yield from wwb.slave_respond(8)
             resp = yield from twbm.resultAdapter.call()
             assert (resp["data"]) == 8
 
             # write request
-            yield from twbm.requestAdapter.call({"addr": 3, "data": 5, "we": 1})
+            yield from twbm.requestAdapter.call({"addr": 3, "data": 5, "we": 1, "sel": 0})
             yield
-            yield from wwb.slave_verify(3, 5, exp_we=1)
+            yield from wwb.slave_verify(3, 5, 1, 0)
             yield from wwb.slave_respond(0)
             yield from twbm.resultAdapter.call()
 
             # RTY and ERR responese
-            yield from twbm.requestAdapter.call({"addr": 2, "data": 0, "we": 0})
+            yield from twbm.requestAdapter.call({"addr": 2, "data": 0, "we": 0, "sel": 0})
             yield
             yield from wwb.slave_wait()
-            yield from wwb.slave_verify(2, 0, 0)
+            yield from wwb.slave_verify(2, 0, 0, 0)
             yield from wwb.slave_respond(1, ack=0, err=0, rty=1)
             yield
             assert not (yield wwb.wb.stb)
             assert not (yield wbm.result.ready)  # verify cycle restart
             yield from wwb.slave_wait()
-            yield from wwb.slave_verify(2, 0, 0)
+            yield from wwb.slave_verify(2, 0, 0, 0)
             yield from wwb.slave_respond(1, ack=1, err=1, rty=0)
             resp = yield from twbm.resultAdapter.call()
             assert resp["data"] == 1
@@ -236,8 +237,10 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
         self.iters = 300
 
         self.addr_width = (self.memsize - 1).bit_length()  # nearest log2 >= log2(memsize)
-        self.wb_params = WishboneParameters(data_width=32, addr_width=self.addr_width)
+        self.wb_params = WishboneParameters(data_width=32, addr_width=self.addr_width, granularity=16)
         self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params, mem_args={"depth": self.memsize})
+
+        self.sel_width = self.wb_params.data_width // self.wb_params.granularity
 
         random.seed(42)
 
@@ -249,13 +252,18 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 addr = random.randint(0, self.memsize - 1)
                 data = random.randint(0, 2**self.wb_params.data_width - 1)
                 write = random.randint(0, 1)
+                sel = random.randint(0, 2**self.sel_width - 1)
                 if write:
-                    mem_state[addr] = data
+                    for i in range(self.sel_width):
+                        if sel & (1 << i):
+                            granularity_mask = (2**self.wb_params.granularity - 1) << (i * self.wb_params.granularity)
+                            mem_state[addr] &= ~granularity_mask
+                            mem_state[addr] |= data & granularity_mask
 
-                yield from self.m.request.call({"addr": addr, "data": data, "we": write})
+                yield from self.m.request.call({"addr": addr, "data": data, "we": write, "sel": sel})
                 res = yield from self.m.result.call()
                 if write:
-                    self.assertEqual((yield self.m.mem_slave.mem[addr]), data)
+                    self.assertEqual((yield self.m.mem_slave.mem[addr]), mem_state[addr])
                 else:
                     self.assertEqual(res["data"], mem_state[addr])
 
