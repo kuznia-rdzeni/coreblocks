@@ -7,8 +7,8 @@ from coreblocks.transactions.lib import AdapterTrans
 from .common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
-from coreblocks.genparams import GenParams
-from coreblocks.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
+from coreblocks.params import GenParams
+from coreblocks.perip.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
 import random
 from riscvmodel.insn import (

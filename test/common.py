@@ -9,7 +9,7 @@ from amaranth.sim import *
 from amaranth.sim.core import Command
 from coreblocks.transactions.core import DebugSignals
 from coreblocks.transactions.lib import AdapterBase
-from coreblocks._typing import ValueLike
+from coreblocks.utils._typing import ValueLike
 from .gtkw_extension import write_vcd_ext
 
 

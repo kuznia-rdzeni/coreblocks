@@ -6,7 +6,7 @@ from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Assign
 from ._utils import *
-from .._typing import ValueLike
+from ..utils._typing import ValueLike
 
 __all__ = [
     "TransactionManager",
