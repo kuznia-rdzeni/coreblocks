@@ -35,7 +35,7 @@ class MulFn(Signal):
 
 class MulFnDecoder(Elaboratable):
     """
-    Module decoding function into hot wire MulFn
+    Module decoding function into hot wired MulFn
     """
 
     def __init__(self, gen: GenParams):
@@ -63,11 +63,19 @@ class MulFnDecoder(Elaboratable):
         return m
 
 
-def get_input(arg: Record) -> Tuple[Signal, Signal]:
+def get_input(arg: Record) -> Tuple[Value, Value]:
     """
     Operation of getting two input values
-    :param arg: arguments of functional unit issue call
-    :return: two input values
+
+    Parameters
+    ----------
+    arg: int
+        arguments of functional unit issue call
+
+    Returns
+    -------
+    return : Tuple[Value, Value]
+        two input values
     """
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
@@ -125,7 +133,7 @@ class MulUnit(Elaboratable):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
-            with m.Switch(decoder.mul_fn):
+            with m.Switch(decoder.mul_fn):  # TODO: Replace with HotWireSwitch when will be available
                 with m.Case("----1"):  # MUL
                     m.d.sync += negative_res.eq(0)
                     m.d.sync += high_res.eq(0)
@@ -160,7 +168,7 @@ class MulUnit(Elaboratable):
             m.d.sync += idle.eq(0)
 
         with Transaction().body(m):
-            response = multiplier.accept(m)
+            response = multiplier.accept(m)  # get result form unsigned multiplier
             sign_result = Mux(negative_res, -response.o, response.o)  # changing sign of result
             result = Mux(high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 

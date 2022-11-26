@@ -27,7 +27,10 @@ class DSPMulUnit(Elaboratable):
     """
     Module for 1 clock cycle multiplication, designed to be replaced by DSP be HDL compiler
 
-    :parameter: dsp_width: width on multiplied numbers
+    Parameters
+    ----------
+    dsp_width: int
+        width on multiplied numbers
     """
 
     def __init__(self, dsp_width: int):
@@ -51,7 +54,12 @@ class RecursiveWithSingleDSPMul(Elaboratable):
     Module with combinatorial connection for sequential multiplication using single DSP unit.
     It uses classic recursive multiplication algorithm
 
-    :parameter n: width of multiplied numbers
+    Parameters
+    ----------
+    dsp: DSPMulUnit
+        dsp unit performing multiplications in single clock cycle
+    n: int
+        width of multiplied numbers
     """
 
     def __init__(self, dsp: DSPMulUnit, n: int):
@@ -158,8 +166,12 @@ class FastRecursiveMul(Elaboratable):
     Module with combinatorial connection for fast recursive multiplication using as many DSPMulUnit as required for
     one clock multiplication
 
-    :parameter n: width of multiplied numbers
-    :parameter dsp_width: width of dsp multiplication unit
+    Parameters
+    ----------
+    n: int
+        width of multiplied numbers
+    dsp_width: int
+        width of dsp multiplication unit
     """
 
     def __init__(self, n: int, dsp_width: int):
