@@ -28,17 +28,19 @@ class Fetch(Elaboratable):
         self.cont = cont
 
         self.pc = Signal(bus.wb_params.addr_width, reset=gen_params.start_pc)
+        self.halt_pc = Signal(bus.wb_params.addr_width, reset=2**bus.wb_params.addr_width - 1)
 
     def elaborate(self, platform) -> Module:
         m = Module()
 
         req = Record(self.bus.requestLayout)
-        m.d.comb += req.addr.eq(self.pc)
+        m.d.comb += req.addr.eq(self.pc >> 2)
+        m.d.comb += req.sel.eq(2 ** (self.gp.isa.ilen // self.bus.wb_params.granularity) - 1)
 
         with Transaction().body(m):
             self.bus.request(m, req)
 
-        with Transaction().body(m):
+        with Transaction().body(m, request=(self.pc != self.halt_pc)):
             fetched = self.bus.result(m)
 
             with m.If(fetched.err == 0):
