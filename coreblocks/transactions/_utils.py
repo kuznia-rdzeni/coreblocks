@@ -3,7 +3,7 @@ import inspect
 from typing import Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
 from .._typing import LayoutLike
-from coreblocks.utils import OneHotSwitch
+from coreblocks.utils import OneHotSwitchDynamic
 
 __all__ = [
     "Scheduler",
@@ -59,7 +59,7 @@ class Scheduler(Elaboratable):
 
         grant_reg = Signal.like(self.grant)
 
-        for i in OneHotSwitch(m, grant_reg, default=True):
+        for i in OneHotSwitchDynamic(m, grant_reg, default=True):
             if i is not None:
                 m.d.comb += self.grant.eq(grant_reg)
                 for j in itertools.chain(reversed(range(i)), reversed(range(i + 1, self.count))):

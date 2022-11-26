@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from enum import Enum
 from typing import Iterable, Literal, Mapping, Optional, overload
 from amaranth import *
@@ -5,27 +6,92 @@ from amaranth.hdl.ast import Assign
 from coreblocks._typing import ValueLike
 
 
-__all__ = ["AssignType", "assign", "OneHotSwitch"]
+__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch"]
 
 
-@overload
-def OneHotSwitch(m: Module, in_signal: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
-    ...
+@contextmanager
+def OneHotSwitch(m: Module, test: Value):
+    """One-hot switch.
 
+    This function allows one-hot matching in the style similar to the standard
+    Amaranth ``Switch``. This allows to get the performance benefit of using
+    the one-hot representation.
 
-@overload
-def OneHotSwitch(m: Module, in_signal: Value, *, default: Literal[False] = False) -> Iterable[int]:
-    ...
+    Example::
 
+        with OneHotSwitch(m, sig) as OneHotCase:
+            with OneHotCase(0b01):
+                ...
+            with OneHotCase(0b10):
+                ...
+            # optional default case
+            with OneHotCase():
+                ...
 
-def OneHotSwitch(m: Module, in_signal: Value, *, default: bool = False) -> Iterable[Optional[int]]:
-    count = len(in_signal)
-    with m.Switch(in_signal):
-        for i in range(count):
+    Parameters
+    ----------
+    m : Module
+        The module for which the matching is defined.
+    test : Signal
+        The signal being tested.
+    """
+    count = len(test)
+
+    @contextmanager
+    def case(n: Optional[int] = None):
+        if n is None:
+            with m.Case():
+                yield
+        else:
+            # find the index of the least significant bit set
+            i = (n & -n).bit_length() - 1
+            if n - (1 << i) != 0:
+                raise ValueError("%d not in one-hot representation" % n)
             with m.Case("-" * (count - i - 1) + "1" + "-" * i):
+                yield
+
+    with m.Switch(test):
+        yield case
+
+
+@overload
+def OneHotSwitchDynamic(m: Module, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
+    ...
+
+
+@overload
+def OneHotSwitchDynamic(m: Module, test: Value, *, default: Literal[False] = False) -> Iterable[int]:
+    ...
+
+
+def OneHotSwitchDynamic(m: Module, test: Value, *, default: bool = False) -> Iterable[Optional[int]]:
+    """Dynamic one-hot switch.
+
+    This function allows simple one-hot matching on signals which can have
+    variable bit widths.
+
+    Example::
+
+        for i in OneHotSwitchDynamic(m, sig):
+            # code dependent on the bit index i
+            ...
+
+    Parameters
+    ----------
+    m : Module
+        The module for which the matching is defined.
+    test : Signal
+        The signal being tested.
+    default : bool, optional
+        Whether the matching includes a default case (signified by a None).
+    """
+    count = len(test)
+    with OneHotSwitch(m, test) as OneHotCase:
+        for i in range(count):
+            with OneHotCase(1 << i):
                 yield i
         if default:
-            with m.Case():
+            with OneHotCase():
                 yield None
     return
 
