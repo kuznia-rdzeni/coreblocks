@@ -13,6 +13,7 @@ from coreblocks.transactions.lib import *
 from .common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.genparams import GenParams
+from .functional_common import FunctionalTestCircuit
 
 
 class UnsignedMultiplicationTestCircuit(Elaboratable):
@@ -58,7 +59,7 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
     gen: GenParams
 
     def setUp(self):
-        self.m = UnsignedMultiplicationTestCircuit(self.gen, self.mul_unit)
+        self.m = FunctionalTestCircuit(self.gen, self.mul_unit)
 
         random.seed(1050)
         self.requests = deque()

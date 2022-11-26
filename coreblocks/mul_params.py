@@ -27,7 +27,10 @@ class MulUnitParams:
         """
         Uses single DSP unit for multiplication, which makes balance between performance and cost
 
-        :param dsp_width: width of numbers that will be multiplied in single clock cycle by DSP
+        Parameters
+        ----------
+        dsp_width: int
+            width of numbers that will be multiplied in single clock cycle by DSP
         """
         return MulUnitParams(MulType.SEQUENCE_MUL, dsp_width)
 
@@ -36,6 +39,9 @@ class MulUnitParams:
         """
         Fastest way of multiplying using only one cycle, but costly in terms of resources
 
-        :param dsp_width: width of numbers that will be multiplied in single clock cycle by DSP
+        Parameters
+        ----------
+        dsp_width: int
+            width of numbers that will be multiplied in single clock cycle by DSP
         """
         return MulUnitParams(MulType.RECURSIVE_MUL, dsp_width)
