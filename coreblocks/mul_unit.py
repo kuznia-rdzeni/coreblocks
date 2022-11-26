@@ -15,6 +15,8 @@ from coreblocks.unsigned_mul_unit import ShiftUnsignedMul, SequentialUnsignedMul
 
 __all__ = ["MulUnit", "MulFn"]
 
+from coreblocks.utils import OneHotSwitch
+
 
 class MulFn(Signal):
     """
@@ -133,28 +135,28 @@ class MulUnit(Elaboratable):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
-            with m.Switch(decoder.mul_fn):  # TODO: Replace with HotWireSwitch when will be available
-                with m.Case("----1"):  # MUL
+            with OneHotSwitch(m, decoder.mul_fn) as OneHotCase:
+                with OneHotCase(MulFn.Fn.MUL):  # MUL
                     m.d.sync += negative_res.eq(0)
                     m.d.sync += high_res.eq(0)
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
-                with m.Case("---1-"):  # MULH
+                with OneHotCase(MulFn.Fn.MULH):
                     m.d.sync += negative_res.eq(i1[sign_bit] ^ i2[sign_bit])
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(Mux(i2[sign_bit], -i2, i2))
-                with m.Case("--1--"):  # MULHU
+                with OneHotCase(MulFn.Fn.MULHU):
                     m.d.sync += negative_res.eq(0)
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
-                with m.Case("-1---"):  # MULHSU
+                with OneHotCase(MulFn.Fn.MULHSU):
                     m.d.sync += negative_res.eq(i1[sign_bit])
                     m.d.sync += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(i2)
-                with m.Case("1----"):  # MULW
+                with OneHotCase(MulFn.Fn.MULW):
                     m.d.sync += negative_res.eq(i1[half_sign_bit] ^ i2[half_sign_bit])
                     m.d.sync += high_res.eq(0)
                     i1h = Signal(xlen // 2)
