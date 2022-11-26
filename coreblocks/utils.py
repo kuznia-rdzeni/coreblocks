@@ -43,6 +43,7 @@ def OneHotSwitch(m: Module, test: Value):
             with m.Case():
                 yield
         else:
+            # find the index of the least significant bit set
             i = (n & -n).bit_length() - 1
             if n - (1 << i) != 0:
                 raise ValueError("%d not in one-hot representation" % n)
