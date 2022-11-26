@@ -175,9 +175,9 @@ class TransactionManager(Elaboratable):
             gr[transaction2].add(transaction)
             match priority:
                 case ConflictPriority.LEFT:
-                    pgr[transaction].add(transaction2)
-                case ConflictPriority.RIGHT:
                     pgr[transaction2].add(transaction)
+                case ConflictPriority.RIGHT:
+                    pgr[transaction].add(transaction2)
 
         for transaction in self.transactions:
             gr[transaction] = set()
