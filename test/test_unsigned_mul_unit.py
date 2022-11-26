@@ -91,7 +91,6 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
             while self.responses:
                 expected = self.responses.pop()
                 result = yield from self.m.accept.call()
-                print(expected, result)
                 self.assertDictEqual(expected, result)
                 yield from random_wait()
 
@@ -99,7 +98,6 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
             while self.requests:
                 req = self.requests.pop()
                 yield from self.m.issue.call(req)
-                print(req)
                 yield from random_wait()
 
         with self.runSimulation(self.m) as sim:

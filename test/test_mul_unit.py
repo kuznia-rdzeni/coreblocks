@@ -34,7 +34,7 @@ ops = {
 
 class Test(GenericFunctionalTestUnit):
     def test_test(self):
-        self.test_pipeline()
+        self.run_pipeline()
 
     def __init__(self, methodName: str = "runTest"):
         super().__init__(ops, MulUnit, compute_result, methodName=methodName)

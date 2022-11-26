@@ -36,6 +36,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         func_unit: Type,
         expected: Callable[[int, int, Any, int], int],
         number_of_tests: int = 2000,
+        seed: int = 40,
         methodName: str = "runTest",
     ):
         super().__init__(methodName)
@@ -43,12 +44,13 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         self.func_unit = func_unit
         self.expected = expected
         self.number_of_tests = number_of_tests
+        self.seed = seed
 
     def setUp(self):
         self.gen = GenParams("rv32i")
         self.m = FunctionalTestCircuit(self.gen, self.func_unit)
 
-        random.seed(40)
+        random.seed(self.seed)
         self.requests = deque()
         self.responses = deque()
 
@@ -77,7 +79,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
             )
             self.responses.append({"rob_id": rob_id, "result": result, "rp_dst": rp_dst})
 
-    def test_pipeline(self):
+    def run_pipeline(self):
         def random_wait():
             for i in range(random.randint(0, 10)):
                 yield
@@ -86,7 +88,6 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
             while self.responses:
                 expected = self.responses.pop()
                 result = yield from self.m.accept.call()
-                print(expected, result)
                 self.assertDictEqual(expected, result)
                 yield from random_wait()
 
@@ -94,7 +95,6 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
             while self.requests:
                 req = self.requests.pop()
                 yield from self.m.issue.call(req)
-                print(req)
                 yield from random_wait()
 
         with self.runSimulation(self.m) as sim:
