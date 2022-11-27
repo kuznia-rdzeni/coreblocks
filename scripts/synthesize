@@ -72,7 +72,20 @@ class ICE40Platform(LatticeICE40Platform):
         Resource("clk", 0, Pins("J3", dir="i"), Clock(12e6), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
         Resource("rst", 0, Pins("R9", dir="i"), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
         Resource("data_in", 0, Pins("A16 A15 B13 B11 A10 A11", dir="i")),
-        Resource("data_out", 0, Pins("B15 B14 A7 B7 A6 A5", dir="o")),
+        Resource(
+            "data_out",
+            0,
+            Pins(
+                """
+                                     C14 B15 D13 B14 C12 E11 C13 E10 C11 D11
+                                     B12 B10 C10 D10 C9  E9  D9  F9  D8  B8
+                                     A7  C7  B7  B6  C6  D7  A6  D6  A5  B5
+                                     E6  B4  A2  D5  A1  C5  C4  B3  D4  E5
+                                     D3  C3  P16 M13 M14 L12 N16
+                                     """,
+                dir="o",
+            ),
+        ),
     ]
 
     # The name of the resource that is the clock for the default clock domain.
