@@ -6,11 +6,12 @@ import sys
 import argparse
 
 from amaranth.vendor.lattice_ice40 import LatticeICE40Platform
-from amaranth.build import Resource, Attrs, Pins, Clock, Platform
+from amaranth.vendor.lattice_ecp5 import LatticeECP5Platform
+from amaranth.build import Resource, Attrs, Pins, Clock, Platform, PinsN
 from amaranth.build.run import LocalBuildProducts
 from amaranth import Module, Elaboratable, Cat
 
-__all__ = ["ICE40Platform"]
+__all__ = ["ICE40Platform", "ECP5Platform"]
 
 
 class TestElaboratable(Elaboratable):
@@ -111,6 +112,65 @@ class ICE40Platform(LatticeICE40Platform):
             subprocess.check_call([iceprog, "-S", bitstream_filename])
 
 
+class ECP5Platform(LatticeECP5Platform):
+    device = "LFE5UM5G-85F"
+    package = "BG381"
+    speed = "8"
+    default_clk = "clk12"
+    default_rst = "rst"
+
+    def __init__(self, *, VCCIO1="2V5", VCCIO6="3V3", **kwargs):
+        """
+        VCCIO1 is connected by default to 2.5 V via R100 (can be set to 3.3 V by disconnecting
+        R100 and connecting R105)
+        VCCIO6 is connected to 3.3 V by default via R99 (can be switched to 2.5 V with R104,
+        see page 51 in the ECP5-5G-EVN datasheet)
+        """
+        super().__init__(**kwargs)
+        assert VCCIO1 in ("3V3", "2V5")
+        assert VCCIO6 in ("3V3", "2V5")
+        self._VCCIO1 = VCCIO1
+        self._VCCIO6 = VCCIO6
+
+    resources = [
+        Resource("rst", 0, PinsN("G2", dir="i"), Attrs(IO_TYPE="LVCMOS33")),
+        Resource("clk12", 0, Pins("A10", dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
+        Resource("data_in", 0, Pins("A16 A15 B13 B11 A10 A11", dir="i")),
+        Resource(
+            "data_out",
+            0,
+            Pins(
+                """
+                        C14 B15 D13 B14 C12 E11 C13 E10 C11 D11
+                        B12 B10 C10 D10 C9  E9  D9  F9  D8  B8
+                        A7  C7  B7  B6  C6  D7  A6  D6  A5  B5
+                        E6  B4  A2  D5  A1  C5  C4  B3  D4  E5
+                        D3  C3  P16 M13 M14 L12 N16
+                        """,
+                dir="o",
+            ),
+        ),
+    ]
+
+    connectors = []
+
+    def toolchain_program(self, products, name):
+        openocd = os.environ.get("OPENOCD", "openocd")
+        with products.extract("{}-openocd.cfg".format(name), "{}.svf".format(name)) as (
+            config_filename,
+            vector_filename,
+        ):
+            subprocess.check_call(
+                [
+                    openocd,
+                    "-f",
+                    config_filename,
+                    "-c",
+                    "transport select jtag; init; svf -quiet {}; exit".format(vector_filename),
+                ]
+            )
+
+
 def synthesize(platform: str, build: bool):
     from coreblocks.genparams import GenParams
 
@@ -118,6 +178,8 @@ def synthesize(platform: str, build: bool):
 
     if platform == "ice40":
         ICE40Platform().build(TestElaboratable(gen_params=gp, io_pins=6), do_program=build)
+    elif platform == "ecp5":
+        ECP5Platform().build(TestElaboratable(gen_params=gp, io_pins=6), do_program=build)
 
 
 def main():
@@ -125,9 +187,9 @@ def main():
     parser.add_argument(
         "-p",
         "--platform",
-        default="ice40",
-        choices=["ice40"],
-        help="Selects platform to synthesize circuit on. Default: ice40",
+        default="ecp5",
+        choices=["ice40", "ecp5"],
+        help="Selects platform to synthesize circuit on. Default: ecp5",
     )
     parser.add_argument(
         "-b",

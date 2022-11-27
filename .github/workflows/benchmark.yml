@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: docker://vuush/amaranth-synth:latest
+    container: docker://vuush/amaranth-synth:ecp5
     steps:
       - uses: actions/checkout@v3
 
