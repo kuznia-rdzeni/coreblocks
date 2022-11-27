@@ -12,8 +12,8 @@ from coreblocks.params import GenParams, FetchLayouts
 
 from random import Random
 
-from coreblocks.perip.wishbone import WishboneMaster, WishboneParameters
-from ..perip.test_wishbone import WishboneInterfaceWrapper
+from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
+from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
 class TestElaboratable(Elaboratable):

@@ -2,7 +2,7 @@
 
 import random
 
-from coreblocks.perip.wishbone import *
+from coreblocks.peripherals.wishbone import *
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans

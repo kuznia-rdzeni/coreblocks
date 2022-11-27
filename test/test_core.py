@@ -8,7 +8,7 @@ from .common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
-from coreblocks.perip.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
+from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
 import random
 from riscvmodel.insn import (

@@ -1,7 +1,7 @@
 from amaranth import Record, Module, Signal, Elaboratable
 from ..transactions import Method, Transaction
 from ..params import GenParams, FetchLayouts
-from ..perip.wishbone import WishboneMaster
+from ..peripherals.wishbone import WishboneMaster
 
 
 class Fetch(Elaboratable):

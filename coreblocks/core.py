@@ -13,7 +13,7 @@ from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.fu.alu import AluFuncUnit
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
-from coreblocks.perip.wishbone import WishboneMaster
+from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.frontend.fetch import Fetch
 
 __all__ = ["Core"]
