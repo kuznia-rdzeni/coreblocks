@@ -16,16 +16,16 @@ class MulUnitParams:
             self.width = dsp_width
 
     @classmethod
-    def ShiftMultiplicator(cls) -> "MulUnitParams":
+    def ShiftMultiplier(cls) -> "MulUnitParams":
         """
-        The cheapest multiplication unit in terms of resources, it uses Russian Peasants Algorithm
+        The cheapest multiplication unit in terms of resources, it uses Russian Peasants Algorithm.
         """
         return MulUnitParams(MulType.SHIFT_MUL)
 
     @classmethod
-    def SequanceMultiplicator(cls, dsp_width) -> "MulUnitParams":
+    def SequanceMultiplier(cls, dsp_width) -> "MulUnitParams":
         """
-        Uses single DSP unit for multiplication, which makes balance between performance and cost
+        Uses single DSP unit for multiplication, which makes balance between performance and cost.
 
         Parameters
         ----------
@@ -35,9 +35,9 @@ class MulUnitParams:
         return MulUnitParams(MulType.SEQUENCE_MUL, dsp_width)
 
     @classmethod
-    def RecursiveMultiplicator(cls, dsp_width) -> "MulUnitParams":
+    def RecursiveMultiplier(cls, dsp_width) -> "MulUnitParams":
         """
-        Fastest way of multiplying using only one cycle, but costly in terms of resources
+        Fastest way of multiplying using only one cycle, but costly in terms of resources.
 
         Parameters
         ----------

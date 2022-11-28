@@ -8,10 +8,12 @@ from coreblocks.genparams import GenParams
 
 __all__ = ["MulBaseUnsigned", "ShiftUnsignedMul", "SequentialUnsignedMul", "RecursiveUnsignedMul"]
 
+from coreblocks.transactions.lib import FIFO
+
 
 class MulBaseUnsigned(Elaboratable):
     """
-    Abstract module creating common interface of unsigned multiplication module
+    Abstract module creating common interface of unsigned multiplication module.
     """
 
     def __init__(self, gen: GenParams):
@@ -25,12 +27,12 @@ class MulBaseUnsigned(Elaboratable):
 
 class DSPMulUnit(Elaboratable):
     """
-    Module for 1 clock cycle multiplication, designed to be replaced by DSP be HDL compiler
+    Module for 1 clock cycle multiplication, designed to be replaced with a DSP block by the synthesis tool.
 
     Parameters
     ----------
     dsp_width: int
-        width on multiplied numbers
+        Bit width of multiplied numbers.
     """
 
     def __init__(self, dsp_width: int):
@@ -52,14 +54,14 @@ class DSPMulUnit(Elaboratable):
 class RecursiveWithSingleDSPMul(Elaboratable):
     """
     Module with combinatorial connection for sequential multiplication using single DSP unit.
-    It uses classic recursive multiplication algorithm
+    It uses classic recursive multiplication algorithm.
 
     Parameters
     ----------
     dsp: DSPMulUnit
-        dsp unit performing multiplications in single clock cycle
+        Dsp unit performing multiplications in single clock cycle.
     n: int
-        width of multiplied numbers
+        Bit width of multiplied numbers.
     """
 
     def __init__(self, dsp: DSPMulUnit, n: int):
@@ -125,7 +127,7 @@ class RecursiveWithSingleDSPMul(Elaboratable):
 class SequentialUnsignedMul(MulBaseUnsigned):
     """
     Module with @see{MulBaseUnsigned} interface performing sequential multiplication using single DSP unit.
-    It uses classic recursive multiplication algorithm
+    It uses classic recursive multiplication algorithm.
     """
 
     def __init__(self, gen: GenParams):
@@ -164,14 +166,14 @@ class SequentialUnsignedMul(MulBaseUnsigned):
 class FastRecursiveMul(Elaboratable):
     """
     Module with combinatorial connection for fast recursive multiplication using as many DSPMulUnit as required for
-    one clock multiplication
+    one clock multiplication.
 
     Parameters
     ----------
     n: int
-        width of multiplied numbers
+        Bit width of multiplied numbers.
     dsp_width: int
-        width of dsp multiplication unit
+        Bit width of number multiplied bu dsp unit.
     """
 
     def __init__(self, n: int, dsp_width: int):
@@ -221,7 +223,7 @@ class FastRecursiveMul(Elaboratable):
 
 class RecursiveUnsignedMul(MulBaseUnsigned):
     """
-    Module with @see{MulBaseUnsigned} interface performing fast recursive multiplication withing 1 clock cycle
+    Module with @see{MulBaseUnsigned} interface performing fast recursive multiplication within 1 clock cycle.
     """
 
     def __init__(self, gen: GenParams):
@@ -229,28 +231,19 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
 
     def elaborate(self, platform):
         m = Module()
-        res = Signal(unsigned(self.gen.isa.xlen * 2))
-
-        i1 = Signal(unsigned(self.gen.isa.xlen))
-        i2 = Signal(unsigned(self.gen.isa.xlen))
-        accepted = Signal(1, reset=1)
+        m.submodules.fifo = fifo = FIFO([("o", 2 * self.gen.isa.xlen)], 2)
 
         m.submodules.mul = mul = FastRecursiveMul(self.gen.isa.xlen, self.gen.mul_unit_params.width)
 
-        @def_method(m, self.issue, ready=accepted)
+        @def_method(m, self.issue)
         def _(arg):
-            m.d.sync += i1.eq(arg.i1)
-            m.d.sync += i2.eq(arg.i2)
+            m.d.comb += mul.i1.eq(arg.i1)
+            m.d.comb += mul.i2.eq(arg.i2)
+            fifo.write(m, {"o": mul.r})
 
-            m.d.sync += accepted.eq(0)
-
-        @def_method(m, self.accept, ready=(~accepted))
+        @def_method(m, self.accept)
         def _(arg):
-            m.d.comb += mul.i1.eq(i1)
-            m.d.comb += mul.i2.eq(i2)
-            m.d.comb += res.eq(mul.r)
-            m.d.sync += accepted.eq(1)
-            return {"o": res}
+            return fifo.read(m)
 
         return m
 
@@ -258,7 +251,7 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
 class ShiftUnsignedMul(MulBaseUnsigned):
     """
     Module with @see{MulBaseUnsigned} interface performing cheap multi clock cycle multiplication using
-    Russian Peasants Algorithm
+    Russian Peasants Algorithm.
     """
 
     def __init__(self, gen: GenParams):

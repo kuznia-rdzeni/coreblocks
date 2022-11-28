@@ -4,7 +4,7 @@ from typing import Tuple
 from amaranth import *
 
 from coreblocks.isa import OpType, Funct3
-from coreblocks.mul_params import MulType
+from coreblocks.mul_params import MulType, MulUnitParams
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -20,7 +20,7 @@ from coreblocks.utils import OneHotSwitch
 
 class MulFn(Signal):
     """
-    Hot wire enum of 5 different multiplication operations
+    Hot wire enum of 5 different multiplication operations.
     """
 
     @unique
@@ -37,7 +37,7 @@ class MulFn(Signal):
 
 class MulFnDecoder(Elaboratable):
     """
-    Module decoding function into hot wired MulFn
+    Module decoding function into hot wired MulFn.
     """
 
     def __init__(self, gen: GenParams):
@@ -67,24 +67,25 @@ class MulFnDecoder(Elaboratable):
 
 def get_input(arg: Record) -> Tuple[Value, Value]:
     """
-    Operation of getting two input values
+    Operation of getting two input values.
 
     Parameters
     ----------
-    arg: int
-        arguments of functional unit issue call
+    arg: Record
+        Arguments of functional unit issue call.
 
     Returns
     -------
     return : Tuple[Value, Value]
-        two input values
+        Two input values.
     """
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
 
 class MulUnit(Elaboratable):
     """
-    Module responsible of handling every kind of multiplication based on selected unsigned integer multiplication module
+    Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
+    module.
     """
 
     def __init__(self, gen: GenParams):
@@ -98,23 +99,25 @@ class MulUnit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.fifo = fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
+        m.submodules.result_fifo = result_fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
+        m.submodules.params_fifo = params_fifo = FIFO(
+            [("rob_id", self.gen.rob_entries_bits), ("rp_dst", self.gen.phys_regs_bits)], 2
+        )
         m.submodules.decoder = decoder = MulFnDecoder(self.gen)
 
         # Selecting unsigned integer multiplication module
-        if self.gen.mul_unit_params.mul_type == MulType.SHIFT_MUL:
-            m.submodules.multiplier = multiplier = ShiftUnsignedMul(self.gen)
-        elif self.gen.mul_unit_params.mul_type == MulType.SEQUENCE_MUL:
-            m.submodules.multiplier = multiplier = SequentialUnsignedMul(self.gen)
-        elif self.gen.mul_unit_params.mul_type == MulType.RECURSIVE_MUL:
-            m.submodules.multiplier = multiplier = RecursiveUnsignedMul(self.gen)
-        else:
-            raise Exception("None existing multiplication unit type")
+        match self.gen.mul_unit_params:
+            case MulUnitParams(mul_type=MulType.SHIFT_MUL):
+                m.submodules.multiplier = multiplier = ShiftUnsignedMul(self.gen)
+            case MulUnitParams(mul_type=MulType.SEQUENCE_MUL):
+                m.submodules.multiplier = multiplier = SequentialUnsignedMul(self.gen)
+            case MulUnitParams(mul_type=MulType.RECURSIVE_MUL):
+                m.submodules.multiplier = multiplier = RecursiveUnsignedMul(self.gen)
+            case _:
+                raise Exception("None existing multiplication unit type")
 
         idle = Signal(1, reset=1)  # if unit is idle
 
-        rob_id = Signal(self.gen.rob_entries_bits)
-        rp_dst = Signal(self.gen.phys_regs_bits)
         value1 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
         value2 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
         negative_res = Signal(1)  # if result is negative number
@@ -126,12 +129,11 @@ class MulUnit(Elaboratable):
 
         @def_method(m, self.accept)
         def _(arg):
-            return fifo.read(m)
+            return result_fifo.read(m)
 
         @def_method(m, self.issue, ready=idle)
         def _(arg):
-            m.d.sync += rob_id.eq(arg.rob_id)
-            m.d.sync += rp_dst.eq(arg.rp_dst)
+            params_fifo.write(m, {"rob_id": arg.rob_id, "rp_dst": arg.rp_dst})
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
@@ -173,8 +175,9 @@ class MulUnit(Elaboratable):
             response = multiplier.accept(m)  # get result form unsigned multiplier
             sign_result = Mux(negative_res, -response.o, response.o)  # changing sign of result
             result = Mux(high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
+            params = params_fifo.read(m)
 
-            fifo.write(m, arg={"rob_id": rob_id, "result": result, "rp_dst": rp_dst})
+            result_fifo.write(m, arg={"rob_id": params.rob_id, "result": result, "rp_dst": params.rp_dst})
             m.d.sync += idle.eq(1)
 
         return m

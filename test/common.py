@@ -43,11 +43,19 @@ def get_outputs(field: Record) -> TestGen[RecordIntDict]:
 
 def neg(x: int, xlen: int) -> int:
     """
-    Changes U2 number into it's negation in U2 system
+    Computes the negation of a number in the U2 system.
 
-    :param x: U2 number to be negated
-    :param xlen: length of of input
-    :return: x negation in U2
+    Parameters
+    ----------
+    x: int
+        Number in U2 system.
+    xlen : int
+        Bit width of x.
+
+    Returns
+    -------
+    return : int
+        Negation of x in the U2 system.
     """
     base = 2**xlen - 1
     return ((x ^ base) + 1) & base
@@ -55,11 +63,19 @@ def neg(x: int, xlen: int) -> int:
 
 def int_to_signed(x: int, xlen: int) -> int:
     """
-    Changes Python integer into it's U2 representation
+    Converts a Python integer into its U2 representation.
 
-    :param x: Python integer to be converted
-    :param xlen: length of of input
-    :return: U2 representation
+    Parameters
+    ----------
+    x: int
+        Signed Python integer.
+    xlen : int
+        Bit width of x.
+
+    Returns
+    -------
+    return : int
+        Representation of x in the U2 system.
     """
     if x < 0:
         return neg(-x, xlen)
@@ -71,9 +87,17 @@ def signed_to_int(x: int, xlen: int) -> int:
     """
     Changes U2 representation into Python integer
 
-    :param x: U2 representation
-    :param xlen: length of of input
-    :return: Python integer
+    Parameters
+    ----------
+    x: int
+        Number in U2 system.
+    xlen : int
+        Bit width of x.
+
+    Returns
+    -------
+    return : int
+        Representation of x as signed Python integer.
     """
     sign = 2 ** (xlen - 1)
     if (sign & x) == sign:
