@@ -2,7 +2,7 @@ import itertools
 import inspect
 from typing import Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
-from .._typing import LayoutLike
+from ..utils._typing import LayoutLike
 from coreblocks.utils import OneHotSwitchDynamic
 
 __all__ = [
