@@ -145,7 +145,7 @@ class TransactionManager(Elaboratable):
             gr[transaction].add(transaction2)
             gr[transaction2].add(transaction)
 
-        for transaction in self.methods_by_transaction.keys():
+        for transaction in self.transactions:
             gr[transaction] = set()
 
         for transaction, methods in self.methods_by_transaction.items():
