@@ -116,8 +116,6 @@ class MulUnit(Elaboratable):
             case _:
                 raise Exception("None existing multiplication unit type")
 
-        idle = Signal(1, reset=1)  # if unit is idle
-
         value1 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
         value2 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
         negative_res = Signal(1)  # if result is negative number
@@ -131,7 +129,7 @@ class MulUnit(Elaboratable):
         def _(arg):
             return result_fifo.read(m)
 
-        @def_method(m, self.issue, ready=idle)
+        @def_method(m, self.issue)
         def _(arg):
             params_fifo.write(m, {"rob_id": arg.rob_id, "rp_dst": arg.rp_dst})
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
@@ -169,7 +167,6 @@ class MulUnit(Elaboratable):
                     m.d.comb += value2.eq(i2h)
 
             multiplier.issue(m, {"i1": value1, "i2": value2})
-            m.d.sync += idle.eq(0)
 
         with Transaction().body(m):
             response = multiplier.accept(m)  # get result form unsigned multiplier
@@ -178,6 +175,5 @@ class MulUnit(Elaboratable):
             params = params_fifo.read(m)
 
             result_fifo.write(m, arg={"rob_id": params.rob_id, "result": result, "rp_dst": params.rp_dst})
-            m.d.sync += idle.eq(1)
 
         return m
