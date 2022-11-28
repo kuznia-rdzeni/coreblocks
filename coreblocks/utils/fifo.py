@@ -1,10 +1,11 @@
 from amaranth import *
 from coreblocks.transactions import Method, def_method
 from coreblocks.transactions._utils import _coerce_layout, MethodLayout
+from typing import List
 
 
 class BasicFifo(Elaboratable):
-    def __init__(self, layout: MethodLayout, depth: int) -> None:
+    def __init__(self, layout: MethodLayout, depth: int, *, init: List[int] = []) -> None:
         self.layout = _coerce_layout(layout)
         self.width = len(Record(self.layout))
         self.depth = depth
@@ -16,13 +17,16 @@ class BasicFifo(Elaboratable):
         self.write = Method(i=self.layout)
         self.clear = Method()
 
-        self.buff = Memory(width=self.width, depth=self.mem_depth)
+        if len(init) > depth:
+            raise RuntimeError("Init list is longer than FIFO depth")
+
+        self.buff = Memory(width=self.width, depth=self.mem_depth, init=init)
 
         self.write_ready = Signal()
         self.read_ready = Signal()
 
         self.read_idx = Signal((self.mem_depth - 1).bit_length())
-        self.write_idx = Signal((self.mem_depth - 1).bit_length())
+        self.write_idx = Signal((self.mem_depth - 1).bit_length(), reset=len(init))
 
     def elaborate(self, platform) -> Module:
         m = Module()
@@ -45,12 +49,10 @@ class BasicFifo(Elaboratable):
 
         @def_method(m, self.read, self.read_ready)
         def _(arg) -> Record:
-            value = Record(self.layout)  # maybe ret
             m.d.comb += self.buff_rdport.addr.eq(self.read_idx)
-            m.d.comb += value.eq(self.buff_rdport.data)
 
             m.d.sync += self.read_idx.eq((self.read_idx + 1) % self.mem_depth)
 
-            return value
+            return self.buff_rdport.data
 
         return m
