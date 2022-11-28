@@ -1,0 +1,56 @@
+from amaranth import *
+from coreblocks.transactions import Method, def_method
+from coreblocks.transactions._utils import _coerce_layout, MethodLayout
+
+
+class BasicFifo(Elaboratable):
+    def __init__(self, layout: MethodLayout, depth: int) -> None:
+        self.layout = _coerce_layout(layout)
+        self.width = len(Record(self.layout))
+        self.depth = depth
+        self.mem_depth = (
+            depth + 1
+        )  # in this implementation, to allow concurrent Method access, memory needs to hold n+1 elements
+
+        self.read = Method(o=self.layout)
+        self.write = Method(i=self.layout)
+        self.clear = Method()
+
+        self.buff = Memory(width=self.width, depth=self.mem_depth)
+
+        self.write_ready = Signal()
+        self.read_ready = Signal()
+
+        self.read_idx = Signal((self.mem_depth - 1).bit_length())
+        self.write_idx = Signal((self.mem_depth - 1).bit_length())
+
+    def elaborate(self, platform) -> Module:
+        m = Module()
+
+        m.submodules.buff_rdport = self.buff_rdport = self.buff.read_port(
+            domain="comb", transparent=True
+        )  # FWFT behaviour
+        m.submodules.buff_wrport = self.buff_wrport = self.buff.write_port()
+
+        m.d.comb += self.read_ready.eq(self.read_idx != self.write_idx)
+        m.d.comb += self.write_ready.eq(self.read_idx != ((self.write_idx + 1) % self.mem_depth))
+
+        @def_method(m, self.write, ready=self.write_ready)
+        def _(arg):
+            m.d.comb += self.buff_wrport.addr.eq(self.write_idx)
+            m.d.comb += self.buff_wrport.data.eq(arg)
+            m.d.comb += self.buff_wrport.en.eq(1)
+
+            m.d.sync += self.write_idx.eq((self.write_idx + 1) % self.mem_depth)
+
+        @def_method(m, self.read, self.read_ready)
+        def _(arg) -> Record:
+            value = Record(self.layout)  # maybe ret
+            m.d.comb += self.buff_rdport.addr.eq(self.read_idx)
+            m.d.comb += value.eq(self.buff_rdport.data)
+
+            m.d.sync += self.read_idx.eq((self.read_idx + 1) % self.mem_depth)
+
+            return value
+
+        return m
