@@ -23,7 +23,7 @@ class MulUnitParams:
         return MulUnitParams(MulType.SHIFT_MUL)
 
     @classmethod
-    def SequanceMultiplier(cls, dsp_width) -> "MulUnitParams":
+    def SequenceMultiplier(cls, dsp_width) -> "MulUnitParams":
         """
         Uses single DSP unit for multiplication, which makes balance between performance and cost.
 

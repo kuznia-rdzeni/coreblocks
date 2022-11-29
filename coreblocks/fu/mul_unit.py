@@ -99,7 +99,8 @@ class MulUnit(Elaboratable):
 
         m.submodules.result_fifo = result_fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.params_fifo = params_fifo = FIFO(
-            [("rob_id", self.gen.rob_entries_bits), ("rp_dst", self.gen.phys_regs_bits)], 2
+            [("rob_id", self.gen.rob_entries_bits), ("rp_dst", self.gen.phys_regs_bits),
+             ("negative_res", 1), ("high_res", 1)], 2
         )
         m.submodules.decoder = decoder = MulFnDecoder(self.gen)
 
@@ -114,11 +115,6 @@ class MulUnit(Elaboratable):
             case _:
                 raise Exception("Nonexistent multiplication unit type")
 
-        value1 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
-        value2 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
-        negative_res = Signal(1)  # if result is negative number
-        high_res = Signal(1)  # if result should contain upper part of result
-
         xlen = self.gen.isa.xlen
         sign_bit = xlen - 1  # position of sign bit
         half_sign_bit = xlen // 2 - 1  # position of sign bit considering only half of input being used
@@ -129,34 +125,39 @@ class MulUnit(Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            params_fifo.write(m, {"rob_id": arg.rob_id, "rp_dst": arg.rp_dst})
+
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
+            value1 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
+            value2 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
+            negative_res = Signal(1)  # if result is negative number
+            high_res = Signal(1)  # if result should contain upper part of result
+
             with OneHotSwitch(m, decoder.mul_fn) as OneHotCase:
                 with OneHotCase(MulFn.Fn.MUL):  # MUL
-                    m.d.sync += negative_res.eq(0)
-                    m.d.sync += high_res.eq(0)
+                    m.d.comb += negative_res.eq(0)
+                    m.d.comb += high_res.eq(0)
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
                 with OneHotCase(MulFn.Fn.MULH):
-                    m.d.sync += negative_res.eq(i1[sign_bit] ^ i2[sign_bit])
-                    m.d.sync += high_res.eq(1)
+                    m.d.comb += negative_res.eq(i1[sign_bit] ^ i2[sign_bit])
+                    m.d.comb += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(Mux(i2[sign_bit], -i2, i2))
                 with OneHotCase(MulFn.Fn.MULHU):
-                    m.d.sync += negative_res.eq(0)
-                    m.d.sync += high_res.eq(1)
+                    m.d.comb += negative_res.eq(0)
+                    m.d.comb += high_res.eq(1)
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
                 with OneHotCase(MulFn.Fn.MULHSU):
-                    m.d.sync += negative_res.eq(i1[sign_bit])
-                    m.d.sync += high_res.eq(1)
+                    m.d.comb += negative_res.eq(i1[sign_bit])
+                    m.d.comb += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(i2)
                 with OneHotCase(MulFn.Fn.MULW):
-                    m.d.sync += negative_res.eq(i1[half_sign_bit] ^ i2[half_sign_bit])
-                    m.d.sync += high_res.eq(0)
+                    m.d.comb += negative_res.eq(i1[half_sign_bit] ^ i2[half_sign_bit])
+                    m.d.comb += high_res.eq(0)
                     i1h = Signal(xlen // 2)
                     i2h = Signal(xlen // 2)
                     m.d.comb += i1h.eq(Mux(i1[half_sign_bit], -i1, i1))
@@ -164,13 +165,16 @@ class MulUnit(Elaboratable):
                     m.d.comb += value1.eq(i1h)
                     m.d.comb += value2.eq(i2h)
 
+            params_fifo.write(m, {"rob_id": arg.rob_id, "rp_dst": arg.rp_dst, 'negative_res': negative_res,
+                                  'high_res': high_res})
+
             multiplier.issue(m, {"i1": value1, "i2": value2})
 
         with Transaction().body(m):
             response = multiplier.accept(m)  # get result form unsigned multiplier
-            sign_result = Mux(negative_res, -response.o, response.o)  # changing sign of result
-            result = Mux(high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
             params = params_fifo.read(m)
+            sign_result = Mux(params.negative_res, -response.o, response.o)  # changing sign of result
+            result = Mux(params.high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 
             result_fifo.write(m, arg={"rob_id": params.rob_id, "result": result, "rp_dst": params.rp_dst})
 
