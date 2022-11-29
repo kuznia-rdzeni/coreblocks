@@ -10,16 +10,16 @@ from .tracing import TracingFragment
 
 class OwnershipGraph:
     def __init__(self, root):
-        self.class_counters = defaultdict(int)
-        self.names = {}
-        self.hier = {}
-        self.labels = {}
-        self.graph = {}
-        self.edges = []
-        self.owned = defaultdict(set)
+        self.class_counters: defaultdict[type, int] = defaultdict(int)
+        self.names: dict[int, str] = {}
+        self.hier: dict[int, str] = {}
+        self.labels: dict[int, str] = {}
+        self.graph: dict[int, list[object]] = {}
+        self.edges: list[tuple[object, object, str]] = []
+        self.owned: defaultdict[int, set] = defaultdict(set)
         self.remember(root)
 
-    def remember(self, owner):
+    def remember(self, owner) -> int:
         while hasattr(owner, "_tracing_original"):
             owner = owner._tracing_original
         owner_id = id(owner)
@@ -64,11 +64,15 @@ class OwnershipGraph:
     def insert_edge(self, fr, to, direction='->'):
         self.edges.append((fr, to, direction))
 
-    def get_name(self, obj):
+    def get_name(self, obj) -> str:
         owner_id = self.remember(obj.owner)
         return f"{self.names[owner_id]}_{obj.name}"
 
-    def get_hier_name(self, obj):
+    def get_hier_name(self, obj) -> str:
+        """
+        Get hierarchical name.
+        Might raise KeyError if not yet hierarchized.
+        """
         owner_id = self.remember(obj.owner)
         name = f"{self.names[owner_id]}_{obj.name}"
         hier = self.hier[owner_id]
