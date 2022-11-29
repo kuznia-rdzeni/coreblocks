@@ -99,8 +99,13 @@ class MulUnit(Elaboratable):
 
         m.submodules.result_fifo = result_fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.params_fifo = params_fifo = FIFO(
-            [("rob_id", self.gen.rob_entries_bits), ("rp_dst", self.gen.phys_regs_bits),
-             ("negative_res", 1), ("high_res", 1)], 2
+            [
+                ("rob_id", self.gen.rob_entries_bits),
+                ("rp_dst", self.gen.phys_regs_bits),
+                ("negative_res", 1),
+                ("high_res", 1),
+            ],
+            2,
         )
         m.submodules.decoder = decoder = MulFnDecoder(self.gen)
 
@@ -165,8 +170,9 @@ class MulUnit(Elaboratable):
                     m.d.comb += value1.eq(i1h)
                     m.d.comb += value2.eq(i2h)
 
-            params_fifo.write(m, {"rob_id": arg.rob_id, "rp_dst": arg.rp_dst, 'negative_res': negative_res,
-                                  'high_res': high_res})
+            params_fifo.write(
+                m, {"rob_id": arg.rob_id, "rp_dst": arg.rp_dst, "negative_res": negative_res, "high_res": high_res}
+            )
 
             multiplier.issue(m, {"i1": value1, "i2": value2})
 
