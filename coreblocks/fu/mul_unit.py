@@ -112,7 +112,7 @@ class MulUnit(Elaboratable):
             case MulUnitParams(mul_type=MulType.RECURSIVE_MUL):
                 m.submodules.multiplier = multiplier = RecursiveUnsignedMul(self.gen)
             case _:
-                raise Exception("None existing multiplication unit type")
+                raise Exception("Nonexistent multiplication unit type")
 
         value1 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
         value2 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
