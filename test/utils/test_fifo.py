@@ -19,6 +19,7 @@ class BasicFifoTestCircuit(Elaboratable):
 
         m.submodules.fifo_read = self.fifo_read = TestbenchIO(AdapterTrans(self.fifo.read))
         m.submodules.fifo_write = self.fifo_write = TestbenchIO(AdapterTrans(self.fifo.write))
+        m.submodules.fifo_clear = self.fifo_clear = TestbenchIO(AdapterTrans(self.fifo.clear))
 
         return tm
 
@@ -33,6 +34,8 @@ class TestBasicFifo(TestCaseWithSimulator):
         cycles = 256
         random.seed(42)
 
+        self.done = False
+
         def source():
             for _ in range(cycles):
                 if random.randint(0, 1):
@@ -42,13 +45,25 @@ class TestBasicFifo(TestCaseWithSimulator):
                 yield from fifoc.fifo_write.call({"data": v})
                 expq.appendleft(v)
 
+                if random.random() < 0.005:
+                    yield from fifoc.fifo_clear.call()
+                    expq.clear()
+
+            self.done = True
+
         def target():
-            for _ in range(cycles):
+            while not self.done or expq:
                 if random.randint(0, 1):
                     yield
 
-                v = yield from fifoc.fifo_read.call()
-                self.assertEqual(v["data"], expq.pop())
+                yield from fifoc.fifo_read.call_init()
+                yield
+
+                v = yield from fifoc.fifo_read.call_result()
+                if v is not None:
+                    self.assertEqual(v["data"], expq.pop())
+
+                yield from fifoc.fifo_read.disable()
 
         with self.runSimulation(fifoc) as sim:
             sim.add_sync_process(source)

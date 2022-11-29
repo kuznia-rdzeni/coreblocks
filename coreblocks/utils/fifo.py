@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method
+from coreblocks.transactions import Method, def_method, ConflictPriority
 from coreblocks.transactions._utils import _coerce_layout, MethodLayout
 from typing import List
 
@@ -9,9 +9,8 @@ class BasicFifo(Elaboratable):
         self.layout = _coerce_layout(layout)
         self.width = len(Record(self.layout))
         self.depth = depth
-        self.mem_depth = (
-            depth + 1
-        )  # in this implementation, to allow concurrent Method access, memory needs to hold n+1 elements
+        # in this implementation, to allow concurrent Method access, memory needs to hold n+1 elements
+        self.mem_depth = depth + 1
 
         self.read = Method(o=self.layout)
         self.write = Method(i=self.layout)
@@ -27,6 +26,9 @@ class BasicFifo(Elaboratable):
 
         self.read_idx = Signal((self.mem_depth - 1).bit_length())
         self.write_idx = Signal((self.mem_depth - 1).bit_length(), reset=len(init))
+
+        self.clear.add_conflict(self.read, ConflictPriority.LEFT)
+        self.clear.add_conflict(self.write, ConflictPriority.LEFT)
 
     def elaborate(self, platform) -> Module:
         m = Module()
@@ -54,5 +56,10 @@ class BasicFifo(Elaboratable):
             m.d.sync += self.read_idx.eq((self.read_idx + 1) % self.mem_depth)
 
             return self.buff_rdport.data
+
+        @def_method(m, self.clear)
+        def _(arg):
+            m.d.sync += self.read_idx.eq(0)
+            m.d.sync += self.write_idx.eq(0)
 
         return m
