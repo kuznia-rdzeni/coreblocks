@@ -207,37 +207,13 @@ class TransactionManager(Elaboratable):
 
         return m
 
-    def dump_dot(self, fp, fragment):
+    def visual_graph(self, fragment):
         graph = OwnershipGraph(fragment)
-        fp.write("digraph G {\n")
-
         for method, transactions in self.transactions_by_method.items():
-            fp.write("    {")
-            for i, transaction in enumerate(transactions):
-                if i:
-                    fp.write(", ")
-                fp.write(graph.get_name(transaction, True))
-            fp.write(f"}} -> {graph.get_name(method, True)}\n")
-
-        graph.dump_dot(fp)
-        fp.write("}\n")
-        return graph
-
-    def dump_elk(self, fp, fragment):
-        graph = OwnershipGraph(fragment)
-
-        for method, transactions in self.transactions_by_method.items():
-            graph.get_name(method, True)
+            graph.insert_node(method)
             for transaction in transactions:
-                graph.get_name(transaction, True)
-
-        graph.dump_elk(fp)
-
-        for method, transactions in self.transactions_by_method.items():
-            meth_name = graph.get_hier_name(method)
-            for transaction in transactions:
-                trans_name = graph.get_hier_name(transaction)
-                fp.write(f"edge {trans_name} -> {meth_name}\n")
+                graph.insert_node(transaction)
+                graph.insert_edge(method, transaction)
 
         return graph
 

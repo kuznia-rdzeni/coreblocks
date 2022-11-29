@@ -27,5 +27,5 @@ while not hasattr(core, "transactionManager"):
 mgr = core.transactionManager
 
 with arg.ofile as fp:
-    dumper = getattr(mgr, 'dump_' + arg.format)
-    graph = dumper(fp, fragment)
+    graph = mgr.visual_graph(fragment)
+    graph.dump(fp, arg.format)

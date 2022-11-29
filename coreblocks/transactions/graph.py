@@ -11,6 +11,9 @@ from amaranth.hdl import dsl, ir, mem, xfrm
 from . import core
 
 
+# generic tuple because of aggressive monkey-patching
+modules_with_fragment: tuple = core, ir, dsl, mem, xfrm
+
 DIAGNOSTICS = False
 orig_on_fragment = FragmentTransformer.on_fragment
 
@@ -23,20 +26,20 @@ class TracingEnabler:
         self.orig_instance_class = ir.Instance
         Fragment.get = TracingFragment.get
         FragmentTransformer.on_fragment = TracingFragmentTransformer.on_fragment
-        for mod in core, ir, dsl, mem, xfrm:
+        for mod in modules_with_fragment:
             mod.Fragment = TracingFragment
             mod.Instance = TracingInstance
 
     def __exit__(self, tp, val, tb):
         Fragment.get = self.orig_fragment_get
         FragmentTransformer.on_fragment = self.orig_on_fragment
-        for mod in core, ir, dsl, mem, xfrm:
+        for mod in modules_with_fragment:
             mod.Fragment = self.orig_fragment_class
             mod.Instance = self.orig_instance_class
 
 
 class TracingFragmentTransformer(FragmentTransformer):
-    def on_fragment(self, fragment):
+    def on_fragment(self: FragmentTransformer, fragment):
         ret = orig_on_fragment(self, fragment)
         ret._tracing_original = fragment
         fragment._elaborated = ret
@@ -45,10 +48,11 @@ class TracingFragmentTransformer(FragmentTransformer):
 
 class TracingFragment(Fragment):
     _tracing_original: Elaboratable
+    subfragments: list[tuple[Elaboratable, str]]
 
     if DIAGNOSTICS:
 
-        def __init__(self, *args, **kwargs) -> "TracingFragment":
+        def __init__(self, *args, **kwargs):
             import sys
             import traceback
 
@@ -121,6 +125,7 @@ class OwnershipGraph:
         self.hier = {}
         self.labels = {}
         self.graph = {}
+        self.edges = []
         self.owned = defaultdict(set)
         self.remember(root)
 
@@ -143,6 +148,7 @@ class OwnershipGraph:
                     if isinstance(obj, Elaboratable) and not field.startswith("_"):
                         self.remember_field(owner_id, field, obj)
                 if isinstance(owner, Fragment):
+                    assert isinstance(owner, TracingFragment)
                     for obj, field in owner.subfragments:
                         self.remember_field(owner_id, field, obj)
                 try:
@@ -161,10 +167,15 @@ class OwnershipGraph:
         self.graph[owner_id].append(obj_id)
         self.remember(obj)
 
-    def get_name(self, obj, add=False):
+    def insert_node(self, obj):
         owner_id = self.remember(obj.owner)
-        if add:
-            self.owned[owner_id].add(obj)
+        self.owned[owner_id].add(obj)
+
+    def insert_edge(self, fr, to, direction='->'):
+        self.edges.append((fr, to, direction))
+
+    def get_name(self, obj):
+        owner_id = self.remember(obj.owner)
         return f"{self.names[owner_id]}_{obj.name}"
 
     def get_hier_name(self, obj):
@@ -173,11 +184,21 @@ class OwnershipGraph:
         hier = self.hier[owner_id]
         return f"{hier}.{name}"
 
+    def dump(self, fp, format):
+        dumper = getattr(self, "dump_" + format)
+        dumper(fp)
+
     def dump_dot(self, fp, owner=None, indent=""):
         if owner is None:
+            fp.write("digraph G {\n")
             for owner in self.names:
                 if owner not in self.labels:
                     self.dump_dot(fp, owner)
+            for fr, to, direction in self.edges:
+                caller_name = self.get_name(fr)
+                callee_name = self.get_name(to)
+                fp.write(f"{caller_name} {direction} {callee_name}\n")
+            fp.write("}\n")
             return
 
         subowners = self.graph[owner]
@@ -213,4 +234,20 @@ class OwnershipGraph:
             if subowner in self.graph:
                 self.hier[subowner] = f"{hier}.{self.names[subowner]}"
                 self.dump_elk(fp, subowner, indent + "    ")
+
+        # reverse iteration so that deleting works
+        for i, (fr, to, direction) in reversed(list(enumerate(self.edges))):
+            try:
+                caller_name = self.get_hier_name(fr)
+                callee_name = self.get_hier_name(to)
+            except KeyError:
+                continue
+
+            # only output edges belonging here
+            if caller_name[:len(hier)] == callee_name[:len(hier)] == hier:
+                caller_name = caller_name[len(hier)+1:]
+                callee_name = callee_name[len(hier)+1:]
+                del self.edges[i]
+                fp.write(f"{indent}    edge {caller_name} {direction} {callee_name}\n")
+
         fp.write(f"{indent}}}\n")
