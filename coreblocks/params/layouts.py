@@ -1,5 +1,4 @@
-from coreblocks.genparams import GenParams
-from coreblocks.isa import *
+from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode
 
 __all__ = [
     "SchedulerLayouts",

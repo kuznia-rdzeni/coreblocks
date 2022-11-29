@@ -1,9 +1,9 @@
-from coreblocks.isa import OpType, Funct3, Funct7
-from coreblocks.mul_unit import MulUnit, MulFn
+from coreblocks.params import OpType, Funct3, Funct7
+from coreblocks.fu.mul_unit import MulUnit, MulFn
 
-from .common import signed_to_int, int_to_signed
+from test.common import signed_to_int, int_to_signed
 
-from .functional_common import GenericFunctionalTestUnit
+from test.fu.functional_common import GenericFunctionalTestUnit
 
 
 def compute_result(i1: int, i2: int, fn: MulFn.Fn, xlen: int) -> int:
@@ -32,7 +32,7 @@ ops = {
 }
 
 
-class Test(GenericFunctionalTestUnit):
+class MultiplierUnitTest(GenericFunctionalTestUnit):
     def test_test(self):
         self.run_pipeline()
 

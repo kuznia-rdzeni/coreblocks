@@ -1,10 +1,8 @@
 from amaranth import *
 
-from coreblocks.layouts import UnsignedMulUnitLayouts
+from coreblocks.params import GenParams, UnsignedMulUnitLayouts
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
-
-from coreblocks.genparams import GenParams
 
 __all__ = ["MulBaseUnsigned", "ShiftUnsignedMul", "SequentialUnsignedMul", "RecursiveUnsignedMul"]
 

@@ -4,13 +4,24 @@ from typing import Dict, Callable, Any, Type
 
 from amaranth import Elaboratable, Module
 
-from coreblocks.genparams import GenParams
+from coreblocks.params import GenParams
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 from test.common import TestbenchIO, TestCaseWithSimulator
 
 
 class FunctionalTestCircuit(Elaboratable):
+    """
+    Common circuit for testing functional modules which are using @see{FuncUnitLayouts}.
+
+    Parameters
+    ----------
+    gen: GenParams
+        Core generation parameters.
+    func_unit : Type
+        Class of functional unit to be tested.
+    """
+
     def __init__(self, gen: GenParams, func_unit: Type):
         self.gen = gen
         self.func_unit = func_unit
@@ -30,6 +41,25 @@ class FunctionalTestCircuit(Elaboratable):
 
 
 class GenericFunctionalTestUnit(TestCaseWithSimulator):
+    """
+    Common test unit for testing functional modules which are using @see{FuncUnitLayouts}.
+    For example of usage see @see{MultiplierUnitTest}.
+
+    Parameters
+    ----------
+    operations: Dict[Any, Dict]
+        List of operations performing by this unit.
+    func_unit: Type
+        Class of functional unit to be tested.
+    expected: Callable[[int, int, Any, int], int]
+        Function computing expected results
+        (input_1, input_2, operation_key_form_operations, xlen) -> result.
+    number_of_tests: int
+        Number of random tests to be performed.
+    seed: int
+        Seed for generating random tests.
+    """
+
     def __init__(
         self,
         operations: Dict[Any, Dict],

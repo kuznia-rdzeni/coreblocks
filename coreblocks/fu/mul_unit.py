@@ -3,15 +3,13 @@ from typing import Tuple
 
 from amaranth import *
 
-from coreblocks.isa import OpType, Funct3
-from coreblocks.mul_params import MulType, MulUnitParams
+from coreblocks.params.mul_params import MulType, MulUnitParams
+from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
 
-from coreblocks.genparams import GenParams
-from coreblocks.layouts import *
-from coreblocks.unsigned_mul_unit import ShiftUnsignedMul, SequentialUnsignedMul, RecursiveUnsignedMul
+from coreblocks.fu.unsigned_mul_unit import ShiftUnsignedMul, SequentialUnsignedMul, RecursiveUnsignedMul
 
 __all__ = ["MulUnit", "MulFn"]
 

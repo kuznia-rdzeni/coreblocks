@@ -5,15 +5,20 @@ from typing import Type
 from amaranth import *
 from parameterized import parameterized_class
 
-from coreblocks.mul_params import MulUnitParams
-from coreblocks.unsigned_mul_unit import MulBaseUnsigned, ShiftUnsignedMul, SequentialUnsignedMul, RecursiveUnsignedMul
+from coreblocks.params.mul_params import MulUnitParams
+from coreblocks.fu.unsigned_mul_unit import (
+    MulBaseUnsigned,
+    ShiftUnsignedMul,
+    SequentialUnsignedMul,
+    RecursiveUnsignedMul,
+)
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
-from .common import TestCaseWithSimulator, TestbenchIO
+from test.common import TestCaseWithSimulator, TestbenchIO
 
-from coreblocks.genparams import GenParams
-from .functional_common import FunctionalTestCircuit
+from coreblocks.params import GenParams
+from test.fu.functional_common import FunctionalTestCircuit
 
 
 class UnsignedMultiplicationTestCircuit(Elaboratable):
