@@ -15,6 +15,7 @@ from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.frontend.fetch import Fetch
+from coreblocks.utils.fifo import BasicFifo
 
 __all__ = ["Core"]
 
@@ -26,7 +27,11 @@ class Core(Elaboratable):
 
         # make fifo_fetch visible outside of the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
-        self.free_rf_fifo = FIFO(self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits)
+        self.free_rf_fifo = BasicFifo(
+            self.gen_params.phys_regs_bits,
+            2**self.gen_params.phys_regs_bits,
+            init=[i for i in range(1, 2**self.gen_params.phys_regs_bits)],
+        )
         self.fetch = Fetch(self.gen_params, self.wb_master, self.fifo_fetch.write)
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
