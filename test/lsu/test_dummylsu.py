@@ -38,6 +38,7 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.bus = self.bus
         return tm
 
+#TODO ADD STORE TESTS
 
 class TestDummyLSULoads(TestCaseWithSimulator):
     def generateInstr(self, max_reg_val, max_imm_val):

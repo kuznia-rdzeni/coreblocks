@@ -11,6 +11,7 @@ __all__ = [
     "RSLayouts",
     "RFLayouts",
     "RATLayouts",
+    "LSULayouts",
 ]
 
 
@@ -197,4 +198,11 @@ class FuncUnitLayouts:
             ("rob_id", gen.rob_entries_bits),
             ("result", gen.isa.xlen),
             ("rp_dst", gen.phys_regs_bits),
+        ]
+
+
+class LSULayouts:
+    def __init__(self, gen_params: GenParams):
+        self.commit = [
+            ("rob_id", gen_params.rob_entries_bits),
         ]

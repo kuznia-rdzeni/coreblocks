@@ -1,6 +1,6 @@
 from amaranth import *
 from coreblocks.transactions import Method, def_method, Transaction
-from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3
+from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3, LSULayouts
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign, AssignType, ValueLike
 
@@ -56,6 +56,8 @@ class LSUDummyInternals(Elaboratable):
 
         self.result_ack = Signal()
         self.result_ready = Signal()
+        self.s_execute_store = Signal()
+        self.store_ready = Signal()
 
     def clean_current_instr(self, m: Module):
         m.d.sync += self.result_ready.eq(0)
@@ -92,33 +94,34 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += s.eq(data)
         return s
 
-    def load_init(self, m: Module, s_load_initiated: Signal):
+    def op_init(self, m: Module, s_op_initiated: Signal, we : int):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
 
-        s_bytes_mask_to_read = self.prepare_bytes_mask(m)
+        s_bytes_mask = self.prepare_bytes_mask(m)
         req = Record(self.bus.requestLayout)
         m.d.comb += req.addr.eq(addr)
-        m.d.comb += req.we.eq(0)
-        m.d.comb += req.sel.eq(s_bytes_mask_to_read)
+        m.d.comb += req.we.eq(we)
+        m.d.comb += req.sel.eq(s_bytes_mask)
 
         # load_init is under if so this transaction will request to be executed
         # after all uppers if will be taken, so there is no need to add here
         # additional signal as "request"
         with Transaction().body(m):
             self.bus.request(m, req)
-            m.d.sync += s_load_initiated.eq(1)
+            m.d.sync += s_op_initiated.eq(1)
 
-    def load_end(self, m: Module, s_load_initiated: Signal):
+    def op_end(self, m: Module, s_op_initiated: Signal, if_store:bool):
         with Transaction().body(m):
             fetched = self.bus.result(m)
-            m.d.sync += s_load_initiated.eq(0)
+            m.d.sync += s_op_initiated.eq(0)
             m.d.sync += self.result_ready.eq(1)
             with m.If(fetched.err == 0):
                 m.d.sync += self.resultData.result.eq(self.postprocess_load_data(m, fetched.data))
             with m.Else():
                 m.d.sync += self.resultData.result.eq(0)
-                # TODO Handle exception when it will be implemented
+            if (if_store):
+                m.d.sync += self.store_ready.eq(1)
 
     def elaborate(self, platform):
         def check_if_instr_ready() -> ValueLike:
@@ -137,24 +140,36 @@ class LSUDummyInternals(Elaboratable):
 
         s_instr_ready = check_if_instr_ready()
         s_instr_is_load = check_if_instr_is_load()
-        s_load_initiated = Signal()
+        s_op_initiated = Signal()
 
         # We have to make reverse because bits in cases are in diffrent order than in Cat due to python indexing
         # of lists (from left to right) and ints (from right to left)
-        INSTR_READY = 0b001
-        INSTR_IS_LOAD = 0b010
-        LOAD_INITIATED = 0b100
-        with m.Switch(Cat(list(reversed([s_load_initiated, s_instr_is_load, s_instr_ready])))):
+        INSTR_READY = 0b0001
+        INSTR_IS_LOAD = 0b0010
+        OP_INITIATED = 0b0100
+        EXEC_STORE = 0b1000
+        with m.Switch(Cat(list(reversed([self.s_execute_store, s_op_initiated, s_instr_is_load, s_instr_ready])))):
             with m.Case(INSTR_READY | INSTR_IS_LOAD):
-                self.load_init(m, s_load_initiated)
-            with m.Case(INSTR_READY | INSTR_IS_LOAD | LOAD_INITIATED):
-                self.load_end(m, s_load_initiated)
+                self.op_init(m, s_op_initiated,0)
+            with m.Case(INSTR_READY | INSTR_IS_LOAD | OP_INITIATED):
+                self.op_end(m, s_op_initiated, False)
+            with m.Case(INSTR_READY): # instr is not load so it is a store
+                m.d.sync += self.result_ready.eq(1)
+            with m.Case(INSTR_READY | EXEC_STORE):
+                self.op_init(m, s_op_initiated, 1)
+            with m.Case(EXEC_STORE | OP_INITIATED | INSTR_READY):
+                self.op_end(m, s_op_initiated, True)
             with m.Case():
                 pass
-                # TODO Implement store
+
 
         with m.If(self.result_ack):
             self.clean_current_instr(m)
+
+        with m.If(self.store_ready):
+            self.clean_current_instr(m)
+            m.d.sync+=self.store_ready.eq(0)
+
         return m
 
 
@@ -169,6 +184,8 @@ class LSUDummy(Elaboratable):
     inteligent LSU's will be connected without RS, so to
     have future proof module here also RS will be skipped
     and all RS operations will be handled inside of LSUDummy.
+
+    We assume that store can not return error.
 
     Attributes
     ----------
@@ -197,11 +214,13 @@ class LSUDummy(Elaboratable):
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
+        self.lsu_layouts = gen_params.get(LSULayouts)
 
         self.insert = Method(i=self.rs_layouts.insert_in)
         self.select = Method(o=self.rs_layouts.select_out)
         self.update = Method(i=self.rs_layouts.update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
+        self.commit = Method(i=self.lsu_layouts.commit)
 
         self.bus = bus
 
@@ -250,8 +269,20 @@ class LSUDummy(Elaboratable):
         @def_method(m, self.get_result, s_result_ready)
         def _(arg):
             m.d.comb += internal.result_ack.eq(1)
+            with m.If(currentInstr.exec_fn.op_type == Opcode.LOAD):
+                m.d.sync += currentInstr.eq(0)
+                m.d.sync += reserved.eq(0)
+            return resultData
+
+        @def_method(m, self.commit)
+        def _(arg):
+            with m.If( (currentInstr.exec_fn.op_type == Opcode.STORE) & \
+                    arg.rob_id == currentInstr.rob_id):
+                m.d.comb+=internal.s_execute_store.eq(1)
+
+        with m.If(internal.store_ready):
+            m.d.comb+=internal.s_execute_store.eq(0)
             m.d.sync += currentInstr.eq(0)
             m.d.sync += reserved.eq(0)
-            return resultData
 
         return m
