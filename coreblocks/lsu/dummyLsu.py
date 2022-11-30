@@ -6,9 +6,9 @@ from coreblocks.utils import assign, AssignType, ValueLike
 
 __all__ = ["LSUDummy"]
 
+
 class LSUDummyInternals(Elaboratable):
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster,
-                 currentInstr : Record, resultData : Record) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMaster, currentInstr: Record, resultData: Record) -> None:
         """
         Internal implementation of ``LSUDummy`` logic, which should be embedded into ``LSUDummy``
         class to expose transactional interface.
@@ -52,48 +52,48 @@ class LSUDummyInternals(Elaboratable):
         self.rs_layouts = gen_params.get(RSLayouts)
         self.currentInstr = currentInstr
         self.resultData = resultData
-        self.bus=bus
+        self.bus = bus
 
         self.result_ack = Signal()
         self.result_ready = Signal()
         self._addr = Signal(self.gen_params.isa.xlen)
 
-    def clean_current_instr(self, m : Module):
+    def clean_current_instr(self, m: Module):
         m.d.sync += self.result_ready.eq(0)
         m.d.sync += self.resultData.eq(0)
 
-    def calculate_addr(self, m:Module):
-        """ Calculate Load/Store address as defined by RiscV spec """
-        m.d.comb+=self._addr.eq(self.currentInstr.s1_val+self.currentInstr.imm)
+    def calculate_addr(self, m: Module):
+        """Calculate Load/Store address as defined by RiscV spec"""
+        m.d.comb += self._addr.eq(self.currentInstr.s1_val + self.currentInstr.imm)
 
-    def prepare_bytes_mask(self, m:Module) -> Signal:
-        mask_len=self.gen_params.isa.xlen // self.bus.wb_params.granularity
+    def prepare_bytes_mask(self, m: Module) -> Signal:
+        mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
         s = Signal(mask_len)
         with m.Switch(self.currentInstr.exec_fn.funct3):
             with m.Case(Funct3.B):
-                m.d.comb+=s.eq(0x1)
+                m.d.comb += s.eq(0x1)
             with m.Case(Funct3.BU):
-                m.d.comb+=s.eq(0x1)
+                m.d.comb += s.eq(0x1)
             with m.Case(Funct3.H):
-                m.d.comb+=s.eq(0x3)
+                m.d.comb += s.eq(0x3)
             with m.Case(Funct3.HU):
-                m.d.comb+=s.eq(0x3)
+                m.d.comb += s.eq(0x3)
             with m.Case(Funct3.W):
-                m.d.comb+=s.eq(0xf)
+                m.d.comb += s.eq(0xF)
         return s
 
-    def postprocess_load_data(self, m : Module, data : Signal):
+    def postprocess_load_data(self, m: Module, data: Signal):
         s = Signal.like(data)
         with m.Switch(self.currentInstr.exec_fn.funct3):
             with m.Case(Funct3.BU):
-                m.d.comb+=s.eq(Cat(data[:8], C(0, unsigned(s.shape().width-8))))
+                m.d.comb += s.eq(Cat(data[:8], C(0, unsigned(s.shape().width - 8))))
             with m.Case(Funct3.HU):
-                m.d.comb+=s.eq(Cat(data[:16], C(0, unsigned(s.shape().width-16))))
+                m.d.comb += s.eq(Cat(data[:16], C(0, unsigned(s.shape().width - 16))))
             with m.Case():
-                m.d.comb+=s.eq(data)
+                m.d.comb += s.eq(data)
         return s
 
-    def load_init(self, m:Module, s_load_initiated : Signal):
+    def load_init(self, m: Module, s_load_initiated: Signal):
         self.calculate_addr(m)
 
         s_bytes_mask_to_read = self.prepare_bytes_mask(m)
@@ -107,51 +107,56 @@ class LSUDummyInternals(Elaboratable):
         # additional signal as "request"
         with Transaction().body(m):
             self.bus.request(m, req)
-            m.d.sync+=s_load_initiated.eq(1)
+            m.d.sync += s_load_initiated.eq(1)
 
-    def load_end(self, m : Module, s_load_initiated : Signal):
+    def load_end(self, m: Module, s_load_initiated: Signal):
         with Transaction().body(m):
             fetched = self.bus.result(m)
             m.d.sync += s_load_initiated.eq(0)
             m.d.sync += self.result_ready.eq(1)
             with m.If(fetched.err == 0):
-                m.d.sync += self.resultData.result.eq(self.postprocess_load_data(m,fetched.data))
+                m.d.sync += self.resultData.result.eq(self.postprocess_load_data(m, fetched.data))
             with m.Else():
                 m.d.sync += self.resultData.result.eq(0)
-                #TODO Handle exception when it will be implemented
+                # TODO Handle exception when it will be implemented
 
     def elaborate(self, platform):
         def check_if_instr_ready() -> ValueLike:
             """Check if we all values needed by instruction are already calculated."""
-            return (self.currentInstr.rp_s1==0) & (self.currentInstr.rp_s2==0) & (self.currentInstr.valid==1) \
-                    & (self.result_ready==0)
+            return (
+                (self.currentInstr.rp_s1 == 0)
+                & (self.currentInstr.rp_s2 == 0)
+                & (self.currentInstr.valid == 1)
+                & (self.result_ready == 0)
+            )
+
         def check_if_instr_is_load() -> ValueLike:
-            return self.currentInstr.exec_fn.op_type==Opcode.LOAD
+            return self.currentInstr.exec_fn.op_type == Opcode.LOAD
 
         m = Module()
-        
-        s_instr_ready=check_if_instr_ready()
+
+        s_instr_ready = check_if_instr_ready()
         s_instr_is_load = check_if_instr_is_load()
         s_load_initiated = Signal()
 
-        #bits in cases are in diffrent order than in Cat due to python indexing
-        #of lists (from left to right) and ints (from right to left)
-        with m.Switch(Cat([s_instr_ready,s_instr_is_load,s_load_initiated])):
+        # bits in cases are in diffrent order than in Cat due to python indexing
+        # of lists (from left to right) and ints (from right to left)
+        with m.Switch(Cat([s_instr_ready, s_instr_is_load, s_load_initiated])):
             with m.Case("011"):
                 self.load_init(m, s_load_initiated)
             with m.Case("111"):
                 self.load_end(m, s_load_initiated)
             with m.Case():
                 pass
-                #TODO Implement store
+                # TODO Implement store
 
         with m.If(self.result_ack):
             self.clean_current_instr(m)
         return m
-    
+
 
 class LSUDummy(Elaboratable):
-    def __init__(self, gen_params: GenParams, bus:WishboneMaster) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
         """
         Very simple LSU, which serialize all stores and loads,
         to allow us work on a core as a whole. It isn't fully
@@ -200,15 +205,17 @@ class LSUDummy(Elaboratable):
         self.update = Method(i=self.rs_layouts.update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
 
-        self.bus=bus
-        self.currentInstr = Record(self.rs_layouts.data_layout+[("valid",1)])
+        self.bus = bus
+        self.currentInstr = Record(self.rs_layouts.data_layout + [("valid", 1)])
         self.resultData = Record(self.fu_layouts.accept)
-        self._reserved=Signal()
+        self._reserved = Signal()
 
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, self.currentInstr, self.resultData)
+        m.submodules.internal = internal = LSUDummyInternals(
+            self.gen_params, self.bus, self.currentInstr, self.resultData
+        )
 
         s_result_ready = internal.result_ready
 
@@ -218,29 +225,29 @@ class LSUDummy(Elaboratable):
             We always return 1, because we have only one place in
             instruction storage.
             """
-            m.d.sync+=self._reserved.eq(1)
+            m.d.sync += self._reserved.eq(1)
             return 1
 
         @def_method(m, self.insert, ~self.currentInstr.valid)
         def _(arg):
-            m.d.sync+=self.currentInstr.eq(arg.rs_data)
-            m.d.sync+=self.currentInstr.valid.eq(1)
-            m.d.sync+=assign(self.resultData, arg, fields=AssignType.COMMON)
+            m.d.sync += self.currentInstr.eq(arg.rs_data)
+            m.d.sync += self.currentInstr.valid.eq(1)
+            m.d.sync += assign(self.resultData, arg, fields=AssignType.COMMON)
 
         @def_method(m, self.update)
-        def _(arg):       
-            with m.If(self.currentInstr.rp_s1==arg.tag):
-                m.d.sync+=self.currentInstr.s1_val.eq(arg.value)
-                m.d.sync+=self.currentInstr.rp_s1.eq(0)
-            with m.If(self.currentInstr.rp_s2==arg.tag):
-                m.d.sync+=self.currentInstr.s2_val.eq(arg.value)
-                m.d.sync+=self.currentInstr.rp_s2.eq(0)
+        def _(arg):
+            with m.If(self.currentInstr.rp_s1 == arg.tag):
+                m.d.sync += self.currentInstr.s1_val.eq(arg.value)
+                m.d.sync += self.currentInstr.rp_s1.eq(0)
+            with m.If(self.currentInstr.rp_s2 == arg.tag):
+                m.d.sync += self.currentInstr.s2_val.eq(arg.value)
+                m.d.sync += self.currentInstr.rp_s2.eq(0)
 
         @def_method(m, self.get_result, s_result_ready)
         def _(arg):
             m.d.comb += internal.result_ack.eq(1)
             m.d.sync += self.currentInstr.eq(0)
-            m.d.sync+=self._reserved.eq(0)
+            m.d.sync += self._reserved.eq(0)
             return self.resultData
 
         return m
