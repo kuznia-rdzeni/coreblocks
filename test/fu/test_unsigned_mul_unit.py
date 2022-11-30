@@ -43,17 +43,17 @@ class UnsignedMultiplicationTestCircuit(Elaboratable):
     ("name", "mul_unit", "gen"),
     [
         (
-            "recursive_multiplicator",
+            "recursive_multiplier",
             RecursiveUnsignedMul,
             GenParams("rv32i", mul_unit_params=MulUnitParams.RecursiveMultiplier(16)),
         ),
         (
-            "sequential_multiplication",
+            "sequential_multiplier",
             SequentialUnsignedMul,
             GenParams("rv32i", mul_unit_params=MulUnitParams.SequenceMultiplier(16)),
         ),
         (
-            "shift_multiplicator",
+            "shift_multiplier",
             ShiftUnsignedMul,
             GenParams("rv32i", mul_unit_params=MulUnitParams.ShiftMultiplier()),
         ),
