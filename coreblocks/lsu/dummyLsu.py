@@ -9,6 +9,45 @@ __all__ = ["LSUDummy"]
 class LSUDummyInternals(Elaboratable):
     def __init__(self, gen_params: GenParams, bus: WishboneMaster,
                  currentInstr : Record, resultData : Record) -> None:
+        """
+        Internal implementation of ``LSUDummy`` logic, which should be embedded into ``LSUDummy``
+        class to expose transactional interface.
+
+        ``LSUDummyInternals`` get reference to ``currentInstr`` so to a signal which
+        is used as register in ``LSUDummy``. This signal contains instruction which is currently to be process.
+        When instruction get all its arguments ``LSUDummyInternals`` automaticaly starts working
+        (``LSUDummyInternals`` check in each cycle if instruction is ready). Based on content of
+        ``currentInstr`` ``LSUDummyInternals`` make different actions. It can start load operation,
+        by sending wichbone request to memory (of course using transactional framework) and
+        next wait till memory sent response back. When response is received ``LSUDummyInternals``
+        set ``result_ready`` bit to 1.
+
+        It is expected, that ``LSUDummy`` will put ``result_ack`` high for minimum 1 cycle, when
+        results and ``currentInstr`` aren't needed any more and should be cleared.
+
+        Parameters
+        ----------
+        gen_params: GenParams
+            Parameters to be used during processor generation.
+        bus: WishboneMaster
+            Instantion of wishbone master which should be used to communicate with
+            data memory.
+        currentInstr : Record
+            Reference to signal which contain instruction, which is currently processed by LSU.
+        resultData : Record
+            Synchronous signall which contain data readed from memory.
+
+        Attributes
+        ----------
+        result_ack : Signal
+            Signal which should be set high by ``LSUDummy`` to inform ``LSUDummyInternals`` that
+            we ended porcess instruction and all internal state should be cleared.
+        result_ready : Signal
+            Signal which is set high by ``LSUDummyInternals`` to inform ``LSUDummy`` that we have
+            prepared data to be announced in the rest of core.
+        _addr : Signal
+            Internal signal which store combinatoricaly calculated address in memory.
+        """
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
         self.currentInstr = currentInstr
@@ -22,25 +61,11 @@ class LSUDummyInternals(Elaboratable):
     def cleanCurrentInstr(self, m : Module):
         m.d.sync += self.result_ready.eq(0)
         m.d.sync += self.currentInstr.eq(0)
+        m.d.sync += self.resultData.eq(0)
 
     def calculateAddr(self, m:Module):
-        """
-        Calculate Load/Store address as defined by RiscV spec
-        """
-        m.d.comb+=_addr.eq(self.currentInstr.s1_val+self.currentInstr.imm)
-
-    def checkIfInstrReady(self, m : Module) -> Signal:
-        """
-        Check if we all values needed by instruction are already calculated.
-        """
-        s = Signal()
-        m.d.comb+=s.eq(self.currentInstr.rp_s1==0 & self.currentInstr.rp_s2==0 & self.ready==0)
-        return s
-
-    def checkIfInstrIsLoad(self, m:Module) -> Signal:
-        s = Signal()
-        m.d.comb += s.eq(self.currentInstr.exec_fn.opcode==Opcode.LOAD)
-        return s
+        """ Calculate Load/Store address as defined by RiscV spec """
+        m.d.comb+=self._addr.eq(self.currentInstr.s1_val+self.currentInstr.imm)
 
     def prepareBytesMask(self, m:Module) -> Signal:
         mask_len=self.gen_params.isa.xlen // self.bus.wb_params.granularity
@@ -83,6 +108,12 @@ class LSUDummyInternals(Elaboratable):
                 #TODO Handle exception when it will be implemented
 
     def elaborate(self, platform):
+        def checkIfInstrReady(self, m : Module) -> ValueLike:
+            """Check if we all values needed by instruction are already calculated."""
+            return (self.currentInstr.rp_s1==0) & (self.currentInstr.rp_s2==0) & (self.ready==0)
+        def checkIfInstrIsLoad(self, m:Module) -> ValueLike:
+            return self.currentInstr.exec_fn.opcode==Opcode.LOAD
+
         m = Module()
         
         s_instr_ready=self.checkIfInstrReady(m)
@@ -95,6 +126,7 @@ class LSUDummyInternals(Elaboratable):
             with m.Case("111"):
                 self.load_end(m)
             with m.Case():
+                pass
                 #TODO Implement store
 
         with m.If(self.ack):
@@ -114,18 +146,31 @@ class LSUDummy(Elaboratable):
         have future proof module here also RS will be skipped
         and all RS operations will be handled inside of LSUDummy.
 
-        Methods:
-        insert :
-        Used to put instruction into reserved place.
-        select:
-        Used to reserve a place for intruction in LSU.
-        update:
-        Used to receive announcment that calculations of new value have ended
-        and we have a value which can be used in father computations.
-        get_result:
-        To put load/store results to the next stage of pipeline
-        exec_store:
-        To execute store on retirement
+        Parameters
+        ----------
+        gen_params: GenParams
+            Parameters to be used during processor generation.
+        bus: WishboneMaster
+            Instantion of wishbone master which should be used to communicate with
+            data memory.
+
+        Attributes
+        ----------
+        select : Method
+            Used to reserve a place for intruction in LSU.
+        insert : Method
+            Used to put instruction into reserved place.
+        update : Method
+            Used to receive announcment that calculations of new value have ended
+            and we have a value which can be used in father computations.
+        get_result : Method
+            To put load/store results to the next stage of pipeline.
+        currentInstr : Record
+            Record which store currently pocessed instruction using RS data
+            layout extended with ``valid`` bit.
+        resultData : Record
+            Record using ``FuncUnitLayouts.data`` shape which store temporarly
+            results to be send to next pipeline step.
         """
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
@@ -135,35 +180,30 @@ class LSUDummy(Elaboratable):
         self.select = Method(o=self.rs_layouts.select_out)
         self.update = Method(i=self.rs_layouts.update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
-        self.exec_store = Method()
 
         self.bus=bus
-        self.currentInstr = Record(self.rs_layouts.data_layout)
+        self.currentInstr = Record(self.rs_layouts.data_layout+[("valid",1)])
         self.resultData = Record(self.fu_layouts.accept)
 
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.internals = intern = LSUDummyInternals(self.gen_params, self.bus, self.currentInstr, self.resultData)
+        m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, self.currentInstr, self.resultData)
 
-        s_lsu_empty = Signal()
-        m.d.comb+=s_lsu_empty.eq(self.currentInstr.rob_id==0)
+        s_result_ready = internal.ready
 
-        s_result_ready = intern.ready
-
-        @def_method(m, self.select, s_lsu_empty)
+        @def_method(m, self.select, self.currentInstr.valid)
         def _ (arg) -> Signal:
             """
             We always return 1, because we have only one place in
             instruction storage.
             """
-            s = Signal()
-            m.d.comb+=s.eq(1)
-            return s
+            return 1
 
         @def_method(m, self.insert)
         def _(arg) ->Signal:
             m.d.sync+=self.currentInstr.eq(arg.rs_data)
+            m.d.sync+=self.currentInstr.valid.eq(1)
             m.d.sync+=assign(self.resultData, arg, AssignType.COMMON)
 
         @def_method(m, self.update)
@@ -177,7 +217,3 @@ class LSUDummy(Elaboratable):
         def _(arg) -> Signal:
             m.d.comb += intern.result_ack.eq(1)
             return self.resultData
-
-        @def_method(m, self.exec_store, s_store_ready)
-        def _(arg) -> Signal:
-            pass
