@@ -6,7 +6,7 @@ from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Assign
 from ._utils import *
-from .._typing import ValueLike
+from ..utils._typing import ValueLike
 from .graph import OwnershipGraph
 
 __all__ = [
@@ -146,7 +146,7 @@ class TransactionManager(Elaboratable):
             gr[transaction].add(transaction2)
             gr[transaction2].add(transaction)
 
-        for transaction in self.methods_by_transaction.keys():
+        for transaction in self.transactions:
             gr[transaction] = set()
 
         for transaction, methods in self.methods_by_transaction.items():
@@ -481,6 +481,27 @@ class Method:
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.defined = False
 
+    @staticmethod
+    def like(other: "Method", *, name: Optional[str] = None) -> "Method":
+        """Constructs a new ``Method`` based on another.
+
+        The returned ``Method`` has the same input/output data layouts as the
+        ``other`` ``Method``.
+
+        Parameters
+        ----------
+        other : Method
+            The ``Method`` which serves as a blueprint for the new ``Method``.
+        name : str, optional
+            Name of the new ``Method``.
+
+        Returns
+        -------
+        Method
+            The freshly constructed ``Method``.
+        """
+        return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
+
     def add_conflict(self, end: Union["Transaction", "Method"]) -> None:
         """Registers a conflict.
 
@@ -591,11 +612,11 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
 
     Parameters
     ----------
-    m : Module
+    m: Module
         Module in which operations on signals should be executed.
-    method : Method
+    method: Method
         The method whose body is going to be defined.
-    ready : Signal
+    ready: Signal
         Signal to indicate if the method is ready to be run. By
         default it is ``Const(1)``, so the method is always ready.
         Assigned combinatorially to the ``ready`` attribute.
