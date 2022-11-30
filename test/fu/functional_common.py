@@ -58,6 +58,8 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         Number of random tests to be performed.
     seed: int
         Seed for generating random tests.
+    gen: GenParams
+        Core generation parameters.
     """
 
     def __init__(
@@ -67,6 +69,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         expected: Callable[[int, int, Any, int], int],
         number_of_tests: int = 2000,
         seed: int = 40,
+        gen: GenParams = GenParams("rv32i"),
         methodName: str = "runTest",
     ):
         super().__init__(methodName)
@@ -75,9 +78,9 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         self.expected = expected
         self.number_of_tests = number_of_tests
         self.seed = seed
+        self.gen = gen
 
     def setUp(self):
-        self.gen = GenParams("rv32i")
         self.m = FunctionalTestCircuit(self.gen, self.func_unit)
 
         random.seed(self.seed)

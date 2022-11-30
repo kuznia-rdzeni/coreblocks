@@ -3,15 +3,15 @@ from collections import deque
 from typing import Type
 
 from amaranth import *
+from amaranth.sim import Settle
 from parameterized import parameterized_class
 
+from coreblocks.fu.usigned_multiplication.common import MulBaseUnsigned
+from coreblocks.fu.usigned_multiplication.fast_recursive import RecursiveUnsignedMul
+from coreblocks.fu.usigned_multiplication.sequence import SequentialUnsignedMul
+from coreblocks.fu.usigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params.mul_params import MulUnitParams
-from coreblocks.fu.unsigned_mul_unit import (
-    MulBaseUnsigned,
-    ShiftUnsignedMul,
-    SequentialUnsignedMul,
-    RecursiveUnsignedMul,
-)
+
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
@@ -102,6 +102,7 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
         def producer():
             while self.requests:
                 req = self.requests.pop()
+                yield Settle()
                 yield from self.m.issue.call(req)
                 yield from random_wait()
 
