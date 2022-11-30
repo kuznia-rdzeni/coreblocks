@@ -3,9 +3,9 @@ from typing import Tuple
 
 from amaranth import *
 
-from coreblocks.fu.usigned_multiplication.fast_recursive import RecursiveUnsignedMul
-from coreblocks.fu.usigned_multiplication.sequence import SequentialUnsignedMul
-from coreblocks.fu.usigned_multiplication.shift import ShiftUnsignedMul
+from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
+from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
+from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params.mul_params import MulType, MulUnitParams
 from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType
 from coreblocks.transactions import *

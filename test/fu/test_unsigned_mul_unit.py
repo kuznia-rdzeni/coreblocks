@@ -6,10 +6,10 @@ from amaranth import *
 from amaranth.sim import Settle
 from parameterized import parameterized_class
 
-from coreblocks.fu.usigned_multiplication.common import MulBaseUnsigned
-from coreblocks.fu.usigned_multiplication.fast_recursive import RecursiveUnsignedMul
-from coreblocks.fu.usigned_multiplication.sequence import SequentialUnsignedMul
-from coreblocks.fu.usigned_multiplication.shift import ShiftUnsignedMul
+from coreblocks.fu.unsigned_multiplication.common import MulBaseUnsigned
+from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
+from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
+from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params.mul_params import MulUnitParams
 
 from coreblocks.transactions import *
