@@ -30,7 +30,6 @@ class FunctionalTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        # m.submodules.func_unit = func_unit = ShiftUnsignedMul(self.gen)
         m.submodules.func_unit = func_unit = self.func_unit(self.gen)
 
         # mocked input and output
@@ -60,6 +59,8 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         Seed for generating random tests.
     gen: GenParams
         Core generation parameters.
+    methodName: str
+        Named test method to be executed. Necessary for Python to correctly run test.
     """
 
     def __init__(
