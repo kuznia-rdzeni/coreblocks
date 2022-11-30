@@ -61,7 +61,7 @@ class OwnershipGraph:
         owner_id = self.remember(obj.owner)
         self.owned[owner_id].add(obj)
 
-    def insert_edge(self, fr, to, direction='->'):
+    def insert_edge(self, fr, to, direction="->"):
         self.edges.append((fr, to, direction))
 
     def get_name(self, obj) -> str:
@@ -138,9 +138,9 @@ class OwnershipGraph:
                 continue
 
             # only output edges belonging here
-            if caller_name[:len(hier)] == callee_name[:len(hier)] == hier:
-                caller_name = caller_name[len(hier)+1:]
-                callee_name = callee_name[len(hier)+1:]
+            if caller_name[: len(hier)] == callee_name[: len(hier)] == hier:
+                caller_name = caller_name[len(hier) + 1 :]
+                callee_name = callee_name[len(hier) + 1 :]
                 del self.edges[i]
                 fp.write(f"{indent}    edge {caller_name} {direction} {callee_name}\n")
 
