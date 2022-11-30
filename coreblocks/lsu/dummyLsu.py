@@ -1,8 +1,8 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method
+from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3
-from coreblocks.perip.wishbone import WishboneMaster
-from coreblocks.utils import assign, AssignType
+from coreblocks.peripherals.wishbone import WishboneMaster
+from coreblocks.utils import assign, AssignType, ValueLike
 
 __all__ = ["LSUDummy"]
 
@@ -58,32 +58,45 @@ class LSUDummyInternals(Elaboratable):
         self.result_ready = Signal()
         self._addr = Signal(self.gen_params.isa.xlen)
 
-    def cleanCurrentInstr(self, m : Module):
+    def clean_current_instr(self, m : Module):
         m.d.sync += self.result_ready.eq(0)
-        m.d.sync += self.currentInstr.eq(0)
         m.d.sync += self.resultData.eq(0)
 
-    def calculateAddr(self, m:Module):
+    def calculate_addr(self, m:Module):
         """ Calculate Load/Store address as defined by RiscV spec """
         m.d.comb+=self._addr.eq(self.currentInstr.s1_val+self.currentInstr.imm)
 
-    def prepareBytesMask(self, m:Module) -> Signal:
+    def prepare_bytes_mask(self, m:Module) -> Signal:
         mask_len=self.gen_params.isa.xlen // self.bus.wb_params.granularity
         s = Signal(mask_len)
         with m.Switch(self.currentInstr.exec_fn.funct3):
             with m.Case(Funct3.B):
                 m.d.comb+=s.eq(0x1)
+            with m.Case(Funct3.BU):
+                m.d.comb+=s.eq(0x1)
             with m.Case(Funct3.H):
                 m.d.comb+=s.eq(0x3)
-            with m.case(Funct3.W):
+            with m.Case(Funct3.HU):
+                m.d.comb+=s.eq(0x3)
+            with m.Case(Funct3.W):
                 m.d.comb+=s.eq(0xf)
         return s
 
+    def postprocess_load_data(self, m : Module, data : Signal):
+        s = Signal.like(data)
+        with m.Switch(self.currentInstr.exec_fn.funct3):
+            with m.Case(Funct3.BU):
+                m.d.comb+=s.eq(Cat(data[:8], C(0, unsigned(s.shape().width-8))))
+            with m.Case(Funct3.HU):
+                m.d.comb+=s.eq(Cat(data[:16], C(0, unsigned(s.shape().width-16))))
+            with m.Case():
+                m.d.comb+=s.eq(data)
+        return s
 
     def load_init(self, m:Module, s_load_initiated : Signal):
-        self.calculateAddr(m)
+        self.calculate_addr(m)
 
-        s_bytes_mask_to_read = self.prepareBytesMask(m)
+        s_bytes_mask_to_read = self.prepare_bytes_mask(m)
         req = Record(self.bus.requestLayout)
         m.d.comb += req.addr.eq(self._addr)
         m.d.comb += req.we.eq(0)
@@ -102,35 +115,39 @@ class LSUDummyInternals(Elaboratable):
             m.d.sync += s_load_initiated.eq(0)
             m.d.sync += self.result_ready.eq(1)
             with m.If(fetched.err == 0):
-                m.d.sync += self.resultData.result.eq(fetched.data)
+                m.d.sync += self.resultData.result.eq(self.postprocess_load_data(m,fetched.data))
             with m.Else():
                 m.d.sync += self.resultData.result.eq(0)
                 #TODO Handle exception when it will be implemented
 
     def elaborate(self, platform):
-        def checkIfInstrReady(self, m : Module) -> ValueLike:
+        def check_if_instr_ready() -> ValueLike:
             """Check if we all values needed by instruction are already calculated."""
-            return (self.currentInstr.rp_s1==0) & (self.currentInstr.rp_s2==0) & (self.ready==0)
-        def checkIfInstrIsLoad(self, m:Module) -> ValueLike:
-            return self.currentInstr.exec_fn.opcode==Opcode.LOAD
+            return (self.currentInstr.rp_s1==0) & (self.currentInstr.rp_s2==0) & (self.currentInstr.valid==1) \
+                    & (self.result_ready==0)
+        def check_if_instr_is_load() -> ValueLike:
+            return self.currentInstr.exec_fn.op_type==Opcode.LOAD
 
         m = Module()
         
-        s_instr_ready=self.checkIfInstrReady(m)
-        s_instr_is_load = self.checkIfInstrIsLoad(m)
+        s_instr_ready=check_if_instr_ready()
+        s_instr_is_load = check_if_instr_is_load()
         s_load_initiated = Signal()
 
+        #bits in cases are in diffrent order than in Cat due to python indexing
+        #of lists (from left to right) and ints (from right to left)
         with m.Switch(Cat([s_instr_ready,s_instr_is_load,s_load_initiated])):
-            with m.Case("110"):
-                self.load_init(m)
+            with m.Case("011"):
+                self.load_init(m, s_load_initiated)
             with m.Case("111"):
-                self.load_end(m)
+                self.load_end(m, s_load_initiated)
             with m.Case():
                 pass
                 #TODO Implement store
 
-        with m.If(self.ack):
-            self.cleanCurrentInstr(m)
+        with m.If(self.result_ack):
+            self.clean_current_instr(m)
+        return m
     
 
 class LSUDummy(Elaboratable):
@@ -171,6 +188,8 @@ class LSUDummy(Elaboratable):
         resultData : Record
             Record using ``FuncUnitLayouts.data`` shape which store temporarly
             results to be send to next pipeline step.
+        _reserved : Signal
+            Register to mark, that ``currentInstr`` field is already reserved.
         """
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
@@ -184,36 +203,44 @@ class LSUDummy(Elaboratable):
         self.bus=bus
         self.currentInstr = Record(self.rs_layouts.data_layout+[("valid",1)])
         self.resultData = Record(self.fu_layouts.accept)
+        self._reserved=Signal()
 
     def elaborate(self, platform):
         m = Module()
 
         m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, self.currentInstr, self.resultData)
 
-        s_result_ready = internal.ready
+        s_result_ready = internal.result_ready
 
-        @def_method(m, self.select, self.currentInstr.valid)
-        def _ (arg) -> Signal:
+        @def_method(m, self.select, ~self._reserved)
+        def _(arg):
             """
             We always return 1, because we have only one place in
             instruction storage.
             """
+            m.d.sync+=self._reserved.eq(1)
             return 1
 
-        @def_method(m, self.insert)
-        def _(arg) ->Signal:
+        @def_method(m, self.insert, ~self.currentInstr.valid)
+        def _(arg):
             m.d.sync+=self.currentInstr.eq(arg.rs_data)
             m.d.sync+=self.currentInstr.valid.eq(1)
-            m.d.sync+=assign(self.resultData, arg, AssignType.COMMON)
+            m.d.sync+=assign(self.resultData, arg, fields=AssignType.COMMON)
 
         @def_method(m, self.update)
-        def _(arg) -> Signal:       
+        def _(arg):       
             with m.If(self.currentInstr.rp_s1==arg.tag):
                 m.d.sync+=self.currentInstr.s1_val.eq(arg.value)
+                m.d.sync+=self.currentInstr.rp_s1.eq(0)
             with m.If(self.currentInstr.rp_s2==arg.tag):
                 m.d.sync+=self.currentInstr.s2_val.eq(arg.value)
+                m.d.sync+=self.currentInstr.rp_s2.eq(0)
 
         @def_method(m, self.get_result, s_result_ready)
-        def _(arg) -> Signal:
-            m.d.comb += intern.result_ack.eq(1)
+        def _(arg):
+            m.d.comb += internal.result_ack.eq(1)
+            m.d.sync += self.currentInstr.eq(0)
+            m.d.sync+=self._reserved.eq(0)
             return self.resultData
+
+        return m
