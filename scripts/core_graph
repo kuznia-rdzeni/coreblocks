@@ -12,7 +12,7 @@ arg = par.parse_args()
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from coreblocks.genparams import GenParams
+from coreblocks.params.genparams import GenParams
 from coreblocks.transactions.graph import TracingFragment
 from test.test_core import TestElaboratable
 
