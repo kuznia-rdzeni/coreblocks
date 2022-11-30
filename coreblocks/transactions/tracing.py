@@ -79,7 +79,8 @@ class TracingFragment(Fragment):
                 if isinstance(obj, TracingFragment):
                     return obj
                 elif isinstance(obj, Fragment):
-                    raise NotImplementedError(f"Some Fragment missed in {old_obj}?")
+                    raise NotImplementedError(f"Monkey-patching missed some Fragment in {old_obj}.elaborate()?")
+                # This is literally taken from Amaranth {{
                 elif isinstance(obj, Elaboratable):
                     code = obj.elaborate.__code__
                     obj._MustUse__used = True
@@ -104,6 +105,7 @@ class TracingFragment(Fragment):
                         filename=code.co_filename,
                         lineno=code.co_firstlineno,
                     )
+                # }} (taken from Amaranth)
                 new_obj._tracing_original = obj
                 obj._elaborated = new_obj
 
