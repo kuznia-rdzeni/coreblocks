@@ -127,9 +127,9 @@ class TestBackend(TestCaseWithSimulator):
             # get executed at any time, particularly when we wouldn't be monitoring it
             yield from self.m.rf_announce_val_tbio.enable()
 
-            rf_result = yield from self.m.rf_announce_val_tbio.call_result()
-            rs_result = yield from self.m.rs_announce_val_tbio.call_result()
-            rob_result = yield from self.m.rob_mark_done_tbio.call_result()
+            rf_result = yield from self.m.rf_announce_val_tbio.method_argument()
+            rs_result = yield from self.m.rs_announce_val_tbio.method_argument()
+            rob_result = yield from self.m.rob_mark_done_tbio.method_argument()
 
             yield from self.m.rf_announce_val_tbio.disable()
 
