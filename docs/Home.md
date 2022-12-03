@@ -1,4 +1,4 @@
-## Introduction
+# Introduction
 
 CoreBlocks is going to be an out-of-order processor which will implement a RISC-V microarchitecture.
 The project will focus on flexibility, which should allow to easily make experiments with different
