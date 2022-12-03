@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scheduler overview &mdash; Coreblocks documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Proposition of Reservation Station implementation" href="../shared_structs/Implementation/RS_impl.html" />
+    <link rel="prev" title="Documentation for Coreblocks transaction framework" href="../Transactions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Coreblocks documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../Home.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Development_environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Transactions.html">Documentation for Coreblocks transaction framework</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Scheduler overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#description">Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#schema">Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#structure">Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#more-detailed-description-of-each-block">More detailed description of each block</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../shared_structs/Implementation/RS_impl.html">Proposition of Reservation Station implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../shared_structs/RS.html">Reservation Station</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Coreblocks documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Scheduler overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/scheduler/Overview.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="scheduler-overview">
+<h1>Scheduler overview<a class="headerlink" href="#scheduler-overview" title="Permalink to this heading"></a></h1>
+<div class="section" id="description">
+<h2>Description<a class="headerlink" href="#description" title="Permalink to this heading"></a></h2>
+<p>The scheduler is the middle part of our processor.
+It is located after the frontend and before execution units.
+Its main tasks are:</p>
+<ul class="simple">
+<li><p>register allocation</p></li>
+<li><p>renaming</p></li>
+<li><p>ROB entry allocation</p></li>
+<li><p>dispatching instructions to RSs</p></li>
+</ul>
+</div>
+<div class="section" id="schema">
+<h2>Schema<a class="headerlink" href="#schema" title="Permalink to this heading"></a></h2>
+<div class="mermaid">
+            graph
+    Reg;
+    Reg[&lt;b&gt;REGISTER ALLOCATION&lt;/b&gt;&lt;br&gt;-get free register from FREE RF list]
+    Reg --&gt; Rename;
+    Rename[&lt;b&gt;RENAMING&lt;/b&gt;&lt;br&gt;-rename source registers using F-RAT&lt;br&gt;-save mapping to allocated output register in F-RAT]
+    Rename --&gt; AlocRob;
+    AlocRob[&lt;b&gt;ROB ALLOCATION&lt;/b&gt;&lt;br&gt;-get ID of free entry in ROB&lt;br&gt;-save instruction in ROB entry]
+    AlocRob --&gt; Select;
+    Select[&lt;b&gt;RS SELECTION&lt;/b&gt;&lt;br&gt;-choose RS to which instruction should be send&lt;br&gt;-reserve entry in that RS]
+    Select --&gt; Insert;
+    Insert[&lt;b&gt;RS INSERTION&lt;/b&gt;&lt;br&gt;-insert instruction to selected RS&lt;br&gt;-get operands from RF&lt;br&gt;-save them in RS field of new instruction]
+        </div></div>
+<div class="section" id="structure">
+<h2>Structure<a class="headerlink" href="#structure" title="Permalink to this heading"></a></h2>
+<p>We decided to split the scheduler into 5 phases:</p>
+<ul class="simple">
+<li><p>register allocation</p></li>
+<li><p>renaming</p></li>
+<li><p>ROB entry allocation</p></li>
+<li><p>choosing the RS to which instruction should be dispatched</p></li>
+<li><p>inserting instruction to RS</p></li>
+</ul>
+<p>Each phase can potentially take one clock cycle, but they can be merged as a potential future optimization.
+During implementation each phase should be treated as a separate hardware block for future flexibility.</p>
+</div>
+<div class="section" id="more-detailed-description-of-each-block">
+<h2>More detailed description of each block<a class="headerlink" href="#more-detailed-description-of-each-block" title="Permalink to this heading"></a></h2>
+<p>TODO</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../Transactions.html" class="btn btn-neutral float-left" title="Documentation for Coreblocks transaction framework" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../shared_structs/Implementation/RS_impl.html" class="btn btn-neutral float-right" title="Proposition of Reservation Station implementation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Kuźnia Rdzeni, 2022.
+      <span class="lastupdated">Last updated on 22:41 2022-12-03.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+coreblocks.transactions package
+===============================
+
+Submodules
+----------
+
+coreblocks.transactions.core module
+-----------------------------------
+
+.. automodule:: coreblocks.transactions.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.transactions.lib module
+----------------------------------
+
+.. automodule:: coreblocks.transactions.lib
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.transactions
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coreblocks &mdash; Coreblocks documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Introduction" href="Home.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="#" class="icon icon-home"> Coreblocks documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="Home.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Development_environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Transactions.html">Documentation for Coreblocks transaction framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler/Overview.html">Scheduler overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html">Proposition of Reservation Station implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared_structs/RS.html">Reservation Station</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">Coreblocks documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+      <li>Coreblocks</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="coreblocks">
+<h1>Coreblocks<a class="headerlink" href="#coreblocks" title="Permalink to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Home.html">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Home.html#documentation">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Development_environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Transactions.html">Documentation for Coreblocks transaction framework</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Transactions.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Transactions.html#basic-usage">Basic usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Transactions.html#implementing-transactions">Implementing transactions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Transactions.html#implementing-methods">Implementing methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Transactions.html#method-or-transaction">Method or transaction?</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Transactions.html#the-library">The library</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler/Overview.html">Scheduler overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="scheduler/Overview.html#description">Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduler/Overview.html#schema">Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduler/Overview.html#structure">Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduler/Overview.html#more-detailed-description-of-each-block">More detailed description of each block</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html">Proposition of Reservation Station implementation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#internal-data">Internal data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#actual-reservation-station">Actual Reservation Station</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#used-slots-table">Used slots table</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#internal-methods">Internal methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#compare-and-substitute">Compare and substitute</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#read-row">Read row</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#clean-row">Clean row</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#get-free-slot">Get free slot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#mark-slot-as-used">Mark slot as used</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#proposition-of-implementation-of-external-interfaces">Proposition of implementation of external interfaces</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#get-slot-and-mark-as-used">Get slot and mark as used</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#compare-and-substitute-all">Compare and substitute all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html#read-and-clean-row">Read and clean row</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="shared_structs/RS.html">Reservation Station</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="shared_structs/RS.html#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/RS.html#reset-initial-state">Reset / Initial state</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="shared_structs/RS.html#external-interface-methods">External interface methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/RS.html#get-slot-and-mark-as-used">Get slot and mark as used</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/RS.html#insert-new-instruction">Insert new instruction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/RS.html#get-ready-vector">Get ready vector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/RS.html#read-and-clean-row">Read and clean row</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared_structs/RS.html#compare-and-substitute-all">Compare and substitute all</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="shared_structs/RS.html#external-interface-signals">External interface signals</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#coreblocks">coreblocks</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.html">coreblocks package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Home.html" class="btn btn-neutral float-right" title="Introduction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Kuźnia Rdzeni, 2022.
+      <span class="lastupdated">Last updated on 22:41 2022-12-03.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
