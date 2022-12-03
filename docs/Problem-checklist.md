@@ -1,3 +1,5 @@
+# Problem checklist
+
 If something doesn't work and you're puzzled as to why - go through this checklist to see if any of these points apply in your case:
 
 1. Make sure that you use `yield from` when calling generator functions in tests - e.g. `TestbenchIO` functions (notable exception: `yield Settle()` instead of `yield from Settle()`)
