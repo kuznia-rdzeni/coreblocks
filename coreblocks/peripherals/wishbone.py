@@ -10,7 +10,8 @@ from coreblocks.utils.utils import OneHotSwitchDynamic
 
 
 class WishboneParameters:
-    """Paramters of Wisbone bus
+    """Paramters of Wisbone bus.
+
     Parameters
     ----------
     data_width: int
@@ -28,7 +29,8 @@ class WishboneParameters:
 
 
 class WishboneLayout:
-    """Wishbone bus Layout generator
+    """Wishbone bus Layout generator.
+
     Parameters
     ----------
     wb_params: WishboneParameters
@@ -40,7 +42,7 @@ class WishboneLayout:
     Attributes
     ----------
     wb_layout: Record
-        Record of Wishbone bus
+        Record of a Wishbone bus.
     """
 
     def __init__(self, wb_params: WishboneParameters, master=True):
@@ -63,23 +65,23 @@ class WishboneLayout:
 class WishboneMaster(Elaboratable):
     """Wishbone bus master interface.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     wb_params: WishboneParameters
         Parameters for bus generation.
 
     Attributes
     ----------
     wbMaster: Record (like WishboneLayout)
-        Wishbone bus output
+        Wishbone bus output.
     request: Method
         Transactional method to start a new Wishbone request.
         Ready when no request is being executed and previous result is read.
-        Takes ```requestLayout``` as argument.
+        Takes `requestLayout` as argument.
     result: Method
         Transactional method to read previous request result.
         Becomes ready after Wishbone request is completed.
-        Returns state of request (error or success) and data (in case of read request) as ```resultLayout```.
+        Returns state of request (error or success) and data (in case of read request) as `resultLayout`.
     """
 
     def __init__(self, wb_params: WishboneParameters):
@@ -166,15 +168,16 @@ class WishboneMaster(Elaboratable):
 
 
 class WishboneMuxer(Elaboratable):
-    """Wishbone Muxer
+    """Wishbone Muxer.
+
     Connects one master to multiple slaves.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     masterWb: Record (like WishboneLayout)
         Record of master inteface.
     slaves: List[Record]
-        List of connected slaves Wisbone Records (like WishboneLayout)
+        List of connected slaves Wisbone Records (like WishboneLayout).
     sselTGA: Signal
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wisnone TGA (address tag), so it needs to be valid every time Wisbone STB
@@ -226,12 +229,13 @@ class WishboneMuxer(Elaboratable):
 
 # connects multiple masters to one slave
 class WishboneArbiter(Elaboratable):
-    """Wishbone Arbiter
+    """Wishbone Arbiter.
+
     Connects multiple masters to one slave.
     Bus is requested by asserting CYC signal and is granted to masters in a round robin manner.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     slaveWb: Record (like WishboneLayout)
         Record of slave inteface.
     masters: List[Record]
@@ -295,8 +299,8 @@ class WishboneMemorySlave(Elaboratable):
     """Wishbone slave with memory
     Wishbone slave interface with addressable memory underneath.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     wb_params: WishboneParameters
         Parameters for bus generation.
     **kwargs: dict

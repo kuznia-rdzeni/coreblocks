@@ -135,13 +135,14 @@ class ISA:
 
     Parameters
     ----------
-    isa_str: str
-             String identifying a specific RISC-V ISA. Please refer to GCC's
-             machine-dependent ``arch`` option for details.
+    isa_str : str
+        String identifying a specific RISC-V ISA. Please refer to GCC's
+        machine-dependent ``arch`` option for details.
 
-    Configuration constants
+
+    Attributes
     ----------
-    xlen:
+    xlen : int
         Native integer register width.
     reg_cnt:
         Number of integer registers.

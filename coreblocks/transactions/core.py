@@ -118,8 +118,8 @@ def trivial_roundrobin_cc_scheduler(
 class TransactionManager(Elaboratable):
     """Transaction manager
 
-    This module is responsible for granting ``Transaction``s and running
-    ``Method``s. It takes care that two conflicting ``Transaction``s
+    This module is responsible for granting ``Transaction``\\s and running
+    ``Method``\\s. It takes care that two conflicting ``Transaction``\\s
     are never granted in the same clock cycle.
     """
 
@@ -273,7 +273,7 @@ class TransactionModule(Elaboratable):
     ``TransactionModule`` is used as wrapper on ``Module`` class,
     which add support for transaction to the ``Module``. It creates a
     ``TransactionManager`` which will handle transaction scheduling
-    and can be used in definition of ``Method``s and ``Transaction``s.
+    and can be used in definition of ``Method``\\s and ``Transaction``\\s.
 
     Parameters
     ----------
@@ -313,7 +313,7 @@ class Transaction:
     can be granted by the ``TransactionManager``.
 
     A ``Transaction`` can, as part of its execution, call a number of
-    ``Method``s. A ``Transaction`` can be granted only if every ``Method``
+    ``Method``\\s. A ``Transaction`` can be granted only if every ``Method``
     it runs is ready.
 
     A ``Transaction`` cannot execute concurrently with another, conflicting
@@ -455,14 +455,14 @@ def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> lis
 class Method:
     """Transactional method.
 
-    A ``Method`` serves to interface a module with external ``Transaction``s
-    or ``Method``s. It can be called by at most once in a given clock cycle.
-    When a given ``Method`` is required by multiple ``Transaction``s
+    A ``Method`` serves to interface a module with external ``Transaction``\\s
+    or ``Method``\\s. It can be called by at most once in a given clock cycle.
+    When a given ``Method`` is required by multiple ``Transaction``\\s
     (either directly, or indirectly via another ``Method``) simultenaously,
     at most one of them is granted by the ``TransactionManager``, and the rest
     of them must wait. Calling a ``Method`` always takes a single clock cycle.
 
-    Data is combinatorially transferred between to and from ``Method``s
+    Data is combinatorially transferred between to and from ``Method``\\s
     using Amaranth ``Record``s. The transfer can take place in both directions
     at the same time: from the called ``Method`` to the caller (``data_out``)
     and from the caller to the called ``Method`` (``data_in``).
@@ -560,7 +560,7 @@ class Method:
         The ``body`` function should be used to define body of
         a method. It uses the ``ready`` and ``ret`` signals provided by
         the user to feed internal transactions logic and to pass this data
-        to method users. Inside the body, other ``Method``s can be called.
+        to method users. Inside the body, other ``Method`` s can be called.
 
         Parameters
         ----------
@@ -582,15 +582,16 @@ class Method:
             Data passed from the caller (a ``Transaction`` or another
             ``Method``) to this ``Method``.
 
-        Example
-        -------
-        ```
-        m = Module()
-        my_sum_method = Method(i = Layout([("arg1",8),("arg2",8)]))
-        sum = Signal(16)
-        with my_sum_method.body(m, out = sum) as data_in:
-            m.d.comb += sum.eq(data_in.arg1 + data_in.arg2)
-        ```
+        Examples
+        --------
+        .. highlight:: python
+        .. code-block:: python
+
+            m = Module()
+            my_sum_method = Method(i = Layout([("arg1",8),("arg2",8)]))
+            sum = Signal(16)
+            with my_sum_method.body(m, out = sum) as data_in:
+                m.d.comb += sum.eq(data_in.arg1 + data_in.arg2)
         """
         if self.defined:
             raise RuntimeError("Method already defined")
@@ -658,15 +659,16 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         default it is ``Const(1)``, so the method is always ready.
         Assigned combinatorially to the ``ready`` attribute.
 
-    Example
-    -------
-    ```
-    m = Module()
-    my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
-    @def_method(m, my_sum_method)
-    def _(data_in):
-        return data_in.arg1 + data_in.arg2
-    ```
+    Examples
+    --------
+    .. highlight:: python
+    .. code-block:: python
+
+        m = Module()
+        my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
+        @def_method(m, my_sum_method)
+        def _(data_in):
+            return data_in.arg1 + data_in.arg2
     """
 
     def decorator(func: Callable[[Record], Optional[RecordDict]]):
