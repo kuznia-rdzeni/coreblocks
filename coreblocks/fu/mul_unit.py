@@ -179,7 +179,7 @@ class MulUnit(Elaboratable):
             multiplier.issue(m, {"i1": value1, "i2": value2})
 
         with Transaction().body(m):
-            response = multiplier.accept(m)  # get result form unsigned multiplier
+            response = multiplier.accept(m)  # get result from unsigned multiplier
             params = params_fifo.read(m)
             sign_result = Mux(params.negative_res, -response.o, response.o)  # changing sign of result
             result = Mux(params.high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
