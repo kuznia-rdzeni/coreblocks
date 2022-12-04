@@ -1,7 +1,9 @@
 from collections import defaultdict
 from contextlib import contextmanager
+from enum import Enum, auto
 from typing import Callable, Iterable, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
 from types import MethodType
+from graphlib import TopologicalSorter
 from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Assign
@@ -9,6 +11,7 @@ from ._utils import *
 from ..utils._typing import ValueLike
 
 __all__ = [
+    "ConflictPriority",
     "TransactionManager",
     "TransactionContext",
     "TransactionModule",
@@ -23,11 +26,22 @@ __all__ = [
 DebugSignals: TypeAlias = Signal | Record | Iterable["DebugSignals"] | Mapping[str, "DebugSignals"]
 ConflictGraph: TypeAlias = Graph["Transaction"]
 ConflictGraphCC: TypeAlias = GraphCC["Transaction"]
-TransactionScheduler: TypeAlias = Callable[["TransactionManager", Module, ConflictGraph, ConflictGraphCC], None]
+PriorityOrder: TypeAlias = dict["Transaction", int]
+TransactionScheduler: TypeAlias = Callable[
+    ["TransactionManager", Module, ConflictGraph, ConflictGraphCC, PriorityOrder], None
+]
 RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 
 
-def eager_deterministic_cc_scheduler(manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC):
+class ConflictPriority(Enum):
+    UNDEFINED = auto()
+    LEFT = auto()
+    RIGHT = auto()
+
+
+def eager_deterministic_cc_scheduler(
+    manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC, porder: PriorityOrder
+):
     """eager_deterministic_cc_scheduler
 
     This function generates an eager scheduler for the transaction
@@ -45,13 +59,16 @@ def eager_deterministic_cc_scheduler(manager: "TransactionManager", m: Module, g
         arbitrating which agent should get a grant signal.
     m : Module
         Module to which signals and calculations should be connected.
-    gr : Mapping[Iterable[Transaction]]
+    gr : ConflictGraph
         Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : Set[Transaction]
         Connected components of the graph `gr` for which scheduler
         should be generated.
+    porder : PriorityOrder
+        Linear ordering of transactions which is consistent with priority constraints.
     """
     ccl = list(cc)
+    ccl.sort(key=lambda transaction: porder[transaction])
     for k, transaction in enumerate(ccl):
         ready = [method.ready for method in manager.methods_by_transaction[transaction]]
         runnable = Cat(ready).all()
@@ -60,7 +77,9 @@ def eager_deterministic_cc_scheduler(manager: "TransactionManager", m: Module, g
         m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
 
 
-def trivial_roundrobin_cc_scheduler(manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC):
+def trivial_roundrobin_cc_scheduler(
+    manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC, porder: PriorityOrder
+):
     """trivial_roundrobin_cc_scheduler
 
     This function generates a simple round-robin scheduler for the transaction
@@ -76,11 +95,13 @@ def trivial_roundrobin_cc_scheduler(manager: "TransactionManager", m: Module, gr
         arbitrating which agent should get grant signal.
     m : Module
         Module to which signals and calculations should be connected.
-    gr : Mapping[Iterable[Transaction]]
+    gr : ConflictGraph
         Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : Set[Transaction]
         Connected components of the graph `gr` for which scheduler
         should be generated.
+    porder : PriorityOrder
+        Linear ordering of transactions which is consistent with priority constraints.
     """
     sched = Scheduler(len(cc))
     m.submodules += sched
@@ -104,13 +125,13 @@ class TransactionManager(Elaboratable):
 
     def __init__(self, cc_scheduler: TransactionScheduler = eager_deterministic_cc_scheduler):
         self.transactions: list[Transaction] = []
-        self.conflicts: list[Tuple[Transaction | Method, Transaction | Method]] = []
+        self.conflicts: list[Tuple[Transaction | Method, Transaction | Method, ConflictPriority]] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
     def add_transaction(self, transaction: "Transaction"):
         self.transactions.append(transaction)
 
-    def _conflict_graph(self) -> ConflictGraph:
+    def _conflict_graph(self) -> Tuple[ConflictGraph, PriorityOrder]:
         """_conflict_graph
 
         This function generates the graph of transaction conflicts. Conflicts
@@ -127,10 +148,17 @@ class TransactionManager(Elaboratable):
         components, then they can be scheduled independently, because they
         will have no conflicts.
 
+        This function also computes a linear ordering of transactions
+        which is consistent with conflict priorities of methods and
+        transactions. When priority constraints cannot be satisfied,
+        an exception is thrown.
+
         Returns
         ----------
-        gr : Mapping[Iterable[Transaction]]
+        gr : ConflictGraph
             Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
+        porder : PriorityOrder
+            Linear ordering of transactions which is consistent with priority constraints.
         """
 
         def endTrans(end: Transaction | Method):
@@ -139,27 +167,39 @@ class TransactionManager(Elaboratable):
             else:
                 return [end]
 
-        gr: ConflictGraph = {}
+        gr: ConflictGraph = {}  # Conflict graph
+        pgr: ConflictGraph = {}  # Priority graph
 
-        def addEdge(transaction: Transaction, transaction2: Transaction):
+        def addEdge(transaction: Transaction, transaction2: Transaction, priority: ConflictPriority):
             gr[transaction].add(transaction2)
             gr[transaction2].add(transaction)
+            match priority:
+                case ConflictPriority.LEFT:
+                    pgr[transaction2].add(transaction)
+                case ConflictPriority.RIGHT:
+                    pgr[transaction].add(transaction2)
 
         for transaction in self.transactions:
             gr[transaction] = set()
+            pgr[transaction] = set()
 
         for transaction, methods in self.methods_by_transaction.items():
             for method in methods:
                 for transaction2 in self.transactions_by_method[method]:
                     if transaction is not transaction2:
-                        addEdge(transaction, transaction2)
+                        addEdge(transaction, transaction2, ConflictPriority.UNDEFINED)
 
-        for (end1, end2) in self.conflicts:
+        for (end1, end2, priority) in self.conflicts:
             for transaction in endTrans(end1):
                 for transaction2 in endTrans(end2):
-                    addEdge(transaction, transaction2)
+                    addEdge(transaction, transaction2, priority)
 
-        return gr
+        porder: PriorityOrder = {}
+
+        for (k, transaction) in enumerate(TopologicalSorter(pgr).static_order()):
+            porder[transaction] = k
+
+        return gr, porder
 
     def _call_graph(self, transaction: "Transaction", method: "Method", arg: ValueLike, enable: ValueLike):
         if not method.defined:
@@ -170,7 +210,7 @@ class TransactionManager(Elaboratable):
         self.methods_by_transaction[transaction].append(method)
         self.transactions_by_method[method].append(transaction)
         for end in method.conflicts:
-            self.conflicts.append((method, end))
+            self.conflicts.append((method, end[0], end[1]))
         for method, (arg, enable) in method.method_uses.items():
             self._call_graph(transaction, method, arg, enable)
 
@@ -182,16 +222,16 @@ class TransactionManager(Elaboratable):
 
         for transaction in self.transactions:
             for end in transaction.conflicts:
-                self.conflicts.append((transaction, end))
+                self.conflicts.append((transaction, end[0], end[1]))
             for method, (arg, enable) in transaction.method_uses.items():
                 self._call_graph(transaction, method, arg, enable)
 
-        gr = self._conflict_graph()
+        gr, porder = self._conflict_graph()
 
         m = Module()
 
         for cc in _graph_ccs(gr):
-            self.cc_scheduler(m, gr, cc)
+            self.cc_scheduler(m, gr, cc, porder)
 
         for method, transactions in self.transactions_by_method.items():
             granted = Signal(len(transactions))
@@ -319,10 +359,10 @@ class Transaction:
         manager.add_transaction(self)
         self.request = Signal()
         self.grant = Signal()
-        self.method_uses = dict()
-        self.conflicts = []
+        self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
+        self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
 
-    def use_method(self, method: "Method", arg, enable):
+    def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
         if method in self.method_uses:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[method] = (arg, enable)
@@ -360,7 +400,9 @@ class Transaction:
             with m.If(self.grant):
                 yield self
 
-    def add_conflict(self, end: Union["Transaction", "Method"]) -> None:
+    def add_conflict(
+        self, end: Union["Transaction", "Method"], priority: ConflictPriority = ConflictPriority.UNDEFINED
+    ) -> None:
         """Registers a conflict.
 
         The ``TransactionManager`` is informed that given ``Transaction``
@@ -372,8 +414,11 @@ class Transaction:
         ----------
         end: Transaction or Method
             The conflicting ``Transaction`` or ``Method``
+        priority: ConflictPriority, optional
+            Is one of conflicting ``Transaction``s or ``Method``s prioritized?
+            Defaults to undefined priority relation.
         """
-        self.conflicts.append(end)
+        self.conflicts.append((end, priority))
 
     @classmethod
     def get(cls) -> "Transaction":
@@ -464,7 +509,7 @@ class Method:
         self.run = Signal()
         self.data_in = Record(_coerce_layout(i))
         self.data_out = Record(_coerce_layout(o))
-        self.conflicts: list[Transaction | Method] = []
+        self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.defined = False
 
@@ -489,7 +534,9 @@ class Method:
         """
         return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
 
-    def add_conflict(self, end: Union["Transaction", "Method"]) -> None:
+    def add_conflict(
+        self, end: Union["Transaction", "Method"], priority: ConflictPriority = ConflictPriority.UNDEFINED
+    ) -> None:
         """Registers a conflict.
 
         Record that that the given ``Transaction`` or ``Method`` cannot execute
@@ -500,8 +547,11 @@ class Method:
         ----------
         end: Transaction or Method
             The conflicting ``Transaction`` or ``Method``
+        priority: ConflictPriority, optional
+            Is one of conflicting ``Transaction``s or ``Method``s prioritized?
+            Defaults to undefined priority relation.
         """
-        self.conflicts.append(end)
+        self.conflicts.append((end, priority))
 
     @contextmanager
     def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
