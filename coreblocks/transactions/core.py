@@ -317,9 +317,9 @@ class Transaction:
     it runs is ready.
 
     A ``Transaction`` cannot execute concurrently with another, conflicting
-    ``Transaction``. Conflicts between ``Transaction``s are either explicit
+    ``Transaction``. Conflicts between ``Transaction``\\s are either explicit
     or implicit. An explicit conflict is added using the ``add_conflict``
-    method. Implicit conflicts arise between pairs of ``Transaction``s
+    method. Implicit conflicts arise between pairs of ``Transaction``\\s
     which use the same ``Method``.
 
     A module which defines a ``Transaction`` should use ``body`` to
@@ -415,7 +415,7 @@ class Transaction:
         end: Transaction or Method
             The conflicting ``Transaction`` or ``Method``
         priority: ConflictPriority, optional
-            Is one of conflicting ``Transaction``s or ``Method``s prioritized?
+            Is one of conflicting ``Transaction``\\s or ``Method``\\s prioritized?
             Defaults to undefined priority relation.
         """
         self.conflicts.append((end, priority))
@@ -463,7 +463,7 @@ class Method:
     of them must wait. Calling a ``Method`` always takes a single clock cycle.
 
     Data is combinatorially transferred between to and from ``Method``\\s
-    using Amaranth ``Record``s. The transfer can take place in both directions
+    using Amaranth ``Record``\\s. The transfer can take place in both directions
     at the same time: from the called ``Method`` to the caller (``data_out``)
     and from the caller to the called ``Method`` (``data_in``).
 
@@ -548,7 +548,7 @@ class Method:
         end: Transaction or Method
             The conflicting ``Transaction`` or ``Method``
         priority: ConflictPriority, optional
-            Is one of conflicting ``Transaction``s or ``Method``s prioritized?
+            Is one of conflicting ``Transaction``\\s or ``Method``\\s prioritized?
             Defaults to undefined priority relation.
         """
         self.conflicts.append((end, priority))
