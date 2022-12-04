@@ -3,6 +3,7 @@ from amaranth import *
 from amaranth.sim import *
 
 import random
+import contextlib
 
 from collections import deque
 from typing import Iterable, Callable
@@ -15,6 +16,7 @@ from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.transactions._utils import Scheduler
 
 from coreblocks.transactions.core import (
+    ConflictPriority,
     TransactionScheduler,
     trivial_roundrobin_cc_scheduler,
     eager_deterministic_cc_scheduler,
@@ -208,3 +210,125 @@ class TestTransactionConflict(TestCaseWithSimulator):
             sim.add_sync_process(self.make_in1_process(prob1))
             sim.add_sync_process(self.make_in2_process(prob2))
             sim.add_sync_process(self.make_out_process(probout))
+
+
+class TransactionPriorityTestCircuit(Elaboratable):
+    def __init__(self, priority: ConflictPriority, unsatisfiable=False):
+        self.priority = priority
+        self.r1 = Signal()
+        self.r2 = Signal()
+        self.t1 = Signal()
+        self.t2 = Signal()
+        self.unsatisfiable = unsatisfiable
+
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        with tm.transactionContext():
+            transaction1 = Transaction()
+            transaction2 = Transaction()
+
+            with transaction1.body(m, request=self.r1):
+                m.d.comb += self.t1.eq(1)
+
+            with transaction2.body(m, request=self.r2):
+                m.d.comb += self.t2.eq(1)
+
+        transaction1.add_conflict(transaction2, self.priority)
+        if self.unsatisfiable:
+            transaction2.add_conflict(transaction1, self.priority)
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
+        return tm
+
+
+class MethodPriorityTestCircuit(Elaboratable):
+    def __init__(self, priority: ConflictPriority, unsatisfiable=False):
+        self.priority = priority
+        self.r1 = Signal()
+        self.r2 = Signal()
+        self.t1 = Signal()
+        self.t2 = Signal()
+        self.unsatisfiable = unsatisfiable
+
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        method1 = Method()
+        method2 = Method()
+
+        @def_method(m, method1, ready=self.r1)
+        def _(_):
+            m.d.comb += self.t1.eq(1)
+
+        @def_method(m, method2, ready=self.r2)
+        def _(_):
+            m.d.comb += self.t2.eq(1)
+
+        with tm.transactionContext():
+            with Transaction().body(m):
+                method1(m)
+
+            with Transaction().body(m):
+                method2(m)
+
+        method1.add_conflict(method2, self.priority)
+        if self.unsatisfiable:
+            method2.add_conflict(method1, self.priority)
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
+        return tm
+
+
+@parameterized_class(
+    ("name", "circuit"), [("transaction", TransactionPriorityTestCircuit), ("method", MethodPriorityTestCircuit)]
+)
+class TestTransactionPriorities(TestCaseWithSimulator):
+    circuit: type[Elaboratable]
+
+    def setUp(self):
+        random.seed(42)
+
+    @parameterized.expand([(ConflictPriority.UNDEFINED,), (ConflictPriority.LEFT,), (ConflictPriority.RIGHT,)])
+    def test_priorities(self, priority: ConflictPriority):
+        m = self.circuit(priority)
+
+        def process():
+            to_do = 5 * [(0, 1), (1, 0), (1, 1)]
+            random.shuffle(to_do)
+            for (r1, r2) in to_do:
+                yield m.r1.eq(r1)
+                yield m.r2.eq(r2)
+                yield
+                self.assertNotEqual((yield m.t1), (yield m.t2))
+                if r1 == 1 and r2 == 1:
+                    if priority == ConflictPriority.LEFT:
+                        self.assertTrue((yield m.t1))
+                    if priority == ConflictPriority.RIGHT:
+                        self.assertTrue((yield m.t2))
+
+        with self.runSimulation(m) as sim:
+            sim.add_sync_process(process)
+
+    @parameterized.expand([(ConflictPriority.UNDEFINED,), (ConflictPriority.LEFT,), (ConflictPriority.RIGHT,)])
+    def test_unsatisfiable(self, priority: ConflictPriority):
+        m = self.circuit(priority, True)
+
+        import graphlib
+
+        if priority != ConflictPriority.UNDEFINED:
+            cm = self.assertRaises(graphlib.CycleError)
+        else:
+            cm = contextlib.nullcontext()
+
+        with cm:
+            with self.runSimulation(m):
+                pass
