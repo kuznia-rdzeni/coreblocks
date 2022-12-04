@@ -116,7 +116,7 @@ class ECP5Platform(LatticeECP5Platform):
     device = "LFE5UM5G-85F"
     package = "BG381"
     speed = "8"
-    default_clk = "clk12"
+    default_clk = "clk"
     default_rst = "rst"
 
     def __init__(self, *, VCCIO1="2V5", VCCIO6="3V3", **kwargs):
@@ -134,8 +134,8 @@ class ECP5Platform(LatticeECP5Platform):
 
     resources = [
         Resource("rst", 0, PinsN("G2", dir="i"), Attrs(IO_TYPE="LVCMOS33")),
-        Resource("clk12", 0, Pins("A10", dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
-        Resource("data_in", 0, Pins("A16 A15 B13 B11 A10 A11", dir="i")),
+        Resource("clk", 0, Pins("A10", dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
+        Resource("data_in", 0, Pins("A16 A15 B13 B11 G20 A11", dir="i")),
         Resource(
             "data_out",
             0,
