@@ -177,6 +177,7 @@ class DecodeLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen.isa.xlen),
+            ("pc", gen.isa.xlen),
         ]
 
 
