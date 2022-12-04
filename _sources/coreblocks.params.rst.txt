@@ -1,0 +1,37 @@
+coreblocks.params package
+=========================
+
+Submodules
+----------
+
+coreblocks.params.genparams module
+----------------------------------
+
+.. automodule:: coreblocks.params.genparams
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.params.isa module
+----------------------------
+
+.. automodule:: coreblocks.params.isa
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.params.layouts module
+--------------------------------
+
+.. automodule:: coreblocks.params.layouts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.params
+   :members:
+   :undoc-members:
+   :show-inheritance:

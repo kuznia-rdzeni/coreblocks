@@ -12,5 +12,8 @@ Transactions.md
 scheduler/Overview.md
 shared_structs/Implementation/RS_impl.md
 shared_structs/RS.md
-api.md
+Problem-checklist.md
+    ```{eval-rst}
+    .. include:: modules.rst
+    ```
 ```

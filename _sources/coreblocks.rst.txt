@@ -7,151 +7,23 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   coreblocks.frontend
+   coreblocks.fu
+   coreblocks.params
+   coreblocks.peripherals
+   coreblocks.scheduler
+   coreblocks.stages
+   coreblocks.structs_common
    coreblocks.transactions
+   coreblocks.utils
 
 Submodules
 ----------
-
-coreblocks.backend module
--------------------------
-
-.. automodule:: coreblocks.backend
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 coreblocks.core module
 ----------------------
 
 .. automodule:: coreblocks.core
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.decode module
-------------------------
-
-.. automodule:: coreblocks.decode
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.decoder module
--------------------------
-
-.. automodule:: coreblocks.decoder
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.fetch module
------------------------
-
-.. automodule:: coreblocks.fetch
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.functional\_unit module
-----------------------------------
-
-.. automodule:: coreblocks.functional_unit
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.genparams module
----------------------------
-
-.. automodule:: coreblocks.genparams
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.isa module
----------------------
-
-.. automodule:: coreblocks.isa
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.layouts module
--------------------------
-
-.. automodule:: coreblocks.layouts
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.rat module
----------------------
-
-.. automodule:: coreblocks.rat
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.reorder\_buffer module
----------------------------------
-
-.. automodule:: coreblocks.reorder_buffer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.retirement module
-----------------------------
-
-.. automodule:: coreblocks.retirement
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.rf module
---------------------
-
-.. automodule:: coreblocks.rf
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.rs module
---------------------
-
-.. automodule:: coreblocks.rs
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.scheduler module
----------------------------
-
-.. automodule:: coreblocks.scheduler
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.utils module
------------------------
-
-.. automodule:: coreblocks.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.wakeup\_select module
---------------------------------
-
-.. automodule:: coreblocks.wakeup_select
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.wishbone module
---------------------------
-
-.. automodule:: coreblocks.wishbone
    :members:
    :undoc-members:
    :show-inheritance:

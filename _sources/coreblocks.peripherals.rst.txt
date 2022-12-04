@@ -1,0 +1,21 @@
+coreblocks.peripherals package
+==============================
+
+Submodules
+----------
+
+coreblocks.peripherals.wishbone module
+--------------------------------------
+
+.. automodule:: coreblocks.peripherals.wishbone
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.peripherals
+   :members:
+   :undoc-members:
+   :show-inheritance:

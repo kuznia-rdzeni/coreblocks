@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>coreblocks.stages package &mdash; Coreblocks documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Coreblocks documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="Home.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Development_environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Transactions.html">Documentation for Coreblocks transaction framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler/Overview.html">Scheduler overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html">Proposition of Reservation Station implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared_structs/RS.html">Reservation Station</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Problem-checklist.html">Problem checklist</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Coreblocks documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>coreblocks.stages package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/coreblocks.stages.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="coreblocks-stages-package">
+<h1>coreblocks.stages package<a class="headerlink" href="#coreblocks-stages-package" title="Permalink to this heading"></a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="module-coreblocks.stages.backend">
+<span id="coreblocks-stages-backend-module"></span><h2>coreblocks.stages.backend module<a class="headerlink" href="#module-coreblocks.stages.backend" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.stages.backend.ResultAnnouncement">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.stages.backend.</span></span><span class="sig-name descname"><span class="pre">ResultAnnouncement</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.stages.backend.ResultAnnouncement" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Simple result announce unit. It takes an executed instruction and sends
+its results to ROB, RF and RS. ROB marks the instruction as completed.
+The RF stores the result value of the instruction. The value
+is also sent to RS in case if there is an instruction which waits for
+this value.</p>
+<p>Method <cite>get_result</cite> gets already serialized instruction results, so in
+case in which we have more than one FU, then their outputs should be connected by
+<code class="docutils literal notranslate"><span class="pre">ManyToOneConnectTrans</span></code> to a FIFO.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen</strong><span class="classifier">GenParams</span></dt><dd><p>Instance of GenParams with parameters which should be used to generate
+fetch unit.</p>
+</dd>
+<dt><strong>get_result</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to get results of next ready instruction,
+which should be announced in core. This method assumes that results
+from different FUs are already serialized.</p>
+</dd>
+<dt><strong>rob_mark_done</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to mark that instruction ended without exception.
+It uses layout with one field <cite>rob_id</cite>,</p>
+</dd>
+<dt><strong>rs_write_val</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to pass value which is an output of finished instruction
+to RS, so that RS can save it if there are instructions which wait for it.
+It uses layout with two fields <cite>tag</cite> and <cite>value</cite>.</p>
+</dd>
+<dt><strong>rf_write_val</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to save value which is an output of finished instruction to RF.
+It uses layout with two fields <cite>reg_id</cite> and <cite>reg_val</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.stages.retirement">
+<span id="coreblocks-stages-retirement-module"></span><h2>coreblocks.stages.retirement module<a class="headerlink" href="#module-coreblocks.stages.retirement" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.stages.retirement.Retirement">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.stages.retirement.</span></span><span class="sig-name descname"><span class="pre">Retirement</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.stages.retirement.Retirement" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.stages">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.stages" title="Permalink to this heading"></a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Kuźnia Rdzeni, 2022.
+      <span class="lastupdated">Last updated on 00:54 2022-12-04.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

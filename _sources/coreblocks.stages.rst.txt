@@ -1,0 +1,29 @@
+coreblocks.stages package
+=========================
+
+Submodules
+----------
+
+coreblocks.stages.backend module
+--------------------------------
+
+.. automodule:: coreblocks.stages.backend
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.stages.retirement module
+-----------------------------------
+
+.. automodule:: coreblocks.stages.retirement
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.stages
+   :members:
+   :undoc-members:
+   :show-inheritance:

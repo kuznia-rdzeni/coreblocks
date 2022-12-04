@@ -1,0 +1,37 @@
+coreblocks.frontend package
+===========================
+
+Submodules
+----------
+
+coreblocks.frontend.decode module
+---------------------------------
+
+.. automodule:: coreblocks.frontend.decode
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.frontend.decoder module
+----------------------------------
+
+.. automodule:: coreblocks.frontend.decoder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.frontend.fetch module
+--------------------------------
+
+.. automodule:: coreblocks.frontend.fetch
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.frontend
+   :members:
+   :undoc-members:
+   :show-inheritance:

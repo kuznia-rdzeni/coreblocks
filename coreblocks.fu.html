@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>List of assumptions made during development &mdash; Coreblocks documentation</title>
+  <title>coreblocks.fu package &mdash; Coreblocks documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -19,9 +19,7 @@
         <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Development environment" href="Development_environment.html" />
-    <link rel="prev" title="Introduction" href="Home.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -39,9 +37,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul class="current">
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="Home.html">Introduction</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Assumptions.html">List of assumptions made during development</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Development_environment.html">Development environment</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Transactions.html">Documentation for Coreblocks transaction framework</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scheduler/Overview.html">Scheduler overview</a></li>
@@ -64,9 +62,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>List of assumptions made during development</li>
+      <li>coreblocks.fu package</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/Assumptions.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/coreblocks.fu.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -74,25 +72,29 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="list-of-assumptions-made-during-development">
-<h1>List of assumptions made during development<a class="headerlink" href="#list-of-assumptions-made-during-development" title="Permalink to this heading"></a></h1>
-<ul class="simple">
-<li><p>RF has data forwarding from the Tomasulo announcement bus</p></li>
-<li><p>read of <code class="docutils literal notranslate"><span class="pre">x0</span></code>/<code class="docutils literal notranslate"><span class="pre">RF0</span></code> returns 0</p></li>
-<li><p>write to <code class="docutils literal notranslate"><span class="pre">x0</span></code>/<code class="docutils literal notranslate"><span class="pre">RF0</span></code> is a noop</p></li>
-<li><p>separate RS for each FU</p></li>
-<li><p>the writeback stage saves data to the RF and the ROB (after getting output data from FUs)</p></li>
-<li><p>the commit stage updates the R-RAT</p></li>
-</ul>
+  <div class="section" id="coreblocks-fu-package">
+<h1>coreblocks.fu package<a class="headerlink" href="#coreblocks-fu-package" title="Permalink to this heading"></a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="module-coreblocks.fu.alu">
+<span id="coreblocks-fu-alu-module"></span><h2>coreblocks.fu.alu module<a class="headerlink" href="#module-coreblocks.fu.alu" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.alu.AluFuncUnit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.alu.</span></span><span class="sig-name descname"><span class="pre">AluFuncUnit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.alu.AluFuncUnit" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.fu">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.fu" title="Permalink to this heading"></a></h2>
+</div>
 </div>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Home.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="Development_environment.html" class="btn btn-neutral float-right" title="Development environment" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 

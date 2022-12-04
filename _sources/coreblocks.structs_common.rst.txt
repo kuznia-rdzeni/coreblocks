@@ -1,0 +1,45 @@
+coreblocks.structs\_common package
+==================================
+
+Submodules
+----------
+
+coreblocks.structs\_common.rat module
+-------------------------------------
+
+.. automodule:: coreblocks.structs_common.rat
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.structs\_common.rf module
+------------------------------------
+
+.. automodule:: coreblocks.structs_common.rf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.structs\_common.rob module
+-------------------------------------
+
+.. automodule:: coreblocks.structs_common.rob
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.structs\_common.rs module
+------------------------------------
+
+.. automodule:: coreblocks.structs_common.rs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.structs_common
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,29 @@
+coreblocks.scheduler package
+============================
+
+Submodules
+----------
+
+coreblocks.scheduler.scheduler module
+-------------------------------------
+
+.. automodule:: coreblocks.scheduler.scheduler
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.scheduler.wakeup\_select module
+------------------------------------------
+
+.. automodule:: coreblocks.scheduler.wakeup_select
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.scheduler
+   :members:
+   :undoc-members:
+   :show-inheritance:

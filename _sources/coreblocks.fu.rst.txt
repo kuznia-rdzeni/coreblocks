@@ -1,0 +1,21 @@
+coreblocks.fu package
+=====================
+
+Submodules
+----------
+
+coreblocks.fu.alu module
+------------------------
+
+.. automodule:: coreblocks.fu.alu
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.fu
+   :members:
+   :undoc-members:
+   :show-inheritance:
