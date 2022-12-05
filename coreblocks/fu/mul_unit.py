@@ -29,7 +29,7 @@ class MulFn(Signal):
         MULH = 1 << 1  # Upper part multiplication signed×signed
         MULHU = 1 << 2  # Upper part multiplication unsigned×unsigned
         MULHSU = 1 << 3  # Upper part multiplication signed×unsigned
-        MULW = 1 << 4  # Multiplication of lower half of bits
+        MULW = 1 << 4  # Multiplication of lower half of bits (only for RV64)
 
     def __init__(self, *args, **kwargs):
         super().__init__(MulFn.Fn, *args, **kwargs)
@@ -141,6 +141,11 @@ class MulUnit(Elaboratable):
             negative_res = Signal(1)  # if result is negative number
             high_res = Signal(1)  # if result should contain upper part of result
 
+            # Due to using unit multiplying unsigned integers, we need to convert input into two positive
+            # integers, and later apply sing to result of this multiplication, also we need to save
+            # which part of result we want upper or lower part. In the future, it would be greate improvement
+            # to save result for chain multiplication of this same numbers, but with different parts as
+            # results
             with OneHotSwitch(m, decoder.mul_fn) as OneHotCase:
                 with OneHotCase(MulFn.Fn.MUL):  # MUL
                     m.d.comb += negative_res.eq(0)

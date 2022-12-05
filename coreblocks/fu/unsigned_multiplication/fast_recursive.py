@@ -39,30 +39,49 @@ class FastRecursiveMul(Elaboratable):
                 res = dsp.compute(m, {"i1": self.i1, "i2": self.i2})
                 m.d.comb += self.r.eq(res)
         else:
+            # Fast Recursive Multiplying Algorythm
+            #
+            # bit: N       N/2      0
+            #      +--------+-------+
+            # i1 : | high_1 | low_1 |
+            #      +--------+-------+
+            # i2 : | high_2 | low_2 |
+            #      +--------+-------+
+            #
+            #  result_low   = low_1 * low_2
+            #  result_upper = high_1 * high_2
+            #  result_mid   = (low_1 + high_1) * (low_2 + high_2) =
+            #               = low_1 * low_2 + high_1 * high_2 + low_1 * high_2 + low_2 * high_1
+            #               = result_low + result_upper + low_1 * high_2 + low_2 * high_1
+            #
+            #  i1 * i2 = (high_1 << N/2 + low_1) * (high_2 << N/2 + low_2) =
+            #          = (high_1 * high_2) << N + (high_1 * low_2 + high_2 * low_1) << N/2 + low_1 * low_2 =
+            #          = result_upper << N + (result_mid - result_low - result_upper) << N/2 + result_low
+
             upper = self.n // 2
             lower = (self.n + 1) // 2
             m.submodules.low_mul = low_mul = FastRecursiveMul(lower, self.dsp_width)
             m.submodules.mid_mul = mid_mul = FastRecursiveMul(lower + 1, self.dsp_width)
             m.submodules.upper_mul = upper_mul = FastRecursiveMul(upper, self.dsp_width)
 
-            signal_low = Signal(unsigned(2 * lower))
-            signal_mid = Signal(unsigned(2 * lower + 2))
-            signal_upper = Signal(unsigned(2 * upper))
+            result_low = Signal(unsigned(2 * lower))
+            result_mid = Signal(unsigned(2 * lower + 2))
+            result_upper = Signal(unsigned(2 * upper))
 
             m.d.comb += low_mul.i1.eq(self.i1[:lower])
             m.d.comb += low_mul.i2.eq(self.i2[:lower])
-            m.d.comb += signal_low.eq(low_mul.r)
+            m.d.comb += result_low.eq(low_mul.r)
 
             m.d.comb += mid_mul.i1.eq(self.i1[:lower] + self.i1[lower:])
             m.d.comb += mid_mul.i2.eq(self.i2[:lower] + self.i2[lower:])
-            m.d.comb += signal_mid.eq(mid_mul.r)
+            m.d.comb += result_mid.eq(mid_mul.r)
 
             m.d.comb += upper_mul.i1.eq(self.i1[lower:])
             m.d.comb += upper_mul.i2.eq(self.i2[lower:])
-            m.d.comb += signal_upper.eq(upper_mul.r)
+            m.d.comb += result_upper.eq(upper_mul.r)
 
             m.d.comb += self.r.eq(
-                signal_low + ((signal_mid - signal_low - signal_upper) << lower) + (signal_upper << 2 * lower)
+                result_low + ((result_mid - result_low - result_upper) << lower) + (result_upper << 2 * lower)
             )
 
         return m

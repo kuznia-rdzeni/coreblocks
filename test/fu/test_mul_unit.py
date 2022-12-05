@@ -40,15 +40,15 @@ ops = {
     [
         (
             "recursive_multiplier",
-            GenParams("rv32i", mul_unit_params=MulUnitParams.RecursiveMultiplier(32)),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.RecursiveMultiplier(32)),
         ),
         (
             "sequential_multiplier",
-            GenParams("rv32i", mul_unit_params=MulUnitParams.SequenceMultiplier(16)),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.SequenceMultiplier(16)),
         ),
         (
             "shift_multiplier",
-            GenParams("rv32i", mul_unit_params=MulUnitParams.ShiftMultiplier()),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.ShiftMultiplier()),
         ),
     ],
 )

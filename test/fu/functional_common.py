@@ -52,7 +52,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         Class of functional unit to be tested.
     expected: Callable[[int, int, Any, int], int]
         Function computing expected results
-        (input_1, input_2, operation_key_form_operations, xlen) -> result.
+        (input_1, input_2, operation_key_from_operations, xlen) -> result.
     number_of_tests: int
         Number of random tests to be performed.
     seed: int
