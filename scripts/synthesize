@@ -416,11 +416,14 @@ class TestElaboratable(Elaboratable):
         m.d.comb += self.reg_feed_in.en.eq(1)
         m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
 
-        assert len(self.reg_feed_in.data_in) == len(platform.request("data_in", 0).i)
-        assert len(Cat(platform.request("data_out", 0).o)) == len(Cat(self.core.announcement.debug_signals()))
+        data_in_pins = Cat(platform.request("data_in", 0).i)
+        data_out_pins = Cat(platform.request("data_out", 0).i)
 
-        m.d.comb += self.reg_feed_in.data_in.eq(platform.request("data_in", 0).i)
-        m.d.comb += Cat(platform.request("data_out", 0).o).eq(Cat(self.core.announcement.debug_signals()))
+        assert len(self.reg_feed_in.data_in) == len(data_in_pins)
+        assert len(data_out_pins) == len(Cat(self.core.announcement.debug_signals()))
+
+        m.d.comb += self.reg_feed_in.data_in.eq(data_in_pins)
+        m.d.comb += Cat(data_out_pins).eq(Cat(self.core.announcement.debug_signals()))
 
         m.submodules.wb_master = self.wb_master
         m.submodules.wb_mem_slave = self.wb_mem_slave
@@ -443,12 +446,12 @@ class ECP5Platform(LatticeECP5Platform):
     resources = [
         Resource("rst", 0, PinsN(ecp5_bg381_pins[0], dir="i"), Attrs(IO_TYPE="LVCMOS33")),
         Resource("clk", 0, Pins(ecp5_bg381_pins[1], dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
-        Resource("data_in", 0, Pins(", ".join(ecp5_bg381_pins[2:8]), dir="i")),
+        Resource("data_in", 0, Pins(" ".join(ecp5_bg381_pins[2:8]), dir="i")),
         Resource(
             "data_out",
             0,
             Pins(
-                ", ".join(ecp5_bg381_pins[9:56]),
+                " ".join(ecp5_bg381_pins[9:56]),
                 dir="o",
             ),
         ),
