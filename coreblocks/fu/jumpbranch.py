@@ -60,7 +60,7 @@ class JumpBranch(Elaboratable):
                 # Spec: "The target address is obtained by adding the 12-bit signed I-immediate
                 # to the register rs1, then setting the least-significant bit of the result to zero."
                 target = self.in1 + self.in_imm[:12].as_signed()
-                target[0] = 0
+                m.d.comb += self.jmp_addr[0].eq(0)
                 m.d.comb += self.jmp_addr.eq(target)
                 m.d.comb += self.taken.eq(1)
             with OneHotCase(JumpBranchFn.Fn.BEQ):
@@ -77,7 +77,7 @@ class JumpBranch(Elaboratable):
                 m.d.comb += self.taken.eq(self.in1.as_unsigned() < self.in2.as_unsigned())
             with OneHotCase(JumpBranchFn.Fn.BGE):
                 m.d.comb += self.jmp_addr.eq(branch_target)
-                m.d.comb += self.taken.eq(self.in1.as_signed() >= self.in2.as_unsigned())
+                m.d.comb += self.taken.eq(self.in1.as_signed() >= self.in2.as_signed())
             with OneHotCase(JumpBranchFn.Fn.BGEU):
                 m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_unsigned() >= self.in2.as_unsigned())
