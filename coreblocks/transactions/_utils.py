@@ -126,7 +126,7 @@ def _coerce_layout(int_or_layout: MethodLayout) -> LayoutLike:
         return int_or_layout
 
 
-def get_caller_class_name(default: Optional[str] = None) -> tuple[object, str]:
+def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:
     caller_frame = sys._getframe(2)
     if "self" in caller_frame.f_locals:
         owner = caller_frame.f_locals["self"]

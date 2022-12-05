@@ -2,10 +2,24 @@
 Utilities for extracting dependency graphs from Amaranth designs.
 """
 
+from abc import ABC
 from collections import defaultdict
+from typing import Literal, Optional, TYPE_CHECKING
 
 from amaranth.hdl.ir import Elaboratable, Fragment
 from .tracing import TracingFragment
+
+
+if TYPE_CHECKING:
+    # circular imports!
+    from .core import Method, Transaction
+
+    Owned = Method | Transaction
+else:
+    # this is insufficient for pyright, but whatever
+    class Owned(ABC):
+        name: str
+        owner: Optional[Elaboratable]
 
 
 class OwnershipGraph:
@@ -14,12 +28,12 @@ class OwnershipGraph:
         self.names: dict[int, str] = {}
         self.hier: dict[int, str] = {}
         self.labels: dict[int, str] = {}
-        self.graph: dict[int, list[object]] = {}
-        self.edges: list[tuple[object, object, str]] = []
-        self.owned: defaultdict[int, set] = defaultdict(set)
+        self.graph: dict[int, list[int]] = {}
+        self.edges: list[tuple[Owned, Owned, str]] = []
+        self.owned: defaultdict[int, set[Owned]] = defaultdict(set)
         self.remember(root)
 
-    def remember(self, owner) -> int:
+    def remember(self, owner: Elaboratable) -> int:
         while hasattr(owner, "_tracing_original"):
             owner = owner._tracing_original
         owner_id = id(owner)
@@ -57,18 +71,18 @@ class OwnershipGraph:
         self.graph[owner_id].append(obj_id)
         self.remember(obj)
 
-    def insert_node(self, obj):
+    def insert_node(self, obj: Owned):
         owner_id = self.remember(obj.owner)
         self.owned[owner_id].add(obj)
 
-    def insert_edge(self, fr, to, direction="->"):
+    def insert_edge(self, fr: Owned, to: Owned, direction: str = "->"):
         self.edges.append((fr, to, direction))
 
-    def get_name(self, obj) -> str:
+    def get_name(self, obj: Owned) -> str:
         owner_id = self.remember(obj.owner)
         return f"{self.names[owner_id]}_{obj.name}"
 
-    def get_hier_name(self, obj) -> str:
+    def get_hier_name(self, obj: Owned) -> str:
         """
         Get hierarchical name.
         Might raise KeyError if not yet hierarchized.
@@ -78,11 +92,11 @@ class OwnershipGraph:
         hier = self.hier[owner_id]
         return f"{hier}.{name}"
 
-    def dump(self, fp, format):
+    def dump(self, fp, format: Literal["dot", "elk"]):
         dumper = getattr(self, "dump_" + format)
         dumper(fp)
 
-    def dump_dot(self, fp, owner=None, indent=""):
+    def dump_dot(self, fp, owner: Optional[int] = None, indent: str = ""):
         if owner is None:
             fp.write("digraph G {\n")
             for owner in self.names:
@@ -108,7 +122,7 @@ class OwnershipGraph:
                 self.dump_dot(fp, subowner, indent)
         fp.write(f"{indent}}}\n")
 
-    def dump_elk(self, fp, owner=None, indent=""):
+    def dump_elk(self, fp, owner: Optional[int] = None, indent: str = ""):
         if owner is None:
             for owner in self.names:
                 if owner not in self.labels:
