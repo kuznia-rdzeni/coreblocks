@@ -1,20 +1,13 @@
 #!/bin/sh
 
-if [ -z "$GH_TOKEN" ] || [ -z "$GH_MAIL" ] || [ -z "$GH_NAME" ]; then
+if [ -z "$GH_TOKEN" ] || [ -z "$GH_MAIL" ] || [ -z "$GH_NAME" ] || [ -z "$DOCS_DIR" ] || [ -z "$BUILD_DIR" ]; then
   echo "Environment configuration missing, exiting... "
   exit 1
 fi
 
 TEMP_DIR="temp_$GITHUB_SHA"
 REPO=$GITHUB_REPOSITORY
-DOCS_DIR="docs/"
-BUILD_DIR="build/"
-HTML_DIR="build/html/"
-CODE_DIR="coreblocks/"
-
-# Build the documentation
-sphinx-apidoc -o $DOCS_DIR $CODE_DIR
-sphinx-build -M html $DOCS_DIR $BUILD_DIR
+HTML_DIR="$BUILD_DIR/html/"
 
 # Disable Safe Repository checks
 git config --global --add safe.directory "/github/workspace"
@@ -32,9 +25,6 @@ echo $message
 # Copy HTML files
 echo "Copying files to gh-pages"
 rsync -av $HTML_DIR $TEMP_DIR --exclude .git
-
-# Remove build files
-rm -rdf $BUILD_DIR
 
 # Set up credentials for Github Pages
 cd $TEMP_DIR
