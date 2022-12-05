@@ -144,7 +144,7 @@ class ECP5Platform(LatticeECP5Platform):
                     A4 A5 B5 C5 C4 A3 B4 B3 E4 C3
                     D5 D3 F4 E5 E3 F5 A2 B2 B1 C2
                     C1 D2 D1 E1 H4 H5 G5 H3 G3 F2
-                    F3 E2 G2 H2 F1 G1 J4 J3 J5 K3
+                    F3 E2 L3 H2 F1 G1 J4 J3 J5 K3
                     K2 H1 J1 K1 K4 L4 K5
                 """,
                 dir="o",
