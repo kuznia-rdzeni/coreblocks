@@ -19,7 +19,7 @@ else:
     # this is insufficient for pyright, but whatever
     class Owned(ABC):
         name: str
-        owner: Optional[Elaboratable]
+        owner: Elaboratable
 
 
 class OwnershipGraph:
@@ -61,7 +61,7 @@ class OwnershipGraph:
                     break
         return owner_id
 
-    def remember_field(self, owner_id, field, obj):
+    def remember_field(self, owner_id: int, field: str, obj: Elaboratable):
         while hasattr(obj, "_tracing_original"):
             obj = obj._tracing_original
         obj_id = id(obj)
@@ -72,6 +72,7 @@ class OwnershipGraph:
         self.remember(obj)
 
     def insert_node(self, obj: Owned):
+        assert obj.owner is not None
         owner_id = self.remember(obj.owner)
         self.owned[owner_id].add(obj)
 
@@ -79,6 +80,7 @@ class OwnershipGraph:
         self.edges.append((fr, to, direction))
 
     def get_name(self, obj: Owned) -> str:
+        assert obj.owner is not None
         owner_id = self.remember(obj.owner)
         return f"{self.names[owner_id]}_{obj.name}"
 
@@ -87,6 +89,7 @@ class OwnershipGraph:
         Get hierarchical name.
         Might raise KeyError if not yet hierarchized.
         """
+        assert obj.owner is not None
         owner_id = self.remember(obj.owner)
         name = f"{self.names[owner_id]}_{obj.name}"
         hier = self.hier[owner_id]
