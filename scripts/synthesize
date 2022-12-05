@@ -417,7 +417,7 @@ class TestElaboratable(Elaboratable):
         m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
 
         data_in_pins = Cat(platform.request("data_in", 0).i)
-        data_out_pins = Cat(platform.request("data_out", 0).i)
+        data_out_pins = Cat(platform.request("data_out", 0).o)
 
         assert len(self.reg_feed_in.data_in) == len(data_in_pins)
         assert len(data_out_pins) == len(Cat(self.core.announcement.debug_signals()))
