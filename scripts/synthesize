@@ -1,17 +1,391 @@
 #!/usr/bin/env python3
 
-import subprocess
 import os
 import sys
 import argparse
 
-from amaranth.vendor.lattice_ice40 import LatticeICE40Platform
 from amaranth.vendor.lattice_ecp5 import LatticeECP5Platform
 from amaranth.build import Resource, Attrs, Pins, Clock, Platform, PinsN
-from amaranth.build.run import LocalBuildProducts
 from amaranth import Module, Elaboratable, Cat
 
-__all__ = ["ICE40Platform", "ECP5Platform"]
+__all__ = ["ECP5Platform"]
+
+ecp5_bg381_pins = [
+    "A4",
+    "A5",
+    "B5",
+    "C5",
+    "C4",
+    "A3",
+    "B4",
+    "B3",
+    "E4",
+    "C3",
+    "D5",
+    "D3",
+    "F4",
+    "E5",
+    "E3",
+    "F5",
+    "A2",
+    "B2",
+    "B1",
+    "C2",
+    "C1",
+    "D2",
+    "D1",
+    "E1",
+    "H4",
+    "H5",
+    "G5",
+    "H3",
+    "G3",
+    "F2",
+    "F3",
+    "E2",
+    "G2",
+    "H2",
+    "F1",
+    "G1",
+    "J4",
+    "J3",
+    "J5",
+    "K3",
+    "H1",
+    "K2",
+    "J1",
+    "K1",
+    "K4",
+    "L4",
+    "K5",
+    "L5",
+    "M5",
+    "M4",
+    "N4",
+    "N5",
+    "P5",
+    "N3",
+    "L3",
+    "M3",
+    "L2",
+    "N2",
+    "L1",
+    "M1",
+    "N1",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "R1",
+    "U1",
+    "T1",
+    "V1",
+    "W1",
+    "V2",
+    "Y2",
+    "W2",
+    "T2",
+    "R2",
+    "U2",
+    "R3",
+    "T3",
+    "V3",
+    "U3",
+    "Y3",
+    "R4",
+    "V4",
+    "R5",
+    "W4",
+    "W5",
+    "T8",
+    "Y6",
+    "Y7",
+    "T9",
+    "Y8",
+    "W8",
+    "T10",
+    "W9",
+    "W10",
+    "W11",
+    "Y11",
+    "Y12",
+    "W13",
+    "T11",
+    "W14",
+    "Y14",
+    "T12",
+    "Y15",
+    "Y16",
+    "T13",
+    "Y17",
+    "W17",
+    "T14",
+    "W18",
+    "Y19",
+    "W20",
+    "T17",
+    "U16",
+    "U17",
+    "U18",
+    "T18",
+    "R18",
+    "U19",
+    "T19",
+    "U20",
+    "R20",
+    "T20",
+    "P20",
+    "P18",
+    "N20",
+    "P19",
+    "N19",
+    "T16",
+    "R17",
+    "P16",
+    "R16",
+    "N17",
+    "P17",
+    "M17",
+    "N18",
+    "N16",
+    "M18",
+    "L17",
+    "L18",
+    "L16",
+    "M19",
+    "M20",
+    "L19",
+    "L20",
+    "K20",
+    "K19",
+    "J20",
+    "J19",
+    "K18",
+    "H20",
+    "J18",
+    "G19",
+    "G20",
+    "F19",
+    "F20",
+    "E20",
+    "E19",
+    "D19",
+    "D20",
+    "C20",
+    "K17",
+    "K16",
+    "J16",
+    "H17",
+    "J17",
+    "H18",
+    "H16",
+    "G18",
+    "G16",
+    "F17",
+    "F18",
+    "E17",
+    "E18",
+    "D18",
+    "F16",
+    "E16",
+    "D17",
+    "C18",
+    "B20",
+    "B19",
+    "A19",
+    "A18",
+    "B18",
+    "C17",
+    "A17",
+    "B17",
+    "D16",
+    "B16",
+    "C16",
+    "A16",
+    "E15",
+    "C15",
+    "D15",
+    "B15",
+    "A15",
+    "E14",
+    "C14",
+    "D14",
+    "A14",
+    "E13",
+    "C13",
+    "D13",
+    "B13",
+    "A13",
+    "E12",
+    "A12",
+    "D12",
+    "C12",
+    "E11",
+    "B12",
+    "D11",
+    "C11",
+    "A11",
+    "B11",
+    "A10",
+    "B10",
+    "C10",
+    "A9",
+    "B9",
+    "E10",
+    "D10",
+    "C9",
+    "E9",
+    "A8",
+    "D9",
+    "A7",
+    "B8",
+    "D8",
+    "C8",
+    "E8",
+    "C7",
+    "D7",
+    "C6",
+    "E7",
+    "D6",
+    "B6",
+    "E6",
+    "A6",
+    "C19",
+    "H19",
+    "R19",
+    "G17",
+    "M16",
+    "G15",
+    "K15",
+    "N15",
+    "B14",
+    "F14",
+    "G14",
+    "J14",
+    "K14",
+    "M14",
+    "N14",
+    "P14",
+    "F13",
+    "G13",
+    "P13",
+    "G12",
+    "J12",
+    "K12",
+    "L12",
+    "M12",
+    "P12",
+    "G11",
+    "J11",
+    "K11",
+    "L11",
+    "M11",
+    "P11",
+    "G10",
+    "J10",
+    "K10",
+    "L10",
+    "M10",
+    "G9",
+    "J9",
+    "K9",
+    "L9",
+    "M9",
+    "F8",
+    "G8",
+    "P8",
+    "B7",
+    "F7",
+    "G7",
+    "J7",
+    "K7",
+    "M7",
+    "N7",
+    "P7",
+    "G6",
+    "K6",
+    "N6",
+    "D4",
+    "G4",
+    "J2",
+    "M2",
+    "H13",
+    "J13",
+    "K13",
+    "L13",
+    "M13",
+    "N13",
+    "H12",
+    "N12",
+    "H11",
+    "N11",
+    "H10",
+    "N10",
+    "H9",
+    "N9",
+    "H8",
+    "J8",
+    "K8",
+    "L8",
+    "M8",
+    "N8",
+    "F15",
+    "P15",
+    "F6",
+    "P6",
+    "F10",
+    "F9",
+    "F12",
+    "F11",
+    "H15",
+    "J15",
+    "H14",
+    "L15",
+    "M15",
+    "L14",
+    "V20",
+    "V19",
+    "W19",
+    "V16",
+    "W16",
+    "V15",
+    "W15",
+    "U14",
+    "V14",
+    "U13",
+    "V13",
+    "U12",
+    "V12",
+    "W12",
+    "U11",
+    "U10",
+    "U9",
+    "V9",
+    "U8",
+    "V8",
+    "U7",
+    "V7",
+    "W7",
+    "V6",
+    "W6",
+    "V5",
+    "T6",
+    "U6",
+    "T15",
+    "U15",
+    "V11",
+    "V10",
+    "V18",
+    "V17",
+    "P10",
+    "P9",
+    "L7",
+    "L6",
+    "M6",
+    "H7",
+    "H6",
+    "J6",
+]
 
 
 class TestElaboratable(Elaboratable):
@@ -42,6 +416,9 @@ class TestElaboratable(Elaboratable):
         m.d.comb += self.reg_feed_in.en.eq(1)
         m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
 
+        assert len(self.reg_feed_in.data_in) == len(platform.request("data_in", 0).i)
+        assert len(Cat(platform.request("data_out", 0).o)) == len(Cat(self.core.announcement.debug_signals()))
+
         m.d.comb += self.reg_feed_in.data_in.eq(platform.request("data_in", 0).i)
         m.d.comb += Cat(platform.request("data_out", 0).o).eq(Cat(self.core.announcement.debug_signals()))
 
@@ -56,62 +433,6 @@ class TestElaboratable(Elaboratable):
 
 # Tutorial for synthesis in amaranth:
 # https://github.com/RobertBaruch/amaranth-tutorial/blob/main/9_synthesis.md
-class ICE40Platform(LatticeICE40Platform):
-    """Implementation of LatticeICE40Platform abstract class.
-
-    This class configures Lattice ICE40 platform.
-    Defines clock signal and frequency, reset signal and any additional needed resources.
-    """
-
-    # See the base platform class for which one to choose.
-    # This affects options passed to the toolchain so that it compiles for the correct chip.
-    device = "iCE40HX8K"
-    package = "CT256"
-
-    # This names the pins you want to use, and configuration options for each such pin.
-    resources = [
-        Resource("clk", 0, Pins("J3", dir="i"), Clock(12e6), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
-        Resource("rst", 0, Pins("R9", dir="i"), Attrs(GLOBAL=True, IO_STANDARD="SB_LVCMOS")),
-        Resource("data_in", 0, Pins("A16 A15 B13 B11 A10 A11", dir="i")),
-        Resource(
-            "data_out",
-            0,
-            Pins(
-                """
-                                     C14 B15 D13 B14 C12 E11 C13 E10 C11 D11
-                                     B12 B10 C10 D10 C9  E9  D9  F9  D8  B8
-                                     A7  C7  B7  B6  C6  D7  A6  D6  A5  B5
-                                     E6  B4  A2  D5  A1  C5  C4  B3  D4  E5
-                                     D3  C3  P16 M13 M14 L12 N16
-                                     """,
-                dir="o",
-            ),
-        ),
-    ]
-
-    # The name of the resource that is the clock for the default clock domain.
-    default_clk = "clk"
-    # The name of the resource that is the reset for the default clock domain.
-    default_rst = "rst"
-
-    # It isn't obvious what purpose this serves.
-    # It may have something to do with certain toolchains.
-    connectors = []
-
-    def toolchain_program(self, products: LocalBuildProducts, name: str):
-        """This function is used to install given program on FPGA device connected via USB port.
-
-        It will be executed if you specify `do_program=True` in `build` function.
-
-        Args:
-            products (LocalBuildProducts): Build files from synthesis
-            name (str): Name of the program given in `build` function. Defaults to "top".
-        """
-        iceprog = os.environ.get("ICEPROG", "iceprog")
-        with products.extract("{}.bin".format(name)) as bitstream_filename:
-            subprocess.check_call([iceprog, "-S", bitstream_filename])
-
-
 class ECP5Platform(LatticeECP5Platform):
     device = "LFE5UM5G-85F"
     package = "BG381"
@@ -119,34 +440,15 @@ class ECP5Platform(LatticeECP5Platform):
     default_clk = "clk"
     default_rst = "rst"
 
-    def __init__(self, *, VCCIO1="2V5", VCCIO6="3V3", **kwargs):
-        """
-        VCCIO1 is connected by default to 2.5 V via R100 (can be set to 3.3 V by disconnecting
-        R100 and connecting R105)
-        VCCIO6 is connected to 3.3 V by default via R99 (can be switched to 2.5 V with R104,
-        see page 51 in the ECP5-5G-EVN datasheet)
-        """
-        super().__init__(**kwargs)
-        assert VCCIO1 in ("3V3", "2V5")
-        assert VCCIO6 in ("3V3", "2V5")
-        self._VCCIO1 = VCCIO1
-        self._VCCIO6 = VCCIO6
-
     resources = [
-        Resource("rst", 0, PinsN("G2", dir="i"), Attrs(IO_TYPE="LVCMOS33")),
-        Resource("clk", 0, Pins("A10", dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
-        Resource("data_in", 0, Pins("M5 M4 N4 N5 P5 N3", dir="i")),
+        Resource("rst", 0, PinsN(ecp5_bg381_pins[0], dir="i"), Attrs(IO_TYPE="LVCMOS33")),
+        Resource("clk", 0, Pins(ecp5_bg381_pins[1], dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
+        Resource("data_in", 0, Pins(", ".join(ecp5_bg381_pins[2:8]), dir="i")),
         Resource(
             "data_out",
             0,
             Pins(
-                """
-                    A4 A5 B5 C5 C4 A3 B4 B3 E4 C3
-                    D5 D3 F4 E5 E3 F5 A2 B2 B1 C2
-                    C1 D2 D1 E1 H4 H5 G5 H3 G3 F2
-                    F3 E2 L3 H2 F1 G1 J4 J3 J5 K3
-                    K2 H1 J1 K1 K4 L4 K5
-                """,
+                ", ".join(ecp5_bg381_pins[9:56]),
                 dir="o",
             ),
         ),
@@ -154,21 +456,8 @@ class ECP5Platform(LatticeECP5Platform):
 
     connectors = []
 
-    def toolchain_program(self, products, name):
-        openocd = os.environ.get("OPENOCD", "openocd")
-        with products.extract("{}-openocd.cfg".format(name), "{}.svf".format(name)) as (
-            config_filename,
-            vector_filename,
-        ):
-            subprocess.check_call(
-                [
-                    openocd,
-                    "-f",
-                    config_filename,
-                    "-c",
-                    "transport select jtag; init; svf -quiet {}; exit".format(vector_filename),
-                ]
-            )
+    def toolchain_program(self):
+        pass
 
 
 def synthesize(platform: str, build: bool):
@@ -176,9 +465,7 @@ def synthesize(platform: str, build: bool):
 
     gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
 
-    if platform == "ice40":
-        ICE40Platform().build(TestElaboratable(gen_params=gp, io_pins=6), do_program=build)
-    elif platform == "ecp5":
+    if platform == "ecp5":
         ECP5Platform().build(TestElaboratable(gen_params=gp, io_pins=6), do_program=build)
 
 
@@ -188,7 +475,7 @@ def main():
         "-p",
         "--platform",
         default="ecp5",
-        choices=["ice40", "ecp5"],
+        choices=["ecp5"],
         help="Selects platform to synthesize circuit on. Default: ecp5",
     )
     parser.add_argument(

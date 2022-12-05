@@ -12,9 +12,9 @@ if __name__ == "__main__":
 
     max_clock_frequency = 0
     logic_cells_used = 0
-    storage_cells_used = 0
-    computation_lut4_cells_used = 0
-    computation_lut4_and_dff_cells_used = 0
+    carry_cells_used = 0
+    ram_cells_used = 0
+    dff_cells_used = 0
 
     lines = synth_info_file.readlines()
 
@@ -24,26 +24,26 @@ if __name__ == "__main__":
 
             if frequency:
                 max_clock_frequency = float(frequency)
-        elif "ICESTORM_LC" in line:
-            logic_cells = re.findall("(\\d+)/ \\d+", line)[0]
+        elif "logic LUTs" in line:
+            logic_cells = re.findall("(\\d+)/\\d+", line)[0]
 
             if logic_cells:
                 logic_cells_used = int(logic_cells)
-        elif "LCs used as DFF only" in line:
-            storage_cells = re.findall("(\\d+) LCs used as DFF only", line)[0]
+        elif "carry LUTs" in line:
+            carry_cells = re.findall("(\\d+)/\\d+", line)[0]
 
-            if storage_cells:
-                storage_cells_used = int(storage_cells)
-        elif "LCs used as LUT4 only" in line:
-            computation_lut4_cells = re.findall("(\\d+) LCs used as LUT4 only", line)[0]
+            if carry_cells:
+                carry_cells_used = int(carry_cells)
+        elif "RAM LUTs" in line:
+            ram_cells = re.findall("(\\d+)/\\d+", line)[0]
 
-            if computation_lut4_cells:
-                computation_lut4_cells_used = int(computation_lut4_cells)
-        elif "LCs used as LUT4 and DFF" in line:
-            computation_lut4_and_dff_cells = re.findall("(\\d+) LCs used as LUT4 and DFF", line)[0]
+            if ram_cells:
+                ram_cells_used = int(ram_cells)
+        elif "Total DFFs" in line:
+            dff_cells = re.findall("(\\d+)/\\d+", line)[0]
 
-            if computation_lut4_and_dff_cells:
-                computation_lut4_and_dff_cells_used = int(computation_lut4_and_dff_cells)
+            if dff_cells:
+                dff_cells_used = int(dff_cells)
 
     synth_info_file.close()
 
@@ -58,24 +58,24 @@ if __name__ == "__main__":
                 "value": "{max_clock_frequency}"
             }},
             {{
-                "name": "Device utilisation: (ICE40)",
-                "unit": "LCs",
+                "name": "Device utilisation: (ECP5)",
+                "unit": "LUT4",
                 "value": "{logic_cells_used}"
             }},
             {{
-                "name": "LCs used as DFF only: (ICE40)",
-                "unit": "LCs",
-                "value": "{storage_cells_used}"
+                "name": "LUTs used as carry: (ECP5)",
+                "unit": "LUT",
+                "value": "{carry_cells_used}"
             }},
             {{
-                "name": "LCs used as LUT4 only: (ICE40)",
-                "unit": "LCs",
-                "value": "{computation_lut4_cells_used}"
+                "name": "LUTs used as ram: (ECP5)",
+                "unit": "LUT",
+                "value": "{ram_cells_used}"
             }},
             {{
-                "name": "LCs used as LUT4 and DFF: (ICE40)",
-                "unit": "LCs",
-                "value": "{computation_lut4_and_dff_cells_used}"
+                "name": "LUTs used as DFF: (ECP5)",
+                "unit": "LUT",
+                "value": "{dff_cells_used}"
             }}
         ]"""
     )
