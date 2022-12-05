@@ -135,18 +135,18 @@ class ECP5Platform(LatticeECP5Platform):
     resources = [
         Resource("rst", 0, PinsN("G2", dir="i"), Attrs(IO_TYPE="LVCMOS33")),
         Resource("clk", 0, Pins("A10", dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
-        Resource("data_in", 0, Pins("A16 A15 B13 B11 G20 A11", dir="i")),
+        Resource("data_in", 0, Pins("M5 M4 N4 N5 P5 N3", dir="i")),
         Resource(
             "data_out",
             0,
             Pins(
                 """
-                        C14 B15 D13 B14 C12 E11 C13 E10 C11 D11
-                        B12 B10 C10 D10 C9  E9  D9  F9  D8  B8
-                        A7  C7  B7  B6  C6  D7  A6  D6  A5  B5
-                        E6  B4  A2  D5  A1  C5  C4  B3  D4  E5
-                        D3  C3  P16 M13 M14 L12 N16
-                        """,
+                    A4 A5 B5 C5 C4 A3 B4 B3 E4 C3
+                    D5 D3 F4 E5 E3 F5 A2 B2 B1 C2
+                    C1 D2 D1 E1 H4 H5 G5 H3 G3 F2
+                    F3 E2 G2 H2 F1 G1 J4 J3 J5 K3
+                    K2 H1 J1 K1 K4 L4 K5
+                """,
                 dir="o",
             ),
         ),
