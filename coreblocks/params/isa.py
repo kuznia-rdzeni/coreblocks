@@ -133,13 +133,6 @@ class ISA:
     For each of the numeric configuration value ``val``, a corresponding
     ``val_log`` field is provided if relevant.
 
-    Parameters
-    ----------
-    isa_str : str
-        String identifying a specific RISC-V ISA. Please refer to GCC's
-        machine-dependent ``arch`` option for details.
-
-
     Attributes
     ----------
     xlen : int
@@ -155,6 +148,13 @@ class ISA:
     """
 
     def __init__(self, isa_str: str):
+        """
+        Parameters
+        ----------
+        isa_str : str
+            String identifying a specific RISC-V ISA. Please refer to GCC's
+            machine-dependent ``arch`` option for details.
+        """
         if isa_str[0:2] != "rv":
             raise RuntimeError("Invalid ISA string " + isa_str)
         xlen_str = "".join(takewhile(str.isdigit, isa_str[2:]))

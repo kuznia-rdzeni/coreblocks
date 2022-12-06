@@ -274,15 +274,16 @@ class TransactionModule(Elaboratable):
     which add support for transaction to the ``Module``. It creates a
     ``TransactionManager`` which will handle transaction scheduling
     and can be used in definition of ``Method``\\s and ``Transaction``\\s.
-
-    Parameters
-    ----------
-    module: Module
-            The ``Module`` which should be wrapped to add support for
-            transactions and methods.
     """
 
     def __init__(self, module: Module, manager: Optional[TransactionManager] = None):
+        """
+        Parameters
+        ----------
+        module: Module
+                The ``Module`` which should be wrapped to add support for
+                transactions and methods.
+        """
         if manager is None:
             manager = TransactionManager()
         self.transactionManager = manager
@@ -327,17 +328,6 @@ class Transaction:
     The used methods should be called inside the ``body``'s
     ``with`` block.
 
-    Parameters
-    ----------
-    name: str or None
-        Name hint for this ``Transaction``. If ``None`` (default) the name is
-        inferred from the variable name this ``Transaction`` is assigned to.
-        If the ``Transaction`` was not assigned, the name is inferred from
-        the class name where the ``Transaction`` was constructed.
-    manager: TransactionManager
-        The ``TransactionManager`` controlling this ``Transaction``.
-        If omitted, the manager is received from ``TransactionContext``.
-
     Attributes
     ----------
     name: str
@@ -353,6 +343,18 @@ class Transaction:
     current = None
 
     def __init__(self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None):
+        """
+        Parameters
+        ----------
+        name: str or None
+            Name hint for this ``Transaction``. If ``None`` (default) the name is
+            inferred from the variable name this ``Transaction`` is assigned to.
+            If the ``Transaction`` was not assigned, the name is inferred from
+            the class name where the ``Transaction`` was constructed.
+        manager: TransactionManager
+            The ``TransactionManager`` controlling this ``Transaction``.
+            If omitted, the manager is received from ``TransactionContext``.
+        """
         self.name = name or tracer.get_var_name(depth=2, default=get_caller_class_name(default="$transaction"))
         if manager is None:
             manager = TransactionContext.get()
@@ -470,18 +472,6 @@ class Method:
     A module which defines a ``Method`` should use ``body`` or ``def_method``
     to describe the method's effect on the module state.
 
-    Parameters
-    ----------
-    name: str or None
-        Name hint for this ``Method``. If ``None`` (default) the name is
-        inferred from the variable name this ``Method`` is assigned to.
-    i: int or record layout
-        The format of ``data_in``.
-        An ``int`` corresponds to a ``Record`` with a single ``data`` field.
-    o: int or record layout
-        The format of ``data_in``.
-        An ``int`` corresponds to a ``Record`` with a single ``data`` field.
-
     Attributes
     ----------
     name: str
@@ -504,6 +494,19 @@ class Method:
     current: Optional["Method"] = None
 
     def __init__(self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0):
+        """
+        Parameters
+        ----------
+        name: str or None
+            Name hint for this ``Method``. If ``None`` (default) the name is
+            inferred from the variable name this ``Method`` is assigned to.
+        i: int or record layout
+            The format of ``data_in``.
+            An ``int`` corresponds to a ``Record`` with a single ``data`` field.
+        o: int or record layout
+            The format of ``data_in``.
+            An ``int`` corresponds to a ``Record`` with a single ``data`` field.
+        """
         self.name = name or tracer.get_var_name(depth=2, default="$method")
         self.ready = Signal()
         self.run = Signal()
