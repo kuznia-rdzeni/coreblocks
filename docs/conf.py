@@ -76,6 +76,9 @@ def hide_non_private(app, what, name, obj, skip, options):
     if "elaborate" in name:
         # skip elaborates
         return True
+    elif "__init__" == name:
+        # Include __init__ (excluded by default)
+        return False
     else:
         # otherwise generate an entry
         return None
@@ -89,3 +92,9 @@ def setup(app):
 # explicitly desctibed in docsting. This prevents many mostly empty Method
 # sections in most classes since 'elaborate' methods are not documented.
 numpydoc_show_class_members = False
+
+# Show typehints in the signature
+autodoc_typehints = "signature"
+
+# Display the class signature as a method
+autodoc_class_signature = "separated"
