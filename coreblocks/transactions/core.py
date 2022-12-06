@@ -186,6 +186,8 @@ class TransactionManager(Elaboratable):
 
         for transaction, methods in self.methods_by_transaction.items():
             for method in methods:
+                if method.nonexclusive:
+                    continue
                 for transaction2 in self.transactions_by_method[method]:
                     if transaction is not transaction2:
                         addEdge(transaction, transaction2, ConflictPriority.UNDEFINED)
@@ -505,7 +507,9 @@ class Method:
 
     current: Optional["Method"] = None
 
-    def __init__(self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0):
+    def __init__(
+        self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0, nonexclusive: bool = False
+    ):
         """
         Parameters
         ----------
@@ -528,6 +532,9 @@ class Method:
         self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.defined = False
+        self.nonexclusive = nonexclusive
+        if nonexclusive:
+            assert len(self.data_in) == 0
 
     @staticmethod
     def like(other: "Method", *, name: Optional[str] = None) -> "Method":
