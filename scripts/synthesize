@@ -463,13 +463,13 @@ class ECP5Platform(LatticeECP5Platform):
         pass
 
 
-def synthesize(platform: str, build: bool):
+def synthesize(platform: str):
     from coreblocks.genparams import GenParams
 
     gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
 
     if platform == "ecp5":
-        ECP5Platform().build(TestElaboratable(gen_params=gp, io_pins=6), do_program=build)
+        ECP5Platform().build(TestElaboratable(gen_params=gp, io_pins=6))
 
 
 def main():
@@ -481,16 +481,10 @@ def main():
         choices=["ecp5"],
         help="Selects platform to synthesize circuit on. Default: ecp5",
     )
-    parser.add_argument(
-        "-b",
-        "--build",
-        action="store_true",
-        help="If specified, script will install program on connected FPGA platform",
-    )
 
     args = parser.parse_args()
 
-    synthesize(args.platform, args.build)
+    synthesize(args.platform)
 
 
 if __name__ == "__main__":
