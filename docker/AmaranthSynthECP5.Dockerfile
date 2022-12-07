@@ -27,6 +27,3 @@ RUN cd ..
 RUN rm -rf prjtrellis
 RUN rm -rf nextpnr
 RUN rm -rf /var/lib/apt/lists/*
-
-RUN DEBIAN_FRONTEND=noninteractive apt-get remove -y build-essential cmake python3-dev libboost-all-dev libeigen3-dev
-RUN DEBIAN_FRONTEND=noninteractive apt-get autoremove -y
