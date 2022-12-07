@@ -89,7 +89,7 @@ def setup(app):
 
 
 # If set to False it doesn't generate summary of class Methods if not
-# explicitly desctibed in docsting. This prevents many mostly empty Method
+# explicitly described in docsting. This prevents many mostly empty Method
 # sections in most classes since 'elaborate' methods are not documented.
 numpydoc_show_class_members = False
 
