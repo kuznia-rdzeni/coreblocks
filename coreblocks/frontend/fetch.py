@@ -28,22 +28,40 @@ class Fetch(Elaboratable):
         self.bus = bus
         self.cont = cont
 
+        self.pc = Signal(bus.wb_params.addr_width, reset=gen_params.start_pc)
+        self.halt_pc = Signal(bus.wb_params.addr_width, reset=2**bus.wb_params.addr_width - 1)
+        
+        self.verify_branch = Method(i=32) # TODO: custom layout
+
     def elaborate(self, platform) -> Module:
         m = Module()
-        pc = Signal(self.gp.isa.xlen)
 
-        with Transaction().body(m):
-            self.bus.request(m, {
-                "addr": pc >> 2,
-                "sel": 2 ** (self.gp.isa.ilen // self.bus.wb_params.granularity) - 1
-            })
+        stalled = Signal()
+        req = Record(self.bus.requestLayout)
+        m.d.comb += req.addr.eq(self.pc >> 2)
+        m.d.comb += req.sel.eq(2 ** (self.gp.isa.ilen // self.bus.wb_params.granularity) - 1)
 
-        with Transaction().body(m):
+        with Transaction().body(m, request=(~stalled)):
+            self.bus.request(m, req)
+
+        with Transaction().body(m, request=(self.pc != self.halt_pc)):
             fetched = self.bus.result(m)
+
             with m.If(fetched.err == 0):
-                branch_detect = self.cont(m, {"data": fetched.data})
-                # next wishbone request can't begin for the next 2 clock cycles
-                # in current wishbone implementation so it's okay to update pc this way
-                m.d.sync += pc.eq(branch_detect.next_pc)
+                is_branch = fetched.data[4:7] == 0b110
+                with m.If(is_branch):
+                    m.d.sync += stalled.eq(1)
+
+                out = Record(self.gp.get(FetchLayouts).raw_instr)
+
+                m.d.comb += out.data.eq(fetched.data)
+
+                m.d.sync += self.pc.eq(self.pc + self.gp.isa.ilen_bytes)
+                self.cont(m, out)
+
+        @def_method(m, self.verify_branch, ready=stalled)
+        def _(arg):
+            m.d.sync += self.pc.eq(arg.next_pc)
+            m.d.sync += stalled.eq(0)
 
         return m
