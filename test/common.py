@@ -154,13 +154,19 @@ class TestbenchIO(Elaboratable):
         while (yield self.adapter.done) != 1:
             yield
 
+    def set_inputs(self, data: RecordValueDict = {}) -> TestGen[None]:
+        yield from set_inputs(data, self.adapter.data_in)
+
     def call_init(self, data: RecordValueDict = {}) -> TestGen[None]:
         yield from self.enable()
-        yield from set_inputs(data, self.adapter.data_in)
+        yield from self.set_inputs(data)
+
+    def get_outputs(self) -> TestGen[RecordIntDictRet]:
+        return (yield from get_outputs(self.adapter.data_out))
 
     def call_result(self) -> TestGen[Optional[RecordIntDictRet]]:
         if (yield self.adapter.done):
-            return (yield from get_outputs(self.adapter.data_out))
+            return (yield from self.get_outputs())
         return None
 
     def call_do(self) -> TestGen[RecordIntDict]:

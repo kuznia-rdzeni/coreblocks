@@ -9,6 +9,7 @@ from amaranth import tracer
 from amaranth.hdl.ast import Assign
 from ._utils import *
 from ..utils._typing import ValueLike
+from .graph import OwnershipGraph
 
 __all__ = [
     "ConflictPriority",
@@ -246,6 +247,16 @@ class TransactionManager(Elaboratable):
 
         return m
 
+    def visual_graph(self, fragment):
+        graph = OwnershipGraph(fragment)
+        for method, transactions in self.transactions_by_method.items():
+            graph.insert_node(method)
+            for transaction in transactions:
+                graph.insert_node(transaction)
+                graph.insert_edge(method, transaction)
+
+        return graph
+
 
 class TransactionContext:
     stack: list[TransactionManager] = []
@@ -353,7 +364,8 @@ class Transaction:
     current = None
 
     def __init__(self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None):
-        self.name = name or tracer.get_var_name(depth=2, default=get_caller_class_name(default="$transaction"))
+        self.owner, owner_name = get_caller_class_name(default="$transaction")
+        self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         if manager is None:
             manager = TransactionContext.get()
         manager.add_transaction(self)
@@ -504,7 +516,8 @@ class Method:
     current: Optional["Method"] = None
 
     def __init__(self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0):
-        self.name = name or tracer.get_var_name(depth=2, default="$method")
+        self.owner, owner_name = get_caller_class_name(default="$method")
+        self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal()
         self.run = Signal()
         self.data_in = Record(_coerce_layout(i))
