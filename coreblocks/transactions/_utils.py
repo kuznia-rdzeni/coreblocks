@@ -1,5 +1,5 @@
 import itertools
-import inspect
+import sys
 from typing import Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
 from ..utils._typing import LayoutLike
@@ -126,11 +126,12 @@ def _coerce_layout(int_or_layout: MethodLayout) -> LayoutLike:
         return int_or_layout
 
 
-def get_caller_class_name(default: Optional[str] = None) -> str:
-    caller_frame = inspect.stack()[2].frame
+def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:
+    caller_frame = sys._getframe(2)
     if "self" in caller_frame.f_locals:
-        return caller_frame.f_locals["self"].__class__.__name__
+        owner = caller_frame.f_locals["self"]
+        return owner, owner.__class__.__name__
     elif default is not None:
-        return default
+        return None, default
     else:
         raise RuntimeError("Not called from a method")
