@@ -11,8 +11,11 @@ __all__ = [
     "AdapterTrans",
     "Adapter",
     "ConnectTrans",
+    "ConnectAndTransformTrans",
     "CatTrans",
     "ManyToOneConnectTrans",
+    "MethodFilter",
+    "MethodProduct",
 ]
 
 # FIFOs
