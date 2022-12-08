@@ -1,4 +1,4 @@
-from enum import IntEnum, unique
+from enum import IntFlag, unique
 from typing import Tuple
 
 from amaranth import *
@@ -24,7 +24,7 @@ class MulFn(Signal):
     """
 
     @unique
-    class Fn(IntEnum):
+    class Fn(IntFlag):
         MUL = 1 << 0  # Lower part multiplication
         MULH = 1 << 1  # Upper part multiplication signed×signed
         MULHU = 1 << 2  # Upper part multiplication unsigned×unsigned
@@ -142,12 +142,15 @@ class MulUnit(Elaboratable):
             high_res = Signal(1)  # if result should contain upper part of result
 
             # Due to using unit multiplying unsigned integers, we need to convert input into two positive
-            # integers, and later apply sing to result of this multiplication, also we need to save
-            # which part of result we want upper or lower part. In the future, it would be greate improvement
+            # integers, and later apply sign to result of this multiplication, also we need to save
+            # which part of result we want upper or lower part. In the future, it would be a great improvement
             # to save result for chain multiplication of this same numbers, but with different parts as
             # results
             with OneHotSwitch(m, decoder.mul_fn) as OneHotCase:
                 with OneHotCase(MulFn.Fn.MUL):  # MUL
+                    # In this case we care only about lower part of number, so it does not matter if it is
+                    # interpreted as binary number or U2 encoded number, so we set result to be interpreted as
+                    # non-negative number.
                     m.d.comb += negative_res.eq(0)
                     m.d.comb += high_res.eq(0)
                     m.d.comb += value1.eq(i1)

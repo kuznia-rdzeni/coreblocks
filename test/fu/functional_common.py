@@ -89,13 +89,13 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         self.responses = deque()
 
         max_int = 2**self.gen.isa.xlen - 1
-        mul_fns = list(self.ops.keys())
+        functions = list(self.ops.keys())
 
         for i in range(self.number_of_tests):
             data1 = random.randint(0, max_int)
             data2 = random.randint(0, max_int)
             data2_is_imm = random.randint(0, 1)
-            mul_fn = mul_fns[random.randint(0, len(mul_fns) - 1)]
+            mul_fn = functions[random.randint(0, len(functions) - 1)]
             rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
             rp_dst = random.randint(0, 2**self.gen.phys_regs_bits - 1)
             exec_fn = self.ops[mul_fn]

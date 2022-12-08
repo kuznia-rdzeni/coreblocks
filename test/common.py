@@ -57,8 +57,7 @@ def neg(x: int, xlen: int) -> int:
     return : int
         Negation of x in the U2 system.
     """
-    base = 2**xlen - 1
-    return ((x ^ base) + 1) & base
+    return (-x) & (2**xlen - 1)
 
 
 def int_to_signed(x: int, xlen: int) -> int:
@@ -77,10 +76,7 @@ def int_to_signed(x: int, xlen: int) -> int:
     return : int
         Representation of x in the U2 system.
     """
-    if x < 0:
-        return neg(-x, xlen)
-    else:
-        return x
+    return x & (2**xlen - 1)
 
 
 def signed_to_int(x: int, xlen: int) -> int:
@@ -99,11 +95,7 @@ def signed_to_int(x: int, xlen: int) -> int:
     return : int
         Representation of x as signed Python integer.
     """
-    sign = 2 ** (xlen - 1)
-    if (sign & x) == sign:
-        return -neg(x, xlen)
-    else:
-        return x
+    return x | -(x & (2 ** (xlen - 1)))
 
 
 class TestCaseWithSimulator(unittest.TestCase):

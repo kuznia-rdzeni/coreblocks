@@ -31,9 +31,9 @@ class RecursiveWithSingleDSPMul(Elaboratable):
         self.confirm = Signal(reset=0)
         self.reset = Signal()
 
-    def elaborate(self, platform):
-        m = Module()
+    def elaborate(self, platform) -> Module:
         if self.n <= self.dsp.n:
+            m = Module()
             with m.If(self.reset):
                 m.d.sync += self.confirm.eq(0)
 
@@ -42,59 +42,66 @@ class RecursiveWithSingleDSPMul(Elaboratable):
                     res = self.dsp.compute(m, {"i1": self.i1, "i2": self.i2})
                     m.d.sync += self.result.eq(res)
                     m.d.sync += self.confirm.eq(1)
+
+            return m
         else:
-            # Classic Multiplying Algorythm
-            #
-            # bit: N       N/2      0
-            #      +--------+-------+
-            # i1 : | high_1 | low_1 |
-            #      +--------+-------+
-            # i2 : | high_2 | low_2 |
-            #      +--------+-------+
-            #
-            #  result_ll = low_1 * low_2
-            #  result_uu = high_1 * high_2
-            #  result_lu = low_1 * high_2 +
-            #  result_ul = high_1 * low_2
-            #
-            #  i1 * i2 = (high_1 << N/2 + low_1) * (high_2 << N/2 + low_2) =
-            #          = (high_1 * high_2) << N + (high_1 * low_2 + high_2 * low_1) << N/2 + low_1 * low_2
-            #          = result_uu << N + (result_lu + result_ul) << N/2 + result_ll
+            return self.recursive_module()
 
-            m.submodules.low_mul = mul1 = RecursiveWithSingleDSPMul(self.dsp, self.n // 2)
-            m.submodules.mid_mul = mul2 = RecursiveWithSingleDSPMul(self.dsp, self.n // 2)
-            m.submodules.upper_mul = mul3 = RecursiveWithSingleDSPMul(self.dsp, self.n // 2)
-            m.submodules.mul4 = mul4 = RecursiveWithSingleDSPMul(self.dsp, self.n // 2)
+    def recursive_module(self) -> Module:
+        # Classic Multiplying Algorythm
+        #
+        # bit: N       N/2      0
+        #      +--------+-------+
+        # i1 : | high_1 | low_1 |
+        #      +--------+-------+
+        # i2 : | high_2 | low_2 |
+        #      +--------+-------+
+        #
+        #  result_ll = low_1 * low_2
+        #  result_uu = high_1 * high_2
+        #  result_lu = low_1 * high_2 +
+        #  result_ul = high_1 * low_2
+        #
+        #  i1 * i2 = (high_1 << N/2 + low_1) * (high_2 << N/2 + low_2) =
+        #          = (high_1 * high_2) << N + (high_1 * low_2 + high_2 * low_1) << N/2 + low_1 * low_2
+        #          = result_uu << N + (result_lu + result_ul) << N/2 + result_ll
 
-            m.d.comb += mul1.reset.eq(self.reset)
-            m.d.comb += mul2.reset.eq(self.reset)
-            m.d.comb += mul3.reset.eq(self.reset)
-            m.d.comb += mul4.reset.eq(self.reset)
+        m = Module()
 
-            m.d.comb += self.confirm.eq(mul1.confirm & mul2.confirm & mul3.confirm & mul4.confirm)
+        m.submodules.low_mul = mul1 = RecursiveWithSingleDSPMul(self.dsp, self.n // 2)
+        m.submodules.mid_mul = mul2 = RecursiveWithSingleDSPMul(self.dsp, self.n // 2)
+        m.submodules.upper_mul = mul3 = RecursiveWithSingleDSPMul(self.dsp, self.n // 2)
+        m.submodules.mul4 = mul4 = RecursiveWithSingleDSPMul(self.dsp, self.n // 2)
 
-            result_ll = Signal(unsigned(self.n))
-            result_ul = Signal(unsigned(self.n))
-            result_lu = Signal(unsigned(self.n))
-            result_uu = Signal(unsigned(self.n))
+        m.d.comb += mul1.reset.eq(self.reset)
+        m.d.comb += mul2.reset.eq(self.reset)
+        m.d.comb += mul3.reset.eq(self.reset)
+        m.d.comb += mul4.reset.eq(self.reset)
 
-            m.d.comb += mul1.i1.eq(self.i1[: self.n // 2])
-            m.d.comb += mul1.i2.eq(self.i2[: self.n // 2])
-            m.d.comb += result_ll.eq(mul1.result)
+        m.d.comb += self.confirm.eq(mul1.confirm & mul2.confirm & mul3.confirm & mul4.confirm)
 
-            m.d.comb += mul2.i1.eq(self.i1[self.n // 2 :])
-            m.d.comb += mul2.i2.eq(self.i2[: self.n // 2])
-            m.d.comb += result_ul.eq(mul2.result)
+        result_ll = Signal(unsigned(self.n))
+        result_ul = Signal(unsigned(self.n))
+        result_lu = Signal(unsigned(self.n))
+        result_uu = Signal(unsigned(self.n))
 
-            m.d.comb += mul3.i1.eq(self.i1[: self.n // 2])
-            m.d.comb += mul3.i2.eq(self.i2[self.n // 2 :])
-            m.d.comb += result_lu.eq(mul3.result)
+        m.d.comb += mul1.i1.eq(self.i1[: self.n // 2])
+        m.d.comb += mul1.i2.eq(self.i2[: self.n // 2])
+        m.d.comb += result_ll.eq(mul1.result)
 
-            m.d.comb += mul4.i1.eq(self.i1[self.n // 2 :])
-            m.d.comb += mul4.i2.eq(self.i2[self.n // 2 :])
-            m.d.comb += result_uu.eq(mul4.result)
+        m.d.comb += mul2.i1.eq(self.i1[self.n // 2 :])
+        m.d.comb += mul2.i2.eq(self.i2[: self.n // 2])
+        m.d.comb += result_ul.eq(mul2.result)
 
-            m.d.comb += self.result.eq(result_ll + ((result_ul + result_lu) << self.n // 2) + (result_uu << self.n))
+        m.d.comb += mul3.i1.eq(self.i1[: self.n // 2])
+        m.d.comb += mul3.i2.eq(self.i2[self.n // 2 :])
+        m.d.comb += result_lu.eq(mul3.result)
+
+        m.d.comb += mul4.i1.eq(self.i1[self.n // 2 :])
+        m.d.comb += mul4.i2.eq(self.i2[self.n // 2 :])
+        m.d.comb += result_uu.eq(mul4.result)
+
+        m.d.comb += self.result.eq(result_ll + ((result_ul + result_lu) << self.n // 2) + (result_uu << self.n))
 
         return m
 
