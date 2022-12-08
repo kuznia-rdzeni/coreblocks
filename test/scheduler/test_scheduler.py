@@ -294,7 +294,7 @@ class TestScheduler(TestCaseWithSimulator):
 
             yield from self.m.rs_allocate.enable()
             for i in range(self.instr_count):
-                yield from self.m.rs_allocate.method_handle(mock, settle=5)
+                yield from self.m.rs_allocate.method_handle(mock, settle=1)
             self.expected_rs_entry_queue.append(None)
 
         with self.runSimulation(self.m, max_cycles=1500) as sim:
