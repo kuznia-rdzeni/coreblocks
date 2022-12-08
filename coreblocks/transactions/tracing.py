@@ -67,7 +67,7 @@ class TracingFragment(Fragment):
     @staticmethod
     def get(obj: Elaboratable, platform) -> "TracingFragment":
         """
-        This funcion code is based on Amaranth, which originally loses all information.
+        This function code is based on Amaranth, which originally loses all information.
         It was too difficult to hook into, so this has to be a near-exact copy.
 
         Relevant copyrights apply.

@@ -138,7 +138,7 @@ class OwnershipGraph:
         del self.graph[owner]
         owned = self.owned[owner]
         fp.write(f"{indent}node {self.names[owner]} {{\n")
-        fp.write(f'{indent}    considerModelOrder.components: INSIDE_PORT_SIDE_GROUPS\n')
+        fp.write(f"{indent}    considerModelOrder.components: INSIDE_PORT_SIDE_GROUPS\n")
         fp.write(f'{indent}    label "{self.labels.get(owner, self.names[owner])}"\n')
         for x in owned:
             fp.write(f'{indent}    node {self.get_name(x)} {{ label "{x.name}" }}\n')
