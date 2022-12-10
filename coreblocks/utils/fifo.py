@@ -5,6 +5,32 @@ from typing import List
 
 
 class BasicFifo(Elaboratable):
+    """Transactional FIFO queue
+    Parameters
+    ----------
+    layout: Layout or int
+        Layout of data stored in the FIFO.
+        If integer is given, Record with field ``data`` and width of this paramter is used as internal layout.
+    depth: int
+        Size of the FIFO.
+    init: List of int
+        List of memory elements to initialize FIFO at reset. List may be smaller than ``depth``.
+        If ``Record`` is used as ``layout``, it has to be flattened to ``int`` first.
+
+    Attributes
+    ----------
+    read: Method
+        Reads from the FIFO. Accepts an empty argument, returns a ``Record``.
+        Ready only if the FIFO is not empty.
+    write: Method
+        Writes to the FIFO. Accepts a ``Record``, returns empty result.
+        Ready only if the FIFO is not full.
+    clear: Method
+        Clears the FIFO entries. Has priority over ``read`` and ``write`` methods.
+        Note that, clearing the FIFO doesn't reinitialize it to values passed in ``init`` parameter.
+
+    """
+
     def __init__(self, layout: MethodLayout, depth: int, *, init: List[int] = []) -> None:
         self.layout = _coerce_layout(layout)
         self.width = len(Record(self.layout))
