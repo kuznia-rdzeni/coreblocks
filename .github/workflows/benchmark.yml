@@ -19,7 +19,7 @@ jobs:
           pip3 install -r requirements-dev.txt
 
       - name: Synthesize
-        run: AMARANTH_verbose=true ./scripts/synthesize
+        run: ./scripts/synthesize --verbose
 
       - name: Print synthesis information
         run: cat ./build/top.tim

@@ -1,83 +1,91 @@
 #!/usr/bin/env python3
+"""
+    This script parses the output of the synthesis tool and extracts the
+    following information:
+        - Max clock frequency
+        - Number of logic cells used
+        - Number of carry cells used
+        - Number of RAM cells used
+        - Number of DFF cells used
+"""
 
 import os
 import sys
 import re
+import json
+import argparse
+
+
+def find_synthesis_information(line, information_to_search):
+    """
+    Parses the given line for the given keyword and regex.
+    Returns the found value if the keyword is found in the line.
+    """
+
+    for information in information_to_search:
+        if information["keyword"] in line:
+            found_value = re.findall(information["regex"], line)[0]
+            if found_value:
+                information.update({"value": float(found_value)})
+                break
+
+
+def pick_information_to_search(platform):
+    """
+    Returns a list of information to search for based on the platform.
+    """
+    from constants.benchmark_information import ecp5 as ecp5_information
+
+    if platform == "ecp5":
+        return ecp5_information
+    else:
+        raise NotImplementedError(f"Platform {platform} is not supported.")
+
+
+def omit_regex_and_keyword(information_to_search):
+    """
+    Removes the regex and keyword from the information.
+    """
+
+    for information in information_to_search:
+        information.pop("regex")
+        information.pop("keyword")
+
+    return information_to_search
+
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, parent)
 
-    synth_info_file = open("./build/top.tim", "r")
-
-    max_clock_frequency = 0
-    logic_cells_used = 0
-    carry_cells_used = 0
-    ram_cells_used = 0
-    dff_cells_used = 0
-
-    lines = synth_info_file.readlines()
-
-    for line in lines:
-        if "Max frequency for clock" in line:
-            frequency = re.findall("(\\d+\\.\\d\\d) MHz", line)[0]
-
-            if frequency:
-                max_clock_frequency = float(frequency)
-        elif "logic LUTs" in line:
-            logic_cells = re.findall("(\\d+)/\\d+", line)[0]
-
-            if logic_cells:
-                logic_cells_used = int(logic_cells)
-        elif "carry LUTs" in line:
-            carry_cells = re.findall("(\\d+)/\\d+", line)[0]
-
-            if carry_cells:
-                carry_cells_used = int(carry_cells)
-        elif "RAM LUTs" in line:
-            ram_cells = re.findall("(\\d+)/\\d+", line)[0]
-
-            if ram_cells:
-                ram_cells_used = int(ram_cells)
-        elif "Total DFFs" in line:
-            dff_cells = re.findall("(\\d+)/\\d+", line)[0]
-
-            if dff_cells:
-                dff_cells_used = int(dff_cells)
-
-    synth_info_file.close()
-
-    benchmark_file = open("benchmark.json", "w")
-
-    benchmark_file.write(
-        f"""
-        [
-            {{
-                "name": "Max clock frequency (Fmax)",
-                "unit": "MHz",
-                "value": "{max_clock_frequency}"
-            }},
-            {{
-                "name": "Device utilisation: (ECP5)",
-                "unit": "LUT4",
-                "value": "{logic_cells_used}"
-            }},
-            {{
-                "name": "LUTs used as carry: (ECP5)",
-                "unit": "LUT",
-                "value": "{carry_cells_used}"
-            }},
-            {{
-                "name": "LUTs used as ram: (ECP5)",
-                "unit": "LUT",
-                "value": "{ram_cells_used}"
-            }},
-            {{
-                "name": "LUTs used as DFF: (ECP5)",
-                "unit": "LUT",
-                "value": "{dff_cells_used}"
-            }}
-        ]"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-p",
+        "--platform",
+        default="ecp5",
+        choices=["ecp5"],
+        help="Selects platform to collect information from. Default: %(default)s",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        default="./build/top.tim",
+        help="Selects input file to read information from. Default: %(default)s",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="benchmark.json",
+        help="Selects output file to write information to. Default: %(default)s",
     )
 
-    benchmark_file.close()
+    args = parser.parse_args()
+
+    information_to_search = pick_information_to_search(args.platform)
+
+    with open(args.input, "r") as synth_info_file:
+        for line in synth_info_file:
+            find_synthesis_information(line, information_to_search)
+
+    with open(args.output, "w") as benchmark_file:
+        benchmark_file.write(json.dumps(omit_regex_and_keyword(information_to_search), indent=4))
