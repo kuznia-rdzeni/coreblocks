@@ -89,7 +89,7 @@ def main():
 
     args = parser.parse_args()
 
-    os.environ["AMARANTH_verbose"] = args.verbose
+    os.environ["AMARANTH_verbose"] = "true" if args.verbose else "false"
 
     synthesize(args.platform)
 
