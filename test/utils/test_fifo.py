@@ -28,7 +28,7 @@ class TestBasicFifo(TestCaseWithSimulator):
     def test_randomized(self):
         init_values = [1, 2, 4]
 
-        fifoc = BasicFifoTestCircuit(init_values)
+        fifoc = BasicFifoTestCircuit(init=init_values)
         expq = deque(reversed(init_values))  # first expected element is at the start of init_list
 
         cycles = 256
