@@ -98,3 +98,6 @@ autodoc_typehints = "signature"
 
 # Display the class signature as a method
 autodoc_class_signature = "separated"
+
+# Auto generate anchors for # - ### headers
+myst_heading_anchors = 3
