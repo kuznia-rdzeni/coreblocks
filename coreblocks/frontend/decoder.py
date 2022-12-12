@@ -27,11 +27,13 @@ class Encoding:
         funct3: Union[Funct3, None] = None,
         funct7: Union[Funct7, None] = None,
         funct12: Union[Funct12, None] = None,
+        only64: bool = False
     ):
         self.opcode = opcode
         self.funct3 = funct3
         self.funct7 = funct7
         self.funct12 = funct12
+        self.only64 = only64
 
 
 #
@@ -133,6 +135,31 @@ _csr_encodings = [
     Encoding(Opcode.SYSTEM, Funct3.CSRRWI),  # csrrwi
     Encoding(Opcode.SYSTEM, Funct3.CSRRSI),  # csrrsi
     Encoding(Opcode.SYSTEM, Funct3.CSRRCI),  # csrrci
+]
+
+_mul_encodings = [
+    Encoding(Opcode.OP, Funct3.MUL, Funct7.MULDIV),  # mul
+    Encoding(Opcode.OP, Funct3.MULH, Funct7.MULDIV),  # mulh
+    Encoding(Opcode.OP, Funct3.MULHSU, Funct7.MULDIV),  # mulsu
+    Encoding(Opcode.OP, Funct3.MULHU, Funct7.MULDIV),  # mulu
+]
+
+_div_rem_encodings = [
+    Encoding(Opcode.OP, Funct3.DIV, Funct7.MULDIV),  # div
+    Encoding(Opcode.OP, Funct3.DIVU, Funct7.MULDIV),  # divu
+    Encoding(Opcode.OP, Funct3.REM, Funct7.MULDIV),  # rem
+    Encoding(Opcode.OP, Funct3.REMU, Funct7.MULDIV),  # remu
+]
+
+_mul_w_encodings = [
+    Encoding(Opcode.OP32, Funct3.MUL, Funct7.MULDIV, only64=True),  # mulw
+]
+
+_div_rem_w_encodings = [
+    Encoding(Opcode.OP32, Funct3.DIV, Funct7.MULDIV, only64=True),  # divw
+    Encoding(Opcode.OP32, Funct3.DIVU, Funct7.MULDIV, only64=True),  # divuw
+    Encoding(Opcode.OP32, Funct3.REM, Funct7.MULDIV, only64=True),  # remw
+    Encoding(Opcode.OP32, Funct3.REMU, Funct7.MULDIV, only64=True),  # remuw
 ]
 
 #
@@ -249,33 +276,38 @@ class InstrDecoder(Elaboratable):
 
         # Instruction type
 
-        itype = Signal(InstrType)
-        opcode_iv = Signal()
+        instruction_type = Signal(InstrType)  # format of instruction
+        opcode_invalid = Signal()
 
         with m.Switch(opcode):
             with m.Case(Opcode.OP_IMM, Opcode.JALR, Opcode.LOAD, Opcode.MISC_MEM, Opcode.SYSTEM):
-                m.d.comb += itype.eq(InstrType.I)
+                m.d.comb += instruction_type.eq(InstrType.I)
             with m.Case(Opcode.LUI, Opcode.AUIPC):
-                m.d.comb += itype.eq(InstrType.U)
+                m.d.comb += instruction_type.eq(InstrType.U)
             with m.Case(Opcode.OP):
-                m.d.comb += itype.eq(InstrType.R)
+                m.d.comb += instruction_type.eq(InstrType.R)
+            with m.Case(Opcode.OP32):
+                if self.gen.isa.xlen >= 64:  # instructions with this op code not available on RV32
+                    m.d.comb += instruction_type.eq(InstrType.R)
+                else:
+                    m.d.comb += opcode_invalid.eq(1)
             with m.Case(Opcode.JAL):
-                m.d.comb += itype.eq(InstrType.J)
+                m.d.comb += instruction_type.eq(InstrType.J)
             with m.Case(Opcode.BRANCH):
-                m.d.comb += itype.eq(InstrType.B)
+                m.d.comb += instruction_type.eq(InstrType.B)
             with m.Case(Opcode.STORE):
-                m.d.comb += itype.eq(InstrType.S)
+                m.d.comb += instruction_type.eq(InstrType.S)
             with m.Default():
-                m.d.comb += opcode_iv.eq(1)
+                m.d.comb += opcode_invalid.eq(1)
 
         # Decode funct
 
-        m.d.comb += self.funct3_v.eq(reduce(or_, (itype == t for t in _funct3_itypes)))
+        m.d.comb += self.funct3_v.eq(reduce(or_, (instruction_type == t for t in _funct3_itypes)))
         with m.If(self.funct3_v):
             m.d.comb += self._extract(12, self.funct3)
 
         m.d.comb += self.funct7_v.eq(
-            reduce(or_, (itype == t for t in _funct7_itypes))
+            reduce(or_, (instruction_type == t for t in _funct7_itypes))
             | ((opcode == Opcode.OP_IMM) & ((self.funct3 == Funct3.SLL) | (self.funct3 == Funct3.SR)))
         )
         with m.If(self.funct7_v):
@@ -289,11 +321,11 @@ class InstrDecoder(Elaboratable):
 
         m.d.comb += [
             self._extract(7, self.rd),
-            self.rd_v.eq(reduce(or_, (itype == t for t in _rd_itypes))),
+            self.rd_v.eq(reduce(or_, (instruction_type == t for t in _rd_itypes))),
             self._extract(15, self.rs1),
-            self.rs1_v.eq(reduce(or_, (itype == t for t in _rs1_itypes))),
+            self.rs1_v.eq(reduce(or_, (instruction_type == t for t in _rs1_itypes))),
             self._extract(20, self.rs2),
-            self.rs2_v.eq(reduce(or_, (itype == t for t in _rs2_itypes))),
+            self.rs2_v.eq(reduce(or_, (instruction_type == t for t in _rs2_itypes))),
         ]
 
         # Immediate
@@ -319,7 +351,7 @@ class InstrDecoder(Elaboratable):
         with m.If((self.funct3 == Funct3.SLL) | (self.funct3 == Funct3.SR)):
             m.d.comb += iimm12[5:11].eq(0)
 
-        with m.Switch(itype):
+        with m.Switch(instruction_type):
             with m.Case(InstrType.I):
                 m.d.comb += self.imm.eq(iimm12)
             with m.Case(InstrType.S):
@@ -394,6 +426,6 @@ class InstrDecoder(Elaboratable):
 
         # Illegal instruction detection
 
-        m.d.comb += self.illegal.eq(opcode_iv | (self.op == OpType.UNKNOWN))
+        m.d.comb += self.illegal.eq(opcode_invalid | (self.op == OpType.UNKNOWN))
 
         return m

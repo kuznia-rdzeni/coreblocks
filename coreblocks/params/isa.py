@@ -43,7 +43,7 @@ class Opcode(IntEnum):
 
 
 class Funct3(IntEnum):
-    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
+    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = 0b000
     BNE = H = SLL = FENCEI = CSRRW = MULH = 0b001
     W = SLT = CSRRS = MULHSU = 0b010
     SLTU = CSRRC = MULHU = 0b011
@@ -99,7 +99,10 @@ class OpType(IntEnum):
     WFI = 14
     FENCEI = 15
     CSR = 16
-    ARITHMETIC_W = 17
+    MUL = 17
+    DIV_REM = 18
+    MUL_W = 19
+    DIV_REM_W = 20
 
 
 @unique
