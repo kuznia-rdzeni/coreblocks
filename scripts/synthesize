@@ -10,7 +10,7 @@ from amaranth import Module, Elaboratable, Cat
 
 class TestElaboratable(Elaboratable):
     def __init__(self, gen_params, io_pins: int, instr_mem: list[int] = []):
-        from coreblocks.genparams import GenParams
+        from coreblocks.params.genparams import GenParams
 
         self.gp: GenParams = gen_params
         self.io_pins: int = io_pins
@@ -20,7 +20,7 @@ class TestElaboratable(Elaboratable):
         from coreblocks.core import Core
         from coreblocks.transactions import TransactionModule
         from coreblocks.transactions.lib import AdapterTrans
-        from coreblocks.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
+        from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
         m = Module()
         tm = TransactionModule(m)
@@ -56,7 +56,7 @@ class TestElaboratable(Elaboratable):
 
 
 def synthesize(platform: str):
-    from coreblocks.genparams import GenParams
+    from coreblocks.params.genparams import GenParams
     from constants.ecp5_platforms import ECP5BG381Platform
 
     gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
