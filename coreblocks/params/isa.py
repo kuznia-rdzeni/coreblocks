@@ -84,6 +84,7 @@ class OpType(IntEnum):
     """
     Enum of operation types. Do not confuse with Opcode.
     """
+
     UNKNOWN = auto()
     ARITHMETIC = auto()
     COMPARE = auto()

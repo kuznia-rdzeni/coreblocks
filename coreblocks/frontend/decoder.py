@@ -43,6 +43,7 @@ class Encoding:
     funct12: Union[Funct12, None]
         Twelve bits function identifier. If not exists for instruction then ```None```.
     """
+
     def __init__(
         self,
         opcode: Opcode,
@@ -245,6 +246,7 @@ class InstrDecoder(Elaboratable):
         Signal if decoding of instruction was successful. If 1 instruction did not fit into any supported
         instruction type for selected core generation parameters.
     """
+
     def __init__(self, gen: GenParams):
         self.gen = gen
 
