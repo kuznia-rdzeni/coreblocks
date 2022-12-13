@@ -1,6 +1,5 @@
 from functools import reduce
 from operator import or_
-from typing import Union, List
 
 from amaranth import *
 
@@ -8,6 +7,8 @@ from coreblocks.params import GenParams
 from coreblocks.params.isa import *
 
 __all__ = ["InstrDecoder"]
+
+from coreblocks.utils import OneHotSwitchDynamic
 
 # Important
 #
@@ -47,9 +48,9 @@ class Encoding:
     def __init__(
         self,
         opcode: Opcode,
-        funct3: Union[Funct3, None] = None,
-        funct7: Union[Funct7, None] = None,
-        funct12: Union[Funct12, None] = None,
+        funct3: Funct3 | None = None,
+        funct7: Funct7 | None = None,
+        funct12: Funct12 | None = None,
     ):
         self.opcode = opcode
         self.funct3 = funct3
@@ -316,7 +317,7 @@ class InstrDecoder(Elaboratable):
         """
         return sig.eq(self.instr[start : start + len(sig)])
 
-    def _match(self, encodings: List[Encoding]) -> Value:
+    def _match(self, encodings: list[Encoding]) -> Value:
         """
         Creates amaranth value of instruction belonging into list of encodings.
 
@@ -455,14 +456,17 @@ class InstrDecoder(Elaboratable):
         # Operation type
 
         extensions = self.gen.isa.extensions
+        op_type_mask = Signal(len(OpType) - 1)
         m.d.comb += self.op.eq(OpType.UNKNOWN)
 
         for ext, optypes in _optypes_by_extensions.items():
             if extensions & ext:
                 for optype in optypes:
                     list_of_encodings = _instructions_by_optype[optype]
-                    with m.If(self._match(list_of_encodings)):
-                        m.d.comb += self.op.eq(optype)
+                    m.d.comb += op_type_mask[optype.value - 2].eq(self._match(list_of_encodings))
+
+        for i in OneHotSwitchDynamic(m, op_type_mask):
+            m.d.comb += self.op.eq(i + 2)  # we are using 2 because first OpCode which is not UNKNOWN has value 2
 
         # Instruction simplification
 

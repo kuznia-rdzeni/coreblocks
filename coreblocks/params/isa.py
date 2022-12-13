@@ -42,14 +42,14 @@ class Opcode(IntEnum):
 
 
 class Funct3(IntEnum):
-    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = 0b000
+    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
     BNE = H = SLL = FENCEI = CSRRW = MULH = 0b001
     W = SLT = CSRRS = MULHSU = 0b010
     SLTU = CSRRC = MULHU = 0b011
-    BLT = BU = XOR = DIV = 0b100
-    BGE = HU = SR = CSRRWI = DIVU = 0b101
-    BLTU = OR = CSRRSI = REM = 0b110
-    BGEU = AND = CSRRCI = REMU = 0b111
+    BLT = BU = XOR = DIV = DIVW = 0b100
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = 0b101
+    BLTU = OR = CSRRSI = REM = REMW = 0b110
+    BGEU = AND = CSRRCI = REMU = REMUW = 0b111
 
 
 class Funct7(IntEnum):
