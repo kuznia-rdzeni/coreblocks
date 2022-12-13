@@ -1,6 +1,6 @@
 from functools import reduce
 from operator import or_
-from typing import Union
+from typing import Union, List
 
 from amaranth import *
 
@@ -8,6 +8,14 @@ from coreblocks.params import GenParams
 from coreblocks.params.isa import *
 
 __all__ = ["InstrDecoder"]
+
+# Important
+#
+# In order to add new instructions to be decoded by this decoder assuming they do not required additional
+# fields to be extracted you need to add them into ```_instructions_by_optype``` map, and register new OpType
+# into new or existing extension in ```_optypes_by_extensions``` map.
+
+# Lists which fields are used by which Instruction's types
 
 _rd_itypes = [InstrType.R, InstrType.I, InstrType.U, InstrType.J]
 
@@ -21,178 +29,222 @@ _funct7_itypes = [InstrType.R]
 
 
 class Encoding:
+    """
+    Class representing encoding of single RISC-V instruction.
+
+    Attributes
+    ----------
+    opcode: Opcode
+        Opcode of instruction.
+    funct3: Union[Funct3, None]
+        Three bits function identifier. If not exists for instruction then ```None```.
+    funct7: Union[Funct7, None]
+        Seven bits function identifier. If not exists for instruction then ```None```.
+    funct12: Union[Funct12, None]
+        Twelve bits function identifier. If not exists for instruction then ```None```.
+    """
     def __init__(
         self,
         opcode: Opcode,
         funct3: Union[Funct3, None] = None,
         funct7: Union[Funct7, None] = None,
         funct12: Union[Funct12, None] = None,
-        only64: bool = False
     ):
         self.opcode = opcode
         self.funct3 = funct3
         self.funct7 = funct7
         self.funct12 = funct12
-        self.only64 = only64
 
 
 #
-# Instructions groupped by `OpType`
+# Instructions grouped by Operation types
 #
 
-_arithmetic_encodings = [
-    Encoding(Opcode.OP_IMM, Funct3.ADD),  # addi
-    Encoding(Opcode.OP, Funct3.ADD, Funct7.ADD),  # add
-    Encoding(Opcode.OP, Funct3.ADD, Funct7.SUB),  # sub
-    Encoding(Opcode.LUI),  # lui
-]
-
-_compare_encodings = [
-    Encoding(Opcode.OP_IMM, Funct3.SLT),  # slti
-    Encoding(Opcode.OP_IMM, Funct3.SLTU),  # sltiu
-    Encoding(Opcode.OP, Funct3.SLT, Funct7.SLT),  # slt
-    Encoding(Opcode.OP, Funct3.SLTU, Funct7.SLT),  # sltu
-]
-
-_logic_encodings = [
-    Encoding(Opcode.OP_IMM, Funct3.XOR),  # xori
-    Encoding(Opcode.OP_IMM, Funct3.OR),  # ori
-    Encoding(Opcode.OP_IMM, Funct3.AND),  # andi
-    Encoding(Opcode.OP, Funct3.XOR, Funct7.XOR),  # xor
-    Encoding(Opcode.OP, Funct3.OR, Funct7.OR),  # or
-    Encoding(Opcode.OP, Funct3.AND, Funct7.AND),  # and
-]
-
-_shift_encodings = [
-    Encoding(Opcode.OP_IMM, Funct3.SLL, Funct7.SL),  # slli
-    Encoding(Opcode.OP_IMM, Funct3.SR, Funct7.SL),  # srli
-    Encoding(Opcode.OP_IMM, Funct3.SR, Funct7.SA),  # srai
-    Encoding(Opcode.OP, Funct3.SLL, Funct7.SL),  # sll
-    Encoding(Opcode.OP, Funct3.SR, Funct7.SL),  # srl
-    Encoding(Opcode.OP, Funct3.SR, Funct7.SA),  # sra
-]
-
-_auipc_encodings = [
-    Encoding(Opcode.AUIPC),  # auipc
-]
-
-_jump_encodings = [
-    Encoding(Opcode.JAL),  # jal
-    Encoding(Opcode.JALR, Funct3.JALR),  # jalr
-]
-
-_branch_encodings = [
-    Encoding(Opcode.BRANCH, Funct3.BEQ),  # beq
-    Encoding(Opcode.BRANCH, Funct3.BNE),  # bne
-    Encoding(Opcode.BRANCH, Funct3.BLT),  # blt
-    Encoding(Opcode.BRANCH, Funct3.BGE),  # bge
-    Encoding(Opcode.BRANCH, Funct3.BLTU),  # bltu
-    Encoding(Opcode.BRANCH, Funct3.BGEU),  # bgeu
-]
-
-_load_encodings = [
-    Encoding(Opcode.LOAD, Funct3.B),  # lb
-    Encoding(Opcode.LOAD, Funct3.BU),  # lbu
-    Encoding(Opcode.LOAD, Funct3.H),  # lh
-    Encoding(Opcode.LOAD, Funct3.HU),  # lhu
-    Encoding(Opcode.LOAD, Funct3.W),  # lw
-]
-
-_store_encodings = [
-    Encoding(Opcode.STORE, Funct3.B),  # sb
-    Encoding(Opcode.STORE, Funct3.H),  # sh
-    Encoding(Opcode.STORE, Funct3.W),  # sw
-]
-
-_fence_encodings = [
-    Encoding(Opcode.MISC_MEM, Funct3.FENCE),  # fence
-]
-
-_ecall_encodings = [
-    Encoding(Opcode.SYSTEM, Funct3.PRIV, None, Funct12.ECALL),  # ecall
-]
-
-_ebreak_encodings = [
-    Encoding(Opcode.SYSTEM, Funct3.PRIV, None, Funct12.EBREAK),  # ebreak
-]
-
-_mret_encodings = [
-    Encoding(Opcode.SYSTEM, Funct3.PRIV, None, Funct12.MRET),  # mret
-]
-
-_wfi_encodings = [
-    Encoding(Opcode.SYSTEM, Funct3.PRIV, None, Funct12.WFI),  # wfi
-]
-
-_fencei_encodings = [
-    Encoding(Opcode.MISC_MEM, Funct3.FENCEI),  # fence.i
-]
-
-_csr_encodings = [
-    Encoding(Opcode.SYSTEM, Funct3.CSRRW),  # csrrw
-    Encoding(Opcode.SYSTEM, Funct3.CSRRS),  # csrrs
-    Encoding(Opcode.SYSTEM, Funct3.CSRRC),  # csrrc
-    Encoding(Opcode.SYSTEM, Funct3.CSRRWI),  # csrrwi
-    Encoding(Opcode.SYSTEM, Funct3.CSRRSI),  # csrrsi
-    Encoding(Opcode.SYSTEM, Funct3.CSRRCI),  # csrrci
-]
-
-_mul_encodings = [
-    Encoding(Opcode.OP, Funct3.MUL, Funct7.MULDIV),  # mul
-    Encoding(Opcode.OP, Funct3.MULH, Funct7.MULDIV),  # mulh
-    Encoding(Opcode.OP, Funct3.MULHSU, Funct7.MULDIV),  # mulsu
-    Encoding(Opcode.OP, Funct3.MULHU, Funct7.MULDIV),  # mulu
-]
-
-_div_rem_encodings = [
-    Encoding(Opcode.OP, Funct3.DIV, Funct7.MULDIV),  # div
-    Encoding(Opcode.OP, Funct3.DIVU, Funct7.MULDIV),  # divu
-    Encoding(Opcode.OP, Funct3.REM, Funct7.MULDIV),  # rem
-    Encoding(Opcode.OP, Funct3.REMU, Funct7.MULDIV),  # remu
-]
-
-_mul_w_encodings = [
-    Encoding(Opcode.OP32, Funct3.MUL, Funct7.MULDIV, only64=True),  # mulw
-]
-
-_div_rem_w_encodings = [
-    Encoding(Opcode.OP32, Funct3.DIV, Funct7.MULDIV, only64=True),  # divw
-    Encoding(Opcode.OP32, Funct3.DIVU, Funct7.MULDIV, only64=True),  # divuw
-    Encoding(Opcode.OP32, Funct3.REM, Funct7.MULDIV, only64=True),  # remw
-    Encoding(Opcode.OP32, Funct3.REMU, Funct7.MULDIV, only64=True),  # remuw
-]
+_instructions_by_optype = {
+    OpType.ARITHMETIC: [
+        Encoding(Opcode.OP_IMM, Funct3.ADD),  # addi
+        Encoding(Opcode.OP, Funct3.ADD, Funct7.ADD),  # add
+        Encoding(Opcode.OP, Funct3.ADD, Funct7.SUB),  # sub
+        Encoding(Opcode.LUI),  # lui
+    ],
+    OpType.COMPARE: [
+        Encoding(Opcode.OP_IMM, Funct3.SLT),  # slti
+        Encoding(Opcode.OP_IMM, Funct3.SLTU),  # sltiu
+        Encoding(Opcode.OP, Funct3.SLT, Funct7.SLT),  # slt
+        Encoding(Opcode.OP, Funct3.SLTU, Funct7.SLT),  # sltu
+    ],
+    OpType.LOGIC: [
+        Encoding(Opcode.OP_IMM, Funct3.XOR),  # xori
+        Encoding(Opcode.OP_IMM, Funct3.OR),  # ori
+        Encoding(Opcode.OP_IMM, Funct3.AND),  # andi
+        Encoding(Opcode.OP, Funct3.XOR, Funct7.XOR),  # xor
+        Encoding(Opcode.OP, Funct3.OR, Funct7.OR),  # or
+        Encoding(Opcode.OP, Funct3.AND, Funct7.AND),  # and
+    ],
+    OpType.SHIFT: [
+        Encoding(Opcode.OP_IMM, Funct3.SLL, Funct7.SL),  # slli
+        Encoding(Opcode.OP_IMM, Funct3.SR, Funct7.SL),  # srli
+        Encoding(Opcode.OP_IMM, Funct3.SR, Funct7.SA),  # srai
+        Encoding(Opcode.OP, Funct3.SLL, Funct7.SL),  # sll
+        Encoding(Opcode.OP, Funct3.SR, Funct7.SL),  # srl
+        Encoding(Opcode.OP, Funct3.SR, Funct7.SA),  # sra
+    ],
+    OpType.AUIPC: [
+        Encoding(Opcode.AUIPC),  # auipc
+    ],
+    OpType.JAL: [
+        Encoding(Opcode.JAL),  # jal
+    ],
+    OpType.JALR: [
+        Encoding(Opcode.JALR, Funct3.JALR),  # jalr
+    ],
+    OpType.BRANCH: [
+        Encoding(Opcode.BRANCH, Funct3.BEQ),  # beq
+        Encoding(Opcode.BRANCH, Funct3.BNE),  # bne
+        Encoding(Opcode.BRANCH, Funct3.BLT),  # blt
+        Encoding(Opcode.BRANCH, Funct3.BGE),  # bge
+        Encoding(Opcode.BRANCH, Funct3.BLTU),  # bltu
+        Encoding(Opcode.BRANCH, Funct3.BGEU),  # bgeu
+    ],
+    OpType.LOAD: [
+        Encoding(Opcode.LOAD, Funct3.B),  # lb
+        Encoding(Opcode.LOAD, Funct3.BU),  # lbu
+        Encoding(Opcode.LOAD, Funct3.H),  # lh
+        Encoding(Opcode.LOAD, Funct3.HU),  # lhu
+        Encoding(Opcode.LOAD, Funct3.W),  # lw
+    ],
+    OpType.STORE: [
+        Encoding(Opcode.STORE, Funct3.B),  # sb
+        Encoding(Opcode.STORE, Funct3.H),  # sh
+        Encoding(Opcode.STORE, Funct3.W),  # sw
+    ],
+    OpType.FENCE: [
+        Encoding(Opcode.MISC_MEM, Funct3.FENCE),  # fence
+    ],
+    OpType.ECALL: [
+        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL),  # ecall
+    ],
+    OpType.EBREAK: [
+        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK),  # ebreak
+    ],
+    OpType.MRET: [
+        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.MRET),  # mret
+    ],
+    OpType.WFI: [
+        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI),  # wfi
+    ],
+    OpType.FENCEI: [
+        Encoding(Opcode.MISC_MEM, Funct3.FENCEI),  # fence.i
+    ],
+    OpType.CSR: [
+        Encoding(Opcode.SYSTEM, Funct3.CSRRW),  # csrrw
+        Encoding(Opcode.SYSTEM, Funct3.CSRRS),  # csrrs
+        Encoding(Opcode.SYSTEM, Funct3.CSRRC),  # csrrc
+        Encoding(Opcode.SYSTEM, Funct3.CSRRWI),  # csrrwi
+        Encoding(Opcode.SYSTEM, Funct3.CSRRSI),  # csrrsi
+        Encoding(Opcode.SYSTEM, Funct3.CSRRCI),  # csrrci
+    ],
+    OpType.MUL: [
+        Encoding(Opcode.OP, Funct3.MUL, Funct7.MULDIV),  # mul
+        Encoding(Opcode.OP, Funct3.MULH, Funct7.MULDIV),  # mulh
+        Encoding(Opcode.OP, Funct3.MULHSU, Funct7.MULDIV),  # mulsu
+        Encoding(Opcode.OP, Funct3.MULHU, Funct7.MULDIV),  # mulu
+    ],
+    OpType.DIV_REM: [
+        Encoding(Opcode.OP, Funct3.DIV, Funct7.MULDIV),  # div
+        Encoding(Opcode.OP, Funct3.DIVU, Funct7.MULDIV),  # divu
+        Encoding(Opcode.OP, Funct3.REM, Funct7.MULDIV),  # rem
+        Encoding(Opcode.OP, Funct3.REMU, Funct7.MULDIV),  # remu
+    ],
+}
 
 #
-# Encodings groupped by extensions
+# Operation types grouped by extensions
 #
 
-_i_encodings = [
-    _arithmetic_encodings,
-    _compare_encodings,
-    _logic_encodings,
-    _shift_encodings,
-    _auipc_encodings,
-    _jump_encodings,
-    _branch_encodings,
-    _load_encodings,
-    _store_encodings,
-    _fence_encodings,
-    _ecall_encodings,
-    _ebreak_encodings,
-    _mret_encodings,
-    _wfi_encodings,
-]
-
-_zifencei_encodings = [
-    _fencei_encodings,
-]
-
-_zicsr_encodings = [
-    _csr_encodings,
-]
+_optypes_by_extensions = {
+    Extension.I: [
+        OpType.ARITHMETIC,
+        OpType.COMPARE,
+        OpType.LOGIC,
+        OpType.SHIFT,
+        OpType.AUIPC,
+        OpType.JAL,
+        OpType.JALR,
+        OpType.BRANCH,
+        OpType.LOAD,
+        OpType.STORE,
+        OpType.FENCE,
+        OpType.ECALL,
+        OpType.EBREAK,
+        OpType.MRET,
+        OpType.WFI,
+    ],
+    Extension.ZIFENCEI: [
+        OpType.FENCEI,
+    ],
+    Extension.ZICSR: [
+        OpType.CSR,
+    ],
+    Extension.M: [
+        OpType.MUL,
+        OpType.DIV_REM,
+    ],
+}
 
 
 class InstrDecoder(Elaboratable):
+    """
+    Class performing instruction decoding into elementary components like opcodes, funct2 etc.
+    It uses combinatorial connection via its attributes.
+
+    Parameters
+    ----------
+    gen: GenParams
+        Core generation parameters.
+
+    Attributes
+    ----------
+    instr: Signal(gen.isa.ilen), in
+        Instruction to be decoded.
+    opcode: Signal(Opcode), out
+        Opcode of decoded instruction.
+    funct3: Signal(Funct3), out
+        Three bits function identifier.
+    funct3_v: Signal(1), out
+        Signals if decoded instruction has funct3 identifier.
+    funct7: Signal(Funct7), out
+        Seven bits function identifier.
+    funct7_v: Signal(1), out
+        Signals if decoded instruction has funct7 identifier.
+    funct12: Signal(Funct12), out
+        Twelve bits function identifier.
+    funct12_v: Signal(1), out
+        Signals if decoded instruction has funct12 identifier.
+    rs1: Signal(gen.isa.reg_cnt_log), out
+        Address of register holding first input value.
+    rs1_v: Signal(1), out
+        Signal if instruction takes first input value form register.
+    rs2: Signal(gen.isa.reg_cnt_log), out
+        Address of register holding second input value.
+    rs2_v: Signal(1), out
+        Signal if instruction takes second input value form register.
+    imm: Signal(gen.isa.xlen), out
+        Immediate values provided in instruction. If no immediate values were provided then value is 0.
+    succ: Signal(FenceTarget), out
+        Successor for ```FENCE``` instructions.
+    pred: Signal(FenceTarget), out
+        Predecessor for ```FENCE``` instructions.
+    fm: Signal(FenceFm), out
+        Fence mode for ```FENCE``` instructions.
+    csr: Signal(gen.isa.csr_alen), out
+        Address of Control and Source Register for ```CSR``` instructions.
+    op: Signal(OpType), out
+        Operation type of instruction, used to define functional unit to perform this kind of instructions.
+    illegal: Signal(1), out
+        Signal if decoding of instruction was successful. If 1 instruction did not fit into any supported
+        instruction type for selected core generation parameters.
+    """
     def __init__(self, gen: GenParams):
         self.gen = gen
 
@@ -244,10 +296,38 @@ class InstrDecoder(Elaboratable):
         # Illegal instruction
         self.illegal = Signal()
 
-    def _extract(self, start, sig):
+    def _extract(self, start: int, sig):
+        """
+        Method used to for extracting fragment of instruction into provided Signal starting from ```start``` bit.
+
+        Parameters
+        ----------
+        start: int
+            Start of instruction span to be extracted into.
+        sig: Signal
+            Signal into which fragment (with length of sig's length) of input will be extracted.
+
+        Returns
+        ----------
+        Assign
+            Assignment of signal.
+        """
         return sig.eq(self.instr[start : start + len(sig)])
 
-    def _match(self, encodings):
+    def _match(self, encodings: List[Encoding]) -> Value:
+        """
+        Creates amaranth value of instruction belonging into list of encodings.
+
+        Parameters
+        ----------
+        encodings: List[Encoding]
+            List of encoding to be checked against currently decoding instruction.
+
+        Returns
+        ----------
+        Value
+            Value of instruction having type of encodings in the list.
+        """
         return reduce(
             or_,
             map(
@@ -286,11 +366,6 @@ class InstrDecoder(Elaboratable):
                 m.d.comb += instruction_type.eq(InstrType.U)
             with m.Case(Opcode.OP):
                 m.d.comb += instruction_type.eq(InstrType.R)
-            with m.Case(Opcode.OP32):
-                if self.gen.isa.xlen >= 64:  # instructions with this op code not available on RV32
-                    m.d.comb += instruction_type.eq(InstrType.R)
-                else:
-                    m.d.comb += opcode_invalid.eq(1)
             with m.Case(Opcode.JAL):
                 m.d.comb += instruction_type.eq(InstrType.J)
             with m.Case(Opcode.BRANCH):
@@ -377,34 +452,15 @@ class InstrDecoder(Elaboratable):
 
         # Operation type
 
-        op_mask = Signal(len(list(OpType)) - 1)
         extensions = self.gen.isa.extensions
-
-        m.d.comb += op_mask.eq(0)
-        for i, encodings in enumerate(_i_encodings):
-            m.d.comb += op_mask[i].eq(self._match(encodings))
-
-        off = len(_i_encodings)
-
-        if extensions & Extension.ZIFENCEI:
-            for i, encodings in enumerate(_zifencei_encodings):
-                m.d.comb += op_mask[i + off].eq(self._match(encodings))
-
-        off += len(_zifencei_encodings)
-
-        if extensions & Extension.ZICSR:
-            for i, encodings in enumerate(_zicsr_encodings):
-                m.d.comb += op_mask[i + off].eq(self._match(encodings))
-
-        off += len(_zicsr_encodings)
-
         m.d.comb += self.op.eq(OpType.UNKNOWN)
-        with m.Switch(op_mask):
-            for i in range(off):
-                with m.Case("-" * (len(op_mask) - i - 1) + "1" + "-" * i):
-                    m.d.comb += self.op.eq(i + 1)
-            with m.Default():
-                m.d.comb += self.op.eq(OpType.UNKNOWN)
+
+        for ext, optypes in _optypes_by_extensions.items():
+            if extensions & ext:
+                for optype in optypes:
+                    list_of_encodings = _instructions_by_optype[optype]
+                    with m.If(self._match(list_of_encodings)):
+                        m.d.comb += self.op.eq(optype)
 
         # Instruction simplification
 

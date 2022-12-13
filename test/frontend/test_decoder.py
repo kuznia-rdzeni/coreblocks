@@ -71,9 +71,9 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x4192D7B3, Opcode.OP, Funct3.SR, Funct7.SA, rd=15, rs1=5, rs2=25, op=OpType.SHIFT),
         # AUIPC
         InstrTest(0x00777F17, Opcode.AUIPC, rd=30, imm=0x777 << 12, op=OpType.AUIPC),
-        # Jump
-        InstrTest(0x000000EF, Opcode.JAL, rd=1, imm=0, op=OpType.JUMP),
-        InstrTest(0xFFE100E7, Opcode.JALR, Funct3.JALR, rd=1, rs1=2, imm=0xFFFFFFFE, op=OpType.JUMP),
+        # Jumps
+        InstrTest(0x000000EF, Opcode.JAL, rd=1, imm=0, op=OpType.JAL),
+        InstrTest(0xFFE100E7, Opcode.JALR, Funct3.JALR, rd=1, rs1=2, imm=0xFFFFFFFE, op=OpType.JALR),
         # Branch
         InstrTest(0x00209463, Opcode.BRANCH, Funct3.BNE, rs1=1, rs2=2, imm=4 << 1, op=OpType.BRANCH),
         InstrTest(0x00310463, Opcode.BRANCH, Funct3.BEQ, rs1=2, rs2=3, imm=4 << 1, op=OpType.BRANCH),
@@ -126,6 +126,16 @@ class TestDecoder(TestCaseWithSimulator):
     DECODER_TESTS_ILLEGAL = [
         InstrTest(0xFFFFFFFF, Opcode.OP_IMM, illegal=1),
         InstrTest(0x003160FF, Opcode.OP, Funct3.OR, Funct7.OR, rd=1, rs1=2, rs2=3, op=OpType.LOGIC, illegal=1),
+    ]
+    DECODER_TESTS_M = [
+        InstrTest(0x02310133, Opcode.OP, Funct3.MUL, Funct7.MULDIV, rd=2, rs1=2, rs2=3, op=OpType.MUL),
+        InstrTest(0x02341133, Opcode.OP, Funct3.MULH, Funct7.MULDIV, rd=2, rs1=8, rs2=3, op=OpType.MUL),
+        InstrTest(0x02A12233, Opcode.OP, Funct3.MULHSU, Funct7.MULDIV, rd=4, rs1=2, rs2=10, op=OpType.MUL),
+        InstrTest(0x02A43233, Opcode.OP, Funct3.MULHU, Funct7.MULDIV, rd=4, rs1=8, rs2=10, op=OpType.MUL),
+        InstrTest(0x02314133, Opcode.OP, Funct3.DIV, Funct7.MULDIV, rd=2, rs1=2, rs2=3, op=OpType.DIV_REM),
+        InstrTest(0x02745133, Opcode.OP, Funct3.DIVU, Funct7.MULDIV, rd=2, rs1=8, rs2=7, op=OpType.DIV_REM),
+        InstrTest(0x02716233, Opcode.OP, Funct3.REM, Funct7.MULDIV, rd=4, rs1=2, rs2=7, op=OpType.DIV_REM),
+        InstrTest(0x02A47233, Opcode.OP, Funct3.REMU, Funct7.MULDIV, rd=4, rs1=8, rs2=10, op=OpType.DIV_REM),
     ]
 
     def setUp(self):
@@ -195,6 +205,10 @@ class TestDecoder(TestCaseWithSimulator):
 
     def test_zicsr(self):
         for test in self.DECODER_TESTS_ZICSR:
+            self.do_test(test)
+
+    def test_m(self):
+        for test in self.DECODER_TESTS_M:
             self.do_test(test)
 
     def test_illegal(self):

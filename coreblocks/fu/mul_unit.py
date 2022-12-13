@@ -29,7 +29,9 @@ class MulFn(Signal):
         MULH = 1 << 1  # Upper part multiplication signed×signed
         MULHU = 1 << 2  # Upper part multiplication unsigned×unsigned
         MULHSU = 1 << 3  # Upper part multiplication signed×unsigned
-        MULW = 1 << 4  # Multiplication of lower half of bits (only for RV64)
+        # Prepared for RV64
+        #
+        # MULW = 1 << 4  # Multiplication of lower half of bits
 
     def __init__(self, *args, **kwargs):
         super().__init__(MulFn.Fn, *args, **kwargs)
@@ -58,9 +60,10 @@ class MulFnDecoder(Elaboratable):
                 m.d.comb += self.mul_fn.eq(MulFn.Fn.MULHU)
             with m.Case(Funct3.MULHSU):
                 m.d.comb += self.mul_fn.eq(MulFn.Fn.MULHSU)
-
-        with m.If(self.exec_fn.op_type == OpType.ARITHMETIC_W):
-            m.d.comb += self.mul_fn.eq(MulFn.Fn.MULW)
+        # Prepared for RV64
+        #
+        # with m.If(self.exec_fn.op_type == OpType.ARITHMETIC_W):
+        #     m.d.comb += self.mul_fn.eq(MulFn.Fn.MULW)
 
         return m
 
@@ -124,7 +127,9 @@ class MulUnit(Elaboratable):
 
         xlen = self.gen.isa.xlen
         sign_bit = xlen - 1  # position of sign bit
-        half_sign_bit = xlen // 2 - 1  # position of sign bit considering only half of input being used
+        # Prepared for RV64
+        #
+        # half_sign_bit = xlen // 2 - 1  # position of sign bit considering only half of input being used
 
         @def_method(m, self.accept)
         def _(arg):
@@ -170,15 +175,17 @@ class MulUnit(Elaboratable):
                     m.d.comb += high_res.eq(1)
                     m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
                     m.d.comb += value2.eq(i2)
-                with OneHotCase(MulFn.Fn.MULW):
-                    m.d.comb += negative_res.eq(i1[half_sign_bit] ^ i2[half_sign_bit])
-                    m.d.comb += high_res.eq(0)
-                    i1h = Signal(xlen // 2)
-                    i2h = Signal(xlen // 2)
-                    m.d.comb += i1h.eq(Mux(i1[half_sign_bit], -i1, i1))
-                    m.d.comb += i2h.eq(Mux(i2[half_sign_bit], -i2, i2))
-                    m.d.comb += value1.eq(i1h)
-                    m.d.comb += value2.eq(i2h)
+                # Prepared for RV64
+                #
+                # with OneHotCase(MulFn.Fn.MULW):
+                #     m.d.comb += negative_res.eq(i1[half_sign_bit] ^ i2[half_sign_bit])
+                #     m.d.comb += high_res.eq(0)
+                #     i1h = Signal(xlen // 2)
+                #     i2h = Signal(xlen // 2)
+                #     m.d.comb += i1h.eq(Mux(i1[half_sign_bit], -i1, i1))
+                #     m.d.comb += i2h.eq(Mux(i2[half_sign_bit], -i2, i2))
+                #     m.d.comb += value1.eq(i1h)
+                #     m.d.comb += value2.eq(i2h)
 
             params_fifo.write(
                 m, {"rob_id": arg.rob_id, "rp_dst": arg.rp_dst, "negative_res": negative_res, "high_res": high_res}

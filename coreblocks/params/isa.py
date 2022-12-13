@@ -1,6 +1,5 @@
 from itertools import takewhile
-from enum import unique, Enum, IntEnum, IntFlag
-
+from enum import unique, Enum, IntEnum, IntFlag, auto
 
 __all__ = [
     "InstrType",
@@ -82,27 +81,29 @@ class FenceFm(IntEnum):
 
 @unique
 class OpType(IntEnum):
-    UNKNOWN = 0
-    ARITHMETIC = 1
-    COMPARE = 2
-    LOGIC = 3
-    SHIFT = 4
-    AUIPC = 5
-    JUMP = 6
-    BRANCH = 7
-    LOAD = 8
-    STORE = 9
-    FENCE = 10
-    ECALL = 11
-    EBREAK = 12
-    MRET = 13
-    WFI = 14
-    FENCEI = 15
-    CSR = 16
-    MUL = 17
-    DIV_REM = 18
-    MUL_W = 19
-    DIV_REM_W = 20
+    """
+    Enum of operation types. Do not confuse with Opcode.
+    """
+    UNKNOWN = auto()
+    ARITHMETIC = auto()
+    COMPARE = auto()
+    LOGIC = auto()
+    SHIFT = auto()
+    AUIPC = auto()
+    JAL = auto()
+    JALR = auto()
+    BRANCH = auto()
+    LOAD = auto()
+    STORE = auto()
+    FENCE = auto()
+    ECALL = auto()
+    EBREAK = auto()
+    MRET = auto()
+    WFI = auto()
+    FENCEI = auto()
+    CSR = auto()
+    MUL = auto()
+    DIV_REM = auto()
 
 
 @unique
