@@ -5,12 +5,15 @@ from .decoder import InstrDecoder
 
 
 class Decode(Elaboratable):
+    """
+    Simple decode unit. This is a transactional interface which instantiates a
+    submodule `InstrDecoder`. This `InstrDecoder` makes actual decoding in
+    a combinatorial manner.
+
+    """
+
     def __init__(self, gen_params: GenParams, get_raw: Method, push_decoded: Method) -> None:
         """
-        Simple decode unit. This is a transactional interface which instantiates a
-        submodule `InstrDecoder`. This `InstrDecoder` makes actual decoding in
-        a combinatorial manner.
-
         Parameters
         ----------
         gen_params : GenParams
