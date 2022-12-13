@@ -9,7 +9,7 @@ from amaranth.sim import *
 from amaranth.sim.core import Command
 from coreblocks.transactions.core import DebugSignals
 from coreblocks.transactions.lib import AdapterBase
-from coreblocks._typing import ValueLike
+from coreblocks.utils._typing import ValueLike
 from .gtkw_extension import write_vcd_ext
 
 
@@ -39,6 +39,63 @@ def get_outputs(field: Record) -> TestGen[RecordIntDict]:
         else:  # field is a Record
             result[name] = yield from get_outputs(val)
     return result
+
+
+def neg(x: int, xlen: int) -> int:
+    """
+    Computes the negation of a number in the U2 system.
+
+    Parameters
+    ----------
+    x: int
+        Number in U2 system.
+    xlen : int
+        Bit width of x.
+
+    Returns
+    -------
+    return : int
+        Negation of x in the U2 system.
+    """
+    return (-x) & (2**xlen - 1)
+
+
+def int_to_signed(x: int, xlen: int) -> int:
+    """
+    Converts a Python integer into its U2 representation.
+
+    Parameters
+    ----------
+    x: int
+        Signed Python integer.
+    xlen : int
+        Bit width of x.
+
+    Returns
+    -------
+    return : int
+        Representation of x in the U2 system.
+    """
+    return x & (2**xlen - 1)
+
+
+def signed_to_int(x: int, xlen: int) -> int:
+    """
+    Changes U2 representation into Python integer
+
+    Parameters
+    ----------
+    x: int
+        Number in U2 system.
+    xlen : int
+        Bit width of x.
+
+    Returns
+    -------
+    return : int
+        Representation of x as signed Python integer.
+    """
+    return x | -(x & (2 ** (xlen - 1)))
 
 
 class TestCaseWithSimulator(unittest.TestCase):
@@ -97,13 +154,19 @@ class TestbenchIO(Elaboratable):
         while (yield self.adapter.done) != 1:
             yield
 
+    def set_inputs(self, data: RecordValueDict = {}) -> TestGen[None]:
+        yield from set_inputs(data, self.adapter.data_in)
+
     def call_init(self, data: RecordValueDict = {}) -> TestGen[None]:
         yield from self.enable()
-        yield from set_inputs(data, self.adapter.data_in)
+        yield from self.set_inputs(data)
+
+    def get_outputs(self) -> TestGen[RecordIntDictRet]:
+        return (yield from get_outputs(self.adapter.data_out))
 
     def call_result(self) -> TestGen[Optional[RecordIntDictRet]]:
         if (yield self.adapter.done):
-            return (yield from get_outputs(self.adapter.data_out))
+            return (yield from self.get_outputs())
         return None
 
     def call_do(self) -> TestGen[RecordIntDict]:

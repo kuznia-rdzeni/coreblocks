@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+import pathlib
+import sys
+from argparse import ArgumentParser, FileType
+
+par = ArgumentParser()
+par.add_argument('-f', '--format', default='elk', nargs='?')
+par.add_argument('ofile', type=FileType('w'))
+
+arg = par.parse_args()
+
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
+
+from coreblocks.params.genparams import GenParams
+from coreblocks.transactions.graph import TracingFragment
+from test.test_core import TestElaboratable
+
+gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
+elaboratable = TestElaboratable(gp)
+fragment = TracingFragment.get(elaboratable, platform=None).prepare()
+
+core = fragment
+while not hasattr(core, "transactionManager"):
+    core = core._tracing_original
+
+mgr = core.transactionManager
+
+with arg.ofile as fp:
+    graph = mgr.visual_graph(fragment)
+    graph.dump(fp, arg.format)

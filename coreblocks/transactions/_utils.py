@@ -1,9 +1,9 @@
 import itertools
-import inspect
+import sys
 from typing import Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
-from .._typing import LayoutLike
-from coreblocks.utils import OneHotSwitch
+from ..utils._typing import LayoutLike
+from coreblocks.utils import OneHotSwitchDynamic
 
 __all__ = [
     "Scheduler",
@@ -28,11 +28,6 @@ class Scheduler(Elaboratable):
     but instead of using binary numbers, it uses one-hot encoding for the
     ``grant`` output signal.
 
-    Parameters
-    ----------
-    count : int
-        Number of agents between which the scheduler should arbitrate.
-
     Attributes
     ----------
     requests: Signal(count), in
@@ -46,6 +41,12 @@ class Scheduler(Elaboratable):
     """
 
     def __init__(self, count: int):
+        """
+        Parameters
+        ----------
+        count : int
+            Number of agents between which the scheduler should arbitrate.
+        """
         if not isinstance(count, int) or count < 0:
             raise ValueError("Count must be a non-negative integer, not {!r}".format(count))
         self.count = count
@@ -59,7 +60,7 @@ class Scheduler(Elaboratable):
 
         grant_reg = Signal.like(self.grant)
 
-        for i in OneHotSwitch(m, grant_reg, default=True):
+        for i in OneHotSwitchDynamic(m, grant_reg, default=True):
             if i is not None:
                 m.d.comb += self.grant.eq(grant_reg)
                 for j in itertools.chain(reversed(range(i)), reversed(range(i + 1, self.count))):
@@ -126,11 +127,12 @@ def _coerce_layout(int_or_layout: MethodLayout) -> LayoutLike:
         return int_or_layout
 
 
-def get_caller_class_name(default: Optional[str] = None) -> str:
-    caller_frame = inspect.stack()[2].frame
+def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:
+    caller_frame = sys._getframe(2)
     if "self" in caller_frame.f_locals:
-        return caller_frame.f_locals["self"].__class__.__name__
+        owner = caller_frame.f_locals["self"]
+        return owner, owner.__class__.__name__
     elif default is not None:
-        return default
+        return None, default
     else:
         raise RuntimeError("Not called from a method")
