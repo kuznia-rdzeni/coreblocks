@@ -177,7 +177,7 @@ class WishboneMuxer(Elaboratable):
     masterWb: Record (like WishboneLayout)
         Record of master inteface.
     slaves: List[Record]
-        List of connected slaves Wisbone Records (like WishboneLayout).
+        List of connected slaves' Wishbone Records (like WishboneLayout).
     sselTGA: Signal
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
