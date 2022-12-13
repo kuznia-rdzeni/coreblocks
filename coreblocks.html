@@ -91,8 +91,21 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="coreblocks.fu.html">coreblocks.fu package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html">coreblocks.fu.unsigned_multiplication package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#module-coreblocks.fu.unsigned_multiplication.common">coreblocks.fu.unsigned_multiplication.common module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#module-coreblocks.fu.unsigned_multiplication.fast_recursive">coreblocks.fu.unsigned_multiplication.fast_recursive module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#module-coreblocks.fu.unsigned_multiplication.sequence">coreblocks.fu.unsigned_multiplication.sequence module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#module-coreblocks.fu.unsigned_multiplication.shift">coreblocks.fu.unsigned_multiplication.shift module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#module-coreblocks.fu.unsigned_multiplication">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#module-coreblocks.fu.alu">coreblocks.fu.alu module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#module-coreblocks.fu.mul_unit">coreblocks.fu.mul_unit module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#module-coreblocks.fu">Module contents</a></li>
 </ul>
 </li>
@@ -101,6 +114,7 @@
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.genparams">coreblocks.params.genparams module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.isa">coreblocks.params.isa module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.layouts">coreblocks.params.layouts module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.mul_params">coreblocks.params.mul_params module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params">Module contents</a></li>
 </ul>
 </li>
@@ -136,7 +150,9 @@
 <li class="toctree-l1"><a class="reference internal" href="coreblocks.transactions.html">coreblocks.transactions package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.transactions.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.transactions.html#module-coreblocks.transactions.core">coreblocks.transactions.core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.transactions.html#module-coreblocks.transactions.graph">coreblocks.transactions.graph module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.transactions.html#module-coreblocks.transactions.lib">coreblocks.transactions.lib module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.transactions.html#module-coreblocks.transactions.tracing">coreblocks.transactions.tracing module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.transactions.html#module-coreblocks.transactions">Module contents</a></li>
 </ul>
 </li>
@@ -156,8 +172,13 @@
 <span id="coreblocks-core-module"></span><h2>coreblocks.core module<a class="headerlink" href="#module-coreblocks.core" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.core.Core">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.core.</span></span><span class="sig-name descname"><span class="pre">Core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.core.Core" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.core.</span></span><span class="sig-name descname"><span class="pre">Core</span></span><a class="headerlink" href="#coreblocks.core.Core" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.core.Core.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">wb_master</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMaster" title="coreblocks.peripherals.wishbone.WishboneMaster"><span class="pre">WishboneMaster</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.core.Core.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </div>
@@ -178,7 +199,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 01:08 2022-12-04.
+      <span class="lastupdated">Last updated on 11:33 2022-12-13.
       </span></p>
   </div>
 

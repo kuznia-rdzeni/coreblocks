@@ -1,0 +1,45 @@
+coreblocks.fu.unsigned\_multiplication package
+==============================================
+
+Submodules
+----------
+
+coreblocks.fu.unsigned\_multiplication.common module
+----------------------------------------------------
+
+.. automodule:: coreblocks.fu.unsigned_multiplication.common
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.fu.unsigned\_multiplication.fast\_recursive module
+-------------------------------------------------------------
+
+.. automodule:: coreblocks.fu.unsigned_multiplication.fast_recursive
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.fu.unsigned\_multiplication.sequence module
+------------------------------------------------------
+
+.. automodule:: coreblocks.fu.unsigned_multiplication.sequence
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.fu.unsigned\_multiplication.shift module
+---------------------------------------------------
+
+.. automodule:: coreblocks.fu.unsigned_multiplication.shift
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.fu.unsigned_multiplication
+   :members:
+   :undoc-members:
+   :show-inheritance:

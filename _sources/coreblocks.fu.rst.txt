@@ -1,6 +1,14 @@
 coreblocks.fu package
 =====================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   coreblocks.fu.unsigned_multiplication
+
 Submodules
 ----------
 
@@ -8,6 +16,14 @@ coreblocks.fu.alu module
 ------------------------
 
 .. automodule:: coreblocks.fu.alu
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.fu.mul\_unit module
+------------------------------
+
+.. automodule:: coreblocks.fu.mul_unit
    :members:
    :undoc-members:
    :show-inheritance:

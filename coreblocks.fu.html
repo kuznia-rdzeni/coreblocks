@@ -20,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="coreblocks.params package" href="coreblocks.params.html" />
+    <link rel="next" title="coreblocks.fu.unsigned_multiplication package" href="coreblocks.fu.unsigned_multiplication.html" />
     <link rel="prev" title="coreblocks.frontend package" href="coreblocks.frontend.html" /> 
 </head>
 
@@ -79,6 +79,22 @@
              
   <div class="section" id="coreblocks-fu-package">
 <h1>coreblocks.fu package<a class="headerlink" href="#coreblocks-fu-package" title="Permalink to this heading"></a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html">coreblocks.fu.unsigned_multiplication package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#module-coreblocks.fu.unsigned_multiplication.common">coreblocks.fu.unsigned_multiplication.common module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#module-coreblocks.fu.unsigned_multiplication.fast_recursive">coreblocks.fu.unsigned_multiplication.fast_recursive module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#module-coreblocks.fu.unsigned_multiplication.sequence">coreblocks.fu.unsigned_multiplication.sequence module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#module-coreblocks.fu.unsigned_multiplication.shift">coreblocks.fu.unsigned_multiplication.shift module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.unsigned_multiplication.html#module-coreblocks.fu.unsigned_multiplication">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </div>
@@ -86,8 +102,73 @@
 <span id="coreblocks-fu-alu-module"></span><h2>coreblocks.fu.alu module<a class="headerlink" href="#module-coreblocks.fu.alu" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.fu.alu.AluFuncUnit">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.alu.</span></span><span class="sig-name descname"><span class="pre">AluFuncUnit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.alu.AluFuncUnit" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.alu.</span></span><span class="sig-name descname"><span class="pre">AluFuncUnit</span></span><a class="headerlink" href="#coreblocks.fu.alu.AluFuncUnit" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.alu.AluFuncUnit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.alu.AluFuncUnit.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.fu.mul_unit">
+<span id="coreblocks-fu-mul-unit-module"></span><h2>coreblocks.fu.mul_unit module<a class="headerlink" href="#module-coreblocks.fu.mul_unit" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.mul_unit.</span></span><span class="sig-name descname"><span class="pre">MulFn</span></span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Signal</span></code></p>
+<p>Hot wire enum of 5 different multiplication operations.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Fn</span></span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></p>
+<p>An enumeration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn.MUL">
+<span class="sig-name descname"><span class="pre">MUL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn.MUL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn.MULH">
+<span class="sig-name descname"><span class="pre">MULH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn.MULH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn.MULHSU">
+<span class="sig-name descname"><span class="pre">MULHSU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn.MULHSU" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn.MULHU">
+<span class="sig-name descname"><span class="pre">MULHU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn.MULHU" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn.MULW">
+<span class="sig-name descname"><span class="pre">MULW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn.MULW" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulUnit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.mul_unit.</span></span><span class="sig-name descname"><span class="pre">MulUnit</span></span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulUnit" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
+module.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulUnit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulUnit.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </div>
@@ -101,14 +182,14 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="coreblocks.frontend.html" class="btn btn-neutral float-left" title="coreblocks.frontend package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="coreblocks.params.html" class="btn btn-neutral float-right" title="coreblocks.params package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="coreblocks.fu.unsigned_multiplication.html" class="btn btn-neutral float-right" title="coreblocks.fu.unsigned_multiplication package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 01:08 2022-12-04.
+      <span class="lastupdated">Last updated on 11:33 2022-12-13.
       </span></p>
   </div>
 

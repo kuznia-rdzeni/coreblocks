@@ -136,7 +136,7 @@ future (there is instruction in pipeline which will be saved to this slot).</p>
 <div class="section" id="internal-methods">
 <h2>Internal methods<a class="headerlink" href="#internal-methods" title="Permalink to this heading"></a></h2>
 <div class="section" id="compare-and-substitute">
-<span id="id1"></span><h3>Compare and substitute<a class="headerlink" href="#compare-and-substitute" title="Permalink to this heading"></a></h3>
+<h3>Compare and substitute<a class="headerlink" href="#compare-and-substitute" title="Permalink to this heading"></a></h3>
 <p>Input:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">tag</span></code> - identifier of field in RF which should be compared with <code class="docutils literal notranslate"><span class="pre">id_rsX</span></code> to check if there is need to store <code class="docutils literal notranslate"><span class="pre">value</span></code></p></li>
@@ -154,7 +154,7 @@ in <code class="docutils literal notranslate"><span class="pre">val_rsX</span></
 </ul>
 </div>
 <div class="section" id="read-row">
-<span id="id2"></span><h3>Read row<a class="headerlink" href="#read-row" title="Permalink to this heading"></a></h3>
+<h3>Read row<a class="headerlink" href="#read-row" title="Permalink to this heading"></a></h3>
 <p>Input:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">position</span></code> - which RS row should be read</p></li>
@@ -173,7 +173,7 @@ in <code class="docutils literal notranslate"><span class="pre">val_rsX</span></
 </ul>
 </div>
 <div class="section" id="clean-row">
-<span id="id3"></span><h3>Clean row<a class="headerlink" href="#clean-row" title="Permalink to this heading"></a></h3>
+<h3>Clean row<a class="headerlink" href="#clean-row" title="Permalink to this heading"></a></h3>
 <p>Input:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">position</span></code> - RS row which should be cleaned</p></li>
@@ -188,7 +188,7 @@ in <code class="docutils literal notranslate"><span class="pre">val_rsX</span></
 </ul>
 </div>
 <div class="section" id="get-free-slot">
-<span id="id4"></span><h3>Get free slot<a class="headerlink" href="#get-free-slot" title="Permalink to this heading"></a></h3>
+<h3>Get free slot<a class="headerlink" href="#get-free-slot" title="Permalink to this heading"></a></h3>
 <p>Input:</p>
 <ul class="simple">
 <li><p><em>null</em></p></li>
@@ -203,7 +203,7 @@ in <code class="docutils literal notranslate"><span class="pre">val_rsX</span></
 </ul>
 </div>
 <div class="section" id="mark-slot-as-used">
-<span id="id5"></span><h3>Mark slot as used<a class="headerlink" href="#mark-slot-as-used" title="Permalink to this heading"></a></h3>
+<h3>Mark slot as used<a class="headerlink" href="#mark-slot-as-used" title="Permalink to this heading"></a></h3>
 <p>Input:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">position</span></code> - of slot which should be marked as used</p></li>
@@ -222,15 +222,15 @@ in <code class="docutils literal notranslate"><span class="pre">val_rsX</span></
 <h2>Proposition of implementation of external interfaces<a class="headerlink" href="#proposition-of-implementation-of-external-interfaces" title="Permalink to this heading"></a></h2>
 <div class="section" id="get-slot-and-mark-as-used">
 <h3>Get slot and mark as used<a class="headerlink" href="#get-slot-and-mark-as-used" title="Permalink to this heading"></a></h3>
-<p><a class="reference internal" href="#get-free-slot"><span class="std std-ref">“Get free slot”</span></a> position and call <a class="reference internal" href="#mark-slot-as-used"><span class="std std-ref">“Mark slot as used”</span></a> with it.</p>
+<p><a class="reference internal" href="#get-free-slot"><span class="std std-doc">“Get free slot”</span></a> position and call <a class="reference internal" href="#mark-slot-as-used"><span class="std std-doc">“Mark slot as used”</span></a> with it.</p>
 </div>
 <div class="section" id="compare-and-substitute-all">
 <h3>Compare and substitute all<a class="headerlink" href="#compare-and-substitute-all" title="Permalink to this heading"></a></h3>
-<p>Invokes <a class="reference internal" href="#compare-and-substitute"><span class="std std-ref">“Compare and substitute”</span></a> for each row of RS.</p>
+<p>Invokes <a class="reference internal" href="#compare-and-substitute"><span class="std std-doc">“Compare and substitute”</span></a> for each row of RS.</p>
 </div>
 <div class="section" id="read-and-clean-row">
 <h3>Read and clean row<a class="headerlink" href="#read-and-clean-row" title="Permalink to this heading"></a></h3>
-<p>For given row <code class="docutils literal notranslate"><span class="pre">r</span></code> atomically <a class="reference internal" href="#read-row"><span class="std std-ref">“Read row”</span></a> and <a class="reference internal" href="#clean-row"><span class="std std-ref">“Clean row”</span></a></p>
+<p>For given row <code class="docutils literal notranslate"><span class="pre">r</span></code> atomically <a class="reference internal" href="#read-row"><span class="std std-doc">“Read row”</span></a> and <a class="reference internal" href="#clean-row"><span class="std std-doc">“Clean row”</span></a></p>
 </div>
 </div>
 </div>
@@ -247,7 +247,7 @@ in <code class="docutils literal notranslate"><span class="pre">val_rsX</span></
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 01:08 2022-12-04.
+      <span class="lastupdated">Last updated on 11:33 2022-12-13.
       </span></p>
   </div>
 

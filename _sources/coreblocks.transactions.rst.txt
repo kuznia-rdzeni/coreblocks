@@ -12,10 +12,26 @@ coreblocks.transactions.core module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.transactions.graph module
+------------------------------------
+
+.. automodule:: coreblocks.transactions.graph
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.transactions.lib module
 ----------------------------------
 
 .. automodule:: coreblocks.transactions.lib
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.transactions.tracing module
+--------------------------------------
+
+.. automodule:: coreblocks.transactions.tracing
    :members:
    :undoc-members:
    :show-inheritance:

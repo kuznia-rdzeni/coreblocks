@@ -86,7 +86,7 @@
 <span id="coreblocks-peripherals-wishbone-module"></span><h2>coreblocks.peripherals.wishbone module<a class="headerlink" href="#module-coreblocks.peripherals.wishbone" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneArbiter">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneArbiter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneArbiter" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneArbiter</span></span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneArbiter" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Wishbone Arbiter.</p>
 <p>Connects multiple masters to one slave.
@@ -101,11 +101,16 @@ Bus is requested by asserting CYC signal and is granted to masters in a round ro
 </dl>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneArbiter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slaveWb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Record</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneArbiter.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneLayout">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">master</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneLayout" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneLayout</span></span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneLayout" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Wishbone bus Layout generator.</p>
 <dl class="field-list simple">
@@ -125,11 +130,16 @@ Bus is requested by asserting CYC signal and is granted to masters in a round ro
 </dl>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">master</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneMaster">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneMaster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMaster" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneMaster</span></span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMaster" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Wishbone bus master interface.</p>
 <dl class="field-list simple">
@@ -155,6 +165,11 @@ Returns state of request (error or success) and data (in case of read request) a
 </dd>
 </dl>
 <dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneMaster.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMaster.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneMaster.generate_layouts">
 <span class="sig-name descname"><span class="pre">generate_layouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMaster.generate_layouts" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -163,7 +178,7 @@ Returns state of request (error or success) and data (in case of read request) a
 
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneMemorySlave">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneMemorySlave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMemorySlave" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneMemorySlave</span></span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMemorySlave" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Wishbone slave with memory
 Wishbone slave interface with addressable memory underneath.</p>
@@ -185,11 +200,16 @@ are not specified, then they’re inferred from <code class="docutils literal no
 </dl>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneMemorySlave.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMemorySlave.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneMuxer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneMuxer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMuxer" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneMuxer</span></span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMuxer" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Wishbone Muxer.</p>
 <p>Connects one master to multiple slaves.</p>
@@ -198,22 +218,27 @@ are not specified, then they’re inferred from <code class="docutils literal no
 <dd class="field-odd"><dl class="simple">
 <dt><strong>masterWb: Record (like WishboneLayout)</strong></dt><dd><p>Record of master inteface.</p>
 </dd>
-<dt><strong>slaves: List[Record]</strong></dt><dd><p>List of connected slaves Wisbone Records (like WishboneLayout).</p>
+<dt><strong>slaves: List[Record]</strong></dt><dd><p>List of connected slaves’ Wishbone Records (like WishboneLayout).</p>
 </dd>
 <dt><strong>sselTGA: Signal</strong></dt><dd><p>Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
-to a slave. This signal is a Wisnone TGA (address tag), so it needs to be valid every time Wisbone STB
+to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
 is asserted.</p>
 </dd>
 </dl>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneMuxer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">masterWb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Record</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slaves</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sselTGA</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Signal</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMuxer.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneParameters">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneParameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">addr_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">granularity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneParameters</span></span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Paramters of Wisbone bus.</p>
+<p>Parameters of the Wishbone bus.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -226,6 +251,11 @@ is asserted.</p>
 </dl>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneParameters.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">addr_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">granularity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneParameters.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </div>
@@ -246,7 +276,7 @@ is asserted.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 01:08 2022-12-04.
+      <span class="lastupdated">Last updated on 11:33 2022-12-13.
       </span></p>
   </div>
 

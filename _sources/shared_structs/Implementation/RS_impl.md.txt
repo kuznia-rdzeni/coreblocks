@@ -29,7 +29,6 @@ When an entry in the RS is released, the corresponding entry in this table is sw
 
 ## Internal methods
 
-(compare-and-substitute)=
 ### Compare and substitute
 
 Input:
@@ -44,7 +43,6 @@ Side effects:
 - When `tag` matches one of `id_rsX` saved in RS on `position` then `id_rsX` is cleared (set to 0) and `value` is saved
   in `val_rsX`
 
-(read-row)=
 ### Read row
 
 Input:
@@ -60,7 +58,6 @@ Output:
 Side effects:
 - *null*
 
-(clean-row)=
 ### Clean row
 
 Input:
@@ -72,7 +69,6 @@ Output:
 Side effects:
 - `v` bit for entry on `position` set to `0`
 
-(get-free-slot)=
 ### Get free slot
 
 Input:
@@ -84,7 +80,6 @@ Output:
 Side effects:
 - *null*
 
-(mark-slot-as-used)=
 ### Mark slot as used
 
 Input:
@@ -102,14 +97,14 @@ Side effects:
 
 ### Get slot and mark as used
 
-["Get free slot"](get-free-slot) position and call ["Mark slot as used"](mark-slot-as-used) with it.
+["Get free slot"](#get-free-slot) position and call ["Mark slot as used"](#mark-slot-as-used) with it.
 
 
 ### Compare and substitute all
 
-Invokes ["Compare and substitute"](compare-and-substitute) for each row of RS.
+Invokes ["Compare and substitute"](#compare-and-substitute) for each row of RS.
 
 
 ### Read and clean row
 
-For given row `r` atomically ["Read row"](read-row) and ["Clean row"](clean-row)
+For given row `r` atomically ["Read row"](#read-row) and ["Clean row"](#clean-row)
