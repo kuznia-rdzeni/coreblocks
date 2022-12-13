@@ -10,7 +10,7 @@ from coreblocks.utils.utils import OneHotSwitchDynamic
 
 
 class WishboneParameters:
-    """Paramters of Wisbone bus.
+    """Parameters of the Wishbone bus.
 
     Parameters
     ----------
