@@ -26,7 +26,7 @@ jobs:
 
       - name: Collect Benchmark information
         run: |
-          ./scripts/benchmark_info
+          ./scripts/parse_benchmark_info
           cat ./benchmark.json
 
       - name: Store benchmark result (Fmax)

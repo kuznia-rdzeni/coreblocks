@@ -32,7 +32,7 @@ Example usage:
 ./scripts/synthesize --platform ecp5 --verbose
 ```
 
-To collect synthesis information we use script named `benchmark_info`.
+To collect synthesis information we use script named `parse_benchmark_info`.
 
 This script parses the output of the synthesis tool and extracts the
 following information:

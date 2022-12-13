@@ -18,9 +18,8 @@ class TestElaboratable(Elaboratable):
 
     def elaborate(self, platform: Platform):
         from coreblocks.core import Core
-        from coreblocks.layouts import FetchLayouts
         from coreblocks.transactions import TransactionModule
-        from coreblocks.transactions.lib import FIFO, AdapterTrans
+        from coreblocks.transactions.lib import AdapterTrans
         from coreblocks.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
         m = Module()
@@ -29,7 +28,6 @@ class TestElaboratable(Elaboratable):
 
         self.wb_master = WishboneMaster(wb_params=wb_params)
         self.wb_mem_slave = WishboneMemorySlave(wb_params=wb_params, width=32, depth=32, init=self.instr_mem)
-        self.fifo_in = FIFO(self.gp.get(FetchLayouts).raw_instr, 2)
         self.core = Core(gen_params=self.gp, wb_master=self.wb_master)
         self.reg_feed_in = AdapterTrans(self.core.free_rf_fifo.write)
 
@@ -51,7 +49,6 @@ class TestElaboratable(Elaboratable):
 
         m.submodules.wb_master = self.wb_master
         m.submodules.wb_mem_slave = self.wb_mem_slave
-        m.submodules.fifo_in = self.fifo_in
         m.submodules.reg_feed_in = self.reg_feed_in
         m.submodules.c = self.core
 

@@ -48,8 +48,8 @@ def omit_regex_and_keyword(information_to_search):
     """
 
     for information in information_to_search:
-        information.pop("regex")
-        information.pop("keyword")
+        del information["regex"]
+        del information["keyword"]
 
     return information_to_search
 
@@ -88,4 +88,4 @@ if __name__ == "__main__":
             find_synthesis_information(line, information_to_search)
 
     with open(args.output, "w") as benchmark_file:
-        benchmark_file.write(json.dumps(omit_regex_and_keyword(information_to_search), indent=4))
+        json.dump(omit_regex_and_keyword(information_to_search), benchmark_file, indent=4)
