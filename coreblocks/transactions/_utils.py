@@ -28,11 +28,6 @@ class Scheduler(Elaboratable):
     but instead of using binary numbers, it uses one-hot encoding for the
     ``grant`` output signal.
 
-    Parameters
-    ----------
-    count : int
-        Number of agents between which the scheduler should arbitrate.
-
     Attributes
     ----------
     requests: Signal(count), in
@@ -46,6 +41,12 @@ class Scheduler(Elaboratable):
     """
 
     def __init__(self, count: int):
+        """
+        Parameters
+        ----------
+        count : int
+            Number of agents between which the scheduler should arbitrate.
+        """
         if not isinstance(count, int) or count < 0:
             raise ValueError("Count must be a non-negative integer, not {!r}".format(count))
         self.count = count

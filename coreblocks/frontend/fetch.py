@@ -5,11 +5,13 @@ from ..peripherals.wishbone import WishboneMaster
 
 
 class Fetch(Elaboratable):
+    """
+    Simple fetch unit. It has a PC inside and increments it by `isa.ilen_bytes`
+    after each fetch.
+    """
+
     def __init__(self, gen_params: GenParams, bus: WishboneMaster, cont: Method) -> None:
         """
-        Simple fetch unit. It has a PC inside and increments it by `isa.ilen_bytes`
-        after each fetch.
-
         Parameters
         ----------
         gen_params : GenParams

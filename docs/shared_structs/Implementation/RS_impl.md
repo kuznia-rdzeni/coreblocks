@@ -29,7 +29,6 @@ When an entry in the RS is released, the corresponding entry in this table is sw
 
 ## Internal methods
 
-
 ### Compare and substitute
 
 Input:
@@ -43,7 +42,6 @@ Output:
 Side effects:
 - When `tag` matches one of `id_rsX` saved in RS on `position` then `id_rsX` is cleared (set to 0) and `value` is saved
   in `val_rsX`
-
 
 ### Read row
 
@@ -60,7 +58,6 @@ Output:
 Side effects:
 - *null*
 
-
 ### Clean row
 
 Input:
@@ -72,7 +69,6 @@ Output:
 Side effects:
 - `v` bit for entry on `position` set to `0`
 
-
 ### Get free slot
 
 Input:
@@ -83,7 +79,6 @@ Output:
 
 Side effects:
 - *null*
-
 
 ### Mark slot as used
 
