@@ -1,4 +1,4 @@
-name: Push gh-pages
+name: Build docs and trigger gh-pages
 
 on:
   push:
