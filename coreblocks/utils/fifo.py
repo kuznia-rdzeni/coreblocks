@@ -6,16 +6,6 @@ from typing import List, Optional
 
 class BasicFifo(Elaboratable):
     """Transactional FIFO queue
-    Parameters
-    ----------
-    layout: Layout or int
-        Layout of data stored in the FIFO.
-        If integer is given, Record with field ``data`` and width of this paramter is used as internal layout.
-    depth: int
-        Size of the FIFO.
-    init: List of int, optional
-        List of memory elements to initialize FIFO at reset. List may be smaller than ``depth``.
-        If ``Record`` is used as ``layout``, it has to be flattened to ``int`` first.
 
     Attributes
     ----------
@@ -32,6 +22,18 @@ class BasicFifo(Elaboratable):
     """
 
     def __init__(self, layout: MethodLayout, depth: int, *, init: Optional[List[int]] = None) -> None:
+        """
+        Parameters
+        ----------
+        layout: Layout or int
+            Layout of data stored in the FIFO.
+            If integer is given, Record with field ``data`` and width of this paramter is used as internal layout.
+        depth: int
+            Size of the FIFO.
+        init: List of int, optional
+            List of memory elements to initialize FIFO at reset. List may be smaller than ``depth``.
+            If ``Record`` is used as ``layout``, it has to be flattened to ``int`` first.
+        """
         self.layout = _coerce_layout(layout)
         self.width = len(Record(self.layout))
         self.depth = depth
