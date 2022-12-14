@@ -157,3 +157,53 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.consumer)
+
+
+class TestDummyLSULoadsCycles(TestCaseWithSimulator):
+    def generateInstr(self, max_reg_val, max_imm_val):
+        s1_val = random.randint(0, max_reg_val // 4) * 4
+        imm = random.randint(0, max_imm_val // 4) * 4
+        rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
+        rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
+
+        exec_fn = {"op_type": Opcode.LOAD, "funct3": Funct3.W, "funct7": 0}
+        instr = {
+            "rp_s1": 0,
+            "rp_s2": 0,
+            "rp_dst": rp_dst,
+            "rob_id": rob_id,
+            "exec_fn": exec_fn,
+            "s1_val": s1_val,
+            "s2_val": 0,
+            "imm": imm,
+        }
+
+        wish_data = {"addr": s1_val + imm, "mask": 0xF, "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}")}
+        return instr, wish_data
+
+    def setUp(self) -> None:
+        random.seed(14)
+        self.gp = GenParams("rv32i", phys_regs_bits=3, rob_entries_bits=3)
+        self.test_module = DummyLSUTestCircuit(self.gp)
+
+    def oneInstrTest(self):
+        instr, wish_data = self.generateInstr(2**7, 2**7)
+
+        ret = yield from self.test_module.select.call()
+        self.assertEqual(ret["rs_entry_id"], 1)
+        yield from self.test_module.insert.call({"rs_data": instr, "rs_entry_id": 1})
+        yield from self.test_module.io_in.slave_wait()
+
+        mask = wish_data["mask"]
+        yield from self.test_module.io_in.slave_verify(wish_data["addr"], 0, 0, mask)
+        data = wish_data["rnd_bytes"][:4]
+        data = int(data.hex(), 16)
+        yield from self.test_module.io_in.slave_respond(data)
+        yield Settle()
+
+        v = yield from self.test_module.get_result.call()
+        self.assertEqual(v["result"], data)
+
+    def test(self):
+        with self.runSimulation(self.test_module) as sim:
+            sim.add_sync_process(self.oneInstrTest)
