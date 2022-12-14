@@ -37,8 +37,6 @@ class BasicFifo(Elaboratable):
         self.layout = _coerce_layout(layout)
         self.width = len(Record(self.layout))
         self.depth = depth
-        # in this implementation, to allow concurrent Method access, memory needs to hold n+1 elements
-        self.mem_depth = depth + 1
 
         self.read = Method(o=self.layout)
         self.write = Method(i=self.layout)
@@ -50,13 +48,14 @@ class BasicFifo(Elaboratable):
         if len(init) > depth:
             raise RuntimeError("Init list is longer than FIFO depth")
 
-        self.buff = Memory(width=self.width, depth=self.mem_depth, init=init)
+        self.buff = Memory(width=self.width, depth=self.depth, init=init)
 
         self.write_ready = Signal()
         self.read_ready = Signal()
 
-        self.read_idx = Signal((self.mem_depth - 1).bit_length())
-        self.write_idx = Signal((self.mem_depth - 1).bit_length(), reset=len(init))
+        self.read_idx = Signal((self.depth - 1).bit_length())
+        self.write_idx = Signal((self.depth - 1).bit_length(), reset=len(init))
+        self.level = Signal(range(self.depth), reset=len(init))
 
         self.clear.add_conflict(self.read, ConflictPriority.LEFT)
         self.clear.add_conflict(self.write, ConflictPriority.LEFT)
@@ -69,8 +68,15 @@ class BasicFifo(Elaboratable):
         )  # FWFT behaviour
         m.submodules.buff_wrport = self.buff_wrport = self.buff.write_port()
 
-        m.d.comb += self.read_ready.eq(self.read_idx != self.write_idx)
-        m.d.comb += self.write_ready.eq(self.read_idx != ((self.write_idx + 1) % self.mem_depth))
+        m.d.comb += self.read_ready.eq(self.level > 0)
+        m.d.comb += self.write_ready.eq(self.level < self.depth)
+
+        with m.If(self.read.run & ~self.write.run):
+            m.d.sync += self.level.eq(self.level - 1)
+        with m.If(self.write.run & ~self.read.run):
+            m.d.sync += self.level.eq(self.level + 1)
+        with m.If(self.clear.run):
+            m.d.sync += self.level.eq(0)
 
         @def_method(m, self.write, ready=self.write_ready)
         def _(arg) -> None:
@@ -78,13 +84,13 @@ class BasicFifo(Elaboratable):
             m.d.comb += self.buff_wrport.data.eq(arg)
             m.d.comb += self.buff_wrport.en.eq(1)
 
-            m.d.sync += self.write_idx.eq((self.write_idx + 1) % self.mem_depth)
+            m.d.sync += self.write_idx.eq((self.write_idx + 1) % self.depth)
 
         @def_method(m, self.read, self.read_ready)
         def _(arg) -> Record:
             m.d.comb += self.buff_rdport.addr.eq(self.read_idx)
 
-            m.d.sync += self.read_idx.eq((self.read_idx + 1) % self.mem_depth)
+            m.d.sync += self.read_idx.eq((self.read_idx + 1) % self.depth)
 
             return self.buff_rdport.data
 
