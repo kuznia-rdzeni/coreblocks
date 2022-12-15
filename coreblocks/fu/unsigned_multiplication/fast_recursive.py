@@ -15,15 +15,25 @@ class FastRecursiveMul(Elaboratable):
     Module with combinatorial connection for fast recursive multiplication using as many DSPMulUnit as required for
     one clock multiplication.
 
-    Parameters
+    Attributes
     ----------
-    n: int
-        Bit width of multiplied numbers.
-    dsp_width: int
-        Bit width of number multiplied bu dsp unit.
+    i1: Signal(unsigned(n)), in
+        First factor.
+    i2: Signal(unsigned(n)), in
+        Second factor.
+    r: Signal(unsigned(n * 2)), out
+        Product of inputted factors.
     """
 
     def __init__(self, n: int, dsp_width: int):
+        """
+        Parameters
+        ----------
+        n: int
+            Bit width of multiplied numbers.
+        dsp_width: int
+            Bit width of number multiplied bu dsp unit.
+        """
         self.n = n
         self.dsp_width = dsp_width
 

@@ -40,9 +40,22 @@ class MulFn(Signal):
 class MulFnDecoder(Elaboratable):
     """
     Module decoding function into hot wired MulFn.
+
+    Attributes
+    ----------
+    exec_fn: Record(gen.get(CommonLayouts).exec_fn), in
+        Function to be decoded.
+    mul_fn: MulFn, out
+        Function decoded into OneHotWire output.
     """
 
     def __init__(self, gen: GenParams):
+        """
+        Parameters
+        ----------
+        gen: GenParams
+            Core generation parameters.
+        """
         layouts = gen.get(CommonLayouts)
 
         self.exec_fn = Record(layouts.exec_fn)
@@ -88,10 +101,23 @@ def get_input(arg: Record) -> Tuple[Value, Value]:
 class MulUnit(Elaboratable):
     """
     Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
-    module.
+    module. It uses standard FuncUnitLayout.
+
+    Attributes
+    ----------
+    issue: Method(i=gen.get(FuncUnitLayouts).issue)
+        Method used for requesting computation.
+    accept: Method(i=gen.get(FuncUnitLayouts).accept)
+        Method used for getting result of requested computation.
     """
 
     def __init__(self, gen: GenParams):
+        """
+        Parameters
+        ----------
+        gen: GenParams
+            Core generation parameters.
+        """
         self.gen = gen
 
         layouts = gen.get(FuncUnitLayouts)
