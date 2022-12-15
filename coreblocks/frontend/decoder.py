@@ -240,8 +240,8 @@ class InstrDecoder(Elaboratable):
     op: Signal(OpType), out
         Operation type of instruction, used to define functional unit to perform this kind of instructions.
     illegal: Signal(1), out
-        Signal if decoding of instruction was successful. If 1 instruction did not fit into any supported
-        instruction type for selected core generation parameters.
+        Signal if decoding of instruction was successful. If instruction do not fit into any supported
+        instruction type for selected core generation parameters t then value is 1.
     """
 
     def __init__(self, gen: GenParams):
