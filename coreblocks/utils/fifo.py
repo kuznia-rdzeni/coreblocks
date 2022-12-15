@@ -55,6 +55,7 @@ class BasicFifo(Elaboratable):
 
         self.read_idx = Signal((self.depth - 1).bit_length())
         self.write_idx = Signal((self.depth - 1).bit_length(), reset=len(init))
+        # current fifo depth
         self.level = Signal(range(self.depth), reset=len(init))
 
         self.clear.add_conflict(self.read, ConflictPriority.LEFT)
