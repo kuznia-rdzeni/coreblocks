@@ -1,5 +1,6 @@
 from functools import reduce
 from operator import or_
+from typing import Optional
 
 from amaranth import *
 
@@ -37,20 +38,20 @@ class Encoding:
     ----------
     opcode: Opcode
         Opcode of instruction.
-    funct3: Union[Funct3, None]
+    funct3: Optional[Funct3]
         Three bits function identifier. If not exists for instruction then ```None```.
-    funct7: Union[Funct7, None]
+    funct7: Optional[Funct7]
         Seven bits function identifier. If not exists for instruction then ```None```.
-    funct12: Union[Funct12, None]
+    funct12: Optional[Funct12]
         Twelve bits function identifier. If not exists for instruction then ```None```.
     """
 
     def __init__(
         self,
         opcode: Opcode,
-        funct3: Funct3 | None = None,
-        funct7: Funct7 | None = None,
-        funct12: Funct12 | None = None,
+        funct3: Optional[Funct3] = None,
+        funct7: Optional[Funct7] = None,
+        funct12: Optional[Funct12] = None,
     ):
         self.opcode = opcode
         self.funct3 = funct3
@@ -200,11 +201,6 @@ class InstrDecoder(Elaboratable):
     Class performing instruction decoding into elementary components like opcodes, funct2 etc.
     It uses combinatorial connection via its attributes.
 
-    Parameters
-    ----------
-    gen: GenParams
-        Core generation parameters.
-
     Attributes
     ----------
     instr: Signal(gen.isa.ilen), in
@@ -249,6 +245,14 @@ class InstrDecoder(Elaboratable):
     """
 
     def __init__(self, gen: GenParams):
+        """
+        Decoder constructor.
+
+        Parameters
+        ----------
+        gen: GenParams
+            Core generation parameters.
+        """
         self.gen = gen
 
         #
@@ -457,16 +461,20 @@ class InstrDecoder(Elaboratable):
 
         extensions = self.gen.isa.extensions
         op_type_mask = Signal(len(OpType) - 1)
-        m.d.comb += self.op.eq(OpType.UNKNOWN)
+
+        first_valid_optype = OpType.UNKNOWN.value + 1  # value of first OpType which is not UNKNOWN
 
         for ext, optypes in _optypes_by_extensions.items():
             if extensions & ext:
                 for optype in optypes:
                     list_of_encodings = _instructions_by_optype[optype]
-                    m.d.comb += op_type_mask[optype.value - 2].eq(self._match(list_of_encodings))
+                    m.d.comb += op_type_mask[optype.value - first_valid_optype].eq(self._match(list_of_encodings))
 
-        for i in OneHotSwitchDynamic(m, op_type_mask):
-            m.d.comb += self.op.eq(i + 2)  # we are using 2 because first OpCode which is not UNKNOWN has value 2
+        for i in OneHotSwitchDynamic(m, op_type_mask, default=True):
+            if i is not None:
+                m.d.comb += self.op.eq(i + first_valid_optype)
+            else:  # default case
+                m.d.comb += self.op.eq(OpType.UNKNOWN)
 
         # Instruction simplification
 
