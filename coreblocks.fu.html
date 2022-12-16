@@ -144,11 +144,6 @@
 <span class="sig-name descname"><span class="pre">MULHU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn.MULHU" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn.MULW">
-<span class="sig-name descname"><span class="pre">MULW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn.MULW" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="py method">
@@ -163,11 +158,29 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.mul_unit.</span></span><span class="sig-name descname"><span class="pre">MulUnit</span></span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulUnit" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
-module.</p>
+module. It uses standard FuncUnitLayout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>issue: Method(i=gen.get(FuncUnitLayouts).issue)</strong></dt><dd><p>Method used for requesting computation.</p>
+</dd>
+<dt><strong>accept: Method(i=gen.get(FuncUnitLayouts).accept)</strong></dt><dd><p>Method used for getting result of requested computation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulUnit.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulUnit.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -189,7 +202,7 @@ module.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 11:33 2022-12-13.
+      <span class="lastupdated">Last updated on 21:34 2022-12-16.
       </span></p>
   </div>
 

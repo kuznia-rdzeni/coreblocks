@@ -91,9 +91,9 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Module for 1 clock cycle multiplication, designed to be replaced with a DSP block by the synthesis tool.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>dsp_width: int</strong></dt><dd><p>Bit width of multiplied numbers.</p>
+<dt><strong>compute: Method(i=[(“i1”, n), (“i2”, n)], o=[(“o”, 2 * n)]), in out</strong></dt><dd><p>Method for requesting computations and getting results in this same cycle.</p>
 </dd>
 </dl>
 </dd>
@@ -101,7 +101,15 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.unsigned_multiplication.common.DSPMulUnit.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dsp_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.unsigned_multiplication.common.DSPMulUnit.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>dsp_width: int</strong></dt><dd><p>Bit width of multiplied numbers.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -110,10 +118,28 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.unsigned_multiplication.common.</span></span><span class="sig-name descname"><span class="pre">MulBaseUnsigned</span></span><a class="headerlink" href="#coreblocks.fu.unsigned_multiplication.common.MulBaseUnsigned" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Abstract module creating common interface of unsigned multiplication module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>issue: Method(i=gen.get(UnsignedMulUnitLayouts).issue), in</strong></dt><dd><p>Method used for requesting computation.</p>
+</dd>
+<dt><strong>accept: Method(i=gen.get(UnsignedMulUnitLayouts).accept), out</strong></dt><dd><p>Method used for getting result of requested computation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.unsigned_multiplication.common.MulBaseUnsigned.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.unsigned_multiplication.common.MulBaseUnsigned.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -128,7 +154,15 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.unsigned_multiplication.fast_recursive.RecursiveUnsignedMul.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.unsigned_multiplication.fast_recursive.RecursiveUnsignedMul.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -144,7 +178,15 @@ It uses classic recursive multiplication algorithm.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.unsigned_multiplication.sequence.SequentialUnsignedMul.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.unsigned_multiplication.sequence.SequentialUnsignedMul.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -160,7 +202,15 @@ Russian Peasants Algorithm.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.unsigned_multiplication.shift.ShiftUnsignedMul.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.unsigned_multiplication.shift.ShiftUnsignedMul.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -182,7 +232,7 @@ Russian Peasants Algorithm.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 11:33 2022-12-13.
+      <span class="lastupdated">Last updated on 21:34 2022-12-16.
       </span></p>
   </div>
 

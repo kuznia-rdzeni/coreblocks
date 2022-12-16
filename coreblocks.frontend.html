@@ -120,10 +120,66 @@ It has layout as described by <cite>DecodeLayouts</cite>.</p>
 <dt class="sig sig-object py" id="coreblocks.frontend.decoder.InstrDecoder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.decoder.</span></span><span class="sig-name descname"><span class="pre">InstrDecoder</span></span><a class="headerlink" href="#coreblocks.frontend.decoder.InstrDecoder" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Class performing instruction decoding into elementary components like opcodes, funct3 etc.
+It uses combinatorial connection via its attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>instr: Signal(gen.isa.ilen), in</strong></dt><dd><p>Instruction to be decoded.</p>
+</dd>
+<dt><strong>opcode: Signal(Opcode), out</strong></dt><dd><p>Opcode of decoded instruction.</p>
+</dd>
+<dt><strong>funct3: Signal(Funct3), out</strong></dt><dd><p>Three bits function identifier.</p>
+</dd>
+<dt><strong>funct3_v: Signal(1), out</strong></dt><dd><p>Signals if decoded instruction has funct3 identifier.</p>
+</dd>
+<dt><strong>funct7: Signal(Funct7), out</strong></dt><dd><p>Seven bits function identifier.</p>
+</dd>
+<dt><strong>funct7_v: Signal(1), out</strong></dt><dd><p>Signals if decoded instruction has funct7 identifier.</p>
+</dd>
+<dt><strong>funct12: Signal(Funct12), out</strong></dt><dd><p>Twelve bits function identifier.</p>
+</dd>
+<dt><strong>funct12_v: Signal(1), out</strong></dt><dd><p>Signals if decoded instruction has funct12 identifier.</p>
+</dd>
+<dt><strong>rs1: Signal(gen.isa.reg_cnt_log), out</strong></dt><dd><p>Address of register holding first input value.</p>
+</dd>
+<dt><strong>rs1_v: Signal(1), out</strong></dt><dd><p>Signal if instruction takes first input value form register.</p>
+</dd>
+<dt><strong>rs2: Signal(gen.isa.reg_cnt_log), out</strong></dt><dd><p>Address of register holding second input value.</p>
+</dd>
+<dt><strong>rs2_v: Signal(1), out</strong></dt><dd><p>Signal if instruction takes second input value form register.</p>
+</dd>
+<dt><strong>imm: Signal(gen.isa.xlen), out</strong></dt><dd><p>Immediate values provided in instruction. If no immediate values were provided then value is 0.</p>
+</dd>
+<dt><strong>succ: Signal(FenceTarget), out</strong></dt><dd><p>Successor for <code class="docutils literal notranslate"><span class="pre">`FENCE`</span></code> instructions.</p>
+</dd>
+<dt><strong>pred: Signal(FenceTarget), out</strong></dt><dd><p>Predecessor for <code class="docutils literal notranslate"><span class="pre">`FENCE`</span></code> instructions.</p>
+</dd>
+<dt><strong>fm: Signal(FenceFm), out</strong></dt><dd><p>Fence mode for <code class="docutils literal notranslate"><span class="pre">`FENCE`</span></code> instructions.</p>
+</dd>
+<dt><strong>csr: Signal(gen.isa.csr_alen), out</strong></dt><dd><p>Address of Control and Source Register for <code class="docutils literal notranslate"><span class="pre">`CSR`</span></code> instructions.</p>
+</dd>
+<dt><strong>op: Signal(OpType), out</strong></dt><dd><p>Operation type of instruction, used to define functional unit to perform this kind of instructions.</p>
+</dd>
+<dt><strong>illegal: Signal(1), out</strong></dt><dd><p>Signal if decoding of instruction was successful. If instruction do not fit into any supported
+instruction type for selected core generation parameters t then value is 1.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.decoder.InstrDecoder.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.decoder.InstrDecoder.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Decoder constructor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -176,7 +232,7 @@ It has layout as described by <cite>FetchLayout</cite>.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 11:33 2022-12-13.
+      <span class="lastupdated">Last updated on 21:34 2022-12-16.
       </span></p>
   </div>
 

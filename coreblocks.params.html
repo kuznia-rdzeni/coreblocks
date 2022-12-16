@@ -317,6 +317,16 @@
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Funct3.DIVUW">
+<span class="sig-name descname"><span class="pre">DIVUW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#coreblocks.params.isa.Funct3.DIVUW" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Funct3.DIVW">
+<span class="sig-name descname"><span class="pre">DIVW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.params.isa.Funct3.DIVW" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Funct3.FENCE">
 <span class="sig-name descname"><span class="pre">FENCE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.params.isa.Funct3.FENCE" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -384,6 +394,16 @@
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Funct3.REMU">
 <span class="sig-name descname"><span class="pre">REMU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#coreblocks.params.isa.Funct3.REMU" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Funct3.REMUW">
+<span class="sig-name descname"><span class="pre">REMUW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#coreblocks.params.isa.Funct3.REMUW" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Funct3.REMW">
+<span class="sig-name descname"><span class="pre">REMW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="headerlink" href="#coreblocks.params.isa.Funct3.REMW" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -555,95 +575,105 @@ machine-dependent <code class="docutils literal notranslate"><span class="pre">a
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.isa.</span></span><span class="sig-name descname"><span class="pre">OpType</span></span><a class="headerlink" href="#coreblocks.params.isa.OpType" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
-<p>An enumeration.</p>
+<p>Enum of operation types. Do not confuse with Opcode.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.ARITHMETIC">
-<span class="sig-name descname"><span class="pre">ARITHMETIC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.ARITHMETIC" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.isa.OpType.ARITHMETIC_W">
-<span class="sig-name descname"><span class="pre">ARITHMETIC_W</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">17</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.ARITHMETIC_W" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ARITHMETIC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.ARITHMETIC" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.AUIPC">
-<span class="sig-name descname"><span class="pre">AUIPC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.AUIPC" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">AUIPC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.AUIPC" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.BRANCH">
-<span class="sig-name descname"><span class="pre">BRANCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.BRANCH" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">BRANCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">9</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.BRANCH" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.COMPARE">
-<span class="sig-name descname"><span class="pre">COMPARE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.COMPARE" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">COMPARE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.COMPARE" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.CSR">
-<span class="sig-name descname"><span class="pre">CSR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.CSR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">CSR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">18</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.CSR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.OpType.DIV_REM">
+<span class="sig-name descname"><span class="pre">DIV_REM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">20</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.DIV_REM" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.EBREAK">
-<span class="sig-name descname"><span class="pre">EBREAK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">12</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.EBREAK" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">EBREAK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">14</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.EBREAK" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.ECALL">
-<span class="sig-name descname"><span class="pre">ECALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">11</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.ECALL" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ECALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">13</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.ECALL" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.FENCE">
-<span class="sig-name descname"><span class="pre">FENCE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.FENCE" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">FENCE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">12</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.FENCE" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.FENCEI">
-<span class="sig-name descname"><span class="pre">FENCEI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.FENCEI" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">FENCEI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">17</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.FENCEI" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.isa.OpType.JUMP">
-<span class="sig-name descname"><span class="pre">JUMP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.JUMP" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.params.isa.OpType.JAL">
+<span class="sig-name descname"><span class="pre">JAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.JAL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.OpType.JALR">
+<span class="sig-name descname"><span class="pre">JALR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.JALR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.LOAD">
-<span class="sig-name descname"><span class="pre">LOAD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.LOAD" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">LOAD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.LOAD" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.LOGIC">
-<span class="sig-name descname"><span class="pre">LOGIC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.LOGIC" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">LOGIC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.LOGIC" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.MRET">
-<span class="sig-name descname"><span class="pre">MRET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">13</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.MRET" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">MRET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.MRET" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.OpType.MUL">
+<span class="sig-name descname"><span class="pre">MUL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">19</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.MUL" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.SHIFT">
-<span class="sig-name descname"><span class="pre">SHIFT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.SHIFT" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">SHIFT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.SHIFT" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.STORE">
-<span class="sig-name descname"><span class="pre">STORE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">9</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.STORE" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">STORE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">11</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.STORE" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.UNKNOWN">
-<span class="sig-name descname"><span class="pre">UNKNOWN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.UNKNOWN" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">UNKNOWN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.UNKNOWN" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.OpType.WFI">
-<span class="sig-name descname"><span class="pre">WFI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">14</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.WFI" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">WFI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#coreblocks.params.isa.OpType.WFI" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -916,7 +946,7 @@ machine-dependent <code class="docutils literal notranslate"><span class="pre">a
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 11:33 2022-12-13.
+      <span class="lastupdated">Last updated on 21:34 2022-12-16.
       </span></p>
   </div>
 

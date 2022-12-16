@@ -279,8 +279,6 @@
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.OpType.ARITHMETIC">ARITHMETIC (coreblocks.params.isa.OpType attribute)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.isa.OpType.ARITHMETIC_W">ARITHMETIC_W (coreblocks.params.isa.OpType attribute)</a>
-</li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.utils.assign">assign() (in module coreblocks.utils.utils)</a>
 </li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.utils.AssignType">AssignType (class in coreblocks.utils.utils)</a>
@@ -702,15 +700,21 @@
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.def_method">(in module coreblocks.transactions.core)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.FenceTarget.DEV_I">DEV_I (coreblocks.params.isa.FenceTarget attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.FenceTarget.DEV_O">DEV_O (coreblocks.params.isa.FenceTarget attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIV">DIV (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.OpType.DIV_REM">DIV_REM (coreblocks.params.isa.OpType attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIVU">DIVU (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIVUW">DIVUW (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIVW">DIVW (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.fu.unsigned_multiplication.html#coreblocks.fu.unsigned_multiplication.common.DSPMulUnit">DSPMulUnit (class in coreblocks.fu.unsigned_multiplication.common)</a>
 </li>
@@ -863,7 +867,11 @@
       <li><a href="coreblocks.params.html#coreblocks.params.isa.InstrType.J">J (coreblocks.params.isa.InstrType attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Opcode.JAL">JAL (coreblocks.params.isa.Opcode attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.isa.OpType.JAL">(coreblocks.params.isa.OpType attribute)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.JALR">JALR (coreblocks.params.isa.Funct3 attribute)</a>
@@ -871,9 +879,9 @@
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Opcode.JALR">(coreblocks.params.isa.Opcode attribute)</a>
 </li>
-      </ul></li>
-      <li><a href="coreblocks.params.html#coreblocks.params.isa.OpType.JUMP">JUMP (coreblocks.params.isa.OpType attribute)</a>
+        <li><a href="coreblocks.params.html#coreblocks.params.isa.OpType.JALR">(coreblocks.params.isa.OpType attribute)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -1028,6 +1036,8 @@
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.MUL">(coreblocks.params.isa.Funct3 attribute)</a>
 </li>
+        <li><a href="coreblocks.params.html#coreblocks.params.isa.OpType.MUL">(coreblocks.params.isa.OpType attribute)</a>
+</li>
       </ul></li>
       <li><a href="coreblocks.fu.unsigned_multiplication.html#coreblocks.fu.unsigned_multiplication.common.MulBaseUnsigned">MulBaseUnsigned (class in coreblocks.fu.unsigned_multiplication.common)</a>
 </li>
@@ -1061,12 +1071,8 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.mul_params.MulUnitParams">MulUnitParams (class in coreblocks.params.mul_params)</a>
 </li>
-      <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulFn.Fn.MULW">MULW (coreblocks.fu.mul_unit.MulFn.Fn attribute)</a>
-
-      <ul>
-        <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.MULW">(coreblocks.params.isa.Funct3 attribute)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.MULW">MULW (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
-      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -1153,8 +1159,12 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REMU">REMU (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REMUW">REMUW (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REMW">REMW (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rob.ReorderBuffer">ReorderBuffer (class in coreblocks.structs_common.rob)</a>
 </li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.backend.ResultAnnouncement">ResultAnnouncement (class in coreblocks.stages.backend)</a>
@@ -1396,7 +1406,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 11:33 2022-12-13.
+      <span class="lastupdated">Last updated on 21:34 2022-12-16.
       </span></p>
   </div>
 
