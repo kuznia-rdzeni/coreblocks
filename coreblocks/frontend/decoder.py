@@ -198,7 +198,7 @@ _optypes_by_extensions = {
 
 class InstrDecoder(Elaboratable):
     """
-    Class performing instruction decoding into elementary components like opcodes, funct2 etc.
+    Class performing instruction decoding into elementary components like opcodes, funct3 etc.
     It uses combinatorial connection via its attributes.
 
     Attributes
