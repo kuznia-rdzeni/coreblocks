@@ -3,6 +3,15 @@ from ._typing import DebugSignals
 
 
 class AutoDebugSignals:
+    """Mixin for automatic debug signal generation.
+
+    Should be mixed in to `Elaboratable`\\s. Adds a method `debug_signals`,
+    which exposes class attributes with debug signals (Amaranth `Signal`\\s
+    and `Record`\\s, `Method`\\s, and other classes which define
+    `debug_signals`). Used for generating ``gtkw`` files in tests,
+    for use in ``gtkwave``.
+    """
+
     def debug_signals(self) -> DebugSignals:
         slist: list[DebugSignals] = []
         smap: dict[str, DebugSignals] = {}
