@@ -1,6 +1,5 @@
 from itertools import takewhile
-from enum import unique, Enum, IntEnum, IntFlag
-
+from enum import unique, Enum, IntEnum, IntFlag, auto
 
 __all__ = [
     "InstrType",
@@ -47,10 +46,10 @@ class Funct3(IntEnum):
     BNE = H = SLL = FENCEI = CSRRW = MULH = 0b001
     W = SLT = CSRRS = MULHSU = 0b010
     SLTU = CSRRC = MULHU = 0b011
-    BLT = BU = XOR = DIV = 0b100
-    BGE = HU = SR = CSRRWI = DIVU = 0b101
-    BLTU = OR = CSRRSI = REM = 0b110
-    BGEU = AND = CSRRCI = REMU = 0b111
+    BLT = BU = XOR = DIV = DIVW = 0b100
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = 0b101
+    BLTU = OR = CSRRSI = REM = REMW = 0b110
+    BGEU = AND = CSRRCI = REMU = REMUW = 0b111
 
 
 class Funct7(IntEnum):
@@ -82,24 +81,30 @@ class FenceFm(IntEnum):
 
 @unique
 class OpType(IntEnum):
-    UNKNOWN = 0
-    ARITHMETIC = 1
-    COMPARE = 2
-    LOGIC = 3
-    SHIFT = 4
-    AUIPC = 5
-    JUMP = 6
-    BRANCH = 7
-    LOAD = 8
-    STORE = 9
-    FENCE = 10
-    ECALL = 11
-    EBREAK = 12
-    MRET = 13
-    WFI = 14
-    FENCEI = 15
-    CSR = 16
-    ARITHMETIC_W = 17
+    """
+    Enum of operation types. Do not confuse with Opcode.
+    """
+
+    UNKNOWN = auto()  # needs to be first
+    ARITHMETIC = auto()
+    COMPARE = auto()
+    LOGIC = auto()
+    SHIFT = auto()
+    AUIPC = auto()
+    JAL = auto()
+    JALR = auto()
+    BRANCH = auto()
+    LOAD = auto()
+    STORE = auto()
+    FENCE = auto()
+    ECALL = auto()
+    EBREAK = auto()
+    MRET = auto()
+    WFI = auto()
+    FENCEI = auto()
+    CSR = auto()
+    MUL = auto()
+    DIV_REM = auto()
 
 
 @unique
@@ -136,15 +141,9 @@ class ISA:
     For each of the numeric configuration value ``val``, a corresponding
     ``val_log`` field is provided if relevant.
 
-    Parameters
+    Attributes
     ----------
-    isa_str: str
-             String identifying a specific RISC-V ISA. Please refer to GCC's
-             machine-dependent ``arch`` option for details.
-
-    Configuration constants
-    ----------
-    xlen:
+    xlen : int
         Native integer register width.
     reg_cnt:
         Number of integer registers.
@@ -157,6 +156,13 @@ class ISA:
     """
 
     def __init__(self, isa_str: str):
+        """
+        Parameters
+        ----------
+        isa_str : str
+            String identifying a specific RISC-V ISA. Please refer to GCC's
+            machine-dependent ``arch`` option for details.
+        """
         if isa_str[0:2] != "rv":
             raise RuntimeError("Invalid ISA string " + isa_str)
         xlen_str = "".join(takewhile(str.isdigit, isa_str[2:]))

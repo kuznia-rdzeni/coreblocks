@@ -5,3 +5,12 @@ pre-commit==2.16.0
 parameterized==0.8.1
 pyright==1.1.251
 git+https://github.com/kristopher38/riscv-python-model@b5d0737#riscv-model
+
+# documentation requirements
+docutils==0.15.2
+myst-parser==0.18.0
+Sphinx==5.1.1
+sphinx-rtd-theme==1.0.0
+markupsafe==2.0.1
+sphinxcontrib-mermaid==0.7.1
+numpydoc==1.5.0
