@@ -9,6 +9,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.params import GenParams, FetchLayouts
+from coreblocks.utils import AutoDebugSignals
 
 from random import Random
 
@@ -16,7 +17,7 @@ from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
-class TestElaboratable(Elaboratable):
+class TestElaboratable(Elaboratable, AutoDebugSignals):
     def __init__(self, gen_params: GenParams):
         self.gp = gen_params
 
