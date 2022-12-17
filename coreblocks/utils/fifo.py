@@ -62,6 +62,12 @@ class BasicFifo(Elaboratable):
         self.clear.add_conflict(self.write, ConflictPriority.LEFT)
 
     def elaborate(self, platform) -> Module:
+        def mod_incr(sig: Value, mod: int) -> Value:
+            # perform (sig+1)%mod operation
+            if mod == 2 ** len(sig):
+                return sig + 1
+            return Mux(sig == mod - 1, 0, sig + 1)
+
         m = Module()
 
         m.submodules.buff_rdport = self.buff_rdport = self.buff.read_port(
@@ -85,13 +91,13 @@ class BasicFifo(Elaboratable):
             m.d.comb += self.buff_wrport.data.eq(arg)
             m.d.comb += self.buff_wrport.en.eq(1)
 
-            m.d.sync += self.write_idx.eq((self.write_idx + 1) % self.depth)
+            m.d.sync += self.write_idx.eq(mod_incr(self.write_idx, self.depth))
 
         @def_method(m, self.read, self.read_ready)
         def _(arg) -> Record:
             m.d.comb += self.buff_rdport.addr.eq(self.read_idx)
 
-            m.d.sync += self.read_idx.eq((self.read_idx + 1) % self.depth)
+            m.d.sync += self.read_idx.eq(mod_incr(self.read_idx, self.depth))
 
             return self.buff_rdport.data
 
