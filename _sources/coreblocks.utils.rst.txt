@@ -4,6 +4,14 @@ coreblocks.utils package
 Submodules
 ----------
 
+coreblocks.utils.fifo module
+----------------------------
+
+.. automodule:: coreblocks.utils.fifo
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.utils.utils module
 -----------------------------
 

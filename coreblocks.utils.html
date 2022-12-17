@@ -81,6 +81,50 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </div>
+<div class="section" id="module-coreblocks.utils.fifo">
+<span id="coreblocks-utils-fifo-module"></span><h2>coreblocks.utils.fifo module<a class="headerlink" href="#module-coreblocks.utils.fifo" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.utils.fifo.BasicFifo">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.utils.fifo.</span></span><span class="sig-name descname"><span class="pre">BasicFifo</span></span><a class="headerlink" href="#coreblocks.utils.fifo.BasicFifo" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Transactional FIFO queue</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read: Method</strong></dt><dd><p>Reads from the FIFO. Accepts an empty argument, returns a <code class="docutils literal notranslate"><span class="pre">Record</span></code>.
+Ready only if the FIFO is not empty.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>Writes to the FIFO. Accepts a <code class="docutils literal notranslate"><span class="pre">Record</span></code>, returns empty result.
+Ready only if the FIFO is not full.</p>
+</dd>
+<dt><strong>clear: Method</strong></dt><dd><p>Clears the FIFO entries. Has priority over <code class="docutils literal notranslate"><span class="pre">read</span></code> and <code class="docutils literal notranslate"><span class="pre">write</span></code> methods.
+Note that, clearing the FIFO doesn’t reinitialize it to values passed in <code class="docutils literal notranslate"><span class="pre">init</span></code> parameter.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.utils.fifo.BasicFifo.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.utils.fifo.BasicFifo.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>layout: Layout or int</strong></dt><dd><p>Layout of data stored in the FIFO.
+If integer is given, Record with field <code class="docutils literal notranslate"><span class="pre">data</span></code> and width of this paramter is used as internal layout.</p>
+</dd>
+<dt><strong>depth: int</strong></dt><dd><p>Size of the FIFO.</p>
+</dd>
+<dt><strong>init: List of int, optional</strong></dt><dd><p>List of memory elements to initialize FIFO at reset. List may be smaller than <code class="docutils literal notranslate"><span class="pre">depth</span></code>.
+If <code class="docutils literal notranslate"><span class="pre">Record</span></code> is used as <code class="docutils literal notranslate"><span class="pre">layout</span></code>, it has to be flattened to <code class="docutils literal notranslate"><span class="pre">int</span></code> first.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.utils.utils">
 <span id="coreblocks-utils-utils-module"></span><h2>coreblocks.utils.utils module<a class="headerlink" href="#module-coreblocks.utils.utils" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -228,7 +272,7 @@ in <code class="docutils literal notranslate"><span class="pre">lhs</span></code
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 21:34 2022-12-16.
+      <span class="lastupdated">Last updated on 13:16 2022-12-17.
       </span></p>
   </div>
 
