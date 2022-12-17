@@ -104,6 +104,9 @@ class TestCaseWithSimulator(unittest.TestCase):
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
+        if not extra_signals and hasattr(module, "debug_signals"):
+            extra_signals = module.debug_signals
+
         sim = Simulator(module)
         sim.add_clock(clk_period)
         yield sim
