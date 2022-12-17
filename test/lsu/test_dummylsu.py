@@ -38,6 +38,15 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.bus = self.bus
         return tm
 
+    def debug_signals(self):
+        return {
+            "select": self.select.debug_signals(),
+            "insert": self.insert.debug_signals(),
+            "update": self.update.debug_signals(),
+            "get_result": self.get_result.debug_signals(),
+            "bus": self.bus.debug_signals(),
+        }
+
 
 class TestDummyLSULoads(TestCaseWithSimulator):
     def generateInstr(self, max_reg_val, max_imm_val):
@@ -153,7 +162,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             yield from self.random_wait()
 
     def test(self):
-        with self.runSimulation(self.test_module) as sim:
+        with self.runSimulation(self.test_module, extra_signals=self.test_module.debug_signals) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.consumer)
@@ -205,5 +214,5 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         self.assertEqual(v["result"], data)
 
     def test(self):
-        with self.runSimulation(self.test_module) as sim:
+        with self.runSimulation(self.test_module, extra_signals=self.test_module.debug_signals) as sim:
             sim.add_sync_process(self.oneInstrTest)

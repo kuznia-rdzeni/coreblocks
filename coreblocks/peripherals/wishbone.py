@@ -164,6 +164,13 @@ class WishboneMaster(Elaboratable):
 
         return m
 
+    def debug_signals(self):
+        return {
+            "wishbone": self.wbMaster,
+            "request": self.request.debug_signals(),
+            "result": self.result.debug_signals(),
+        }
+
 
 class WishboneMuxer(Elaboratable):
     """Wishbone Muxer
