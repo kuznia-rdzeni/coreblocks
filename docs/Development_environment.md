@@ -55,3 +55,10 @@ The following main subcommands are available:
 * `check_format` -- verifies code formatting using `black` and `flake8`.
 * `check_types` -- verifies typing using `pyright`.
 * `verify` -- runs all checks. The same set of checks is run in CI.
+
+When confronted with `would reformat [filename]` message from `black` you may run:
+
+```
+black --diff [filename]
+```
+This way you may display the changes `black` would apply to `[filename]` if you chose the `format` option for `lint.sh` script. This may help you locate the formatting issues.
