@@ -156,6 +156,6 @@ class JumpBranchFuncUnit(Elaboratable):
             m.d.comb += jb.in_imm.eq(arg.imm)
 
             fifo_res.write(m, arg={"rob_id": arg.rob_id, "result": jb.ret_addr, "rp_dst": arg.rp_dst})
-            fifo_branch.write(m, arg={"jmp_addr": jb.jmp_addr, "taken": jb.taken})
+            fifo_branch.write(m, arg={"next_addr": jb.ret_addr, "jmp_addr": jb.jmp_addr, "taken": jb.taken})
 
         return m
