@@ -1,8 +1,12 @@
 from amaranth import *
+
+from typing import List, Tuple
+
 from coreblocks.transactions import Method, Transaction
 from coreblocks.transactions.lib import FIFO
 from coreblocks.params import SchedulerLayouts, GenParams
 from coreblocks.utils import assign, AssignType
+from coreblocks.params.isa import OpType
 
 __all__ = ["Scheduler"]
 
@@ -111,7 +115,14 @@ class ROBAllocation(Elaboratable):
 
 
 class RSSelection(Elaboratable):
-    def __init__(self, *, get_instr: Method, push_instr: Method, rs_alloc: Method, gen_params: GenParams):
+    def __init__(
+        self,
+        *,
+        get_instr: Method,
+        push_instr: Method,
+        rs_alloc: List[Tuple[Method, List[OpType]]],
+        gen_params: GenParams
+    ):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
         self.input_layout = layouts.rs_select_in
@@ -125,13 +136,33 @@ class RSSelection(Elaboratable):
         m = Module()
 
         data_out = Record(self.output_layout)
+        rs_id = Signal()
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            allocated_field = self.rs_alloc(m)
+
+            # we need to do RS selection in two phases - first switching on the optype
+            # and then switching on the rs_id since we can't call one method multiple
+            # times in one transaction and there can be multiple optypes per allocation method
+            with m.Switch(instr.exec_fn.op_type):
+                for i, (_, optypes) in enumerate(self.rs_alloc):
+                    for optype in optypes:
+                        with m.Case(optype):
+                            rs_id = C(i)
+
+            allocated_field = None
+            with m.Switch(rs_id):
+                for i, (alloc_method, _) in enumerate(self.rs_alloc):
+                    with m.Case(i):
+                        allocated_field = alloc_method(m)
+
+            # make the typechecker happy (will never happen in practice)
+            if allocated_field is None:
+                return
 
             m.d.comb += assign(data_out, instr)
             m.d.comb += data_out.rs_entry_id.eq(allocated_field.rs_entry_id)
+            m.d.comb += data_out.rs_id.eq(rs_id)
 
             self.push_instr(m, data_out)
 
@@ -140,7 +171,7 @@ class RSSelection(Elaboratable):
 
 class RSInsertion(Elaboratable):
     def __init__(
-        self, *, get_instr: Method, rs_insert: Method, rf_read1: Method, rf_read2: Method, gen_params: GenParams
+        self, *, get_instr: Method, rs_insert: List[Method], rf_read1: Method, rf_read2: Method, gen_params: GenParams
     ):
         self.gen_params = gen_params
 
@@ -157,24 +188,26 @@ class RSInsertion(Elaboratable):
             source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
             source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
 
-            self.rs_insert(
-                m,
-                {
-                    # when operand value is valid the convention is to set operand source to 0
-                    "rs_data": {
-                        "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
-                        "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
-                        "rp_dst": instr.regs_p.rp_dst,
-                        "rob_id": instr.rob_id,
-                        "exec_fn": instr.exec_fn,
-                        "s1_val": Mux(source1.valid, source1.reg_val, 0),
-                        "s2_val": Mux(source2.valid, source2.reg_val, 0),
-                        "imm": instr.imm,
-                        "pc": instr.pc,
-                    },
-                    "rs_entry_id": instr.rs_entry_id,
+            insert_data = {
+                # when operand value is valid the convention is to set operand source to 0
+                "rs_data": {
+                    "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
+                    "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
+                    "rp_dst": instr.regs_p.rp_dst,
+                    "rob_id": instr.rob_id,
+                    "exec_fn": instr.exec_fn,
+                    "s1_val": Mux(source1.valid, source1.reg_val, 0),
+                    "s2_val": Mux(source2.valid, source2.reg_val, 0),
+                    "imm": instr.imm,
+                    "pc": instr.pc,
                 },
-            )
+                "rs_entry_id": instr.rs_entry_id,
+            }
+
+            with m.Switch(instr.rs_id):
+                for i in range(self.gen_params.func_units):
+                    with m.Case(i):
+                        self.rs_insert[i](m, insert_data)
 
         return m
 
@@ -189,8 +222,8 @@ class Scheduler(Elaboratable):
         rob_put: Method,
         rf_read1: Method,
         rf_read2: Method,
-        rs_alloc: Method,
-        rs_insert: Method,
+        rs_alloc: List[Tuple[Method, List[OpType]]],
+        rs_insert: List[Method],
         gen_params: GenParams
     ):
         self.gen_params = gen_params

@@ -1,6 +1,7 @@
 from amaranth import *
 from coreblocks.transactions import Method, def_method
 from coreblocks.transactions.lib import FIFO
+from coreblocks.params.isa import OpType
 from coreblocks.params.layouts import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
@@ -70,8 +71,8 @@ class Core(Elaboratable):
             rob_put=rob.put,
             rf_read1=rf.read1,
             rf_read2=rf.read2,
-            rs_alloc=rs.select,
-            rs_insert=rs.insert,
+            rs_alloc=[(rs.select, [OpType.ARITHMETIC, OpType.COMPARE, OpType.LOGIC, OpType.SHIFT])],
+            rs_insert=[rs.insert],
             gen_params=self.gen_params,
         )
 

@@ -1,6 +1,6 @@
 import random
 from collections import namedtuple, deque
-from typing import Callable, Optional, Iterable
+from typing import Callable, Optional, Iterable, List
 from amaranth import *
 from amaranth.sim import Settle
 from coreblocks.transactions import TransactionModule
@@ -14,8 +14,10 @@ from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO
 
 
 class SchedulerTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, rs_count: int, optype_groupings: List[List[OpType]]):
         self.gen_params = gen_params
+        self.rs_count = rs_count
+        self.optype_groupings = optype_groupings
 
     def elaborate(self, platform):
         m = Module()
@@ -34,13 +36,23 @@ class SchedulerTestCircuit(Elaboratable):
             m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
             m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
 
-            # mocked RS
-            method_rs_alloc = Adapter(o=rs_layouts.select_out)
-            method_rs_insert = Adapter(i=rs_layouts.insert_in)
+            method_rs_alloc = []
+            method_rs_insert = []
+            self.out = []
+            self.rs_allocate = []
+
+            for i in range(self.rs_count):
+                # mocked RS
+                method_rs_alloc.append(Adapter(o=rs_layouts.select_out))
+                method_rs_insert.append(Adapter(i=rs_layouts.insert_in))
+
+                # mocked RS insert and RS allocate
+                self.out.append(TestbenchIO(method_rs_insert[i]))
+                self.rs_allocate.append(TestbenchIO(method_rs_alloc[i]))
+                setattr(m.submodules, f"out_{i}", self.out[i])
+                setattr(m.submodules, f"rs_allocate_{i}", self.rs_allocate[i])
 
             # mocked input and output
-            m.submodules.output = self.out = TestbenchIO(method_rs_insert)
-            m.submodules.rs_allocate = self.rs_allocate = TestbenchIO(method_rs_alloc)
             m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write))
             m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free))
             m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
@@ -56,8 +68,8 @@ class SchedulerTestCircuit(Elaboratable):
                 rob_put=self.rob.put,
                 rf_read1=self.rf.read1,
                 rf_read2=self.rf.read2,
-                rs_alloc=method_rs_alloc.iface,
-                rs_insert=method_rs_insert.iface,
+                rs_alloc=[(method_rs_alloc[i].iface, self.optype_groupings[i]) for i in range(self.rs_count)],
+                rs_insert=[method_rs_insert[i].iface for i in range(self.rs_count)],
                 gen_params=self.gen_params,
             )
 
@@ -67,14 +79,22 @@ class SchedulerTestCircuit(Elaboratable):
 class TestScheduler(TestCaseWithSimulator):
     def setUp(self):
         self.gen_params = GenParams("rv32i")
-        self.expected_rename_queue = deque()
+        self.instr_count = 500
+        self.rs_count = 1
+        self.optype_groupings = [
+            [OpType.ARITHMETIC, OpType.COMPARE, OpType.LOGIC, OpType.SHIFT],
+            # [OpType.BRANCH, OpType.JAL, OpType.JALR, OpType.AUIPC],
+            # [OpType.LOAD, OpType.STORE],
+            # [OpType.MUL]
+        ]
+
+        self.expected_rename_queue = [deque() for _ in range(self.rs_count)]
         self.expected_phys_reg_queue = deque()
         self.free_regs_queue = deque()
         self.free_ROB_entries_queue = deque()
-        self.expected_rs_entry_queue = deque()
+        self.expected_rs_entry_queue = [deque() for _ in range(self.rs_count)]
         self.current_RAT = [0 for _ in range(0, self.gen_params.isa.reg_cnt)]
-        self.instr_count = 500
-        self.m = SchedulerTestCircuit(self.gen_params)
+        self.m = SchedulerTestCircuit(self.gen_params, rs_count=self.rs_count, optype_groupings=self.optype_groupings)
 
         random.seed(42)
 
@@ -195,7 +215,7 @@ class TestScheduler(TestCaseWithSimulator):
 
         return queue_process
 
-    def make_output_process(self):
+    def make_output_process(self, rs_idx):
         def check(got, expected):
             rl_dst = yield self.m.rob.data[got["rs_data"]["rob_id"]].rob_data.rl_dst
             s1 = self.rf_state[expected["rp_s1"]]
@@ -218,7 +238,9 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_ROB_entries_queue.append({"rob_id": got["rs_data"]["rob_id"]})
 
         return self.make_queue_process(
-            io=self.m.out, output_queues=[self.expected_rename_queue, self.expected_rs_entry_queue], check=check
+            io=self.m.out[rs_idx],
+            output_queues=[self.expected_rename_queue[rs_idx], self.expected_rs_entry_queue[rs_idx]],
+            check=check,
         )
 
     def test_randomized(self):
@@ -237,7 +259,8 @@ class TestScheduler(TestCaseWithSimulator):
                 rl_dst = random.randint(0, self.gen_params.isa.reg_cnt - 1)
 
                 opcode = random.choice(list(Opcode)).value
-                op_type = random.choice(list(OpType)).value
+                opgroup_idx = random.randrange(0, len(self.optype_groupings))
+                op_type = random.choice(self.optype_groupings[opgroup_idx])
                 funct3 = random.choice(list(Funct3)).value
                 funct7 = random.choice(list(Funct7)).value
                 immediate = random.randint(0, 2**32 - 1)
@@ -245,7 +268,11 @@ class TestScheduler(TestCaseWithSimulator):
                 rp_s2 = self.current_RAT[rl_s2]
                 rp_dst = self.expected_phys_reg_queue.popleft() if rl_dst != 0 else 0
 
-                self.expected_rename_queue.append(
+                random_entry = random.randint(0, self.gen_params.rs_entries - 1)
+                self.expected_rs_entry_queue[opgroup_idx].append({"rs_entry_id": random_entry})
+                yield from self.m.rs_allocate[opgroup_idx].call({"rs_entry_id": random_entry})
+
+                self.expected_rename_queue[opgroup_idx].append(
                     {
                         "rp_s1": rp_s1,
                         "rp_s2": rp_s2,
@@ -282,22 +309,17 @@ class TestScheduler(TestCaseWithSimulator):
                     }
                 )
             # Terminate other processes
-            self.expected_rename_queue.append(None)
             self.free_regs_queue.append(None)
             self.free_ROB_entries_queue.append(None)
+            for i in range(self.rs_count):
+                self.expected_rename_queue[i].append(None)
+                self.expected_rs_entry_queue[i].append(None)
 
-        def rs_alloc_process():
-            for i in range(self.instr_count):
-                random_entry = random.randint(0, self.gen_params.rs_entries - 1)
-                self.expected_rs_entry_queue.append({"rs_entry_id": random_entry})
-                yield from self.m.rs_allocate.call({"rs_entry_id": random_entry})
-            self.expected_rs_entry_queue.append(None)
-
-        with self.runSimulation(self.m, max_cycles=1500) as sim:
-            sim.add_sync_process(self.make_output_process())
+        with self.runSimulation(self.m, max_cycles=5000) as sim:
+            for i in range(self.m.rs_count):
+                sim.add_sync_process(self.make_output_process(i))
             sim.add_sync_process(
                 self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue])
             )
             sim.add_sync_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
             sim.add_sync_process(instr_input_process)
-            sim.add_sync_process(rs_alloc_process)

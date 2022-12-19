@@ -38,3 +38,4 @@ class GenParams(DependentCache):
         self.rs_entries_bits = (rs_entries - 1).bit_length()
         self.start_pc = start_pc
         self.mul_unit_params = mul_unit_params
+        self.func_units = 1
