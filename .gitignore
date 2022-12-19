@@ -21,3 +21,7 @@ venv.bak/
 
 # Tests outputs
 test/__traces__
+
+# Documentation build
+build/
+docs/*.rst
