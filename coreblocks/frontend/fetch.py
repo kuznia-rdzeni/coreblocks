@@ -31,7 +31,7 @@ class Fetch(Elaboratable):
         self.pc = Signal(bus.wb_params.addr_width, reset=gen_params.start_pc)
         self.halt_pc = Signal(bus.wb_params.addr_width, reset=2**bus.wb_params.addr_width - 1)
         
-        self.verify_branch = Method(i=32) # TODO: custom layout
+        self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
 
     def elaborate(self, platform) -> Module:
         m = Module()

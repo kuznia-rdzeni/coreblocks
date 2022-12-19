@@ -167,6 +167,10 @@ class FetchLayouts:
             ("data", gen_params.isa.ilen),
         ]
 
+        self.branch_verify = [
+            ("next_pc", gen_params.isa.xlen),
+        ]
+
 
 class DecodeLayouts:
     def __init__(self, gen: GenParams):
@@ -201,6 +205,7 @@ class FuncUnitLayouts:
         ]
 
         self.branch_result = [
+            ("next_addr", gen.isa.xlen)
             ("jmp_addr", gen.isa.xlen),
             ("taken", 1),
         ]
