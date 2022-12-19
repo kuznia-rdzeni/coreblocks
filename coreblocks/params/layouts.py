@@ -47,6 +47,7 @@ class SchedulerLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen_params.isa.xlen),
+            ("pc", gen_params.isa.xlen),
         ]
         self.reg_alloc_out = self.renaming_in = [
             ("opcode", Opcode),
@@ -55,6 +56,7 @@ class SchedulerLayouts:
             ("regs_l", common.regs_l),
             ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
             ("imm", gen_params.isa.xlen),
+            ("pc", gen_params.isa.xlen),
         ]
         self.renaming_out = self.rob_allocate_in = [
             ("opcode", Opcode),
@@ -69,6 +71,7 @@ class SchedulerLayouts:
             ),
             ("regs_p", common.regs_p),
             ("imm", gen_params.isa.xlen),
+            ("pc", gen_params.isa.xlen),
         ]
         self.rob_allocate_out = self.rs_select_in = [
             ("opcode", Opcode),
@@ -77,6 +80,7 @@ class SchedulerLayouts:
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
             ("imm", gen_params.isa.xlen),
+            ("pc", gen_params.isa.xlen),
         ]
         self.rs_select_out = self.rs_insert_in = [
             ("opcode", Opcode),
@@ -86,6 +90,7 @@ class SchedulerLayouts:
             ("rob_id", gen_params.rob_entries_bits),
             ("rs_entry_id", gen_params.rs_entries_bits),
             ("imm", gen_params.isa.xlen),
+            ("pc", gen_params.isa.xlen),
         ]
 
 
@@ -139,6 +144,7 @@ class RSLayouts:
             ("s1_val", gen_params.isa.xlen),
             ("s2_val", gen_params.isa.xlen),
             ("imm", gen_params.isa.xlen),
+            ("pc", gen_params.isa.xlen),
         ]
 
         self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
@@ -156,6 +162,7 @@ class RSLayouts:
             ("rob_id", gen_params.rob_entries_bits),
             ("exec_fn", common.exec_fn),
             ("imm", gen_params.isa.xlen),
+            ("pc", gen_params.isa.xlen),
         ]
 
         self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
@@ -165,6 +172,7 @@ class FetchLayouts:
     def __init__(self, gen_params: GenParams):
         self.raw_instr = [
             ("data", gen_params.isa.ilen),
+            ("pc", gen_params.isa.xlen),
         ]
 
         self.branch_verify = [
@@ -196,6 +204,7 @@ class FuncUnitLayouts:
             ("rob_id", gen.rob_entries_bits),
             ("exec_fn", common.exec_fn),
             ("imm", gen.isa.xlen),
+            ("pc", gen.isa.xlen),
         ]
 
         self.accept = [
@@ -205,7 +214,7 @@ class FuncUnitLayouts:
         ]
 
         self.branch_result = [
-            ("next_addr", gen.isa.xlen)
+            ("next_addr", gen.isa.xlen),
             ("jmp_addr", gen.isa.xlen),
             ("taken", 1),
         ]
