@@ -42,13 +42,11 @@ class TestElaboratable(Elaboratable):
             wb_params=wb_params, width=32, depth=len(self.instr_mem), init=self.instr_mem
         )
         self.core = Core(gen_params=self.gp, wb_master=self.wb_master)
-        self.reg_feed_in = TestbenchIO(AdapterTrans(self.core.free_rf_fifo.write))
         self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
 
         m.submodules.wb_master = self.wb_master
         m.submodules.wb_mem_slave = self.wb_mem_slave
-        m.submodules.reg_feed_in = self.reg_feed_in
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
@@ -96,18 +94,12 @@ class TestCore(TestCaseWithSimulator):
     def push_instr(self, opcode):
         yield from self.m.io_in.call({"data": opcode})
 
-    def init_regs(self):
-        for i in range(2**self.m.gp.phys_regs_bits - 1):
-            yield from self.m.reg_feed_in.call({"data": i + 1})
-
     def run_test(self):
         # this test first provokes allocation of physical registers,
         # then sets the values in those registers, and finally runs
         # an actual computation.
 
         # The test sets values in the reg file by hand
-
-        yield from self.init_regs()
 
         # provoking allocation of physical register
         for i in range(self.m.gp.isa.reg_cnt - 1):
@@ -166,7 +158,6 @@ class TestCore(TestCaseWithSimulator):
 
     def randomized_input(self):
         halt_pc = (len(self.instr_mem) - 1) * self.gp.isa.ilen_bytes
-        yield from self.init_regs()
 
         # set PC to halt at specific instruction (numbered from 0)
         yield self.m.core.fetch.halt_pc.eq(halt_pc)
