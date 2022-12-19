@@ -5,7 +5,7 @@
 In order to prepare the development environment, please follow the steps below:
 
 1. Install the Python 3.10 interpreter and pip package manager.
-    * Optionally create a Python virtual environment with `python3 -m venv venv` in the project directory and activate it using generated script: `. venv/bin/activate`
+    * Optionally create a Python virtual environment with `python3 -m venv venv` in the project directory and activate it using generated script: `. venv/bin/activate`.
 2. Install all required libraries with `pip3 install -r requirements-dev.txt`.
 3. Optionally, install all precommit hooks with `pre-commit install`. This will automatically run the linter before commits.
 
