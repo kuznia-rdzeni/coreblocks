@@ -1,4 +1,5 @@
 from amaranth import Record, Module, Signal, Elaboratable
+from coreblocks.transactions.core import def_method
 from ..transactions import Method, Transaction
 from ..params import GenParams, FetchLayouts
 from ..peripherals.wishbone import WishboneMaster
@@ -30,7 +31,7 @@ class Fetch(Elaboratable):
 
         self.pc = Signal(bus.wb_params.addr_width, reset=gen_params.start_pc)
         self.halt_pc = Signal(bus.wb_params.addr_width, reset=2**bus.wb_params.addr_width - 1)
-        
+
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
 
     def elaborate(self, platform) -> Module:
@@ -52,12 +53,9 @@ class Fetch(Elaboratable):
                 with m.If(is_branch):
                     m.d.sync += stalled.eq(1)
 
-                out = Record(self.gp.get(FetchLayouts).raw_instr)
-
-                m.d.comb += out.data.eq(fetched.data)
-
                 m.d.sync += self.pc.eq(self.pc + self.gp.isa.ilen_bytes)
-                self.cont(m, out)
+
+                self.cont(m, {"data": fetched.data, "pc": self.pc})
 
         @def_method(m, self.verify_branch, ready=stalled)
         def _(arg):

@@ -66,7 +66,8 @@ class TestFetch(TestCaseWithSimulator):
             while rand.random() < 0.5:
                 yield
 
-            data = rand.randint(0, 2**self.gp.isa.ilen - 1)
+            # exclude branches and jumps
+            data = rand.randint(0, 2**self.gp.isa.ilen - 1) & ~0b1110000
 
             if rand.random() < 0.5:
                 self.instr_queue.append(data)

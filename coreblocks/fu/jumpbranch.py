@@ -7,8 +7,9 @@ from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
+from coreblocks.utils import OneHotSwitch
 
-__all__ = ["JumpBranchUnit"]
+__all__ = ["JumpBranchFuncUnit"]
 
 
 class JumpBranchFn(Signal):
@@ -93,7 +94,7 @@ class JumpBranchFnDecoder(Elaboratable):
     def __init__(self, gen: GenParams):
         layouts = gen.get(CommonLayouts)
 
-        self.exec_fn = Record(layouts.exec_fn) # TODO: extended layout with PC
+        self.exec_fn = Record(layouts.exec_fn)  # TODO: extended layout with PC
         self.jb_fn = Signal(JumpBranchFn.Fn)
 
     def elaborate(self, platform):
