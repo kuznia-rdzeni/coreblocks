@@ -87,3 +87,35 @@ class JumpBranch(Elaboratable):
         m.d.sync += dummy.eq(1)
 
         return m
+
+
+class JumpBranchFnDecoder(Elaboratable):
+    def __init__(self, gen: GenParams):
+        layouts = gen.get(CommonLayouts)
+
+        self.exec_fn = Record(layouts.exec_fn) # TODO: extended layout with PC
+        self.jb_fn = Signal(JumpBranchFn.Fn)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        ops = [
+            (JumpBranchFn.Fn.BEQ, OpType.BRANCH, Funct3.BEQ),
+            (JumpBranchFn.Fn.BNE, OpType.BRANCH, Funct3.BNE),
+            (JumpBranchFn.Fn.BLT, OpType.BRANCH, Funct3.BLT),
+            (JumpBranchFn.Fn.BLTU, OpType.BRANCH, Funct3.BLTU),
+            (JumpBranchFn.Fn.BGE, OpType.BRANCH, Funct3.BGE),
+            (JumpBranchFn.Fn.BGEU, OpType.BRANCH, Funct3.BGEU),
+            (JumpBranchFn.Fn.JAL, OpType.JAL),
+            (JumpBranchFn.Fn.JALR, OpType.JALR, Funct3.JALR),
+        ]
+
+        for op in ops:
+            cond = (self.exec_fn.op_type == op[1]) & (self.exec_fn.funct3 == op[2] if len(op) > 2 else 1)
+
+            with m.If(cond):
+                m.d.comb += self.jb_fn.eq(op[0])
+
+        return m
+
+
