@@ -119,3 +119,43 @@ class JumpBranchFnDecoder(Elaboratable):
         return m
 
 
+class JumpBranchFuncUnit(Elaboratable):
+    def __init__(self, gen: GenParams):
+        self.gen = gen
+
+        layouts = gen.get(FuncUnitLayouts)
+
+        self.issue = Method(i=layouts.issue)
+        self.accept = Method(o=layouts.accept)
+        self.branch_result = Method(o=layouts.branch_result)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.jb = jb = JumpBranch(self.gen)
+        m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
+        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FuncUnitLayouts).branch_result, 2)
+        m.submodules.decoder = decoder = JumpBranchFnDecoder(self.gen)
+
+        @def_method(m, self.accept)
+        def _(arg):
+            return fifo_res.read(m)
+
+        @def_method(m, self.branch_result)
+        def _(arg):
+            return fifo_branch.read(m)
+
+        @def_method(m, self.issue)
+        def _(arg):
+            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.comb += jb.fn.eq(decoder.jb_fn)
+
+            m.d.comb += jb.in1.eq(arg.s1_val)
+            m.d.comb += jb.in2.eq(arg.s2_val)
+            m.d.comb += jb.in_pc.eq(arg.pc)
+            m.d.comb += jb.in_imm.eq(arg.imm)
+
+            fifo_res.write(m, arg={"rob_id": arg.rob_id, "result": jb.ret_addr, "rp_dst": arg.rp_dst})
+            fifo_branch.write(m, arg={"jmp_addr": jb.jmp_addr, "taken": jb.taken})
+
+        return m
