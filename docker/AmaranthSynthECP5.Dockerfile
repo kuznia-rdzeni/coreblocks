@@ -4,7 +4,8 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
     python3.10 python3-pip git yosys \
-    build-essential cmake python3-dev libboost-all-dev libeigen3-dev
+    build-essential cmake python3-dev libboost-all-dev libeigen3-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install prjtrellis
 RUN git clone --recursive \
@@ -25,9 +26,3 @@ RUN cd nextpnr && \
     cmake . -DARCH=ecp5 -DTRELLIS_INSTALL_PREFIX=/usr/local && \
     make -j$(nproc) && \
     make install
-
-# Remove artifacts
-RUN cd ..
-RUN rm -rf prjtrellis
-RUN rm -rf nextpnr
-RUN rm -rf /var/lib/apt/lists/*
