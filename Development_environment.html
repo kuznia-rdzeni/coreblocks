@@ -42,7 +42,15 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Home.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Assumptions.html">List of assumptions made during development</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Development environment</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Development environment</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#setting-up">Setting up</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-scripts">Using scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#run-tests">run_tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lint-sh">lint.sh</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="Transactions.html">Documentation for Coreblocks transaction framework</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scheduler/Overview.html">Scheduler overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html">Proposition of Reservation Station implementation</a></li>
@@ -77,16 +85,64 @@
              
   <div class="section" id="development-environment">
 <h1>Development environment<a class="headerlink" href="#development-environment" title="Permalink to this heading"></a></h1>
-<p>In order to prepare development environment, please follow steps below:</p>
+<div class="section" id="setting-up">
+<h2>Setting up<a class="headerlink" href="#setting-up" title="Permalink to this heading"></a></h2>
+<p>In order to prepare the development environment, please follow the steps below:</p>
 <ol class="arabic simple">
-<li><p>Install python 3.10 interpreter and pip package manager</p>
+<li><p>Install the Python 3.10 interpreter and pip package manager.</p>
 <ul class="simple">
-<li><p>Optionally create python virtual environment with <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">venv</span> <span class="pre">venv</span></code> in project directory and activate it using generated script: <code class="docutils literal notranslate"><span class="pre">.</span> <span class="pre">venv/bin/activate</span></code></p></li>
+<li><p>Optionally create a Python virtual environment with <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">venv</span> <span class="pre">venv</span></code> in the project directory and activate it using generated script: <code class="docutils literal notranslate"><span class="pre">.</span> <span class="pre">venv/bin/activate</span></code>.</p></li>
 </ul>
 </li>
-<li><p>Install all required libraries with <code class="docutils literal notranslate"><span class="pre">pip3</span> <span class="pre">install</span> <span class="pre">-r</span> <span class="pre">requirements-dev.txt</span></code></p></li>
-<li><p>Install all precommit hooks with <code class="docutils literal notranslate"><span class="pre">pre-commit</span> <span class="pre">install</span></code></p></li>
+<li><p>Install all required libraries with <code class="docutils literal notranslate"><span class="pre">pip3</span> <span class="pre">install</span> <span class="pre">-r</span> <span class="pre">requirements-dev.txt</span></code>.</p></li>
+<li><p>Optionally, install all precommit hooks with <code class="docutils literal notranslate"><span class="pre">pre-commit</span> <span class="pre">install</span></code>. This will automatically run the linter before commits.</p></li>
 </ol>
+</div>
+<div class="section" id="using-scripts">
+<h2>Using scripts<a class="headerlink" href="#using-scripts" title="Permalink to this heading"></a></h2>
+<p>The development environment contains a number of scripts which are run in CI, but are also intended for local use. They are:</p>
+<div class="section" id="run-tests">
+<h3>run_tests<a class="headerlink" href="#run-tests" title="Permalink to this heading"></a></h3>
+<p>Runs the unit tests. By default, every available test is run. Tests from a specific file can be run using the following call (<code class="docutils literal notranslate"><span class="pre">test_transactions</span></code> is used as an example):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">run_tests</span> <span class="n">test_transactions</span>
+</pre></div>
+</div>
+<p>One can even run a specific test class from a file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">run_tests</span> <span class="n">test_transactions</span><span class="o">.</span><span class="n">TestScheduler</span>
+</pre></div>
+</div>
+<p>Or a specific test method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">run_tests</span> <span class="n">test_transactions</span><span class="o">.</span><span class="n">TestScheduler</span><span class="o">.</span><span class="n">test_single</span>
+</pre></div>
+</div>
+<p>The argument to <code class="docutils literal notranslate"><span class="pre">run_tests</span></code> is actually used to search within the full names of tests. The script runs all the tests which match the query. Thanks to this, if a given test class name is unique, just the class name can be used as an argument.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">run_tests</span></code> script has the following options:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-l</span></code>, <code class="docutils literal notranslate"><span class="pre">--list</span></code> – lists available tests. This option is helpful, e.g., to find a name of a test generated using the <code class="docutils literal notranslate"><span class="pre">parameterized</span></code> package.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-t</span></code>, <code class="docutils literal notranslate"><span class="pre">--trace</span></code> – generates waveforms in the <code class="docutils literal notranslate"><span class="pre">vcd</span></code> format and <code class="docutils literal notranslate"><span class="pre">gtkw</span></code> files for the <code class="docutils literal notranslate"><span class="pre">gtkwave</span></code> tool. The files are saved in the <code class="docutils literal notranslate"><span class="pre">test/__traces__/</span></code> directory. Useful for debugging and test-driven development.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-v</span></code>, <code class="docutils literal notranslate"><span class="pre">--verbose</span></code> – makes the test runner more verbose. It will, for example, print the names of all the tests being run.</p></li>
+</ul>
+</div>
+<div class="section" id="lint-sh">
+<h3>lint.sh<a class="headerlink" href="#lint-sh" title="Permalink to this heading"></a></h3>
+<p>Checks the code formatting and typing. It should be run as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">lint</span><span class="o">.</span><span class="n">sh</span> <span class="n">subcommand</span> <span class="p">[</span><span class="n">filename</span><span class="o">...</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The following main subcommands are available:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">format</span></code> – reformats the code using <code class="docutils literal notranslate"><span class="pre">black</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">check_format</span></code> – verifies code formatting using <code class="docutils literal notranslate"><span class="pre">black</span></code> and <code class="docutils literal notranslate"><span class="pre">flake8</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">check_types</span></code> – verifies typing using <code class="docutils literal notranslate"><span class="pre">pyright</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">verify</span></code> – runs all checks. The same set of checks is run in CI.</p></li>
+</ul>
+<p>When confronted with <code class="docutils literal notranslate"><span class="pre">would</span> <span class="pre">reformat</span> <span class="pre">[filename]</span></code> message from <code class="docutils literal notranslate"><span class="pre">black</span></code> you may run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">black</span> <span class="o">--</span><span class="n">diff</span> <span class="p">[</span><span class="n">filename</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>This way you may display the changes <code class="docutils literal notranslate"><span class="pre">black</span></code> would apply to <code class="docutils literal notranslate"><span class="pre">[filename]</span></code> if you chose the <code class="docutils literal notranslate"><span class="pre">format</span></code> option for <code class="docutils literal notranslate"><span class="pre">lint.sh</span></code> script. This may help you locate the formatting issues.</p>
+</div>
+</div>
 </div>
 
 
@@ -101,7 +157,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2022.
-      <span class="lastupdated">Last updated on 09:17 2022-12-20.
+      <span class="lastupdated">Last updated on 09:27 2022-12-20.
       </span></p>
   </div>
 
