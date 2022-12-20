@@ -1,0 +1,43 @@
+# Synthesis
+
+CoreBlocks synthesizes `Core` circuit to test how many resources it consumes as the project
+grows and more functionalities are added.
+
+## Documentation
+
+### Requirements
+
+In order to perform synthesis you will need to install following tools:
+  * [yosys](https://github.com/YosysHQ/yosys)
+  * [prjtrellis](https://github.com/YosysHQ/prjtrellis)
+  * [nextpnr-ecp5](https://github.com/YosysHQ/nextpnr.git)
+
+These tools may need manual compilation from git repository, that can take some time.
+
+You can use docker images that have installed all required tools to perform synthesis:
+  * [vuush/amaranth-synth:ecp5](https://hub.docker.com/r/vuush/amaranth-synth/tags)
+
+To build the `AmaranthSynthECP5.Dockerfile` yourself use following command:
+```
+docker build --platform linux/amd64 -t "amaranth-synth:ecp5" -f ./docker/AmaranthSynthECP5.Dockerfile .
+```
+
+### Usage
+
+Script named `synthesize` is used to perform the `Core` synthesis.
+
+Example usage:
+```
+./scripts/synthesize --help
+./scripts/synthesize --platform ecp5 --verbose
+```
+
+To collect synthesis information we use script named `parse_benchmark_info`.
+
+This script parses the output of the synthesis tool and extracts the
+following information:
+  - Max clock frequency
+  - Number of logic cells used
+  - Number of carry cells used
+  - Number of RAM cells used
+  - Number of DFF cells used
