@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1668881906296,
+  "lastUpdate": 1671528094822,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -34,6 +34,55 @@ window.BENCHMARK_DATA = {
             "name": "Device utilisation: (ICE40)",
             "value": "119.79",
             "unit": "LCs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "759a5c0183898735e822d5ef21b2329ada3972bf",
+          "message": "Fix benchmark action (#153)",
+          "timestamp": "2022-12-20T10:16:57+01:00",
+          "tree_id": "56f7bc67518500a127701fdb3cef1b12193cc295",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/759a5c0183898735e822d5ef21b2329ada3972bf"
+        },
+        "date": 1671528092957,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 65.11,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 11143,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 140,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 536,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2934,
+            "unit": "LUT"
           }
         ]
       }
