@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1671528670402,
+  "lastUpdate": 1671645930396,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -87,6 +87,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 172,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 536,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2934,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "58303687+wkkuna@users.noreply.github.com",
+            "name": "wkkuna",
+            "username": "wkkuna"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0390803058a6e11ef51d884977dc77ce562ccb97",
+          "message": "[#146] Add script for building docs locally (#148)",
+          "timestamp": "2022-12-21T19:00:58+01:00",
+          "tree_id": "fec4f29426897a61daeb5f2f8e9cce1edb2634f7",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0390803058a6e11ef51d884977dc77ce562ccb97"
+        },
+        "date": 1671645928455,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 63.4,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 11257,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 140,
             "unit": "LUT"
           },
           {
