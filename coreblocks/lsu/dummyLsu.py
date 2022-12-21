@@ -33,6 +33,7 @@ class LSUDummyInternals(Elaboratable):
         Signal which is set high by ``LSUDummyInternals`` to inform ``LSUDummy`` that we have
         prepared data to be announced in the rest of core.
     """
+
     def __init__(self, gen_params: GenParams, bus: WishboneMaster, currentInstr: Record, resultData: Record) -> None:
         """
         Parameters
