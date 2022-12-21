@@ -455,3 +455,70 @@ class TestConditionals(TestCaseWithSimulator):
 
         with self.runSimulation(circ) as sim:
             sim.add_sync_process(process)
+
+
+class NonexclusiveMethodCircuit(Elaboratable):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        self.ready = Signal()
+        self.running = Signal()
+        self.data = Signal(WIDTH)
+
+        method = Method(o=WIDTH, nonexclusive=True)
+
+        @def_method(m, method, self.ready)
+        def _(_):
+            m.d.comb += self.running.eq(1)
+            return {"data": self.data}
+
+        m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method))
+        m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method))
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+        return tm
+
+
+class TestNonexclusiveMethod(TestCaseWithSimulator):
+    def testNonexclusiveMethod(self):
+        circ = NonexclusiveMethodCircuit()
+
+        def process():
+            for x in range(8):
+                t1en = bool(x & 1)
+                t2en = bool(x & 2)
+                mrdy = bool(x & 4)
+
+                if t1en:
+                    yield from circ.t1.enable()
+                else:
+                    yield from circ.t1.disable()
+
+                if t2en:
+                    yield from circ.t2.enable()
+                else:
+                    yield from circ.t2.disable()
+
+                if mrdy:
+                    yield circ.ready.eq(1)
+                else:
+                    yield circ.ready.eq(0)
+
+                yield circ.data.eq(x)
+                yield Settle()
+
+                self.assertEqual(bool((yield circ.running)), (t1en or t2en) and mrdy)
+                self.assertEqual(bool((yield from circ.t1.done())), t1en and mrdy)
+                self.assertEqual(bool((yield from circ.t2.done())), t2en and mrdy)
+
+                if t1en and mrdy:
+                    self.assertEqual((yield from circ.t1.get_outputs()), {"data": x})
+
+                if t2en and mrdy:
+                    self.assertEqual((yield from circ.t2.get_outputs()), {"data": x})
+
+        with self.runSimulation(circ) as sim:
+            sim.add_sync_process(process)

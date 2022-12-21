@@ -185,6 +185,8 @@ class TransactionManager(Elaboratable):
 
         for transaction, methods in self.methods_by_transaction.items():
             for method in methods:
+                if method.nonexclusive:
+                    continue
                 for transaction2 in self.transactions_by_method[method]:
                     if transaction is not transaction2:
                         addEdge(transaction, transaction2, ConflictPriority.UNDEFINED)
@@ -473,7 +475,8 @@ class Method:
     When a given ``Method`` is required by multiple ``Transaction``\\s
     (either directly, or indirectly via another ``Method``) simultenaously,
     at most one of them is granted by the ``TransactionManager``, and the rest
-    of them must wait. Calling a ``Method`` always takes a single clock cycle.
+    of them must wait. (Non-exclusive methods are an exception to this
+    behavior.) Calling a ``Method`` always takes a single clock cycle.
 
     Data is combinatorially transferred between to and from ``Method``\\s
     using Amaranth ``Record``\\s. The transfer can take place in both directions
@@ -504,7 +507,9 @@ class Method:
 
     current: Optional["Method"] = None
 
-    def __init__(self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0):
+    def __init__(
+        self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0, nonexclusive: bool = False
+    ):
         """
         Parameters
         ----------
@@ -517,6 +522,11 @@ class Method:
         o: int or record layout
             The format of ``data_in``.
             An ``int`` corresponds to a ``Record`` with a single ``data`` field.
+        nonexclusive: bool
+            If true, the method is non-exclusive: it can be called by multiple
+            transactions in the same clock cycle. If such a situation happens,
+            the method still is executed only once, and each of the callers
+            receive its output. Nonexclusive methods cannot have inputs.
         """
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
@@ -527,6 +537,9 @@ class Method:
         self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.defined = False
+        self.nonexclusive = nonexclusive
+        if nonexclusive:
+            assert len(self.data_in) == 0
 
     @staticmethod
     def like(other: "Method", *, name: Optional[str] = None) -> "Method":
