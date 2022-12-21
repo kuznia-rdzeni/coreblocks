@@ -8,23 +8,33 @@ __all__ = ["LSUDummy"]
 
 
 class LSUDummyInternals(Elaboratable):
+    """
+    Internal implementation of ``LSUDummy`` logic, which should be embedded into ``LSUDummy``
+    class to expose transactional interface.
+
+    ``LSUDummyInternals`` get reference to ``currentInstr`` so to a signal which
+    is used as register in ``LSUDummy``. This signal contains instruction which is currently to be process.
+    When instruction get all its arguments ``LSUDummyInternals`` automaticaly starts working
+    (``LSUDummyInternals`` check in each cycle if instruction is ready). Based on content of
+    ``currentInstr`` ``LSUDummyInternals`` make different actions. It can start load operation,
+    by sending wichbone request to memory (of course using transactional framework) and
+    next wait till memory sent response back. When response is received ``LSUDummyInternals``
+    set ``result_ready`` bit to 1.
+
+    It is expected, that ``LSUDummy`` will put ``result_ack`` high for minimum 1 cycle, when
+    results and ``currentInstr`` aren't needed any more and should be cleared.
+
+    Attributes
+    ----------
+    result_ack : Signal, in
+        Signal which should be set high by ``LSUDummy`` to inform ``LSUDummyInternals`` that
+        we ended porcess instruction and all internal state should be cleared.
+    result_ready : Signal, out
+        Signal which is set high by ``LSUDummyInternals`` to inform ``LSUDummy`` that we have
+        prepared data to be announced in the rest of core.
+    """
     def __init__(self, gen_params: GenParams, bus: WishboneMaster, currentInstr: Record, resultData: Record) -> None:
         """
-        Internal implementation of ``LSUDummy`` logic, which should be embedded into ``LSUDummy``
-        class to expose transactional interface.
-
-        ``LSUDummyInternals`` get reference to ``currentInstr`` so to a signal which
-        is used as register in ``LSUDummy``. This signal contains instruction which is currently to be process.
-        When instruction get all its arguments ``LSUDummyInternals`` automaticaly starts working
-        (``LSUDummyInternals`` check in each cycle if instruction is ready). Based on content of
-        ``currentInstr`` ``LSUDummyInternals`` make different actions. It can start load operation,
-        by sending wichbone request to memory (of course using transactional framework) and
-        next wait till memory sent response back. When response is received ``LSUDummyInternals``
-        set ``result_ready`` bit to 1.
-
-        It is expected, that ``LSUDummy`` will put ``result_ack`` high for minimum 1 cycle, when
-        results and ``currentInstr`` aren't needed any more and should be cleared.
-
         Parameters
         ----------
         gen_params: GenParams
@@ -36,15 +46,6 @@ class LSUDummyInternals(Elaboratable):
             Reference to signal which contain instruction, which is currently processed by LSU.
         resultData : Record, out
             Synchronous signall which contain data readed from memory.
-
-        Attributes
-        ----------
-        result_ack : Signal, in
-            Signal which should be set high by ``LSUDummy`` to inform ``LSUDummyInternals`` that
-            we ended porcess instruction and all internal state should be cleared.
-        result_ready : Signal, out
-            Signal which is set high by ``LSUDummyInternals`` to inform ``LSUDummy`` that we have
-            prepared data to be announced in the rest of core.
         """
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
@@ -157,18 +158,32 @@ class LSUDummyInternals(Elaboratable):
 
 
 class LSUDummy(Elaboratable):
+    """
+    Very simple LSU, which serialize all stores and loads,
+    to allow us work on a core as a whole. It isn't fully
+    compliment to RiscV spec. Doesn't support checking if
+    address is in correct range.
+
+    It use the same interface as RS, because in future more
+    inteligent LSU's will be connected without RS, so to
+    have future proof module here also RS will be skipped
+    and all RS operations will be handled inside of LSUDummy.
+
+    Attributes
+    ----------
+    select : Method
+        Used to reserve a place for intruction in LSU.
+    insert : Method
+        Used to put instruction into reserved place.
+    update : Method
+        Used to receive announcment that calculations of new value have ended
+        and we have a value which can be used in father computations.
+    get_result : Method
+        To put load/store results to the next stage of pipeline.
+    """
+
     def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
         """
-        Very simple LSU, which serialize all stores and loads,
-        to allow us work on a core as a whole. It isn't fully
-        compliment to RiscV spec. Doesn't support checking if
-        address is in correct range.
-
-        It use the same interface as RS, because in future more
-        inteligent LSU's will be connected without RS, so to
-        have future proof module here also RS will be skipped
-        and all RS operations will be handled inside of LSUDummy.
-
         Parameters
         ----------
         gen_params: GenParams
@@ -176,19 +191,8 @@ class LSUDummy(Elaboratable):
         bus: WishboneMaster
             Instantion of wishbone master which should be used to communicate with
             data memory.
-
-        Attributes
-        ----------
-        select : Method
-            Used to reserve a place for intruction in LSU.
-        insert : Method
-            Used to put instruction into reserved place.
-        update : Method
-            Used to receive announcment that calculations of new value have ended
-            and we have a value which can be used in father computations.
-        get_result : Method
-            To put load/store results to the next stage of pipeline.
         """
+
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
@@ -201,18 +205,14 @@ class LSUDummy(Elaboratable):
         self.bus = bus
 
     def elaborate(self, platform):
-        """
-        Attributes
-        ----------
-        currentInstr : Record
-            Record which store currently pocessed instruction using RS data
-            layout extended with ``valid`` bit.
-        resultData : Record
-            Record using ``FuncUnitLayouts.data`` shape which store temporarly
-            results to be send to next pipeline step.
-        reserved : Signal, out
-            Register to mark, that ``currentInstr`` field is already reserved.
-        """
+        # currentInstr : Record
+        #     Record which store currently pocessed instruction using RS data
+        #     layout extended with ``valid`` bit.
+        # resultData : Record
+        #     Record using ``FuncUnitLayouts.data`` shape which store temporarly
+        #     results to be send to next pipeline step.
+        # reserved : Signal, out
+        #     Register to mark, that ``currentInstr`` field is already reserved.
         m = Module()
         reserved = Signal()
         currentInstr = Record(self.rs_layouts.data_layout + [("valid", 1)])
