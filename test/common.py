@@ -11,6 +11,7 @@ from coreblocks.transactions.core import DebugSignals
 from coreblocks.transactions.lib import AdapterBase
 from coreblocks.utils._typing import ValueLike
 from .gtkw_extension import write_vcd_ext
+from inspect import signature
 
 
 T = TypeVar("T")
@@ -231,3 +232,43 @@ class TestbenchIO(Elaboratable):
 
     def debug_signals(self) -> DebugSignals:
         return self.adapter.debug_signals()
+
+
+def _getattr_deep(obj, path: str):
+    value = obj
+    for field in path.split("."):
+        if "[" in field:
+            assert "]" in field
+            listName, _, rest = field.partition("[")
+            idx, _, _ = rest.partition("]")
+            value = getattr(value, listName)
+            value = value[int(idx)]
+        else:
+            value = getattr(value, field)
+    return value
+
+
+def def_method_mock(name: str, circut: Optional[Elaboratable] = None, **kwargs):
+    def decorator(func: Callable[[RecordIntDictRet], Optional[RecordIntDict]]) -> TestGen[None]:
+        sig = signature(func)
+        if circut is None:
+            assert len(sig.parameters) == 2
+        else:
+            assert len(sig.parameters) == 1
+
+        def mock(self: Optional[Any] = None):
+            def partial_appl(x):
+                return func(self, x)
+
+            if circut is None:
+                tb = _getattr_deep(self, name)
+                f = partial_appl
+            else:
+                tb = _getattr_deep(circut, name)
+                f = func
+            assert isinstance(tb, TestbenchIO)
+            yield from tb.method_handle_loop(f, **kwargs)
+
+        return mock
+
+    return decorator

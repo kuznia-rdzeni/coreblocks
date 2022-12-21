@@ -72,11 +72,9 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
-        def submit_process():
-            def mock(_):
-                return self.submit_q.popleft()
-
-            yield from retc.mock_rob_retire.method_handle_loop(mock, settle=1, condition=lambda: bool(self.submit_q))
+        @def_method_mock("mock_rob_retire", retc, settle=1, condition=lambda: bool(self.submit_q))
+        def submit_process(_):
+            return self.submit_q.popleft()
 
         def free_reg_process():
             while self.rf_exp_q:
@@ -96,11 +94,9 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertFalse(self.submit_q)
             self.assertFalse(self.rf_free_q)
 
-        def rf_free_process():
-            def mock(reg):
-                self.assertEqual(reg["reg_id"], self.rf_free_q.popleft())
-
-            yield from retc.mock_rf_free.method_handle_loop(mock, condition=lambda: bool(self.rf_free_q))
+        @def_method_mock("mock_rf_free", retc, condition=lambda: bool(self.rf_free_q))
+        def rf_free_process(reg):
+            self.assertEqual(reg["reg_id"], self.rf_free_q.popleft())
 
         with self.runSimulation(retc) as sim:
             sim.add_sync_process(submit_process)
