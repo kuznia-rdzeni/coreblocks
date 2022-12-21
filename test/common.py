@@ -249,6 +249,65 @@ def _getattr_deep(obj, path: str):
 
 
 def def_method_mock(name: str, circut: Optional[Elaboratable] = None, **kwargs):
+    """
+    Decorator function to create method mock handlers. It should be applied on
+    a function which describe functionality which we wan't to invoke on method call.
+    Such function will be wrapped by `method_handle_loop` and called on each
+    method invocation.
+
+    If `def_method_mock` wrapps a function `f` then it is expected that:
+    - `f` has exactly one argument when `circuit` is not `None` and this
+        argument are data passed as an input to method
+    - `f` has exactly two arguments when `circuit` is `None` in such
+        case first is expected to be `self` and second are data passed
+        as an input to method
+
+    Function wrapped by `def_method_mock` should return data which will be sent
+    as response to method call.
+
+    Please remember that decorators are fully evaluated when function is defined.
+
+    Parameters
+    ----------
+    name : str
+        Name of the `TestbenchIO` field in class. If `circut` is not none, then
+        `name` decribe field in `circut` else it is expected that wrapped function
+        take `self` argument and `name` is a field of `self`. Name can be multilayer
+        path and can index lists with int's known on function definition time.
+    circut : Elaboratable
+        Eleboratable which have as a field (or as a nested field) a TestbenchIO instance
+        to which we should connect with our mock.
+    **kwargs
+        Arguments passed to `method_handle_loop`.
+
+    Example
+    -------
+    In this example `self.m.target` is an instance of TestbenchIO which we want to
+    wrap. We get some data `v` and as a result we return `v` incremented by 1.
+    `settle=1` is an argument passed to `method_handle_loop`.
+    ```
+    @def_method_mock("m.target", settle=1)
+    def target(self, v):
+        return {"data": v["data"] + 1}
+    ```
+
+    On the other hand here we have a test circuit which we know on definition time
+    and isn't dependend from `self` so we pass it as `circuit` argument. In such case
+    wrapped process take only input data. This example also present a generator of
+    method handlers. By invoking `target_process` with different `k` we create
+    new instances of handlers. Each handler is connected to different TestbenchIO, by
+    indexing list of targets TestbenchIO's. Please note that `k` is known in time
+    of definition of process and is passed in numerical form to `name` string.
+    ```
+    m = TestCircuit()
+    def target_process(k: int):
+        @def_method_mock(f"target[{k}]", m, settle=1, enable=False)
+        def process(v):
+            return {"data": v["data"] + k}
+        return process
+    ```
+    """
+
     def decorator(
         func: Union[
             Callable[[RecordIntDictRet], Optional[RecordIntDict]],
