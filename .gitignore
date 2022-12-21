@@ -25,3 +25,7 @@ test/__traces__
 # Documentation build
 build/
 docs/*.rst
+
+# Synthesis
+build/
+benchmark.json

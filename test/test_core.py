@@ -1,5 +1,4 @@
 from amaranth import Elaboratable, Module
-from amaranth.sim import Settle
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
@@ -45,14 +44,12 @@ class TestElaboratable(Elaboratable):
         self.core = Core(gen_params=self.gp, wb_master=self.wb_master)
         self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
-        self.reset = TestbenchIO(AdapterTrans(self.core.reset))
 
         m.submodules.wb_master = self.wb_master
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
-        m.submodules.reset = self.reset
 
         m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
 
@@ -68,10 +65,6 @@ def gen_riscv_lui_instr(dst, imm):
 
 
 class TestCore(TestCaseWithSimulator):
-    def reset_core(self):
-        yield from self.m.reset.call()
-        yield Settle()
-
     def check_RAT_alloc(self, rat, expected_alloc_count=None):
         allocated = []
         for i in range(self.m.gp.isa.reg_cnt):

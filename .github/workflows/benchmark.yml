@@ -1,0 +1,46 @@
+name: Benchmark
+
+on:
+  push:
+    branches:
+      - master
+      - benchmarks-ci
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: docker://vuush/amaranth-synth:ecp5
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set ownership (Github Actions workaround)
+        run: |
+          # https://github.com/actions/runner/issues/2033
+          chown -R $(id -u):$(id -g) $PWD
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -r requirements-dev.txt
+
+      - name: Synthesize
+        run: ./scripts/synthesize --verbose
+
+      - name: Print synthesis information
+        run: cat ./build/top.tim
+
+      - name: Collect Benchmark information
+        run: |
+          ./scripts/parse_benchmark_info
+          cat ./benchmark.json
+
+      - name: Store benchmark result (Fmax)
+        uses: benchmark-action/github-action-benchmark@v1
+        if: github.ref == 'refs/heads/master'
+        with:
+          name: Fmax and LCs
+          tool: 'customBiggerIsBetter'
+          output-file-path: './benchmark.json'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: "dev/benchmark"
