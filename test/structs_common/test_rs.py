@@ -8,6 +8,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO, get_outputs
 
 from coreblocks.structs_common.rs import RS
 from coreblocks.params import GenParams
+from coreblocks.utils import AutoDebugSignals
 
 
 def create_check_list(gp: GenParams, insert_list: list[dict]) -> list[dict]:
@@ -25,7 +26,7 @@ def create_check_list(gp: GenParams, insert_list: list[dict]) -> list[dict]:
     return check_list
 
 
-class TestElaboratable(Elaboratable):
+class TestElaboratable(Elaboratable, AutoDebugSignals):
     def __init__(self, gen_params: GenParams) -> None:
         self.gp = gen_params
 

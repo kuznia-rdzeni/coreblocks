@@ -14,6 +14,7 @@ from coreblocks.params.mul_params import MulUnitParams
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
+from coreblocks.utils import AutoDebugSignals
 
 from test.common import TestCaseWithSimulator, TestbenchIO
 
@@ -21,7 +22,7 @@ from coreblocks.params import GenParams
 from test.fu.functional_common import FunctionalTestCircuit
 
 
-class UnsignedMultiplicationTestCircuit(Elaboratable):
+class UnsignedMultiplicationTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, gen: GenParams, mul_unit: Type[MulBaseUnsigned]):
         self.gen = gen
         self.mul_unit = mul_unit

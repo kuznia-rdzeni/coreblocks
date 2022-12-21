@@ -1,14 +1,14 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import Callable, Iterable, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
+from typing import Callable, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
 from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Assign
 from ._utils import *
-from ..utils._typing import ValueLike
+from ..utils._typing import ValueLike, DebugSignals
 from .graph import OwnershipGraph
 
 __all__ = [
@@ -24,7 +24,6 @@ __all__ = [
 ]
 
 
-DebugSignals: TypeAlias = Signal | Record | Iterable["DebugSignals"] | Mapping[str, "DebugSignals"]
 ConflictGraph: TypeAlias = Graph["Transaction"]
 ConflictGraphCC: TypeAlias = GraphCC["Transaction"]
 PriorityOrder: TypeAlias = dict["Transaction", int]
