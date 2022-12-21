@@ -14,6 +14,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.transactions._utils import Scheduler
+from coreblocks.utils import AutoDebugSignals
 
 from coreblocks.transactions.core import (
     ConflictPriority,
@@ -103,7 +104,7 @@ class TestScheduler(TestCaseWithSimulator):
             sim.add_sync_process(process)
 
 
-class TransactionConflictTestCircuit(Elaboratable):
+class TransactionConflictTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, scheduler):
         self.scheduler = scheduler
 
@@ -199,20 +200,13 @@ class TestTransactionConflict(TestCaseWithSimulator):
         ]
     )
     def test_calls(self, name, prob1, prob2, probout):
-        def debug_signals():
-            return {
-                "in1": self.m.in1.debug_signals(),
-                "in2": self.m.in2.debug_signals(),
-                "out": self.m.out.debug_signals(),
-            }
-
-        with self.runSimulation(self.m, extra_signals=debug_signals) as sim:
+        with self.runSimulation(self.m) as sim:
             sim.add_sync_process(self.make_in1_process(prob1))
             sim.add_sync_process(self.make_in2_process(prob2))
             sim.add_sync_process(self.make_out_process(probout))
 
 
-class TransactionPriorityTestCircuit(Elaboratable):
+class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, priority: ConflictPriority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
@@ -246,7 +240,7 @@ class TransactionPriorityTestCircuit(Elaboratable):
         return tm
 
 
-class MethodPriorityTestCircuit(Elaboratable):
+class MethodPriorityTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, priority: ConflictPriority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
