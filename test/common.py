@@ -9,7 +9,7 @@ from amaranth.sim import *
 from amaranth.sim.core import Command
 from coreblocks.transactions.core import DebugSignals
 from coreblocks.transactions.lib import AdapterBase
-from coreblocks.utils._typing import ValueLike
+from coreblocks.utils._typing import ValueLike, is_two_arg_callable
 from .gtkw_extension import write_vcd_ext
 from inspect import signature
 
@@ -249,15 +249,21 @@ def _getattr_deep(obj, path: str):
 
 
 def def_method_mock(name: str, circut: Optional[Elaboratable] = None, **kwargs):
-    def decorator(func: Callable[[RecordIntDictRet], Optional[RecordIntDict]]) -> TestGen[None]:
+    def decorator(
+        func: Union[
+            Callable[[RecordIntDictRet], Optional[RecordIntDict]],
+            Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]],
+        ]
+    ):
         sig = signature(func)
         if circut is None:
             assert len(sig.parameters) == 2
         else:
             assert len(sig.parameters) == 1
 
-        def mock(self: Optional[Any] = None):
+        def mock(self: Optional[Any] = None) -> TestGen[None]:
             def partial_appl(x):
+                assert is_two_arg_callable(func)
                 return func(self, x)
 
             if circut is None:
