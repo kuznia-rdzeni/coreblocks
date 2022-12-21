@@ -4,6 +4,14 @@ coreblocks.utils package
 Submodules
 ----------
 
+coreblocks.utils.debug\_signals module
+--------------------------------------
+
+.. automodule:: coreblocks.utils.debug_signals
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.utils.fifo module
 ----------------------------
 
