@@ -1,6 +1,6 @@
 from amaranth import *
 
-from enum import IntEnum, unique
+from enum import IntFlag, unique, auto
 
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
@@ -14,15 +14,15 @@ __all__ = ["JumpBranchFuncUnit"]
 
 class JumpBranchFn(Signal):
     @unique
-    class Fn(IntEnum):
-        JAL = 1 << 0
-        JALR = 1 << 1
-        BEQ = 1 << 2
-        BNE = 1 << 3
-        BLT = 1 << 4
-        BLTU = 1 << 5
-        BGE = 1 << 6
-        BGEU = 1 << 7
+    class Fn(IntFlag):
+        JAL = auto()
+        JALR = auto()
+        BEQ = auto()
+        BNE = auto()
+        BLT = auto()
+        BLTU = auto()
+        BGE = auto()
+        BGEU = auto()
 
     def __init__(self, *args, **kwargs):
         super().__init__(JumpBranchFn.Fn, *args, **kwargs)
