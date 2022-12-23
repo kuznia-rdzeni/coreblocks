@@ -17,6 +17,7 @@ class JumpBranchFn(Signal):
     class Fn(IntFlag):
         JAL = auto()
         JALR = auto()
+        AUIPC = auto()
         BEQ = auto()
         BNE = auto()
         BLT = auto()
@@ -39,13 +40,11 @@ class JumpBranch(Elaboratable):
         self.in_pc = Signal(xlen)
         self.in_imm = Signal(xlen)
         self.jmp_addr = Signal(xlen)
-        self.ret_addr = Signal(xlen)
+        self.reg_res = Signal(xlen)
         self.taken = Signal()
 
     def elaborate(self, platform):
         m = Module()
-
-        m.d.comb += self.ret_addr.eq(self.in_pc + 4)
 
         # Spec: "The 12-bit B-immediate encodes signed offsets in multiples of 2,
         # and is added to the current pc to give the target address."
@@ -57,6 +56,7 @@ class JumpBranch(Elaboratable):
                 # The offset is sign-extended and added to the pc to form the jump target address."
                 m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm[:20].as_signed())
                 m.d.comb += self.taken.eq(1)
+                m.d.comb += self.reg_res.eq(self.in_pc + 4)
             with OneHotCase(JumpBranchFn.Fn.JALR):
                 # Spec: "The target address is obtained by adding the 12-bit signed I-immediate
                 # to the register rs1, then setting the least-significant bit of the result to zero."
@@ -64,6 +64,12 @@ class JumpBranch(Elaboratable):
                 m.d.comb += self.jmp_addr.eq(target)
                 m.d.comb += self.jmp_addr[0].eq(0)
                 m.d.comb += self.taken.eq(1)
+                m.d.comb += self.reg_res.eq(self.in_pc + 4)
+            with OneHotCase(JumpBranchFn.Fn.AUIPC):
+                # Spec: "AUIPC forms a 32-bit offset from the 20-bit U-immediate, filling in the
+                # lowest 12 bits with zeros, adds this offset to the pc"
+                # Order of arguments in Cat is reversed
+                m.d.comb += self.reg_res.eq(self.pc + Cat(C(0, 12), self.in_imm[12:]))
             with OneHotCase(JumpBranchFn.Fn.BEQ):
                 m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1 == self.in2)
@@ -109,6 +115,7 @@ class JumpBranchFnDecoder(Elaboratable):
             (JumpBranchFn.Fn.BGEU, OpType.BRANCH, Funct3.BGEU),
             (JumpBranchFn.Fn.JAL, OpType.JAL),
             (JumpBranchFn.Fn.JALR, OpType.JALR, Funct3.JALR),
+            (JumpBranchFn.Fn.AUIPC, OpType.AUIPC),
         ]
 
         for op in ops:
@@ -156,11 +163,11 @@ class JumpBranchFuncUnit(Elaboratable):
             m.d.comb += jb.in_pc.eq(arg.pc)
             m.d.comb += jb.in_imm.eq(arg.imm)
 
-            fifo_res.write(m, arg={"rob_id": arg.rob_id, "result": jb.ret_addr, "rp_dst": arg.rp_dst})
+            fifo_res.write(m, arg={"rob_id": arg.rob_id, "result": jb.reg_res, "rp_dst": arg.rp_dst})
 
             with m.If(jb.taken):
                 fifo_branch.write(m, arg={"next_pc": jb.jmp_addr})
             with m.Else():
-                fifo_branch.write(m, arg={"next_pc": jb.ret_addr})
+                fifo_branch.write(m, arg={"next_pc": jb.reg_res})
 
         return m
