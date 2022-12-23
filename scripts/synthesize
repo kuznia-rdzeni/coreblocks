@@ -19,7 +19,6 @@ class TestElaboratable(Elaboratable):
     def elaborate(self, platform: Platform):
         from coreblocks.core import Core
         from coreblocks.transactions import TransactionModule
-        from coreblocks.transactions.lib import AdapterTrans
         from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
         m = Module()
@@ -29,27 +28,20 @@ class TestElaboratable(Elaboratable):
         self.wb_master = WishboneMaster(wb_params=wb_params)
         self.wb_mem_slave = WishboneMemorySlave(wb_params=wb_params, width=32, depth=32, init=self.instr_mem)
         self.core = Core(gen_params=self.gp, wb_master=self.wb_master)
-        self.reg_feed_in = AdapterTrans(self.core.free_rf_fifo.write)
 
-        # Enable the FIFO
-        m.d.comb += self.reg_feed_in.en.eq(1)
         m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
 
         # Request platform pins
-        data_in_pins = Cat(platform.request("data_in", 0).i)
         data_out_pins = Cat(platform.request("data_out", 0).o)
 
         # Make sure the number of pins matches the number of inputs/outputs
-        assert len(self.reg_feed_in.data_in) == len(data_in_pins)
         assert len(data_out_pins) == len(Cat(self.core.announcement.debug_signals()))
 
         # Connect pins to the core
-        m.d.comb += self.reg_feed_in.data_in.eq(data_in_pins)
         m.d.comb += Cat(data_out_pins).eq(Cat(self.core.announcement.debug_signals()))
 
         m.submodules.wb_master = self.wb_master
         m.submodules.wb_mem_slave = self.wb_mem_slave
-        m.submodules.reg_feed_in = self.reg_feed_in
         m.submodules.c = self.core
 
         return tm
