@@ -4,13 +4,14 @@ from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
 from coreblocks.structs_common.rat import RRAT
 from coreblocks.params import ROBLayouts, RFLayouts, GenParams
+from coreblocks.utils import AutoDebugSignals
 
 from ..common import *
 from collections import deque
 import random
 
 
-class RetirementTestCircuit(Elaboratable):
+class RetirementTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
