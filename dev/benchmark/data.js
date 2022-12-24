@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1671875030040,
+  "lastUpdate": 1671875260021,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -317,6 +317,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/fe51503947a9cf86e39eaf4cc9e6741516aedbe6"
         },
         "date": 1671875028072,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 65.11,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 11143,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 140,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 536,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2934,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pkaras.it@gmail.com",
+            "name": "Phoenix Himself",
+            "username": "Ph0enixKM"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5ce7ecf2993a586eba19689b2a41706d157c9269",
+          "message": "feat: add logo (#158)",
+          "timestamp": "2022-12-24T10:43:35+01:00",
+          "tree_id": "7311b16ddc57de839c69340ee7a4598b9cf56646",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5ce7ecf2993a586eba19689b2a41706d157c9269"
+        },
+        "date": 1671875258094,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
