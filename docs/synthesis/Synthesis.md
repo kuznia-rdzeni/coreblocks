@@ -46,4 +46,4 @@ following information:
 
 For each commit on `master` branch, CI runs the synthesis and saves the parameters collected by `parse_benchmark_info` script.
 
-Graphs generated from this information are available on a dedicated [subpage](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/)
+Graphs generated from this information are available on a dedicated [subpage](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
