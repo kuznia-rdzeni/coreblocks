@@ -15,7 +15,7 @@ from coreblocks.transactions.lib import (
     MethodTransformer,
 )
 from coreblocks.utils._typing import LayoutLike
-from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock
+from ..common import TestCaseWithSimulator, TestbenchIO, def_class_method_mock, def_method_mock
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
@@ -215,7 +215,7 @@ class TestMethodTransformer(TestCaseWithSimulator):
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
             self.assertEqual(v["data"], (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1))
 
-    @def_method_mock("m.target", settle=1)
+    @def_class_method_mock(lambda self: self.m.target, settle=1)
     def target(self, v):
         return {"data": (v["data"] << 1) | (v["data"] >> (self.m.iosize - 1))}
 
@@ -286,7 +286,7 @@ class TestMethodFilter(TestCaseWithSimulator):
             else:
                 self.assertEqual(v["data"], 0)
 
-    @def_method_mock("m.target", settle=1)
+    @def_class_method_mock(lambda self: self.m.target, settle=1)
     def target(self, v):
         return {"data": v["data"] + 1}
 
@@ -346,7 +346,7 @@ class TestMethodProduct(TestCaseWithSimulator):
         m = MethodProductTestCircuit(iosize, targets, add_combiner)
 
         def target_process(k: int):
-            @def_method_mock(f"target[{k}]", m, settle=1, enable=False)
+            @def_method_mock(lambda: m.target[k], settle=1, enable=False)
             def process(v):
                 return {"data": v["data"] + k}
 

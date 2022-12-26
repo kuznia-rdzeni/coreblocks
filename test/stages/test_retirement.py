@@ -72,7 +72,7 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
-        @def_method_mock("mock_rob_retire", retc, settle=1, condition=lambda: bool(self.submit_q))
+        @def_method_mock(lambda: retc.mock_rob_retire, settle=1, condition=lambda: bool(self.submit_q))
         def submit_process(_):
             return self.submit_q.popleft()
 
@@ -94,7 +94,7 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertFalse(self.submit_q)
             self.assertFalse(self.rf_free_q)
 
-        @def_method_mock("mock_rf_free", retc, condition=lambda: bool(self.rf_free_q))
+        @def_method_mock(lambda: retc.mock_rf_free, condition=lambda: bool(self.rf_free_q))
         def rf_free_process(reg):
             self.assertEqual(reg["reg_id"], self.rf_free_q.popleft())
 
