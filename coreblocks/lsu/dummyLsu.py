@@ -26,15 +26,15 @@ class LSUDummyInternals(Elaboratable):
 
     Attributes
     ----------
-    result_ack : Signal, in
+    get_result_ack : Signal, in
         Signal which should be set high by ``LSUDummy`` to inform ``LSUDummyInternals`` that
-        we ended porcess instruction and all internal state should be cleared.
+        we pushed result to next pipeline stage and depends from instruction type some state can be freed.
     result_ready : Signal, out
         Signal which is set high by ``LSUDummyInternals`` to inform ``LSUDummy`` that we have
         prepared data to be announced in the rest of core.
     """
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, currentInstr: Record, resultData: Record) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMaster, currentInstr: Record) -> None:
         """
         Parameters
         ----------
@@ -45,23 +45,18 @@ class LSUDummyInternals(Elaboratable):
             data memory.
         currentInstr : Record, in
             Reference to signal which contain instruction, which is currently processed by LSU.
-        resultData : Record, out
-            Synchronous signall which contain data readed from memory.
         """
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
         self.currentInstr = currentInstr
-        self.resultData = resultData
         self.bus = bus
 
-        self.result_ack = Signal()
+        self.loadedData = Signal(self.gen_params.isa.xlen)
+        self.get_result_ack = Signal()
         self.result_ready = Signal()
-        self.s_execute_store = Signal()
+        self.execute_store = Signal()
         self.store_ready = Signal()
-
-    def clean_current_instr(self, m: Module):
-        m.d.sync += self.result_ready.eq(0)
-        m.d.sync += self.resultData.eq(0)
+        self.ready_for_store = Signal()
 
     def calculate_addr(self):
         """Calculate Load/Store address as defined by RiscV spec"""
@@ -94,34 +89,37 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += s.eq(data)
         return s
 
-    def op_init(self, m: Module, s_op_initiated: Signal, we : int):
+    def op_init(self, m: Module, op_initiated: Signal, we : int):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
 
-        s_bytes_mask = self.prepare_bytes_mask(m)
+        bytes_mask = self.prepare_bytes_mask(m)
         req = Record(self.bus.requestLayout)
         m.d.comb += req.addr.eq(addr)
         m.d.comb += req.we.eq(we)
-        m.d.comb += req.sel.eq(s_bytes_mask)
+        m.d.comb += req.sel.eq(bytes_mask)
+        if (we):
+            m.d.comb += req.data.eq(self.currentInstr.s2_val)
 
         # load_init is under if so this transaction will request to be executed
         # after all uppers if will be taken, so there is no need to add here
         # additional signal as "request"
         with Transaction().body(m):
             self.bus.request(m, req)
-            m.d.sync += s_op_initiated.eq(1)
+            m.d.sync += op_initiated.eq(1)
 
-    def op_end(self, m: Module, s_op_initiated: Signal, if_store:bool):
+    def op_end(self, m: Module, op_initiated: Signal, if_store:bool):
         with Transaction().body(m):
             fetched = self.bus.result(m)
-            m.d.sync += s_op_initiated.eq(0)
-            m.d.sync += self.result_ready.eq(1)
-            with m.If(fetched.err == 0):
-                m.d.sync += self.resultData.result.eq(self.postprocess_load_data(m, fetched.data))
-            with m.Else():
-                m.d.sync += self.resultData.result.eq(0)
+            m.d.sync += op_initiated.eq(0)
             if (if_store):
                 m.d.sync += self.store_ready.eq(1)
+            else:
+                m.d.sync += self.result_ready.eq(1)
+                with m.If(fetched.err == 0):
+                    m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data))
+                with m.Else():
+                    m.d.sync += self.loadedData.eq(0)
 
     def elaborate(self, platform):
         def check_if_instr_ready() -> ValueLike:
@@ -138,38 +136,47 @@ class LSUDummyInternals(Elaboratable):
 
         m = Module()
 
-        s_instr_ready = check_if_instr_ready()
-        s_instr_is_load = check_if_instr_is_load()
-        s_op_initiated = Signal()
+        instr_ready = check_if_instr_ready()
+        instr_is_load = check_if_instr_is_load()
+        op_initiated = Signal()
 
-        # We have to make reverse because bits in cases are in diffrent order than in Cat due to python indexing
-        # of lists (from left to right) and ints (from right to left)
-        INSTR_READY = 0b0001
-        INSTR_IS_LOAD = 0b0010
-        OP_INITIATED = 0b0100
-        EXEC_STORE = 0b1000
-        with m.Switch(Cat(list(reversed([self.s_execute_store, s_op_initiated, s_instr_is_load, s_instr_ready])))):
-            with m.Case(INSTR_READY | INSTR_IS_LOAD):
-                self.op_init(m, s_op_initiated,0)
-            with m.Case(INSTR_READY | INSTR_IS_LOAD | OP_INITIATED):
-                self.op_end(m, s_op_initiated, False)
-            with m.Case(INSTR_READY): # instr is not load so it is a store
-                m.d.sync += self.result_ready.eq(1)
-            with m.Case(INSTR_READY | EXEC_STORE):
-                self.op_init(m, s_op_initiated, 1)
-            with m.Case(EXEC_STORE | OP_INITIATED | INSTR_READY):
-                self.op_end(m, s_op_initiated, True)
-            with m.Case():
-                pass
-
-
-        with m.If(self.result_ack):
-            self.clean_current_instr(m)
-
-        with m.If(self.store_ready):
-            self.clean_current_instr(m)
-            m.d.sync+=self.store_ready.eq(0)
-
+        with m.FSM("Start"):
+            with m.State("Start"):
+                with m.If(instr_ready & instr_is_load):
+                    self.op_init(m, op_initiated,0)
+                    m.next="LoadInit"
+                with m.If(instr_ready & ~instr_is_load):
+                    m.d.sync += self.result_ready.eq(1)
+                    m.d.sync+=self.ready_for_store.eq(1)
+                    m.next="StoreWaitForExec"
+            with m.State("LoadInit"):
+                with m.If(~op_initiated):
+                    self.op_init(m, op_initiated,0)
+                with m.Else():
+                    m.next="LoadEnd"
+            with m.State("LoadEnd"):
+                self.op_end(m, op_initiated, False)
+                with m.If(self.get_result_ack):
+                    m.d.sync += self.result_ready.eq(0)
+                    m.d.sync += self.loadedData.eq(0)
+                    m.next="Start"
+            with m.State("StoreWaitForExec"):
+                with m.If(self.get_result_ack):
+                    m.d.sync += self.result_ready.eq(0)
+                with m.If(self.execute_store):
+                    self.op_init(m, op_initiated, 1)
+                    m.next="StoreInit"
+            with m.State("StoreInit"):
+                with m.If(~op_initiated):
+                    self.op_init(m, op_initiated, 1)
+                with m.Else():
+                    m.next="StoreEnd"
+            with m.State("StoreEnd"):
+                self.op_end(m, op_initiated, True)
+                with m.If(self.store_ready):
+                    m.d.sync+=self.store_ready.eq(0)
+                    m.d.sync+=self.ready_for_store.eq(0)
+                    m.next="Start"
         return m
 
 
@@ -228,19 +235,15 @@ class LSUDummy(Elaboratable):
         # currentInstr : Record
         #     Record which store currently pocessed instruction using RS data
         #     layout extended with ``valid`` bit.
-        # resultData : Record
-        #     Record using ``FuncUnitLayouts.data`` shape which store temporarly
-        #     results to be send to next pipeline step.
         # reserved : Signal, out
         #     Register to mark, that ``currentInstr`` field is already reserved.
         m = Module()
         reserved = Signal()
         currentInstr = Record(self.rs_layouts.data_layout + [("valid", 1)])
-        resultData = Record(self.fu_layouts.accept)
 
-        m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, currentInstr, resultData)
+        m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, currentInstr)
 
-        s_result_ready = internal.result_ready
+        result_ready = internal.result_ready
 
         @def_method(m, self.select, ~reserved)
         def _(arg):
@@ -255,7 +258,6 @@ class LSUDummy(Elaboratable):
         def _(arg):
             m.d.sync += currentInstr.eq(arg.rs_data)
             m.d.sync += currentInstr.valid.eq(1)
-            m.d.sync += assign(resultData, arg, fields=AssignType.COMMON)
 
         @def_method(m, self.update)
         def _(arg):
@@ -266,22 +268,21 @@ class LSUDummy(Elaboratable):
                 m.d.sync += currentInstr.s2_val.eq(arg.value)
                 m.d.sync += currentInstr.rp_s2.eq(0)
 
-        @def_method(m, self.get_result, s_result_ready)
+        @def_method(m, self.get_result, result_ready)
         def _(arg):
-            m.d.comb += internal.result_ack.eq(1)
+            m.d.comb += internal.get_result_ack.eq(1)
             with m.If(currentInstr.exec_fn.op_type == Opcode.LOAD):
                 m.d.sync += currentInstr.eq(0)
                 m.d.sync += reserved.eq(0)
-            return resultData
+            return {"rob_id":currentInstr.rob_id, "rp_dst":currentInstr.rp_dst, "result" : internal.loadedData}
 
-        @def_method(m, self.commit)
+        @def_method(m, self.commit, internal.ready_for_store)
         def _(arg):
-            with m.If( (currentInstr.exec_fn.op_type == Opcode.STORE) & \
-                    arg.rob_id == currentInstr.rob_id):
-                m.d.comb+=internal.s_execute_store.eq(1)
+            with m.If((currentInstr.exec_fn.op_type == Opcode.STORE) & (arg.rob_id == currentInstr.rob_id)):
+                m.d.sync+=internal.execute_store.eq(1)
 
         with m.If(internal.store_ready):
-            m.d.comb+=internal.s_execute_store.eq(0)
+            m.d.sync+=internal.execute_store.eq(0)
             m.d.sync += currentInstr.eq(0)
             m.d.sync += reserved.eq(0)
 
