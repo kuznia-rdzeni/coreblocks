@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1671875260021,
+  "lastUpdate": 1672067035886,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -391,6 +391,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 2934,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4d3e731e3a6b0994a0271b3c1c535ed9b899ba57",
+          "message": "Remove free_rf fifo adapter from synthesis (#161)",
+          "timestamp": "2022-12-26T15:59:31+01:00",
+          "tree_id": "8ba31a9101cf1f730458f154e0ceab249ebf20d4",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4d3e731e3a6b0994a0271b3c1c535ed9b899ba57"
+        },
+        "date": 1672067034643,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 59.35,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 15170,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 148,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 540,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4669,
             "unit": "LUT"
           }
         ]
