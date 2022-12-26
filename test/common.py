@@ -9,9 +9,8 @@ from amaranth.sim import *
 from amaranth.sim.core import Command
 from coreblocks.transactions.core import DebugSignals
 from coreblocks.transactions.lib import AdapterBase
-from coreblocks.utils._typing import ValueLike, is_two_arg_callable
+from coreblocks.utils._typing import ValueLike
 from .gtkw_extension import write_vcd_ext
-from inspect import signature
 
 
 T = TypeVar("T")
@@ -234,7 +233,7 @@ class TestbenchIO(Elaboratable):
         return self.adapter.debug_signals()
 
 
-def def_method_mock(tbGetter : Callable[[],TestbenchIO], **kwargs):
+def def_method_mock(tbGetter: Callable[[], TestbenchIO], **kwargs):
     """
     Decorator function to create method mock handlers. It should be applied on
     a function which describe functionality which we wan't to invoke on method call.
@@ -275,8 +274,11 @@ def def_method_mock(tbGetter : Callable[[],TestbenchIO], **kwargs):
             f = func
             assert isinstance(tb, TestbenchIO)
             yield from tb.method_handle_loop(f, **kwargs)
+
         return mock
+
     return decorator
+
 
 def def_class_method_mock(tbGetter, **kwargs):
     """
@@ -287,7 +289,7 @@ def def_class_method_mock(tbGetter, **kwargs):
 
     If `def_method_mock` wrapps a function `f` then it is expected that function
     `f` is a class method. For wrapping plain functions please see `def_method_mock`.
-    
+
     Function `f` should take two arguments `self` and data which will be passed on
     to invoke a method. This function should return data which will be sent
     as response to method call.
@@ -310,14 +312,16 @@ def def_class_method_mock(tbGetter, **kwargs):
         return {"data": v["data"] + 1}
     ```
     """
+
     def decorator(func: Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]]):
         def mock(self) -> TestGen[None]:
             def partial_func(x):
-                assert is_two_arg_callable(func)
                 return func(self, x)
 
             tb = tbGetter(self)
             assert isinstance(tb, TestbenchIO)
             yield from tb.method_handle_loop(partial_func, **kwargs)
+
         return mock
+
     return decorator
