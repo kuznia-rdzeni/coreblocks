@@ -1,6 +1,5 @@
 import random
 from collections import deque
-from queue import Queue
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Settle, Passive
@@ -14,18 +13,19 @@ from coreblocks.peripherals.wishbone import *
 from test.common import TestbenchIO, TestCaseWithSimulator
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
+
 def generateRegister(max_reg_val, phys_regs_bits):
     if random.randint(0, 1):
         rp = random.randint(1, 2**phys_regs_bits - 1)
         val = 0
         real_val = random.randint(0, max_reg_val // 4) * 4
-        ann_data={"tag": rp, "value": real_val}
+        ann_data = {"tag": rp, "value": real_val}
     else:
         rp = 0
         val = random.randint(0, max_reg_val // 4) * 4
         real_val = val
-        ann_data=None
-    return rp,val, ann_data, real_val
+        ann_data = None
+    return rp, val, ann_data, real_val
 
 
 class DummyLSUTestCircuit(Elaboratable):
@@ -52,6 +52,7 @@ class DummyLSUTestCircuit(Elaboratable):
         self.io_in = WishboneInterfaceWrapper(self.bus.wbMaster)
         m.submodules.bus = self.bus
         return tm
+
 
 class TestDummyLSULoads(TestCaseWithSimulator):
     def generateInstr(self, max_reg_val, max_imm_val):
@@ -215,7 +216,6 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
             sim.add_sync_process(self.oneInstrTest)
 
 
-
 class TestDummyLSUStores(TestCaseWithSimulator):
     def generateInstr(self, max_reg_val, max_imm_val):
         ops = {
@@ -237,14 +237,14 @@ class TestDummyLSUStores(TestCaseWithSimulator):
 
             rp_s1, s1_val, ann_data1, addr = generateRegister(max_reg_val, self.gp.phys_regs_bits)
             rp_s2, s2_val, ann_data2, data = generateRegister(max_reg_val, self.gp.phys_regs_bits)
-            if rp_s1==rp_s2 and ann_data1 is not None and ann_data2 is not None:
-                ann_data2=None
-                data=addr
-            #decide in which order we would get announcments
-            if random.randint(0,1):
-                self.announce_queue.append((ann_data1,ann_data2))
+            if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
+                ann_data2 = None
+                data = addr
+            # decide in which order we would get announcments
+            if random.randint(0, 1):
+                self.announce_queue.append((ann_data1, ann_data2))
             else:
-                self.announce_queue.append((ann_data2,ann_data1))
+                self.announce_queue.append((ann_data2, ann_data1))
 
             # generate imm
             if random.randint(0, 1):
@@ -265,9 +265,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 "imm": imm,
             }
             self.instr_queue.append(instr)
-            self.mem_data_queue.append(
-                {"addr": addr, "mask": mask, "data": bytes.fromhex(f"{data:08x}")}
-            )
+            self.mem_data_queue.append({"addr": addr, "mask": mask, "data": bytes.fromhex(f"{data:08x}")})
 
     def setUp(self) -> None:
         random.seed(14)
@@ -321,18 +319,18 @@ class TestDummyLSUStores(TestCaseWithSimulator):
     def getResulter(self):
         for i in range(self.tests_number):
             v = yield from self.test_module.get_result.call()
-            rob_id= self.get_result_data.pop()
+            rob_id = self.get_result_data.pop()
             self.commit_data.appendleft(rob_id)
-            self.assertEqual(v["rob_id"],rob_id)
+            self.assertEqual(v["rob_id"], rob_id)
             self.assertEqual(v["rp_dst"], 0)
             yield from self.random_wait()
 
     def commiter(self):
         for i in range(self.tests_number):
-            while (len(self.commit_data)==0):
+            while len(self.commit_data) == 0:
                 yield
-            rob_id=self.commit_data.pop()
-            yield from self.test_module.commit.call({"rob_id":rob_id})
+            rob_id = self.commit_data.pop()
+            yield from self.test_module.commit.call({"rob_id": rob_id})
 
     def test(self):
         with self.runSimulation(self.test_module) as sim:

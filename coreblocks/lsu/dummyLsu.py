@@ -2,7 +2,6 @@ from amaranth import *
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3, LSULayouts
 from coreblocks.peripherals.wishbone import WishboneMaster
-from coreblocks.utils import assign, AssignType, ValueLike
 
 __all__ = ["LSUDummy"]
 
@@ -89,7 +88,7 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += s.eq(data)
         return s
 
-    def op_init(self, m: Module, op_initiated: Signal, we : int):
+    def op_init(self, m: Module, op_initiated: Signal, we: int):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
 
@@ -98,7 +97,7 @@ class LSUDummyInternals(Elaboratable):
         m.d.comb += req.addr.eq(addr)
         m.d.comb += req.we.eq(we)
         m.d.comb += req.sel.eq(bytes_mask)
-        if (we):
+        if we:
             m.d.comb += req.data.eq(self.currentInstr.s2_val)
 
         # load_init is under if so this transaction will request to be executed
@@ -108,11 +107,11 @@ class LSUDummyInternals(Elaboratable):
             self.bus.request(m, req)
             m.d.sync += op_initiated.eq(1)
 
-    def op_end(self, m: Module, op_initiated: Signal, if_store:bool):
+    def op_end(self, m: Module, op_initiated: Signal, if_store: bool):
         with Transaction().body(m):
             fetched = self.bus.result(m)
             m.d.sync += op_initiated.eq(0)
-            if (if_store):
+            if if_store:
                 m.d.sync += self.store_ready.eq(1)
             else:
                 m.d.sync += self.result_ready.eq(1)
@@ -122,7 +121,7 @@ class LSUDummyInternals(Elaboratable):
                     m.d.sync += self.loadedData.eq(0)
 
     def elaborate(self, platform):
-        def check_if_instr_ready() -> ValueLike:
+        def check_if_instr_ready() -> Value:
             """Check if we all values needed by instruction are already calculated."""
             return (
                 (self.currentInstr.rp_s1 == 0)
@@ -131,7 +130,7 @@ class LSUDummyInternals(Elaboratable):
                 & (self.result_ready == 0)
             )
 
-        def check_if_instr_is_load() -> ValueLike:
+        def check_if_instr_is_load() -> Value:
             return self.currentInstr.exec_fn.op_type == Opcode.LOAD
 
         m = Module()
@@ -143,40 +142,40 @@ class LSUDummyInternals(Elaboratable):
         with m.FSM("Start"):
             with m.State("Start"):
                 with m.If(instr_ready & instr_is_load):
-                    self.op_init(m, op_initiated,0)
-                    m.next="LoadInit"
+                    self.op_init(m, op_initiated, 0)
+                    m.next = "LoadInit"
                 with m.If(instr_ready & ~instr_is_load):
                     m.d.sync += self.result_ready.eq(1)
-                    m.d.sync+=self.ready_for_store.eq(1)
-                    m.next="StoreWaitForExec"
+                    m.d.sync += self.ready_for_store.eq(1)
+                    m.next = "StoreWaitForExec"
             with m.State("LoadInit"):
                 with m.If(~op_initiated):
-                    self.op_init(m, op_initiated,0)
+                    self.op_init(m, op_initiated, 0)
                 with m.Else():
-                    m.next="LoadEnd"
+                    m.next = "LoadEnd"
             with m.State("LoadEnd"):
                 self.op_end(m, op_initiated, False)
                 with m.If(self.get_result_ack):
                     m.d.sync += self.result_ready.eq(0)
                     m.d.sync += self.loadedData.eq(0)
-                    m.next="Start"
+                    m.next = "Start"
             with m.State("StoreWaitForExec"):
                 with m.If(self.get_result_ack):
                     m.d.sync += self.result_ready.eq(0)
                 with m.If(self.execute_store):
                     self.op_init(m, op_initiated, 1)
-                    m.next="StoreInit"
+                    m.next = "StoreInit"
             with m.State("StoreInit"):
                 with m.If(~op_initiated):
                     self.op_init(m, op_initiated, 1)
                 with m.Else():
-                    m.next="StoreEnd"
+                    m.next = "StoreEnd"
             with m.State("StoreEnd"):
                 self.op_end(m, op_initiated, True)
                 with m.If(self.store_ready):
-                    m.d.sync+=self.store_ready.eq(0)
-                    m.d.sync+=self.ready_for_store.eq(0)
-                    m.next="Start"
+                    m.d.sync += self.store_ready.eq(0)
+                    m.d.sync += self.ready_for_store.eq(0)
+                    m.next = "Start"
         return m
 
 
@@ -274,15 +273,15 @@ class LSUDummy(Elaboratable):
             with m.If(currentInstr.exec_fn.op_type == Opcode.LOAD):
                 m.d.sync += currentInstr.eq(0)
                 m.d.sync += reserved.eq(0)
-            return {"rob_id":currentInstr.rob_id, "rp_dst":currentInstr.rp_dst, "result" : internal.loadedData}
+            return {"rob_id": currentInstr.rob_id, "rp_dst": currentInstr.rp_dst, "result": internal.loadedData}
 
         @def_method(m, self.commit, internal.ready_for_store)
         def _(arg):
             with m.If((currentInstr.exec_fn.op_type == Opcode.STORE) & (arg.rob_id == currentInstr.rob_id)):
-                m.d.sync+=internal.execute_store.eq(1)
+                m.d.sync += internal.execute_store.eq(1)
 
         with m.If(internal.store_ready):
-            m.d.sync+=internal.execute_store.eq(0)
+            m.d.sync += internal.execute_store.eq(0)
             m.d.sync += currentInstr.eq(0)
             m.d.sync += reserved.eq(0)
 
