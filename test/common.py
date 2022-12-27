@@ -240,8 +240,8 @@ def def_method_mock(tbGetter: Callable[[], TestbenchIO], **kwargs):
     Such function will be wrapped by `method_handle_loop` and called on each
     method invocation.
 
-    If `def_method_mock` wrapps a function `f` then it is expected that function
-    `f` isn't a class method. For wrapping class methods please see `def_class_method_mock`.
+    Use to wrap plain functions, not class methods. For wrapping class methods please
+    see `def_class_method_mock`.
 
     Function `f` should take only one argument - data used in function invocation - and
     should return data which will be sent as response to method call.
