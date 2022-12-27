@@ -236,7 +236,7 @@ class TestbenchIO(Elaboratable):
 def def_method_mock(tbGetter: Callable[[], TestbenchIO], **kwargs):
     """
     Decorator function to create method mock handlers. It should be applied on
-    a function which describe functionality which we wan't to invoke on method call.
+    a function which describes functionality which we want to invoke on method call.
     Such function will be wrapped by `method_handle_loop` and called on each
     method invocation.
 
