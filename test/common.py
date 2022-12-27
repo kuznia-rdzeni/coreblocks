@@ -287,8 +287,8 @@ def def_class_method_mock(tbGetter, **kwargs):
     Such function will be wrapped by `method_handle_loop` and called on each
     method invocation.
 
-    If `def_method_mock` wrapps a function `f` then it is expected that function
-    `f` is a class method. For wrapping plain functions please see `def_method_mock`.
+    Use to wrap class methods, not functions. For wrapping plain functions please
+    see `def_method_mock`.
 
     Function `f` should take two arguments `self` and data which will be passed on
     to invoke a method. This function should return data which will be sent
