@@ -581,6 +581,24 @@ class Method:
         """
         self.conflicts.append((end, priority))
 
+    def proxy(self, m: Module, method: "Method"):
+        """Define as a proxy for another method.
+
+        The calls to this method will be forwarded to ``method``.
+
+        Parameters
+        ----------
+        m : Module
+            Module in which operations on signals should be executed,
+            ``proxy`` uses the combinational domain only.
+        method : Method
+            Method for which this method is a proxy for.
+        """
+        m.d.comb += self.ready.eq(1)
+        m.d.comb += self.data_out.eq(method.data_out)
+        self.use_method(method, arg=self.data_in, enable=C(1))
+        self.defined = True
+
     @contextmanager
     def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
         """Define method body
