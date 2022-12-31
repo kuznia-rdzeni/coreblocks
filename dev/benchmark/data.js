@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672067035886,
+  "lastUpdate": 1672481910921,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -420,6 +420,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Max clock frequency (Fmax)",
             "value": 59.35,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 15170,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 148,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 540,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4669,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7c981bd87f4ea3b380baeedb78edf144999a1fe2",
+          "message": "Fix repository pinning (#160)",
+          "timestamp": "2022-12-31T11:13:59+01:00",
+          "tree_id": "1672962105cca5783a22b4fa2026fdc732d16a57",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7c981bd87f4ea3b380baeedb78edf144999a1fe2"
+        },
+        "date": 1672481908908,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 62.48,
             "unit": "MHz"
           },
           {
