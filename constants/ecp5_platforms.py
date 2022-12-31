@@ -18,12 +18,11 @@ class ECP5BG381Platform(LatticeECP5Platform):
     resources = [
         Resource("rst", 0, PinsN(ecp5_bg381_pins[0], dir="i"), Attrs(IO_TYPE="LVCMOS33")),
         Resource("clk", 0, Pins(ecp5_bg381_pins[1], dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
-        Resource("data_in", 0, Pins(" ".join(ecp5_bg381_pins[2:8]), dir="i")),
         Resource(
             "data_out",
             0,
             Pins(
-                " ".join(ecp5_bg381_pins[9:56]),
+                " ".join(ecp5_bg381_pins[2:49]),
                 dir="o",
             ),
         ),

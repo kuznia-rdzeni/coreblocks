@@ -68,6 +68,9 @@ html_last_updated_fmt = today_fmt
 # If True show "Created using Sphinx" in the HTML footer.
 html_show_sphinx = False
 
+# Logo of this project.
+html_logo = "images/logo-banner.svg"
+
 # -- Custom filters ------------------------------------------------------------
 
 
