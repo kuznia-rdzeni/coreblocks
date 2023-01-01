@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - benchmarks-ci
+  workflow_dispatch:
 
 jobs:
   build:
