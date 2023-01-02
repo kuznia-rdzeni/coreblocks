@@ -185,7 +185,7 @@ def assign(
             names = set(fields)
 
         if len(names) == 0:
-            raise ValueError("There is no common fields in assigment lhs: {} rhs: {}".format(lhs_fields, rhs_fields))
+            raise ValueError("There are no common fields in assigment lhs: {} rhs: {}".format(lhs_fields, rhs_fields))
 
         for name in names:
             if name not in lhs_fields:
