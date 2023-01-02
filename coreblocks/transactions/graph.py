@@ -95,7 +95,7 @@ class OwnershipGraph:
         hier = self.hier[owner_id]
         return f"{hier}.{name}"
 
-    def dump(self, fp, format: Literal["dot", "elk"]):
+    def dump(self, fp, format: Literal["dot", "elk", "mermaid"]):
         dumper = getattr(self, "dump_" + format)
         dumper(fp)
 
@@ -104,7 +104,7 @@ class OwnershipGraph:
             fp.write("digraph G {\n")
             for owner in self.names:
                 if owner not in self.labels:
-                    self.dump_dot(fp, owner)
+                    self.dump_dot(fp, owner, indent)
             for fr, to, direction in self.edges:
                 caller_name = self.get_name(fr)
                 callee_name = self.get_name(to)
@@ -129,7 +129,7 @@ class OwnershipGraph:
         if owner is None:
             for owner in self.names:
                 if owner not in self.labels:
-                    self.dump_elk(fp, owner)
+                    self.dump_elk(fp, owner, indent)
             return
 
         hier = self.hier.setdefault(owner, self.names[owner])
@@ -163,3 +163,27 @@ class OwnershipGraph:
                 fp.write(f"{indent}    edge {caller_name} {direction} {callee_name}\n")
 
         fp.write(f"{indent}}}\n")
+
+    def dump_mermaid(self, fp, owner: Optional[int] = None, indent: str = ""):
+        if owner is None:
+            fp.write("flowchart TB\n")
+            for owner in self.names:
+                if owner not in self.labels:
+                    self.dump_mermaid(fp, owner, indent)
+            for fr, to, direction in self.edges:
+                caller_name = self.get_name(fr)
+                callee_name = self.get_name(to)
+                fp.write(f"{caller_name} {direction.replace('-', '--')} {callee_name}\n")
+            return
+
+        subowners = self.graph[owner]
+        del self.graph[owner]
+        indent += "    "
+        owned = self.owned[owner]
+        fp.write(f'{indent}subgraph {self.names[owner]}["{self.labels.get(owner, self.names[owner])}"]\n')
+        for x in owned:
+            fp.write(f'{indent}    {self.get_name(x)}["{x.name}"]\n')
+        for subowner in subowners:
+            if subowner in self.graph:
+                self.dump_mermaid(fp, subowner, indent)
+        fp.write(f"{indent}end\n")
