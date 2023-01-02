@@ -890,8 +890,13 @@ machine-dependent <code class="docutils literal notranslate"><span class="pre">a
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.mul_params.</span></span><span class="sig-name descname"><span class="pre">MulUnitParams</span></span><a class="headerlink" href="#coreblocks.params.mul_params.MulUnitParams" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.mul_params.MulUnitParams.RecursiveMultiplier">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RecursiveMultiplier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dsp_width</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.params.mul_params.MulUnitParams" title="coreblocks.params.mul_params.MulUnitParams"><span class="pre">MulUnitParams</span></a></span></span><a class="headerlink" href="#coreblocks.params.mul_params.MulUnitParams.RecursiveMultiplier" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.params.mul_params.MulUnitParams.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mul_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.mul_params.MulType" title="coreblocks.params.mul_params.MulType"><span class="pre">MulType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dsp_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">16</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.mul_params.MulUnitParams.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.mul_params.MulUnitParams.recursive_multiplier">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">recursive_multiplier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dsp_width</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.params.mul_params.MulUnitParams" title="coreblocks.params.mul_params.MulUnitParams"><span class="pre">MulUnitParams</span></a></span></span><a class="headerlink" href="#coreblocks.params.mul_params.MulUnitParams.recursive_multiplier" title="Permalink to this definition"></a></dt>
 <dd><p>Fastest way of multiplying using only one cycle, but costly in terms of resources.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -904,8 +909,8 @@ machine-dependent <code class="docutils literal notranslate"><span class="pre">a
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.mul_params.MulUnitParams.SequenceMultiplier">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SequenceMultiplier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dsp_width</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.params.mul_params.MulUnitParams" title="coreblocks.params.mul_params.MulUnitParams"><span class="pre">MulUnitParams</span></a></span></span><a class="headerlink" href="#coreblocks.params.mul_params.MulUnitParams.SequenceMultiplier" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.params.mul_params.MulUnitParams.sequence_multiplier">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sequence_multiplier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dsp_width</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.params.mul_params.MulUnitParams" title="coreblocks.params.mul_params.MulUnitParams"><span class="pre">MulUnitParams</span></a></span></span><a class="headerlink" href="#coreblocks.params.mul_params.MulUnitParams.sequence_multiplier" title="Permalink to this definition"></a></dt>
 <dd><p>Uses single DSP unit for multiplication, which makes balance between performance and cost.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -918,15 +923,10 @@ machine-dependent <code class="docutils literal notranslate"><span class="pre">a
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.mul_params.MulUnitParams.ShiftMultiplier">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ShiftMultiplier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.params.mul_params.MulUnitParams" title="coreblocks.params.mul_params.MulUnitParams"><span class="pre">MulUnitParams</span></a></span></span><a class="headerlink" href="#coreblocks.params.mul_params.MulUnitParams.ShiftMultiplier" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.params.mul_params.MulUnitParams.shift_multiplier">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shift_multiplier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.params.mul_params.MulUnitParams" title="coreblocks.params.mul_params.MulUnitParams"><span class="pre">MulUnitParams</span></a></span></span><a class="headerlink" href="#coreblocks.params.mul_params.MulUnitParams.shift_multiplier" title="Permalink to this definition"></a></dt>
 <dd><p>The cheapest multiplication unit in terms of resources, it uses Russian Peasants Algorithm.</p>
 </dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.mul_params.MulUnitParams.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mul_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.mul_params.MulType" title="coreblocks.params.mul_params.MulType"><span class="pre">MulType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dsp_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">16</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.mul_params.MulUnitParams.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
 
 </dd></dl>
 
@@ -948,7 +948,7 @@ machine-dependent <code class="docutils literal notranslate"><span class="pre">a
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 12:55 2023-01-02.
+      <span class="lastupdated">Last updated on 23:10 2023-01-02.
       </span></p>
   </div>
 
