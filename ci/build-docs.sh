@@ -4,8 +4,4 @@ if [ -z "$DOCS_DIR" ] || [ -z "$BUILD_DIR" ]; then
   exit 1
 fi
 
-# Add coreblocks to PYTHONPATH for sphinx-apidoc
-export PYTHONPATH=$PYTHONPATH:$PWD
-
-sphinx-apidoc -o $DOCS_DIR coreblocks/
-sphinx-build -M html $DOCS_DIR $BUILD_DIR
+scripts/build-docs.sh -d "$DOCS_DIR" -b "$BUILD_DIR"
