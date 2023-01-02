@@ -98,7 +98,7 @@ class RetirementTest(TestCaseWithSimulator):
                 reg = yield from retc.mock_rf_free.call()
                 self.assertEqual(reg["reg_id"], self.rf_free_q.popleft())
 
-        with self.runSimulation(retc) as sim:
+        with self.run_simulation(retc) as sim:
             sim.add_sync_process(submit_process)
             sim.add_sync_process(free_reg_process)
             sim.add_sync_process(rat_process)

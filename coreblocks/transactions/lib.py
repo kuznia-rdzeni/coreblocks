@@ -40,7 +40,7 @@ class FIFO(Elaboratable):
         The write method. Accepts a ``Record``, returns empty result.
     """
 
-    def __init__(self, layout: MethodLayout, depth: int, fifoType=amaranth.lib.fifo.SyncFIFO):
+    def __init__(self, layout: MethodLayout, depth: int, fifo_type=amaranth.lib.fifo.SyncFIFO):
         """
         Parameters
         ----------
@@ -55,7 +55,7 @@ class FIFO(Elaboratable):
         layout = _coerce_layout(layout)
         self.width = len(Record(layout))
         self.depth = depth
-        self.fifoType = fifoType
+        self.fifoType = fifo_type
 
         self.read = Method(o=layout)
         self.write = Method(i=layout)

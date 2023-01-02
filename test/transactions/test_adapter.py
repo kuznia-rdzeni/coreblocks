@@ -86,5 +86,5 @@ class TestAdapterTrans(TestCaseWithSimulator):
     def test_single(self):
         self.t = t = TestElaboratable()
 
-        with self.runSimulation(t, max_cycles=100) as sim:
+        with self.run_simulation(t, max_cycles=100) as sim:
             sim.add_sync_process(self.proc)

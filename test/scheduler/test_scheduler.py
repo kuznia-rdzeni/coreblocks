@@ -25,7 +25,7 @@ class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
         rs_layouts = self.gen_params.get(RSLayouts)
         decode_layouts = self.gen_params.get(DecodeLayouts)
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             # data structures
             m.submodules.instr_fifo = instr_fifo = FIFO(decode_layouts.decoded_instr, 16)
             m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
@@ -294,7 +294,7 @@ class TestScheduler(TestCaseWithSimulator):
                 yield from self.m.rs_allocate.call({"rs_entry_id": random_entry})
             self.expected_rs_entry_queue.append(None)
 
-        with self.runSimulation(self.m, max_cycles=1500) as sim:
+        with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.make_output_process())
             sim.add_sync_process(
                 self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue])
