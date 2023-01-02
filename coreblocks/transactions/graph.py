@@ -2,35 +2,39 @@
 Utilities for extracting dependency graphs from Amaranth designs.
 """
 
+from enum import IntFlag
 from abc import ABC
 from collections import defaultdict
-from typing import Literal, Optional, TYPE_CHECKING
+from typing import Literal, Optional
 
 from amaranth.hdl.ir import Elaboratable, Fragment
 from .tracing import TracingFragment
 
 
-if TYPE_CHECKING:
-    # circular imports!
-    from .core import Method, Transaction
+class Owned(ABC):
+    name: str
+    owner: Optional[Elaboratable]
 
-    Owned = Method | Transaction
-else:
-    # this is insufficient for pyright, but whatever
-    class Owned(ABC):
-        name: str
-        owner: Elaboratable
+
+class Direction(IntFlag):
+    NONE = 0
+    IN = 1
+    OUT = 2
+    INOUT = 3
 
 
 class OwnershipGraph:
+    mermaid_direction = ["---", "-->", "<--", "<-->"]
+
     def __init__(self, root):
         self.class_counters: defaultdict[type, int] = defaultdict(int)
         self.names: dict[int, str] = {}
         self.hier: dict[int, str] = {}
         self.labels: dict[int, str] = {}
         self.graph: dict[int, list[int]] = {}
-        self.edges: list[tuple[Owned, Owned, str]] = []
+        self.edges: list[tuple[Owned, Owned, Direction]] = []
         self.owned: defaultdict[int, set[Owned]] = defaultdict(set)
+        self.stray: set[int] = set()
         self.remember(root)
 
     def remember(self, owner: Elaboratable) -> int:
@@ -76,7 +80,7 @@ class OwnershipGraph:
         owner_id = self.remember(obj.owner)
         self.owned[owner_id].add(obj)
 
-    def insert_edge(self, fr: Owned, to: Owned, direction: str = "->"):
+    def insert_edge(self, fr: Owned, to: Owned, direction: Direction = Direction.OUT):
         self.edges.append((fr, to, direction))
 
     def get_name(self, obj: Owned) -> str:
@@ -95,6 +99,29 @@ class OwnershipGraph:
         hier = self.hier[owner_id]
         return f"{hier}.{name}"
 
+    def prune(self, owner: Optional[int] = None):
+        """
+        Mark all empty subgraphs.
+        """
+        if owner is None:
+            backup = self.graph.copy()
+            for owner in self.names:
+                if owner not in self.labels:
+                    self.prune(owner)
+            self.graph = backup
+            return
+
+        subowners = self.graph.pop(owner)
+        flag = bool(self.owned[owner])
+        for subowner in subowners:
+            if subowner in self.graph:
+                flag |= self.prune(subowner)
+
+        if not flag:
+            self.stray.add(owner)
+
+        return flag
+
     def dump(self, fp, format: Literal["dot", "elk", "mermaid"]):
         dumper = getattr(self, "dump_" + format)
         dumper(fp)
@@ -106,14 +133,18 @@ class OwnershipGraph:
                 if owner not in self.labels:
                     self.dump_dot(fp, owner, indent)
             for fr, to, direction in self.edges:
+                if direction == Direction.OUT:
+                    fr, to = to, fr
+
                 caller_name = self.get_name(fr)
                 callee_name = self.get_name(to)
-                fp.write(f"{caller_name} {direction} {callee_name}\n")
+                fp.write(f"{caller_name} -> {callee_name}\n")
             fp.write("}\n")
             return
 
-        subowners = self.graph[owner]
-        del self.graph[owner]
+        subowners = self.graph.pop(owner)
+        if owner in self.stray:
+            return
         indent += "    "
         owned = self.owned[owner]
         fp.write(f"{indent}subgraph cluster_{self.names[owner]} {{\n")
@@ -134,8 +165,9 @@ class OwnershipGraph:
 
         hier = self.hier.setdefault(owner, self.names[owner])
 
-        subowners = self.graph[owner]
-        del self.graph[owner]
+        subowners = self.graph.pop(owner)
+        if owner in self.stray:
+            return
         owned = self.owned[owner]
         fp.write(f"{indent}node {self.names[owner]} {{\n")
         fp.write(f"{indent}    considerModelOrder.components: INSIDE_PORT_SIDE_GROUPS\n")
@@ -149,6 +181,9 @@ class OwnershipGraph:
 
         # reverse iteration so that deleting works
         for i, (fr, to, direction) in reversed(list(enumerate(self.edges))):
+            if direction == Direction.OUT:
+                fr, to = to, fr
+
             try:
                 caller_name = self.get_hier_name(fr)
                 callee_name = self.get_hier_name(to)
@@ -160,7 +195,7 @@ class OwnershipGraph:
                 caller_name = caller_name[len(hier) + 1 :]
                 callee_name = callee_name[len(hier) + 1 :]
                 del self.edges[i]
-                fp.write(f"{indent}    edge {caller_name} {direction} {callee_name}\n")
+                fp.write(f"{indent}    edge {caller_name} -> {callee_name}\n")
 
         fp.write(f"{indent}}}\n")
 
@@ -171,13 +206,17 @@ class OwnershipGraph:
                 if owner not in self.labels:
                     self.dump_mermaid(fp, owner, indent)
             for fr, to, direction in self.edges:
+                if direction == Direction.OUT:
+                    fr, to, direction = to, fr, Direction.IN
+
                 caller_name = self.get_name(fr)
                 callee_name = self.get_name(to)
-                fp.write(f"{caller_name} {direction.replace('-', '--')} {callee_name}\n")
+                fp.write(f"{caller_name} {self.mermaid_direction[direction]} {callee_name}\n")
             return
 
-        subowners = self.graph[owner]
-        del self.graph[owner]
+        subowners = self.graph.pop(owner)
+        if owner in self.stray:
+            return
         indent += "    "
         owned = self.owned[owner]
         fp.write(f'{indent}subgraph {self.names[owner]}["{self.labels.get(owner, self.names[owner])}"]\n')
