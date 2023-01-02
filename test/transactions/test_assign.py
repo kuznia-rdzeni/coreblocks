@@ -95,7 +95,7 @@ class TestAssign(TestCase):
         self.assertIs_AP(alist[0].lhs, h(lhs).a)
         self.assertIs_AP(alist[0].rhs, h(rhs).a)
 
-    def assertIs_AP(self, expr1, expr2):
+    def assertIs_AP(self, expr1, expr2):  # noqa: N802
         if isinstance(expr1, ArrayProxy) and isinstance(expr2, ArrayProxy):
             # new proxies are created on each index, structural equality is needed
             self.assertIs(expr1.index, expr2.index)

@@ -186,7 +186,7 @@ class ISA:
 
         self.extensions = 0x0
 
-        def parseExtension(e):
+        def parse_extension(e):
             val = _extension_map[e]
             if self.extensions & val:
                 raise RuntimeError("Duplication in ISA extensions string")
@@ -194,12 +194,12 @@ class ISA:
 
         for es in extensions_str.split("_"):
             if es in _extension_map.keys():
-                parseExtension(es)
+                parse_extension(es)
             else:
                 for e in es:
                     if e not in _extension_map.keys():
                         raise RuntimeError("Unknown extension letter in ISA extensions string " + e)
-                    parseExtension(e)
+                    parse_extension(e)
 
         if self.extensions & (Extension.E | Extension.I) == (Extension.E | Extension.I):
             raise RuntimeError("ISA extension string contains both E and I extensions")

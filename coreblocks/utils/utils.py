@@ -193,13 +193,13 @@ def assign(
             if name not in rhs_fields:
                 raise ValueError("Field {} not present in rhs".format(name))
 
-            subFields = fields
+            subfields = fields
             if isinstance(fields, Mapping):
-                subFields = fields[name]
+                subfields = fields[name]
             elif isinstance(fields, Iterable):
-                subFields = AssignType.ALL
+                subfields = AssignType.ALL
 
-            yield from assign(lhs[name], rhs[name], fields=subFields)
+            yield from assign(lhs[name], rhs[name], fields=subfields)
     else:
         if not isinstance(fields, AssignType):
             raise ValueError("Fields on assigning non-records")

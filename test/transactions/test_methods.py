@@ -38,7 +38,7 @@ class TestDefMethod(TestCaseWithSimulator):
             return m
 
     def do_test_definition(self, definer):
-        with self.runSimulation(TestDefMethod.TestModule(definer)):
+        with self.run_simulation(TestDefMethod.TestModule(definer)):
             pass
 
     def test_fields_valid1(self):
@@ -108,7 +108,7 @@ class TestInvalidMethods(TestCase):
         with self.assertRaisesRegex(RuntimeError, msg):
             Fragment.get(m, platform=None)
 
-    def testTwice(self):
+    def test_twice(self):
         class Twice(Elaboratable):
             def __init__(self):
                 self.meth1 = Method()
@@ -128,7 +128,7 @@ class TestInvalidMethods(TestCase):
 
         self.assert_re("called twice", Twice())
 
-    def testDiamond(self):
+    def test_diamond(self):
         class Diamond(Elaboratable):
             def __init__(self):
                 self.meth1 = Method()
@@ -157,7 +157,7 @@ class TestInvalidMethods(TestCase):
         m = Diamond()
         self.assert_re("called twice", AdapterCircuit(m, [m.meth4]))
 
-    def testLoop(self):
+    def test_loop(self):
         class Loop(Elaboratable):
             def __init__(self):
                 self.meth1 = Method()
@@ -173,7 +173,7 @@ class TestInvalidMethods(TestCase):
         m = Loop()
         self.assert_re("called twice", AdapterCircuit(m, [m.meth1]))
 
-    def testCycle(self):
+    def test_cycle(self):
         class Cycle(Elaboratable):
             def __init__(self):
                 self.meth1 = Method()
@@ -193,7 +193,7 @@ class TestInvalidMethods(TestCase):
         m = Cycle()
         self.assert_re("called twice", AdapterCircuit(m, [m.meth1]))
 
-    def testRedefine(self):
+    def test_redefine(self):
         class Redefine(Elaboratable):
             def elaborate(self, platform):
                 m = Module()
@@ -207,7 +207,7 @@ class TestInvalidMethods(TestCase):
 
         self.assert_re("already defined", Redefine())
 
-    def testUndefinedInTrans(self):
+    def test_undefined_in_trans(self):
         class Undefined(Elaboratable):
             def __init__(self):
                 self.meth = Method(i=1)
@@ -299,7 +299,7 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
                 out = yield from circ.tb.call({"data": n})
                 self.assertEqual(out["data"], n * 4)
 
-        with self.runSimulation(circ) as sim:
+        with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
 
 
@@ -375,7 +375,7 @@ class ConditionalTransactionCircuit1(Elaboratable):
         self.ready = Signal()
         m.submodules.tb = self.tb = TestbenchIO(Adapter())
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             with Transaction().body(m, request=self.ready):
                 self.tb.adapter.iface(m)
 
@@ -393,7 +393,7 @@ class ConditionalTransactionCircuit2(Elaboratable):
         self.ready = Signal()
         m.submodules.tb = self.tb = TestbenchIO(Adapter())
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             with m.If(self.ready):
                 with Transaction().body(m):
                     self.tb.adapter.iface(m)
@@ -405,7 +405,7 @@ class ConditionalTransactionCircuit2(Elaboratable):
 
 
 class TestConditionals(TestCaseWithSimulator):
-    def testConditionalCall(self):
+    def test_conditional_call(self):
         circ = ConditionalCallCircuit()
 
         def process():
@@ -431,7 +431,7 @@ class TestConditionals(TestCaseWithSimulator):
             self.assertFalse((yield from circ.out.done()))
             self.assertFalse((yield from circ.tb.done()))
 
-        with self.runSimulation(circ) as sim:
+        with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
 
     @parameterized.expand(
@@ -442,7 +442,7 @@ class TestConditionals(TestCaseWithSimulator):
             (ConditionalTransactionCircuit2(),),
         ]
     )
-    def testConditional(self, circ):
+    def test_conditional(self, circ):
         def process():
             yield from circ.tb.enable()
             yield circ.ready.eq(0)
@@ -453,7 +453,7 @@ class TestConditionals(TestCaseWithSimulator):
             yield Settle()
             self.assertTrue((yield from circ.tb.done()))
 
-        with self.runSimulation(circ) as sim:
+        with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
 
 
@@ -483,7 +483,7 @@ class NonexclusiveMethodCircuit(Elaboratable):
 
 
 class TestNonexclusiveMethod(TestCaseWithSimulator):
-    def testNonexclusiveMethod(self):
+    def test_nonexclusive_method(self):
         circ = NonexclusiveMethodCircuit()
 
         def process():
@@ -520,5 +520,5 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
                 if t2en and mrdy:
                     self.assertEqual((yield from circ.t2.get_outputs()), {"data": x})
 
-        with self.runSimulation(circ) as sim:
+        with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
