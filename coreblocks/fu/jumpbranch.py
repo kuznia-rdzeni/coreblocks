@@ -135,14 +135,14 @@ class JumpBranchFuncUnit(Elaboratable):
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
-        self.branch_result = Method(o=layouts.branch_result)
+        self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
 
     def elaborate(self, platform):
         m = Module()
 
         m.submodules.jb = jb = JumpBranch(self.gen)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
-        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FuncUnitLayouts).branch_result, 2)
+        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
         m.submodules.decoder = decoder = JumpBranchFnDecoder(self.gen)
 
         @def_method(m, self.accept)

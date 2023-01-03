@@ -213,12 +213,6 @@ class FuncUnitLayouts:
             ("rp_dst", gen.phys_regs_bits),
         ]
 
-        self.branch_result = [
-            ("next_addr", gen.isa.xlen),
-            ("jmp_addr", gen.isa.xlen),
-            ("taken", 1),
-        ]
-
 
 class UnsignedMulUnitLayouts:
     def __init__(self, gen: GenParams):
