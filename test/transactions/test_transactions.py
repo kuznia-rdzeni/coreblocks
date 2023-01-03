@@ -76,7 +76,7 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 1, 1)
             yield from self.sim_step(sched, 0, 0)
 
-        with self.runSimulation(sched) as sim:
+        with self.run_simulation(sched) as sim:
             sim.add_sync_process(process)
 
     def test_multi(self):
@@ -100,7 +100,7 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 0b0010, 0b0010)
             yield from self.sim_step(sched, 0b0010, 0b0010)
 
-        with self.runSimulation(sched) as sim:
+        with self.run_simulation(sched) as sim:
             sim.add_sync_process(process)
 
 
@@ -200,7 +200,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
         ]
     )
     def test_calls(self, name, prob1, prob2, probout):
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.make_in1_process(prob1))
             sim.add_sync_process(self.make_in2_process(prob2))
             sim.add_sync_process(self.make_out_process(probout))
@@ -219,7 +219,7 @@ class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
         m = Module()
         tm = TransactionModule(m)
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             transaction1 = Transaction()
             transaction2 = Transaction()
 
@@ -264,7 +264,7 @@ class MethodPriorityTestCircuit(Elaboratable, AutoDebugSignals):
         def _(_):
             m.d.comb += self.t2.eq(1)
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             with Transaction().body(m):
                 method1(m)
 
@@ -309,7 +309,7 @@ class TestTransactionPriorities(TestCaseWithSimulator):
                     if priority == ConflictPriority.RIGHT:
                         self.assertTrue((yield m.t2))
 
-        with self.runSimulation(m) as sim:
+        with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
 
     @parameterized.expand([(ConflictPriority.UNDEFINED,), (ConflictPriority.LEFT,), (ConflictPriority.RIGHT,)])
@@ -324,5 +324,5 @@ class TestTransactionPriorities(TestCaseWithSimulator):
             cm = contextlib.nullcontext()
 
         with cm:
-            with self.runSimulation(m):
+            with self.run_simulation(m):
                 pass

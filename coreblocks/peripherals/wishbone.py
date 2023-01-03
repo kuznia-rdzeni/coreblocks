@@ -116,7 +116,7 @@ class WishboneMaster(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        def FSMWBCycStart(request):
+        def FSMWBCycStart(request):  # noqa: N802
             # internal FSM function that starts Wishbone cycle
             m.d.sync += self.wbMaster.cyc.eq(1)
             m.d.sync += self.wbMaster.stb.eq(1)
@@ -174,35 +174,35 @@ class WishboneMuxer(Elaboratable):
 
     Parameters
     ----------
-    masterWb: Record (like WishboneLayout)
+    master_wb: Record (like WishboneLayout)
         Record of master inteface.
     slaves: List[Record]
         List of connected slaves' Wishbone Records (like WishboneLayout).
-    sselTGA: Signal
+    ssel_tga: Signal
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
         is asserted.
     """
 
-    def __init__(self, masterWb: Record, slaves: List[Record], sselTGA: Signal):
-        self.masterWb = masterWb
+    def __init__(self, master_wb: Record, slaves: List[Record], ssel_tga: Signal):
+        self.master_wb = master_wb
         self.slaves = slaves
-        self.sselTGA = sselTGA
+        self.sselTGA = ssel_tga
 
-        selectBits = sselTGA.shape().width
-        assert selectBits == len(slaves)
-        self.txn_sel = Signal(selectBits)
-        self.txn_sel_r = Signal(selectBits)
+        select_bits = ssel_tga.shape().width
+        assert select_bits == len(slaves)
+        self.txn_sel = Signal(select_bits)
+        self.txn_sel_r = Signal(select_bits)
 
         self.prev_stb = Signal()
 
     def elaborate(self, platform):
         m = Module()
 
-        m.d.sync += self.prev_stb.eq(self.masterWb.stb)
+        m.d.sync += self.prev_stb.eq(self.master_wb.stb)
 
         # choose select signal directly from input on first cycle and latched one afterwards
-        with m.If(self.masterWb.stb & ~self.prev_stb):
+        with m.If(self.master_wb.stb & ~self.prev_stb):
             m.d.sync += self.txn_sel_r.eq(self.sselTGA)
             m.d.comb += self.txn_sel.eq(self.sselTGA)
         with m.Else():
@@ -210,20 +210,20 @@ class WishboneMuxer(Elaboratable):
 
         for i in range(len(self.slaves)):
             # connect all M->S signals except stb
-            m.d.comb += self.masterWb.connect(
+            m.d.comb += self.master_wb.connect(
                 self.slaves[i],
                 include=["dat_w", "rst", "cyc", "lock", "adr", "we", "sel"],
             )
             # use stb as select
-            m.d.comb += self.slaves[i].stb.eq(self.txn_sel[i] & self.masterWb.stb)
+            m.d.comb += self.slaves[i].stb.eq(self.txn_sel[i] & self.master_wb.stb)
 
         # bus termination signals S->M should be ORed
-        m.d.comb += self.masterWb.ack.eq(reduce(operator.or_, [self.slaves[i].ack for i in range(len(self.slaves))]))
-        m.d.comb += self.masterWb.err.eq(reduce(operator.or_, [self.slaves[i].err for i in range(len(self.slaves))]))
-        m.d.comb += self.masterWb.rty.eq(reduce(operator.or_, [self.slaves[i].rty for i in range(len(self.slaves))]))
+        m.d.comb += self.master_wb.ack.eq(reduce(operator.or_, [self.slaves[i].ack for i in range(len(self.slaves))]))
+        m.d.comb += self.master_wb.err.eq(reduce(operator.or_, [self.slaves[i].err for i in range(len(self.slaves))]))
+        m.d.comb += self.master_wb.rty.eq(reduce(operator.or_, [self.slaves[i].rty for i in range(len(self.slaves))]))
         for i in OneHotSwitchDynamic(m, self.txn_sel):
             # mux S->M data
-            m.d.comb += self.masterWb.connect(self.slaves[i], include=["dat_r"])
+            m.d.comb += self.master_wb.connect(self.slaves[i], include=["dat_r"])
         return m
 
 
@@ -236,14 +236,14 @@ class WishboneArbiter(Elaboratable):
 
     Parameters
     ----------
-    slaveWb: Record (like WishboneLayout)
+    slave_wb: Record (like WishboneLayout)
         Record of slave inteface.
     masters: List[Record]
         List of master interface Records.
     """
 
-    def __init__(self, slaveWb: Record, masters: List[Record]):
-        self.slaveWb = slaveWb
+    def __init__(self, slave_wb: Record, masters: List[Record]):
+        self.slave_wb = slave_wb
         self.masters = masters
 
         self.prev_cyc = Signal()
@@ -254,43 +254,43 @@ class WishboneArbiter(Elaboratable):
     def elaborate(self, plaform):
         m = Module()
 
-        m.d.sync += self.prev_cyc.eq(self.slaveWb.cyc)
+        m.d.sync += self.prev_cyc.eq(self.slave_wb.cyc)
 
         m.submodules.rr = RoundRobin(count=len(self.masters))
         m.d.comb += [self.req_signal[i].eq(self.masters[i].cyc) for i in range(len(self.masters))]
         m.d.comb += m.submodules.rr.requests.eq(Mux(self.arb_enable, self.req_signal, 0))
 
-        masterArray = Array([master for master in self.masters])
+        master_array = Array([master for master in self.masters])
         # If master ends wb cycle, enable rr input to select new master on next cycle if avaliable (cyc off for 1 cycle)
         # If selcted master is active, disable rr request input to preserve grant signal and correct rr state.
         # prev_cyc is used to select next master in new bus cycle, if previously selected master asserts cyc at the
         # same time as another one
-        m.d.comb += self.arb_enable.eq((~masterArray[m.submodules.rr.grant].cyc) | (~self.prev_cyc))
+        m.d.comb += self.arb_enable.eq((~master_array[m.submodules.rr.grant].cyc) | (~self.prev_cyc))
 
         for i in range(len(self.masters)):
             # mux S->M termination signals
-            m.d.comb += self.masters[i].ack.eq((m.submodules.rr.grant == i) & self.slaveWb.ack)
-            m.d.comb += self.masters[i].err.eq((m.submodules.rr.grant == i) & self.slaveWb.err)
-            m.d.comb += self.masters[i].rty.eq((m.submodules.rr.grant == i) & self.slaveWb.rty)
+            m.d.comb += self.masters[i].ack.eq((m.submodules.rr.grant == i) & self.slave_wb.ack)
+            m.d.comb += self.masters[i].err.eq((m.submodules.rr.grant == i) & self.slave_wb.err)
+            m.d.comb += self.masters[i].rty.eq((m.submodules.rr.grant == i) & self.slave_wb.rty)
             # remaining S->M signals are shared, master will only accept response if bus termination signal is present
-            m.d.comb += self.masters[i].dat_r.eq(self.slaveWb.dat_r)
+            m.d.comb += self.masters[i].dat_r.eq(self.slave_wb.dat_r)
 
         # combine reset singnal
-        m.d.comb += self.slaveWb.rst.eq(reduce(operator.or_, [self.masters[i].rst for i in range(len(self.masters))]))
+        m.d.comb += self.slave_wb.rst.eq(reduce(operator.or_, [self.masters[i].rst for i in range(len(self.masters))]))
 
         # mux all M->S signals
         with m.Switch(m.submodules.rr.grant):
             for i in range(len(self.masters)):
                 with m.Case(i):
                     m.d.comb += self.masters[i].connect(
-                        self.slaveWb,
+                        self.slave_wb,
                         include=["dat_w", "cyc", "lock", "adr", "we", "sel", "stb"],
                     )
 
         # Disable slave when round robin is not valid at start of new request
         # This prevents chaning grant and muxes during Wishbone cycle
         with m.If((~m.submodules.rr.valid) & self.arb_enable):
-            m.d.comb += self.slaveWb.stb.eq(0)
+            m.d.comb += self.slave_wb.stb.eq(0)
 
         return m
 

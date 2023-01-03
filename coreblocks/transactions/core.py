@@ -161,7 +161,7 @@ class TransactionManager(Elaboratable):
             Linear ordering of transactions which is consistent with priority constraints.
         """
 
-        def endTrans(end: Transaction | Method):
+        def end_trans(end: Transaction | Method) -> list[Transaction]:
             if isinstance(end, Method):
                 return self.transactions_by_method[end]
             else:
@@ -170,7 +170,7 @@ class TransactionManager(Elaboratable):
         gr: ConflictGraph = {}  # Conflict graph
         pgr: ConflictGraph = {}  # Priority graph
 
-        def addEdge(transaction: Transaction, transaction2: Transaction, priority: ConflictPriority):
+        def add_edge(transaction: Transaction, transaction2: Transaction, priority: ConflictPriority):
             gr[transaction].add(transaction2)
             gr[transaction2].add(transaction)
             match priority:
@@ -189,12 +189,12 @@ class TransactionManager(Elaboratable):
                     continue
                 for transaction2 in self.transactions_by_method[method]:
                     if transaction is not transaction2:
-                        addEdge(transaction, transaction2, ConflictPriority.UNDEFINED)
+                        add_edge(transaction, transaction2, ConflictPriority.UNDEFINED)
 
         for (end1, end2, priority) in self.conflicts:
-            for transaction in endTrans(end1):
-                for transaction2 in endTrans(end2):
-                    addEdge(transaction, transaction2, priority)
+            for transaction in end_trans(end1):
+                for transaction2 in end_trans(end2):
+                    add_edge(transaction, transaction2, priority)
 
         porder: PriorityOrder = {}
 
@@ -301,11 +301,11 @@ class TransactionModule(Elaboratable):
         self.transactionManager = manager
         self.module = module
 
-    def transactionContext(self) -> TransactionContext:
+    def transaction_context(self) -> TransactionContext:
         return TransactionContext(self.transactionManager)
 
     def elaborate(self, platform):
-        with self.transactionContext():
+        with self.transaction_context():
             for name in self.module._named_submodules:
                 self.module._named_submodules[name] = Fragment.get(self.module._named_submodules[name], platform)
             for idx in range(len(self.module._anon_submodules)):

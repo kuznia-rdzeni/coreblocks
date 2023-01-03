@@ -85,6 +85,6 @@ class TestFetch(TestCaseWithSimulator):
 
     def test(self):
 
-        with self.runSimulation(self.test_module) as sim:
+        with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.fetch_out_check)

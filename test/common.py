@@ -100,7 +100,7 @@ def signed_to_int(x: int, xlen: int) -> int:
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def runSimulation(self, module, max_cycles=10e4, extra_signals=()):
+    def run_simulation(self, module, max_cycles=10e4, extra_signals=()):
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 

@@ -71,9 +71,9 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         number_of_tests: int = 2000,
         seed: int = 40,
         gen: GenParams = GenParams("rv32i"),
-        methodName: str = "runTest",
+        method_name: str = "runTest",
     ):
-        super().__init__(methodName)
+        super().__init__(method_name)
         self.ops = operations
         self.func_unit = func_unit
         self.expected = expected
@@ -131,6 +131,6 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
                 yield from self.m.issue.call(req)
                 yield from random_wait()
 
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
