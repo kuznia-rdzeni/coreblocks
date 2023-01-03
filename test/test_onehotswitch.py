@@ -45,7 +45,7 @@ class TestAssign(TestCaseWithSimulator):
                 yield Settle()
                 self.assertEqual((yield circuit.output), i)
 
-        with self.runSimulation(circuit) as sim:
+        with self.run_simulation(circuit) as sim:
             sim.add_sync_process(switch_test_proc)
 
     def test_onehotswitch_zero(self):
@@ -62,5 +62,5 @@ class TestAssign(TestCaseWithSimulator):
             yield Settle()
             yield self.assertTrue((yield circuit.zero))
 
-        with self.runSimulation(circuit) as sim:
+        with self.run_simulation(circuit) as sim:
             sim.add_sync_process(switch_test_proc_zero)

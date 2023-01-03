@@ -27,11 +27,13 @@ def compute_result(i1: int, i2: int, fn: MulFn.Fn, xlen: int) -> int:
 
 
 ops = {
-    MulFn.Fn.MUL: {"op_type": OpType.ARITHMETIC, "funct3": Funct3.MUL, "funct7": Funct7.MULDIV},
-    MulFn.Fn.MULH: {"op_type": OpType.ARITHMETIC, "funct3": Funct3.MULH, "funct7": Funct7.MULDIV},
-    MulFn.Fn.MULHU: {"op_type": OpType.ARITHMETIC, "funct3": Funct3.MULHU, "funct7": Funct7.MULDIV},
-    MulFn.Fn.MULHSU: {"op_type": OpType.ARITHMETIC, "funct3": Funct3.MULHSU, "funct7": Funct7.MULDIV},
-    MulFn.Fn.MULW: {"op_type": OpType.ARITHMETIC_W, "funct3": Funct3.MULW, "funct7": Funct7.MULDIV},
+    MulFn.Fn.MUL: {"op_type": OpType.MUL, "funct3": Funct3.MUL, "funct7": Funct7.MULDIV},
+    MulFn.Fn.MULH: {"op_type": OpType.MUL, "funct3": Funct3.MULH, "funct7": Funct7.MULDIV},
+    MulFn.Fn.MULHU: {"op_type": OpType.MUL, "funct3": Funct3.MULHU, "funct7": Funct7.MULDIV},
+    MulFn.Fn.MULHSU: {"op_type": OpType.MUL, "funct3": Funct3.MULHSU, "funct7": Funct7.MULDIV},
+    #  Prepared for RV64
+    #
+    #  MulFn.Fn.MULW: {"op_type": OpType.ARITHMETIC_W, "funct3": Funct3.MULW, "funct7": Funct7.MULDIV},
 }
 
 
@@ -40,15 +42,15 @@ ops = {
     [
         (
             "recursive_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.RecursiveMultiplier(32)),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.recursive_multiplier(32)),
         ),
         (
             "sequential_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.SequenceMultiplier(16)),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.sequence_multiplier(16)),
         ),
         (
             "shift_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.ShiftMultiplier()),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.shift_multiplier()),
         ),
     ],
 )
@@ -58,7 +60,7 @@ class MultiplierUnitTest(GenericFunctionalTestUnit):
     def test_test(self):
         self.run_pipeline()
 
-    def __init__(self, methodName: str = "runTest"):
+    def __init__(self, method_name: str = "runTest"):
         super().__init__(
-            ops, MulUnit, compute_result, gen=self.gen_params, number_of_tests=600, seed=32323, methodName=methodName
+            ops, MulUnit, compute_result, gen=self.gen_params, number_of_tests=600, seed=32323, method_name=method_name
         )
