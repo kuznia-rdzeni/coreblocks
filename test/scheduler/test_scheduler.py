@@ -288,10 +288,15 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_ROB_entries_queue.append(None)
 
         def rs_alloc_process():
-            for i in range(self.instr_count):
+            def mock(_):
                 random_entry = random.randint(0, self.gen_params.rs_entries - 1)
                 self.expected_rs_entry_queue.append({"rs_entry_id": random_entry})
-                yield from self.m.rs_allocate.call({"rs_entry_id": random_entry})
+                return {"rs_entry_id": random_entry}
+
+            def true_n_times(n: int) -> Callable[[], bool]:
+                return ([False] + [True] * n).pop
+
+            yield from self.m.rs_allocate.method_handle_loop(mock, settle=1, condition=true_n_times(self.instr_count))
             self.expected_rs_entry_queue.append(None)
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:

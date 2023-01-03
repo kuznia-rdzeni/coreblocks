@@ -4,7 +4,6 @@ from functools import reduce
 from parameterized import parameterized
 
 from amaranth import *
-from amaranth.sim.core import Passive, Settle
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import (
@@ -217,15 +216,10 @@ class TestMethodTransformer(TestCaseWithSimulator):
             self.assertEqual(v["data"], (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1))
 
     def target(self):
-        yield Passive()
-        yield from self.m.target.enable()
+        def mock(v):
+            return {"data": (v["data"] << 1) | (v["data"] >> (self.m.iosize - 1))}
 
-        while True:
-            yield Settle()
-            v = yield from self.m.target.call_result()
-            if v is not None:
-                yield from self.m.target.call_init({"data": (v["data"] << 1) | (v["data"] >> (self.m.iosize - 1))})
-            yield
+        yield from self.m.target.method_handle_loop(mock, settle=1)
 
     def test_method_transformer(self):
         self.m = MethodTransformerTestCircuit(4, False, False)
@@ -295,15 +289,10 @@ class TestMethodFilter(TestCaseWithSimulator):
                 self.assertEqual(v["data"], 0)
 
     def target(self):
-        yield Passive()
-        yield from self.m.target.enable()
+        def mock(v):
+            return {"data": v["data"] + 1}
 
-        while True:
-            yield Settle()
-            v = yield from self.m.target.call_result()
-            if v is not None:
-                yield from self.m.target.call_init({"data": v["data"] + 1})
-            yield
+        yield from self.m.target.method_handle_loop(mock, settle=1)
 
     def test_method_filter(self):
         self.m = MethodFilterTestCircuit(4, False)
@@ -323,7 +312,7 @@ class MethodProductTestCircuit(Elaboratable):
         self.iosize = iosize
         self.targets = targets
         self.add_combiner = add_combiner
-        self.target = []
+        self.target: list[TestbenchIO] = []
 
     def elaborate(self, platform):
         m = Module()
@@ -362,11 +351,10 @@ class TestMethodProduct(TestCaseWithSimulator):
 
         def target_process(k: int):
             def process():
-                yield Passive()
-                while True:
-                    yield Settle()
-                    yield from m.target[k].set_inputs({"data": (yield from m.target[k].get_outputs())["data"] + k})
-                    yield
+                def mock(v):
+                    return {"data": v["data"] + k}
+
+                yield from m.target[k].method_handle_loop(mock, settle=1, enable=False)
 
             return process
 
@@ -378,9 +366,7 @@ class TestMethodProduct(TestCaseWithSimulator):
                         yield from m.target[k].enable()
                     else:
                         yield from m.target[k].disable()
-                yield from m.method.call_init({"data": 0})
-                yield
-                self.assertIsNone((yield from m.method.call_result()))
+                self.assertIsNone((yield from m.method.call_try({"data": 0})))
 
             # otherwise, the call succeeds
             for k in range(targets):

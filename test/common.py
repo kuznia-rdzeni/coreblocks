@@ -144,6 +144,8 @@ class TestbenchIO(Elaboratable):
         m.submodules += self.adapter
         return m
 
+    # Low-level operations
+
     def enable(self) -> TestGen[None]:
         yield self.adapter.en.eq(1)
 
@@ -153,22 +155,24 @@ class TestbenchIO(Elaboratable):
     def done(self) -> TestGen[int]:
         return (yield self.adapter.done)
 
-    def _wait_until_done(self) -> TestGen[None]:
+    def wait_until_done(self) -> TestGen[None]:
         while (yield self.adapter.done) != 1:
             yield
 
     def set_inputs(self, data: RecordValueDict = {}) -> TestGen[None]:
         yield from set_inputs(data, self.adapter.data_in)
 
+    def get_outputs(self) -> TestGen[RecordIntDictRet]:
+        return (yield from get_outputs(self.adapter.data_out))
+
+    # Operations for AdapterTrans
+
     def call_init(self, data: RecordValueDict = {}) -> TestGen[None]:
         yield from self.enable()
         yield from self.set_inputs(data)
 
-    def get_outputs(self) -> TestGen[RecordIntDictRet]:
-        return (yield from get_outputs(self.adapter.data_out))
-
     def call_result(self) -> TestGen[Optional[RecordIntDictRet]]:
-        if (yield self.adapter.done):
+        if (yield from self.done()):
             return (yield from self.get_outputs())
         return None
 
@@ -178,10 +182,55 @@ class TestbenchIO(Elaboratable):
         yield from self.disable()
         return outputs
 
+    def call_try(self, data: RecordIntDict = {}) -> TestGen[Optional[RecordIntDictRet]]:
+        yield from self.call_init(data)
+        yield
+        outputs = yield from self.call_result()
+        yield from self.disable()
+        return outputs
+
     def call(self, data: RecordIntDict = {}) -> TestGen[RecordIntDictRet]:
         yield from self.call_init(data)
         yield
         return (yield from self.call_do())
+
+    # Operations for Adapter
+
+    def method_argument(self) -> TestGen[Optional[RecordIntDictRet]]:
+        return (yield from self.call_result())
+
+    def method_return(self, data: RecordValueDict = {}) -> TestGen[None]:
+        yield from self.set_inputs(data)
+
+    def method_handle(
+        self, function: Callable[[RecordIntDictRet], Optional[RecordIntDict]], *, settle: int = 0
+    ) -> TestGen[None]:
+        for _ in range(settle):
+            yield Settle()
+        while (arg := (yield from self.method_argument())) is None:
+            yield
+            for _ in range(settle):
+                yield Settle()
+        yield from self.method_return(function(arg) or {})
+        yield
+
+    def method_handle_loop(
+        self,
+        function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
+        *,
+        settle: int = 0,
+        enable: bool = True,
+        condition: Optional[Callable[[], bool]] = None,
+    ) -> TestGen[None]:
+        if condition is None:
+            yield Passive()
+        condition = condition or (lambda: True)
+        if enable:
+            yield from self.enable()
+        while condition():
+            yield from self.method_handle(function, settle=settle)
+
+    # Debug signals
 
     def debug_signals(self) -> DebugSignals:
         return self.adapter.debug_signals()
