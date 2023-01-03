@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672701250192,
+  "lastUpdate": 1672753572065,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -567,6 +567,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Max clock frequency (Fmax)",
             "value": 60.16,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 14784,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 148,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 540,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4669,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c5561ea3e91de6e31cc216f4cabfbdf80d1ca31a",
+          "message": "Refactor of TestbenchIO for more intuitive method mocking (#138)",
+          "timestamp": "2023-01-03T14:40:28+01:00",
+          "tree_id": "baf33e42b413d4c699f61a6810c153d67d51c8fa",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c5561ea3e91de6e31cc216f4cabfbdf80d1ca31a"
+        },
+        "date": 1672753570091,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 63.54,
             "unit": "MHz"
           },
           {
