@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672753572065,
+  "lastUpdate": 1672753659031,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -616,6 +616,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Max clock frequency (Fmax)",
             "value": 63.54,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 14784,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 148,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 540,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4669,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "565e55824a663c86a792e66639ef168fa0593dc1",
+          "message": "Add workflow_dispatch to benchmark.yml (#167)",
+          "timestamp": "2023-01-03T14:43:21+01:00",
+          "tree_id": "12f203c2b1ae1e3a1d5cf6a817031f3d63d43520",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/565e55824a663c86a792e66639ef168fa0593dc1"
+        },
+        "date": 1672753657963,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 60.16,
             "unit": "MHz"
           },
           {
