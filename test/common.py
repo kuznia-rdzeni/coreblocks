@@ -1,5 +1,6 @@
 import unittest
 import os
+import functools
 from contextlib import contextmanager, nullcontext
 from typing import Callable, Mapping, Union, Generator, TypeVar, Optional, Any, cast
 
@@ -233,7 +234,9 @@ class TestbenchIO(Elaboratable):
         return self.adapter.debug_signals()
 
 
-def def_method_mock(tbGetter: Callable[[], TestbenchIO], **kwargs):
+def def_method_mock(
+    tbGetter: Callable[[], TestbenchIO], **kwargs
+) -> Callable[[Callable[[RecordIntDictRet], Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
     a function which describes functionality which we want to invoke on method call.
@@ -268,7 +271,8 @@ def def_method_mock(tbGetter: Callable[[], TestbenchIO], **kwargs):
     ```
     """
 
-    def decorator(func: Callable[[RecordIntDictRet], Optional[RecordIntDict]]):
+    def decorator(func: Callable[[RecordIntDictRet], Optional[RecordIntDict]]) -> Callable[[], TestGen[None]]:
+        @functools.wraps(func)
         def mock() -> TestGen[None]:
             tb = tbGetter()
             f = func
@@ -280,7 +284,9 @@ def def_method_mock(tbGetter: Callable[[], TestbenchIO], **kwargs):
     return decorator
 
 
-def def_class_method_mock(tbGetter, **kwargs):
+def def_class_method_mock(
+    tbGetter: Callable[[Any], TestbenchIO], **kwargs
+) -> Callable[[Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]]], Callable[[Any], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
     a function which describe functionality which we wan't to invoke on method call.
@@ -294,7 +300,8 @@ def def_class_method_mock(tbGetter, **kwargs):
     to invoke a method. This function should return data which will be sent
     as response to method call.
 
-    Please remember that decorators are fully evaluated when function is defined.
+    Make sure to defer accessing state, since decorators are evaluated eagerly
+    during function declaration.
 
     Parameters
     ----------
@@ -314,6 +321,7 @@ def def_class_method_mock(tbGetter, **kwargs):
     """
 
     def decorator(func: Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]]):
+        @functools.wraps(func)
         def mock(self) -> TestGen[None]:
             def partial_func(x):
                 return func(self, x)
