@@ -74,8 +74,10 @@ class RetirementTest(TestCaseWithSimulator):
         retc = RetirementTestCircuit(self.gen_params)
 
         def submit_process():
-            while self.submit_q:
-                yield from retc.mock_rob_retire.call(self.submit_q.popleft())
+            def mock(_):
+                return self.submit_q.popleft()
+
+            yield from retc.mock_rob_retire.method_handle_loop(mock, settle=1, condition=lambda: bool(self.submit_q))
 
         def free_reg_process():
             while self.rf_exp_q:
@@ -92,13 +94,16 @@ class RetirementTest(TestCaseWithSimulator):
                     if wait_cycles >= self.cycles + 10:
                         self.fail("RAT entry was not updated")
                     yield
+            self.assertFalse(self.submit_q)
+            self.assertFalse(self.rf_free_q)
 
         def rf_free_process():
-            while self.rf_free_q:
-                reg = yield from retc.mock_rf_free.call()
+            def mock(reg):
                 self.assertEqual(reg["reg_id"], self.rf_free_q.popleft())
 
-        with self.runSimulation(retc) as sim:
+            yield from retc.mock_rf_free.method_handle_loop(mock, condition=lambda: bool(self.rf_free_q))
+
+        with self.run_simulation(retc) as sim:
             sim.add_sync_process(submit_process)
             sim.add_sync_process(free_reg_process)
             sim.add_sync_process(rat_process)

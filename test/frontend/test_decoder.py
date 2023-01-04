@@ -192,7 +192,7 @@ class TestDecoder(TestCaseWithSimulator):
 
             self.assertEqual((yield self.decoder.op), test.op)
 
-        with self.runSimulation(self.decoder) as sim:
+        with self.run_simulation(self.decoder) as sim:
             sim.add_process(process)
 
     def test_i(self):

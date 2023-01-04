@@ -66,7 +66,7 @@ class TestAlu(TestCaseWithSimulator):
                 correct_out = out_fn(in1 & mask, in2 & mask) & mask
                 self.assertEqual(returned_out, correct_out)
 
-        with self.runSimulation(self.alu) as sim:
+        with self.run_simulation(self.alu) as sim:
             sim.add_process(process)
 
     def test_add(self):
@@ -176,7 +176,7 @@ class TestAluFuncUnit(TestCaseWithSimulator):
                 yield from self.m.issue.call(req)
                 yield from random_wait()
 
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
 
@@ -194,6 +194,6 @@ class TestAluFuncUnit(TestCaseWithSimulator):
                 yield
                 self.assertTrue((yield from self.m.issue.done()))
 
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)

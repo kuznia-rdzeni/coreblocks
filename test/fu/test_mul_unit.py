@@ -42,15 +42,15 @@ ops = {
     [
         (
             "recursive_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.RecursiveMultiplier(32)),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.recursive_multiplier(32)),
         ),
         (
             "sequential_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.SequenceMultiplier(16)),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.sequence_multiplier(16)),
         ),
         (
             "shift_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.ShiftMultiplier()),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.shift_multiplier()),
         ),
     ],
 )
@@ -60,7 +60,7 @@ class MultiplierUnitTest(GenericFunctionalTestUnit):
     def test_test(self):
         self.run_pipeline()
 
-    def __init__(self, methodName: str = "runTest"):
+    def __init__(self, method_name: str = "runTest"):
         super().__init__(
-            ops, MulUnit, compute_result, gen=self.gen_params, number_of_tests=600, seed=32323, methodName=methodName
+            ops, MulUnit, compute_result, gen=self.gen_params, number_of_tests=600, seed=32323, method_name=method_name
         )

@@ -109,7 +109,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
             assert resp["data"] == 1
             assert resp["err"]
 
-        with self.runSimulation(twbm) as sim:
+        with self.run_simulation(twbm) as sim:
             sim.add_sync_process(process)
 
 
@@ -150,7 +150,7 @@ class TestWishboneMuxer(TestCaseWithSimulator):
             yield from slaves[3].slave_respond(1)
             yield from wb_master.master_verify(1)
 
-        with self.runSimulation(mux) as sim:
+        with self.run_simulation(mux) as sim:
             sim.add_sync_process(process)
 
 
@@ -209,7 +209,7 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             yield from slave.slave_respond(0)
             yield from masters[1].master_verify()
 
-        with self.runSimulation(arb) as sim:
+        with self.run_simulation(arb) as sim:
             sim.add_sync_process(process)
 
 
@@ -268,5 +268,5 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 else:
                     self.assertEqual(res["data"], mem_state[addr])
 
-        with self.runSimulation(self.m, max_cycles=1500) as sim:
+        with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(mem_op_process)

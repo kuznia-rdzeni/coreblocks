@@ -184,19 +184,22 @@ def assign(
         else:
             names = set(fields)
 
+        if len(names) == 0:
+            raise ValueError("There are no common fields in assigment lhs: {} rhs: {}".format(lhs_fields, rhs_fields))
+
         for name in names:
             if name not in lhs_fields:
                 raise ValueError("Field {} not present in lhs".format(name))
             if name not in rhs_fields:
                 raise ValueError("Field {} not present in rhs".format(name))
 
-            subFields = fields
+            subfields = fields
             if isinstance(fields, Mapping):
-                subFields = fields[name]
+                subfields = fields[name]
             elif isinstance(fields, Iterable):
-                subFields = AssignType.ALL
+                subfields = AssignType.ALL
 
-            yield from assign(lhs[name], rhs[name], fields=subFields)
+            yield from assign(lhs[name], rhs[name], fields=subfields)
     else:
         if not isinstance(fields, AssignType):
             raise ValueError("Fields on assigning non-records")
