@@ -16,7 +16,7 @@ RUN git clone --recursive \
 RUN cd prjtrellis && \
     cd libtrellis && \
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local . && \
-    make && \
+    make -j$(nproc) && \
     make install && \
     make clean
 
