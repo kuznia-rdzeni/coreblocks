@@ -238,7 +238,7 @@ class TestbenchIO(Elaboratable):
 
 
 def def_method_mock(
-    tbGetter: Callable[[], TestbenchIO], **kwargs
+    tb_getter: Callable[[], TestbenchIO], **kwargs
 ) -> Callable[[Callable[[RecordIntDictRet], Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
@@ -256,7 +256,7 @@ def def_method_mock(
 
     Parameters
     ----------
-    tbGetter : Callable[[], TestbenchIO]
+    tbb_getter : Callable[[], TestbenchIO]
         Function which will be called to get TestbenchIO from which `method_handle_loop`
         should be used.
     **kwargs
@@ -277,7 +277,7 @@ def def_method_mock(
     def decorator(func: Callable[[RecordIntDictRet], Optional[RecordIntDict]]) -> Callable[[], TestGen[None]]:
         @functools.wraps(func)
         def mock() -> TestGen[None]:
-            tb = tbGetter()
+            tb = tb_getter()
             f = func
             assert isinstance(tb, TestbenchIO)
             yield from tb.method_handle_loop(f, **kwargs)
@@ -288,7 +288,7 @@ def def_method_mock(
 
 
 def def_class_method_mock(
-    tbGetter: Callable[[Any], TestbenchIO], **kwargs
+    tb_getter: Callable[[Any], TestbenchIO], **kwargs
 ) -> Callable[[Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]]], Callable[[Any], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
@@ -308,7 +308,7 @@ def def_class_method_mock(
 
     Parameters
     ----------
-    tbGetter : Callable[[self], TestbenchIO]
+    tb_getter : Callable[[self], TestbenchIO]
         Function which will be called to get TestbenchIO from which `method_handle_loop`
         should be used. That function should take only one argument - `self`.
     **kwargs
@@ -329,7 +329,7 @@ def def_class_method_mock(
             def partial_func(x):
                 return func(self, x)
 
-            tb = tbGetter(self)
+            tb = tb_getter(self)
             assert isinstance(tb, TestbenchIO)
             yield from tb.method_handle_loop(partial_func, **kwargs)
 
