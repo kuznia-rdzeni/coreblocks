@@ -269,6 +269,24 @@ combinatorially to the <code class="docutils literal notranslate"><span class="p
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.transactions.core.Method.proxy">
+<span class="sig-name descname"><span class="pre">proxy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.core.Method.proxy" title="Permalink to this definition"></a></dt>
+<dd><p>Define as a proxy for another method.</p>
+<p>The calls to this method will be forwarded to <code class="docutils literal notranslate"><span class="pre">method</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m</strong><span class="classifier">Module</span></dt><dd><p>Module in which operations on signals should be executed,
+<code class="docutils literal notranslate"><span class="pre">proxy</span></code> uses the combinational domain only.</p>
+</dd>
+<dt><strong>method</strong><span class="classifier">Method</span></dt><dd><p>Method for which this method is a proxy for.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Method.use_method">
 <span class="sig-name descname"><span class="pre">use_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.core.Method.use_method" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -1252,6 +1270,24 @@ combinatorially to the <code class="docutils literal notranslate"><span class="p
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.transactions.Method.proxy">
+<span class="sig-name descname"><span class="pre">proxy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.Method.proxy" title="Permalink to this definition"></a></dt>
+<dd><p>Define as a proxy for another method.</p>
+<p>The calls to this method will be forwarded to <code class="docutils literal notranslate"><span class="pre">method</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m</strong><span class="classifier">Module</span></dt><dd><p>Module in which operations on signals should be executed,
+<code class="docutils literal notranslate"><span class="pre">proxy</span></code> uses the combinational domain only.</p>
+</dd>
+<dt><strong>method</strong><span class="classifier">Method</span></dt><dd><p>Method for which this method is a proxy for.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.Method.use_method">
 <span class="sig-name descname"><span class="pre">use_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.Method.use_method" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -1516,7 +1552,7 @@ Assigned combinatorially to the <code class="docutils literal notranslate"><span
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 13:43 2023-01-03.
+      <span class="lastupdated">Last updated on 20:53 2023-01-04.
       </span></p>
   </div>
 
