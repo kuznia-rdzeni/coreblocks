@@ -14,7 +14,7 @@ Its main tasks are:
 
 ## Schema
 
-```mermaid
+```{mermaid}
 graph
     Reg;
     Reg[<b>REGISTER ALLOCATION</b><br>-get free register from FREE RF list]

@@ -13,15 +13,29 @@ class RecursiveWithSingleDSPMul(Elaboratable):
     Module with combinatorial connection for sequential multiplication using single DSP unit.
     It uses classic recursive multiplication algorithm.
 
-    Parameters
+    Attributes
     ----------
-    dsp: DSPMulUnit
-        Dsp unit performing multiplications in single clock cycle.
-    n: int
-        Bit width of multiplied numbers.
+    i1: Signal(unsigned(n)), in
+        First factor.
+    i2: Signal(unsigned(n)), in
+        Second factor.
+    result: Signal(unsigned(n * 2)), out
+        Product of inputted factors.
+    confirm: Signal(1), out
+        Signal providing information if computation is finished.
+    reset: Signal(1), in
+        Signal erasing previous result, and staring new computation of provided inputs.
     """
 
     def __init__(self, dsp: DSPMulUnit, n: int):
+        """
+        Parameters
+        ----------
+        dsp: DSPMulUnit
+            Dsp unit performing multiplications in single clock cycle.
+        n: int
+            Bit width of multiplied numbers.
+        """
         self.n = n
         self.dsp = dsp
 

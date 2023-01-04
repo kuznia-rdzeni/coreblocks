@@ -31,7 +31,7 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
         s = Signal()
         m.d.sync += s.eq(1)
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             get_results = []
             for i in range(self.count):
                 input = TestbenchIO(Adapter(i=self.lay, o=self.lay))
@@ -122,7 +122,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
     def test_one_out(self):
         self.count = 1
         self.initialize()
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.consumer)
             for i in range(self.count):
                 sim.add_sync_process(self.generate_producer(i))
@@ -130,7 +130,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
     def test_many_out(self):
         self.count = 4
         self.initialize()
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.consumer)
             for i in range(self.count):
                 sim.add_sync_process(self.generate_producer(i))
@@ -173,7 +173,7 @@ class MethodTransformerTestCircuit(Elaboratable):
             itransform = itransform_rec
             otransform = otransform_rec
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             m.submodules.target = self.target = TestbenchIO(Adapter(i=self.iosize, o=self.iosize))
 
             if self.use_methods:
@@ -221,19 +221,19 @@ class TestMethodTransformer(TestCaseWithSimulator):
 
     def test_method_transformer(self):
         self.m = MethodTransformerTestCircuit(4, False, False)
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_transformer_dicts(self):
         self.m = MethodTransformerTestCircuit(4, False, True)
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_transformer_with_methods(self):
         self.m = MethodTransformerTestCircuit(4, True, True)
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
@@ -251,7 +251,7 @@ class MethodFilterTestCircuit(Elaboratable):
         s = Signal()
         m.d.sync += s.eq(1)
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             m.submodules.target = self.target = TestbenchIO(Adapter(i=self.iosize, o=self.iosize))
 
             def condition(_, v):
@@ -292,13 +292,13 @@ class TestMethodFilter(TestCaseWithSimulator):
 
     def test_method_filter(self):
         self.m = MethodFilterTestCircuit(4, False)
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_filter_with_methods(self):
         self.m = MethodFilterTestCircuit(4, True)
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
@@ -372,7 +372,7 @@ class TestMethodProduct(TestCaseWithSimulator):
             else:
                 self.assertEqual(val, data)
 
-        with self.runSimulation(m) as sim:
+        with self.run_simulation(m) as sim:
             sim.add_sync_process(method_process)
             for k in range(targets):
                 sim.add_sync_process(target_process(k))

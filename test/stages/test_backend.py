@@ -8,10 +8,11 @@ from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter, ManyToOneCo
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.params.layouts import *
 from coreblocks.params import GenParams
+from coreblocks.utils import AutoDebugSignals
 from ..common import TestCaseWithSimulator, TestbenchIO
 
 
-class BackendTestCircuit(Elaboratable):
+class BackendTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, gen: GenParams, fu_count: int = 1):
         self.gen = gen
 
@@ -26,7 +27,7 @@ class BackendTestCircuit(Elaboratable):
         self.lay_rs_write = self.gen.get(RSLayouts).update_in
         self.lay_rf_write = self.gen.get(RFLayouts).rf_write
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             # Initialize for each FU an FIFO which will be a stub for that FU
             fu_fifos = []
             get_results = []
@@ -155,7 +156,7 @@ class TestBackend(TestCaseWithSimulator):
     def test_one_out(self):
         self.fu_count = 1
         self.initialize()
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.consumer)
             for i in range(self.fu_count):
                 sim.add_sync_process(self.generate_producer(i))
@@ -163,7 +164,7 @@ class TestBackend(TestCaseWithSimulator):
     def test_many_out(self):
         self.fu_count = 4
         self.initialize()
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.consumer)
             for i in range(self.fu_count):
                 sim.add_sync_process(self.generate_producer(i))

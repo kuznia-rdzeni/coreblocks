@@ -14,6 +14,7 @@ from coreblocks.params.mul_params import MulUnitParams
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
+from coreblocks.utils import AutoDebugSignals
 
 from test.common import TestCaseWithSimulator, TestbenchIO
 
@@ -21,7 +22,7 @@ from coreblocks.params import GenParams
 from test.fu.functional_common import FunctionalTestCircuit
 
 
-class UnsignedMultiplicationTestCircuit(Elaboratable):
+class UnsignedMultiplicationTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, gen: GenParams, mul_unit: Type[MulBaseUnsigned]):
         self.gen = gen
         self.mul_unit = mul_unit
@@ -45,17 +46,17 @@ class UnsignedMultiplicationTestCircuit(Elaboratable):
         (
             "recursive_multiplier",
             RecursiveUnsignedMul,
-            GenParams("rv32im", mul_unit_params=MulUnitParams.RecursiveMultiplier(16)),
+            GenParams("rv32im", mul_unit_params=MulUnitParams.recursive_multiplier(16)),
         ),
         (
             "sequential_multiplier",
             SequentialUnsignedMul,
-            GenParams("rv32im", mul_unit_params=MulUnitParams.SequenceMultiplier(16)),
+            GenParams("rv32im", mul_unit_params=MulUnitParams.sequence_multiplier(16)),
         ),
         (
             "shift_multiplier",
             ShiftUnsignedMul,
-            GenParams("rv32im", mul_unit_params=MulUnitParams.ShiftMultiplier()),
+            GenParams("rv32im", mul_unit_params=MulUnitParams.shift_multiplier()),
         ),
     ],
 )
@@ -106,6 +107,6 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
                 yield from self.m.issue.call(req)
                 yield from random_wait()
 
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
