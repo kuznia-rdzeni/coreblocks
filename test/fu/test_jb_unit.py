@@ -80,7 +80,7 @@ class JumpBranchUnitTest(GenericFunctionalTestUnit):
     def test_test(self):
         self.run_pipeline()
 
-    def __init__(self, methodName: str = "runTest"):
+    def __init__(self, method_name: str = "runTest"):
         super().__init__(
             ops,
             JumpBranchWrapper,
@@ -89,5 +89,5 @@ class JumpBranchUnitTest(GenericFunctionalTestUnit):
             number_of_tests=100,
             seed=32323,
             zero_imm=False,
-            methodName=methodName,
+            method_name=method_name,
         )
