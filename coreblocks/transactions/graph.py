@@ -176,17 +176,17 @@ class OwnershipGraph:
         fp.write(f'{indent}    nodeSize.constraints: "[PORTS, PORT_LABELS, MINIMUM_SIZE]"\n')
         fp.write(f'{indent}    nodeLabels.placement: "[H_LEFT, V_TOP, OUTSIDE]"\n')
         fp.write(f'{indent}    portLabels.placement: "[INSIDE]"\n')
-        fp.write(f'{indent}    feedbackEdges: true\n')
+        fp.write(f"{indent}    feedbackEdges: true\n")
         fp.write(f'{indent}    label "{self.labels.get(owner, self.names[owner])}"\n')
         for x in owned:
             if x.__class__.__name__ == "Method":
                 fp.write(f'{indent}    port {self.get_name(x)} {{ label "{x.name}" }}\n')
             else:
-                fp.write(f'{indent}    node {self.get_name(x)} {{\n')
+                fp.write(f"{indent}    node {self.get_name(x)} {{\n")
                 fp.write(f'{indent}        nodeSize.constraints: "[NODE_LABELS, MINIMUM_SIZE]"\n')
                 fp.write(f'{indent}        nodeLabels.placement: "[H_CENTER, V_CENTER, INSIDE]"\n')
                 fp.write(f'{indent}        label "{x.name}"\n')
-                fp.write(f'{indent}    }}\n')
+                fp.write(f"{indent}    }}\n")
         for subowner in subowners:
             if subowner in self.graph:
                 self.hier[subowner] = f"{hier}.{self.names[subowner]}"
