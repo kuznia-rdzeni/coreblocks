@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672951648926,
+  "lastUpdate": 1672951663197,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -773,6 +773,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 180,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 540,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4669,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "edd9e7dba1930d066e9b9dcca6a1235571a2ae3a",
+          "message": "Reduce synthesis Docker image size (#168)",
+          "timestamp": "2023-01-05T21:43:12+01:00",
+          "tree_id": "a5b377adee42538e68fc9df186eab03719fcc9ad",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/edd9e7dba1930d066e9b9dcca6a1235571a2ae3a"
+        },
+        "date": 1672951661589,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 61.13,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 14784,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 148,
             "unit": "LUT"
           },
           {
