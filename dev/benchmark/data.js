@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672865867276,
+  "lastUpdate": 1672951648926,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -714,6 +714,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Max clock frequency (Fmax)",
             "value": 62.12,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 14740,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 180,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 540,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4669,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c5a555495c248a3ca195d4a7176a3a807fbacbb4",
+          "message": "Actions: bump actions/setup-python to v4 (#178)",
+          "timestamp": "2023-01-05T21:40:39+01:00",
+          "tree_id": "8b5a05f76c3a00b9ff5e719a0d6f711c6677e1bf",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c5a555495c248a3ca195d4a7176a3a807fbacbb4"
+        },
+        "date": 1672951646907,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 65.39,
             "unit": "MHz"
           },
           {
