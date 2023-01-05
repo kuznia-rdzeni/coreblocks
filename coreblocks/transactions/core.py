@@ -7,9 +7,9 @@ from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
-from amaranth.hdl.ast import Assign
+from amaranth.hdl.ast import Assign, Statement
 from ._utils import *
-from ..utils._typing import ValueLike, DebugSignals
+from ..utils._typing import StatementLike, ValueLike, DebugSignals
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
@@ -323,8 +323,27 @@ class TransactionModule(Elaboratable):
         return self.module
 
 
+class _TransactionBaseStatements:
+    def __init__(self):
+        self.statements: list[Statement] = []
+
+    def __iadd__(self, assigns: StatementLike):
+        if TransactionBase.current is None:
+            raise RuntimeError("No current body")
+        for stmt in Statement.cast(assigns):
+            self.statements.append(stmt)
+        return self
+
+    def __iter__(self):
+        return self.statements.__iter__()
+
+    def clear(self):
+        return self.statements.clear()
+
+
 class TransactionBase(Owned):
     current: ClassVar[Optional["TransactionBase"]] = None
+    comb: ClassVar[_TransactionBaseStatements] = _TransactionBaseStatements()
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
@@ -358,10 +377,13 @@ class TransactionBase(Owned):
     def context(self) -> Iterator[Self]:
         if TransactionBase.current is not None:
             raise RuntimeError("Body inside body")
+        assert not TransactionBase.comb.statements
         TransactionBase.current = self
         try:
             yield self
+            assert not TransactionBase.comb.statements
         finally:
+            TransactionBase.comb.clear()
             TransactionBase.current = None
 
     @classmethod
@@ -453,6 +475,8 @@ class Transaction(TransactionBase):
         with self.context():
             with m.If(self.grant):
                 yield self
+            m.d.comb += TransactionBase.comb
+            TransactionBase.comb.clear()
 
     def __repr__(self) -> str:
         return "(transaction {})".format(self.name)
@@ -638,6 +662,8 @@ class Method(TransactionBase):
             with self.context():
                 with m.If(self.run):
                     yield self.data_in
+                m.d.comb += TransactionBase.comb
+                TransactionBase.comb.clear()
         finally:
             self.defined = True
 
@@ -645,15 +671,8 @@ class Method(TransactionBase):
         enable_sig = Signal()
         arg_rec = Record.like(self.data_in)
 
-        # TODO: These connections should be moved from here.
-        # This function is called under Transaction context, so
-        # every connection we make here is unnecessarily multiplexed
-        # by transaction.grant signal. Thus, it adds superfluous
-        # complexity to the circuit. One of the solutions would be
-        # to temporarily save the connections and add them to the
-        # combinatorial domain at a better moment.
         m.d.comb += enable_sig.eq(enable)
-        m.d.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
+        TransactionBase.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
         return self.data_out
 
