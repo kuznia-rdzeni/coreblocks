@@ -49,6 +49,7 @@ class JumpBranch(Elaboratable):
         # Spec: "The 12-bit B-immediate encodes signed offsets in multiples of 2,
         # and is added to the current pc to give the target address."
         branch_target = self.in_pc + self.in_imm[:12].as_signed()
+        m.d.comb += self.reg_res.eq(self.in_pc + 4)
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(JumpBranchFn.Fn.JAL):
@@ -56,20 +57,17 @@ class JumpBranch(Elaboratable):
                 # The offset is sign-extended and added to the pc to form the jump target address."
                 m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm[:20].as_signed())
                 m.d.comb += self.taken.eq(1)
-                m.d.comb += self.reg_res.eq(self.in_pc + 4)
             with OneHotCase(JumpBranchFn.Fn.JALR):
                 # Spec: "The target address is obtained by adding the 12-bit signed I-immediate
                 # to the register rs1, then setting the least-significant bit of the result to zero."
-                target = self.in1 + self.in_imm[:12].as_signed()
-                m.d.comb += self.jmp_addr.eq(target)
+                m.d.comb += self.jmp_addr.eq(self.in1 + self.in_imm[:12].as_signed())
                 m.d.comb += self.jmp_addr[0].eq(0)
                 m.d.comb += self.taken.eq(1)
-                m.d.comb += self.reg_res.eq(self.in_pc + 4)
             with OneHotCase(JumpBranchFn.Fn.AUIPC):
                 # Spec: "AUIPC forms a 32-bit offset from the 20-bit U-immediate, filling in the
                 # lowest 12 bits with zeros, adds this offset to the pc"
                 # Order of arguments in Cat is reversed
-                m.d.comb += self.reg_res.eq(self.pc + Cat(C(0, 12), self.in_imm[12:]))
+                m.d.comb += self.reg_res.eq(self.in_pc + Cat(C(0, 12), self.in_imm[12:]))
             with OneHotCase(JumpBranchFn.Fn.BEQ):
                 m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1 == self.in2)
@@ -100,7 +98,7 @@ class JumpBranchFnDecoder(Elaboratable):
     def __init__(self, gen: GenParams):
         layouts = gen.get(CommonLayouts)
 
-        self.exec_fn = Record(layouts.exec_fn)  # TODO: extended layout with PC
+        self.exec_fn = Record(layouts.exec_fn)
         self.jb_fn = Signal(JumpBranchFn.Fn)
 
     def elaborate(self, platform):
@@ -165,9 +163,8 @@ class JumpBranchFuncUnit(Elaboratable):
 
             fifo_res.write(m, arg={"rob_id": arg.rob_id, "result": jb.reg_res, "rp_dst": arg.rp_dst})
 
-            with m.If(jb.taken):
-                fifo_branch.write(m, arg={"next_pc": jb.jmp_addr})
-            with m.Else():
-                fifo_branch.write(m, arg={"next_pc": jb.reg_res})
+            # skip writing next branch target for auipc
+            with m.If(decoder.jb_fn != JumpBranchFn.Fn.AUIPC):
+                fifo_branch.write(m, arg={"next_pc": Mux(jb.taken, jb.jmp_addr, jb.reg_res)})
 
         return m

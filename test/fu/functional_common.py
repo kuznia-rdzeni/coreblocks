@@ -104,7 +104,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
             rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
             rp_dst = random.randint(0, 2**self.gen.phys_regs_bits - 1)
             exec_fn = self.ops[op]
-            pc = random.randint(0, 2**32 - 1) & ~0b11
+            pc = random.randint(0, max_int) & ~0b11
             results = self.expected(data1, data2, data_imm, pc, op, self.gen.isa.xlen)
 
             self.requests.append(
