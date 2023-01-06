@@ -75,7 +75,7 @@ def eager_deterministic_cc_scheduler(
         runnable = Cat(ready).all()
         conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
         noconflict = ~Cat(conflicts).any()
-        m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
+        m.d.comb += transaction.scheduled.eq(transaction.request & runnable & noconflict)
 
 
 def trivial_roundrobin_cc_scheduler(
@@ -113,7 +113,7 @@ def trivial_roundrobin_cc_scheduler(
             m.d.comb += ready[n].eq(method.ready)
         runnable = ready.all()
         m.d.comb += sched.requests[k].eq(transaction.request & runnable)
-        m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
+        m.d.comb += transaction.scheduled.eq(sched.grant[k] & sched.valid)
 
 
 class TransactionManager(Elaboratable):
@@ -217,6 +217,29 @@ class TransactionManager(Elaboratable):
         for method, (arg, enable) in method.method_uses.items():
             self._call_graph(transaction, method, arg, enable)
 
+    def _condition_for(self, transaction: "Transaction"):
+        def rec(thing: Transaction | Method, encountered: frozenset[Transaction | Method] = frozenset()) -> Value:
+            if thing in encountered:
+                return C(0)
+
+            encountered |= {thing}
+
+            conditions: list[ValueLike] = []
+
+            if isinstance(thing, Transaction):
+                conditions.append(thing.scheduled)
+
+            for thing2, condition in thing.conditions:
+                if isinstance(thing2, Transaction):
+                    thing_condition = rec(thing2)
+                else:
+                    thing_condition = Cat(map(lambda tr: rec(tr), thing2.used_by)).any()
+                conditions.append(~condition.bool() | thing_condition)
+
+            return Cat(conditions).all()
+
+        return rec(transaction)
+
     def elaborate(self, platform):
 
         self.methods_by_transaction = defaultdict[Transaction, list[Method]](list)
@@ -236,13 +259,16 @@ class TransactionManager(Elaboratable):
         for cc in _graph_ccs(gr):
             self.cc_scheduler(m, gr, cc, porder)
 
+        for transaction in self.transactions:
+            m.d.comb += transaction.grant.eq(self._condition_for(transaction))
+
         for method, transactions in self.transactions_by_method.items():
             granted = Signal(len(transactions))
             for n, transaction in enumerate(transactions):
                 (tdata, enable) = self.method_uses[transaction][method]
                 m.d.comb += granted[n].eq(transaction.grant & enable)
 
-                with m.If(transaction.grant):
+                with m.If(transaction.scheduled):
                     m.d.comb += method.data_in.eq(tdata)
             runnable = granted.any()
             m.d.comb += method.run.eq(runnable)
@@ -347,7 +373,9 @@ class TransactionBase(Owned):
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
+        self.used_by: set[Transaction | Method] = set()
         self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
+        self.conditions: list[Tuple[Transaction | Method, Value]] = []
 
     def add_conflict(
         self, end: Union["Transaction", "Method"], priority: ConflictPriority = ConflictPriority.UNDEFINED
@@ -369,9 +397,14 @@ class TransactionBase(Owned):
         self.conflicts.append((end, priority))
 
     def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
+        assert isinstance(self, Transaction) or isinstance(self, Method)  # for typing
         if method in self.method_uses:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[method] = (arg, enable)
+        method.used_by.add(self)
+
+    def only_if(self, other: Union["Transaction", "Method"], cond: ValueLike):
+        self.conditions.append((other, Value.cast(cond)))
 
     @contextmanager
     def context(self) -> Iterator[Self]:
@@ -451,6 +484,7 @@ class Transaction(TransactionBase):
             manager = TransactionContext.get()
         manager.add_transaction(self)
         self.request = Signal()
+        self.scheduled = Signal()
         self.grant = Signal()
 
     @contextmanager
