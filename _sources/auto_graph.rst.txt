@@ -1,0 +1,212 @@
+.. mermaid::
+
+   flowchart TB
+       subgraph TestElaboratable["TestElaboratable"]
+           subgraph WishboneMaster["wb_master WishboneMaster"]
+               WishboneMaster_request["request"]
+               WishboneMaster_result["result"]
+           end
+           subgraph WishboneMemorySlave["wb_mem_slave WishboneMemorySlave"]
+               subgraph ReadPort["rdport ReadPort"]
+               end
+               subgraph WritePort["wrport WritePort"]
+               end
+           end
+           subgraph Core["core Core"]
+               subgraph FIFO["fifo_fetch FIFO"]
+                   FIFO_read["read"]
+                   FIFO_write["write"]
+                   subgraph SyncFIFO["fifo SyncFIFO"]
+                       subgraph WritePort1["w_port WritePort"]
+                       end
+                       subgraph ReadPort1["r_port ReadPort"]
+                       end
+                   end
+               end
+               subgraph BasicFifo["free_rf_fifo BasicFifo"]
+                   BasicFifo_write["write"]
+                   BasicFifo_read["read"]
+                   subgraph ReadPort2["buff_rdport ReadPort"]
+                   end
+                   subgraph WritePort2["buff_wrport WritePort"]
+                   end
+               end
+               subgraph Fetch["fetch Fetch"]
+                   Fetch_Fetch["Fetch"]
+                   Fetch_Fetch["Fetch"]
+               end
+               subgraph FRAT["FRAT FRAT"]
+                   FRAT_rename["rename"]
+               end
+               subgraph RRAT["RRAT RRAT"]
+                   RRAT_commit["commit"]
+               end
+               subgraph RegisterFile["RF RegisterFile"]
+                   RegisterFile_write["write"]
+                   RegisterFile_read2["read2"]
+                   RegisterFile_free["free"]
+                   RegisterFile_read1["read1"]
+               end
+               subgraph ReorderBuffer["ROB ReorderBuffer"]
+                   ReorderBuffer_retire["retire"]
+                   ReorderBuffer_mark_done["mark_done"]
+                   ReorderBuffer_put["put"]
+               end
+               subgraph RS["RS RS"]
+                   RS_take["take"]
+                   RS_get_ready_list["get_ready_list"]
+                   RS_update["update"]
+                   RS_insert["insert"]
+                   RS_select["select"]
+                   subgraph PriorityEncoder["enc_select PriorityEncoder"]
+                   end
+               end
+               subgraph AluFuncUnit["alu AluFuncUnit"]
+                   AluFuncUnit_issue["issue"]
+                   AluFuncUnit_accept["accept"]
+                   subgraph Alu["alu Alu"]
+                   end
+                   subgraph FIFO1["fifo FIFO"]
+                       FIFO1_read["read"]
+                       FIFO1_write["write"]
+                       subgraph SyncFIFO1["fifo SyncFIFO"]
+                           subgraph WritePort3["w_port WritePort"]
+                           end
+                           subgraph ReadPort3["r_port ReadPort"]
+                           end
+                       end
+                   end
+                   subgraph AluFnDecoder["decoder AluFnDecoder"]
+                   end
+               end
+               subgraph ResultAnnouncement["announcement ResultAnnouncement"]
+                   ResultAnnouncement_ResultAnnouncement["ResultAnnouncement"]
+               end
+               subgraph FIFO2["fifo_decode FIFO"]
+                   FIFO2_read["read"]
+                   FIFO2_write["write"]
+                   subgraph SyncFIFO2["fifo SyncFIFO"]
+                       subgraph WritePort4["w_port WritePort"]
+                       end
+                       subgraph ReadPort4["r_port ReadPort"]
+                       end
+                   end
+               end
+               subgraph Decode["decode Decode"]
+                   Decode_Decode["Decode"]
+                   subgraph InstrDecoder["instr_decoder InstrDecoder"]
+                   end
+               end
+               subgraph Scheduler["scheduler Scheduler"]
+                   subgraph FIFO3["alloc_rename_buf FIFO"]
+                       FIFO3_write["write"]
+                       FIFO3_read["read"]
+                       subgraph SyncFIFO3["fifo SyncFIFO"]
+                           subgraph WritePort5["w_port WritePort"]
+                           end
+                           subgraph ReadPort5["r_port ReadPort"]
+                           end
+                       end
+                   end
+                   subgraph RegAllocation["reg_alloc RegAllocation"]
+                       RegAllocation_RegAllocation["RegAllocation"]
+                   end
+                   subgraph FIFO4["rename_out_buf FIFO"]
+                       FIFO4_write["write"]
+                       FIFO4_read["read"]
+                       subgraph SyncFIFO4["fifo SyncFIFO"]
+                           subgraph WritePort6["w_port WritePort"]
+                           end
+                           subgraph ReadPort6["r_port ReadPort"]
+                           end
+                       end
+                   end
+                   subgraph Renaming["renaming Renaming"]
+                       Renaming_Renaming["Renaming"]
+                   end
+                   subgraph FIFO5["reg_alloc_out_buf FIFO"]
+                       FIFO5_write["write"]
+                       FIFO5_read["read"]
+                       subgraph SyncFIFO5["fifo SyncFIFO"]
+                           subgraph WritePort7["w_port WritePort"]
+                           end
+                           subgraph ReadPort7["r_port ReadPort"]
+                           end
+                       end
+                   end
+                   subgraph ROBAllocation["rob_alloc ROBAllocation"]
+                       ROBAllocation_ROBAllocation["ROBAllocation"]
+                   end
+                   subgraph FIFO6["rs_select_out_buf FIFO"]
+                       FIFO6_write["write"]
+                       FIFO6_read["read"]
+                       subgraph SyncFIFO6["fifo SyncFIFO"]
+                           subgraph WritePort8["w_port WritePort"]
+                           end
+                           subgraph ReadPort8["r_port ReadPort"]
+                           end
+                       end
+                   end
+                   subgraph RSSelection["rs_select RSSelection"]
+                       RSSelection_RSSelection["RSSelection"]
+                   end
+                   subgraph RSInsertion["rs_insert RSInsertion"]
+                       RSInsertion_RSInsertion["RSInsertion"]
+                   end
+               end
+               subgraph WakeupSelect["wakeup_select WakeupSelect"]
+                   WakeupSelect_WakeupSelect["WakeupSelect"]
+               end
+               subgraph Retirement["retirement Retirement"]
+                   Retirement_Retirement["Retirement"]
+               end
+           end
+           subgraph TestbenchIO["io_in TestbenchIO"]
+               subgraph AdapterTrans["adapter AdapterTrans"]
+                   AdapterTrans_AdapterTrans["AdapterTrans"]
+               end
+           end
+           subgraph TestbenchIO1["rf_write TestbenchIO"]
+               subgraph AdapterTrans1["adapter AdapterTrans"]
+                   AdapterTrans1_AdapterTrans["AdapterTrans"]
+               end
+           end
+           subgraph TransactionManager["transactionManager TransactionManager"]
+           end
+       end
+   WishboneMaster_request --> Fetch_Fetch
+   WishboneMaster_result --> Fetch_Fetch
+   FIFO_write --> Fetch_Fetch
+   FIFO_write --> AdapterTrans_AdapterTrans
+   FIFO_read --> Decode_Decode
+   FIFO2_write --> Decode_Decode
+   FIFO2_read --> RegAllocation_RegAllocation
+   BasicFifo_read --> RegAllocation_RegAllocation
+   FIFO3_write --> RegAllocation_RegAllocation
+   FIFO3_read --> Renaming_Renaming
+   FRAT_rename --> Renaming_Renaming
+   FIFO4_write --> Renaming_Renaming
+   FIFO4_read --> ROBAllocation_ROBAllocation
+   ReorderBuffer_put --> ROBAllocation_ROBAllocation
+   FIFO5_write --> ROBAllocation_ROBAllocation
+   FIFO5_read --> RSSelection_RSSelection
+   RS_select --> RSSelection_RSSelection
+   FIFO6_write --> RSSelection_RSSelection
+   FIFO6_read --> RSInsertion_RSInsertion
+   RegisterFile_read1 --> RSInsertion_RSInsertion
+   RegisterFile_read2 --> RSInsertion_RSInsertion
+   RS_insert --> RSInsertion_RSInsertion
+   RS_get_ready_list --> WakeupSelect_WakeupSelect
+   RS_take --> WakeupSelect_WakeupSelect
+   AluFuncUnit_issue --> WakeupSelect_WakeupSelect
+   FIFO1_write --> WakeupSelect_WakeupSelect
+   AluFuncUnit_accept --> ResultAnnouncement_ResultAnnouncement
+   FIFO1_read --> ResultAnnouncement_ResultAnnouncement
+   ReorderBuffer_mark_done --> ResultAnnouncement_ResultAnnouncement
+   RegisterFile_write --> ResultAnnouncement_ResultAnnouncement
+   RegisterFile_write --> AdapterTrans1_AdapterTrans
+   RS_update --> ResultAnnouncement_ResultAnnouncement
+   ReorderBuffer_retire --> Retirement_Retirement
+   RRAT_commit --> Retirement_Retirement
+   RegisterFile_free --> Retirement_Retirement
+   BasicFifo_write --> Retirement_Retirement

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Full transaction-method graph &mdash; Coreblocks documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Problem checklist" href="Problem-checklist.html" />
+    <link rel="prev" title="Reservation Station" href="shared_structs/RS.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Coreblocks documentation
+            <img src="_static/logo-banner.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Home.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Development_environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Transactions.html">Documentation for Coreblocks transaction framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler/Overview.html">Scheduler overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html">Proposition of Reservation Station implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared_structs/RS.html">Reservation Station</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Full transaction-method graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Problem-checklist.html">Problem checklist</a></li>
+<li class="toctree-l1"><a class="reference internal" href="synthesis/Synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Coreblocks documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Full transaction-method graph</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Current_graph.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="full-transaction-method-graph">
+<h1>Full transaction-method graph<a class="headerlink" href="#full-transaction-method-graph" title="Permalink to this heading"></a></h1>
+<div class="mermaid">
+            flowchart TB
+    subgraph TestElaboratable[&quot;TestElaboratable&quot;]
+        subgraph WishboneMaster[&quot;wb_master WishboneMaster&quot;]
+            WishboneMaster_request[&quot;request&quot;]
+            WishboneMaster_result[&quot;result&quot;]
+        end
+        subgraph WishboneMemorySlave[&quot;wb_mem_slave WishboneMemorySlave&quot;]
+            subgraph ReadPort[&quot;rdport ReadPort&quot;]
+            end
+            subgraph WritePort[&quot;wrport WritePort&quot;]
+            end
+        end
+        subgraph Core[&quot;core Core&quot;]
+            subgraph FIFO[&quot;fifo_fetch FIFO&quot;]
+                FIFO_read[&quot;read&quot;]
+                FIFO_write[&quot;write&quot;]
+                subgraph SyncFIFO[&quot;fifo SyncFIFO&quot;]
+                    subgraph WritePort1[&quot;w_port WritePort&quot;]
+                    end
+                    subgraph ReadPort1[&quot;r_port ReadPort&quot;]
+                    end
+                end
+            end
+            subgraph BasicFifo[&quot;free_rf_fifo BasicFifo&quot;]
+                BasicFifo_write[&quot;write&quot;]
+                BasicFifo_read[&quot;read&quot;]
+                subgraph ReadPort2[&quot;buff_rdport ReadPort&quot;]
+                end
+                subgraph WritePort2[&quot;buff_wrport WritePort&quot;]
+                end
+            end
+            subgraph Fetch[&quot;fetch Fetch&quot;]
+                Fetch_Fetch[&quot;Fetch&quot;]
+                Fetch_Fetch[&quot;Fetch&quot;]
+            end
+            subgraph FRAT[&quot;FRAT FRAT&quot;]
+                FRAT_rename[&quot;rename&quot;]
+            end
+            subgraph RRAT[&quot;RRAT RRAT&quot;]
+                RRAT_commit[&quot;commit&quot;]
+            end
+            subgraph RegisterFile[&quot;RF RegisterFile&quot;]
+                RegisterFile_write[&quot;write&quot;]
+                RegisterFile_read2[&quot;read2&quot;]
+                RegisterFile_free[&quot;free&quot;]
+                RegisterFile_read1[&quot;read1&quot;]
+            end
+            subgraph ReorderBuffer[&quot;ROB ReorderBuffer&quot;]
+                ReorderBuffer_retire[&quot;retire&quot;]
+                ReorderBuffer_mark_done[&quot;mark_done&quot;]
+                ReorderBuffer_put[&quot;put&quot;]
+            end
+            subgraph RS[&quot;RS RS&quot;]
+                RS_take[&quot;take&quot;]
+                RS_get_ready_list[&quot;get_ready_list&quot;]
+                RS_update[&quot;update&quot;]
+                RS_insert[&quot;insert&quot;]
+                RS_select[&quot;select&quot;]
+                subgraph PriorityEncoder[&quot;enc_select PriorityEncoder&quot;]
+                end
+            end
+            subgraph AluFuncUnit[&quot;alu AluFuncUnit&quot;]
+                AluFuncUnit_issue[&quot;issue&quot;]
+                AluFuncUnit_accept[&quot;accept&quot;]
+                subgraph Alu[&quot;alu Alu&quot;]
+                end
+                subgraph FIFO1[&quot;fifo FIFO&quot;]
+                    FIFO1_read[&quot;read&quot;]
+                    FIFO1_write[&quot;write&quot;]
+                    subgraph SyncFIFO1[&quot;fifo SyncFIFO&quot;]
+                        subgraph WritePort3[&quot;w_port WritePort&quot;]
+                        end
+                        subgraph ReadPort3[&quot;r_port ReadPort&quot;]
+                        end
+                    end
+                end
+                subgraph AluFnDecoder[&quot;decoder AluFnDecoder&quot;]
+                end
+            end
+            subgraph ResultAnnouncement[&quot;announcement ResultAnnouncement&quot;]
+                ResultAnnouncement_ResultAnnouncement[&quot;ResultAnnouncement&quot;]
+            end
+            subgraph FIFO2[&quot;fifo_decode FIFO&quot;]
+                FIFO2_read[&quot;read&quot;]
+                FIFO2_write[&quot;write&quot;]
+                subgraph SyncFIFO2[&quot;fifo SyncFIFO&quot;]
+                    subgraph WritePort4[&quot;w_port WritePort&quot;]
+                    end
+                    subgraph ReadPort4[&quot;r_port ReadPort&quot;]
+                    end
+                end
+            end
+            subgraph Decode[&quot;decode Decode&quot;]
+                Decode_Decode[&quot;Decode&quot;]
+                subgraph InstrDecoder[&quot;instr_decoder InstrDecoder&quot;]
+                end
+            end
+            subgraph Scheduler[&quot;scheduler Scheduler&quot;]
+                subgraph FIFO3[&quot;alloc_rename_buf FIFO&quot;]
+                    FIFO3_write[&quot;write&quot;]
+                    FIFO3_read[&quot;read&quot;]
+                    subgraph SyncFIFO3[&quot;fifo SyncFIFO&quot;]
+                        subgraph WritePort5[&quot;w_port WritePort&quot;]
+                        end
+                        subgraph ReadPort5[&quot;r_port ReadPort&quot;]
+                        end
+                    end
+                end
+                subgraph RegAllocation[&quot;reg_alloc RegAllocation&quot;]
+                    RegAllocation_RegAllocation[&quot;RegAllocation&quot;]
+                end
+                subgraph FIFO4[&quot;rename_out_buf FIFO&quot;]
+                    FIFO4_write[&quot;write&quot;]
+                    FIFO4_read[&quot;read&quot;]
+                    subgraph SyncFIFO4[&quot;fifo SyncFIFO&quot;]
+                        subgraph WritePort6[&quot;w_port WritePort&quot;]
+                        end
+                        subgraph ReadPort6[&quot;r_port ReadPort&quot;]
+                        end
+                    end
+                end
+                subgraph Renaming[&quot;renaming Renaming&quot;]
+                    Renaming_Renaming[&quot;Renaming&quot;]
+                end
+                subgraph FIFO5[&quot;reg_alloc_out_buf FIFO&quot;]
+                    FIFO5_write[&quot;write&quot;]
+                    FIFO5_read[&quot;read&quot;]
+                    subgraph SyncFIFO5[&quot;fifo SyncFIFO&quot;]
+                        subgraph WritePort7[&quot;w_port WritePort&quot;]
+                        end
+                        subgraph ReadPort7[&quot;r_port ReadPort&quot;]
+                        end
+                    end
+                end
+                subgraph ROBAllocation[&quot;rob_alloc ROBAllocation&quot;]
+                    ROBAllocation_ROBAllocation[&quot;ROBAllocation&quot;]
+                end
+                subgraph FIFO6[&quot;rs_select_out_buf FIFO&quot;]
+                    FIFO6_write[&quot;write&quot;]
+                    FIFO6_read[&quot;read&quot;]
+                    subgraph SyncFIFO6[&quot;fifo SyncFIFO&quot;]
+                        subgraph WritePort8[&quot;w_port WritePort&quot;]
+                        end
+                        subgraph ReadPort8[&quot;r_port ReadPort&quot;]
+                        end
+                    end
+                end
+                subgraph RSSelection[&quot;rs_select RSSelection&quot;]
+                    RSSelection_RSSelection[&quot;RSSelection&quot;]
+                end
+                subgraph RSInsertion[&quot;rs_insert RSInsertion&quot;]
+                    RSInsertion_RSInsertion[&quot;RSInsertion&quot;]
+                end
+            end
+            subgraph WakeupSelect[&quot;wakeup_select WakeupSelect&quot;]
+                WakeupSelect_WakeupSelect[&quot;WakeupSelect&quot;]
+            end
+            subgraph Retirement[&quot;retirement Retirement&quot;]
+                Retirement_Retirement[&quot;Retirement&quot;]
+            end
+        end
+        subgraph TestbenchIO[&quot;io_in TestbenchIO&quot;]
+            subgraph AdapterTrans[&quot;adapter AdapterTrans&quot;]
+                AdapterTrans_AdapterTrans[&quot;AdapterTrans&quot;]
+            end
+        end
+        subgraph TestbenchIO1[&quot;rf_write TestbenchIO&quot;]
+            subgraph AdapterTrans1[&quot;adapter AdapterTrans&quot;]
+                AdapterTrans1_AdapterTrans[&quot;AdapterTrans&quot;]
+            end
+        end
+        subgraph TransactionManager[&quot;transactionManager TransactionManager&quot;]
+        end
+    end
+WishboneMaster_request --&gt; Fetch_Fetch
+WishboneMaster_result --&gt; Fetch_Fetch
+FIFO_write --&gt; Fetch_Fetch
+FIFO_write --&gt; AdapterTrans_AdapterTrans
+FIFO_read --&gt; Decode_Decode
+FIFO2_write --&gt; Decode_Decode
+FIFO2_read --&gt; RegAllocation_RegAllocation
+BasicFifo_read --&gt; RegAllocation_RegAllocation
+FIFO3_write --&gt; RegAllocation_RegAllocation
+FIFO3_read --&gt; Renaming_Renaming
+FRAT_rename --&gt; Renaming_Renaming
+FIFO4_write --&gt; Renaming_Renaming
+FIFO4_read --&gt; ROBAllocation_ROBAllocation
+ReorderBuffer_put --&gt; ROBAllocation_ROBAllocation
+FIFO5_write --&gt; ROBAllocation_ROBAllocation
+FIFO5_read --&gt; RSSelection_RSSelection
+RS_select --&gt; RSSelection_RSSelection
+FIFO6_write --&gt; RSSelection_RSSelection
+FIFO6_read --&gt; RSInsertion_RSInsertion
+RegisterFile_read1 --&gt; RSInsertion_RSInsertion
+RegisterFile_read2 --&gt; RSInsertion_RSInsertion
+RS_insert --&gt; RSInsertion_RSInsertion
+RS_get_ready_list --&gt; WakeupSelect_WakeupSelect
+RS_take --&gt; WakeupSelect_WakeupSelect
+AluFuncUnit_issue --&gt; WakeupSelect_WakeupSelect
+FIFO1_write --&gt; WakeupSelect_WakeupSelect
+AluFuncUnit_accept --&gt; ResultAnnouncement_ResultAnnouncement
+FIFO1_read --&gt; ResultAnnouncement_ResultAnnouncement
+ReorderBuffer_mark_done --&gt; ResultAnnouncement_ResultAnnouncement
+RegisterFile_write --&gt; ResultAnnouncement_ResultAnnouncement
+RegisterFile_write --&gt; AdapterTrans1_AdapterTrans
+RS_update --&gt; ResultAnnouncement_ResultAnnouncement
+ReorderBuffer_retire --&gt; Retirement_Retirement
+RRAT_commit --&gt; Retirement_Retirement
+RegisterFile_free --&gt; Retirement_Retirement
+BasicFifo_write --&gt; Retirement_Retirement
+        </div></div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="shared_structs/RS.html" class="btn btn-neutral float-left" title="Reservation Station" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Problem-checklist.html" class="btn btn-neutral float-right" title="Problem checklist" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Kuźnia Rdzeni, 2023.
+      <span class="lastupdated">Last updated on 09:48 2023-01-06.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
