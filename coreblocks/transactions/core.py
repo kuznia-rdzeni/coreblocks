@@ -449,7 +449,7 @@ class Transaction:
 
 
 def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> list[Assign]:
-    if not isinstance(src, dict):
+    if not isinstance(src, Mapping):
         return [dst.eq(src)]
 
     if not isinstance(dst, Record):
