@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672951663197,
+  "lastUpdate": 1672998674131,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -817,6 +817,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 14784,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 148,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 540,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4669,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9ae01461379f81d5718a2befb1566edb97ec01de",
+          "message": "Add a mermaid graph to the docs build (#170)",
+          "timestamp": "2023-01-06T10:47:39+01:00",
+          "tree_id": "696668ece073fa072e6f7efbae9533766c3294fa",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9ae01461379f81d5718a2befb1566edb97ec01de"
+        },
+        "date": 1672998673114,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 62.48,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 15170,
             "unit": "LUT4"
           },
           {
