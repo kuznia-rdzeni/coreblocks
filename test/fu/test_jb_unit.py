@@ -1,5 +1,6 @@
 from amaranth import *
-from typing import Dict
+from typing import Dict, Callable, Any
+from parameterized import parameterized_class
 
 from coreblocks.params import OpType, Funct3, GenParams
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn
@@ -31,6 +32,7 @@ class JumpBranchWrapper(Elaboratable):
         return m
 
 
+@staticmethod
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> Dict[str, int]:
     max_int = 2**xlen - 1
     branch_target = pc + signed_to_int(i_imm & 0xFFF, 12)
@@ -42,8 +44,6 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
     if fn == JumpBranchFn.Fn.JALR:
         # truncate to first 12 bits and set 0th bit to 0
         next_pc = (i1 + signed_to_int(i_imm & 0xFFF, 12)) & ~0x1
-    if fn == JumpBranchFn.Fn.AUIPC:
-        res = pc + (i_imm & 0xFFFFF000)
     if fn == JumpBranchFn.Fn.BEQ:
         next_pc = branch_target if i1 == i2 else pc + 4
     if fn == JumpBranchFn.Fn.BNE:
@@ -58,9 +58,22 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
         next_pc = branch_target if i1 >= i2 else pc + 4
 
     next_pc &= max_int
-    pc &= max_int
+    res &= max_int
 
     return {"result": res, "next_pc": next_pc}
+
+
+@staticmethod
+def compute_result_auipc(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> Dict[str, int]:
+    max_int = 2**xlen - 1
+    res = pc + 4
+
+    if fn == JumpBranchFn.Fn.AUIPC:
+        res = pc + (i_imm & 0xFFFFF000)
+
+    res &= max_int
+
+    return {"result": res}
 
 
 ops = {
@@ -72,21 +85,43 @@ ops = {
     JumpBranchFn.Fn.BGEU: {"op_type": OpType.BRANCH, "funct3": Funct3.BGEU, "funct7": 0},
     JumpBranchFn.Fn.JAL: {"op_type": OpType.JAL, "funct3": 0, "funct7": 0},
     JumpBranchFn.Fn.JALR: {"op_type": OpType.JALR, "funct3": Funct3.JALR, "funct7": 0},
-    # JumpBranchFn.Fn.AUIPC: {"op_type": OpType.AUIPC, "funct3": 0, "funct7": 0},
+}
+
+ops_auipc = {
+    JumpBranchFn.Fn.AUIPC: {"op_type": OpType.AUIPC, "funct3": 0, "funct7": 0},
 }
 
 
+@parameterized_class(
+    ("name", "ops", "func_unit", "compute_result"),
+    [
+        (
+            "branches_and_jumps",
+            ops,
+            JumpBranchWrapper,
+            compute_result,
+        ),
+        (
+            "auipc",
+            ops_auipc,
+            JumpBranchFuncUnit,
+            compute_result_auipc,
+        ),
+    ],
+)
 class JumpBranchUnitTest(GenericFunctionalTestUnit):
+    compute_result: Callable[[int, int, int, int, Any, int], Dict[str, int]]
+
     def test_test(self):
         self.run_pipeline()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
-            ops,
-            JumpBranchWrapper,
-            compute_result,
+            self.ops,
+            self.func_unit,
+            self.compute_result,
             gen=GenParams("rv32i"),
-            number_of_tests=100,
+            number_of_tests=300,
             seed=32323,
             zero_imm=False,
             method_name=method_name,
