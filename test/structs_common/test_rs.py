@@ -397,5 +397,5 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
         # Take second record and check ready vector integrity
         yield from self.m.io_take.call({"rs_entry_id": 1})
         yield Settle()
-        ready_list = (yield from self.m.io_get_ready_list.call())["ready_list"]
-        self.assertEqual(ready_list, 0b0000)
+        option_ready_list = yield from self.m.io_get_ready_list.call_try()
+        self.assertEqual(option_ready_list, None)

@@ -93,7 +93,7 @@ class RS(Elaboratable):
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
 
-            @def_method(m, get_ready_list)
+            @def_method(m, get_ready_list, ready=ready_list.any())
             def _(arg) -> RecordDict:
                 return {"ready_list": ready_list}
 
