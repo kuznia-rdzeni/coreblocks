@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672998674131,
+  "lastUpdate": 1673198385912,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -856,6 +856,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9ae01461379f81d5718a2befb1566edb97ec01de"
         },
         "date": 1672998673114,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 62.48,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 15170,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 148,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 540,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4669,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c87bb3112a437e47afae65752e7efcd9035054d9",
+          "message": "Unify common transaction and method functionality (#175)",
+          "timestamp": "2023-01-08T18:15:21+01:00",
+          "tree_id": "89e42952803cab64eb9c213a09498ba827d84b06",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c87bb3112a437e47afae65752e7efcd9035054d9"
+        },
+        "date": 1673198384951,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
