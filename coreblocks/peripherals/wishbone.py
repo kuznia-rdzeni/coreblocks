@@ -338,9 +338,12 @@ class WishboneMemorySlave(Elaboratable):
             with m.State("Start"):
                 with m.If(self.bus.stb & self.bus.cyc):
                     with m.If(~self.bus.we):
-                        m.d.comb += rdport.addr.eq(self.bus.adr)
-                        # asserting rdport.en not required in case of a transparent port
-                        m.next = "Read"
+                        with m.If(self.bus.adr < self.mem.depth):
+                            m.d.comb += rdport.addr.eq(self.bus.adr)
+                            # asserting rdport.en not required in case of a transparent port
+                            m.next = "Read"
+                        with m.Else():  # access outside bounds
+                            m.d.comb += self.bus.err.eq(1)
                     with m.Else():
                         m.d.comb += wrport.addr.eq(self.bus.adr)
                         m.d.comb += wrport.en.eq(self.bus.sel)

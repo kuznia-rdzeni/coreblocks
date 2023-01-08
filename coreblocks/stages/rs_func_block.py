@@ -6,7 +6,7 @@ from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
 from coreblocks.utils.protocols import FuncUnit
-from coreblocks.transactions.lib import FIFO, ConnectTrans
+from coreblocks.transactions.lib import FIFO, ManyToOneConnectTrans
 
 __all__ = ["RSFuncBlock"]
 
@@ -37,9 +37,12 @@ class RSFuncBlock(Elaboratable):
             wakeup_select = WakeupSelect(
                 gen_params=self.gen_params, get_ready=rs.get_ready_list[n], take_row=rs.take, issue=func_unit.issue
             )
-            m.submodules += ConnectTrans(func_unit.accept, accept_fifo.write)
             setattr(m.submodules, f"func_unit_{n}", func_unit)
             setattr(m.submodules, f"wakeup_select_{n}", wakeup_select)
+
+        m.submodules.connect = ManyToOneConnectTrans(
+            get_results=[func_unit.accept for func_unit in self.func_units], put_result=accept_fifo.write
+        )
 
         self.insert.proxy(m, rs.insert)
         self.select.proxy(m, rs.select)

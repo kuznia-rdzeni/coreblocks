@@ -48,7 +48,7 @@ class RS(Elaboratable):
 
         ready_lists = []
         for op_list in self.ready_for:
-            op_vector = Cat(Cat(record.rs_data.exec_fn == op for op in op_list).any() for record in self.data)
+            op_vector = Cat(Cat(record.rs_data.exec_fn.op_type == op for op in op_list).any() for record in self.data)
             ready_lists.append(take_vector & op_vector)
 
         m.d.comb += m.submodules.enc_select.i.eq(select_vector)
@@ -95,6 +95,6 @@ class RS(Elaboratable):
 
             @def_method(m, get_ready_list)
             def _(arg) -> RecordDict:
-                return {"ready_list": take_vector}
+                return {"ready_list": ready_list}
 
         return m
