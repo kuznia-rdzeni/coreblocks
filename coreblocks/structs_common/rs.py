@@ -1,13 +1,16 @@
+from typing import Iterable
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
+from coreblocks.params.isa import OpType
 from coreblocks.transactions import Method, def_method
 from coreblocks.params import RSLayouts, GenParams
+from coreblocks.transactions.core import RecordDict
 
 __all__ = ["RS"]
 
 
 class RS(Elaboratable):
-    def __init__(self, gen_params: GenParams) -> None:
+    def __init__(self, gen_params: GenParams, ready_for: Iterable[Iterable[OpType]] = ((op for op in OpType),)) -> None:
         self.gen_params = gen_params
         self.layouts = gen_params.get(RSLayouts)
         self.internal_layout = [
@@ -21,7 +24,9 @@ class RS(Elaboratable):
         self.select = Method(o=self.layouts.select_out)
         self.update = Method(i=self.layouts.update_in)
         self.take = Method(i=self.layouts.take_in, o=self.layouts.take_out)
-        self.get_ready_list = Method(o=self.layouts.get_ready_list_out)
+
+        self.ready_for = [list(op_list) for op_list in ready_for]
+        self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
         self.data = Array(Record(self.internal_layout) for _ in range(2**self.gen_params.rs_entries_bits))
 
@@ -40,11 +45,12 @@ class RS(Elaboratable):
 
         take_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
         take_possible = take_vector.any()
-        take_data_out = Record(self.layouts.take_out)
 
-        ready_list = Record(self.layouts.get_ready_list_out)
+        ready_lists = []
+        for op_list in self.ready_for:
+            op_vector = Cat(Cat(record.rs_data.exec_fn == op for op in op_list).any() for record in self.data)
+            ready_lists.append(take_vector & op_vector)
 
-        m.d.comb += ready_list.ready_list.eq(take_vector)
         m.d.comb += m.submodules.enc_select.i.eq(select_vector)
 
         @def_method(m, self.select, ready=select_possible)
@@ -71,21 +77,24 @@ class RS(Elaboratable):
                         m.d.sync += record.rs_data.s2_val.eq(arg.value)
 
         @def_method(m, self.take, ready=take_possible)
-        def _(arg) -> Record:
+        def _(arg) -> RecordDict:
             record = self.data[arg.rs_entry_id]
             m.d.sync += record.rec_reserved.eq(0)
             m.d.sync += record.rec_full.eq(0)
-            m.d.comb += take_data_out.s1_val.eq(record.rs_data.s1_val)
-            m.d.comb += take_data_out.s2_val.eq(record.rs_data.s2_val)
-            m.d.comb += take_data_out.rp_dst.eq(record.rs_data.rp_dst)
-            m.d.comb += take_data_out.rob_id.eq(record.rs_data.rob_id)
-            m.d.comb += take_data_out.exec_fn.eq(record.rs_data.exec_fn)
-            m.d.comb += take_data_out.imm.eq(record.rs_data.imm)
-            m.d.comb += take_data_out.pc.eq(record.rs_data.pc)
-            return take_data_out
+            return {
+                "s1_val": record.rs_data.s1_val,
+                "s2_val": record.rs_data.s2_val,
+                "rp_dst": record.rs_data.rp_dst,
+                "rob_id": record.rs_data.rob_id,
+                "exec_fn": record.rs_data.exec_fn,
+                "imm": record.rs_data.imm,
+                "pc": record.rs_data.pc,
+            }
 
-        @def_method(m, self.get_ready_list)
-        def _(arg) -> Record:
-            return ready_list
+        for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
+
+            @def_method(m, get_ready_list)
+            def _(arg) -> RecordDict:
+                return {"ready_list": take_vector}
 
         return m

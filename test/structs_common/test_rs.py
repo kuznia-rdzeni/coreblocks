@@ -40,7 +40,8 @@ class TestElaboratable(Elaboratable, AutoDebugSignals):
         self.io_insert = TestbenchIO(AdapterTrans(rs.insert))
         self.io_update = TestbenchIO(AdapterTrans(rs.update))
         self.io_take = TestbenchIO(AdapterTrans(rs.take))
-        self.io_get_ready_list = TestbenchIO(AdapterTrans(rs.get_ready_list))
+        # TODO: test multiple ready lists
+        self.io_get_ready_list = TestbenchIO(AdapterTrans(rs.get_ready_list[0]))
 
         m.submodules.rs = rs
         m.submodules.io_select = self.io_select

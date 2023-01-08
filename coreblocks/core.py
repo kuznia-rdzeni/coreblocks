@@ -37,7 +37,7 @@ class Core(Elaboratable):
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
         alu = AluFuncUnit(gen=self.gen_params)
-        self.alu_block = RSFuncBlock(gen_params=self.gen_params, func_unit=alu)
+        self.alu_block = RSFuncBlock(gen_params=self.gen_params, func_units=[alu])
         self.announcement = ResultAnnouncement(
             gen=self.gen_params,
             get_result=self.alu_block.get_result,
