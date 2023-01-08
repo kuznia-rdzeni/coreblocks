@@ -112,7 +112,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Method">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.core.</span></span><span class="sig-name descname"><span class="pre">Method</span></span><a class="headerlink" href="#coreblocks.transactions.core.Method" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionBase</span></code></p>
 <p>Transactional method.</p>
 <p>A <code class="docutils literal notranslate"><span class="pre">Method</span></code> serves to interface a module with external <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s
 or <code class="docutils literal notranslate"><span class="pre">Method</span></code>s. It can be called by at most once in a given clock cycle.
@@ -174,26 +174,6 @@ receive its output. Nonexclusive methods cannot have inputs.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.core.Method.add_conflict">
-<span class="sig-name descname"><span class="pre">add_conflict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.ConflictPriority" title="coreblocks.transactions.core.ConflictPriority"><span class="pre">ConflictPriority</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ConflictPriority.UNDEFINED</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.transactions.core.Method.add_conflict" title="Permalink to this definition"></a></dt>
-<dd><p>Registers a conflict.</p>
-<p>Record that that the given <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or <code class="docutils literal notranslate"><span class="pre">Method</span></code> cannot execute
-simultaneously with this <code class="docutils literal notranslate"><span class="pre">Method</span></code>.  Typical reason is using a common
-resource (register write or memory port).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>end: Transaction or Method</strong></dt><dd><p>The conflicting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or <code class="docutils literal notranslate"><span class="pre">Method</span></code></p>
-</dd>
-<dt><strong>priority: ConflictPriority, optional</strong></dt><dd><p>Is one of conflicting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s or <code class="docutils literal notranslate"><span class="pre">Method</span></code>s prioritized?
-Defaults to undefined priority relation.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Method.body">
 <span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ready:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">0'd0)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.core.Method.body" title="Permalink to this definition"></a></dt>
 <dd><p>Define method body</p>
@@ -234,11 +214,6 @@ combinatorially to the <code class="docutils literal notranslate"><span class="p
 </pre></div>
 </div>
 </dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.transactions.core.Method.current">
-<span class="sig-name descname"><span class="pre">current</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#coreblocks.transactions.core.Method.current" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Method.debug_signals">
@@ -287,17 +262,12 @@ combinatorially to the <code class="docutils literal notranslate"><span class="p
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.core.Method.use_method">
-<span class="sig-name descname"><span class="pre">use_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.core.Method.use_method" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Transaction">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.core.</span></span><span class="sig-name descname"><span class="pre">Transaction</span></span><a class="headerlink" href="#coreblocks.transactions.core.Transaction" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionBase</span></code></p>
 <p>Transaction.</p>
 <p>A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> represents a task which needs to be regularly done.
 Execution of a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> always lasts a single clock cycle.
@@ -350,27 +320,6 @@ If omitted, the manager is received from <code class="docutils literal notransla
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.core.Transaction.add_conflict">
-<span class="sig-name descname"><span class="pre">add_conflict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.ConflictPriority" title="coreblocks.transactions.core.ConflictPriority"><span class="pre">ConflictPriority</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ConflictPriority.UNDEFINED</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.transactions.core.Transaction.add_conflict" title="Permalink to this definition"></a></dt>
-<dd><p>Registers a conflict.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code> is informed that given <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>
-or <code class="docutils literal notranslate"><span class="pre">Method</span></code> cannot execute simultaneously with this <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>.
-Typical reason is using a common resource (register write
-or memory port).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>end: Transaction or Method</strong></dt><dd><p>The conflicting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or <code class="docutils literal notranslate"><span class="pre">Method</span></code></p>
-</dd>
-<dt><strong>priority: ConflictPriority, optional</strong></dt><dd><p>Is one of conflicting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s or <code class="docutils literal notranslate"><span class="pre">Method</span></code>s prioritized?
-Defaults to undefined priority relation.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Transaction.body">
 <span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.core.Transaction.body" title="Permalink to this definition"></a></dt>
 <dd><p>Defines the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> body.</p>
@@ -393,28 +342,8 @@ every clock cycle.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.core.Transaction.context">
-<span class="sig-name descname"><span class="pre">context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.core.Transaction.context" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.transactions.core.Transaction.current">
-<span class="sig-name descname"><span class="pre">current</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#coreblocks.transactions.core.Transaction.current" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Transaction.debug_signals">
 <span class="sig-name descname"><span class="pre">debug_signals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.core.Transaction.debug_signals" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.core.Transaction.get">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a></span></span><a class="headerlink" href="#coreblocks.transactions.core.Transaction.get" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.core.Transaction.use_method">
-<span class="sig-name descname"><span class="pre">use_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.core.Transaction.use_method" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1108,7 +1037,7 @@ It was too difficult to hook into, so this has to be a near-exact copy.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.transactions.Method">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.</span></span><span class="sig-name descname"><span class="pre">Method</span></span><a class="headerlink" href="#coreblocks.transactions.Method" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionBase</span></code></p>
 <p>Transactional method.</p>
 <p>A <code class="docutils literal notranslate"><span class="pre">Method</span></code> serves to interface a module with external <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s
 or <code class="docutils literal notranslate"><span class="pre">Method</span></code>s. It can be called by at most once in a given clock cycle.
@@ -1170,26 +1099,6 @@ receive its output. Nonexclusive methods cannot have inputs.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.Method.add_conflict">
-<span class="sig-name descname"><span class="pre">add_conflict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.ConflictPriority" title="coreblocks.transactions.core.ConflictPriority"><span class="pre">ConflictPriority</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ConflictPriority.UNDEFINED</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.transactions.Method.add_conflict" title="Permalink to this definition"></a></dt>
-<dd><p>Registers a conflict.</p>
-<p>Record that that the given <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or <code class="docutils literal notranslate"><span class="pre">Method</span></code> cannot execute
-simultaneously with this <code class="docutils literal notranslate"><span class="pre">Method</span></code>.  Typical reason is using a common
-resource (register write or memory port).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>end: Transaction or Method</strong></dt><dd><p>The conflicting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or <code class="docutils literal notranslate"><span class="pre">Method</span></code></p>
-</dd>
-<dt><strong>priority: ConflictPriority, optional</strong></dt><dd><p>Is one of conflicting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s or <code class="docutils literal notranslate"><span class="pre">Method</span></code>s prioritized?
-Defaults to undefined priority relation.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.Method.body">
 <span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ready:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">0'd0)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.Method.body" title="Permalink to this definition"></a></dt>
 <dd><p>Define method body</p>
@@ -1231,16 +1140,6 @@ combinatorially to the <code class="docutils literal notranslate"><span class="p
 </div>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.transactions.Method.conflicts">
-<span class="sig-name descname"><span class="pre">conflicts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">coreblocks.transactions.core.Transaction</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">coreblocks.transactions.core.Method</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.transactions.core.ConflictPriority" title="coreblocks.transactions.core.ConflictPriority"><span class="pre">coreblocks.transactions.core.ConflictPriority</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.transactions.Method.conflicts" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.transactions.Method.current">
-<span class="sig-name descname"><span class="pre">current</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#coreblocks.transactions.Method.current" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.Method.debug_signals">
 <span class="sig-name descname"><span class="pre">debug_signals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.Method.debug_signals" title="Permalink to this definition"></a></dt>
@@ -1270,11 +1169,6 @@ combinatorially to the <code class="docutils literal notranslate"><span class="p
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.transactions.Method.method_uses">
-<span class="sig-name descname"><span class="pre">method_uses</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">coreblocks.transactions.core.Method</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.transactions.Method.method_uses" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.Method.proxy">
 <span class="sig-name descname"><span class="pre">proxy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.Method.proxy" title="Permalink to this definition"></a></dt>
@@ -1293,17 +1187,12 @@ combinatorially to the <code class="docutils literal notranslate"><span class="p
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.Method.use_method">
-<span class="sig-name descname"><span class="pre">use_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.Method.use_method" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.transactions.Transaction">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.</span></span><span class="sig-name descname"><span class="pre">Transaction</span></span><a class="headerlink" href="#coreblocks.transactions.Transaction" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionBase</span></code></p>
 <p>Transaction.</p>
 <p>A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> represents a task which needs to be regularly done.
 Execution of a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> always lasts a single clock cycle.
@@ -1356,27 +1245,6 @@ If omitted, the manager is received from <code class="docutils literal notransla
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.Transaction.add_conflict">
-<span class="sig-name descname"><span class="pre">add_conflict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.ConflictPriority" title="coreblocks.transactions.core.ConflictPriority"><span class="pre">ConflictPriority</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ConflictPriority.UNDEFINED</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.transactions.Transaction.add_conflict" title="Permalink to this definition"></a></dt>
-<dd><p>Registers a conflict.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code> is informed that given <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>
-or <code class="docutils literal notranslate"><span class="pre">Method</span></code> cannot execute simultaneously with this <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>.
-Typical reason is using a common resource (register write
-or memory port).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>end: Transaction or Method</strong></dt><dd><p>The conflicting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or <code class="docutils literal notranslate"><span class="pre">Method</span></code></p>
-</dd>
-<dt><strong>priority: ConflictPriority, optional</strong></dt><dd><p>Is one of conflicting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s or <code class="docutils literal notranslate"><span class="pre">Method</span></code>s prioritized?
-Defaults to undefined priority relation.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.Transaction.body">
 <span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.Transaction.body" title="Permalink to this definition"></a></dt>
 <dd><p>Defines the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> body.</p>
@@ -1398,39 +1266,9 @@ every clock cycle.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.transactions.Transaction.conflicts">
-<span class="sig-name descname"><span class="pre">conflicts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">coreblocks.transactions.core.Transaction</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">coreblocks.transactions.core.Method</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.transactions.core.ConflictPriority" title="coreblocks.transactions.core.ConflictPriority"><span class="pre">coreblocks.transactions.core.ConflictPriority</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.transactions.Transaction.conflicts" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.Transaction.context">
-<span class="sig-name descname"><span class="pre">context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.Transaction.context" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.transactions.Transaction.current">
-<span class="sig-name descname"><span class="pre">current</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#coreblocks.transactions.Transaction.current" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.Transaction.debug_signals">
 <span class="sig-name descname"><span class="pre">debug_signals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DebugSignals</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.Transaction.debug_signals" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.Transaction.get">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a></span></span><a class="headerlink" href="#coreblocks.transactions.Transaction.get" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.transactions.Transaction.method_uses">
-<span class="sig-name descname"><span class="pre">method_uses</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">coreblocks.transactions.core.Method</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.transactions.Transaction.method_uses" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.transactions.Transaction.use_method">
-<span class="sig-name descname"><span class="pre">use_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.Transaction.use_method" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1558,7 +1396,7 @@ Assigned combinatorially to the <code class="docutils literal notranslate"><span
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:48 2023-01-06.
+      <span class="lastupdated">Last updated on 17:16 2023-01-08.
       </span></p>
   </div>
 
