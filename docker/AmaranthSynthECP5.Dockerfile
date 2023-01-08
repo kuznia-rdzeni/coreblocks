@@ -16,11 +16,11 @@ RUN git clone --recursive \
 RUN cd prjtrellis && \
     cd libtrellis && \
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local . && \
-    make && \
-    make install
+    make -j$(nproc) && \
+    make install && \
+    make clean
 
 # Install nexpnr-ecp5
-RUN cd ../..
 RUN git clone \
     https://github.com/YosysHQ/nextpnr/ \
     nextpnr && \
@@ -29,4 +29,5 @@ RUN git clone \
 RUN cd nextpnr && \
     cmake . -DARCH=ecp5 -DTRELLIS_INSTALL_PREFIX=/usr/local && \
     make -j$(nproc) && \
-    make install
+    make install && \
+    make clean
