@@ -194,6 +194,9 @@ _optypes_by_extensions = {
         OpType.MUL,
         OpType.DIV_REM,
     ],
+    Extension.ZMMUL: [
+        OpType.MUL,
+    ],
 }
 
 
