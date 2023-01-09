@@ -179,13 +179,12 @@ class Extension(IntFlag):
     ZBS = auto()
     #: Total store ordering
     ZTSO = auto()
+    #: General extension containing all basic operations
+    G = I | M | A | F | D | ZICSR | ZIFENCEI
 
 
 # Mapping of names to corresponding extension
-_extension_map = {str(e.name).lower(): e.value for e in Extension}
-_extension_map["g"] = (
-    Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.ZICSR | Extension.ZIFENCEI
-)
+_extension_map = {e.name.lower(): e.value for e in Extension}
 
 # Extensions which are mutually exclusive
 _extension_exclusive = [[Extension.I, Extension.E]]
@@ -233,6 +232,7 @@ class ISA:
             String identifying a specific RISC-V ISA. Please refer to GCC's
             machine-dependent ``arch`` option for details.
         """
+        isa_str = isa_str.lower()
         if isa_str[0:2] != "rv":
             raise RuntimeError("Invalid ISA string " + isa_str)
         xlen_str = "".join(takewhile(str.isdigit, isa_str[2:]))
@@ -263,10 +263,10 @@ class ISA:
             self.extensions |= val
 
         for es in extensions_str.split("_"):
-            for i in range(len(es)):
-                if es[i] in _extension_map.keys():
+            for i, e in enumerate(es):
+                if es[i] in _extension_map:
                     parse_extension(es[i])
-                elif es[i:] in _extension_map.keys():
+                elif es[i:] in _extension_map:
                     parse_extension(es[i:])
                     break
                 else:

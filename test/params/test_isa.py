@@ -14,6 +14,7 @@ class TestISA(unittest.TestCase):
 
     ISA_TESTS = [
         ISATestEntry("rv32i", True, 32, 32, Extension.I),
+        ISATestEntry("RV32I", True, 32, 32, Extension.I),
         ISATestEntry("rv32ima", True, 32, 32, Extension.I | Extension.M | Extension.A),
         ISATestEntry(
             "rv32imafdc_zicsr",
@@ -58,6 +59,20 @@ class TestISA(unittest.TestCase):
             | Extension.ZICSR,
         ),
         ISATestEntry(
+            "rv32imafdczifencei_zicsr",
+            True,
+            32,
+            32,
+            Extension.I
+            | Extension.M
+            | Extension.A
+            | Extension.F
+            | Extension.D
+            | Extension.C
+            | Extension.ZIFENCEI
+            | Extension.ZICSR,
+        ),
+        ISATestEntry(
             "rv32i_m_a_f_d_c_zifencei_zicsr",
             True,
             32,
@@ -86,7 +101,6 @@ class TestISA(unittest.TestCase):
         ISATestEntry("rv32fdc", False),
         ISATestEntry("rv32izicsrzmmul", False),
         ISATestEntry("rv64imadc", False),
-        ISATestEntry("RV32g_c", False),
         ISATestEntry("rvima", False),
         ISATestEntry("rv42i", False),
     ]
