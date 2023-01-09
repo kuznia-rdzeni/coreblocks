@@ -1,28 +1,12 @@
 from amaranth import *
-from typing import Protocol
 from coreblocks.params import GenParams
-from coreblocks.params.isa import OpType
 from coreblocks.params.layouts import FuncUnitLayouts, RSLayouts
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
+from coreblocks.utils.protocols import FuncUnit
 
 __all__ = ["RSFuncBlock"]
-
-
-# TODO: where to put stuff like this?
-class FuncUnit(Protocol):
-    optypes: set[OpType]
-    issue: Method
-    accept: Method
-
-
-class FuncBlock(Protocol):
-    optypes: set[OpType]
-    insert: Method
-    select: Method
-    update: Method
-    get_result: Method
 
 
 class RSFuncBlock(Elaboratable):
