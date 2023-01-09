@@ -1,5 +1,7 @@
+from typing import Iterable, Optional
 from amaranth import Elaboratable, Module
 from amaranth.sim import Settle
+from coreblocks.params.isa import OpType
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
@@ -27,13 +29,14 @@ def create_check_list(gp: GenParams, insert_list: list[dict]) -> list[dict]:
 
 
 class TestElaboratable(Elaboratable, AutoDebugSignals):
-    def __init__(self, gen_params: GenParams) -> None:
+    def __init__(self, gen_params: GenParams, ready_for: Optional[Iterable[Iterable[OpType]]] = None) -> None:
         self.gp = gen_params
+        self.ready_for = ready_for
 
     def elaborate(self, platform) -> TransactionModule:
         m = Module()
         tm = TransactionModule(m)
-        rs = RS(self.gp)
+        rs = RS(self.gp, self.ready_for)
 
         self.rs = rs
         self.io_select = TestbenchIO(AdapterTrans(rs.select))
@@ -41,14 +44,15 @@ class TestElaboratable(Elaboratable, AutoDebugSignals):
         self.io_update = TestbenchIO(AdapterTrans(rs.update))
         self.io_take = TestbenchIO(AdapterTrans(rs.take))
         # TODO: test multiple ready lists
-        self.io_get_ready_list = TestbenchIO(AdapterTrans(rs.get_ready_list[0]))
+        self.io_get_ready_list = [TestbenchIO(AdapterTrans(get_ready_list)) for get_ready_list in rs.get_ready_list]
 
         m.submodules.rs = rs
         m.submodules.io_select = self.io_select
         m.submodules.io_insert = self.io_insert
         m.submodules.io_update = self.io_update
         m.submodules.io_take = self.io_take
-        m.submodules.io_get_ready_list = self.io_get_ready_list
+        for n, io_get_ready_list in enumerate(self.io_get_ready_list):
+            setattr(m.submodules, f"io_get_ready_list_{n}", io_get_ready_list)
 
         return tm
 
@@ -385,17 +389,72 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
         yield Settle()
 
         # Check ready vector integrity
-        ready_list = (yield from self.m.io_get_ready_list.call())["ready_list"]
+        ready_list = (yield from self.m.io_get_ready_list[0].call())["ready_list"]
         self.assertEqual(ready_list, 0b0011)
 
         # Take first record and check ready vector integrity
         yield from self.m.io_take.call({"rs_entry_id": 0})
         yield Settle()
-        ready_list = (yield from self.m.io_get_ready_list.call())["ready_list"]
+        ready_list = (yield from self.m.io_get_ready_list[0].call())["ready_list"]
         self.assertEqual(ready_list, 0b0010)
 
         # Take second record and check ready vector integrity
         yield from self.m.io_take.call({"rs_entry_id": 1})
         yield Settle()
-        option_ready_list = yield from self.m.io_get_ready_list.call_try()
-        self.assertEqual(option_ready_list, None)
+        option_ready_list = yield from self.m.io_get_ready_list[0].call_try()
+        self.assertIsNone(option_ready_list)
+
+
+class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
+    def test_two_get_ready_lists(self):
+        self.gp = GenParams("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
+        self.m = TestElaboratable(self.gp, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]])
+        self.insert_list = [
+            {
+                "rs_entry_id": id,
+                "rs_data": {
+                    "rp_s1": 0,
+                    "rp_s2": 0,
+                    "rp_dst": id * 2,
+                    "rob_id": id,
+                    "exec_fn": {
+                        "op_type": OpType(id + 1),
+                        "funct3": 2,
+                        "funct7": 3,
+                    },
+                    "s1_val": id,
+                    "s2_val": id,
+                    "imm": id,
+                },
+            }
+            for id in range(self.gp.rs_entries)
+        ]
+        self.check_list = create_check_list(self.gp, self.insert_list)
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.simulation_process)
+
+    def simulation_process(self):
+        # After each insert, entry should be marked as full
+        for record in self.insert_list:
+            yield from self.m.io_insert.call(record)
+        yield Settle()
+
+        masks = [0b0011, 0b1100]
+
+        for i in range(self.gp.rs_entries + 1):
+            # Check ready vectors' integrity
+            for j in range(2):
+                ready_list = yield from self.m.io_get_ready_list[j].call_try()
+                if masks[j]:
+                    self.assertEqual(ready_list, {"ready_list": masks[j]})
+                else:
+                    self.assertIsNone(ready_list)
+
+            # Take a record
+            if i == self.gp.rs_entries:
+                break
+            yield from self.m.io_take.call({"rs_entry_id": i})
+            yield Settle()
+
+            masks = [mask & ~(1 << i) for mask in masks]

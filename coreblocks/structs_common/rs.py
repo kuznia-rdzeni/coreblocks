@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
 from coreblocks.params.isa import OpType
@@ -10,7 +10,8 @@ __all__ = ["RS"]
 
 
 class RS(Elaboratable):
-    def __init__(self, gen_params: GenParams, ready_for: Iterable[Iterable[OpType]] = ((op for op in OpType),)) -> None:
+    def __init__(self, gen_params: GenParams, ready_for: Optional[Iterable[Iterable[OpType]]] = None) -> None:
+        ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
         self.layouts = gen_params.get(RSLayouts)
         self.internal_layout = [
