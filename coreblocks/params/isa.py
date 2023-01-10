@@ -157,9 +157,9 @@ class Extension(IntFlag):
     ZIHPM = auto()
     #: Misaligned atomic operations
     ZAM = auto()
-    #: Half precision floating-point operations (16-bit) F
+    #: Half precision floating-point operations (16-bit)
     ZFH = auto()
-    #: Minimal support for Half precision floating-point operations (16-bit) F
+    #: Minimal support for Half precision floating-point operations (16-bit)
     ZFHMIN = auto()
     #: Support for single precision floating-point operations in integer registers
     ZFINX = auto()
@@ -184,22 +184,30 @@ class Extension(IntFlag):
 
 
 # Mapping of names to corresponding extension
-_extension_map = {e.name.lower(): e.value for e in Extension}
+_extension_map = {e.name.lower(): e for e in Extension if e.name}
 
 # Extensions which are mutually exclusive
-_extension_exclusive = [[Extension.I, Extension.E]]
+_extension_exclusive = [
+    [Extension.I, Extension.E],
+]
 
-# Extensions which require another extension in order to be valid
+# Extensions which explicitly require another extension in order to be valid (can be joined using | operator)
 _extension_requirements = {
-    Extension.F: [Extension.ZICSR],
-    Extension.D: [Extension.F],
-    Extension.Q: [Extension.D],
-    Extension.ZAM: [Extension.A],
-    Extension.ZFH: [Extension.F],
-    Extension.ZFHMIN: [Extension.F],
-    Extension.ZFINX: [Extension.F],
-    Extension.ZDINX: [Extension.D],
-    Extension.ZHINX: [Extension.ZFH],
+    Extension.D: Extension.F,
+    Extension.Q: Extension.D,
+    Extension.ZAM: Extension.A,
+    Extension.ZFH: Extension.F,
+    Extension.ZFHMIN: Extension.F,
+    Extension.ZFINX: Extension.F,
+    Extension.ZDINX: Extension.D,
+    Extension.ZHINX: Extension.ZFH,
+}
+
+# Extensions which implicitly imply another extensions (can be joined using | operator)
+_extension_implications = {
+    Extension.F: Extension.ZICSR,
+    Extension.M: Extension.ZMMUL,
+    Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
 }
 
 
@@ -254,7 +262,7 @@ class ISA:
         if extensions_str[0] not in ["i", "e", "g"]:
             raise RuntimeError("Invalid first letter of ISA extensions string " + extensions_str[0])
 
-        self.extensions = 0x0
+        self.extensions = Extension(0)
 
         def parse_extension(e):
             val = _extension_map[e]
@@ -264,8 +272,8 @@ class ISA:
 
         for es in extensions_str.split("_"):
             for i, e in enumerate(es):
-                if es[i] in _extension_map:
-                    parse_extension(es[i])
+                if e in _extension_map:
+                    parse_extension(e)
                 elif es[i:] in _extension_map:
                     parse_extension(es[i:])
                     break
@@ -275,18 +283,22 @@ class ISA:
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
 
+        for (ext, imply) in _extension_implications.items():
+            if ext in self.extensions:
+                self.extensions |= imply
+
         for exclusive in _extension_exclusive:
             for i in range(len(exclusive)):
                 for j in range(i + 1, len(exclusive)):
-                    if self.extensions & (exclusive[i] | exclusive[j]) == (exclusive[i] | exclusive[j]):
+                    if exclusive[i] | exclusive[j] in self.extensions:
                         raise RuntimeError(
                             f"ISA extensions {exclusive[i].name} and {exclusive[j].name} are mutually exclusive"
                         )
 
         for (ext, requirements) in _extension_requirements.items():
-            if self.extensions & ext == ext:
-                for req in requirements:
-                    if self.extensions & req == 0:
+            if ext in self.extensions and requirements not in self.extensions:
+                for req in Extension:
+                    if req in requirements and req not in self.extensions:
                         raise RuntimeError(
                             f"ISA extension {ext.name} requires the {req.name} extension to be supported"
                         )
