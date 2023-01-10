@@ -1,4 +1,5 @@
 from parameterized import parameterized_class
+from typing import Dict
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams
 from coreblocks.fu.mul_unit import MulUnit, MulFn
@@ -9,21 +10,21 @@ from test.common import signed_to_int, int_to_signed
 from test.fu.functional_common import GenericFunctionalTestUnit
 
 
-def compute_result(i1: int, i2: int, fn: MulFn.Fn, xlen: int) -> int:
+def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: MulFn.Fn, xlen: int) -> Dict[str, int]:
     signed_i1 = signed_to_int(i1, xlen)
     signed_i2 = signed_to_int(i2, xlen)
     if fn == MulFn.Fn.MUL:
-        return (i1 * i2) % (2**xlen)
+        return {"result": (i1 * i2) % (2**xlen)}
     elif fn == MulFn.Fn.MULH:
-        return int_to_signed(signed_i1 * signed_i2, 2 * xlen) // (2**xlen)
+        return {"result": int_to_signed(signed_i1 * signed_i2, 2 * xlen) // (2**xlen)}
     elif fn == MulFn.Fn.MULHU:
-        return i1 * i2 // (2**xlen)
+        return {"result": i1 * i2 // (2**xlen)}
     elif fn == MulFn.Fn.MULHSU:
-        return int_to_signed(signed_i1 * i2, 2 * xlen) // (2**xlen)
+        return {"result": int_to_signed(signed_i1 * i2, 2 * xlen) // (2**xlen)}
     else:
         signed_half_i1 = signed_to_int(i1 % (2 ** (xlen // 2)), xlen // 2)
         signed_half_i2 = signed_to_int(i2 % (2 ** (xlen // 2)), xlen // 2)
-        return int_to_signed(signed_half_i1 * signed_half_i2, xlen)
+        return {"result": int_to_signed(signed_half_i1 * signed_half_i2, xlen)}
 
 
 ops = {
