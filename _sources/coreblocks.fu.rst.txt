@@ -20,6 +20,14 @@ coreblocks.fu.alu module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.fu.jumpbranch module
+-------------------------------
+
+.. automodule:: coreblocks.fu.jumpbranch
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.fu.mul\_unit module
 ------------------------------
 
