@@ -1,5 +1,6 @@
 import unittest
 import os
+import functools
 from contextlib import contextmanager, nullcontext
 from typing import Callable, Mapping, Union, Generator, TypeVar, Optional, Any, cast
 
@@ -234,3 +235,104 @@ class TestbenchIO(Elaboratable):
 
     def debug_signals(self) -> DebugSignals:
         return self.adapter.debug_signals()
+
+
+def def_method_mock(
+    tb_getter: Callable[[], TestbenchIO], **kwargs
+) -> Callable[[Callable[[RecordIntDictRet], Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
+    """
+    Decorator function to create method mock handlers. It should be applied on
+    a function which describes functionality which we want to invoke on method call.
+    Such function will be wrapped by `method_handle_loop` and called on each
+    method invocation.
+
+    Use to wrap plain functions, not class methods. For wrapping class methods please
+    see `def_class_method_mock`.
+
+    Function `f` should take only one argument - data used in function invocation - and
+    should return data which will be sent as response to method call.
+
+    Please remember that decorators are fully evaluated when function is defined.
+
+    Parameters
+    ----------
+    tbb_getter : Callable[[], TestbenchIO]
+        Function which will be called to get TestbenchIO from which `method_handle_loop`
+        should be used.
+    **kwargs
+        Arguments passed to `method_handle_loop`.
+
+    Example
+    -------
+    ```
+    m = TestCircuit()
+    def target_process(k: int):
+        @def_method_mock(lambda: m.target[k], settle=1, enable=False)
+        def process(v):
+            return {"data": v["data"] + k}
+        return process
+    ```
+    """
+
+    def decorator(func: Callable[[RecordIntDictRet], Optional[RecordIntDict]]) -> Callable[[], TestGen[None]]:
+        @functools.wraps(func)
+        def mock() -> TestGen[None]:
+            tb = tb_getter()
+            f = func
+            assert isinstance(tb, TestbenchIO)
+            yield from tb.method_handle_loop(f, **kwargs)
+
+        return mock
+
+    return decorator
+
+
+def def_class_method_mock(
+    tb_getter: Callable[[Any], TestbenchIO], **kwargs
+) -> Callable[[Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]]], Callable[[Any], TestGen[None]]]:
+    """
+    Decorator function to create method mock handlers. It should be applied on
+    a function which describe functionality which we wan't to invoke on method call.
+    Such function will be wrapped by `method_handle_loop` and called on each
+    method invocation.
+
+    Use to wrap class methods, not functions. For wrapping plain functions please
+    see `def_method_mock`.
+
+    Function `f` should take two arguments `self` and data which will be passed on
+    to invoke a method. This function should return data which will be sent
+    as response to method call.
+
+    Make sure to defer accessing state, since decorators are evaluated eagerly
+    during function declaration.
+
+    Parameters
+    ----------
+    tb_getter : Callable[[self], TestbenchIO]
+        Function which will be called to get TestbenchIO from which `method_handle_loop`
+        should be used. That function should take only one argument - `self`.
+    **kwargs
+        Arguments passed to `method_handle_loop`.
+
+    Example
+    -------
+    ```
+    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    def target(self, v):
+        return {"data": v["data"] + 1}
+    ```
+    """
+
+    def decorator(func: Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]]):
+        @functools.wraps(func)
+        def mock(self) -> TestGen[None]:
+            def partial_func(x):
+                return func(self, x)
+
+            tb = tb_getter(self)
+            assert isinstance(tb, TestbenchIO)
+            yield from tb.method_handle_loop(partial_func, **kwargs)
+
+        return mock
+
+    return decorator
