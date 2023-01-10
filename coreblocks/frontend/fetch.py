@@ -49,6 +49,9 @@ class Fetch(Elaboratable):
             fetched = self.bus.result(m)
 
             with m.If(fetched.err == 0):
+                # bits 4:7 currently are enough to uniquely distinguish jumps and branches,
+                # but this could potentially change in the future since there's a reserved
+                # (currently unused) bit pattern in the spec, see table 19.1 in RISC-V spec v2.2
                 is_branch = fetched.data[4:7] == 0b110
                 with m.If(is_branch):
                     m.d.sync += stalled.eq(1)
