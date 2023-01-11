@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Iterable, Literal, Mapping, Optional, overload
+from typing import Iterable, Literal, Mapping, Optional, cast, overload
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from ._typing import ValueLike
@@ -115,7 +115,7 @@ def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
 
     elems = list(flatten_elems(proxy))
     if elems and all(isinstance(el, Record) for el in elems):
-        return set.intersection(*[set(el.fields) for el in elems])
+        return set.intersection(*[set(cast(Record, el).fields) for el in elems])
 
 
 def valuelike_fields(val: ValueLike) -> Optional[set[str]]:
@@ -126,7 +126,7 @@ def valuelike_fields(val: ValueLike) -> Optional[set[str]]:
 
 
 def assign(
-    lhs: Signal | Record | ArrayProxy, rhs: ValueLike, *, fields: AssignFields = AssignType.RHS
+    lhs: Value | Record | ArrayProxy, rhs: ValueLike, *, fields: AssignFields = AssignType.RHS
 ) -> Iterable[Assign]:
     """Safe record assignment.
 

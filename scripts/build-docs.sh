@@ -53,7 +53,7 @@ then
     exit 0
 fi
 
-$ROOT_PATH/scripts/core_graph -f mermaid $DOCS_DIR/auto_graph.rst
+$ROOT_PATH/scripts/core_graph -p -f mermaid $DOCS_DIR/auto_graph.rst
 sed -i -e '1i\.. mermaid::\n' -e 's/^/   /' $DOCS_DIR/auto_graph.rst
 
 sphinx-apidoc -o $DOCS_DIR $ROOT_PATH/coreblocks/
