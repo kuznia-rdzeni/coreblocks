@@ -20,6 +20,14 @@ coreblocks.utils.fifo module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.utils.protocols module
+---------------------------------
+
+.. automodule:: coreblocks.utils.protocols
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.utils.utils module
 -----------------------------
 

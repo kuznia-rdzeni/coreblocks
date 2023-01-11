@@ -20,6 +20,14 @@ coreblocks.stages.retirement module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.stages.rs\_func\_block module
+----------------------------------------
+
+.. automodule:: coreblocks.stages.rs_func_block
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 
