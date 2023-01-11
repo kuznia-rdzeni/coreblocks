@@ -1,6 +1,5 @@
 from itertools import takewhile
-from enum import unique, Enum, IntEnum, IntFlag
-
+from enum import unique, Enum, IntEnum, IntFlag, auto
 
 __all__ = [
     "InstrType",
@@ -32,6 +31,7 @@ class Opcode(IntEnum):
     LUI = 0b01101
     AUIPC = 0b00101
     OP = 0b01100
+    OP32 = 0b01110
     JAL = 0b11011
     JALR = 0b11001
     BRANCH = 0b11000
@@ -42,19 +42,20 @@ class Opcode(IntEnum):
 
 
 class Funct3(IntEnum):
-    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = 0b000
-    BNE = H = SLL = FENCEI = CSRRW = 0b001
-    W = SLT = CSRRS = 0b010
-    SLTU = CSRRC = 0b011
-    BLT = BU = XOR = 0b100
-    BGE = HU = SR = CSRRWI = 0b101
-    BLTU = OR = CSRRSI = 0b110
-    BGEU = AND = CSRRCI = 0b111
+    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
+    BNE = H = SLL = FENCEI = CSRRW = MULH = 0b001
+    W = SLT = CSRRS = MULHSU = 0b010
+    SLTU = CSRRC = MULHU = 0b011
+    BLT = BU = XOR = DIV = DIVW = 0b100
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = 0b101
+    BLTU = OR = CSRRSI = REM = REMW = 0b110
+    BGEU = AND = CSRRCI = REMU = REMUW = 0b111
 
 
 class Funct7(IntEnum):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = 0b0100000
+    MULDIV = 0b0000001
 
 
 class Funct12(IntEnum):
@@ -80,49 +81,133 @@ class FenceFm(IntEnum):
 
 @unique
 class OpType(IntEnum):
-    UNKNOWN = 0
-    ARITHMETIC = 1
-    COMPARE = 2
-    LOGIC = 3
-    SHIFT = 4
-    AUIPC = 5
-    JUMP = 6
-    BRANCH = 7
-    LOAD = 8
-    STORE = 9
-    FENCE = 10
-    ECALL = 11
-    EBREAK = 12
-    MRET = 13
-    WFI = 14
-    FENCEI = 15
-    CSR = 16
+    """
+    Enum of operation types. Do not confuse with Opcode.
+    """
+
+    UNKNOWN = auto()  # needs to be first
+    ARITHMETIC = auto()
+    COMPARE = auto()
+    LOGIC = auto()
+    SHIFT = auto()
+    AUIPC = auto()
+    JAL = auto()
+    JALR = auto()
+    BRANCH = auto()
+    LOAD = auto()
+    STORE = auto()
+    FENCE = auto()
+    ECALL = auto()
+    EBREAK = auto()
+    MRET = auto()
+    WFI = auto()
+    FENCEI = auto()
+    CSR = auto()
+    MUL = auto()
+    DIV_REM = auto()
 
 
 @unique
 class Extension(IntFlag):
-    E = 0x001
-    I = 0x002  # noqa: E741
-    M = 0x004
-    A = 0x008
-    F = 0x010
-    D = 0x020
-    C = 0x040
-    ZIFENCEI = 0x080
-    ZICSR = 0x100
+    """
+    Enum of available RISC-V extensions.
+    """
+
+    #: Reduced integer operations
+    E = auto()
+    #: Full integer operations
+    I = auto()  # noqa: E741
+    #: Integer multiplication and division
+    M = auto()
+    #: Atomic operations
+    A = auto()
+    #: Single precision floating-point operations (32-bit)
+    F = auto()
+    #: Double precision floating-point operations (64-bit)
+    D = auto()
+    #: Quad precision floating-point operations (128-bit)
+    Q = auto()
+    #: Decimal floating-point operation
+    L = auto()
+    #: 16-bit compressed instructions
+    C = auto()
+    #: Bit manipulation operations
+    B = auto()
+    #: Dynamic languages
+    J = auto()
+    #: Transactional memory
+    T = auto()
+    #: Packed-SIMD extensions
+    P = auto()
+    #: Vector operations
+    V = auto()
+    #: User-level interruptions
+    N = auto()
+    #: Control and Status Register access
+    ZICSR = auto()
+    #: Instruction-Fetch fence operations
+    ZIFENCEI = auto()
+    #: Enables sending pause hint for energy saving
+    ZIHINTPAUSE = auto()
+    #: Enables non-temporal locality hints
+    ZIHINTNTL = auto()
+    #: Enables base counters and timers
+    ZICNTR = auto()
+    #: Enables hardware performance counters
+    ZIHPM = auto()
+    #: Misaligned atomic operations
+    ZAM = auto()
+    #: Half precision floating-point operations (16-bit)
+    ZFH = auto()
+    #: Minimal support for Half precision floating-point operations (16-bit)
+    ZFHMIN = auto()
+    #: Support for single precision floating-point operations in integer registers
+    ZFINX = auto()
+    #: Support for double precision floating-point operations in integer registers
+    ZDINX = auto()
+    #: Support for half precision floating-point operations in integer registers
+    ZHINX = auto()
+    #: Integer multiplication operations
+    ZMMUL = auto()
+    #: Extended shift operations
+    ZBA = auto()
+    #: Basic bit manipulation operations
+    ZBB = auto()
+    #: Carry-less multiplication operations
+    ZBC = auto()
+    #: Single bit operations
+    ZBS = auto()
+    #: Total store ordering
+    ZTSO = auto()
+    #: General extension containing all basic operations
+    G = I | M | A | F | D | ZICSR | ZIFENCEI
 
 
-_extension_map = {
-    "e": Extension.E,
-    "i": Extension.I,
-    "g": Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.ZICSR | Extension.ZIFENCEI,
-    "m": Extension.M,
-    "a": Extension.A,
-    "f": Extension.F,
-    "d": Extension.D,
-    "c": Extension.C,
-    "zicsr": Extension.ZICSR,
-    "zifencei": Extension.ZIFENCEI,
+# Mapping of names to corresponding extension
+_extension_map = {e.name.lower(): e for e in Extension if e.name}
+
+# Extensions which are mutually exclusive
+_extension_exclusive = [
+    [Extension.I, Extension.E],
+]
+
+# Extensions which explicitly require another extension in order to be valid (can be joined using | operator)
+_extension_requirements = {
+    Extension.D: Extension.F,
+    Extension.Q: Extension.D,
+    Extension.ZAM: Extension.A,
+    Extension.ZFH: Extension.F,
+    Extension.ZFHMIN: Extension.F,
+    Extension.ZFINX: Extension.F,
+    Extension.ZDINX: Extension.D,
+    Extension.ZHINX: Extension.ZFH,
+}
+
+# Extensions which implicitly imply another extensions (can be joined using | operator)
+_extension_implications = {
+    Extension.F: Extension.ZICSR,
+    Extension.M: Extension.ZMMUL,
+    Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
 }
 
 
@@ -133,15 +218,9 @@ class ISA:
     For each of the numeric configuration value ``val``, a corresponding
     ``val_log`` field is provided if relevant.
 
-    Parameters
+    Attributes
     ----------
-    isa_str: str
-             String identifying a specific RISC-V ISA. Please refer to GCC's
-             machine-dependent ``arch`` option for details.
-
-    Configuration constants
-    ----------
-    xlen:
+    xlen : int
         Native integer register width.
     reg_cnt:
         Number of integer registers.
@@ -154,6 +233,14 @@ class ISA:
     """
 
     def __init__(self, isa_str: str):
+        """
+        Parameters
+        ----------
+        isa_str : str
+            String identifying a specific RISC-V ISA. Please refer to GCC's
+            machine-dependent ``arch`` option for details.
+        """
+        isa_str = isa_str.lower()
         if isa_str[0:2] != "rv":
             raise RuntimeError("Invalid ISA string " + isa_str)
         xlen_str = "".join(takewhile(str.isdigit, isa_str[2:]))
@@ -175,31 +262,46 @@ class ISA:
         if extensions_str[0] not in ["i", "e", "g"]:
             raise RuntimeError("Invalid first letter of ISA extensions string " + extensions_str[0])
 
-        self.extensions = 0x0
+        self.extensions = Extension(0)
 
-        def parseExtension(e):
+        def parse_extension(e):
             val = _extension_map[e]
             if self.extensions & val:
                 raise RuntimeError("Duplication in ISA extensions string")
             self.extensions |= val
 
         for es in extensions_str.split("_"):
-            if es in _extension_map.keys():
-                parseExtension(es)
-            else:
-                for e in es:
-                    if e not in _extension_map.keys():
-                        raise RuntimeError("Unknown extension letter in ISA extensions string " + e)
-                    parseExtension(e)
-
-        if self.extensions & (Extension.E | Extension.I) == (Extension.E | Extension.I):
-            raise RuntimeError("ISA extension string contains both E and I extensions")
+            for i, e in enumerate(es):
+                if e in _extension_map:
+                    parse_extension(e)
+                elif es[i:] in _extension_map:
+                    parse_extension(es[i:])
+                    break
+                else:
+                    raise RuntimeError(f"Neither {es[i]} nor {es[i:]} is a valid extension in {es}")
 
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
 
-        if self.extensions & (Extension.F | Extension.D) == Extension.D:
-            raise RuntimeError("ISA extension D requires the F extension to be supported")
+        for (ext, imply) in _extension_implications.items():
+            if ext in self.extensions:
+                self.extensions |= imply
+
+        for exclusive in _extension_exclusive:
+            for i in range(len(exclusive)):
+                for j in range(i + 1, len(exclusive)):
+                    if exclusive[i] | exclusive[j] in self.extensions:
+                        raise RuntimeError(
+                            f"ISA extensions {exclusive[i].name} and {exclusive[j].name} are mutually exclusive"
+                        )
+
+        for (ext, requirements) in _extension_requirements.items():
+            if ext in self.extensions and requirements not in self.extensions:
+                for req in Extension:
+                    if req in requirements and req not in self.extensions:
+                        raise RuntimeError(
+                            f"ISA extension {ext.name} requires the {req.name} extension to be supported"
+                        )
 
         if self.extensions & Extension.E:
             self.reg_cnt = 16

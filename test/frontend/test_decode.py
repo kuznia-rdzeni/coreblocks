@@ -2,6 +2,7 @@ from amaranth import Elaboratable, Module
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, FIFO
+from coreblocks.utils import AutoDebugSignals
 
 from ..common import TestCaseWithSimulator, TestbenchIO
 
@@ -9,7 +10,7 @@ from coreblocks.frontend.decode import Decode
 from coreblocks.params import GenParams, FetchLayouts, DecodeLayouts, OpType, Opcode, Funct3, Funct7
 
 
-class TestElaboratable(Elaboratable):
+class TestElaboratable(Elaboratable, AutoDebugSignals):
     def __init__(self, gen_params: GenParams):
         self.gp = gen_params
 
@@ -74,5 +75,5 @@ class TestFetch(TestCaseWithSimulator):
 
     def test(self):
 
-        with self.runSimulation(self.test_module) as sim:
+        with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.decode_test_proc)

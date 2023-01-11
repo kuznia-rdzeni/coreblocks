@@ -7,6 +7,7 @@ from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
+from coreblocks.utils import OneHotSwitch, AutoDebugSignals
 
 __all__ = ["AluFuncUnit"]
 
@@ -29,7 +30,7 @@ class AluFn(Signal):
         super().__init__(AluFn.Fn, *args, **kwargs)
 
 
-class Alu(Elaboratable):
+class Alu(Elaboratable, AutoDebugSignals):
     def __init__(self, gen: GenParams):
         self.gen = gen
 
@@ -45,30 +46,27 @@ class Alu(Elaboratable):
         xlen = self.gen.isa.xlen
         xlen_log = self.gen.isa.xlen_log
 
-        with m.Switch(self.fn):
-            with m.Case(AluFn.Fn.ADD):
+        with OneHotSwitch(m, self.fn) as OneHotCase:
+            with OneHotCase(AluFn.Fn.ADD):
                 m.d.comb += self.out.eq(self.in1 + self.in2)
-            with m.Case(AluFn.Fn.SLL):
+            with OneHotCase(AluFn.Fn.SLL):
                 m.d.comb += self.out.eq(self.in1 << self.in2[0:xlen_log])
-            with m.Case(AluFn.Fn.XOR):
+            with OneHotCase(AluFn.Fn.XOR):
                 m.d.comb += self.out.eq(self.in1 ^ self.in2)
-            with m.Case(AluFn.Fn.SRL):
+            with OneHotCase(AluFn.Fn.SRL):
                 m.d.comb += self.out.eq(self.in1 >> self.in2[0:xlen_log])
-            with m.Case(AluFn.Fn.OR):
+            with OneHotCase(AluFn.Fn.OR):
                 m.d.comb += self.out.eq(self.in1 | self.in2)
-            with m.Case(AluFn.Fn.AND):
+            with OneHotCase(AluFn.Fn.AND):
                 m.d.comb += self.out.eq(self.in1 & self.in2)
-            with m.Case(AluFn.Fn.SUB):
+            with OneHotCase(AluFn.Fn.SUB):
                 m.d.comb += self.out.eq(self.in1 - self.in2)
-            with m.Case(AluFn.Fn.SRA):
+            with OneHotCase(AluFn.Fn.SRA):
                 m.d.comb += self.out.eq(Cat(self.in1, Repl(self.in1[xlen - 1], xlen)) >> self.in2[0:xlen_log])
-            with m.Case(AluFn.Fn.SLT):
+            with OneHotCase(AluFn.Fn.SLT):
                 m.d.comb += self.out.eq(self.in1.as_signed() < self.in2.as_signed())
-            with m.Case(AluFn.Fn.SLTU):
+            with OneHotCase(AluFn.Fn.SLTU):
                 m.d.comb += self.out.eq(self.in1 < self.in2)
-
-            with m.Default():
-                m.d.comb += self.out.eq(0)
 
         # so that Amaranth allows us to use add_clock
         dummy = Signal()

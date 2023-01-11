@@ -11,8 +11,11 @@ __all__ = [
     "AdapterTrans",
     "Adapter",
     "ConnectTrans",
+    "ConnectAndTransformTrans",
     "CatTrans",
     "ManyToOneConnectTrans",
+    "MethodFilter",
+    "MethodProduct",
 ]
 
 # FIFOs
@@ -29,16 +32,6 @@ class FIFO(Elaboratable):
     It is possible to simultaneously read and write in a single clock cycle,
     but only if both readiness conditions are fulfilled.
 
-    Parameters
-    ----------
-    layout: int or record layout
-        The format of records stored in the FIFO.
-    depth: int
-        Size of the FIFO.
-    fifoType: Elaboratable
-        FIFO module conforming to Amaranth library FIFO interface. Defaults
-        to SyncFIFO.
-
     Attributes
     ----------
     read: Method
@@ -47,11 +40,22 @@ class FIFO(Elaboratable):
         The write method. Accepts a ``Record``, returns empty result.
     """
 
-    def __init__(self, layout: MethodLayout, depth: int, fifoType=amaranth.lib.fifo.SyncFIFO):
+    def __init__(self, layout: MethodLayout, depth: int, fifo_type=amaranth.lib.fifo.SyncFIFO):
+        """
+        Parameters
+        ----------
+        layout: int or record layout
+            The format of records stored in the FIFO.
+        depth: int
+            Size of the FIFO.
+        fifoType: Elaboratable
+            FIFO module conforming to Amaranth library FIFO interface. Defaults
+            to SyncFIFO.
+        """
         layout = _coerce_layout(layout)
         self.width = len(Record(layout))
         self.depth = depth
-        self.fifoType = fifoType
+        self.fifoType = fifo_type
 
         self.read = Method(o=layout)
         self.write = Method(i=layout)
@@ -87,11 +91,6 @@ class ClickIn(Elaboratable):
     is enabled, which returns the data present on ``dat`` at the time.
     Inputs are synchronized.
 
-    Parameters
-    ----------
-    layout: int or record layout
-        The data format for the input.
-
     Attributes
     ----------
     get: Method
@@ -104,6 +103,12 @@ class ClickIn(Elaboratable):
     """
 
     def __init__(self, layout: MethodLayout = 1):
+        """
+        Parameters
+        ----------
+        layout: int or record layout
+            The data format for the input.
+        """
         self.get = Method(o=layout)
         self.btn = Signal()
         self.dat = Record(_coerce_layout(layout))
@@ -142,11 +147,6 @@ class ClickOut(Elaboratable):
     On a rising edge (tested synchronously) of ``btn``, the ``put`` method
     is enabled, which, when called, changes the value of the ``dat`` signal.
 
-    Parameters
-    ----------
-    layout: int or record layout
-        The data format for the output.
-
     Attributes
     ----------
     put: Method
@@ -159,6 +159,12 @@ class ClickOut(Elaboratable):
     """
 
     def __init__(self, layout: MethodLayout = 1):
+        """
+        Parameters
+        ----------
+        layout: int or record layout
+            The data format for the output.
+        """
         self.put = Method(i=layout)
         self.btn = Signal()
         self.dat = Record(_coerce_layout(layout))
@@ -197,11 +203,6 @@ class AdapterTrans(AdapterBase):
     Creates a transaction controlled by plain Amaranth signals. Allows to
     expose a method to plain Amaranth code, including testbenches.
 
-    Parameters
-    ----------
-    iface: Method
-        The method to be called by the transaction.
-
     Attributes
     ----------
     en: Signal, in
@@ -216,6 +217,12 @@ class AdapterTrans(AdapterBase):
     """
 
     def __init__(self, iface: Method):
+        """
+        Parameters
+        ----------
+        iface: Method
+            The method to be called by the transaction.
+        """
         super().__init__(iface)
         self.data_in = Record.like(iface.data_in)
         self.data_out = Record.like(iface.data_out)
@@ -241,13 +248,6 @@ class Adapter(AdapterBase):
     Creates a method controlled by plain Amaranth signals. One of the
     possible uses is to mock a method in a testbench.
 
-    Parameters
-    ----------
-    i: int or record layout
-        The input layout of the defined method.
-    o: int or record layout
-        The output layout of the defined method.
-
     Attributes
     ----------
     en: Signal, in
@@ -261,6 +261,14 @@ class Adapter(AdapterBase):
     """
 
     def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0):
+        """
+        Parameters
+        ----------
+        i: int or record layout
+            The input layout of the defined method.
+        o: int or record layout
+            The output layout of the defined method.
+        """
         super().__init__(Method(i=i, o=o))
         self.data_in = Record.like(self.iface.data_out)
         self.data_out = Record.like(self.iface.data_in)
@@ -281,7 +289,7 @@ class Adapter(AdapterBase):
         return m
 
 
-# Method transformer
+# Method combinators
 
 
 class MethodTransformer(Elaboratable):
@@ -292,19 +300,6 @@ class MethodTransformer(Elaboratable):
     The transformation functions take two parameters, a ``Module`` and the
     ``Record`` being transformed. Alternatively, a ``Method`` can be
     passed.
-
-    Parameters
-    ----------
-    target: Method
-        The target method.
-    i_transform: (int or record layout, function or Method), optional
-        Input transformation. If specified, it should be a pair of a
-        function and a input layout for the transformed method.
-        If not present, input is not transformed.
-    o_transform: (int or record layout, function or Method), optional
-        Output transformation. If specified, it should be a pair of a
-        function and a output layout for the transformed method.
-        If not present, output is not transformed.
 
     Attributes
     ----------
@@ -319,6 +314,20 @@ class MethodTransformer(Elaboratable):
         i_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], RecordDict]]] = None,
         o_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], RecordDict]]] = None,
     ):
+        """
+        Parameters
+        ----------
+        target: Method
+            The target method.
+        i_transform: (int or record layout, function or Method), optional
+            Input transformation. If specified, it should be a pair of a
+            function and a input layout for the transformed method.
+            If not present, input is not transformed.
+        o_transform: (int or record layout, function or Method), optional
+            Output transformation. If specified, it should be a pair of a
+            function and a output layout for the transformed method.
+            If not present, output is not transformed.
+        """
         if i_transform is None:
             i_transform = (target.data_in.layout, lambda _, x: x)
         if o_transform is None:
@@ -351,17 +360,6 @@ class MethodFilter(Elaboratable):
     Caveat: because of the limitations of transaction scheduling, the target
     method is locked for usage even if it is not called.
 
-    Parameters
-    ----------
-    target: Method
-        The target method.
-    condition: function or Method
-        The condition which, when true, allows the call to ``target``. When
-        false, ``default`` is returned.
-    default: Value or dict, optional
-        The default value returned from the filtered method when the condition
-        is false. If omitted, zero is returned.
-
     Attributes
     ----------
     method: Method
@@ -371,6 +369,18 @@ class MethodFilter(Elaboratable):
     def __init__(
         self, target: Method, condition: Callable[[Module, Record], RecordDict], default: Optional[RecordDict] = None
     ):
+        """
+        Parameters
+        ----------
+        target: Method
+            The target method.
+        condition: function or Method
+            The condition which, when true, allows the call to ``target``. When
+            false, ``default`` is returned.
+        default: Value or dict, optional
+            The default value returned from the filtered method when the condition
+            is false. If omitted, zero is returned.
+        """
         if default is None:
             default = Record.like(target.data_out)
 
@@ -393,6 +403,54 @@ class MethodFilter(Elaboratable):
         return m
 
 
+class MethodProduct(Elaboratable):
+    def __init__(
+        self,
+        targets: list[Method],
+        combiner: Optional[Tuple[MethodLayout, Callable[[Module, list[Record]], RecordDict]]] = None,
+    ):
+        """Method product.
+
+        Takes arbitrary, non-zero number of target methods, and constructs
+        a method which calls all of the target methods using the same
+        argument. The return value of the resulting method is, by default,
+        the return value of the first of the target methods. A combiner
+        function can be passed, which can compute the return value from
+        the results of every target method.
+
+        Parameters
+        ----------
+        targets: list[Method]
+            A list of methods to be called.
+        combiner: (int or method layout, function), optional
+            A pair of the output layout and the combiner function. The
+            combiner function takes two parameters: a ``Module`` and
+            a list of outputs of the target methods.
+
+        Attributes
+        ----------
+        method: Method
+            The product method.
+        """
+        if combiner is None:
+            combiner = (targets[0].data_out.layout, lambda _, x: x[0])
+        self.targets = targets
+        self.combiner = combiner
+        self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
+
+    def elaborate(self, platform):
+        m = Module()
+
+        @def_method(m, self.method)
+        def _(arg):
+            results = []
+            for target in self.targets:
+                results.append(target(m, arg))
+            return self.combiner[1](m, results)
+
+        return m
+
+
 # Example transactions
 
 
@@ -403,16 +461,17 @@ class ConnectTrans(Elaboratable):
     Result of the first method is connected to the argument of the second,
     and vice versa. Allows easily connecting methods with compatible
     layouts.
-
-    Parameters
-    ----------
-    method1: Method
-        First method.
-    method2: Method
-        Second method.
     """
 
     def __init__(self, method1: Method, method2: Method):
+        """
+        Parameters
+        ----------
+        method1: Method
+            First method.
+        method2: Method
+            Second method.
+        """
         self.method1 = method1
         self.method2 = method2
 
@@ -437,17 +496,6 @@ class ConnectAndTransformTrans(Elaboratable):
     ``ConnectTrans`` and ``MethodTransformer``. The transformation
     functions take two parameters, a ``Module`` and the ``Record`` being
     transformed.
-
-    Parameters
-    ----------
-    method1: Method
-        First method.
-    method2: Method
-        Second method, and the method being transformed.
-    i_fun: function or Method, optional
-        Input transformation (``method1`` to ``method2``).
-    o_fun: function or Method, optional
-        Output transformation (``method2`` to ``method1``).
     """
 
     def __init__(
@@ -458,6 +506,18 @@ class ConnectAndTransformTrans(Elaboratable):
         i_fun: Optional[Callable[[Module, Record], RecordDict]] = None,
         o_fun: Optional[Callable[[Module, Record], RecordDict]] = None,
     ):
+        """
+        Parameters
+        ----------
+        method1: Method
+            First method.
+        method2: Method
+            Second method, and the method being transformed.
+        i_fun: function or Method, optional
+            Input transformation (``method1`` to ``method2``).
+        o_fun: function or Method, optional
+            Output transformation (``method2`` to ``method1``).
+        """
         self.method1 = method1
         self.method2 = method2
         self.i_fun = i_fun or (lambda _, x: x)
@@ -481,16 +541,17 @@ class ManyToOneConnectTrans(Elaboratable):
 
     Connects each of a set of methods to another method using separate
     transactions. Equivalent to a set of `ConnectTrans`.
-
-    Parameters
-    ----------
-    get_results: list[Method]
-        Methods to be connected to the `put_result` method.
-    put_result: Method
-        Common method for each of the connections created.
     """
 
     def __init__(self, *, get_results: list[Method], put_result: Method):
+        """
+        Parameters
+        ----------
+        get_results: list[Method]
+            Methods to be connected to the `put_result` method.
+        put_result: Method
+            Common method for each of the connections created.
+        """
         self.get_results = get_results
         self.m_put_result = put_result
 
@@ -512,19 +573,20 @@ class CatTrans(Elaboratable):
 
     Concatenates the results of two methods and passes the result to the
     third method.
-
-    Parameters
-    ----------
-    src1: Method
-        First input method.
-    src2: Method
-        Second input method.
-    dst: Method
-        The method which receives the concatenation of the results of input
-        methods.
     """
 
     def __init__(self, src1: Method, src2: Method, dst: Method):
+        """
+        Parameters
+        ----------
+        src1: Method
+            First input method.
+        src2: Method
+            Second input method.
+        dst: Method
+            The method which receives the concatenation of the results of input
+            methods.
+        """
         self.src1 = src1
         self.src2 = src2
         self.dst = dst

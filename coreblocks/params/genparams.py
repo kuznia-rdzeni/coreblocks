@@ -1,5 +1,6 @@
 from typing import TypeVar, Type
 from .isa import ISA
+from .mul_params import MulUnitParams
 
 __all__ = ["GenParams"]
 
@@ -25,7 +26,8 @@ class GenParams(DependentCache):
         phys_regs_bits: int = 7,
         rob_entries_bits: int = 8,
         rs_entries: int = 4,
-        start_pc: int = 0
+        start_pc: int = 0,
+        mul_unit_params: MulUnitParams = MulUnitParams.shift_multiplier()
     ):
         super().__init__()
         self.isa = ISA(isa_str)
@@ -35,3 +37,4 @@ class GenParams(DependentCache):
         self.rs_entries = rs_entries
         self.rs_entries_bits = (rs_entries - 1).bit_length()
         self.start_pc = start_pc
+        self.mul_unit_params = mul_unit_params

@@ -11,11 +11,12 @@ from coreblocks.params import GenParams, RSLayouts
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
+from coreblocks.utils import AutoDebugSignals
 
 from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO
 
 
-class WakeupTestCircuit(Elaboratable):
+class WakeupTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.layouts = gen_params.get(RSLayouts)
@@ -114,5 +115,5 @@ class TestWakeupSelect(TestCaseWithSimulator):
         self.assertEqual(inserted_count, issued_count)
 
     def test(self):
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.process)

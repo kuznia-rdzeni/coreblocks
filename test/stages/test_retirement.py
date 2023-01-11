@@ -4,13 +4,14 @@ from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
 from coreblocks.structs_common.rat import RRAT
 from coreblocks.params import ROBLayouts, RFLayouts, GenParams
+from coreblocks.utils import AutoDebugSignals
 
 from ..common import *
 from collections import deque
 import random
 
 
-class RetirementTestCircuit(Elaboratable):
+class RetirementTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
@@ -72,9 +73,9 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
-        def submit_process():
-            while self.submit_q:
-                yield from retc.mock_rob_retire.call(self.submit_q.popleft())
+        @def_method_mock(lambda: retc.mock_rob_retire, settle=1, condition=lambda: bool(self.submit_q))
+        def submit_process(_):
+            return self.submit_q.popleft()
 
         def free_reg_process():
             while self.rf_exp_q:
@@ -91,13 +92,14 @@ class RetirementTest(TestCaseWithSimulator):
                     if wait_cycles >= self.cycles + 10:
                         self.fail("RAT entry was not updated")
                     yield
+            self.assertFalse(self.submit_q)
+            self.assertFalse(self.rf_free_q)
 
-        def rf_free_process():
-            while self.rf_free_q:
-                reg = yield from retc.mock_rf_free.call()
-                self.assertEqual(reg["reg_id"], self.rf_free_q.popleft())
+        @def_method_mock(lambda: retc.mock_rf_free, condition=lambda: bool(self.rf_free_q))
+        def rf_free_process(reg):
+            self.assertEqual(reg["reg_id"], self.rf_free_q.popleft())
 
-        with self.runSimulation(retc) as sim:
+        with self.run_simulation(retc) as sim:
             sim.add_sync_process(submit_process)
             sim.add_sync_process(free_reg_process)
             sim.add_sync_process(rat_process)

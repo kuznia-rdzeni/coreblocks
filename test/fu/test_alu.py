@@ -13,6 +13,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO
 from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit
 from coreblocks.params.isa import *
 from coreblocks.params import GenParams
+from coreblocks.utils import AutoDebugSignals
 
 
 def _cast_to_int_xlen(x, xlen):
@@ -65,7 +66,7 @@ class TestAlu(TestCaseWithSimulator):
                 correct_out = out_fn(in1 & mask, in2 & mask) & mask
                 self.assertEqual(returned_out, correct_out)
 
-        with self.runSimulation(self.alu) as sim:
+        with self.run_simulation(self.alu) as sim:
             sim.add_process(process)
 
     def test_add(self):
@@ -110,7 +111,7 @@ class TestAlu(TestCaseWithSimulator):
         self.check_fn(AluFn.Fn.SLTU, operator.lt)
 
 
-class AluFuncUnitTestCircuit(Elaboratable):
+class AluFuncUnitTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, gen: GenParams):
         self.gen = gen
 
@@ -175,7 +176,7 @@ class TestAluFuncUnit(TestCaseWithSimulator):
                 yield from self.m.issue.call(req)
                 yield from random_wait()
 
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
 
@@ -193,6 +194,6 @@ class TestAluFuncUnit(TestCaseWithSimulator):
                 yield
                 self.assertTrue((yield from self.m.issue.done()))
 
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)

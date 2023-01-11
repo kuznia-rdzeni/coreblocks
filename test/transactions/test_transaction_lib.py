@@ -1,14 +1,21 @@
 import random
 from operator import and_
 from functools import reduce
+from parameterized import parameterized
 
 from amaranth import *
-from amaranth.sim.core import Passive, Settle
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
-from coreblocks.transactions.lib import Adapter, AdapterTrans, ManyToOneConnectTrans, MethodFilter, MethodTransformer
+from coreblocks.transactions.lib import (
+    Adapter,
+    AdapterTrans,
+    ManyToOneConnectTrans,
+    MethodFilter,
+    MethodProduct,
+    MethodTransformer,
+)
 from coreblocks.utils._typing import LayoutLike
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, def_class_method_mock, def_method_mock
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
@@ -24,7 +31,7 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
         s = Signal()
         m.d.sync += s.eq(1)
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             get_results = []
             for i in range(self.count):
                 input = TestbenchIO(Adapter(i=self.lay, o=self.lay))
@@ -115,7 +122,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
     def test_one_out(self):
         self.count = 1
         self.initialize()
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.consumer)
             for i in range(self.count):
                 sim.add_sync_process(self.generate_producer(i))
@@ -123,7 +130,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
     def test_many_out(self):
         self.count = 4
         self.initialize()
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.consumer)
             for i in range(self.count):
                 sim.add_sync_process(self.generate_producer(i))
@@ -166,7 +173,7 @@ class MethodTransformerTestCircuit(Elaboratable):
             itransform = itransform_rec
             otransform = otransform_rec
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             m.submodules.target = self.target = TestbenchIO(Adapter(i=self.iosize, o=self.iosize))
 
             if self.use_methods:
@@ -208,32 +215,25 @@ class TestMethodTransformer(TestCaseWithSimulator):
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
             self.assertEqual(v["data"], (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1))
 
-    def target(self):
-        yield Passive()
-        yield from self.m.target.enable()
-
-        while True:
-            yield Settle()
-            v = yield from self.m.target.call_result()
-            if v is not None:
-                yield from self.m.target.call_init({"data": (v["data"] << 1) | (v["data"] >> (self.m.iosize - 1))})
-            yield
+    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    def target(self, v):
+        return {"data": (v["data"] << 1) | (v["data"] >> (self.m.iosize - 1))}
 
     def test_method_transformer(self):
         self.m = MethodTransformerTestCircuit(4, False, False)
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_transformer_dicts(self):
         self.m = MethodTransformerTestCircuit(4, False, True)
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_transformer_with_methods(self):
         self.m = MethodTransformerTestCircuit(4, True, True)
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
@@ -251,7 +251,7 @@ class MethodFilterTestCircuit(Elaboratable):
         s = Signal()
         m.d.sync += s.eq(1)
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             m.submodules.target = self.target = TestbenchIO(Adapter(i=self.iosize, o=self.iosize))
 
             def condition(_, v):
@@ -286,25 +286,93 @@ class TestMethodFilter(TestCaseWithSimulator):
             else:
                 self.assertEqual(v["data"], 0)
 
-    def target(self):
-        yield Passive()
-        yield from self.m.target.enable()
-
-        while True:
-            yield Settle()
-            v = yield from self.m.target.call_result()
-            if v is not None:
-                yield from self.m.target.call_init({"data": v["data"] + 1})
-            yield
+    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    def target(self, v):
+        return {"data": v["data"] + 1}
 
     def test_method_filter(self):
         self.m = MethodFilterTestCircuit(4, False)
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_filter_with_methods(self):
         self.m = MethodFilterTestCircuit(4, True)
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
+
+
+class MethodProductTestCircuit(Elaboratable):
+    def __init__(self, iosize: int, targets: int, add_combiner: bool):
+        self.iosize = iosize
+        self.targets = targets
+        self.add_combiner = add_combiner
+        self.target: list[TestbenchIO] = []
+
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        # dummy signal
+        s = Signal()
+        m.d.sync += s.eq(1)
+
+        methods = []
+
+        for k in range(self.targets):
+            tgt = TestbenchIO(Adapter(i=self.iosize, o=self.iosize))
+            methods.append(tgt.adapter.iface)
+            self.target.append(tgt)
+            m.submodules += tgt
+
+        combiner = None
+        if self.add_combiner:
+            combiner = (self.iosize, lambda _, vs: sum(vs))
+
+        m.submodules.product = product = MethodProduct(methods, combiner)
+
+        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.method))
+
+        return tm
+
+
+class TestMethodProduct(TestCaseWithSimulator):
+    @parameterized.expand([(1, False), (2, False), (5, True)])
+    def test_method_product(self, targets: int, add_combiner: bool):
+        random.seed(14)
+
+        iosize = 8
+        m = MethodProductTestCircuit(iosize, targets, add_combiner)
+
+        def target_process(k: int):
+            @def_method_mock(lambda: m.target[k], settle=1, enable=False)
+            def process(v):
+                return {"data": v["data"] + k}
+
+            return process
+
+        def method_process():
+            # if any of the target methods is not enabled, call does not succeed
+            for i in range(2**targets - 1):
+                for k in range(targets):
+                    if i & (1 << k):
+                        yield from m.target[k].enable()
+                    else:
+                        yield from m.target[k].disable()
+                self.assertIsNone((yield from m.method.call_try({"data": 0})))
+
+            # otherwise, the call succeeds
+            for k in range(targets):
+                yield from m.target[k].enable()
+            data = random.randint(0, (1 << iosize) - 1)
+            val = (yield from m.method.call({"data": data}))["data"]
+            if add_combiner:
+                self.assertEqual(val, (targets * data + (targets - 1) * targets // 2) & ((1 << iosize) - 1))
+            else:
+                self.assertEqual(val, data)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(method_process)
+            for k in range(targets):
+                sim.add_sync_process(target_process(k))

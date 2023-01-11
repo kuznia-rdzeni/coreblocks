@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from enum import Enum
 from typing import Iterable, Literal, Mapping, Optional, overload
 from amaranth import *
-from amaranth.hdl.ast import Assign
+from amaranth.hdl.ast import Assign, ArrayProxy
 from ._typing import ValueLike
 
 
@@ -105,7 +105,29 @@ class AssignType(Enum):
 AssignFields = AssignType | Iterable[str] | Mapping[str, "AssignFields"]
 
 
-def assign(lhs: Signal | Record, rhs: ValueLike, *, fields: AssignFields = AssignType.RHS) -> Iterable[Assign]:
+def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
+    def flatten_elems(proxy: ArrayProxy):
+        for elem in proxy.elems:
+            if isinstance(elem, ArrayProxy):
+                yield from flatten_elems(elem)
+            else:
+                yield elem
+
+    elems = list(flatten_elems(proxy))
+    if elems and all(isinstance(el, Record) for el in elems):
+        return set.intersection(*[set(el.fields) for el in elems])
+
+
+def valuelike_fields(val: ValueLike) -> Optional[set[str]]:
+    if isinstance(val, ArrayProxy):
+        return arrayproxy_fields(val)
+    elif isinstance(val, Record):
+        return set(val.fields)
+
+
+def assign(
+    lhs: Signal | Record | ArrayProxy, rhs: ValueLike, *, fields: AssignFields = AssignType.RHS
+) -> Iterable[Assign]:
     """Safe record assignment.
 
     This function generates assignment statements for records and reports
@@ -115,7 +137,7 @@ def assign(lhs: Signal | Record, rhs: ValueLike, *, fields: AssignFields = Assig
 
     Parameters
     ----------
-    lhs : Record or Signal
+    lhs : Record or Signal or ArrayProxy
         Record or signal being assigned.
     rhs : Record or Value-castable
         Record or signal containing assigned values.
@@ -145,29 +167,39 @@ def assign(lhs: Signal | Record, rhs: ValueLike, *, fields: AssignFields = Assig
     ValueError
         If the assignment can't be safely performed.
     """
-    if isinstance(lhs, Record) and isinstance(rhs, Record):
+    lhs_fields = valuelike_fields(lhs)
+    rhs_fields = valuelike_fields(rhs)
+
+    if lhs_fields is not None and rhs_fields is not None:
+        # asserts for type checking
+        assert isinstance(lhs, Record) or isinstance(lhs, ArrayProxy)
+        assert isinstance(rhs, Record) or isinstance(rhs, ArrayProxy)
+
         if fields is AssignType.COMMON:
-            names = set(lhs.fields) & set(rhs.fields)
+            names = lhs_fields & rhs_fields
         elif fields is AssignType.RHS:
-            names = set(rhs.fields)
+            names = rhs_fields
         elif fields is AssignType.ALL:
-            names = set(lhs.fields) | set(rhs.fields)
+            names = lhs_fields | rhs_fields
         else:
             names = set(fields)
 
+        if len(names) == 0:
+            raise ValueError("There are no common fields in assigment lhs: {} rhs: {}".format(lhs_fields, rhs_fields))
+
         for name in names:
-            if name not in lhs.fields:
+            if name not in lhs_fields:
                 raise ValueError("Field {} not present in lhs".format(name))
-            if name not in rhs.fields:
+            if name not in rhs_fields:
                 raise ValueError("Field {} not present in rhs".format(name))
 
-            subFields = fields
+            subfields = fields
             if isinstance(fields, Mapping):
-                subFields = fields[name]
+                subfields = fields[name]
             elif isinstance(fields, Iterable):
-                subFields = AssignType.ALL
+                subfields = AssignType.ALL
 
-            yield from assign(lhs.fields[name], rhs.fields[name], fields=subFields)
+            yield from assign(lhs[name], rhs[name], fields=subfields)
     else:
         if not isinstance(fields, AssignType):
             raise ValueError("Fields on assigning non-records")

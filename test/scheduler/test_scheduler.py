@@ -10,10 +10,11 @@ from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
 from coreblocks.params import RSLayouts, DecodeLayouts, GenParams, Opcode, OpType, Funct3, Funct7
 from coreblocks.structs_common.rob import ReorderBuffer
+from coreblocks.utils import AutoDebugSignals
 from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO
 
 
-class SchedulerTestCircuit(Elaboratable):
+class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
@@ -24,7 +25,7 @@ class SchedulerTestCircuit(Elaboratable):
         rs_layouts = self.gen_params.get(RSLayouts)
         decode_layouts = self.gen_params.get(DecodeLayouts)
 
-        with tm.transactionContext():
+        with tm.transaction_context():
             # data structures
             m.submodules.instr_fifo = instr_fifo = FIFO(decode_layouts.decoded_instr, 16)
             m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
@@ -287,13 +288,18 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_ROB_entries_queue.append(None)
 
         def rs_alloc_process():
-            for i in range(self.instr_count):
+            def mock(_):
                 random_entry = random.randint(0, self.gen_params.rs_entries - 1)
                 self.expected_rs_entry_queue.append({"rs_entry_id": random_entry})
-                yield from self.m.rs_allocate.call({"rs_entry_id": random_entry})
+                return {"rs_entry_id": random_entry}
+
+            def true_n_times(n: int) -> Callable[[], bool]:
+                return ([False] + [True] * n).pop
+
+            yield from self.m.rs_allocate.method_handle_loop(mock, settle=1, condition=true_n_times(self.instr_count))
             self.expected_rs_entry_queue.append(None)
 
-        with self.runSimulation(self.m, max_cycles=1500) as sim:
+        with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.make_output_process())
             sim.add_sync_process(
                 self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue])
