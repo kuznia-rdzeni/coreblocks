@@ -12,8 +12,8 @@
                    FIFO_read["read"]
                end
                subgraph BasicFifo["free_rf_fifo BasicFifo"]
-                   BasicFifo_read["read"]
                    BasicFifo_write["write"]
+                   BasicFifo_read["read"]
                end
                subgraph Fetch["fetch Fetch"]
                    Fetch_FetchRQ["FetchRQ"]
@@ -26,37 +26,37 @@
                    RRAT_commit["commit"]
                end
                subgraph RegisterFile["RF RegisterFile"]
-                   RegisterFile_read1["read1"]
                    RegisterFile_write["write"]
-                   RegisterFile_read2["read2"]
                    RegisterFile_free["free"]
+                   RegisterFile_read1["read1"]
+                   RegisterFile_read2["read2"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
-                   ReorderBuffer_retire["retire"]
                    ReorderBuffer_mark_done["mark_done"]
                    ReorderBuffer_put["put"]
+                   ReorderBuffer_retire["retire"]
                end
                subgraph RS["RS RS"]
                    RS_get_ready_list["get_ready_list"]
                    RS_update["update"]
-                   RS_take["take"]
                    RS_insert["insert"]
+                   RS_take["take"]
                    RS_select["select"]
                end
                subgraph AluFuncUnit["alu AluFuncUnit"]
-                   AluFuncUnit_accept["accept"]
                    AluFuncUnit_issue["issue"]
+                   AluFuncUnit_accept["accept"]
                    subgraph FIFO1["fifo FIFO"]
-                       FIFO1_read["read"]
                        FIFO1_write["write"]
+                       FIFO1_read["read"]
                    end
                end
                subgraph ResultAnnouncement["announcement ResultAnnouncement"]
                    ResultAnnouncement_ResultAnnouncement["ResultAnnouncement"]
                end
                subgraph FIFO2["fifo_decode FIFO"]
-                   FIFO2_read["read"]
                    FIFO2_write["write"]
+                   FIFO2_read["read"]
                end
                subgraph Decode["decode Decode"]
                    Decode_Decode["Decode"]
@@ -77,8 +77,8 @@
                        Renaming_Renaming["Renaming"]
                    end
                    subgraph FIFO5["reg_alloc_out_buf FIFO"]
-                       FIFO5_read["read"]
                        FIFO5_write["write"]
+                       FIFO5_read["read"]
                    end
                    subgraph ROBAllocation["rob_alloc ROBAllocation"]
                        ROBAllocation_ROBAllocation["ROBAllocation"]
