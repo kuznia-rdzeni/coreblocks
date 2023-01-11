@@ -518,6 +518,33 @@ should be generated.</p>
 <span id="coreblocks-transactions-graph-module"></span><h2>coreblocks.transactions.graph module<a class="headerlink" href="#module-coreblocks.transactions.graph" title="Permalink to this heading"></a></h2>
 <p>Utilities for extracting dependency graphs from Amaranth designs.</p>
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.transactions.graph.Direction">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.graph.</span></span><span class="sig-name descname"><span class="pre">Direction</span></span><a class="headerlink" href="#coreblocks.transactions.graph.Direction" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></p>
+<p>An enumeration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.transactions.graph.Direction.IN">
+<span class="sig-name descname"><span class="pre">IN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.transactions.graph.Direction.IN" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.transactions.graph.Direction.INOUT">
+<span class="sig-name descname"><span class="pre">INOUT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.transactions.graph.Direction.INOUT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.transactions.graph.Direction.NONE">
+<span class="sig-name descname"><span class="pre">NONE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.transactions.graph.Direction.NONE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.transactions.graph.Direction.OUT">
+<span class="sig-name descname"><span class="pre">OUT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.transactions.graph.Direction.OUT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.transactions.graph.Owned">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.graph.</span></span><span class="sig-name descname"><span class="pre">Owned</span></span><a class="headerlink" href="#coreblocks.transactions.graph.Owned" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
@@ -528,7 +555,7 @@ should be generated.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.transactions.graph.Owned.owner">
-<span class="sig-name descname"><span class="pre">owner</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Elaboratable</span></em><a class="headerlink" href="#coreblocks.transactions.graph.Owned.owner" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">owner</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Elaboratable</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.transactions.graph.Owned.owner" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -576,13 +603,24 @@ Might raise KeyError if not yet hierarchized.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.graph.OwnershipGraph.insert_edge">
-<span class="sig-name descname"><span class="pre">insert_edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.graph.Owned" title="coreblocks.transactions.graph.Owned"><span class="pre">Owned</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.graph.Owned" title="coreblocks.transactions.graph.Owned"><span class="pre">Owned</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'-&gt;'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.graph.OwnershipGraph.insert_edge" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">insert_edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.graph.Owned" title="coreblocks.transactions.graph.Owned"><span class="pre">Owned</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.graph.Owned" title="coreblocks.transactions.graph.Owned"><span class="pre">Owned</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.graph.Direction" title="coreblocks.transactions.graph.Direction"><span class="pre">Direction</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Direction.OUT</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.graph.OwnershipGraph.insert_edge" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.graph.OwnershipGraph.insert_node">
 <span class="sig-name descname"><span class="pre">insert_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.graph.Owned" title="coreblocks.transactions.graph.Owned"><span class="pre">Owned</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.graph.OwnershipGraph.insert_node" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.transactions.graph.OwnershipGraph.mermaid_direction">
+<span class="sig-name descname"><span class="pre">mermaid_direction</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['---',</span> <span class="pre">'--&gt;',</span> <span class="pre">'&lt;--',</span> <span class="pre">'&lt;--&gt;']</span></em><a class="headerlink" href="#coreblocks.transactions.graph.OwnershipGraph.mermaid_direction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.transactions.graph.OwnershipGraph.prune">
+<span class="sig-name descname"><span class="pre">prune</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">owner</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.graph.OwnershipGraph.prune" title="Permalink to this definition"></a></dt>
+<dd><p>Mark all empty subgraphs.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.graph.OwnershipGraph.remember">
@@ -1396,7 +1434,7 @@ Assigned combinatorially to the <code class="docutils literal notranslate"><span
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 10:32 2023-01-11.
+      <span class="lastupdated">Last updated on 14:55 2023-01-11.
       </span></p>
   </div>
 
