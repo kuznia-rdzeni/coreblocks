@@ -1,5 +1,6 @@
 import unittest
 import os
+import functools
 from contextlib import contextmanager, nullcontext
 from typing import Callable, Mapping, Union, Generator, TypeVar, Optional, Any, cast
 
@@ -100,7 +101,7 @@ def signed_to_int(x: int, xlen: int) -> int:
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def runSimulation(self, module, max_cycles=10e4, extra_signals=()):
+    def run_simulation(self, module, max_cycles=10e4, extra_signals=()):
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
@@ -144,6 +145,8 @@ class TestbenchIO(Elaboratable):
         m.submodules += self.adapter
         return m
 
+    # Low-level operations
+
     def enable(self) -> TestGen[None]:
         yield self.adapter.en.eq(1)
 
@@ -153,22 +156,24 @@ class TestbenchIO(Elaboratable):
     def done(self) -> TestGen[int]:
         return (yield self.adapter.done)
 
-    def _wait_until_done(self) -> TestGen[None]:
+    def wait_until_done(self) -> TestGen[None]:
         while (yield self.adapter.done) != 1:
             yield
 
     def set_inputs(self, data: RecordValueDict = {}) -> TestGen[None]:
         yield from set_inputs(data, self.adapter.data_in)
 
+    def get_outputs(self) -> TestGen[RecordIntDictRet]:
+        return (yield from get_outputs(self.adapter.data_out))
+
+    # Operations for AdapterTrans
+
     def call_init(self, data: RecordValueDict = {}) -> TestGen[None]:
         yield from self.enable()
         yield from self.set_inputs(data)
 
-    def get_outputs(self) -> TestGen[RecordIntDictRet]:
-        return (yield from get_outputs(self.adapter.data_out))
-
     def call_result(self) -> TestGen[Optional[RecordIntDictRet]]:
-        if (yield self.adapter.done):
+        if (yield from self.done()):
             return (yield from self.get_outputs())
         return None
 
@@ -178,10 +183,156 @@ class TestbenchIO(Elaboratable):
         yield from self.disable()
         return outputs
 
+    def call_try(self, data: RecordIntDict = {}) -> TestGen[Optional[RecordIntDictRet]]:
+        yield from self.call_init(data)
+        yield
+        outputs = yield from self.call_result()
+        yield from self.disable()
+        return outputs
+
     def call(self, data: RecordIntDict = {}) -> TestGen[RecordIntDictRet]:
         yield from self.call_init(data)
         yield
         return (yield from self.call_do())
 
+    # Operations for Adapter
+
+    def method_argument(self) -> TestGen[Optional[RecordIntDictRet]]:
+        return (yield from self.call_result())
+
+    def method_return(self, data: RecordValueDict = {}) -> TestGen[None]:
+        yield from self.set_inputs(data)
+
+    def method_handle(
+        self, function: Callable[[RecordIntDictRet], Optional[RecordIntDict]], *, settle: int = 0
+    ) -> TestGen[None]:
+        for _ in range(settle):
+            yield Settle()
+        while (arg := (yield from self.method_argument())) is None:
+            yield
+            for _ in range(settle):
+                yield Settle()
+        yield from self.method_return(function(arg) or {})
+        yield
+
+    def method_handle_loop(
+        self,
+        function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
+        *,
+        settle: int = 0,
+        enable: bool = True,
+        condition: Optional[Callable[[], bool]] = None,
+    ) -> TestGen[None]:
+        if condition is None:
+            yield Passive()
+        condition = condition or (lambda: True)
+        if enable:
+            yield from self.enable()
+        while condition():
+            yield from self.method_handle(function, settle=settle)
+
+    # Debug signals
+
     def debug_signals(self) -> DebugSignals:
         return self.adapter.debug_signals()
+
+
+def def_method_mock(
+    tb_getter: Callable[[], TestbenchIO], **kwargs
+) -> Callable[[Callable[[RecordIntDictRet], Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
+    """
+    Decorator function to create method mock handlers. It should be applied on
+    a function which describes functionality which we want to invoke on method call.
+    Such function will be wrapped by `method_handle_loop` and called on each
+    method invocation.
+
+    Use to wrap plain functions, not class methods. For wrapping class methods please
+    see `def_class_method_mock`.
+
+    Function `f` should take only one argument - data used in function invocation - and
+    should return data which will be sent as response to method call.
+
+    Please remember that decorators are fully evaluated when function is defined.
+
+    Parameters
+    ----------
+    tbb_getter : Callable[[], TestbenchIO]
+        Function which will be called to get TestbenchIO from which `method_handle_loop`
+        should be used.
+    **kwargs
+        Arguments passed to `method_handle_loop`.
+
+    Example
+    -------
+    ```
+    m = TestCircuit()
+    def target_process(k: int):
+        @def_method_mock(lambda: m.target[k], settle=1, enable=False)
+        def process(v):
+            return {"data": v["data"] + k}
+        return process
+    ```
+    """
+
+    def decorator(func: Callable[[RecordIntDictRet], Optional[RecordIntDict]]) -> Callable[[], TestGen[None]]:
+        @functools.wraps(func)
+        def mock() -> TestGen[None]:
+            tb = tb_getter()
+            f = func
+            assert isinstance(tb, TestbenchIO)
+            yield from tb.method_handle_loop(f, **kwargs)
+
+        return mock
+
+    return decorator
+
+
+def def_class_method_mock(
+    tb_getter: Callable[[Any], TestbenchIO], **kwargs
+) -> Callable[[Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]]], Callable[[Any], TestGen[None]]]:
+    """
+    Decorator function to create method mock handlers. It should be applied on
+    a function which describe functionality which we wan't to invoke on method call.
+    Such function will be wrapped by `method_handle_loop` and called on each
+    method invocation.
+
+    Use to wrap class methods, not functions. For wrapping plain functions please
+    see `def_method_mock`.
+
+    Function `f` should take two arguments `self` and data which will be passed on
+    to invoke a method. This function should return data which will be sent
+    as response to method call.
+
+    Make sure to defer accessing state, since decorators are evaluated eagerly
+    during function declaration.
+
+    Parameters
+    ----------
+    tb_getter : Callable[[self], TestbenchIO]
+        Function which will be called to get TestbenchIO from which `method_handle_loop`
+        should be used. That function should take only one argument - `self`.
+    **kwargs
+        Arguments passed to `method_handle_loop`.
+
+    Example
+    -------
+    ```
+    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    def target(self, v):
+        return {"data": v["data"] + 1}
+    ```
+    """
+
+    def decorator(func: Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]]):
+        @functools.wraps(func)
+        def mock(self) -> TestGen[None]:
+            def partial_func(x):
+                return func(self, x)
+
+            tb = tb_getter(self)
+            assert isinstance(tb, TestbenchIO)
+            yield from tb.method_handle_loop(partial_func, **kwargs)
+
+        return mock
+
+    return decorator

@@ -1,15 +1,15 @@
-name: Benchmark
+name: Synthesis benchmark
 
 on:
   push:
     branches:
       - master
-      - benchmarks-ci
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: docker://vuush/amaranth-synth:ecp5
+    container: docker://kuzniardzeni/amaranth-synth:ecp5
     steps:
       - uses: actions/checkout@v3
 

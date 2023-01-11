@@ -20,6 +20,7 @@ sub_check_format_flake8() {
     python3 -m flake8 \
       --max-line-length=$MAX_LINE_LENGTH \
       --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak,ci,stubs" \
+      --ignore-names "OneHotSwitch,OneHotSwitchDynamic,OneHotCase,setUp,tearDown" \
       --extend-ignore=F403,F405,E203 $@
 }
 

@@ -115,5 +115,5 @@ class TestWakeupSelect(TestCaseWithSimulator):
         self.assertEqual(inserted_count, issued_count)
 
     def test(self):
-        with self.runSimulation(self.m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.process)

@@ -1,4 +1,5 @@
 from parameterized import parameterized_class
+from typing import Dict
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams
 from coreblocks.fu.mul_unit import MulUnit, MulFn
@@ -9,21 +10,21 @@ from test.common import signed_to_int, int_to_signed
 from test.fu.functional_common import GenericFunctionalTestUnit
 
 
-def compute_result(i1: int, i2: int, fn: MulFn.Fn, xlen: int) -> int:
+def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: MulFn.Fn, xlen: int) -> Dict[str, int]:
     signed_i1 = signed_to_int(i1, xlen)
     signed_i2 = signed_to_int(i2, xlen)
     if fn == MulFn.Fn.MUL:
-        return (i1 * i2) % (2**xlen)
+        return {"result": (i1 * i2) % (2**xlen)}
     elif fn == MulFn.Fn.MULH:
-        return int_to_signed(signed_i1 * signed_i2, 2 * xlen) // (2**xlen)
+        return {"result": int_to_signed(signed_i1 * signed_i2, 2 * xlen) // (2**xlen)}
     elif fn == MulFn.Fn.MULHU:
-        return i1 * i2 // (2**xlen)
+        return {"result": i1 * i2 // (2**xlen)}
     elif fn == MulFn.Fn.MULHSU:
-        return int_to_signed(signed_i1 * i2, 2 * xlen) // (2**xlen)
+        return {"result": int_to_signed(signed_i1 * i2, 2 * xlen) // (2**xlen)}
     else:
         signed_half_i1 = signed_to_int(i1 % (2 ** (xlen // 2)), xlen // 2)
         signed_half_i2 = signed_to_int(i2 % (2 ** (xlen // 2)), xlen // 2)
-        return int_to_signed(signed_half_i1 * signed_half_i2, xlen)
+        return {"result": int_to_signed(signed_half_i1 * signed_half_i2, xlen)}
 
 
 ops = {
@@ -42,15 +43,15 @@ ops = {
     [
         (
             "recursive_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.RecursiveMultiplier(32)),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.recursive_multiplier(32)),
         ),
         (
             "sequential_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.SequenceMultiplier(16)),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.sequence_multiplier(16)),
         ),
         (
             "shift_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.ShiftMultiplier()),
+            GenParams("rv64im", mul_unit_params=MulUnitParams.shift_multiplier()),
         ),
     ],
 )
@@ -60,7 +61,7 @@ class MultiplierUnitTest(GenericFunctionalTestUnit):
     def test_test(self):
         self.run_pipeline()
 
-    def __init__(self, methodName: str = "runTest"):
+    def __init__(self, method_name: str = "runTest"):
         super().__init__(
-            ops, MulUnit, compute_result, gen=self.gen_params, number_of_tests=600, seed=32323, methodName=methodName
+            ops, MulUnit, compute_result, gen=self.gen_params, number_of_tests=600, seed=32323, method_name=method_name
         )

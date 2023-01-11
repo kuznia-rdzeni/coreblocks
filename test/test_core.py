@@ -65,7 +65,7 @@ def gen_riscv_lui_instr(dst, imm):
 
 
 class TestCore(TestCaseWithSimulator):
-    def check_RAT_alloc(self, rat, expected_alloc_count=None):
+    def check_RAT_alloc(self, rat, expected_alloc_count=None):  # noqa: N802
         allocated = []
         for i in range(self.m.gp.isa.reg_cnt):
             allocated.append((yield rat.entries[i]))
@@ -147,7 +147,7 @@ class TestCore(TestCaseWithSimulator):
         m = TestElaboratable(gp)
         self.m = m
 
-        with self.runSimulation(m) as sim:
+        with self.run_simulation(m) as sim:
             sim.add_sync_process(self.run_test)
 
     def compare_core_states(self, sw_core):
@@ -211,5 +211,5 @@ class TestCore(TestCaseWithSimulator):
         m = TestElaboratable(self.gp, instr_mem=self.instr_mem)
         self.m = m
 
-        with self.runSimulation(m) as sim:
+        with self.run_simulation(m) as sim:
             sim.add_sync_process(self.randomized_input)

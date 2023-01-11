@@ -1,9 +1,10 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import Callable, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
+from typing import Callable, ClassVar, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
+from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Assign
@@ -161,7 +162,7 @@ class TransactionManager(Elaboratable):
             Linear ordering of transactions which is consistent with priority constraints.
         """
 
-        def endTrans(end: Transaction | Method):
+        def end_trans(end: Transaction | Method) -> list[Transaction]:
             if isinstance(end, Method):
                 return self.transactions_by_method[end]
             else:
@@ -170,7 +171,7 @@ class TransactionManager(Elaboratable):
         gr: ConflictGraph = {}  # Conflict graph
         pgr: ConflictGraph = {}  # Priority graph
 
-        def addEdge(transaction: Transaction, transaction2: Transaction, priority: ConflictPriority):
+        def add_edge(transaction: Transaction, transaction2: Transaction, priority: ConflictPriority):
             gr[transaction].add(transaction2)
             gr[transaction2].add(transaction)
             match priority:
@@ -189,12 +190,12 @@ class TransactionManager(Elaboratable):
                     continue
                 for transaction2 in self.transactions_by_method[method]:
                     if transaction is not transaction2:
-                        addEdge(transaction, transaction2, ConflictPriority.UNDEFINED)
+                        add_edge(transaction, transaction2, ConflictPriority.UNDEFINED)
 
         for (end1, end2, priority) in self.conflicts:
-            for transaction in endTrans(end1):
-                for transaction2 in endTrans(end2):
-                    addEdge(transaction, transaction2, priority)
+            for transaction in end_trans(end1):
+                for transaction2 in end_trans(end2):
+                    add_edge(transaction, transaction2, priority)
 
         porder: PriorityOrder = {}
 
@@ -307,11 +308,11 @@ class TransactionModule(Elaboratable):
         self.transactionManager = manager
         self.module = module
 
-    def transactionContext(self) -> TransactionContext:
+    def transaction_context(self) -> TransactionContext:
         return TransactionContext(self.transactionManager)
 
     def elaborate(self, platform):
-        with self.transactionContext():
+        with self.transaction_context():
             for name in self.module._named_submodules:
                 self.module._named_submodules[name] = Fragment.get(self.module._named_submodules[name], platform)
             for idx in range(len(self.module._anon_submodules)):
@@ -322,7 +323,57 @@ class TransactionModule(Elaboratable):
         return self.module
 
 
-class Transaction(Owned):
+class TransactionBase(Owned):
+    current: ClassVar[Optional["TransactionBase"]] = None
+
+    def __init__(self):
+        self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
+        self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
+
+    def add_conflict(
+        self, end: Union["Transaction", "Method"], priority: ConflictPriority = ConflictPriority.UNDEFINED
+    ) -> None:
+        """Registers a conflict.
+
+        Record that that the given ``Transaction`` or ``Method`` cannot execute
+        simultaneously with this ``Method``.  Typical reason is using a common
+        resource (register write or memory port).
+
+        Parameters
+        ----------
+        end: Transaction or Method
+            The conflicting ``Transaction`` or ``Method``
+        priority: ConflictPriority, optional
+            Is one of conflicting ``Transaction``\\s or ``Method``\\s prioritized?
+            Defaults to undefined priority relation.
+        """
+        self.conflicts.append((end, priority))
+
+    def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
+        if method in self.method_uses:
+            raise RuntimeError("Method can't be called twice from the same transaction")
+        self.method_uses[method] = (arg, enable)
+
+    @contextmanager
+    def context(self) -> Iterator[Self]:
+        if TransactionBase.current is not None:
+            raise RuntimeError("Body inside body")
+        TransactionBase.current = self
+        try:
+            yield self
+        finally:
+            TransactionBase.current = None
+
+    @classmethod
+    def get(cls) -> Self:
+        if TransactionBase.current is None:
+            raise RuntimeError("No current body")
+        if not isinstance(TransactionBase.current, cls):
+            raise RuntimeError(f"Current body not a {cls.__name__}")
+        return TransactionBase.current
+
+
+class Transaction(TransactionBase):
     """Transaction.
 
     A ``Transaction`` represents a task which needs to be regularly done.
@@ -358,8 +409,6 @@ class Transaction(Owned):
         and all used methods are called.
     """
 
-    current = None
-
     def __init__(self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None):
         """
         Parameters
@@ -373,6 +422,7 @@ class Transaction(Owned):
             The ``TransactionManager`` controlling this ``Transaction``.
             If omitted, the manager is received from ``TransactionContext``.
         """
+        super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$transaction")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         if manager is None:
@@ -380,23 +430,6 @@ class Transaction(Owned):
         manager.add_transaction(self)
         self.request = Signal()
         self.grant = Signal()
-        self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
-        self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
-
-    def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
-        if method in self.method_uses:
-            raise RuntimeError("Method can't be called twice from the same transaction")
-        self.method_uses[method] = (arg, enable)
-
-    @contextmanager
-    def context(self) -> Iterator["Transaction"]:
-        if self.__class__.current is not None:
-            raise RuntimeError("Transaction inside transaction")
-        self.__class__.current = self
-        try:
-            yield self
-        finally:
-            self.__class__.current = None
 
     @contextmanager
     def body(self, m: Module, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
@@ -420,32 +453,6 @@ class Transaction(Owned):
         with self.context():
             with m.If(self.grant):
                 yield self
-
-    def add_conflict(
-        self, end: Union["Transaction", "Method"], priority: ConflictPriority = ConflictPriority.UNDEFINED
-    ) -> None:
-        """Registers a conflict.
-
-        The ``TransactionManager`` is informed that given ``Transaction``
-        or ``Method`` cannot execute simultaneously with this ``Transaction``.
-        Typical reason is using a common resource (register write
-        or memory port).
-
-        Parameters
-        ----------
-        end: Transaction or Method
-            The conflicting ``Transaction`` or ``Method``
-        priority: ConflictPriority, optional
-            Is one of conflicting ``Transaction``\\s or ``Method``\\s prioritized?
-            Defaults to undefined priority relation.
-        """
-        self.conflicts.append((end, priority))
-
-    @classmethod
-    def get(cls) -> "Transaction":
-        if cls.current is None:
-            raise RuntimeError("No current transaction")
-        return cls.current
 
     def __repr__(self) -> str:
         return "(transaction {})".format(self.name)
@@ -473,7 +480,7 @@ def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> lis
     return exprs
 
 
-class Method(Owned):
+class Method(TransactionBase):
     """Transactional method.
 
     A ``Method`` serves to interface a module with external ``Transaction``\\s
@@ -511,8 +518,6 @@ class Method(Owned):
         calling ``body``.
     """
 
-    current: Optional["Method"] = None
-
     def __init__(
         self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0, nonexclusive: bool = False
     ):
@@ -534,14 +539,13 @@ class Method(Owned):
             the method still is executed only once, and each of the callers
             receive its output. Nonexclusive methods cannot have inputs.
         """
+        super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal()
         self.run = Signal()
         self.data_in = Record(_coerce_layout(i))
         self.data_out = Record(_coerce_layout(o))
-        self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
-        self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.defined = False
         self.nonexclusive = nonexclusive
         if nonexclusive:
@@ -568,24 +572,23 @@ class Method(Owned):
         """
         return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
 
-    def add_conflict(
-        self, end: Union["Transaction", "Method"], priority: ConflictPriority = ConflictPriority.UNDEFINED
-    ) -> None:
-        """Registers a conflict.
+    def proxy(self, m: Module, method: "Method"):
+        """Define as a proxy for another method.
 
-        Record that that the given ``Transaction`` or ``Method`` cannot execute
-        simultaneously with this ``Method``.  Typical reason is using a common
-        resource (register write or memory port).
+        The calls to this method will be forwarded to ``method``.
 
         Parameters
         ----------
-        end: Transaction or Method
-            The conflicting ``Transaction`` or ``Method``
-        priority: ConflictPriority, optional
-            Is one of conflicting ``Transaction``\\s or ``Method``\\s prioritized?
-            Defaults to undefined priority relation.
+        m : Module
+            Module in which operations on signals should be executed,
+            ``proxy`` uses the combinational domain only.
+        method : Method
+            Method for which this method is a proxy for.
         """
-        self.conflicts.append((end, priority))
+        m.d.comb += self.ready.eq(1)
+        m.d.comb += self.data_out.eq(method.data_out)
+        self.use_method(method, arg=self.data_in, enable=C(1))
+        self.defined = True
 
     @contextmanager
     def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
@@ -629,22 +632,14 @@ class Method(Owned):
         """
         if self.defined:
             raise RuntimeError("Method already defined")
-        if self.__class__.current is not None:
-            raise RuntimeError("Method body inside method body")
-        self.__class__.current = self
         try:
             m.d.comb += self.ready.eq(ready)
             m.d.comb += self.data_out.eq(out)
-            with m.If(self.run):
-                yield self.data_in
+            with self.context():
+                with m.If(self.run):
+                    yield self.data_in
         finally:
-            self.__class__.current = None
             self.defined = True
-
-    def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
-        if method in self.method_uses:
-            raise RuntimeError("Method can't be called twice from the same transaction")
-        self.method_uses[method] = (arg, enable)
 
     def __call__(self, m: Module, arg: RecordDict = C(0, 0), enable: ValueLike = C(1)) -> Record:
         enable_sig = Signal()
@@ -659,10 +654,7 @@ class Method(Owned):
         # combinatorial domain at a better moment.
         m.d.comb += enable_sig.eq(enable)
         m.d.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
-        if Method.current is not None:
-            Method.current.use_method(self, arg_rec, enable_sig)
-        else:
-            Transaction.get().use_method(self, arg_rec, enable_sig)
+        TransactionBase.get().use_method(self, arg_rec, enable_sig)
         return self.data_out
 
     def __repr__(self) -> str:

@@ -27,7 +27,7 @@ class GenParams(DependentCache):
         rob_entries_bits: int = 8,
         rs_entries: int = 4,
         start_pc: int = 0,
-        mul_unit_params: MulUnitParams = MulUnitParams.ShiftMultiplier()
+        mul_unit_params: MulUnitParams = MulUnitParams.shift_multiplier()
     ):
         super().__init__()
         self.isa = ISA(isa_str)
