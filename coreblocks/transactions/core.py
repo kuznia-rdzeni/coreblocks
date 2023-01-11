@@ -10,7 +10,7 @@ from amaranth import tracer
 from amaranth.hdl.ast import Assign
 from ._utils import *
 from ..utils._typing import ValueLike, DebugSignals
-from .graph import OwnershipGraph
+from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
     "ConflictPriority",
@@ -252,10 +252,16 @@ class TransactionManager(Elaboratable):
     def visual_graph(self, fragment):
         graph = OwnershipGraph(fragment)
         for method, transactions in self.transactions_by_method.items():
+            if len(method.data_in) > len(method.data_out):
+                direction = Direction.IN
+            elif len(method.data_in) < len(method.data_out):
+                direction = Direction.OUT
+            else:
+                direction = Direction.INOUT
             graph.insert_node(method)
             for transaction in transactions:
                 graph.insert_node(transaction)
-                graph.insert_edge(method, transaction)
+                graph.insert_edge(transaction, method, direction)
 
         return graph
 
@@ -317,7 +323,7 @@ class TransactionModule(Elaboratable):
         return self.module
 
 
-class TransactionBase:
+class TransactionBase(Owned):
     current: ClassVar[Optional["TransactionBase"]] = None
 
     def __init__(self):
