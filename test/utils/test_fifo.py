@@ -1,21 +1,25 @@
 from amaranth import *
+
 from coreblocks.utils.fifo import BasicFifo
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
+
 from test.common import TestCaseWithSimulator, TestbenchIO
 from collections import deque
+from parameterized import parameterized_class
 import random
 
 
 class BasicFifoTestCircuit(Elaboratable):
-    def __init__(self, init):
+    def __init__(self, depth, init):
+        self.depth = depth
         self.init = init
 
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
 
-        m.submodules.fifo = self.fifo = BasicFifo(layout=8, depth=5, init=self.init)
+        m.submodules.fifo = self.fifo = BasicFifo(layout=8, depth=self.depth, init=self.init)
 
         m.submodules.fifo_read = self.fifo_read = TestbenchIO(AdapterTrans(self.fifo.read))
         m.submodules.fifo_write = self.fifo_write = TestbenchIO(AdapterTrans(self.fifo.write))
@@ -24,11 +28,25 @@ class BasicFifoTestCircuit(Elaboratable):
         return tm
 
 
+@parameterized_class(
+    ("name", "depth", "init_len"),
+    [
+        ("notpower_notfull", 5, 3),
+        ("notpower_full", 5, 5),
+        ("notpower_empty", 5, 0),
+        ("power_notfull", 4, 3),
+        ("power_full", 4, 4),
+        ("power_empty", 4, 0),
+    ],
+)
 class TestBasicFifo(TestCaseWithSimulator):
-    def test_randomized(self):
-        init_values = [1, 2, 4]
+    depth: int
+    init_len: int
 
-        fifoc = BasicFifoTestCircuit(init=init_values)
+    def test_randomized(self):
+        init_values = [x for x in range(self.init_len)]
+
+        fifoc = BasicFifoTestCircuit(depth=self.depth, init=init_values)
         expq = deque(reversed(init_values))  # first expected element is at the start of init_list
 
         cycles = 256
