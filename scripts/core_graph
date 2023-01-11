@@ -5,6 +5,7 @@ import sys
 from argparse import ArgumentParser, FileType
 
 par = ArgumentParser()
+par.add_argument('-p', '--prune', action='store_true', help='ignore disconnected nodes')
 par.add_argument('-f', '--format', default='elk', nargs='?')
 par.add_argument('ofile', type=FileType('w'))
 
@@ -28,4 +29,6 @@ mgr = core.transactionManager
 
 with arg.ofile as fp:
     graph = mgr.visual_graph(fragment)
+    if arg.prune:
+        graph.prune()
     graph.dump(fp, arg.format)
