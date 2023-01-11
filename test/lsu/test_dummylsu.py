@@ -139,7 +139,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
             ret = yield from self.test_module.select.call()
-            self.assertEqual(ret["rs_entry_id"], 1)
+            self.assertEqual(ret["rs_entry_id"], 0)
+            print("Instrukcja:",req)
             yield from self.test_module.insert.call({"rs_data": req, "rs_entry_id": 1})
             announc = self.announce_queue.pop()
             if announc is not None:
@@ -149,6 +150,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     def consumer(self):
         for i in range(self.tests_number):
             v = yield from self.test_module.get_result.call()
+            print("Wynik:", v)
             self.assertEqual(v["result"], self.returned_data.pop())
             yield from self.random_wait()
 
@@ -190,7 +192,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         instr, wish_data = self.generateInstr(2**7, 2**7)
 
         ret = yield from self.test_module.select.call()
-        self.assertEqual(ret["rs_entry_id"], 1)
+        self.assertEqual(ret["rs_entry_id"], 0)
         yield from self.test_module.insert.call({"rs_data": instr, "rs_entry_id": 1})
         yield from self.test_module.io_in.slave_wait()
 

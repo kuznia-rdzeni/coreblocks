@@ -9,28 +9,19 @@ __all__ = ["LSUDummy"]
 
 class LSUDummyInternals(Elaboratable):
     """
-    Internal implementation of ``LSUDummy`` logic, which should be embedded into ``LSUDummy``
-    class to expose transactional interface.
-
-    ``LSUDummyInternals`` get reference to ``currentInstr`` so to a signal which
-    is used as register in ``LSUDummy``. This signal contains instruction which is currently to be process.
-    When instruction get all its arguments ``LSUDummyInternals`` automaticaly starts working
-    (``LSUDummyInternals`` check in each cycle if instruction is ready). Based on content of
-    ``currentInstr`` ``LSUDummyInternals`` make different actions. It can start load operation,
-    by sending wichbone request to memory (of course using transactional framework) and
-    next wait till memory sent response back. When response is received ``LSUDummyInternals``
-    set ``result_ready`` bit to 1.
-
-    It is expected, that ``LSUDummy`` will put ``result_ack`` high for minimum 1 cycle, when
-    results and ``currentInstr`` aren't needed any more and should be cleared.
+    Internal implementation of `LSUDummy` logic, which should be embedded into `LSUDummy`
+    class to expose transactional interface. After the instruction is processed,
+    `result_ready` bit is set to 1. It is expected, that `LSUDummy` will put
+    `result_ack` high for minimum 1 cycle, when results and `currentInstr` aren't
+    needed any more and should be cleared.
 
     Attributes
     ----------
     result_ack : Signal, in
-        Signal which should be set high by ``LSUDummy`` to inform ``LSUDummyInternals`` that
+        Signal which should be set high by `LSUDummy` to inform `LSUDummyInternals` that
         we ended porcess instruction and all internal state should be cleared.
     result_ready : Signal, out
-        Signal which is set high by ``LSUDummyInternals`` to inform ``LSUDummy`` that we have
+        Signal which is set high by `LSUDummyInternals` to inform `LSUDummy` that we have
         prepared data to be announced in the rest of core.
     """
 
@@ -65,29 +56,43 @@ class LSUDummyInternals(Elaboratable):
         """Calculate Load/Store address as defined by RiscV spec"""
         return self.currentInstr.s1_val + self.currentInstr.imm
 
-    def prepare_bytes_mask(self, m: Module) -> Signal:
+    def prepare_bytes_mask(self, m: Module, addr: Signal) -> Signal:
         mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
         s = Signal(mask_len)
         with m.Switch(self.currentInstr.exec_fn.funct3):
             with m.Case(Funct3.B):
-                m.d.comb += s.eq(0x1)
+                m.d.comb += s.eq(0x1 << addr[0:1])
             with m.Case(Funct3.BU):
-                m.d.comb += s.eq(0x1)
+                m.d.comb += s.eq(0x1 << addr[0:1])
             with m.Case(Funct3.H):
-                m.d.comb += s.eq(0x3)
+                m.d.comb += s.eq(0x3 << addr[0])
             with m.Case(Funct3.HU):
-                m.d.comb += s.eq(0x3)
+                m.d.comb += s.eq(0x3 << addr[0])
             with m.Case(Funct3.W):
                 m.d.comb += s.eq(0xF)
         return s
 
-    def postprocess_load_data(self, m: Module, data: Signal):
+    def postprocess_load_data(self, m: Module, data: Signal, addr: Signal):
         s = Signal.like(data)
         with m.Switch(self.currentInstr.exec_fn.funct3):
+            with m.Case(Funct3.B):
+                tmp = Signal(8)
+                m.d.comb += tmp.eq((data >> (addr[0:1] << 3)) & 0xFF)
+                m.d.comb += s.eq(tmp.as_signed())
             with m.Case(Funct3.BU):
+                tmp = Signal(8)
+#                m.d.comb += tmp.eq((data >> (addr[0:1] << 3)) & 0xFF)
                 m.d.comb += s.eq(Cat(data[:8], C(0, unsigned(s.shape().width - 8))))
+#                m.d.comb += s.eq(tmp.as_unsigned())
+            with m.Case(Funct3.H):
+                tmp = Signal(16)
+                m.d.comb += tmp.eq((data >> (addr[0] << 4)) & 0xFFFF)
+                m.d.comb += s.eq(tmp.as_signed())
             with m.Case(Funct3.HU):
+                tmp = Signal(16)
                 m.d.comb += s.eq(Cat(data[:16], C(0, unsigned(s.shape().width - 16))))
+#                m.d.comb += tmp.eq((data >> (addr[0] << 4)) & 0xFFFF)
+#                m.d.comb += s.eq(tmp.as_unsigned())
             with m.Case():
                 m.d.comb += s.eq(data)
         return s
@@ -96,26 +101,30 @@ class LSUDummyInternals(Elaboratable):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
 
-        s_bytes_mask_to_read = self.prepare_bytes_mask(m)
+        s_bytes_mask_to_read = self.prepare_bytes_mask(m, addr)
         req = Record(self.bus.requestLayout)
-        m.d.comb += req.addr.eq(addr)
+        # make address aligned to 4
+        m.d.comb += req.addr.eq(addr & ~0x3)
         m.d.comb += req.we.eq(0)
         m.d.comb += req.sel.eq(s_bytes_mask_to_read)
 
-        # load_init is under if so this transaction will request to be executed
-        # after all uppers if will be taken, so there is no need to add here
+        # load_init is under "if" so this transaction will request to be executed
+        # after all uppers "if" will be taken, so there is no need to add here
         # additional signal as "request"
         with Transaction().body(m):
             self.bus.request(m, req)
             m.d.sync += s_load_initiated.eq(1)
 
     def load_end(self, m: Module, s_load_initiated: Signal):
+        addr = Signal(self.gen_params.isa.xlen)
+        m.d.comb += addr.eq(self.calculate_addr())
+
         with Transaction().body(m):
             fetched = self.bus.result(m)
             m.d.sync += s_load_initiated.eq(0)
             m.d.sync += self.result_ready.eq(1)
             with m.If(fetched.err == 0):
-                m.d.sync += self.resultData.result.eq(self.postprocess_load_data(m, fetched.data))
+                m.d.sync += self.resultData.result.eq(self.postprocess_load_data(m, fetched.data, addr))
             with m.Else():
                 m.d.sync += self.resultData.result.eq(0)
                 # TODO Handle exception when it will be implemented
@@ -161,14 +170,10 @@ class LSUDummyInternals(Elaboratable):
 class LSUDummy(Elaboratable):
     """
     Very simple LSU, which serialize all stores and loads,
-    to allow us work on a core as a whole. It isn't fully
-    compliment to RiscV spec. Doesn't support checking if
+    It isn't fully compliment to RiscV spec. Doesn't support checking if
     address is in correct range.
 
-    It use the same interface as RS, because in future more
-    inteligent LSU's will be connected without RS, so to
-    have future proof module here also RS will be skipped
-    and all RS operations will be handled inside of LSUDummy.
+    It use the same interface as RS.
 
     Attributes
     ----------
@@ -187,7 +192,7 @@ class LSUDummy(Elaboratable):
         """
         Parameters
         ----------
-        gen_params: GenParams
+        gen_params : GenParams
             Parameters to be used during processor generation.
         bus: WishboneMaster
             Instantion of wishbone master which should be used to communicate with
@@ -225,12 +230,9 @@ class LSUDummy(Elaboratable):
 
         @def_method(m, self.select, ~reserved)
         def _(arg):
-            """
-            We always return 1, because we have only one place in
-            instruction storage.
-            """
-            m.d.sync += reserved.eq(1)
-            return 1
+            # We always return 0, because we have only one place in instruction storage.
+            m.d.sync += reserved.eq(0)
+            return 0
 
         @def_method(m, self.insert, ~currentInstr.valid)
         def _(arg):
