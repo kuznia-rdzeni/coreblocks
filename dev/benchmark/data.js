@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673377474504,
+  "lastUpdate": 1673433323314,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -1003,6 +1003,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/128312add363ad5fc393bd3ec2bd31010041a082"
         },
         "date": 1673377473171,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 62.77,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 13872,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 180,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 560,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4670,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "marekbauer07@gmail.com",
+            "name": "Marek Bauer",
+            "username": "speederking07"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ffd899b5b500b5cba9d70b1dbfc1fe56a881bffb",
+          "message": "Added missing extension for RISC-V ISA (#182)",
+          "timestamp": "2023-01-11T11:30:59+01:00",
+          "tree_id": "8ef1159ce5ae70c468451e9f5def7c0ba75c0cc7",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ffd899b5b500b5cba9d70b1dbfc1fe56a881bffb"
+        },
+        "date": 1673433321163,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
