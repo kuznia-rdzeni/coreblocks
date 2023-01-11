@@ -26,9 +26,9 @@
                    RRAT_commit["commit"]
                end
                subgraph RegisterFile["RF RegisterFile"]
-                   RegisterFile_write["write"]
                    RegisterFile_free["free"]
                    RegisterFile_read1["read1"]
+                   RegisterFile_write["write"]
                    RegisterFile_read2["read2"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
