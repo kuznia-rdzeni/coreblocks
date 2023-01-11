@@ -178,13 +178,13 @@ class Record(ValueCastable):
     def rotate_right(self, amount: int) -> Value:
         ...
 
-    def eq(self, value) -> Assign:
+    def eq(self, value: ValueLike) -> Assign:
         ...
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         ...
     
-    def __getitem__(self, item):
+    def __getitem__(self, item: str | tuple | int | slice):
         ...
     
     @ValueCastable.lowermethod
