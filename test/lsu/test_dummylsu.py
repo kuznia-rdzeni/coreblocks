@@ -10,7 +10,7 @@ from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.isa import *
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator
+from test.common import TestbenchIO, TestCaseWithSimulator, int_to_signed, signed_to_int
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
@@ -50,12 +50,19 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         }
         ops_k = list(ops.keys())
         for i in range(self.tests_number):
+            print("===================================")
             # generate opcode
             op = ops[ops_k[random.randint(0, len(ops) - 1)]]
-            exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
-            if op[1] == Funct3.B or op[1] == Funct3.BU:
+            signess = False
+            if op[1] == Funct3.B:
                 mask = 1
-            elif op[1] == Funct3.H or op[1] == Funct3.HU:
+                signess = True
+            elif op[1] == Funct3.BU:
+                mask = 1
+            elif op[1] == Funct3.H:
+                mask = 0x3
+                signess = True
+            elif op[1] == Funct3.HU:
                 mask = 0x3
             else:
                 mask = 0xF
@@ -64,11 +71,11 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             if random.randint(0, 1):
                 rp_s1 = random.randint(1, 2**self.gp.phys_regs_bits - 1)
                 s1_val = 0
-                addr = random.randint(0, max_reg_val // 4) * 4
+                addr = random.randint(0, max_reg_val) 
                 self.announce_queue.append({"tag": rp_s1, "value": addr})
             else:
                 rp_s1 = 0
-                s1_val = random.randint(0, max_reg_val // 4) * 4
+                s1_val = random.randint(0, max_reg_val)
                 addr = s1_val
                 self.announce_queue.append(None)
 
@@ -76,9 +83,38 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             if random.randint(0, 1):
                 imm = 0
             else:
-                imm = random.randint(0, max_imm_val // 4) * 4
+                imm = random.randint(0, max_imm_val)
 
+            #calculate address
             addr += imm
+            rest = addr % 4
+            addr = addr - rest
+
+            print(op)
+            #change test instruction 
+            if rest == 1 or rest == 3:
+                mask = 0x1
+                if op[1]==Funct3.B or op[1]==Funct3.BU:
+                    pass
+                elif op[1]==Funct3.HU:
+                    op=(Opcode.LOAD, Funct3.BU)
+                else:
+                    op=(Opcode.LOAD, Funct3.B)
+            elif rest == 2:
+                mask=0x3
+                if op[1]==Funct3.W:
+                    if random.randint(0,1):
+                        op=(Opcode.LOAD, Funct3.H)
+                    else:
+                        op=(Opcode.LOAD, Funct3.HU)
+            exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
+
+            print("Maska i reszta:", mask, rest)
+            if mask == 0x1:
+                mask = mask << rest
+            elif mask == 0x3:
+                mask = mask << rest
+
             rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
             rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
             instr = {
@@ -93,12 +129,12 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             }
             self.instr_queue.append(instr)
             self.mem_data_queue.append(
-                {"addr": addr, "mask": mask, "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}")}
+                {"addr": addr, "mask": mask, "sign": signess, "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}")}
             )
 
     def setUp(self) -> None:
         random.seed(14)
-        self.tests_number = 50
+        self.tests_number = 10
         self.gp = GenParams("rv32i", phys_regs_bits=3, rob_entries_bits=3)
         self.test_module = DummyLSUTestCircuit(self.gp)
         self.instr_queue = deque()
@@ -118,29 +154,52 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             yield from self.test_module.io_in.slave_wait()
             generated_data = self.mem_data_queue.pop()
 
+            print("Generated data:", generated_data)
             mask = generated_data["mask"]
+            sign = generated_data["sign"]
             # addr = yield self.test_module.io_in.wb.adr
             # self.assertEqual(addr, generated_data["addr"])
             yield from self.test_module.io_in.slave_verify(generated_data["addr"], 0, 0, mask)
             yield from self.random_wait()
 
+            resp_data=int((generated_data["rnd_bytes"][:4]).hex(),16)
             if mask == 0x1:
-                data = generated_data["rnd_bytes"][:1]
+                size=8
+                data = resp_data & 0xFF
+            elif mask == 0x2:
+                size=8
+                data = (resp_data >> 8) & 0xFF
+            elif mask == 0x4:
+                size=8
+                data = (resp_data >> 16) & 0xFF
+            elif mask == 0x8:
+                size=8
+                data = (resp_data >> 24) & 0xFF
             elif mask == 0x3:
-                data = generated_data["rnd_bytes"][:2]
+                size=16
+                data = resp_data & 0xFFFF
+            elif mask == 0xc:
+                size=16
+                data = (resp_data >> 16) & 0xFFFF
+            elif mask == 0xF:
+                size=32
+                data = resp_data & 0xFFFFFFFF
             else:
-                data = generated_data["rnd_bytes"][:4]
-            data = int(data.hex(), 16)
+                raise RuntimeError("Unexpected mask")
+            print("Data przed sign", data)
+            if sign:
+                data = int_to_signed(signed_to_int(data, size),32)
+            print("Data po sign", data)
             self.returned_data.append(data)
-            yield from self.test_module.io_in.slave_respond(data)
+            yield from self.test_module.io_in.slave_respond(resp_data)
             yield Settle()
 
     def inserter(self):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
+            print("Instr:",req)
             ret = yield from self.test_module.select.call()
             self.assertEqual(ret["rs_entry_id"], 0)
-            print("Instrukcja:",req)
             yield from self.test_module.insert.call({"rs_data": req, "rs_entry_id": 1})
             announc = self.announce_queue.pop()
             if announc is not None:
@@ -155,7 +214,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             yield from self.random_wait()
 
     def test(self):
-        with self.runSimulation(self.test_module) as sim:
+        with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.consumer)
@@ -207,5 +266,5 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         self.assertEqual(v["result"], data)
 
     def test(self):
-        with self.runSimulation(self.test_module) as sim:
+        with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.oneInstrTest)

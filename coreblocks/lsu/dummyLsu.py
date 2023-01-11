@@ -61,13 +61,13 @@ class LSUDummyInternals(Elaboratable):
         s = Signal(mask_len)
         with m.Switch(self.currentInstr.exec_fn.funct3):
             with m.Case(Funct3.B):
-                m.d.comb += s.eq(0x1 << addr[0:1])
+                m.d.comb += s.eq(0x1 << addr[0:2])
             with m.Case(Funct3.BU):
-                m.d.comb += s.eq(0x1 << addr[0:1])
+                m.d.comb += s.eq(0x1 << addr[0:2])
             with m.Case(Funct3.H):
-                m.d.comb += s.eq(0x3 << addr[0])
+                m.d.comb += s.eq(0x3 << (addr[0]<<1))
             with m.Case(Funct3.HU):
-                m.d.comb += s.eq(0x3 << addr[0])
+                m.d.comb += s.eq(0x3 << (addr[0] << 1))
             with m.Case(Funct3.W):
                 m.d.comb += s.eq(0xF)
         return s
@@ -238,7 +238,7 @@ class LSUDummy(Elaboratable):
         def _(arg):
             m.d.sync += currentInstr.eq(arg.rs_data)
             m.d.sync += currentInstr.valid.eq(1)
-            m.d.sync += assign(resultData, arg, fields=AssignType.COMMON)
+            m.d.sync += assign(resultData, arg.rs_data, fields=AssignType.COMMON)
 
         @def_method(m, self.update)
         def _(arg):
