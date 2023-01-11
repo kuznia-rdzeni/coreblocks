@@ -84,21 +84,21 @@
             flowchart TB
     subgraph TestElaboratable[&quot;TestElaboratable&quot;]
         subgraph WishboneMaster[&quot;wb_master WishboneMaster&quot;]
-            WishboneMaster_request[&quot;request&quot;]
             WishboneMaster_result[&quot;result&quot;]
+            WishboneMaster_request[&quot;request&quot;]
         end
         subgraph Core[&quot;core Core&quot;]
             subgraph FIFO[&quot;fifo_fetch FIFO&quot;]
-                FIFO_read[&quot;read&quot;]
                 FIFO_write[&quot;write&quot;]
+                FIFO_read[&quot;read&quot;]
             end
             subgraph BasicFifo[&quot;free_rf_fifo BasicFifo&quot;]
-                BasicFifo_write[&quot;write&quot;]
                 BasicFifo_read[&quot;read&quot;]
+                BasicFifo_write[&quot;write&quot;]
             end
             subgraph Fetch[&quot;fetch Fetch&quot;]
-                Fetch_Fetch[&quot;Fetch&quot;]
                 Fetch_FetchRQ[&quot;FetchRQ&quot;]
+                Fetch_Fetch[&quot;Fetch&quot;]
             end
             subgraph FRAT[&quot;FRAT FRAT&quot;]
                 FRAT_rename[&quot;rename&quot;]
@@ -107,59 +107,59 @@
                 RRAT_commit[&quot;commit&quot;]
             end
             subgraph RegisterFile[&quot;RF RegisterFile&quot;]
-                RegisterFile_write[&quot;write&quot;]
-                RegisterFile_read2[&quot;read2&quot;]
                 RegisterFile_free[&quot;free&quot;]
                 RegisterFile_read1[&quot;read1&quot;]
+                RegisterFile_write[&quot;write&quot;]
+                RegisterFile_read2[&quot;read2&quot;]
             end
             subgraph ReorderBuffer[&quot;ROB ReorderBuffer&quot;]
-                ReorderBuffer_mark_done[&quot;mark_done&quot;]
                 ReorderBuffer_put[&quot;put&quot;]
                 ReorderBuffer_retire[&quot;retire&quot;]
+                ReorderBuffer_mark_done[&quot;mark_done&quot;]
             end
             subgraph RS[&quot;RS RS&quot;]
+                RS_insert[&quot;insert&quot;]
                 RS_select[&quot;select&quot;]
                 RS_get_ready_list[&quot;get_ready_list&quot;]
                 RS_update[&quot;update&quot;]
-                RS_insert[&quot;insert&quot;]
                 RS_take[&quot;take&quot;]
             end
             subgraph AluFuncUnit[&quot;alu AluFuncUnit&quot;]
                 AluFuncUnit_accept[&quot;accept&quot;]
                 AluFuncUnit_issue[&quot;issue&quot;]
                 subgraph FIFO1[&quot;fifo FIFO&quot;]
-                    FIFO1_write[&quot;write&quot;]
                     FIFO1_read[&quot;read&quot;]
+                    FIFO1_write[&quot;write&quot;]
                 end
             end
             subgraph ResultAnnouncement[&quot;announcement ResultAnnouncement&quot;]
                 ResultAnnouncement_ResultAnnouncement[&quot;ResultAnnouncement&quot;]
             end
             subgraph FIFO2[&quot;fifo_decode FIFO&quot;]
-                FIFO2_read[&quot;read&quot;]
                 FIFO2_write[&quot;write&quot;]
+                FIFO2_read[&quot;read&quot;]
             end
             subgraph Decode[&quot;decode Decode&quot;]
                 Decode_Decode[&quot;Decode&quot;]
             end
             subgraph Scheduler[&quot;scheduler Scheduler&quot;]
                 subgraph FIFO3[&quot;alloc_rename_buf FIFO&quot;]
-                    FIFO3_read[&quot;read&quot;]
                     FIFO3_write[&quot;write&quot;]
+                    FIFO3_read[&quot;read&quot;]
                 end
                 subgraph RegAllocation[&quot;reg_alloc RegAllocation&quot;]
                     RegAllocation_RegAllocation[&quot;RegAllocation&quot;]
                 end
                 subgraph FIFO4[&quot;rename_out_buf FIFO&quot;]
-                    FIFO4_read[&quot;read&quot;]
                     FIFO4_write[&quot;write&quot;]
+                    FIFO4_read[&quot;read&quot;]
                 end
                 subgraph Renaming[&quot;renaming Renaming&quot;]
                     Renaming_Renaming[&quot;Renaming&quot;]
                 end
                 subgraph FIFO5[&quot;reg_alloc_out_buf FIFO&quot;]
-                    FIFO5_write[&quot;write&quot;]
                     FIFO5_read[&quot;read&quot;]
+                    FIFO5_write[&quot;write&quot;]
                 end
                 subgraph ROBAllocation[&quot;rob_alloc ROBAllocation&quot;]
                     ROBAllocation_ROBAllocation[&quot;ROBAllocation&quot;]
@@ -243,7 +243,7 @@ Retirement_Retirement --&gt; BasicFifo_write
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 17:17 2023-01-11.
+      <span class="lastupdated">Last updated on 19:28 2023-01-11.
       </span></p>
   </div>
 
