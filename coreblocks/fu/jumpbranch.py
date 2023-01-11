@@ -126,6 +126,8 @@ class JumpBranchFnDecoder(Elaboratable):
 
 
 class JumpBranchFuncUnit(Elaboratable):
+    optypes = {OpType.BRANCH, OpType.JAL, OpType.JALR, OpType.AUIPC}
+
     def __init__(self, gen: GenParams):
         self.gen = gen
 
