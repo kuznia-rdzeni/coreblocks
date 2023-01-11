@@ -42,7 +42,6 @@ class Fetch(Elaboratable):
         m.d.comb += req.addr.eq(self.pc >> 2)
         m.d.comb += req.sel.eq(2 ** (self.gp.isa.ilen // self.bus.wb_params.granularity) - 1)
 
-
         with Transaction(name="FetchRQ").body(m, request=(~stalled)):
             self.bus.request(m, req)
 

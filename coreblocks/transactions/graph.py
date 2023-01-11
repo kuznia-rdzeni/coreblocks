@@ -122,7 +122,6 @@ class OwnershipGraph:
 
         return flag
 
-
     def dump(self, fp, format: Literal["dot", "elk", "mermaid"]):
         dumper = getattr(self, "dump_" + format)
         dumper(fp)
