@@ -105,51 +105,210 @@
 <dt class="sig sig-object py" id="coreblocks.params.isa.Extension">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.isa.</span></span><span class="sig-name descname"><span class="pre">Extension</span></span><a class="headerlink" href="#coreblocks.params.isa.Extension" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></p>
-<p>An enumeration.</p>
+<p>Enum of available RISC-V extensions.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Extension.A">
 <span class="sig-name descname"><span class="pre">A</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.A" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Atomic operations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.B">
+<span class="sig-name descname"><span class="pre">B</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">512</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.B" title="Permalink to this definition"></a></dt>
+<dd><p>Bit manipulation operations</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Extension.C">
-<span class="sig-name descname"><span class="pre">C</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">64</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.C" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">C</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">256</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.C" title="Permalink to this definition"></a></dt>
+<dd><p>16-bit compressed instructions</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Extension.D">
 <span class="sig-name descname"><span class="pre">D</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.D" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Double precision floating-point operations (64-bit)</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Extension.E">
 <span class="sig-name descname"><span class="pre">E</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.E" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Reduced integer operations</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Extension.F">
 <span class="sig-name descname"><span class="pre">F</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.F" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Single precision floating-point operations (32-bit)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.G">
+<span class="sig-name descname"><span class="pre">G</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">98366</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.G" title="Permalink to this definition"></a></dt>
+<dd><p>General extension containing all basic operations</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Extension.I">
 <span class="sig-name descname"><span class="pre">I</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.I" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Full integer operations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.J">
+<span class="sig-name descname"><span class="pre">J</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1024</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.J" title="Permalink to this definition"></a></dt>
+<dd><p>Dynamic languages</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.L">
+<span class="sig-name descname"><span class="pre">L</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">128</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.L" title="Permalink to this definition"></a></dt>
+<dd><p>Decimal floating-point operation</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Extension.M">
 <span class="sig-name descname"><span class="pre">M</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.M" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Integer multiplication and division</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.N">
+<span class="sig-name descname"><span class="pre">N</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16384</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.N" title="Permalink to this definition"></a></dt>
+<dd><p>User-level interruptions</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.P">
+<span class="sig-name descname"><span class="pre">P</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4096</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.P" title="Permalink to this definition"></a></dt>
+<dd><p>Packed-SIMD extensions</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.Q">
+<span class="sig-name descname"><span class="pre">Q</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">64</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.Q" title="Permalink to this definition"></a></dt>
+<dd><p>Quad precision floating-point operations (128-bit)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.T">
+<span class="sig-name descname"><span class="pre">T</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2048</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.T" title="Permalink to this definition"></a></dt>
+<dd><p>Transactional memory</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.V">
+<span class="sig-name descname"><span class="pre">V</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8192</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.V" title="Permalink to this definition"></a></dt>
+<dd><p>Vector operations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZAM">
+<span class="sig-name descname"><span class="pre">ZAM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2097152</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZAM" title="Permalink to this definition"></a></dt>
+<dd><p>Misaligned atomic operations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZBA">
+<span class="sig-name descname"><span class="pre">ZBA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">268435456</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZBA" title="Permalink to this definition"></a></dt>
+<dd><p>Extended shift operations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZBB">
+<span class="sig-name descname"><span class="pre">ZBB</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">536870912</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZBB" title="Permalink to this definition"></a></dt>
+<dd><p>Basic bit manipulation operations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZBC">
+<span class="sig-name descname"><span class="pre">ZBC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1073741824</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZBC" title="Permalink to this definition"></a></dt>
+<dd><p>Carry-less multiplication operations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZBS">
+<span class="sig-name descname"><span class="pre">ZBS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2147483648</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZBS" title="Permalink to this definition"></a></dt>
+<dd><p>Single bit operations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZDINX">
+<span class="sig-name descname"><span class="pre">ZDINX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">33554432</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZDINX" title="Permalink to this definition"></a></dt>
+<dd><p>Support for double precision floating-point operations in integer registers</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZFH">
+<span class="sig-name descname"><span class="pre">ZFH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4194304</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZFH" title="Permalink to this definition"></a></dt>
+<dd><p>Half precision floating-point operations (16-bit)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZFHMIN">
+<span class="sig-name descname"><span class="pre">ZFHMIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8388608</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZFHMIN" title="Permalink to this definition"></a></dt>
+<dd><p>Minimal support for Half precision floating-point operations (16-bit)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZFINX">
+<span class="sig-name descname"><span class="pre">ZFINX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16777216</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZFINX" title="Permalink to this definition"></a></dt>
+<dd><p>Support for single precision floating-point operations in integer registers</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZHINX">
+<span class="sig-name descname"><span class="pre">ZHINX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">67108864</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZHINX" title="Permalink to this definition"></a></dt>
+<dd><p>Support for half precision floating-point operations in integer registers</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZICNTR">
+<span class="sig-name descname"><span class="pre">ZICNTR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">524288</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZICNTR" title="Permalink to this definition"></a></dt>
+<dd><p>Enables base counters and timers</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZICSR">
-<span class="sig-name descname"><span class="pre">ZICSR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">256</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZICSR" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">ZICSR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32768</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZICSR" title="Permalink to this definition"></a></dt>
+<dd><p>Control and Status Register access</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZIFENCEI">
-<span class="sig-name descname"><span class="pre">ZIFENCEI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">128</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZIFENCEI" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">ZIFENCEI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">65536</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZIFENCEI" title="Permalink to this definition"></a></dt>
+<dd><p>Instruction-Fetch fence operations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZIHINTNTL">
+<span class="sig-name descname"><span class="pre">ZIHINTNTL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">262144</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZIHINTNTL" title="Permalink to this definition"></a></dt>
+<dd><p>Enables non-temporal locality hints</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZIHINTPAUSE">
+<span class="sig-name descname"><span class="pre">ZIHINTPAUSE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">131072</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZIHINTPAUSE" title="Permalink to this definition"></a></dt>
+<dd><p>Enables sending pause hint for energy saving</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZIHPM">
+<span class="sig-name descname"><span class="pre">ZIHPM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1048576</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZIHPM" title="Permalink to this definition"></a></dt>
+<dd><p>Enables hardware performance counters</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZMMUL">
+<span class="sig-name descname"><span class="pre">ZMMUL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">134217728</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZMMUL" title="Permalink to this definition"></a></dt>
+<dd><p>Integer multiplication operations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.isa.Extension.ZTSO">
+<span class="sig-name descname"><span class="pre">ZTSO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4294967296</span></em><a class="headerlink" href="#coreblocks.params.isa.Extension.ZTSO" title="Permalink to this definition"></a></dt>
+<dd><p>Total store ordering</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -949,7 +1108,7 @@ machine-dependent <code class="docutils literal notranslate"><span class="pre">a
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 19:00 2023-01-10.
+      <span class="lastupdated">Last updated on 10:32 2023-01-11.
       </span></p>
   </div>
 

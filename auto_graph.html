@@ -91,8 +91,8 @@
         end
         subgraph Core[&quot;core Core&quot;]
             subgraph FIFO[&quot;fifo_fetch FIFO&quot;]
-                FIFO_read[&quot;read&quot;]
                 FIFO_write[&quot;write&quot;]
+                FIFO_read[&quot;read&quot;]
                 subgraph SyncFIFO[&quot;fifo SyncFIFO&quot;]
                     subgraph WritePort1[&quot;w_port WritePort&quot;]
                     end
@@ -119,10 +119,10 @@
                 RRAT_commit[&quot;commit&quot;]
             end
             subgraph RegisterFile[&quot;RF RegisterFile&quot;]
-                RegisterFile_read1[&quot;read1&quot;]
-                RegisterFile_write[&quot;write&quot;]
-                RegisterFile_free[&quot;free&quot;]
                 RegisterFile_read2[&quot;read2&quot;]
+                RegisterFile_write[&quot;write&quot;]
+                RegisterFile_read1[&quot;read1&quot;]
+                RegisterFile_free[&quot;free&quot;]
             end
             subgraph ReorderBuffer[&quot;ROB ReorderBuffer&quot;]
                 ReorderBuffer_mark_done[&quot;mark_done&quot;]
@@ -139,8 +139,8 @@
                 end
             end
             subgraph AluFuncUnit[&quot;alu AluFuncUnit&quot;]
-                AluFuncUnit_issue[&quot;issue&quot;]
                 AluFuncUnit_accept[&quot;accept&quot;]
+                AluFuncUnit_issue[&quot;issue&quot;]
                 subgraph Alu[&quot;alu Alu&quot;]
                 end
                 subgraph FIFO1[&quot;fifo FIFO&quot;]
@@ -297,7 +297,7 @@ BasicFifo_write --&gt; Retirement_Retirement
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 19:00 2023-01-10.
+      <span class="lastupdated">Last updated on 10:32 2023-01-11.
       </span></p>
   </div>
 

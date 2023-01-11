@@ -14,8 +14,8 @@
            end
            subgraph Core["core Core"]
                subgraph FIFO["fifo_fetch FIFO"]
-                   FIFO_read["read"]
                    FIFO_write["write"]
+                   FIFO_read["read"]
                    subgraph SyncFIFO["fifo SyncFIFO"]
                        subgraph WritePort1["w_port WritePort"]
                        end
@@ -42,10 +42,10 @@
                    RRAT_commit["commit"]
                end
                subgraph RegisterFile["RF RegisterFile"]
-                   RegisterFile_read1["read1"]
-                   RegisterFile_write["write"]
-                   RegisterFile_free["free"]
                    RegisterFile_read2["read2"]
+                   RegisterFile_write["write"]
+                   RegisterFile_read1["read1"]
+                   RegisterFile_free["free"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
                    ReorderBuffer_mark_done["mark_done"]
@@ -62,8 +62,8 @@
                    end
                end
                subgraph AluFuncUnit["alu AluFuncUnit"]
-                   AluFuncUnit_issue["issue"]
                    AluFuncUnit_accept["accept"]
+                   AluFuncUnit_issue["issue"]
                    subgraph Alu["alu Alu"]
                    end
                    subgraph FIFO1["fifo FIFO"]
