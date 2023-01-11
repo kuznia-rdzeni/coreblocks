@@ -3,21 +3,21 @@
    flowchart TB
        subgraph TestElaboratable["TestElaboratable"]
            subgraph WishboneMaster["wb_master WishboneMaster"]
-               WishboneMaster_result["result"]
                WishboneMaster_request["request"]
+               WishboneMaster_result["result"]
            end
            subgraph Core["core Core"]
                subgraph FIFO["fifo_fetch FIFO"]
-                   FIFO_write["write"]
                    FIFO_read["read"]
+                   FIFO_write["write"]
                end
                subgraph BasicFifo["free_rf_fifo BasicFifo"]
                    BasicFifo_write["write"]
                    BasicFifo_read["read"]
                end
                subgraph Fetch["fetch Fetch"]
-                   Fetch_FetchRQ["FetchRQ"]
                    Fetch_Fetch["Fetch"]
+                   Fetch_FetchRQ["FetchRQ"]
                end
                subgraph FRAT["FRAT FRAT"]
                    FRAT_rename["rename"]
@@ -26,10 +26,10 @@
                    RRAT_commit["commit"]
                end
                subgraph RegisterFile["RF RegisterFile"]
-                   RegisterFile_free["free"]
-                   RegisterFile_read1["read1"]
                    RegisterFile_write["write"]
                    RegisterFile_read2["read2"]
+                   RegisterFile_free["free"]
+                   RegisterFile_read1["read1"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
                    ReorderBuffer_mark_done["mark_done"]
@@ -37,15 +37,15 @@
                    ReorderBuffer_retire["retire"]
                end
                subgraph RS["RS RS"]
+                   RS_select["select"]
                    RS_get_ready_list["get_ready_list"]
                    RS_update["update"]
                    RS_insert["insert"]
                    RS_take["take"]
-                   RS_select["select"]
                end
                subgraph AluFuncUnit["alu AluFuncUnit"]
-                   AluFuncUnit_issue["issue"]
                    AluFuncUnit_accept["accept"]
+                   AluFuncUnit_issue["issue"]
                    subgraph FIFO1["fifo FIFO"]
                        FIFO1_write["write"]
                        FIFO1_read["read"]
@@ -55,8 +55,8 @@
                    ResultAnnouncement_ResultAnnouncement["ResultAnnouncement"]
                end
                subgraph FIFO2["fifo_decode FIFO"]
-                   FIFO2_write["write"]
                    FIFO2_read["read"]
+                   FIFO2_write["write"]
                end
                subgraph Decode["decode Decode"]
                    Decode_Decode["Decode"]
