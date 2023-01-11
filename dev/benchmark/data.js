@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673457608679,
+  "lastUpdate": 1673457724361,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -1199,6 +1199,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/33c87c100a4ede936ba88fc279ab1240e3e8dc29"
         },
         "date": 1673457607411,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 61.15,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 14900,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 148,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 560,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4670,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "194b396b7634f5288930d277a2762843954712a6",
+          "message": "Improve stubs for Amaranth (#179)",
+          "timestamp": "2023-01-11T18:17:14+01:00",
+          "tree_id": "43a08dfed1743cde90f9d4b719c4cf4a8efd0ed0",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/194b396b7634f5288930d277a2762843954712a6"
+        },
+        "date": 1673457721671,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
