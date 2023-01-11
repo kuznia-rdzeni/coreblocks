@@ -47,16 +47,18 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
     Parameters
     ----------
     operations: Dict[Any, Dict]
-        List of operations performing by this unit.
+        List of operations performed by this unit.
     func_unit: Type
         Class of functional unit to be tested.
-    expected: Callable[[int, int, Any, int], int]
+    expected: Callable[[int, int, int, int, Any, int], Dict[str, int]]
         Function computing expected results
-        (input_1, input_2, operation_key_from_operations, xlen) -> result.
+        (input_1, input_2, input_imm, pc, operation_key_from_operations, xlen) -> results dict.
     number_of_tests: int
         Number of random tests to be performed.
     seed: int
         Seed for generating random tests.
+    zero_imm: bool
+        Whether to set 'imm' to 0 or not in case 2nd operand comes from 's2_val'
     gen: GenParams
         Core generation parameters.
     methodName: str
@@ -67,9 +69,10 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         self,
         operations: Dict[Any, Dict],
         func_unit: Type,
-        expected: Callable[[int, int, Any, int], int],
+        expected: Callable[[int, int, int, int, Any, int], Dict[str, int]],
         number_of_tests: int = 2000,
         seed: int = 40,
+        zero_imm: bool = True,
         gen: GenParams = GenParams("rv32i"),
         method_name: str = "runTest",
     ):
@@ -79,6 +82,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         self.expected = expected
         self.number_of_tests = number_of_tests
         self.seed = seed
+        self.zero_imm = zero_imm
         self.gen = gen
 
     def setUp(self):
@@ -94,24 +98,27 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         for i in range(self.number_of_tests):
             data1 = random.randint(0, max_int)
             data2 = random.randint(0, max_int)
+            data_imm = random.randint(0, max_int)
             data2_is_imm = random.randint(0, 1)
-            mul_fn = functions[random.randint(0, len(functions) - 1)]
+            op = random.choice(functions)
             rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
             rp_dst = random.randint(0, 2**self.gen.phys_regs_bits - 1)
-            exec_fn = self.ops[mul_fn]
-            result = self.expected(data1, data2, mul_fn, self.gen.isa.xlen)
+            exec_fn = self.ops[op]
+            pc = random.randint(0, max_int) & ~0b11
+            results = self.expected(data1, data2, data_imm, pc, op, self.gen.isa.xlen)
 
             self.requests.append(
                 {
                     "s1_val": data1,
-                    "s2_val": 0 if data2_is_imm else data2,
+                    "s2_val": 0 if data2_is_imm and self.zero_imm else data2,
                     "rob_id": rob_id,
                     "exec_fn": exec_fn,
                     "rp_dst": rp_dst,
-                    "imm": data2 if data2_is_imm else 0,
+                    "imm": data_imm if not self.zero_imm else data2 if data2_is_imm else 0,
+                    "pc": pc,
                 }
             )
-            self.responses.append({"rob_id": rob_id, "result": result, "rp_dst": rp_dst})
+            self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst} | results)
 
     def run_pipeline(self):
         def random_wait():
