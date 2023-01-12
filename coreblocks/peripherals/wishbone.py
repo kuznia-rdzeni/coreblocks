@@ -285,6 +285,10 @@ class WishboneMuxer(Elaboratable):
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
         is asserted.
+        Note that if Pipelined Wishbone implementation is used, then before staring any new request with
+        different `ssel_tga` value, all pending request have to be finished (and `stall` cleared) and
+        there have to be  one cycle delay from previouse request (to deassert the STB signal).  Holding new
+        requests should be implemented in block that controlls `ssel_tga` signal, before the Wishbone Master.
     """
 
     def __init__(self, master_wb: Record, slaves: List[Record], ssel_tga: Signal):
@@ -326,7 +330,7 @@ class WishboneMuxer(Elaboratable):
         m.d.comb += self.master_wb.rty.eq(reduce(operator.or_, [self.slaves[i].rty for i in range(len(self.slaves))]))
         for i in OneHotSwitchDynamic(m, self.txn_sel):
             # mux S->M data
-            m.d.comb += self.master_wb.connect(self.slaves[i], include=["dat_r"])
+            m.d.comb += self.master_wb.connect(self.slaves[i], include=["dat_r", "stall"])
         return m
 
 
@@ -376,7 +380,7 @@ class WishboneArbiter(Elaboratable):
             m.d.comb += self.masters[i].err.eq((m.submodules.rr.grant == i) & self.slave_wb.err)
             m.d.comb += self.masters[i].rty.eq((m.submodules.rr.grant == i) & self.slave_wb.rty)
             # remaining S->M signals are shared, master will only accept response if bus termination signal is present
-            m.d.comb += self.masters[i].dat_r.eq(self.slave_wb.dat_r)
+            m.d.comb += self.masters[i].connect(self.slave_wb, include=["dat_r", "stall"])
 
         # combine reset singnal
         m.d.comb += self.slave_wb.rst.eq(reduce(operator.or_, [self.masters[i].rst for i in range(len(self.masters))]))
