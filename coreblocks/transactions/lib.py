@@ -88,9 +88,9 @@ class FIFO(Elaboratable):
 
 
 class Connect(Elaboratable):
-    def __init__(self, layout: MethodLayout, layout_w2r: MethodLayout = 0):
-        self.read = Method(o=layout, i=layout_w2r)
-        self.write = Method(i=layout, o=layout_w2r)
+    def __init__(self, layout: MethodLayout, layout_r2w: MethodLayout = 0):
+        self.read = Method(o=layout, i=layout_r2w)
+        self.write = Method(i=layout, o=layout_r2w)
         self.read.only_if(self.write)
         self.write.only_if(self.read)
 
@@ -98,17 +98,17 @@ class Connect(Elaboratable):
         m = Module()
 
         data = Record.like(self.read.data_out)
-        data_w2r = Record.like(self.write.data_out)
+        data_r2w = Record.like(self.write.data_out)
 
         @def_method(m, self.read)
         def _(arg):
-            m.d.comb += data.eq(arg)
-            return data_w2r
+            m.d.comb += data_r2w.eq(arg)
+            return data
 
         @def_method(m, self.write)
         def _(arg):
-            m.d.comb += data_w2r.eq(arg)
-            return data
+            m.d.comb += data.eq(arg)
+            return data_r2w
 
         return m
 
@@ -121,7 +121,7 @@ class Buffer(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        buf = Record(self.layout)
+        buf = Record.like(self.read.data_out)
         buf_full = Signal()
 
         @def_method(m, self.read, ready=buf_full)
@@ -129,7 +129,7 @@ class Buffer(Elaboratable):
             m.d.sync += buf_full.eq(0)
             return buf
 
-        self.write.only_if_any(buf_full, self.read)
+        self.write.only_if_any(~buf_full, self.read)
 
         @def_method(m, self.write)
         def _(arg):

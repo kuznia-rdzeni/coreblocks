@@ -13,35 +13,44 @@ from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_
 
 
 class TestFifoBase(TestCaseWithSimulator):
-    def do_test_fifo(self, fifo_class: type[Elaboratable], fifo_kwargs = dict()):
+    def do_test_fifo(
+        self, fifo_class: type[Elaboratable], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs=dict()
+    ):
         iosize = 8
 
         m = SimpleTestCircuit(fifo_class(iosize, **fifo_kwargs))
 
-        def writer():
-            for i in range(2**iosize):
-                print('w', i)
-                yield from m.write.call_init({'data': i})
-                yield from m.write.call_do()
+        random.seed(1337)
+
+        def random_wait(rand: int):
+            for _ in range(random.randint(0, rand)):
                 yield
 
-        def reader():
-#            yield from m.read.enable()
+        def writer():
             for i in range(2**iosize):
-                print('r', i)
-                yield Settle()
-                self.assertEqual((yield from m.read.call()), {'data': i})
-#                yield from m.read.enable()
-#                yield
+                yield from m.write.call({"data": i})
+                yield from random_wait(writer_rand)
+
+        def reader():
+            for i in range(2**iosize):
+                self.assertEqual((yield from m.read.call()), {"data": i})
+                yield from random_wait(reader_rand)
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(reader)
             sim.add_sync_process(writer)
 
 
+class TestFIFO(TestFifoBase):
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(FIFO, writer_rand=writer_rand, reader_rand=reader_rand, fifo_kwargs=dict(depth=4))
+
+
 class TestConnect(TestFifoBase):
-    def test_fifo(self):
-        self.do_test_fifo(Connect)
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(Connect, writer_rand=writer_rand, reader_rand=reader_rand)
 
     def test_connect(self):
         iosize = 8
@@ -56,14 +65,20 @@ class TestConnect(TestFifoBase):
                 self.assertFalse((yield from m.read.done()), f"re:{re} we:{we}")
                 self.assertFalse((yield from m.write.done()), f"re:{re} we:{we}")
 
-            yield from m.read.call_init({'data': 1})
-            yield from m.write.call_init({'data': 2})
+            yield from m.read.call_init({"data": 1})
+            yield from m.write.call_init({"data": 2})
             yield Settle()
-            self.assertEqual((yield from m.read.call_result()), {'data': 2})
-            self.assertEqual((yield from m.write.call_result()), {'data': 1})
+            self.assertEqual((yield from m.read.call_result()), {"data": 2})
+            self.assertEqual((yield from m.write.call_result()), {"data": 1})
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
+
+
+class TestBuffer(TestFifoBase):
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(Buffer, writer_rand=writer_rand, reader_rand=reader_rand)
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
