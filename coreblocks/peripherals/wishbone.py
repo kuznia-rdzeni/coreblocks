@@ -171,6 +171,31 @@ class WishboneMaster(Elaboratable):
 
 
 class PipelinedWishboneMaster(Elaboratable):
+    """Pipelined Wishbone bus master interface.
+
+    Parameters
+    ----------
+    wb_params: WishboneParameters
+        Parameters for bus generation.
+    max_req: int
+        Size of the response buffer, limits the number of pending requests. Defaults to 8.
+
+    Attributes
+    ----------
+    wb: Record (like WishboneLayout)
+        Wishbone bus output.
+    request: Method
+        Transactional method to start a new Wishbone request.
+        Ready if new request can be immediately sent.
+        Takes `requestLayout` as argument.
+    result: Method
+        Transactional method to read results from completed requests sequentially.
+        Ready if buffered results are available.
+        Returns state of request (error or success) and data (in case of read request) as `resultLayout`.
+    requests_finished: Signal, out
+        True, if there are no requests waiting for response
+    """
+
     def __init__(self, wb_params: WishboneParameters, *, max_req: int = 8):
         self.wb_params = wb_params
         self.max_req = max_req
@@ -178,6 +203,8 @@ class PipelinedWishboneMaster(Elaboratable):
         self.generate_method_layouts(wb_params)
         self.request = Method(i=self.request_in_layout)
         self.result = Method(o=self.result_out_layout)
+
+        self.requests_finished = Signal()
 
         self.wb_layout = WishboneLayout(wb_params).wb_layout
         self.wb = Record(self.wb_layout)
@@ -206,6 +233,7 @@ class PipelinedWishboneMaster(Elaboratable):
         request_ready = Signal()
         # assure that responses to all instructions in flight can be buffered
         m.d.comb += request_ready.eq(~self.wb.stall & (pending_req_cnt + self.result_fifo.level < self.max_req))
+        m.d.comb += self.requests_finished.eq(pending_req_cnt == 0)
 
         # assert cyc when starting new request or waiting for ack
         m.d.comb += self.wb.cyc.eq(self.wb.stb | pending_req_cnt > 0)
