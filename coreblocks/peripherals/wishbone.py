@@ -5,8 +5,10 @@ from functools import reduce
 from typing import List
 import operator
 
-from coreblocks.transactions import Method
+from coreblocks.transactions import Method, def_method
+from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.utils.utils import OneHotSwitchDynamic
+from coreblocks.utils.fifo import BasicFifo
 
 
 class WishboneParameters:
@@ -53,6 +55,7 @@ class WishboneLayout:
             ("ack", 1, DIR_FANIN if master else DIR_FANOUT),
             ("adr", wb_params.addr_width, DIR_FANOUT if master else DIR_FANIN),
             ("cyc", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("stall", 1, DIR_FANIN if master else DIR_FANOUT),
             ("err", 1, DIR_FANIN if master else DIR_FANOUT),
             ("lock", 1, DIR_FANOUT if master else DIR_FANIN),
             ("rty", 1, DIR_FANIN if master else DIR_FANOUT),
@@ -163,6 +166,78 @@ class WishboneMaster(Elaboratable):
                     m.d.sync += self.wbMaster.cyc.eq(1)
                     m.d.sync += self.wbMaster.stb.eq(0)
                     m.next = "WBCycStart"
+
+        return m
+
+
+class PipelinedWishboneMaster(Elaboratable):
+    def __init__(self, wb_params: WishboneParameters, *, max_req: int = 8):
+        self.wb_params = wb_params
+        self.max_req = max_req
+
+        self.generate_method_layouts(wb_params)
+        self.request = Method(i=self.request_in_layout)
+        self.result = Method(o=self.result_out_layout)
+
+        self.wb_layout = WishboneLayout(wb_params).wb_layout
+        self.wb = Record(self.wb_layout)
+
+    def generate_method_layouts(self, wb_params: WishboneParameters):
+        # generate method layouts locally
+        self.request_in_layout = [
+            ("addr", wb_params.addr_width),
+            ("data", wb_params.data_width),
+            ("we", 1),
+            ("sel", wb_params.data_width // wb_params.granularity),
+        ]
+
+        self.result_out_layout = [("data", wb_params.data_width), ("err", 1)]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.result_fifo = self.result_fifo = BasicFifo(self.result_out_layout, self.max_req)
+        m.submodules.result_write_adapter = self.result_write_adapter = AdapterTrans(self.result_fifo.write)
+
+        pending_req_cnt = Signal(range(self.max_req + 1))
+        req_start = Signal()
+        req_finish = Signal()
+
+        request_ready = Signal()
+        # assure that responses to all instructions in flight can be buffered
+        m.d.comb += request_ready.eq(~self.wb.stall & (pending_req_cnt + self.result_fifo.level < self.max_req))
+
+        # assert cyc when starting new request or waiting for ack
+        m.d.comb += self.wb.cyc.eq(self.wb.stb | pending_req_cnt > 0)
+
+        with m.If(self.wb.ack | self.wb.err | self.wb.rty):
+            m.d.comb += self.result_write_adapter.en.eq(1)
+            m.d.comb += self.result_write_adapter.data_in.data.eq(self.wb.dat_r)
+            # retrying in not possible in PipelinedMaster, treat RTY as ERR.
+            m.d.comb += self.result_write_adapter.data_in.err.eq(self.wb.err | self.wb.rty)
+
+            m.d.comb += req_finish.eq(1)
+
+        @def_method(m, self.request, ready=request_ready)
+        def _(arg) -> None:
+            m.d.comb += [
+                self.wb.stb.eq(1),
+                self.wb.adr.eq(arg.addr),
+                self.wb.dat_w.eq(arg.data),
+                self.wb.we.eq(arg.we),
+                self.wb.sel.eq(arg.sel),
+            ]
+
+            m.d.comb += req_start.eq(1)
+
+        @def_method(m, self.result)
+        def _(arg) -> Record:
+            return self.result_fifo.read(m)
+
+        with m.If(req_start & ~req_finish):
+            m.d.sync += pending_req_cnt.eq(pending_req_cnt + 1)
+        with m.If(req_finish & ~req_start):
+            m.d.sync += pending_req_cnt.eq(pending_req_cnt - 1)
 
         return m
 
