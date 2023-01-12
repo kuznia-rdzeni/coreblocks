@@ -7,6 +7,8 @@ from ..utils._typing import ValueLike
 
 __all__ = [
     "FIFO",
+    "Connect",
+    "Buffer",
     "ClickIn",
     "ClickOut",
     "AdapterTrans",
@@ -15,6 +17,7 @@ __all__ = [
     "ConnectAndTransformTrans",
     "CatTrans",
     "ManyToOneConnectTrans",
+    "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
 ]
@@ -110,7 +113,7 @@ class Connect(Elaboratable):
         return m
 
 
-class ConnectBuffered(Elaboratable):
+class Buffer(Elaboratable):
     def __init__(self, layout: MethodLayout):
         self.read = Method(o=layout)
         self.write = Method(i=layout)

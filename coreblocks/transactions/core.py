@@ -218,9 +218,9 @@ class TransactionManager(Elaboratable):
             self._call_graph(transaction, method, arg, enable)
 
     def _condition_for(self, transaction: "Transaction"):
-        def rec(thing: Transaction | Method, encountered: frozenset[Transaction | Method] = frozenset()) -> Value:
+        def rec(thing: Transaction | Method, encountered: frozenset[Transaction | Method]) -> Value:
             if thing in encountered:
-                return C(0)
+                return C(1)
 
             encountered |= {thing}
 
@@ -228,21 +228,23 @@ class TransactionManager(Elaboratable):
 
             if isinstance(thing, Transaction):
                 conditions.append(thing.scheduled)
+                for method in self.methods_by_transaction[thing]:
+                    conditions.append(rec(method, encountered))
 
             for things2 in thing.conditions:
                 inner_condition: list[ValueLike] = []
                 for thing2 in things2:
                     if isinstance(thing2, Transaction):
-                        inner_condition.append(rec(thing2))
+                        inner_condition.append(rec(thing2, encountered))
                     elif isinstance(thing2, Method):
-                        inner_condition += map(lambda thing3: rec(thing3), thing2.used_by)
+                        inner_condition += map(lambda thing3: rec(thing3, encountered), thing2.used_by)
                     else:
                         inner_condition.append(Value.cast(thing2).bool())
                 conditions.append(Cat(inner_condition).any())
 
             return Cat(conditions).all()
 
-        return rec(transaction)
+        return rec(transaction, frozenset())
 
     def elaborate(self, platform):
 

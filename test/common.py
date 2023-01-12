@@ -8,8 +8,8 @@ from amaranth import *
 from amaranth.hdl.ast import Statement
 from amaranth.sim import *
 from amaranth.sim.core import Command
-from coreblocks.transactions.core import DebugSignals
-from coreblocks.transactions.lib import AdapterBase
+from coreblocks.transactions.core import DebugSignals, Method, TransactionModule
+from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.utils._typing import ValueLike
 from .gtkw_extension import write_vcd_ext
 
@@ -99,6 +99,34 @@ def signed_to_int(x: int, xlen: int) -> int:
     return x | -(x & (2 ** (xlen - 1)))
 
 
+class SimpleTestCircuit(Elaboratable):
+    def __init__(self, dut: Elaboratable):
+        self._dut = dut
+        self._io = dict[str, TestbenchIO]()
+
+    def __getattr__(self, name: str):
+        return self._io[name]
+
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
+        m.submodules.dut = self._dut
+
+        for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
+            if isinstance(attr, Method):
+                self._io[name] = TestbenchIO(AdapterTrans(attr))
+                m.submodules += self._io[name]
+
+        return tm
+
+    def debug_signals(self):
+        return [io.debug_signals() for io in self._io.values()]
+
+
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
     def run_simulation(self, module, max_cycles=10e4, extra_signals=()):
@@ -147,8 +175,11 @@ class TestbenchIO(Elaboratable):
 
     # Low-level operations
 
-    def enable(self) -> TestGen[None]:
-        yield self.adapter.en.eq(1)
+    def enable(self, value: bool = True) -> TestGen[None]:
+        if value:
+            yield self.adapter.en.eq(1)
+        else:
+            yield self.adapter.en.eq(0)
 
     def disable(self) -> TestGen[None]:
         yield self.adapter.en.eq(0)

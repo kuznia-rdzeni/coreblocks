@@ -1,21 +1,69 @@
 import random
 from operator import and_
 from functools import reduce
+from amaranth.sim.core import Settle
 from parameterized import parameterized
 
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
-from coreblocks.transactions.lib import (
-    Adapter,
-    AdapterTrans,
-    ManyToOneConnectTrans,
-    MethodFilter,
-    MethodProduct,
-    MethodTransformer,
-)
+from coreblocks.transactions.lib import *
 from coreblocks.utils._typing import LayoutLike
-from ..common import TestCaseWithSimulator, TestbenchIO, def_class_method_mock, def_method_mock
+from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_class_method_mock, def_method_mock
+
+
+class TestFifoBase(TestCaseWithSimulator):
+    def do_test_fifo(self, fifo_class: type[Elaboratable], fifo_kwargs = dict()):
+        iosize = 8
+
+        m = SimpleTestCircuit(fifo_class(iosize, **fifo_kwargs))
+
+        def writer():
+            for i in range(2**iosize):
+                print('w', i)
+                yield from m.write.call_init({'data': i})
+                yield from m.write.call_do()
+                yield
+
+        def reader():
+#            yield from m.read.enable()
+            for i in range(2**iosize):
+                print('r', i)
+                yield Settle()
+                self.assertEqual((yield from m.read.call()), {'data': i})
+#                yield from m.read.enable()
+#                yield
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(reader)
+            sim.add_sync_process(writer)
+
+
+class TestConnect(TestFifoBase):
+    def test_fifo(self):
+        self.do_test_fifo(Connect)
+
+    def test_connect(self):
+        iosize = 8
+
+        m = SimpleTestCircuit(Connect(iosize, iosize))
+
+        def process():
+            for re, we in [(False, False), (False, True), (True, False)]:
+                yield from m.read.enable(re)
+                yield from m.write.enable(we)
+                yield Settle()
+                self.assertFalse((yield from m.read.done()), f"re:{re} we:{we}")
+                self.assertFalse((yield from m.write.done()), f"re:{re} we:{we}")
+
+            yield from m.read.call_init({'data': 1})
+            yield from m.write.call_init({'data': 2})
+            yield Settle()
+            self.assertEqual((yield from m.read.call_result()), {'data': 2})
+            self.assertEqual((yield from m.write.call_result()), {'data': 1})
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(process)
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
