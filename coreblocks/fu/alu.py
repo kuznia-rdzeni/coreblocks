@@ -110,6 +110,8 @@ class AluFnDecoder(Elaboratable):
 
 
 class AluFuncUnit(Elaboratable):
+    optypes = {OpType.ARITHMETIC, OpType.COMPARE, OpType.LOGIC, OpType.SHIFT}
+
     def __init__(self, gen: GenParams):
         self.gen = gen
 

@@ -109,28 +109,105 @@ class OpType(IntEnum):
 
 @unique
 class Extension(IntFlag):
-    E = 0x001
-    I = 0x002  # noqa: E741
-    M = 0x004
-    A = 0x008
-    F = 0x010
-    D = 0x020
-    C = 0x040
-    ZIFENCEI = 0x080
-    ZICSR = 0x100
+    """
+    Enum of available RISC-V extensions.
+    """
+
+    #: Reduced integer operations
+    E = auto()
+    #: Full integer operations
+    I = auto()  # noqa: E741
+    #: Integer multiplication and division
+    M = auto()
+    #: Atomic operations
+    A = auto()
+    #: Single precision floating-point operations (32-bit)
+    F = auto()
+    #: Double precision floating-point operations (64-bit)
+    D = auto()
+    #: Quad precision floating-point operations (128-bit)
+    Q = auto()
+    #: Decimal floating-point operation
+    L = auto()
+    #: 16-bit compressed instructions
+    C = auto()
+    #: Bit manipulation operations
+    B = auto()
+    #: Dynamic languages
+    J = auto()
+    #: Transactional memory
+    T = auto()
+    #: Packed-SIMD extensions
+    P = auto()
+    #: Vector operations
+    V = auto()
+    #: User-level interruptions
+    N = auto()
+    #: Control and Status Register access
+    ZICSR = auto()
+    #: Instruction-Fetch fence operations
+    ZIFENCEI = auto()
+    #: Enables sending pause hint for energy saving
+    ZIHINTPAUSE = auto()
+    #: Enables non-temporal locality hints
+    ZIHINTNTL = auto()
+    #: Enables base counters and timers
+    ZICNTR = auto()
+    #: Enables hardware performance counters
+    ZIHPM = auto()
+    #: Misaligned atomic operations
+    ZAM = auto()
+    #: Half precision floating-point operations (16-bit)
+    ZFH = auto()
+    #: Minimal support for Half precision floating-point operations (16-bit)
+    ZFHMIN = auto()
+    #: Support for single precision floating-point operations in integer registers
+    ZFINX = auto()
+    #: Support for double precision floating-point operations in integer registers
+    ZDINX = auto()
+    #: Support for half precision floating-point operations in integer registers
+    ZHINX = auto()
+    #: Integer multiplication operations
+    ZMMUL = auto()
+    #: Extended shift operations
+    ZBA = auto()
+    #: Basic bit manipulation operations
+    ZBB = auto()
+    #: Carry-less multiplication operations
+    ZBC = auto()
+    #: Single bit operations
+    ZBS = auto()
+    #: Total store ordering
+    ZTSO = auto()
+    #: General extension containing all basic operations
+    G = I | M | A | F | D | ZICSR | ZIFENCEI
 
 
-_extension_map = {
-    "e": Extension.E,
-    "i": Extension.I,
-    "g": Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.ZICSR | Extension.ZIFENCEI,
-    "m": Extension.M,
-    "a": Extension.A,
-    "f": Extension.F,
-    "d": Extension.D,
-    "c": Extension.C,
-    "zicsr": Extension.ZICSR,
-    "zifencei": Extension.ZIFENCEI,
+# Mapping of names to corresponding extension
+_extension_map = {e.name.lower(): e for e in Extension if e.name}
+
+# Extensions which are mutually exclusive
+_extension_exclusive = [
+    [Extension.I, Extension.E],
+]
+
+# Extensions which explicitly require another extension in order to be valid (can be joined using | operator)
+_extension_requirements = {
+    Extension.D: Extension.F,
+    Extension.Q: Extension.D,
+    Extension.ZAM: Extension.A,
+    Extension.ZFH: Extension.F,
+    Extension.ZFHMIN: Extension.F,
+    Extension.ZFINX: Extension.F,
+    Extension.ZDINX: Extension.D,
+    Extension.ZHINX: Extension.ZFH,
+}
+
+# Extensions which implicitly imply another extensions (can be joined using | operator)
+_extension_implications = {
+    Extension.F: Extension.ZICSR,
+    Extension.M: Extension.ZMMUL,
+    Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
 }
 
 
@@ -163,6 +240,7 @@ class ISA:
             String identifying a specific RISC-V ISA. Please refer to GCC's
             machine-dependent ``arch`` option for details.
         """
+        isa_str = isa_str.lower()
         if isa_str[0:2] != "rv":
             raise RuntimeError("Invalid ISA string " + isa_str)
         xlen_str = "".join(takewhile(str.isdigit, isa_str[2:]))
@@ -184,7 +262,7 @@ class ISA:
         if extensions_str[0] not in ["i", "e", "g"]:
             raise RuntimeError("Invalid first letter of ISA extensions string " + extensions_str[0])
 
-        self.extensions = 0x0
+        self.extensions = Extension(0)
 
         def parse_extension(e):
             val = _extension_map[e]
@@ -193,22 +271,37 @@ class ISA:
             self.extensions |= val
 
         for es in extensions_str.split("_"):
-            if es in _extension_map.keys():
-                parse_extension(es)
-            else:
-                for e in es:
-                    if e not in _extension_map.keys():
-                        raise RuntimeError("Unknown extension letter in ISA extensions string " + e)
+            for i, e in enumerate(es):
+                if e in _extension_map:
                     parse_extension(e)
-
-        if self.extensions & (Extension.E | Extension.I) == (Extension.E | Extension.I):
-            raise RuntimeError("ISA extension string contains both E and I extensions")
+                elif es[i:] in _extension_map:
+                    parse_extension(es[i:])
+                    break
+                else:
+                    raise RuntimeError(f"Neither {es[i]} nor {es[i:]} is a valid extension in {es}")
 
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
 
-        if self.extensions & (Extension.F | Extension.D) == Extension.D:
-            raise RuntimeError("ISA extension D requires the F extension to be supported")
+        for (ext, imply) in _extension_implications.items():
+            if ext in self.extensions:
+                self.extensions |= imply
+
+        for exclusive in _extension_exclusive:
+            for i in range(len(exclusive)):
+                for j in range(i + 1, len(exclusive)):
+                    if exclusive[i] | exclusive[j] in self.extensions:
+                        raise RuntimeError(
+                            f"ISA extensions {exclusive[i].name} and {exclusive[j].name} are mutually exclusive"
+                        )
+
+        for (ext, requirements) in _extension_requirements.items():
+            if ext in self.extensions and requirements not in self.extensions:
+                for req in Extension:
+                    if req in requirements and req not in self.extensions:
+                        raise RuntimeError(
+                            f"ISA extension {ext.name} requires the {req.name} extension to be supported"
+                        )
 
         if self.extensions & Extension.E:
             self.reg_cnt = 16

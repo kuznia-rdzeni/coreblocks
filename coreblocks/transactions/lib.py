@@ -1,8 +1,9 @@
 from typing import Callable, Tuple, Optional
 from amaranth import *
 from .core import *
-from .core import DebugSignals, RecordDict
+from .core import DebugSignals, RecordDict, _connect_rec_with_possibly_dict
 from ._utils import _coerce_layout, MethodLayout
+from ..utils._typing import ValueLike
 
 __all__ = [
     "FIFO",
@@ -367,7 +368,7 @@ class MethodFilter(Elaboratable):
     """
 
     def __init__(
-        self, target: Method, condition: Callable[[Module, Record], RecordDict], default: Optional[RecordDict] = None
+        self, target: Method, condition: Callable[[Module, Record], ValueLike], default: Optional[RecordDict] = None
     ):
         """
         Parameters
@@ -395,7 +396,7 @@ class MethodFilter(Elaboratable):
         @def_method(m, self.method)
         def _(arg):
             ret = Record.like(self.target.data_out)
-            m.d.comb += ret.eq(self.default)
+            m.d.comb += _connect_rec_with_possibly_dict(ret, self.default)
             with m.If(self.condition(m, arg)):
                 m.d.comb += ret.eq(self.target(m, arg))
             return ret
