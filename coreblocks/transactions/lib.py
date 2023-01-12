@@ -81,6 +81,61 @@ class FIFO(Elaboratable):
         return m
 
 
+# Connector modules
+
+
+class Connect(Elaboratable):
+    def __init__(self, layout: MethodLayout, layout_w2r: MethodLayout = 0):
+        self.read = Method(o=layout, i=layout_w2r)
+        self.write = Method(i=layout, o=layout_w2r)
+        self.read.only_if(self.write)
+        self.write.only_if(self.read)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        data = Record.like(self.read.data_out)
+        data_w2r = Record.like(self.write.data_out)
+
+        @def_method(m, self.read)
+        def _(arg):
+            m.d.comb += data.eq(arg)
+            return data_w2r
+
+        @def_method(m, self.write)
+        def _(arg):
+            m.d.comb += data_w2r.eq(arg)
+            return data
+
+        return m
+
+
+class ConnectBuffered(Elaboratable):
+    def __init__(self, layout: MethodLayout):
+        self.read = Method(o=layout)
+        self.write = Method(i=layout)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        buf = Record(self.layout)
+        buf_full = Signal()
+
+        @def_method(m, self.read, ready=buf_full)
+        def _(arg):
+            m.d.sync += buf_full.eq(0)
+            return buf
+
+        self.write.only_if_any(buf_full, self.read)
+
+        @def_method(m, self.write)
+        def _(arg):
+            m.d.sync += buf.eq(arg)
+            m.d.sync += buf_full.eq(1)
+
+        return m
+
+
 # "Clicked" input
 
 

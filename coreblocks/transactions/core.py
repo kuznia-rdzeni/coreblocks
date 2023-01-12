@@ -229,12 +229,16 @@ class TransactionManager(Elaboratable):
             if isinstance(thing, Transaction):
                 conditions.append(thing.scheduled)
 
-            for thing2, condition in thing.conditions:
-                if isinstance(thing2, Transaction):
-                    thing_condition = rec(thing2)
-                else:
-                    thing_condition = Cat(map(lambda tr: rec(tr), thing2.used_by)).any()
-                conditions.append(~condition.bool() | thing_condition)
+            for things2 in thing.conditions:
+                inner_condition: list[ValueLike] = []
+                for thing2 in things2:
+                    if isinstance(thing2, Transaction):
+                        inner_condition.append(rec(thing2))
+                    elif isinstance(thing2, Method):
+                        inner_condition += map(lambda thing3: rec(thing3), thing2.used_by)
+                    else:
+                        inner_condition.append(Value.cast(thing2).bool())
+                conditions.append(Cat(inner_condition).any())
 
             return Cat(conditions).all()
 
@@ -375,7 +379,7 @@ class TransactionBase(Owned):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.used_by: set[Transaction | Method] = set()
         self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
-        self.conditions: list[Tuple[Transaction | Method, Value]] = []
+        self.conditions: list[Tuple[Transaction | Method | ValueLike, ...]] = []
 
     def add_conflict(
         self, end: Union["Transaction", "Method"], priority: ConflictPriority = ConflictPriority.UNDEFINED
@@ -403,8 +407,11 @@ class TransactionBase(Owned):
         self.method_uses[method] = (arg, enable)
         method.used_by.add(self)
 
-    def only_if(self, other: Union["Transaction", "Method"], cond: ValueLike):
-        self.conditions.append((other, Value.cast(cond)))
+    def only_if(self, other: Union["Transaction", "Method"]):
+        return self.only_if_any(other)
+
+    def only_if_any(self, *other: Union["Transaction", "Method", ValueLike]):
+        self.conditions.append(other)
 
     @contextmanager
     def context(self) -> Iterator[Self]:
