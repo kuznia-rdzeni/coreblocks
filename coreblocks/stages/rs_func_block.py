@@ -6,7 +6,7 @@ from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
 from coreblocks.utils.protocols import FuncUnit
-from coreblocks.transactions.lib import FIFO, ManyToOneConnectTrans
+from coreblocks.transactions.lib import Connect, ManyToOneConnectTrans
 
 __all__ = ["RSFuncBlock"]
 
@@ -27,8 +27,7 @@ class RSFuncBlock(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        # TODO: find a way to remove this FIFO. It increases FU latency without need.
-        m.submodules.accept_fifo = accept_fifo = FIFO(self.fu_layouts.accept, 2)
+        m.submodules.accept_fifo = accept_fifo = Connect(self.fu_layouts.accept)
 
         m.submodules.rs = rs = RS(
             gen_params=self.gen_params, ready_for=(func_unit.optypes for func_unit in self.func_units)

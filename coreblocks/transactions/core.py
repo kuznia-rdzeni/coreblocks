@@ -220,7 +220,7 @@ class TransactionManager(Elaboratable):
     def _condition_for(self, transaction: "Transaction"):
         def rec(thing: Transaction | Method, encountered: frozenset[Transaction | Method]) -> Value:
             if thing in encountered:
-                return C(1)
+                return C(1)  # we are computing a largest fixed point
 
             encountered |= {thing}
 
@@ -230,14 +230,22 @@ class TransactionManager(Elaboratable):
                 conditions.append(thing.scheduled)
                 for method in self.methods_by_transaction[thing]:
                     conditions.append(rec(method, encountered))
+            elif isinstance(thing, Method):
+                conditions.append(Cat(rec(thing2, encountered) for thing2 in thing.used_by).any())
 
             for things2 in thing.conditions:
                 inner_condition: list[ValueLike] = []
                 for thing2 in things2:
-                    if isinstance(thing2, Transaction):
+                    if isinstance(thing2, Transaction) or isinstance(thing2, Method):
                         inner_condition.append(rec(thing2, encountered))
                     elif isinstance(thing2, Method):
-                        inner_condition += map(lambda thing3: rec(thing3, encountered), thing2.used_by)
+                        conditional_calls = [thing3 for thing3, cc in thing2.used_by.items() if cc]
+                        if conditional_calls:
+                            raise RuntimeError(
+                                f"Condition for {transaction} depends on {thing}"
+                                f" which is conditionally called by {conditional_calls[0]}"
+                            )
+                        inner_condition.append(rec(thing2, encountered))
                     else:
                         inner_condition.append(Value.cast(thing2).bool())
                 conditions.append(Cat(inner_condition).any())
@@ -379,7 +387,6 @@ class TransactionBase(Owned):
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
-        self.used_by: set[Transaction | Method] = set()
         self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
         self.conditions: list[Tuple[Transaction | Method | ValueLike, ...]] = []
 
@@ -402,12 +409,12 @@ class TransactionBase(Owned):
         """
         self.conflicts.append((end, priority))
 
-    def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
+    def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike, conditional_call: bool):
         assert isinstance(self, Transaction) or isinstance(self, Method)  # for typing
         if method in self.method_uses:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[method] = (arg, enable)
-        method.used_by.add(self)
+        method.used_by[self] = conditional_call
 
     def only_if(self, other: Union["Transaction", "Method"]):
         return self.only_if_any(other)
@@ -616,6 +623,7 @@ class Method(TransactionBase):
         self.data_in = Record(_coerce_layout(i))
         self.data_out = Record(_coerce_layout(o))
         self.defined = False
+        self.used_by = dict[Transaction | Method, bool]()
         self.nonexclusive = nonexclusive
         if nonexclusive:
             assert len(self.data_in) == 0
@@ -656,7 +664,7 @@ class Method(TransactionBase):
         """
         m.d.comb += self.ready.eq(1)
         m.d.comb += self.data_out.eq(method.data_out)
-        self.use_method(method, arg=self.data_in, enable=C(1))
+        self.use_method(method, arg=self.data_in, enable=C(1), conditional_call=False)
         self.defined = True
 
     @contextmanager
@@ -715,12 +723,14 @@ class Method(TransactionBase):
             self.defined = True
 
     def __call__(self, m: Module, arg: RecordDict = C(0, 0), enable: ValueLike = C(1)) -> Record:
+        conditional_call = len(m._ctrl_stack) > 1  # hacky use of Amaranth internals
+
         enable_sig = Signal()
         arg_rec = Record.like(self.data_in)
 
         m.d.comb += enable_sig.eq(enable)
         TransactionBase.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
-        TransactionBase.get().use_method(self, arg_rec, enable_sig)
+        TransactionBase.get().use_method(self, arg_rec, enable_sig, conditional_call)
         return self.data_out
 
     def __repr__(self) -> str:
