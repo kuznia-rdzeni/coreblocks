@@ -71,7 +71,7 @@ class FIFO(Elaboratable):
         @def_method(m, self.write, ready=fifo.w_rdy)
         def _(arg):
             m.d.comb += fifo.w_en.eq(1)
-            m.d.comb += fifo.w_data.eq(arg)
+            Method.comb += fifo.w_data.eq(arg)
 
         @def_method(m, self.read, ready=fifo.r_rdy)
         def _(arg):
@@ -237,7 +237,7 @@ class AdapterTrans(AdapterBase):
 
         with Transaction().body(m, request=self.en):
             data_out = self.iface(m, arg=data_in)
-            m.d.comb += self.data_out.eq(data_out)
+            Transaction.comb += self.data_out.eq(data_out)
             m.d.comb += self.done.eq(1)
 
         return m
@@ -283,7 +283,7 @@ class Adapter(AdapterBase):
 
         @def_method(m, self.iface, ready=self.en)
         def _(arg):
-            m.d.comb += self.data_out.eq(arg)
+            Method.comb += self.data_out.eq(arg)
             m.d.comb += self.done.eq(1)
             return data_in
 
@@ -393,10 +393,11 @@ class MethodFilter(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        ret = Record.like(self.target.data_out)
+        m.d.comb += _connect_rec_with_possibly_dict(ret, self.default)
+
         @def_method(m, self.method)
         def _(arg):
-            ret = Record.like(self.target.data_out)
-            m.d.comb += _connect_rec_with_possibly_dict(ret, self.default)
             with m.If(self.condition(m, arg)):
                 m.d.comb += ret.eq(self.target(m, arg))
             return ret
@@ -483,8 +484,8 @@ class ConnectTrans(Elaboratable):
             data1 = Record.like(self.method1.data_out)
             data2 = Record.like(self.method2.data_out)
 
-            m.d.comb += data1.eq(self.method1(m, data2))
-            m.d.comb += data2.eq(self.method2(m, data1))
+            Transaction.comb += data1.eq(self.method1(m, data2))
+            Transaction.comb += data2.eq(self.method2(m, data1))
 
         return m
 
