@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673477915934,
+  "lastUpdate": 1673605715430,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -1356,6 +1356,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 13847,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 158,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 560,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4671,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "84f1ead5b0373c7e6d1f552613ac435bdb5f4a90",
+          "message": "Hoisting combinatorial assignments from transaction and method bodies (#176)",
+          "timestamp": "2023-01-13T11:23:23+01:00",
+          "tree_id": "a3aaeab14a4a3c63ebc92d0a894afa42eb68b8ed",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/84f1ead5b0373c7e6d1f552613ac435bdb5f4a90"
+        },
+        "date": 1673605714115,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 61.26,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 13724,
             "unit": "LUT4"
           },
           {
