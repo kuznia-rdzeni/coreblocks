@@ -121,7 +121,7 @@ When a given <code class="docutils literal notranslate"><span class="pre">Method
 at most one of them is granted by the <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>, and the rest
 of them must wait. (Non-exclusive methods are an exception to this
 behavior.) Calling a <code class="docutils literal notranslate"><span class="pre">Method</span></code> always takes a single clock cycle.</p>
-<p>Data is combinatorially transferred between to and from <code class="docutils literal notranslate"><span class="pre">Method</span></code>s
+<p>Data is combinationally transferred between to and from <code class="docutils literal notranslate"><span class="pre">Method</span></code>s
 using Amaranth <code class="docutils literal notranslate"><span class="pre">Record</span></code>s. The transfer can take place in both directions
 at the same time: from the called <code class="docutils literal notranslate"><span class="pre">Method</span></code> to the caller (<code class="docutils literal notranslate"><span class="pre">data_out</span></code>)
 and from the caller to the called <code class="docutils literal notranslate"><span class="pre">Method</span></code> (<code class="docutils literal notranslate"><span class="pre">data_in</span></code>).</p>
@@ -177,10 +177,12 @@ receive its output. Nonexclusive methods cannot have inputs.</p>
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Method.body">
 <span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ready:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">0'd0)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.core.Method.body" title="Permalink to this definition"></a></dt>
 <dd><p>Define method body</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">body</span></code> function should be used to define body of
-a method. It uses the <code class="docutils literal notranslate"><span class="pre">ready</span></code> and <code class="docutils literal notranslate"><span class="pre">ret</span></code> signals provided by
-the user to feed internal transactions logic and to pass this data
-to method users. Inside the body, other <code class="docutils literal notranslate"><span class="pre">Method</span></code> s can be called.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">body</span></code> context manager can be used to define the actions
+performed by a <code class="docutils literal notranslate"><span class="pre">Method</span></code> when it’s run. Each assignment added to
+a domain under <code class="docutils literal notranslate"><span class="pre">body</span></code> is guarded by the <code class="docutils literal notranslate"><span class="pre">run</span></code> signal.
+Combinational assignments which do not need to be guarded by <code class="docutils literal notranslate"><span class="pre">run</span></code>
+can be added to <code class="docutils literal notranslate"><span class="pre">Method.comb</span></code> instead of <code class="docutils literal notranslate"><span class="pre">m.d.comb</span></code>. <code class="docutils literal notranslate"><span class="pre">Method</span></code>
+calls can be performed under <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -189,11 +191,11 @@ to method users. Inside the body, other <code class="docutils literal notranslat
 </dd>
 <dt><strong>ready</strong><span class="classifier">Signal, in</span></dt><dd><p>Signal to indicate if the method is ready to be run. By
 default it is <code class="docutils literal notranslate"><span class="pre">Const(1)</span></code>, so the method is always ready.
-Assigned combinatorially to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
+Assigned combinationially to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
 </dd>
 <dt><strong>out</strong><span class="classifier">Record, in</span></dt><dd><p>Data generated by the <code class="docutils literal notranslate"><span class="pre">Method</span></code>, which will be passed to
 the caller (a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or another <code class="docutils literal notranslate"><span class="pre">Method</span></code>). Assigned
-combinatorially to the <code class="docutils literal notranslate"><span class="pre">data_out</span></code> attribute.</p>
+combinationally to the <code class="docutils literal notranslate"><span class="pre">data_out</span></code> attribute.</p>
 </dd>
 </dl>
 </dd>
@@ -326,7 +328,9 @@ If omitted, the manager is received from <code class="docutils literal notransla
 <p>This context manager allows to conveniently define the actions
 performed by a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> when it’s granted. Each assignment
 added to a domain under <code class="docutils literal notranslate"><span class="pre">body</span></code> is guarded by the <code class="docutils literal notranslate"><span class="pre">grant</span></code> signal.
-<code class="docutils literal notranslate"><span class="pre">Method</span></code> calls can be performed under <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
+Combinational assignments which do not need to be guarded by
+<code class="docutils literal notranslate"><span class="pre">grant</span></code> can be added to <code class="docutils literal notranslate"><span class="pre">Transaction.comb</span></code> instead of
+<code class="docutils literal notranslate"><span class="pre">m.d.comb</span></code>. <code class="docutils literal notranslate"><span class="pre">Method</span></code> calls can be performed under <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -427,8 +431,9 @@ transactions and methods.</p>
 <dt class="sig sig-object py" id="coreblocks.transactions.core.def_method">
 <span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.core.</span></span><span class="sig-name descname"><span class="pre">def_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method:</span> <span class="pre">~coreblocks.transactions.core.Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ready:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.core.def_method" title="Permalink to this definition"></a></dt>
 <dd><p>Define a method.</p>
-<p>This decorator allows to define transactional methods in more
-elegant way using Python’s <code class="docutils literal notranslate"><span class="pre">def</span></code> syntax.</p>
+<p>This decorator allows to define transactional methods in an
+elegant way using Python’s <code class="docutils literal notranslate"><span class="pre">def</span></code> syntax. Internally, <code class="docutils literal notranslate"><span class="pre">def_method</span></code>
+uses <code class="docutils literal notranslate"><span class="pre">Method.body</span></code>.</p>
 <p>The decorated function should take one argument, which will be a
 record with input signals and return output values.
 The returned value can be either a record or a dictionary of outputs.</p>
@@ -441,7 +446,7 @@ The returned value can be either a record or a dictionary of outputs.</p>
 </dd>
 <dt><strong>ready: Signal</strong></dt><dd><p>Signal to indicate if the method is ready to be run. By
 default it is <code class="docutils literal notranslate"><span class="pre">Const(1)</span></code>, so the method is always ready.
-Assigned combinatorially to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
+Assigned combinationally to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
 </dd>
 </dl>
 </dd>
@@ -1084,7 +1089,7 @@ When a given <code class="docutils literal notranslate"><span class="pre">Method
 at most one of them is granted by the <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>, and the rest
 of them must wait. (Non-exclusive methods are an exception to this
 behavior.) Calling a <code class="docutils literal notranslate"><span class="pre">Method</span></code> always takes a single clock cycle.</p>
-<p>Data is combinatorially transferred between to and from <code class="docutils literal notranslate"><span class="pre">Method</span></code>s
+<p>Data is combinationally transferred between to and from <code class="docutils literal notranslate"><span class="pre">Method</span></code>s
 using Amaranth <code class="docutils literal notranslate"><span class="pre">Record</span></code>s. The transfer can take place in both directions
 at the same time: from the called <code class="docutils literal notranslate"><span class="pre">Method</span></code> to the caller (<code class="docutils literal notranslate"><span class="pre">data_out</span></code>)
 and from the caller to the called <code class="docutils literal notranslate"><span class="pre">Method</span></code> (<code class="docutils literal notranslate"><span class="pre">data_in</span></code>).</p>
@@ -1140,10 +1145,12 @@ receive its output. Nonexclusive methods cannot have inputs.</p>
 <dt class="sig sig-object py" id="coreblocks.transactions.Method.body">
 <span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ready:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">0'd0)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.Method.body" title="Permalink to this definition"></a></dt>
 <dd><p>Define method body</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">body</span></code> function should be used to define body of
-a method. It uses the <code class="docutils literal notranslate"><span class="pre">ready</span></code> and <code class="docutils literal notranslate"><span class="pre">ret</span></code> signals provided by
-the user to feed internal transactions logic and to pass this data
-to method users. Inside the body, other <code class="docutils literal notranslate"><span class="pre">Method</span></code> s can be called.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">body</span></code> context manager can be used to define the actions
+performed by a <code class="docutils literal notranslate"><span class="pre">Method</span></code> when it’s run. Each assignment added to
+a domain under <code class="docutils literal notranslate"><span class="pre">body</span></code> is guarded by the <code class="docutils literal notranslate"><span class="pre">run</span></code> signal.
+Combinational assignments which do not need to be guarded by <code class="docutils literal notranslate"><span class="pre">run</span></code>
+can be added to <code class="docutils literal notranslate"><span class="pre">Method.comb</span></code> instead of <code class="docutils literal notranslate"><span class="pre">m.d.comb</span></code>. <code class="docutils literal notranslate"><span class="pre">Method</span></code>
+calls can be performed under <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -1152,11 +1159,11 @@ to method users. Inside the body, other <code class="docutils literal notranslat
 </dd>
 <dt><strong>ready</strong><span class="classifier">Signal, in</span></dt><dd><p>Signal to indicate if the method is ready to be run. By
 default it is <code class="docutils literal notranslate"><span class="pre">Const(1)</span></code>, so the method is always ready.
-Assigned combinatorially to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
+Assigned combinationially to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
 </dd>
 <dt><strong>out</strong><span class="classifier">Record, in</span></dt><dd><p>Data generated by the <code class="docutils literal notranslate"><span class="pre">Method</span></code>, which will be passed to
 the caller (a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or another <code class="docutils literal notranslate"><span class="pre">Method</span></code>). Assigned
-combinatorially to the <code class="docutils literal notranslate"><span class="pre">data_out</span></code> attribute.</p>
+combinationally to the <code class="docutils literal notranslate"><span class="pre">data_out</span></code> attribute.</p>
 </dd>
 </dl>
 </dd>
@@ -1289,7 +1296,9 @@ If omitted, the manager is received from <code class="docutils literal notransla
 <p>This context manager allows to conveniently define the actions
 performed by a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> when it’s granted. Each assignment
 added to a domain under <code class="docutils literal notranslate"><span class="pre">body</span></code> is guarded by the <code class="docutils literal notranslate"><span class="pre">grant</span></code> signal.
-<code class="docutils literal notranslate"><span class="pre">Method</span></code> calls can be performed under <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
+Combinational assignments which do not need to be guarded by
+<code class="docutils literal notranslate"><span class="pre">grant</span></code> can be added to <code class="docutils literal notranslate"><span class="pre">Transaction.comb</span></code> instead of
+<code class="docutils literal notranslate"><span class="pre">m.d.comb</span></code>. <code class="docutils literal notranslate"><span class="pre">Method</span></code> calls can be performed under <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -1390,8 +1399,9 @@ transactions and methods.</p>
 <dt class="sig sig-object py" id="coreblocks.transactions.def_method">
 <span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.</span></span><span class="sig-name descname"><span class="pre">def_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method:</span> <span class="pre">~coreblocks.transactions.core.Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ready:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.def_method" title="Permalink to this definition"></a></dt>
 <dd><p>Define a method.</p>
-<p>This decorator allows to define transactional methods in more
-elegant way using Python’s <code class="docutils literal notranslate"><span class="pre">def</span></code> syntax.</p>
+<p>This decorator allows to define transactional methods in an
+elegant way using Python’s <code class="docutils literal notranslate"><span class="pre">def</span></code> syntax. Internally, <code class="docutils literal notranslate"><span class="pre">def_method</span></code>
+uses <code class="docutils literal notranslate"><span class="pre">Method.body</span></code>.</p>
 <p>The decorated function should take one argument, which will be a
 record with input signals and return output values.
 The returned value can be either a record or a dictionary of outputs.</p>
@@ -1404,7 +1414,7 @@ The returned value can be either a record or a dictionary of outputs.</p>
 </dd>
 <dt><strong>ready: Signal</strong></dt><dd><p>Signal to indicate if the method is ready to be run. By
 default it is <code class="docutils literal notranslate"><span class="pre">Const(1)</span></code>, so the method is always ready.
-Assigned combinatorially to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
+Assigned combinationally to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
 </dd>
 </dl>
 </dd>
@@ -1434,7 +1444,7 @@ Assigned combinatorially to the <code class="docutils literal notranslate"><span
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 22:54 2023-01-11.
+      <span class="lastupdated">Last updated on 10:24 2023-01-13.
       </span></p>
   </div>
 
