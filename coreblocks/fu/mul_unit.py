@@ -7,7 +7,7 @@ from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsign
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params.mul_params import MulType, MulUnitParams
-from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts
+from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -111,6 +111,8 @@ class MulUnit(Elaboratable, AutoDebugSignals):
     accept: Method(i=gen.get(FuncUnitLayouts).accept)
         Method used for getting result of requested computation.
     """
+
+    optypes = {OpType.MUL}
 
     def __init__(self, gen: GenParams):
         """
