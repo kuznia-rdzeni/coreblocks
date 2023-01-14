@@ -27,6 +27,42 @@ def generateRegister(max_reg_val, phys_regs_bits):
         ann_data = None
     return rp, val, ann_data, real_val
 
+def generateRandomOp(ops):
+    ops_k = list(ops.keys())
+    op = ops[ops_k[random.randint(0, len(ops) - 1)]]
+    signess = False
+    mask=0xF
+    if op[1] in {Funct3.B, Funct3.BU}:
+        mask = 0x1
+    if op[1] in {Funct3.H, Funct3.HU}:
+        mask = 0x3
+    if op[1] in {Funct3.B, Funct3.H}:
+        signess = True
+    return (op, mask, signess)
+
+def generateImm(max_imm_val):
+    if random.randint(0, 1):
+        return 0
+    else:
+        return random.randint(0, max_imm_val)
+
+def shiftMaskBasedOnAddr(mask, addr):
+    rest = addr % 4
+    if mask == 0x1:
+        mask = mask << rest
+    elif mask == 0x3:
+        mask = mask << rest
+    return mask
+
+def checkInstr(addr, op):
+    rest = addr % 4
+    if op[1] in {Funct3.B, Funct3.BU}:
+        return True
+    if op[1] in {Funct3.H, Funct3.HU} and rest in {0,2}:
+        return True
+    if op[1] == Funct3.W and rest == 0:
+        return True
+    return False
 
 class DummyLSUTestCircuit(Elaboratable):
     def __init__(self, gen: GenParams):
@@ -63,68 +99,26 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             "LHU": (Opcode.LOAD, Funct3.HU),  # lhu
             "LW": (Opcode.LOAD, Funct3.W),  # lw
         }
-        ops_k = list(ops.keys())
-        def checkInstr(addr, op):
-            rest = addr % 4
-            if op[1] in {Funct3.B, Funct3.BU}:
-                return True
-            if op[1] in {Funct3.H, Funct3.HU} and rest in {0,2}:
-                return True
-            if op[1] == Funct3.W and rest == 0:
-                return True
-            return False
-        def generateRandomOp():
-            op = ops[ops_k[random.randint(0, len(ops) - 1)]]
-            signess = False
-            if op[1] == Funct3.B:
-                mask = 1
-                signess = True
-            elif op[1] == Funct3.BU:
-                mask = 1
-            elif op[1] == Funct3.H:
-                mask = 0x3
-                signess = True
-            elif op[1] == Funct3.HU:
-                mask = 0x3
-            else:
-                mask = 0xF
-            return (op, mask, signess)
-
-        def generateImm():
-            if random.randint(0, 1):
-                return 0
-            else:
-                return random.randint(0, max_imm_val)
-
-        def shiftMaskBasedOnAddr(mask, addr):
-            rest = addr % 4
-            if mask == 0x1:
-                mask = mask << rest
-            elif mask == 0x3:
-                mask = mask << rest
-            return mask
-
         for i in range(self.tests_number):
+            # generate new instructions till we generate correct one
             generation_status = False
             while(not generation_status):
                 # generate opcode
-                (op, mask, signess) = generateRandomOp()
+                (op, mask, signess) = generateRandomOp(ops)
                 # generate rp1, val1 which create addr
                 rp_s1, s1_val, ann_data, addr = generateRegister(max_reg_val, self.gp.phys_regs_bits)
                 # generate imm
-                imm = generateImm()
+                imm = generateImm(max_imm_val)
                 addr += imm
                 generation_status = checkInstr(addr, op)
             
             self.announce_queue.append(ann_data)
             exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
-
             mask = shiftMaskBasedOnAddr(mask, addr)
 
             #calculate aligned address
             rest = addr % 4
             addr = addr - rest
-
 
             rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
             rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
@@ -165,7 +159,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             yield from self.test_module.io_in.slave_wait()
             generated_data = self.mem_data_queue.pop()
 
-            print("Generated data:", generated_data)
             mask = generated_data["mask"]
             sign = generated_data["sign"]
             # addr = yield self.test_module.io_in.wb.adr
@@ -197,10 +190,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 data = resp_data & 0xFFFFFFFF
             else:
                 raise RuntimeError("Unexpected mask")
-            print("Data przed sign", data)
             if sign:
                 data = int_to_signed(signed_to_int(data, size),32)
-            print("Data po sign", data)
             self.returned_data.append(data)
             yield from self.test_module.io_in.slave_respond(resp_data)
             yield Settle()
@@ -208,7 +199,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     def inserter(self):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
-            print("Instr:",req)
             ret = yield from self.test_module.select.call()
             self.assertEqual(ret["rs_entry_id"], 0)
             yield from self.test_module.insert.call({"rs_data": req, "rs_entry_id": 1})
@@ -220,7 +210,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     def consumer(self):
         for i in range(self.tests_number):
             v = yield from self.test_module.get_result.call()
-            print("Wynik:", v)
             self.assertEqual(v["result"], self.returned_data.pop())
             yield from self.random_wait()
 
@@ -372,8 +361,8 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             req = self.instr_queue.pop()
             self.get_result_data.appendleft(req["rob_id"])
             ret = yield from self.test_module.select.call()
-            self.assertEqual(ret["rs_entry_id"], 1)
-            yield from self.test_module.insert.call({"rs_data": req, "rs_entry_id": 1})
+            self.assertEqual(ret["rs_entry_id"], 0)
+            yield from self.test_module.insert.call({"rs_data": req, "rs_entry_id": 0})
             announc = self.announce_queue.pop()
             for j in range(2):
                 if announc[j] is not None:
