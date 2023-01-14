@@ -14,6 +14,20 @@ from test.common import TestbenchIO, TestCaseWithSimulator, int_to_signed, signe
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
+def generateRegister(max_reg_val, phys_regs_bits):
+    if random.randint(0, 1):
+        rp = random.randint(1, 2**phys_regs_bits - 1)
+        val = 0
+        real_val = random.randint(0, max_reg_val // 4) * 4
+        ann_data = {"tag": rp, "value": real_val}
+    else:
+        rp = 0
+        val = random.randint(0, max_reg_val // 4) * 4
+        real_val = val
+        ann_data = None
+    return rp, val, ann_data, real_val
+
+
 class DummyLSUTestCircuit(Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen
@@ -34,6 +48,7 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.insert_mock = self.insert = TestbenchIO(AdapterTrans(func_unit.insert))
         m.submodules.update_mock = self.update = TestbenchIO(AdapterTrans(func_unit.update))
         m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
+        m.submodules.commit_mock = self.commit = TestbenchIO(AdapterTrans(func_unit.commit))
         self.io_in = WishboneInterfaceWrapper(self.bus.wbMaster)
         m.submodules.bus = self.bus
         return tm
@@ -68,16 +83,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 mask = 0xF
 
             # generate rp1, val1 which create addr
-            if random.randint(0, 1):
-                rp_s1 = random.randint(1, 2**self.gp.phys_regs_bits - 1)
-                s1_val = 0
-                addr = random.randint(0, max_reg_val) 
-                self.announce_queue.append({"tag": rp_s1, "value": addr})
-            else:
-                rp_s1 = 0
-                s1_val = random.randint(0, max_reg_val)
-                addr = s1_val
-                self.announce_queue.append(None)
+            rp_s1, s1_val, ann_data, addr = generateRegister(max_reg_val, self.gp.phys_regs_bits)
+            self.announce_queue.append(ann_data)
 
             # generate imm
             if random.randint(0, 1):
@@ -274,3 +281,127 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
     def test(self):
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.oneInstrTest)
+
+
+class TestDummyLSUStores(TestCaseWithSimulator):
+    def generateInstr(self, max_reg_val, max_imm_val):
+        ops = {
+            "SB": (Opcode.STORE, Funct3.B),
+            "SH": (Opcode.STORE, Funct3.H),
+            "SW": (Opcode.STORE, Funct3.W),
+        }
+        ops_k = list(ops.keys())
+        for i in range(self.tests_number):
+            # generate opcode
+            op = ops[ops_k[random.randint(0, len(ops) - 1)]]
+            exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
+            if op[1] == Funct3.B:
+                mask = 1
+            elif op[1] == Funct3.H:
+                mask = 0x3
+            else:
+                mask = 0xF
+
+            rp_s1, s1_val, ann_data1, addr = generateRegister(max_reg_val, self.gp.phys_regs_bits)
+            rp_s2, s2_val, ann_data2, data = generateRegister(max_reg_val, self.gp.phys_regs_bits)
+            if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
+                ann_data2 = None
+                data = addr
+            # decide in which order we would get announcments
+            if random.randint(0, 1):
+                self.announce_queue.append((ann_data1, ann_data2))
+            else:
+                self.announce_queue.append((ann_data2, ann_data1))
+
+            # generate imm
+            if random.randint(0, 1):
+                imm = 0
+            else:
+                imm = random.randint(0, max_imm_val // 4) * 4
+
+            addr += imm
+            rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
+            instr = {
+                "rp_s1": rp_s1,
+                "rp_s2": rp_s2,
+                "rp_dst": 0,
+                "rob_id": rob_id,
+                "exec_fn": exec_fn,
+                "s1_val": s1_val,
+                "s2_val": s2_val,
+                "imm": imm,
+            }
+            self.instr_queue.append(instr)
+            self.mem_data_queue.append({"addr": addr, "mask": mask, "data": bytes.fromhex(f"{data:08x}")})
+
+    def setUp(self) -> None:
+        random.seed(14)
+        self.tests_number = 50
+        self.gp = GenParams("rv32i", phys_regs_bits=3, rob_entries_bits=3)
+        self.test_module = DummyLSUTestCircuit(self.gp)
+        self.instr_queue = deque()
+        self.announce_queue = deque()
+        self.mem_data_queue = deque()
+        self.get_result_data = deque()
+        self.commit_data = deque()
+        self.generateInstr(2**7, 2**7)
+
+    def random_wait(self):
+        for i in range(random.randint(0, 8)):
+            yield
+
+    def wishbone_slave(self):
+        for i in range(self.tests_number):
+            yield from self.test_module.io_in.slave_wait()
+            generated_data = self.mem_data_queue.pop()
+
+            mask = generated_data["mask"]
+            if mask == 0x1:
+                data = generated_data["data"][-1:]
+            elif mask == 0x3:
+                data = generated_data["data"][-2:]
+            else:
+                data = generated_data["data"][-4:]
+            data = int(data.hex(), 16)
+            yield from self.test_module.io_in.slave_verify(generated_data["addr"], data, 1, mask)
+            yield from self.random_wait()
+
+            yield from self.test_module.io_in.slave_respond(0)
+            yield Settle()
+
+    def inserter(self):
+        for i in range(self.tests_number):
+            req = self.instr_queue.pop()
+            self.get_result_data.appendleft(req["rob_id"])
+            ret = yield from self.test_module.select.call()
+            self.assertEqual(ret["rs_entry_id"], 1)
+            yield from self.test_module.insert.call({"rs_data": req, "rs_entry_id": 1})
+            announc = self.announce_queue.pop()
+            for j in range(2):
+                if announc[j] is not None:
+                    yield from self.random_wait()
+                    yield from self.test_module.update.call(announc[j])
+            yield from self.random_wait()
+
+    def getResulter(self):
+        for i in range(self.tests_number):
+            v = yield from self.test_module.get_result.call()
+            rob_id = self.get_result_data.pop()
+            self.commit_data.appendleft(rob_id)
+            self.assertEqual(v["rob_id"], rob_id)
+            self.assertEqual(v["rp_dst"], 0)
+            yield from self.random_wait()
+
+    def commiter(self):
+        for i in range(self.tests_number):
+            while len(self.commit_data) == 0:
+                yield
+            rob_id = self.commit_data.pop()
+            yield from self.test_module.commit.call({"rob_id": rob_id})
+
+    def test(self):
+        with self.runSimulation(self.test_module) as sim:
+            sim.add_sync_process(self.wishbone_slave)
+            sim.add_sync_process(self.inserter)
+            sim.add_sync_process(self.getResulter)
+            sim.add_sync_process(self.commiter)

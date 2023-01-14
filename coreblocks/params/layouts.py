@@ -11,6 +11,7 @@ __all__ = [
     "RFLayouts",
     "UnsignedMulUnitLayouts",
     "RATLayouts",
+    "LSULayouts",
 ]
 
 
@@ -223,4 +224,9 @@ class UnsignedMulUnitLayouts:
 
         self.accept = [
             ("o", 2 * gen.isa.xlen),
+        ]
+class LSULayouts:
+    def __init__(self, gen_params: GenParams):
+        self.commit = [
+            ("rob_id", gen_params.rob_entries_bits),
         ]
