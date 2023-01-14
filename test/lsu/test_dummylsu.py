@@ -1,5 +1,6 @@
 import random
 from collections import deque
+from typing import Optional
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Settle, Passive
@@ -14,7 +15,7 @@ from test.common import TestbenchIO, TestCaseWithSimulator, int_to_signed, signe
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
-def generateRegister(max_reg_val, phys_regs_bits):
+def generate_register(max_reg_val: int, phys_regs_bits: int) -> tuple[int, int, Optional[dict[str, int]], int]:
     if random.randint(0, 1):
         rp = random.randint(1, 2**phys_regs_bits - 1)
         val = 0
@@ -27,11 +28,12 @@ def generateRegister(max_reg_val, phys_regs_bits):
         ann_data = None
     return rp, val, ann_data, real_val
 
-def generateRandomOp(ops):
+
+def generate_random_op(ops: dict[str, tuple[Opcode, Funct3]]) -> tuple[tuple[Opcode, Funct3], int, bool]:
     ops_k = list(ops.keys())
     op = ops[ops_k[random.randint(0, len(ops) - 1)]]
     signess = False
-    mask=0xF
+    mask = 0xF
     if op[1] in {Funct3.B, Funct3.BU}:
         mask = 0x1
     if op[1] in {Funct3.H, Funct3.HU}:
@@ -40,13 +42,15 @@ def generateRandomOp(ops):
         signess = True
     return (op, mask, signess)
 
-def generateImm(max_imm_val):
+
+def generate_imm(max_imm_val: int) -> int:
     if random.randint(0, 1):
         return 0
     else:
         return random.randint(0, max_imm_val)
 
-def shiftMaskBasedOnAddr(mask, addr):
+
+def shift_mask_based_on_addr(mask: int, addr: int) -> int:
     rest = addr % 4
     if mask == 0x1:
         mask = mask << rest
@@ -54,15 +58,17 @@ def shiftMaskBasedOnAddr(mask, addr):
         mask = mask << rest
     return mask
 
-def checkInstr(addr, op):
+
+def check_instr(addr: int, op: tuple[Opcode, Funct3]) -> bool:
     rest = addr % 4
     if op[1] in {Funct3.B, Funct3.BU}:
         return True
-    if op[1] in {Funct3.H, Funct3.HU} and rest in {0,2}:
+    if op[1] in {Funct3.H, Funct3.HU} and rest in {0, 2}:
         return True
     if op[1] == Funct3.W and rest == 0:
         return True
     return False
+
 
 class DummyLSUTestCircuit(Elaboratable):
     def __init__(self, gen: GenParams):
@@ -91,7 +97,7 @@ class DummyLSUTestCircuit(Elaboratable):
 
 
 class TestDummyLSULoads(TestCaseWithSimulator):
-    def generateInstr(self, max_reg_val, max_imm_val):
+    def generate_instr(self, max_reg_val, max_imm_val):
         ops = {
             "LB": (Opcode.LOAD, Funct3.B),  # lb
             "LBU": (Opcode.LOAD, Funct3.BU),  # lbu
@@ -101,22 +107,22 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         }
         for i in range(self.tests_number):
             # generate new instructions till we generate correct one
-            generation_status = False
-            while(not generation_status):
+            while True:
                 # generate opcode
-                (op, mask, signess) = generateRandomOp(ops)
+                (op, mask, signess) = generate_random_op(ops)
                 # generate rp1, val1 which create addr
-                rp_s1, s1_val, ann_data, addr = generateRegister(max_reg_val, self.gp.phys_regs_bits)
+                rp_s1, s1_val, ann_data, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
                 # generate imm
-                imm = generateImm(max_imm_val)
+                imm = generate_imm(max_imm_val)
                 addr += imm
-                generation_status = checkInstr(addr, op)
-            
+                if check_instr(addr, op):
+                    break
+
             self.announce_queue.append(ann_data)
             exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
-            mask = shiftMaskBasedOnAddr(mask, addr)
+            mask = shift_mask_based_on_addr(mask, addr)
 
-            #calculate aligned address
+            # calculate aligned address
             rest = addr % 4
             addr = addr - rest
 
@@ -134,7 +140,12 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             }
             self.instr_queue.append(instr)
             self.mem_data_queue.append(
-                {"addr": addr, "mask": mask, "sign": signess, "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}")}
+                {
+                    "addr": addr,
+                    "mask": mask,
+                    "sign": signess,
+                    "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+                }
             )
 
     def setUp(self) -> None:
@@ -146,7 +157,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         self.announce_queue = deque()
         self.mem_data_queue = deque()
         self.returned_data = deque()
-        self.generateInstr(2**7, 2**7)
+        self.generate_instr(2**7, 2**7)
 
     def random_wait(self):
         for i in range(random.randint(0, 10)):
@@ -161,37 +172,35 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
             mask = generated_data["mask"]
             sign = generated_data["sign"]
-            # addr = yield self.test_module.io_in.wb.adr
-            # self.assertEqual(addr, generated_data["addr"])
             yield from self.test_module.io_in.slave_verify(generated_data["addr"], 0, 0, mask)
             yield from self.random_wait()
 
-            resp_data=int((generated_data["rnd_bytes"][:4]).hex(),16)
+            resp_data = int((generated_data["rnd_bytes"][:4]).hex(), 16)
             if mask == 0x1:
-                size=8
+                size = 8
                 data = resp_data & 0xFF
             elif mask == 0x2:
-                size=8
+                size = 8
                 data = (resp_data >> 8) & 0xFF
             elif mask == 0x4:
-                size=8
+                size = 8
                 data = (resp_data >> 16) & 0xFF
             elif mask == 0x8:
-                size=8
+                size = 8
                 data = (resp_data >> 24) & 0xFF
             elif mask == 0x3:
-                size=16
+                size = 16
                 data = resp_data & 0xFFFF
-            elif mask == 0xc:
-                size=16
+            elif mask == 0xC:
+                size = 16
                 data = (resp_data >> 16) & 0xFFFF
             elif mask == 0xF:
-                size=32
+                size = 32
                 data = resp_data & 0xFFFFFFFF
             else:
                 raise RuntimeError("Unexpected mask")
             if sign:
-                data = int_to_signed(signed_to_int(data, size),32)
+                data = int_to_signed(signed_to_int(data, size), 32)
             self.returned_data.append(data)
             yield from self.test_module.io_in.slave_respond(resp_data)
             yield Settle()
@@ -221,7 +230,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
 
 class TestDummyLSULoadsCycles(TestCaseWithSimulator):
-    def generateInstr(self, max_reg_val, max_imm_val):
+    def generate_instr(self, max_reg_val, max_imm_val):
         s1_val = random.randint(0, max_reg_val // 4) * 4
         imm = random.randint(0, max_imm_val // 4) * 4
         rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
@@ -247,8 +256,8 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         self.gp = GenParams("rv32i", phys_regs_bits=3, rob_entries_bits=3)
         self.test_module = DummyLSUTestCircuit(self.gp)
 
-    def oneInstrTest(self):
-        instr, wish_data = self.generateInstr(2**7, 2**7)
+    def one_instr_test(self):
+        instr, wish_data = self.generate_instr(2**7, 2**7)
 
         ret = yield from self.test_module.select.call()
         self.assertEqual(ret["rs_entry_id"], 0)
@@ -267,30 +276,29 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
 
     def test(self):
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.oneInstrTest)
+            sim.add_sync_process(self.one_instr_test)
 
 
 class TestDummyLSUStores(TestCaseWithSimulator):
-    def generateInstr(self, max_reg_val, max_imm_val):
+    def generate_instr(self, max_reg_val, max_imm_val):
         ops = {
             "SB": (Opcode.STORE, Funct3.B),
             "SH": (Opcode.STORE, Funct3.H),
             "SW": (Opcode.STORE, Funct3.W),
         }
-        ops_k = list(ops.keys())
         for i in range(self.tests_number):
-            generation_status = False
-            while(not generation_status):
+            while True:
                 # generate opcode
-                (op, mask, _) = generateRandomOp(ops)
+                (op, mask, _) = generate_random_op(ops)
                 # generate rp1, val1 which create addr
-                rp_s1, s1_val, ann_data1, addr = generateRegister(max_reg_val, self.gp.phys_regs_bits)
+                rp_s1, s1_val, ann_data1, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
                 # generate imm
-                imm = generateImm(max_imm_val)
+                imm = generate_imm(max_imm_val)
                 addr += imm
-                generation_status = checkInstr(addr, op)
-            
-            rp_s2, s2_val, ann_data2, data = generateRegister(0xFFFFFFFF, self.gp.phys_regs_bits)
+                if check_instr(addr, op):
+                    break
+
+            rp_s2, s2_val, ann_data2, data = generate_register(0xFFFFFFFF, self.gp.phys_regs_bits)
             if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
                 ann_data2 = None
                 data = ann_data1["value"]
@@ -301,9 +309,9 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 self.announce_queue.append((ann_data2, ann_data1))
 
             exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
-            mask = shiftMaskBasedOnAddr(mask, addr)
+            mask = shift_mask_based_on_addr(mask, addr)
 
-            #calculate aligned address
+            # calculate aligned address
             rest = addr % 4
             addr = addr - rest
 
@@ -331,7 +339,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         self.mem_data_queue = deque()
         self.get_result_data = deque()
         self.commit_data = deque()
-        self.generateInstr(2**7, 2**7)
+        self.generate_instr(2**7, 2**7)
 
     def random_wait(self):
         for i in range(random.randint(0, 8)):
@@ -343,14 +351,14 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             generated_data = self.mem_data_queue.pop()
 
             mask = generated_data["mask"]
-            b_dict={1:0, 2:8, 4:16, 8:24}
-            h_dict={3:0, 0xC:16}
+            b_dict = {1: 0, 2: 8, 4: 16, 8: 24}
+            h_dict = {3: 0, 0xC: 16}
             if mask in b_dict:
-                data = (int(generated_data["data"][-1:].hex(),16) & 0xFF) << b_dict[mask]
+                data = (int(generated_data["data"][-1:].hex(), 16) & 0xFF) << b_dict[mask]
             elif mask in h_dict:
-                data = (int(generated_data["data"][-2:].hex(),16) & 0xFFFF) << h_dict[mask]
+                data = (int(generated_data["data"][-2:].hex(), 16) & 0xFFFF) << h_dict[mask]
             else:
-                data = int(generated_data["data"][-4:].hex(),16)
+                data = int(generated_data["data"][-4:].hex(), 16)
             yield from self.test_module.io_in.slave_verify(generated_data["addr"], data, 1, mask)
             yield from self.random_wait()
 
@@ -371,7 +379,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                     yield from self.test_module.update.call(announc[j])
             yield from self.random_wait()
 
-    def getResulter(self):
+    def get_resulter(self):
         for i in range(self.tests_number):
             v = yield from self.test_module.get_result.call()
             rob_id = self.get_result_data.pop()
@@ -391,5 +399,5 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
-            sim.add_sync_process(self.getResulter)
+            sim.add_sync_process(self.get_resulter)
             sim.add_sync_process(self.commiter)

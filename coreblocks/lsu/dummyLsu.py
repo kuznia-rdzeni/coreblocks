@@ -11,7 +11,7 @@ class LSUDummyInternals(Elaboratable):
     Internal implementation of `LSUDummy` logic, which should be embedded into `LSUDummy`
     class to expose transactional interface. After the instruction is processed,
     `result_ready` bit is set to 1. It is expected, that `LSUDummy` will put
-    `result_ack` high for minimum 1 cycle, when results and `currentInstr` aren't
+    `result_ack` high for minimum 1 cycle, when results and `current_instr` aren't
     needed any more and should be cleared.
 
     Attributes
@@ -24,7 +24,7 @@ class LSUDummyInternals(Elaboratable):
         prepared data to be announced in the rest of core.
     """
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, currentInstr: Record) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: Record) -> None:
         """
         Parameters
         ----------
@@ -33,12 +33,12 @@ class LSUDummyInternals(Elaboratable):
         bus: WishboneMaster
             Instantion of wishbone master which should be used to communicate with
             data memory.
-        currentInstr : Record, in
+        current_instr : Record, in
             Reference to signal which contain instruction, which is currently processed by LSU.
         """
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
-        self.currentInstr = currentInstr
+        self.current_instr = current_instr
         self.bus = bus
 
         self.loadedData = Signal(self.gen_params.isa.xlen)
@@ -50,18 +50,18 @@ class LSUDummyInternals(Elaboratable):
 
     def calculate_addr(self):
         """Calculate Load/Store address as defined by RiscV spec"""
-        return self.currentInstr.s1_val + self.currentInstr.imm
+        return self.current_instr.s1_val + self.current_instr.imm
 
     def prepare_bytes_mask(self, m: Module, addr: Signal) -> Signal:
         mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
         s = Signal(mask_len)
-        with m.Switch(self.currentInstr.exec_fn.funct3):
+        with m.Switch(self.current_instr.exec_fn.funct3):
             with m.Case(Funct3.B):
                 m.d.comb += s.eq(0x1 << addr[0:2])
             with m.Case(Funct3.BU):
                 m.d.comb += s.eq(0x1 << addr[0:2])
             with m.Case(Funct3.H):
-                m.d.comb += s.eq(0x3 << (addr[1]<<1))
+                m.d.comb += s.eq(0x3 << (addr[1] << 1))
             with m.Case(Funct3.HU):
                 m.d.comb += s.eq(0x3 << (addr[1] << 1))
             with m.Case(Funct3.W):
@@ -70,7 +70,7 @@ class LSUDummyInternals(Elaboratable):
 
     def postprocess_load_data(self, m: Module, data: Signal, addr: Signal):
         s = Signal.like(data)
-        with m.Switch(self.currentInstr.exec_fn.funct3):
+        with m.Switch(self.current_instr.exec_fn.funct3):
             with m.Case(Funct3.B):
                 tmp = Signal(8)
                 m.d.comb += tmp.eq((data >> (addr[0:2] << 3)) & 0xFF)
@@ -87,9 +87,9 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += s.eq(data)
         return s
 
-    def prepare_data_to_save(self, m: Module, data:Signal, addr:Signal):
+    def prepare_data_to_save(self, m: Module, data: Signal, addr: Signal):
         s = Signal.like(data)
-        with m.Switch(self.currentInstr.exec_fn.funct3):
+        with m.Switch(self.current_instr.exec_fn.funct3):
             with m.Case(Funct3.B):
                 m.d.comb += s.eq(data[0:8] << (addr[0:2] << 3))
             with m.Case(Funct3.H):
@@ -109,7 +109,7 @@ class LSUDummyInternals(Elaboratable):
         m.d.comb += req.we.eq(we)
         m.d.comb += req.sel.eq(bytes_mask)
         if we:
-            m.d.comb += req.data.eq(self.prepare_data_to_save(m,self.currentInstr.s2_val, addr))
+            m.d.comb += req.data.eq(self.prepare_data_to_save(m, self.current_instr.s2_val, addr))
 
         # load_init is under "if" so this transaction will request to be executed
         # after all uppers "if" will be taken, so there is no need to add here
@@ -138,14 +138,14 @@ class LSUDummyInternals(Elaboratable):
         def check_if_instr_ready() -> Value:
             """Check if we all values needed by instruction are already calculated."""
             return (
-                (self.currentInstr.rp_s1 == 0)
-                & (self.currentInstr.rp_s2 == 0)
-                & (self.currentInstr.valid == 1)
+                (self.current_instr.rp_s1 == 0)
+                & (self.current_instr.rp_s2 == 0)
+                & (self.current_instr.valid == 1)
                 & (self.result_ready == 0)
             )
 
         def check_if_instr_is_load() -> Value:
-            return self.currentInstr.exec_fn.op_type == Opcode.LOAD
+            return self.current_instr.exec_fn.op_type == Opcode.LOAD
 
         m = Module()
 
@@ -241,16 +241,16 @@ class LSUDummy(Elaboratable):
         self.bus = bus
 
     def elaborate(self, platform):
-        # currentInstr : Record
+        # current_instr : Record
         #     Record which store currently pocessed instruction using RS data
         #     layout extended with ``valid`` bit.
         # reserved : Signal, out
-        #     Register to mark, that ``currentInstr`` field is already reserved.
+        #     Register to mark, that ``current_instr`` field is already reserved.
         m = Module()
         reserved = Signal()
-        currentInstr = Record(self.rs_layouts.data_layout + [("valid", 1)])
+        current_instr = Record(self.rs_layouts.data_layout + [("valid", 1)])
 
-        m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, currentInstr)
+        m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
 
         result_ready = internal.result_ready
 
@@ -260,36 +260,36 @@ class LSUDummy(Elaboratable):
             m.d.sync += reserved.eq(0)
             return 0
 
-        @def_method(m, self.insert, ~currentInstr.valid)
+        @def_method(m, self.insert, ~current_instr.valid)
         def _(arg):
-            m.d.sync += currentInstr.eq(arg.rs_data)
-            m.d.sync += currentInstr.valid.eq(1)
+            m.d.sync += current_instr.eq(arg.rs_data)
+            m.d.sync += current_instr.valid.eq(1)
 
         @def_method(m, self.update)
         def _(arg):
-            with m.If(currentInstr.rp_s1 == arg.tag):
-                m.d.sync += currentInstr.s1_val.eq(arg.value)
-                m.d.sync += currentInstr.rp_s1.eq(0)
-            with m.If(currentInstr.rp_s2 == arg.tag):
-                m.d.sync += currentInstr.s2_val.eq(arg.value)
-                m.d.sync += currentInstr.rp_s2.eq(0)
+            with m.If(current_instr.rp_s1 == arg.tag):
+                m.d.sync += current_instr.s1_val.eq(arg.value)
+                m.d.sync += current_instr.rp_s1.eq(0)
+            with m.If(current_instr.rp_s2 == arg.tag):
+                m.d.sync += current_instr.s2_val.eq(arg.value)
+                m.d.sync += current_instr.rp_s2.eq(0)
 
         @def_method(m, self.get_result, result_ready)
         def _(arg):
             m.d.comb += internal.get_result_ack.eq(1)
-            with m.If(currentInstr.exec_fn.op_type == Opcode.LOAD):
-                m.d.sync += currentInstr.eq(0)
+            with m.If(current_instr.exec_fn.op_type == Opcode.LOAD):
+                m.d.sync += current_instr.eq(0)
                 m.d.sync += reserved.eq(0)
-            return {"rob_id": currentInstr.rob_id, "rp_dst": currentInstr.rp_dst, "result": internal.loadedData}
+            return {"rob_id": current_instr.rob_id, "rp_dst": current_instr.rp_dst, "result": internal.loadedData}
 
         @def_method(m, self.commit, internal.ready_for_store)
         def _(arg):
-            with m.If((currentInstr.exec_fn.op_type == Opcode.STORE) & (arg.rob_id == currentInstr.rob_id)):
+            with m.If((current_instr.exec_fn.op_type == Opcode.STORE) & (arg.rob_id == current_instr.rob_id)):
                 m.d.sync += internal.execute_store.eq(1)
 
         with m.If(internal.store_ready):
             m.d.sync += internal.execute_store.eq(0)
-            m.d.sync += currentInstr.eq(0)
+            m.d.sync += current_instr.eq(0)
             m.d.sync += reserved.eq(0)
 
         return m

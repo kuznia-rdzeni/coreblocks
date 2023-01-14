@@ -225,6 +225,8 @@ class UnsignedMulUnitLayouts:
         self.accept = [
             ("o", 2 * gen.isa.xlen),
         ]
+
+
 class LSULayouts:
     def __init__(self, gen_params: GenParams):
         self.commit = [
