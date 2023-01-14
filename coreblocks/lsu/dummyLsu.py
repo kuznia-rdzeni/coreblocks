@@ -54,13 +54,9 @@ class LSUDummyInternals(Elaboratable):
         mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
         mask = Signal(mask_len)
         with m.Switch(self.current_instr.exec_fn.funct3):
-            with m.Case(Funct3.B):
+            with m.Case(Funct3.B, Funct3.BU):
                 m.d.comb += mask.eq(0x1 << addr[0:2])
-            with m.Case(Funct3.BU):
-                m.d.comb += mask.eq(0x1 << addr[0:2])
-            with m.Case(Funct3.H):
-                m.d.comb += mask.eq(0x3 << (addr[1] << 1))
-            with m.Case(Funct3.HU):
+            with m.Case(Funct3.H, Funct3.HU):
                 m.d.comb += mask.eq(0x3 << (addr[1] << 1))
             with m.Case(Funct3.W):
                 m.d.comb += mask.eq(0xF)
@@ -69,18 +65,20 @@ class LSUDummyInternals(Elaboratable):
     def postprocess_load_data(self, m: Module, raw_data: Signal, addr: Signal):
         data = Signal.like(raw_data)
         with m.Switch(self.current_instr.exec_fn.funct3):
-            with m.Case(Funct3.B):
+            with m.Case(Funct3.B, Funct3.BU):
                 tmp = Signal(8)
                 m.d.comb += tmp.eq((raw_data >> (addr[0:2] << 3)) & 0xFF)
-                m.d.comb += data.eq(tmp.as_signed())
-            with m.Case(Funct3.BU):
-                m.d.comb += data.eq((raw_data >> (addr[0:2] << 3)) & 0xFF)
-            with m.Case(Funct3.H):
+                with m.If(self.current_instr.exec_fn.funct3 == Funct3.B):
+                    m.d.comb += data.eq(tmp.as_signed())
+                with m.Else():
+                    m.d.comb += data.eq(tmp)
+            with m.Case(Funct3.H, Funct3.HU):
                 tmp = Signal(16)
                 m.d.comb += tmp.eq((raw_data >> (addr[1] << 4)) & 0xFFFF)
-                m.d.comb += data.eq(tmp.as_signed())
-            with m.Case(Funct3.HU):
-                m.d.comb += data.eq((raw_data >> (addr[1] << 4)) & 0xFFFF)
+                with m.If(self.current_instr.exec_fn.funct3 == Funct3.H):
+                    m.d.comb += data.eq(tmp.as_signed())
+                with m.Else():
+                    m.d.comb += data.eq(tmp)
             with m.Case():
                 m.d.comb += data.eq(raw_data)
         return data
@@ -133,22 +131,22 @@ class LSUDummyInternals(Elaboratable):
                     m.d.sync += self.loadedData.eq(0)
 
     def elaborate(self, platform):
-        def check_if_instr_ready() -> Value:
+        def check_if_instr_ready(current_instr: Record, result_ready: Signal) -> Value:
             """Check if all values needed by instruction are already calculated."""
             return (
-                (self.current_instr.rp_s1 == 0)
-                & (self.current_instr.rp_s2 == 0)
-                & (self.current_instr.valid == 1)
-                & (self.result_ready == 0)
+                (current_instr.rp_s1 == 0)
+                & (current_instr.rp_s2 == 0)
+                & (current_instr.valid == 1)
+                & (result_ready == 0)
             )
 
-        def check_if_instr_is_load() -> Value:
-            return self.current_instr.exec_fn.op_type == Opcode.LOAD
+        def check_if_instr_is_load(current_instr: Record) -> Value:
+            return current_instr.exec_fn.op_type == Opcode.LOAD
 
         m = Module()
 
-        instr_ready = check_if_instr_ready()
-        instr_is_load = check_if_instr_is_load()
+        instr_ready = check_if_instr_ready(self.current_instr, self.result_ready)
+        instr_is_load = check_if_instr_is_load(self.current_instr)
         op_initiated = Signal()
 
         with m.FSM("Start"):
