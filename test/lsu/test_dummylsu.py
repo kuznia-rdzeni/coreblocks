@@ -87,10 +87,15 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
             #calculate address
             addr += imm
+            print("Adres orginalny:", addr)
             rest = addr % 4
             addr = addr - rest
 
             print(op)
+            print("Maska i reszta org:", mask, rest)
+
+
+
             #change test instruction 
             if rest == 1 or rest == 3:
                 mask = 0x1
@@ -101,12 +106,13 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 else:
                     op=(Opcode.LOAD, Funct3.B)
             elif rest == 2:
-                mask=0x3
                 if op[1]==Funct3.W:
+                    mask=0x3
                     if random.randint(0,1):
                         op=(Opcode.LOAD, Funct3.H)
                     else:
                         op=(Opcode.LOAD, Funct3.HU)
+            print(op)
             exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
 
             print("Maska i reszta:", mask, rest)
@@ -134,7 +140,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
     def setUp(self) -> None:
         random.seed(14)
-        self.tests_number = 10
+        self.tests_number = 100
         self.gp = GenParams("rv32i", phys_regs_bits=3, rob_entries_bits=3)
         self.test_module = DummyLSUTestCircuit(self.gp)
         self.instr_queue = deque()

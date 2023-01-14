@@ -65,34 +65,32 @@ class LSUDummyInternals(Elaboratable):
             with m.Case(Funct3.BU):
                 m.d.comb += s.eq(0x1 << addr[0:2])
             with m.Case(Funct3.H):
-                m.d.comb += s.eq(0x3 << (addr[0]<<1))
+                m.d.comb += s.eq(0x3 << (addr[1]<<1))
             with m.Case(Funct3.HU):
-                m.d.comb += s.eq(0x3 << (addr[0] << 1))
+                m.d.comb += s.eq(0x3 << (addr[1] << 1))
             with m.Case(Funct3.W):
                 m.d.comb += s.eq(0xF)
         return s
 
     def postprocess_load_data(self, m: Module, data: Signal, addr: Signal):
-        s = Signal.like(data)
+        s = Signal(shape=(32,unsigned))
         with m.Switch(self.currentInstr.exec_fn.funct3):
             with m.Case(Funct3.B):
                 tmp = Signal(8)
-                m.d.comb += tmp.eq((data >> (addr[0:1] << 3)) & 0xFF)
+                m.d.comb += tmp.eq((data >> (addr[0:2] << 3)) & 0xFF)
                 m.d.comb += s.eq(tmp.as_signed())
             with m.Case(Funct3.BU):
                 tmp = Signal(8)
-#                m.d.comb += tmp.eq((data >> (addr[0:1] << 3)) & 0xFF)
-                m.d.comb += s.eq(Cat(data[:8], C(0, unsigned(s.shape().width - 8))))
-#                m.d.comb += s.eq(tmp.as_unsigned())
+                m.d.comb += tmp.eq((data >> (addr[0:2] << 3)) & 0xFF)
+                m.d.comb += s.eq(tmp.as_unsigned())
             with m.Case(Funct3.H):
                 tmp = Signal(16)
-                m.d.comb += tmp.eq((data >> (addr[0] << 4)) & 0xFFFF)
+                m.d.comb += tmp.eq((data >> (addr[1] << 4)) & 0xFFFF)
                 m.d.comb += s.eq(tmp.as_signed())
             with m.Case(Funct3.HU):
                 tmp = Signal(16)
-                m.d.comb += s.eq(Cat(data[:16], C(0, unsigned(s.shape().width - 16))))
-#                m.d.comb += tmp.eq((data >> (addr[0] << 4)) & 0xFFFF)
-#                m.d.comb += s.eq(tmp.as_unsigned())
+                m.d.comb += tmp.eq((data >> (addr[1] << 4)) & 0xFFFF)
+                m.d.comb += s.eq(tmp.as_unsigned())
             with m.Case():
                 m.d.comb += s.eq(data)
         return s
