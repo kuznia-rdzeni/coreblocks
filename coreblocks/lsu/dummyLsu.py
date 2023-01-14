@@ -11,30 +11,28 @@ class LSUDummyInternals(Elaboratable):
     Internal implementation of `LSUDummy` logic, which should be embedded into `LSUDummy`
     class to expose transactional interface. After the instruction is processed,
     `result_ready` bit is set to 1. It is expected, that `LSUDummy` will put
-    `result_ack` high for minimum 1 cycle, when results and `current_instr` aren't
-    needed any more and should be cleared.
+    `result_ack` high for minimum 1 cycle, when the results and `current_instr` aren't
+    needed anymore and should be cleared.
 
     Attributes
     ----------
     get_result_ack : Signal, in
-        Signal which should be set high by `LSUDummy` to inform `LSUDummyInternals` that
-        we pushed result to next pipeline stage and depends from instruction type some state can be freed.
+        Instructs to clean the internal state after processing an instruction.
     result_ready : Signal, out
-        Signal which is set high by `LSUDummyInternals` to inform `LSUDummy` that we have
-        prepared data to be announced in the rest of core.
+        Signals that `resultData` is valid.
     """
 
     def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: Record) -> None:
         """
         Parameters
         ----------
-        gen_params: GenParams
+        gen_params : GenParams
             Parameters to be used during processor generation.
-        bus: WishboneMaster
+        bus : WishboneMaster
             Instantion of wishbone master which should be used to communicate with
             data memory.
         current_instr : Record, in
-            Reference to signal which contain instruction, which is currently processed by LSU.
+            Reference to signal containing instruction currently processed by LSU.
         """
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
@@ -54,49 +52,49 @@ class LSUDummyInternals(Elaboratable):
 
     def prepare_bytes_mask(self, m: Module, addr: Signal) -> Signal:
         mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
-        s = Signal(mask_len)
+        mask = Signal(mask_len)
         with m.Switch(self.current_instr.exec_fn.funct3):
             with m.Case(Funct3.B):
-                m.d.comb += s.eq(0x1 << addr[0:2])
+                m.d.comb += mask.eq(0x1 << addr[0:2])
             with m.Case(Funct3.BU):
-                m.d.comb += s.eq(0x1 << addr[0:2])
+                m.d.comb += mask.eq(0x1 << addr[0:2])
             with m.Case(Funct3.H):
-                m.d.comb += s.eq(0x3 << (addr[1] << 1))
+                m.d.comb += mask.eq(0x3 << (addr[1] << 1))
             with m.Case(Funct3.HU):
-                m.d.comb += s.eq(0x3 << (addr[1] << 1))
+                m.d.comb += mask.eq(0x3 << (addr[1] << 1))
             with m.Case(Funct3.W):
-                m.d.comb += s.eq(0xF)
-        return s
+                m.d.comb += mask.eq(0xF)
+        return mask
 
-    def postprocess_load_data(self, m: Module, data: Signal, addr: Signal):
-        s = Signal.like(data)
+    def postprocess_load_data(self, m: Module, raw_data: Signal, addr: Signal):
+        data = Signal.like(raw_data)
         with m.Switch(self.current_instr.exec_fn.funct3):
             with m.Case(Funct3.B):
                 tmp = Signal(8)
-                m.d.comb += tmp.eq((data >> (addr[0:2] << 3)) & 0xFF)
-                m.d.comb += s.eq(tmp.as_signed())
+                m.d.comb += tmp.eq((raw_data >> (addr[0:2] << 3)) & 0xFF)
+                m.d.comb += data.eq(tmp.as_signed())
             with m.Case(Funct3.BU):
-                m.d.comb += s.eq((data >> (addr[0:2] << 3)) & 0xFF)
+                m.d.comb += data.eq((raw_data >> (addr[0:2] << 3)) & 0xFF)
             with m.Case(Funct3.H):
                 tmp = Signal(16)
-                m.d.comb += tmp.eq((data >> (addr[1] << 4)) & 0xFFFF)
-                m.d.comb += s.eq(tmp.as_signed())
+                m.d.comb += tmp.eq((raw_data >> (addr[1] << 4)) & 0xFFFF)
+                m.d.comb += data.eq(tmp.as_signed())
             with m.Case(Funct3.HU):
-                m.d.comb += s.eq((data >> (addr[1] << 4)) & 0xFFFF)
+                m.d.comb += data.eq((raw_data >> (addr[1] << 4)) & 0xFFFF)
             with m.Case():
-                m.d.comb += s.eq(data)
-        return s
+                m.d.comb += data.eq(raw_data)
+        return data
 
-    def prepare_data_to_save(self, m: Module, data: Signal, addr: Signal):
-        s = Signal.like(data)
+    def prepare_data_to_save(self, m: Module, raw_data: Signal, addr: Signal):
+        data = Signal.like(raw_data)
         with m.Switch(self.current_instr.exec_fn.funct3):
             with m.Case(Funct3.B):
-                m.d.comb += s.eq(data[0:8] << (addr[0:2] << 3))
+                m.d.comb += data.eq(raw_data[0:8] << (addr[0:2] << 3))
             with m.Case(Funct3.H):
-                m.d.comb += s.eq(data[0:16] << (addr[1] << 4))
+                m.d.comb += data.eq(raw_data[0:16] << (addr[1] << 4))
             with m.Case():
-                m.d.comb += s.eq(data)
-        return s
+                m.d.comb += data.eq(raw_data)
+        return data
 
     def op_init(self, m: Module, op_initiated: Signal, we: int):
         addr = Signal(self.gen_params.isa.xlen)
@@ -136,7 +134,7 @@ class LSUDummyInternals(Elaboratable):
 
     def elaborate(self, platform):
         def check_if_instr_ready() -> Value:
-            """Check if we all values needed by instruction are already calculated."""
+            """Check if all values needed by instruction are already calculated."""
             return (
                 (self.current_instr.rp_s1 == 0)
                 & (self.current_instr.rp_s2 == 0)
@@ -195,9 +193,9 @@ class LSUDummyInternals(Elaboratable):
 
 class LSUDummy(Elaboratable):
     """
-    Very simple LSU, which serialize all stores and loads,
-    It isn't fully compliment to RiscV spec. Doesn't support checking if
-    address is in correct range.
+    Very simple LSU, which serializes all stores and loads,
+    It isn't fully compliant with RiscV spec. Doesn't support checking if
+    address is in correct range. Addresses have to be aligned.
 
     It use the same interface as RS.
 
@@ -210,8 +208,8 @@ class LSUDummy(Elaboratable):
     insert : Method
         Used to put instruction into reserved place.
     update : Method
-        Used to receive announcment that calculations of new value have ended
-        and we have a value which can be used in father computations.
+        Used to receive the announcement that calculations of a new value have ended
+        and we have a value which can be used in further computations.
     get_result : Method
         To put load/store results to the next stage of pipeline.
     """
@@ -222,7 +220,7 @@ class LSUDummy(Elaboratable):
         ----------
         gen_params : GenParams
             Parameters to be used during processor generation.
-        bus: WishboneMaster
+        bus : WishboneMaster
             Instantion of wishbone master which should be used to communicate with
             data memory.
         """

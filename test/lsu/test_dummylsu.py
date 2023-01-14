@@ -99,11 +99,11 @@ class DummyLSUTestCircuit(Elaboratable):
 class TestDummyLSULoads(TestCaseWithSimulator):
     def generate_instr(self, max_reg_val, max_imm_val):
         ops = {
-            "LB": (Opcode.LOAD, Funct3.B),  # lb
-            "LBU": (Opcode.LOAD, Funct3.BU),  # lbu
-            "LH": (Opcode.LOAD, Funct3.H),  # lh
-            "LHU": (Opcode.LOAD, Funct3.HU),  # lhu
-            "LW": (Opcode.LOAD, Funct3.W),  # lw
+            "LB": (Opcode.LOAD, Funct3.B),
+            "LBU": (Opcode.LOAD, Funct3.BU),
+            "LH": (Opcode.LOAD, Funct3.H),
+            "LHU": (Opcode.LOAD, Funct3.HU),
+            "LW": (Opcode.LOAD, Funct3.W),
         }
         for i in range(self.tests_number):
             # generate new instructions till we generate correct one
