@@ -279,34 +279,34 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         }
         ops_k = list(ops.keys())
         for i in range(self.tests_number):
-            # generate opcode
-            op = ops[ops_k[random.randint(0, len(ops) - 1)]]
-            exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
-            if op[1] == Funct3.B:
-                mask = 1
-            elif op[1] == Funct3.H:
-                mask = 0x3
-            else:
-                mask = 0xF
-
-            rp_s1, s1_val, ann_data1, addr = generateRegister(max_reg_val, self.gp.phys_regs_bits)
-            rp_s2, s2_val, ann_data2, data = generateRegister(max_reg_val, self.gp.phys_regs_bits)
+            generation_status = False
+            while(not generation_status):
+                # generate opcode
+                (op, mask, _) = generateRandomOp(ops)
+                # generate rp1, val1 which create addr
+                rp_s1, s1_val, ann_data1, addr = generateRegister(max_reg_val, self.gp.phys_regs_bits)
+                # generate imm
+                imm = generateImm(max_imm_val)
+                addr += imm
+                generation_status = checkInstr(addr, op)
+            
+            rp_s2, s2_val, ann_data2, data = generateRegister(0xFFFFFFFF, self.gp.phys_regs_bits)
             if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
                 ann_data2 = None
-                data = addr
+                data = ann_data1["value"]
             # decide in which order we would get announcments
             if random.randint(0, 1):
                 self.announce_queue.append((ann_data1, ann_data2))
             else:
                 self.announce_queue.append((ann_data2, ann_data1))
 
-            # generate imm
-            if random.randint(0, 1):
-                imm = 0
-            else:
-                imm = random.randint(0, max_imm_val // 4) * 4
+            exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
+            mask = shiftMaskBasedOnAddr(mask, addr)
 
-            addr += imm
+            #calculate aligned address
+            rest = addr % 4
+            addr = addr - rest
+
             rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
             instr = {
                 "rp_s1": rp_s1,
@@ -323,7 +323,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
 
     def setUp(self) -> None:
         random.seed(14)
-        self.tests_number = 50
+        self.tests_number = 100
         self.gp = GenParams("rv32i", phys_regs_bits=3, rob_entries_bits=3)
         self.test_module = DummyLSUTestCircuit(self.gp)
         self.instr_queue = deque()
@@ -343,13 +343,14 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             generated_data = self.mem_data_queue.pop()
 
             mask = generated_data["mask"]
-            if mask == 0x1:
-                data = generated_data["data"][-1:]
-            elif mask == 0x3:
-                data = generated_data["data"][-2:]
+            b_dict={1:0, 2:8, 4:16, 8:24}
+            h_dict={3:0, 0xC:16}
+            if mask in b_dict:
+                data = (int(generated_data["data"][-1:].hex(),16) & 0xFF) << b_dict[mask]
+            elif mask in h_dict:
+                data = (int(generated_data["data"][-2:].hex(),16) & 0xFFFF) << h_dict[mask]
             else:
-                data = generated_data["data"][-4:]
-            data = int(data.hex(), 16)
+                data = int(generated_data["data"][-4:].hex(),16)
             yield from self.test_module.io_in.slave_verify(generated_data["addr"], data, 1, mask)
             yield from self.random_wait()
 

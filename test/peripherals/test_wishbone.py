@@ -40,7 +40,6 @@ class WishboneInterfaceWrapper:
 
         assert (yield self.wb.adr) == exp_addr
         assert (yield self.wb.we == exp_we)
-        print (f"Select: {(yield self.wb.sel):X}, {exp_sel:X}")
         assert (yield self.wb.sel == exp_sel)
         if exp_we:
             assert (yield self.wb.dat_w) == exp_data

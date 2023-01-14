@@ -69,24 +69,31 @@ class LSUDummyInternals(Elaboratable):
         return s
 
     def postprocess_load_data(self, m: Module, data: Signal, addr: Signal):
-        s = Signal(shape=(32,unsigned))
+        s = Signal.like(data)
         with m.Switch(self.currentInstr.exec_fn.funct3):
             with m.Case(Funct3.B):
                 tmp = Signal(8)
                 m.d.comb += tmp.eq((data >> (addr[0:2] << 3)) & 0xFF)
                 m.d.comb += s.eq(tmp.as_signed())
             with m.Case(Funct3.BU):
-                tmp = Signal(8)
-                m.d.comb += tmp.eq((data >> (addr[0:2] << 3)) & 0xFF)
-                m.d.comb += s.eq(tmp.as_unsigned())
+                m.d.comb += s.eq((data >> (addr[0:2] << 3)) & 0xFF)
             with m.Case(Funct3.H):
                 tmp = Signal(16)
                 m.d.comb += tmp.eq((data >> (addr[1] << 4)) & 0xFFFF)
                 m.d.comb += s.eq(tmp.as_signed())
             with m.Case(Funct3.HU):
-                tmp = Signal(16)
-                m.d.comb += tmp.eq((data >> (addr[1] << 4)) & 0xFFFF)
-                m.d.comb += s.eq(tmp.as_unsigned())
+                m.d.comb += s.eq((data >> (addr[1] << 4)) & 0xFFFF)
+            with m.Case():
+                m.d.comb += s.eq(data)
+        return s
+
+    def prepare_data_to_save(self, m: Module, data:Signal, addr:Signal):
+        s = Signal.like(data)
+        with m.Switch(self.currentInstr.exec_fn.funct3):
+            with m.Case(Funct3.B):
+                m.d.comb += s.eq(data[0:8] << (addr[0:2] << 3))
+            with m.Case(Funct3.H):
+                m.d.comb += s.eq(data[0:16] << (addr[1] << 4))
             with m.Case():
                 m.d.comb += s.eq(data)
         return s
@@ -102,7 +109,7 @@ class LSUDummyInternals(Elaboratable):
         m.d.comb += req.we.eq(we)
         m.d.comb += req.sel.eq(bytes_mask)
         if we:
-            m.d.comb += req.data.eq(self.currentInstr.s2_val)
+            m.d.comb += req.data.eq(self.prepare_data_to_save(m,self.currentInstr.s2_val, addr))
 
         # load_init is under "if" so this transaction will request to be executed
         # after all uppers "if" will be taken, so there is no need to add here
