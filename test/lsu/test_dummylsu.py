@@ -64,9 +64,16 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             "LW": (Opcode.LOAD, Funct3.W),  # lw
         }
         ops_k = list(ops.keys())
-        for i in range(self.tests_number):
-            print("===================================")
-            # generate opcode
+        def checkInstr(addr, op):
+            rest = addr % 4
+            if op[1] in {Funct3.B, Funct3.BU}:
+                return True
+            if op[1] in {Funct3.H, Funct3.HU} and rest in {0,2}:
+                return True
+            if op[1] == Funct3.W and rest == 0:
+                return True
+            return False
+        def generateRandomOp():
             op = ops[ops_k[random.randint(0, len(ops) - 1)]]
             signess = False
             if op[1] == Funct3.B:
@@ -81,52 +88,43 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 mask = 0x3
             else:
                 mask = 0xF
+            return (op, mask, signess)
 
-            # generate rp1, val1 which create addr
-            rp_s1, s1_val, ann_data, addr = generateRegister(max_reg_val, self.gp.phys_regs_bits)
-            self.announce_queue.append(ann_data)
-
-            # generate imm
+        def generateImm():
             if random.randint(0, 1):
-                imm = 0
+                return 0
             else:
-                imm = random.randint(0, max_imm_val)
+                return random.randint(0, max_imm_val)
 
-            #calculate address
-            addr += imm
-            print("Adres orginalny:", addr)
+        def shiftMaskBasedOnAddr(mask, addr):
             rest = addr % 4
-            addr = addr - rest
-
-            print(op)
-            print("Maska i reszta org:", mask, rest)
-
-
-
-            #change test instruction 
-            if rest == 1 or rest == 3:
-                mask = 0x1
-                if op[1]==Funct3.B or op[1]==Funct3.BU:
-                    pass
-                elif op[1]==Funct3.HU:
-                    op=(Opcode.LOAD, Funct3.BU)
-                else:
-                    op=(Opcode.LOAD, Funct3.B)
-            elif rest == 2:
-                if op[1]==Funct3.W:
-                    mask=0x3
-                    if random.randint(0,1):
-                        op=(Opcode.LOAD, Funct3.H)
-                    else:
-                        op=(Opcode.LOAD, Funct3.HU)
-            print(op)
-            exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
-
-            print("Maska i reszta:", mask, rest)
             if mask == 0x1:
                 mask = mask << rest
             elif mask == 0x3:
                 mask = mask << rest
+            return mask
+
+        for i in range(self.tests_number):
+            generation_status = False
+            while(not generation_status):
+                # generate opcode
+                (op, mask, signess) = generateRandomOp()
+                # generate rp1, val1 which create addr
+                rp_s1, s1_val, ann_data, addr = generateRegister(max_reg_val, self.gp.phys_regs_bits)
+                # generate imm
+                imm = generateImm()
+                addr += imm
+                generation_status = checkInstr(addr, op)
+            
+            self.announce_queue.append(ann_data)
+            exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
+
+            mask = shiftMaskBasedOnAddr(mask, addr)
+
+            #calculate aligned address
+            rest = addr % 4
+            addr = addr - rest
+
 
             rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
             rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
@@ -400,7 +398,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             yield from self.test_module.commit.call({"rob_id": rob_id})
 
     def test(self):
-        with self.runSimulation(self.test_module) as sim:
+        with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.getResulter)
