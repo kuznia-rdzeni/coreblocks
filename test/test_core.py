@@ -20,10 +20,10 @@ from riscvmodel.insn import (
     InstructionSLLI,
     InstructionSRLI,
     InstructionSRAI,
-    InstructionLUI,
+    InstructionJALR,
 )
 from riscvmodel.model import Model
-from riscvmodel.isa import InstructionRType, get_insns
+from riscvmodel.isa import InstructionRType, InstructionUType, InstructionJType, InstructionBType, get_insns
 from riscvmodel.variant import RV32I
 
 
@@ -177,7 +177,10 @@ class TestCore(TestCaseWithSimulator):
         self.instr_count = 300
         random.seed(42)
 
-        instructions = get_insns(cls=InstructionRType)
+        instructions = get_insns(cls=InstructionRType, variant=RV32I)
+        instructions += get_insns(cls=InstructionUType, variant=RV32I)  # lui, auipc
+        instructions += get_insns(cls=InstructionJType, variant=RV32I)  # jal
+        instructions += get_insns(cls=InstructionBType, variant=RV32I)  # branches
         instructions += [
             InstructionADDI,
             InstructionSLTI,
@@ -188,7 +191,7 @@ class TestCore(TestCaseWithSimulator):
             InstructionSLLI,
             InstructionSRLI,
             InstructionSRAI,
-            InstructionLUI,
+            InstructionJALR,
         ]
 
         # allocate some random values for registers
