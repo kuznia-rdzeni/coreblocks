@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.scheduler.load_balancer import LoadBalancer
+from coreblocks.scheduler.rs_selector import RSSelector
 from coreblocks.stages.rs_func_block import RSFuncBlock
 from coreblocks.transactions import Method, Transaction
 from coreblocks.transactions.lib import FIFO
@@ -113,34 +113,6 @@ class ROBAllocation(Elaboratable):
         return m
 
 
-class RSSelection(Elaboratable):
-    def __init__(self, *, get_instr: Method, push_instr: Method, rs_alloc: Method, gen_params: GenParams):
-        self.gen_params = gen_params
-        layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.rs_select_in
-        self.output_layout = layouts.rs_select_out
-
-        self.get_instr = get_instr
-        self.push_instr = push_instr
-        self.rs_alloc = rs_alloc
-
-    def elaborate(self, platform):
-        m = Module()
-
-        data_out = Record(self.output_layout)
-
-        with Transaction().body(m):
-            instr = self.get_instr(m)
-            allocated_field = self.rs_alloc(m)
-
-            m.d.comb += assign(data_out, instr)
-            m.d.comb += data_out.rs_entry_id.eq(allocated_field.rs_entry_id)
-
-            self.push_instr(m, data_out)
-
-        return m
-
-
 class RSInsertion(Elaboratable):
     def __init__(
         self, *, get_instr: Method, rs_insert: Method, rf_read1: Method, rf_read2: Method, gen_params: GenParams
@@ -232,26 +204,16 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        load_balancer_out = [FIFO(self.layouts.rob_allocate_out, 2) for _ in self.rs]
-        m.submodules += load_balancer_out
-        m.submodules.load_balancer = LoadBalancer(
-            gen_params=self.gen_params,
-            get_instr=reg_alloc_out_buf.read,
-            push_instr=[(load_balancer_out[i].write, self.rs[i].optypes) for i in range(len(self.rs))],
-        )
-
         rs_select_out_buf = [FIFO(self.layouts.rs_select_out, 2) for _ in self.rs]
         m.submodules += rs_select_out_buf
 
-        m.submodules += [
-            RSSelection(
-                get_instr=load_balancer_out[i].read,
-                push_instr=rs_select_out_buf[i].write,
-                rs_alloc=self.rs[i].select,
-                gen_params=self.gen_params,
-            )
-            for i in range(len(self.rs))
-        ]
+        m.submodules.load_balancer = RSSelector(
+            gen_params=self.gen_params,
+            get_instr=reg_alloc_out_buf.read,
+            push_instr=[
+                (self.rs[i].select, rs_select_out_buf[i].write, self.rs[i].optypes) for i in range(len(self.rs))
+            ],
+        )
 
         m.submodules += [
             RSInsertion(
