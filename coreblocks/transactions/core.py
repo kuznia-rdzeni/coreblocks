@@ -1,7 +1,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import Callable, ClassVar, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
+from typing import Callable, ClassVar, Mapping, TypeAlias, TypedDict, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
 from typing_extensions import Self
@@ -38,6 +38,16 @@ class Priority(Enum):
     UNDEFINED = auto()
     LEFT = auto()
     RIGHT = auto()
+
+
+class RelationBase(TypedDict):
+    end: Union["Transaction", "Method"]
+    priority: Priority
+    conflict: bool
+
+
+class Relation(RelationBase):
+    start: Union["Transaction", "Method"]
 
 
 def eager_deterministic_cc_scheduler(
@@ -126,7 +136,7 @@ class TransactionManager(Elaboratable):
 
     def __init__(self, cc_scheduler: TransactionScheduler = eager_deterministic_cc_scheduler):
         self.transactions: list[Transaction] = []
-        self.relations: list[Tuple[Transaction | Method, Transaction | Method, Priority, bool]] = []
+        self.relations: list[Relation] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
     def add_transaction(self, transaction: "Transaction"):
@@ -174,17 +184,17 @@ class TransactionManager(Elaboratable):
         pgr: TransactionGraph = {}  # Priority graph
         rgr: TransactionGraph = {}  # Relation graph
 
-        def add_edge(transaction: Transaction, transaction2: Transaction, priority: Priority, is_conflict: bool):
-            rgr[transaction].add(transaction2)
-            rgr[transaction2].add(transaction)
-            if is_conflict:
-                cgr[transaction].add(transaction2)
-                cgr[transaction2].add(transaction)
+        def add_edge(begin: Transaction, end: Transaction, priority: Priority, conflict: bool):
+            rgr[begin].add(end)
+            rgr[end].add(begin)
+            if conflict:
+                cgr[begin].add(end)
+                cgr[end].add(begin)
             match priority:
                 case Priority.LEFT:
-                    pgr[transaction2].add(transaction)
+                    pgr[end].add(begin)
                 case Priority.RIGHT:
-                    pgr[transaction].add(transaction2)
+                    pgr[begin].add(end)
 
         for transaction in self.transactions:
             cgr[transaction] = set()
@@ -199,10 +209,10 @@ class TransactionManager(Elaboratable):
                     if transaction is not transaction2:
                         add_edge(transaction, transaction2, Priority.UNDEFINED, True)
 
-        for (end1, end2, priority, is_conflict) in self.relations:
-            for transaction in end_trans(end1):
-                for transaction2 in end_trans(end2):
-                    add_edge(transaction, transaction2, priority, is_conflict)
+        for relation in self.relations:
+            for start in end_trans(relation["start"]):
+                for end in end_trans(relation["end"]):
+                    add_edge(start, end, relation["priority"], relation["conflict"])
 
         porder: PriorityOrder = {}
 
@@ -219,8 +229,8 @@ class TransactionManager(Elaboratable):
         self.method_uses[transaction][method] = (arg, enable)
         self.methods_by_transaction[transaction].append(method)
         self.transactions_by_method[method].append(transaction)
-        for end in method.relations:
-            self.relations.append((method, end[0], end[1], end[2]))
+        for relation in method.relations:
+            self.relations.append(Relation(**relation, start=method))
         for method, (arg, enable) in method.method_uses.items():
             self._call_graph(transaction, method, arg, enable)
 
@@ -231,8 +241,8 @@ class TransactionManager(Elaboratable):
         self.method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
 
         for transaction in self.transactions:
-            for end in transaction.relations:
-                self.relations.append((transaction, end[0], end[1], end[2]))
+            for relation in transaction.relations:
+                self.relations.append(Relation(**relation, start=transaction))
             for method, (arg, enable) in transaction.method_uses.items():
                 self._call_graph(transaction, method, arg, enable)
 
@@ -354,7 +364,7 @@ class TransactionBase(Owned):
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
-        self.relations: list[Tuple[Transaction | Method, Priority, bool]] = []
+        self.relations: list[RelationBase] = []
 
     def add_conflict(self, end: Union["Transaction", "Method"], priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
@@ -371,7 +381,7 @@ class TransactionBase(Owned):
             Is one of conflicting ``Transaction``\\s or ``Method``\\s prioritized?
             Defaults to undefined priority relation.
         """
-        self.relations.append((end, priority, True))
+        self.relations.append(RelationBase(end=end, priority=priority, conflict=True))
 
     def schedule_before(self, end: Union["Transaction", "Method"]) -> None:
         """Adds a priority relation.
@@ -385,7 +395,7 @@ class TransactionBase(Owned):
         end: Transaction or Method
             The other `Transaction` or `Method`
         """
-        self.relations.append((end, Priority.RIGHT, False))
+        self.relations.append(RelationBase(end=end, priority=Priority.RIGHT, conflict=False))
 
     def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
         if method in self.method_uses:
