@@ -191,20 +191,20 @@ class LSUDummyInternals(Elaboratable):
 
 class LSUDummy(Elaboratable):
     """
-    Very simple LSU, which serializes all stores and loads,
+    Very simple LSU, which serializes all stores and loads.
     It isn't fully compliant with RiscV spec. Doesn't support checking if
     address is in correct range. Addresses have to be aligned.
 
-    It use the same interface as RS.
+    It uses the same interface as RS.
 
-    We assume that store can not return error.
+    We assume that store cannot return an error.
 
     Attributes
     ----------
     select : Method
         Used to reserve a place for intruction in LSU.
     insert : Method
-        Used to put instruction into reserved place.
+        Used to put instruction into a reserved place.
     update : Method
         Used to receive the announcement that calculations of a new value have ended
         and we have a value which can be used in further computations.
@@ -219,7 +219,7 @@ class LSUDummy(Elaboratable):
         gen_params : GenParams
             Parameters to be used during processor generation.
         bus : WishboneMaster
-            Instantion of wishbone master which should be used to communicate with
+            An instance of the Wishbone master which should be used to communicate with
             data memory.
         """
 
@@ -237,13 +237,8 @@ class LSUDummy(Elaboratable):
         self.bus = bus
 
     def elaborate(self, platform):
-        # current_instr : Record
-        #     Record which store currently pocessed instruction using RS data
-        #     layout extended with ``valid`` bit.
-        # reserved : Signal, out
-        #     Register to mark, that ``current_instr`` field is already reserved.
         m = Module()
-        reserved = Signal()
+        reserved = Signal()  # means that current_instr is reserved
         current_instr = Record(self.rs_layouts.data_layout + [("valid", 1)])
 
         m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
