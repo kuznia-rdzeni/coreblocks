@@ -1,7 +1,7 @@
 from amaranth import *
 
 from coreblocks.params import GenParams, FuncUnitLayouts
-from coreblocks.transactions import Method, Transaction, def_method
+from coreblocks.transactions import Method
 from coreblocks.transactions.lib import FIFO, ManyToOneConnectTrans
 
 
