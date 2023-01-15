@@ -115,7 +115,7 @@ class ROBAllocation(Elaboratable):
 
 class RSInsertion(Elaboratable):
     def __init__(
-        self, *, get_instr: Method, rs_insert: Method, rf_read1: Method, rf_read2: Method, gen_params: GenParams
+        self, *, get_instr: Method, rs_insert: list[Method], rf_read1: Method, rf_read2: Method, gen_params: GenParams
     ):
         self.gen_params = gen_params
 
@@ -128,28 +128,30 @@ class RSInsertion(Elaboratable):
         m = Module()
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
-            source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
-            source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
+            for i in range(len(self.rs_insert)):
+                instr = self.get_instr(m)
+                source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
+                source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
 
-            self.rs_insert(
-                m,
-                {
-                    # when operand value is valid the convention is to set operand source to 0
-                    "rs_data": {
-                        "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
-                        "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
-                        "rp_dst": instr.regs_p.rp_dst,
-                        "rob_id": instr.rob_id,
-                        "exec_fn": instr.exec_fn,
-                        "s1_val": Mux(source1.valid, source1.reg_val, 0),
-                        "s2_val": Mux(source2.valid, source2.reg_val, 0),
-                        "imm": instr.imm,
-                        "pc": instr.pc,
-                    },
-                    "rs_entry_id": instr.rs_entry_id,
-                },
-            )
+                with m.If(instr.rs_selected == i):
+                    self.rs_insert[i](
+                        m,
+                        {
+                            # when operand value is valid the convention is to set operand source to 0
+                            "rs_data": {
+                                "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
+                                "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
+                                "rp_dst": instr.regs_p.rp_dst,
+                                "rob_id": instr.rob_id,
+                                "exec_fn": instr.exec_fn,
+                                "s1_val": Mux(source1.valid, source1.reg_val, 0),
+                                "s2_val": Mux(source2.valid, source2.reg_val, 0),
+                                "imm": instr.imm,
+                                "pc": instr.pc,
+                            },
+                            "rs_entry_id": instr.rs_entry_id,
+                        },
+                    )
 
         return m
 
@@ -204,26 +206,20 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        rs_select_out_buf = [FIFO(self.layouts.rs_select_out, 2) for _ in self.rs]
-        m.submodules += rs_select_out_buf
-
-        m.submodules.load_balancer = RSSelector(
+        m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
+        m.submodules.rs_selector = RSSelector(
             gen_params=self.gen_params,
             get_instr=reg_alloc_out_buf.read,
-            push_instr=[
-                (self.rs[i].select, rs_select_out_buf[i].write, self.rs[i].optypes) for i in range(len(self.rs))
-            ],
+            rs_select=[(self.rs[i].select, self.rs[i].optypes) for i in range(len(self.rs))],
+            push_instr=rs_select_out_buf.write
         )
 
-        m.submodules += [
-            RSInsertion(
-                get_instr=rs_select_out_buf[i].read,
-                rs_insert=self.rs[i].insert,
-                rf_read1=self.rf_read1,
-                rf_read2=self.rf_read2,
-                gen_params=self.gen_params,
-            )
-            for i in range(len(self.rs))
-        ]
+        m.submodules.rs_insertion = RSInsertion(
+            get_instr=rs_select_out_buf.read,
+            rs_insert=[rs.insert for rs in self.rs],
+            rf_read1=self.rf_read1,
+            rf_read2=self.rf_read2,
+            gen_params=self.gen_params,
+        )
 
         return m

@@ -32,7 +32,7 @@ def decoded_optype_set(optypes: set[OpType]) -> int:
 
 # currently it do no load balancing, and only selects first available RS
 class RSSelector(Elaboratable):
-    def __init__(self, gen_params: GenParams, get_instr: Method, push_instr: list[Tuple[Method, Method, set[OpType]]]):
+    def __init__(self, gen_params: GenParams, get_instr: Method, rs_select: list[Tuple[Method, set[OpType]]], push_instr: Method):
         self.gen_params = gen_params
 
         layouts = gen_params.get(SchedulerLayouts)
@@ -40,6 +40,7 @@ class RSSelector(Elaboratable):
         self.output_layout = layouts.rs_select_out
 
         self.get_instr = get_instr
+        self.rs_select = rs_select
         self.push_instr = push_instr
 
     def elaborate(self, platform):
@@ -47,17 +48,20 @@ class RSSelector(Elaboratable):
         m.submodules.decoder = decoder = OpTypeDecoder(self.gen_params)
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
-            data_out = Record(self.output_layout)
+            for i in range(len(self.rs_select)):
+                alloc, optypes = self.rs_select[i]
+                data_out = Record(self.output_layout)
 
-            m.d.comb += decoder.optype_in.eq(instr.exec_fn.op_type)
-            for (alloc, push, optypes) in self.push_instr:
+                instr = self.get_instr(m)
+
+                m.d.comb += decoder.optype_in.eq(instr.exec_fn.op_type)
                 with m.If((decoder.decoded & decoded_optype_set(optypes)).bool()):
                     allocated_field = alloc(m)
 
                     m.d.comb += assign(data_out, instr)
                     m.d.comb += data_out.rs_entry_id.eq(allocated_field.rs_entry_id)
+                    m.d.comb += data_out.rs_selected.eq(i)
 
-                    push(m, data_out)
+                    self.push_instr(m, data_out)
 
         return m
