@@ -211,7 +211,7 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
             get_instr=reg_alloc_out_buf.read,
             rs_select=[(self.rs[i].select, self.rs[i].optypes) for i in range(len(self.rs))],
-            push_instr=rs_select_out_buf.write
+            push_instr=rs_select_out_buf.write,
         )
 
         m.submodules.rs_insertion = RSInsertion(

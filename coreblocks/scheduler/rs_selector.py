@@ -32,7 +32,9 @@ def decoded_optype_set(optypes: set[OpType]) -> int:
 
 # currently it do no load balancing, and only selects first available RS
 class RSSelector(Elaboratable):
-    def __init__(self, gen_params: GenParams, get_instr: Method, rs_select: list[Tuple[Method, set[OpType]]], push_instr: Method):
+    def __init__(
+        self, gen_params: GenParams, get_instr: Method, rs_select: list[Tuple[Method, set[OpType]]], push_instr: Method
+    ):
         self.gen_params = gen_params
 
         layouts = gen_params.get(SchedulerLayouts)
