@@ -3,6 +3,8 @@ from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
 from amaranth.sim import Settle
+
+from coreblocks.stages.rs_func_block import RSFuncBlock
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
 from coreblocks.scheduler.scheduler import Scheduler
@@ -39,6 +41,13 @@ class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
             method_rs_alloc = Adapter(o=rs_layouts.select_out)
             method_rs_insert = Adapter(i=rs_layouts.insert_in)
 
+            # mocked RSFuncBlock
+            class MockedRSFuncBlock(RSFuncBlock):
+                def __init__(self, select, insert, optypes):
+                    self.select = select
+                    self.insert = insert
+                    self.optypes = optypes
+
             # mocked input and output
             m.submodules.output = self.out = TestbenchIO(method_rs_insert)
             m.submodules.rs_allocate = self.rs_allocate = TestbenchIO(method_rs_alloc)
@@ -57,8 +66,7 @@ class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
                 rob_put=self.rob.put,
                 rf_read1=self.rf.read1,
                 rf_read2=self.rf.read2,
-                rs_alloc=method_rs_alloc.iface,
-                rs_insert=method_rs_insert.iface,
+                reservation_stations=[MockedRSFuncBlock(method_rs_alloc.iface, method_rs_insert.iface, set(OpType))],
                 gen_params=self.gen_params,
             )
 
