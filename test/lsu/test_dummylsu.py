@@ -176,29 +176,12 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             yield from self.random_wait()
 
             resp_data = int((generated_data["rnd_bytes"][:4]).hex(), 16)
-            if mask == 0x1:
-                size = 8
-                data = resp_data & 0xFF
-            elif mask == 0x2:
-                size = 8
-                data = (resp_data >> 8) & 0xFF
-            elif mask == 0x4:
-                size = 8
-                data = (resp_data >> 16) & 0xFF
-            elif mask == 0x8:
-                size = 8
-                data = (resp_data >> 24) & 0xFF
-            elif mask == 0x3:
-                size = 16
-                data = resp_data & 0xFFFF
-            elif mask == 0xC:
-                size = 16
-                data = (resp_data >> 16) & 0xFFFF
-            elif mask == 0xF:
-                size = 32
-                data = resp_data & 0xFFFFFFFF
-            else:
-                raise RuntimeError("Unexpected mask")
+            data_shift = (mask & -mask).bit_length() - 1
+            assert mask.bit_length() == data_shift + mask.bit_count(), "Unexpected mask"
+
+            size = mask.bit_count() * 8
+            data_mask = 2**size - 1
+            data = (resp_data >> (data_shift * 8)) & data_mask
             if sign:
                 data = int_to_signed(signed_to_int(data, size), 32)
             self.returned_data.append(data)
