@@ -156,11 +156,11 @@ class TransactionManager(Elaboratable):
 
         Returns
         -------
-        cgr: TransactionGraph
+        cgr : TransactionGraph
             Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
-        rgr: TransactionGraph
+        rgr : TransactionGraph
             Graph of relations between transactions, which includes conflicts and orderings.
-        porder: PriorityOrder
+        porder : PriorityOrder
             Linear ordering of transactions which is consistent with priority constraints.
         """
 
@@ -376,14 +376,14 @@ class TransactionBase(Owned):
     def schedule_before(self, end: Union["Transaction", "Method"]) -> None:
         """Adds a priority relation.
 
-        Record that that the given ``Transaction`` or ``Method`` needs to be
-        scheduled before this ``Method`` or ``Transaction``, without adding
+        Record that that the given `Transaction` or `Method` needs to be
+        scheduled before this `Method` or `Transaction`, without adding
         a conflict. Typical reason is data forwarding.
 
         Parameters
         ----------
         end: Transaction or Method
-            The other ``Transaction`` or ``Method``
+            The other `Transaction` or `Method`
         """
         self.relations.append((end, Priority.RIGHT, False))
 

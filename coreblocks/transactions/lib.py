@@ -90,20 +90,20 @@ class Forwarder(Elaboratable):
     """Forwarding with overflow buffering
 
     Provides a means to connect two transactions with forwarding. Exposes
-    two methods: ``read``, and ``write``. When both of these methods are
-    executed simultaneously, data is forwarded between them. If ``write``
-    is executed, but ``read`` is not, the value cannot be forwarded,
-    but is stored into an overflow buffer. No further ``write``\\s are
-    possible until the overflow buffer is cleared by ``read``.
+    two methods: `read`, and `write`. When both of these methods are
+    executed simultaneously, data is forwarded between them. If `write`
+    is executed, but `read` is not, the value cannot be forwarded,
+    but is stored into an overflow buffer. No further `write`\\s are
+    possible until the overflow buffer is cleared by `read`.
 
-    The ``write`` method is scheduled before ``read``.
+    The `write` method is scheduled before `read`.
 
     Attributes
     ----------
     read: Method
-        The read method. Accepts an empty argument, returns a ``Record``.
+        The read method. Accepts an empty argument, returns a `Record`.
     write: Method
-        The write method. Accepts a ``Record``, returns empty result.
+        The write method. Accepts a `Record`, returns empty result.
     """
 
     def __init__(self, layout: MethodLayout):

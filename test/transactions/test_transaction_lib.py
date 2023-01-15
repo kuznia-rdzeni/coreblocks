@@ -14,7 +14,7 @@ from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_
 
 class TestFifoBase(TestCaseWithSimulator):
     def do_test_fifo(
-        self, fifo_class: type[Elaboratable], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs=dict()
+        self, fifo_class: type[Elaboratable], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs: dict = {}
     ):
         iosize = 8
 
