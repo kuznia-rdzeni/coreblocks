@@ -112,7 +112,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 (op, mask, signess) = generate_random_op(ops)
                 # generate rp1, val1 which create addr
                 rp_s1, s1_val, ann_data, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
-                # generate imm
                 imm = generate_imm(max_imm_val)
                 addr += imm
                 if check_instr(addr, op):
@@ -275,7 +274,6 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 (op, mask, _) = generate_random_op(ops)
                 # generate rp1, val1 which create addr
                 rp_s1, s1_val, ann_data1, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
-                # generate imm
                 imm = generate_imm(max_imm_val)
                 addr += imm
                 if check_instr(addr, op):

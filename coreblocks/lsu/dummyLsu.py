@@ -11,9 +11,9 @@ class LSUDummyInternals(Elaboratable):
     """
     Internal implementation of `LSUDummy` logic, which should be embedded into `LSUDummy`
     class to expose transactional interface. After the instruction is processed,
-    `result_ready` bit is set to 1. It is expected, that `LSUDummy` will put
-    `result_ack` high for minimum 1 cycle, when the results and `current_instr` aren't
-    needed anymore and should be cleared.
+    `result_ready` bit is set to 1.  `LSUDummy` is expected to put
+    `result_ack` high for at least 1 cycle after the results have
+    been read and can be cleared.
 
     Attributes
     ----------
@@ -30,8 +30,7 @@ class LSUDummyInternals(Elaboratable):
         gen_params : GenParams
             Parameters to be used during processor generation.
         bus : WishboneMaster
-            Instantion of wishbone master which should be used to communicate with
-            data memory.
+            An instance of the Wishbone master for interfacing with the data memory.
         current_instr : Record, in
             Reference to signal containing instruction currently processed by LSU.
         """
@@ -107,9 +106,9 @@ class LSUDummyInternals(Elaboratable):
         m.d.comb += req.sel.eq(bytes_mask)
         m.d.comb += req.data.eq(self.prepare_data_to_save(m, self.current_instr.s2_val, addr))
 
-        # load_init is under "if" so this transaction will request to be executed
-        # after all uppers "if" will be taken, so there is no need to add here
-        # additional signal as "request"
+        # load_init is under an "if" so that this transaction requests to be executed
+        # after all "if"s above are taken, so there is no need to add any additional
+        # signal here as a "request"
         with Transaction().body(m):
             self.bus.request(m, req)
             m.d.sync += op_initiated.eq(1)
@@ -219,8 +218,7 @@ class LSUDummy(Elaboratable):
         gen_params : GenParams
             Parameters to be used during processor generation.
         bus : WishboneMaster
-            An instance of the Wishbone master which should be used to communicate with
-            data memory.
+            An instance of the Wishbone master for interfacing with the data memory.
         """
 
         self.gen_params = gen_params
