@@ -24,7 +24,7 @@ jobs:
           pip3 install -r requirements-dev.txt
 
       - name: Synthesize
-        run: ./scripts/synthesize --verbose
+        run: PYTHONHASHSEED=0 ./scripts/synthesize --verbose
 
       - name: Print synthesis information
         run: cat ./build/top.tim
