@@ -25,7 +25,24 @@ class ZbsFunction(Signal):
 
 
 class ZbsFunctionDecoder(Elaboratable):
+    """
+    Module decoding function into hot wired ZbsFunction.
+
+    Attributes
+    ----------
+    exec_fn: Record(gen.get(CommonLayouts).exec_fn), in
+        Function to be decoded.
+    zbs_function: ZbsFunction, out
+        Function decoded into OneHotWire output.
+    """
+
     def __init__(self, gen: GenParams):
+        """
+        Parameters
+        ----------
+        gen: GenParams
+            Core generation parameters.
+        """
         layouts = gen.get(CommonLayouts)
 
         self.exec_fn = Record(layouts.exec_fn)
@@ -51,6 +68,23 @@ class ZbsFunctionDecoder(Elaboratable):
 
 
 class Zbs(Elaboratable):
+    """
+    Module responsible for executing Zbs instructions.
+
+    Attributes
+    ----------
+    function: ZbsFunction, in
+        Function to be executed.
+    in1: Signal(xlen), in
+        First input.
+    in2: Signal(xlen), in
+        Second input.
+
+    Args:
+    ----
+        gen_params: Core generation parameters.
+    """
+
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
@@ -84,6 +118,16 @@ class Zbs(Elaboratable):
 
 
 class ZbsUnit(Elaboratable):
+    """
+    Module responsible for executing Zbs instructions.
+
+    Attributes
+    ----------
+    issue: Method(i=gen.get(FuncUnitLayouts).issue)
+        Method used for requesting computation.
+    accept: Method(i=gen.get(FuncUnitLayouts).accept)
+        Method used for getting result of requested computation.
+    """
 
     op_types = {OpType.BIT_MANIPULATION}
 
