@@ -224,11 +224,15 @@
 </li>
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.FIFO.__init__">(coreblocks.transactions.lib.FIFO method)</a>
 </li>
+        <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.Forwarder.__init__">(coreblocks.transactions.lib.Forwarder method)</a>
+</li>
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.ManyToOneConnectTrans.__init__">(coreblocks.transactions.lib.ManyToOneConnectTrans method)</a>
 </li>
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.MethodFilter.__init__">(coreblocks.transactions.lib.MethodFilter method)</a>
 </li>
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.MethodProduct.__init__">(coreblocks.transactions.lib.MethodProduct method)</a>
+</li>
+        <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.MethodTransformer.__init__">(coreblocks.transactions.lib.MethodTransformer method)</a>
 </li>
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.Method.__init__">(coreblocks.transactions.Method method)</a>
 </li>
@@ -366,8 +370,6 @@
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayouts">CommonLayouts (class in coreblocks.params.layouts)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.OpType.COMPARE">COMPARE (coreblocks.params.isa.OpType attribute)</a>
-</li>
-      <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.ConflictPriority">ConflictPriority (class in coreblocks.transactions.core)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.ConnectAndTransformTrans">ConnectAndTransformTrans (class in coreblocks.transactions.lib)</a>
 </li>
@@ -811,11 +813,13 @@
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.fetch.Fetch">Fetch (class in coreblocks.frontend.fetch)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.FetchLayouts">FetchLayouts (class in coreblocks.params.layouts)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.FIFO">FIFO (class in coreblocks.transactions.lib)</a>
+</li>
+      <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.Forwarder">Forwarder (class in coreblocks.transactions.lib)</a>
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.FRAT">FRAT (class in coreblocks.structs_common.rat)</a>
 </li>
@@ -943,7 +947,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Extension.L">L (coreblocks.params.isa.Extension attribute)</a>
 </li>
-      <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.ConflictPriority.LEFT">LEFT (coreblocks.transactions.core.ConflictPriority attribute)</a>
+      <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Priority.LEFT">LEFT (coreblocks.transactions.core.Priority attribute)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Method.like">like() (coreblocks.transactions.core.Method static method)</a>
 
@@ -990,6 +994,8 @@
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.MethodFilter">MethodFilter (class in coreblocks.transactions.lib)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.MethodProduct">MethodProduct (class in coreblocks.transactions.lib)</a>
+</li>
+      <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.MethodTransformer">MethodTransformer (class in coreblocks.transactions.lib)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Opcode.MISC_MEM">MISC_MEM (coreblocks.params.isa.Opcode attribute)</a>
 </li>
@@ -1214,10 +1220,12 @@
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.tracing.TracingFragment.prepare">prepare() (coreblocks.transactions.tracing.TracingFragment method)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.PRIV">PRIV (coreblocks.params.isa.Funct3 attribute)</a>
+      <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Priority">Priority (class in coreblocks.transactions.core)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.PRIV">PRIV (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Method.proxy">proxy() (coreblocks.transactions.core.Method method)</a>
 
       <ul>
@@ -1276,7 +1284,7 @@
 </li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.utils.AssignType.RHS">RHS (coreblocks.utils.utils.AssignType attribute)</a>
 </li>
-      <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.ConflictPriority.RIGHT">RIGHT (coreblocks.transactions.core.ConflictPriority attribute)</a>
+      <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Priority.RIGHT">RIGHT (coreblocks.transactions.core.Priority attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.ROBLayouts">ROBLayouts (class in coreblocks.params.layouts)</a>
 </li>
@@ -1416,7 +1424,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.InstrType.U">U (coreblocks.params.isa.InstrType attribute)</a>
 </li>
-      <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.ConflictPriority.UNDEFINED">UNDEFINED (coreblocks.transactions.core.ConflictPriority attribute)</a>
+      <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Priority.UNDEFINED">UNDEFINED (coreblocks.transactions.core.Priority attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -1541,7 +1549,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 16:07 2023-01-15.
+      <span class="lastupdated">Last updated on 09:27 2023-01-16.
       </span></p>
   </div>
 
