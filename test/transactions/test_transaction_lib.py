@@ -1,21 +1,102 @@
 import random
 from operator import and_
 from functools import reduce
+from amaranth.sim import Settle
 from parameterized import parameterized
 
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
-from coreblocks.transactions.lib import (
-    Adapter,
-    AdapterTrans,
-    ManyToOneConnectTrans,
-    MethodFilter,
-    MethodProduct,
-    MethodTransformer,
-)
+from coreblocks.transactions.lib import *
 from coreblocks.utils._typing import LayoutLike
-from ..common import TestCaseWithSimulator, TestbenchIO, def_class_method_mock, def_method_mock
+from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_class_method_mock, def_method_mock
+
+
+class TestFifoBase(TestCaseWithSimulator):
+    def do_test_fifo(
+        self, fifo_class: type[Elaboratable], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs: dict = {}
+    ):
+        iosize = 8
+
+        m = SimpleTestCircuit(fifo_class(iosize, **fifo_kwargs))
+
+        random.seed(1337)
+
+        def random_wait(rand: int):
+            for _ in range(random.randint(0, rand)):
+                yield
+
+        def writer():
+            for i in range(2**iosize):
+                yield from m.write.call({"data": i})
+                yield from random_wait(writer_rand)
+
+        def reader():
+            for i in range(2**iosize):
+                self.assertEqual((yield from m.read.call()), {"data": i})
+                yield from random_wait(reader_rand)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(reader)
+            sim.add_sync_process(writer)
+
+
+class TestFIFO(TestFifoBase):
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(FIFO, writer_rand=writer_rand, reader_rand=reader_rand, fifo_kwargs=dict(depth=4))
+
+
+class TestForwarder(TestFifoBase):
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(Forwarder, writer_rand=writer_rand, reader_rand=reader_rand)
+
+    def test_forwarding(self):
+        iosize = 8
+
+        m = SimpleTestCircuit(Forwarder(iosize))
+
+        def forward_check(x):
+            yield from m.read.call_init()
+            yield from m.write.call_init({"data": x})
+            yield Settle()
+            self.assertEqual((yield from m.read.call_result()), {"data": x})
+            self.assertIsNotNone((yield from m.write.call_result()))
+            yield
+
+        def process():
+            # test forwarding behavior
+            for x in range(4):
+                yield from forward_check(x)
+
+            # load the overflow buffer
+            yield from m.read.disable()
+            yield from m.write.call_init({"data": 42})
+            yield Settle()
+            self.assertIsNotNone((yield from m.write.call_result()))
+            yield
+
+            # writes are not possible now
+            yield from m.write.call_init({"data": 84})
+            yield Settle()
+            self.assertIsNone((yield from m.write.call_result()))
+            yield
+
+            # read from the overflow buffer, writes still blocked
+            yield from m.read.enable()
+            yield from m.write.call_init({"data": 111})
+            yield Settle()
+            self.assertEqual((yield from m.read.call_result()), {"data": 42})
+            self.assertIsNone((yield from m.write.call_result()))
+            yield
+
+            # forwarding now works again
+            for x in range(4):
+                yield from forward_check(x)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(process)
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
