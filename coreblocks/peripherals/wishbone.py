@@ -246,6 +246,8 @@ class PipelinedWishboneMaster(Elaboratable):
 
             m.d.comb += req_finish.eq(1)
 
+        self.result.proxy(m, self.result_fifo.read)
+
         @def_method(m, self.request, ready=request_ready)
         def _(arg) -> None:
             m.d.comb += self.wb.stb.eq(1)
@@ -258,10 +260,6 @@ class PipelinedWishboneMaster(Elaboratable):
             ]
 
             m.d.comb += req_start.eq(1)
-
-        @def_method(m, self.result)
-        def _(arg) -> Record:
-            return self.result_fifo.read(m)
 
         with m.If(req_start & ~req_finish):
             m.d.sync += pending_req_cnt.eq(pending_req_cnt + 1)
