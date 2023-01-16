@@ -110,10 +110,6 @@ class Zbs(Elaboratable):
             with OneHotCase(ZbsFunction.Function.BSET):
                 m.d.comb += self.result.eq(self.in1 | (1 << self.in2[0:xlen_log]))
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         return m
 
 
