@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method, ConflictPriority
+from coreblocks.transactions import Method, def_method, Priority
 from coreblocks.transactions._utils import _coerce_layout, MethodLayout
 from typing import List, Optional
 
@@ -58,8 +58,8 @@ class BasicFifo(Elaboratable):
         # current fifo depth
         self.level = Signal((self.depth).bit_length(), reset=len(init))
 
-        self.clear.add_conflict(self.read, ConflictPriority.LEFT)
-        self.clear.add_conflict(self.write, ConflictPriority.LEFT)
+        self.clear.add_conflict(self.read, Priority.LEFT)
+        self.clear.add_conflict(self.write, Priority.LEFT)
 
     def elaborate(self, platform) -> Module:
         def mod_incr(sig: Value, mod: int) -> Value:

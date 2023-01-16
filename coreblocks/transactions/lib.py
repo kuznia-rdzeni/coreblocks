@@ -7,6 +7,7 @@ from ..utils._typing import ValueLike
 
 __all__ = [
     "FIFO",
+    "Forwarder",
     "ClickIn",
     "ClickOut",
     "AdapterTrans",
@@ -15,6 +16,7 @@ __all__ = [
     "ConnectAndTransformTrans",
     "CatTrans",
     "ManyToOneConnectTrans",
+    "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
 ]
@@ -77,6 +79,64 @@ class FIFO(Elaboratable):
         def _(arg):
             m.d.comb += fifo.r_en.eq(1)
             return fifo.r_data
+
+        return m
+
+
+# Forwarding with overflow buffering
+
+
+class Forwarder(Elaboratable):
+    """Forwarding with overflow buffering
+
+    Provides a means to connect two transactions with forwarding. Exposes
+    two methods: `read`, and `write`. When both of these methods are
+    executed simultaneously, data is forwarded between them. If `write`
+    is executed, but `read` is not, the value cannot be forwarded,
+    but is stored into an overflow buffer. No further `write`\\s are
+    possible until the overflow buffer is cleared by `read`.
+
+    The `write` method is scheduled before `read`.
+
+    Attributes
+    ----------
+    read: Method
+        The read method. Accepts an empty argument, returns a `Record`.
+    write: Method
+        The write method. Accepts a `Record`, returns empty result.
+    """
+
+    def __init__(self, layout: MethodLayout):
+        """
+        Parameters
+        ----------
+        layout: int or record layout
+            The format of records forwarded.
+        """
+        self.read = Method(o=layout)
+        self.write = Method(i=layout)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        reg = Record.like(self.read.data_out)
+        reg_valid = Signal()
+        read_value = Record.like(self.read.data_out)
+
+        self.write.schedule_before(self.read)  # to avoid combinational loops
+
+        @def_method(m, self.write, ready=~reg_valid)
+        def _(arg):
+            Method.comb += read_value.eq(arg)  # for forwarding
+            m.d.sync += reg.eq(arg)
+            m.d.sync += reg_valid.eq(1)
+
+        @def_method(m, self.read, ready=reg_valid | self.write.run)
+        def _(arg):
+            with m.If(reg_valid):
+                m.d.comb += read_value.eq(reg)  # write method is not ready
+            m.d.sync += reg_valid.eq(0)
+            return read_value
 
         return m
 
