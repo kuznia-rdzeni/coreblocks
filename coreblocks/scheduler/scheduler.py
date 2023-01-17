@@ -128,11 +128,11 @@ class RSInsertion(Elaboratable):
         m = Module()
 
         with Transaction().body(m):
-            for i in range(len(self.rs_insert)):
-                instr = self.get_instr(m)
-                source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
-                source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
+            instr = self.get_instr(m)
+            source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
+            source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
 
+            for i in range(len(self.rs_insert)):
                 with m.If(instr.rs_selected == i):
                     self.rs_insert[i](
                         m,

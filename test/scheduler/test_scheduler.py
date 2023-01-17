@@ -4,7 +4,6 @@ from typing import Callable, Optional, Iterable
 from amaranth import *
 from amaranth.sim import Settle
 
-from coreblocks.stages.rs_func_block import RSFuncBlock
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
 from coreblocks.scheduler.scheduler import Scheduler
@@ -14,6 +13,9 @@ from coreblocks.params import RSLayouts, DecodeLayouts, GenParams, Opcode, OpTyp
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.utils import AutoDebugSignals
 from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO
+
+_rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
+_rs2_optypes = {OpType.MUL, OpType.COMPARE}
 
 
 class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
@@ -38,19 +40,24 @@ class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
             m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
 
             # mocked RS
-            method_rs_alloc = Adapter(o=rs_layouts.select_out)
-            method_rs_insert = Adapter(i=rs_layouts.insert_in)
+            method_rs1_alloc = Adapter(o=rs_layouts.select_out)
+            method_rs1_insert = Adapter(i=rs_layouts.insert_in)
+
+            method_rs2_alloc = Adapter(o=rs_layouts.select_out)
+            method_rs2_insert = Adapter(i=rs_layouts.insert_in)
 
             # mocked RSFuncBlock
-            class MockedRSFuncBlock(RSFuncBlock):
+            class MockedRSFuncBlock:
                 def __init__(self, select, insert, optypes):
                     self.select = select
                     self.insert = insert
                     self.optypes = optypes
 
             # mocked input and output
-            m.submodules.output = self.out = TestbenchIO(method_rs_insert)
-            m.submodules.rs_allocate = self.rs_allocate = TestbenchIO(method_rs_alloc)
+            m.submodules.rs1_out = self.rs1_out = TestbenchIO(method_rs1_insert)
+            m.submodules.rs1_allocate = self.rs1_allocate = TestbenchIO(method_rs1_alloc)
+            m.submodules.rs2_out = self.rs2_out = TestbenchIO(method_rs2_insert)
+            m.submodules.rs2_allocate = self.rs2_allocate = TestbenchIO(method_rs2_alloc)
             m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write))
             m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free))
             m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
@@ -66,7 +73,10 @@ class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
                 rob_put=self.rob.put,
                 rf_read1=self.rf.read1,
                 rf_read2=self.rf.read2,
-                reservation_stations=[MockedRSFuncBlock(method_rs_alloc.iface, method_rs_insert.iface, set(OpType))],
+                reservation_stations=[
+                    MockedRSFuncBlock(method_rs1_alloc.iface, method_rs1_insert.iface, _rs1_optypes),
+                    MockedRSFuncBlock(method_rs2_alloc.iface, method_rs2_insert.iface, _rs2_optypes),
+                ],
                 gen_params=self.gen_params,
             )
 
@@ -80,9 +90,10 @@ class TestScheduler(TestCaseWithSimulator):
         self.expected_phys_reg_queue = deque()
         self.free_regs_queue = deque()
         self.free_ROB_entries_queue = deque()
-        self.expected_rs_entry_queue = deque()
+        self.expected_rs_entry_queue = [deque(), deque()]
         self.current_RAT = [0 for _ in range(0, self.gen_params.isa.reg_cnt)]
         self.instr_count = 500
+        self.allocated_instr_count = 0
         self.m = SchedulerTestCircuit(self.gen_params)
 
         random.seed(42)
@@ -204,7 +215,7 @@ class TestScheduler(TestCaseWithSimulator):
 
         return queue_process
 
-    def make_output_process(self):
+    def make_output_process(self, io: TestbenchIO, output_queues: Iterable[deque]):
         def check(got, expected):
             rl_dst = yield self.m.rob.data[got["rs_data"]["rob_id"]].rob_data.rl_dst
             s1 = self.rf_state[expected["rp_s1"]]
@@ -226,9 +237,25 @@ class TestScheduler(TestCaseWithSimulator):
             # recycle ROB entry
             self.free_ROB_entries_queue.append({"rob_id": got["rs_data"]["rob_id"]})
 
-        return self.make_queue_process(
-            io=self.m.out, output_queues=[self.expected_rename_queue, self.expected_rs_entry_queue], check=check
-        )
+        def queue_process():
+            yield from io.enable()
+            while True:
+                outputs = {}
+
+                if output_queues is not None:
+                    outputs = yield from self.queue_gather(output_queues)
+
+                # Check if queue signalled to end the process
+                if outputs is None:
+                    return
+
+                result = yield from io.call({})
+                yield from io.enable()
+
+                yield Settle()
+                yield from check(result, outputs)
+
+        return queue_process
 
     def test_randomized(self):
         def instr_input_process():
@@ -246,7 +273,7 @@ class TestScheduler(TestCaseWithSimulator):
                 rl_dst = random.randint(0, self.gen_params.isa.reg_cnt - 1)
 
                 opcode = random.choice(list(Opcode)).value
-                op_type = random.choice(list(OpType)).value
+                op_type = random.choice(list(_rs1_optypes.union(_rs2_optypes))).value
                 funct3 = random.choice(list(Funct3)).value
                 funct7 = random.choice(list(Funct7)).value
                 immediate = random.randint(0, 2**32 - 1)
@@ -295,23 +322,37 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_regs_queue.append(None)
             self.free_ROB_entries_queue.append(None)
 
-        def rs_alloc_process():
+        def rs_alloc_process(io: TestbenchIO, rs_id: int):
             def mock(_):
                 random_entry = random.randint(0, self.gen_params.rs_entries - 1)
-                self.expected_rs_entry_queue.append({"rs_entry_id": random_entry})
+                expected = self.expected_rename_queue.popleft()
+                expected["rs_entry_id"] = random_entry
+                self.expected_rs_entry_queue[rs_id].append(expected)
+
+                # if last instruction was allocated stop simulation
+                self.allocated_instr_count += 1
+                if self.allocated_instr_count == self.instr_count:
+                    for i in range(2):
+                        self.expected_rs_entry_queue[i].append(None)
+
                 return {"rs_entry_id": random_entry}
 
-            def true_n_times(n: int) -> Callable[[], bool]:
-                return ([False] + [True] * n).pop
+            def process():
+                yield from io.method_handle_loop(mock, settle=1)
 
-            yield from self.m.rs_allocate.method_handle_loop(mock, settle=1, condition=true_n_times(self.instr_count))
-            self.expected_rs_entry_queue.append(None)
+            return process
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
-            sim.add_sync_process(self.make_output_process())
+            sim.add_sync_process(
+                self.make_output_process(io=self.m.rs1_out, output_queues=[self.expected_rs_entry_queue[0]])
+            )
+            sim.add_sync_process(
+                self.make_output_process(io=self.m.rs2_out, output_queues=[self.expected_rs_entry_queue[1]])
+            )
             sim.add_sync_process(
                 self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue])
             )
             sim.add_sync_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
             sim.add_sync_process(instr_input_process)
-            sim.add_sync_process(rs_alloc_process)
+            sim.add_sync_process(rs_alloc_process(self.m.rs1_allocate, 0))
+            sim.add_sync_process(rs_alloc_process(self.m.rs2_allocate, 1))
