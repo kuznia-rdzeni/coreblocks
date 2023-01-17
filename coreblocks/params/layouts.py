@@ -232,3 +232,16 @@ class LSULayouts:
         self.commit = [
             ("rob_id", gen_params.rob_entries_bits),
         ]
+
+
+class DivUnitLayouts:
+    def __init__(self, gen: GenParams):
+        self.issue = [
+            ("dividend", gen.isa.xlen),
+            ("divisor", gen.isa.xlen),
+        ]
+
+        self.accept = [
+            ("q", gen.isa.xlen),
+            ("r", gen.isa.xlen),
+        ]
