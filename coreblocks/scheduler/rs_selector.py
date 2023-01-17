@@ -5,7 +5,6 @@ from amaranth import *
 from coreblocks.params import OpType, GenParams, SchedulerLayouts
 from coreblocks.transactions import Method, Transaction, def_method
 from coreblocks.transactions._utils import MethodLayout
-from coreblocks.transactions.lib import Forwarder
 from coreblocks.utils import assign
 
 
