@@ -3,21 +3,21 @@
    flowchart TB
        subgraph TestElaboratable["TestElaboratable"]
            subgraph WishboneMaster["wb_master WishboneMaster"]
-               WishboneMaster_result["result"]
                WishboneMaster_request["request"]
+               WishboneMaster_result["result"]
            end
            subgraph Core["core Core"]
                subgraph FIFO["fifo_fetch FIFO"]
-                   FIFO_read["read"]
                    FIFO_write["write"]
+                   FIFO_read["read"]
                end
                subgraph BasicFifo["free_rf_fifo BasicFifo"]
                    BasicFifo_read["read"]
                    BasicFifo_write["write"]
                end
                subgraph Fetch["fetch Fetch"]
-                   Fetch_Fetch["Fetch"]
                    Fetch_FetchRQ["FetchRQ"]
+                   Fetch_Fetch["Fetch"]
                end
                subgraph FRAT["FRAT FRAT"]
                    FRAT_rename["rename"]
@@ -27,9 +27,9 @@
                end
                subgraph RegisterFile["RF RegisterFile"]
                    RegisterFile_free["free"]
+                   RegisterFile_read2["read2"]
                    RegisterFile_write["write"]
                    RegisterFile_read1["read1"]
-                   RegisterFile_read2["read2"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
                    ReorderBuffer_put["put"]
@@ -37,27 +37,27 @@
                    ReorderBuffer_retire["retire"]
                end
                subgraph RSFuncBlock["alu_block RSFuncBlock"]
-                   RSFuncBlock_select["select"]
-                   RSFuncBlock_get_result["get_result"]
                    RSFuncBlock_insert["insert"]
                    RSFuncBlock_update["update"]
+                   RSFuncBlock_select["select"]
+                   RSFuncBlock_get_result["get_result"]
                    subgraph Forwarder["accept_fifo Forwarder"]
-                       Forwarder_read["read"]
                        Forwarder_write["write"]
+                       Forwarder_read["read"]
                    end
                    subgraph RS["rs RS"]
+                       RS_take["take"]
                        RS_select["select"]
                        RS_RS["RS"]
                        RS_update["update"]
                        RS_insert["insert"]
-                       RS_take["take"]
                    end
                    subgraph AluFuncUnit["func_unit_0 AluFuncUnit"]
                        AluFuncUnit_accept["accept"]
                        AluFuncUnit_issue["issue"]
                        subgraph FIFO1["fifo FIFO"]
-                           FIFO1_read["read"]
                            FIFO1_write["write"]
+                           FIFO1_read["read"]
                        end
                    end
                    subgraph WakeupSelect["wakeup_select_0 WakeupSelect"]
@@ -95,8 +95,8 @@
                        Renaming_Renaming["Renaming"]
                    end
                    subgraph FIFO5["reg_alloc_out_buf FIFO"]
-                       FIFO5_read["read"]
                        FIFO5_write["write"]
+                       FIFO5_read["read"]
                    end
                    subgraph ROBAllocation["rob_alloc ROBAllocation"]
                        ROBAllocation_ROBAllocation["ROBAllocation"]
