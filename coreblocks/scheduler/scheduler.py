@@ -1,13 +1,14 @@
+from typing import Tuple
+
 from amaranth import *
 
-from coreblocks.scheduler.rs_selector import RSSelector
 from coreblocks.stages.rs_func_block import RSFuncBlock
 from coreblocks.transactions import Method, Transaction
-from coreblocks.transactions.lib import FIFO
-from coreblocks.params import SchedulerLayouts, GenParams
+from coreblocks.transactions.lib import FIFO, Forwarder
+from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from coreblocks.utils import assign, AssignType
 
-__all__ = ["Scheduler"]
+__all__ = ["Scheduler", "RSSelection"]
 
 
 class RegAllocation(Elaboratable):
@@ -113,6 +114,59 @@ class ROBAllocation(Elaboratable):
         return m
 
 
+class RSSelection(Elaboratable):
+    def __init__(
+        self, gen_params: GenParams, get_instr: Method, rs_select: list[Tuple[Method, set[OpType]]], push_instr: Method
+    ):
+        self.gen_params = gen_params
+
+        layouts = gen_params.get(SchedulerLayouts)
+        self.input_layout = layouts.rs_select_in
+        self.output_layout = layouts.rs_select_out
+
+        self.get_instr = get_instr
+        self.rs_select = rs_select
+        self.push_instr = push_instr
+
+    def decode_optype_set(self, optypes: set[OpType]) -> int:
+        res = 0x0
+        for op in optypes:
+            res |= 1 << op - OpType.UNKNOWN
+        return res
+
+    def elaborate(self, platform):
+        m = Module()
+        m.submodules.forwarder = forwarder = Forwarder(self.input_layout)
+
+        lookup = Signal(OpType)  # lookup of currently processed optype
+        decoded = Signal(len(OpType))  # decoded optype into hot wire
+
+        m.d.comb += lookup.eq(forwarder.read.data_out.exec_fn.op_type)
+        m.d.comb += decoded.eq(Cat(lookup == op for op in OpType))
+
+        with Transaction().body(m):
+            instr = self.get_instr(m)
+            forwarder.write(m, instr)
+
+        data_out = Record(self.output_layout)
+
+        for i in range(len(self.rs_select)):
+            alloc, optypes = self.rs_select[i]
+
+            # checks if RS can perform this kind of operation
+            with Transaction().body(m, request=(decoded & self.decode_optype_set(optypes)).bool()):
+                instr = forwarder.read(m)
+                allocated_field = alloc(m)
+
+                m.d.comb += assign(data_out, instr)
+                m.d.comb += data_out.rs_entry_id.eq(allocated_field.rs_entry_id)
+                m.d.comb += data_out.rs_selected.eq(i)
+
+                self.push_instr(m, data_out)
+
+        return m
+
+
 class RSInsertion(Elaboratable):
     def __init__(
         self, *, get_instr: Method, rs_insert: list[Method], rf_read1: Method, rf_read2: Method, gen_params: GenParams
@@ -207,7 +261,7 @@ class Scheduler(Elaboratable):
         )
 
         m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
-        m.submodules.rs_selector = RSSelector(
+        m.submodules.rs_selector = RSSelection(
             gen_params=self.gen_params,
             get_instr=reg_alloc_out_buf.read,
             rs_select=[(self.rs[i].select, self.rs[i].optypes) for i in range(len(self.rs))],

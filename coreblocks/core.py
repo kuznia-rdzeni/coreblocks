@@ -1,7 +1,6 @@
 from amaranth import Elaboratable, Module
 
-from coreblocks.scheduler.collector import Collector
-from coreblocks.transactions.lib import FIFO, MethodProduct
+from coreblocks.transactions.lib import FIFO, MethodProduct, ManyToOneCollectorMethod
 from coreblocks.params.layouts import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
@@ -39,11 +38,10 @@ class Core(Elaboratable):
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
         alu = AluFuncUnit(gen=self.gen_params)
-        self.alu_blocks = [RSFuncBlock(gen_params=self.gen_params, func_units=[alu])]
+        self.rs_blocks = [RSFuncBlock(gen_params=self.gen_params, func_units=[alu])]
 
-        self.result_collector = Collector(gen_params=gen_params, gets=[block.get_result for block in self.alu_blocks])
-
-        self.update_combiner = MethodProduct([block.update for block in self.alu_blocks])
+        self.result_collector = ManyToOneCollectorMethod([block.get_result for block in self.rs_blocks])
+        self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
 
         self.announcement = ResultAnnouncement(
             gen=self.gen_params,
@@ -77,11 +75,11 @@ class Core(Elaboratable):
             rob_put=rob.put,
             rf_read1=rf.read1,
             rf_read2=rf.read2,
-            reservation_stations=self.alu_blocks,
+            reservation_stations=self.rs_blocks,
             gen_params=self.gen_params,
         )
 
-        m.submodules += self.alu_blocks
+        m.submodules += self.rs_blocks
         m.submodules.announcement = self.announcement
         m.submodules.result_collector = self.result_collector
         m.submodules.update_combiner = self.update_combiner
