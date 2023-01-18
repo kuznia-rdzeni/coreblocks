@@ -206,7 +206,17 @@ class TestTransactionConflict(TestCaseWithSimulator):
             sim.add_sync_process(self.make_out_process(probout))
 
 
-class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
+class PriorityTestCircuit(Elaboratable):
+    r1: Signal
+    r2: Signal
+    t1: Signal
+    t2: Signal
+
+    def __init__(self, priority: Priority, unsatisfiable: bool = ...):
+        ...
+
+
+class TransactionPriorityTestCircuit(PriorityTestCircuit, AutoDebugSignals):
     def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
@@ -240,7 +250,7 @@ class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
         return tm
 
 
-class MethodPriorityTestCircuit(Elaboratable, AutoDebugSignals):
+class MethodPriorityTestCircuit(PriorityTestCircuit, AutoDebugSignals):
     def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
@@ -286,7 +296,7 @@ class MethodPriorityTestCircuit(Elaboratable, AutoDebugSignals):
     ("name", "circuit"), [("transaction", TransactionPriorityTestCircuit), ("method", MethodPriorityTestCircuit)]
 )
 class TestTransactionPriorities(TestCaseWithSimulator):
-    circuit: type[Elaboratable]
+    circuit: type[PriorityTestCircuit]
 
     def setUp(self):
         random.seed(42)

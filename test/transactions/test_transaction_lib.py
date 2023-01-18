@@ -1,6 +1,7 @@
 import random
 from operator import and_
 from functools import reduce
+from typing import TypeVar
 from amaranth.sim import Settle
 from parameterized import parameterized
 
@@ -12,9 +13,12 @@ from coreblocks.utils._typing import LayoutLike
 from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_class_method_mock, def_method_mock
 
 
+_T_FIFO = TypeVar("_T_FIFO", FIFO, Forwarder)
+
+
 class TestFifoBase(TestCaseWithSimulator):
     def do_test_fifo(
-        self, fifo_class: type[Elaboratable], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs: dict = {}
+        self, fifo_class: type[_T_FIFO], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs: dict = {}
     ):
         iosize = 8
 

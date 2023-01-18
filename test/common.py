@@ -99,7 +99,7 @@ def signed_to_int(x: int, xlen: int) -> int:
     return x | -(x & (2 ** (xlen - 1)))
 
 
-class SimpleTestCircuit(Elaboratable):
+class SimpleTestCircuit:
     def __init__(self, dut: Elaboratable):
         self._dut = dut
         self._io = dict[str, TestbenchIO]()

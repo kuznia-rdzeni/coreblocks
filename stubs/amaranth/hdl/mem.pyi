@@ -23,7 +23,7 @@ class Memory:
         ...
     
     @init.setter
-    def init(self, new_init) -> None:
+    def init(self, new_init: list[int]) -> None:
         ...
     
     def read_port(self, *, src_loc_at=..., **kwargs) -> ReadPort:
@@ -48,6 +48,13 @@ class ReadPort(Elaboratable):
     """A memory read port.
 
     Paramet"""
+    memory: Memory
+    domain: str
+    transparent: bool
+    addr: Signal
+    data: Signal
+    en: Signal | Const
+
     def __init__(self, memory, *, domain=..., transparent=..., src_loc_at=...) -> None:
         ...
     
@@ -60,6 +67,13 @@ class WritePort(Elaboratable):
     """A memory write port.
 
     Parame"""
+    memory: Memory
+    domain: str
+    granularity: int
+    addr: Signal
+    data: Signal
+    en: Signal
+
     def __init__(self, memory, *, domain=..., granularity=..., src_loc_at=...) -> None:
         ...
     

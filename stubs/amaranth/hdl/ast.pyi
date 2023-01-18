@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import MutableMapping, MutableSequence, MutableSet
 from typing import Any, Iterable, Iterator, Mapping, NoReturn, Optional, Sequence, Type, TypeVar, final, overload
 from enum import Enum
+from .._unused import *
 
 __all__ = ["Shape", "signed", "unsigned", "Value", "Const", "C", "AnyConst", "AnySeq", "Operator", "Mux", "Part", "Slice", "Cat", "Repl", "Array", "ArrayProxy", "Signal", "ClockSignal", "ResetSignal", "UserValue", "ValueCastable", "Sample", "Past", "Stable", "Rose", "Fell", "Initial", "Statement", "Switch", "Property", "Assign", "Assert", "Assume", "Cover", "ValueKey", "ValueDict", "ValueSet", "SignalKey", "SignalDict", "SignalSet", "ValueLike", "ShapeLike", "StatementLike", "SwitchKey"]
 

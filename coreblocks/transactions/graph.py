@@ -39,7 +39,7 @@ class OwnershipGraph:
 
     def remember(self, owner: Elaboratable) -> int:
         while hasattr(owner, "_tracing_original"):
-            owner = owner._tracing_original
+            owner = owner._tracing_original  # type: ignore
         owner_id = id(owner)
         if owner_id not in self.names:
             tp = type(owner)
@@ -60,14 +60,14 @@ class OwnershipGraph:
                     for obj, field in owner.subfragments:
                         self.remember_field(owner_id, field, obj)
                 try:
-                    owner = owner._elaborated
+                    owner = owner._elaborated  # type: ignore
                 except AttributeError:
                     break
         return owner_id
 
     def remember_field(self, owner_id: int, field: str, obj: Elaboratable):
         while hasattr(obj, "_tracing_original"):
-            obj = obj._tracing_original
+            obj = obj._tracing_original  # type: ignore
         obj_id = id(obj)
         if obj_id == owner_id or obj_id in self.labels:
             return

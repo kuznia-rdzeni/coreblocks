@@ -249,6 +249,9 @@ class ClickOut(Elaboratable):
 
 
 class AdapterBase(Elaboratable):
+    data_in: Record
+    data_out: Record
+
     def __init__(self, iface: Method):
         self.iface = iface
         self.en = Signal()
@@ -256,6 +259,9 @@ class AdapterBase(Elaboratable):
 
     def debug_signals(self) -> DebugSignals:
         return [self.en, self.done, self.data_in, self.data_out]
+
+    def elaborate(self, platform) -> Module:
+        ...
 
 
 class AdapterTrans(AdapterBase):
