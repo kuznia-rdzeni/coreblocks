@@ -28,7 +28,7 @@ class GenParams(DependentCache):
         rs_entries: int = 4,
         start_pc: int = 0,
         mul_unit_params: MulUnitParams = MulUnitParams.shift_multiplier(),
-        rs_number: int = 1
+        rs_number_bits: int = 0
     ):
         super().__init__()
         self.isa = ISA(isa_str)
@@ -39,4 +39,4 @@ class GenParams(DependentCache):
         self.rs_entries_bits = (rs_entries - 1).bit_length()
         self.start_pc = start_pc
         self.mul_unit_params = mul_unit_params
-        self.rs_number = rs_number  # TODO: number of RS needs to be calculated it in the future
+        self.rs_number_bits = rs_number_bits  # TODO: number of RS needs to be calculated it in the future

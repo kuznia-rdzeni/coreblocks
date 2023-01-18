@@ -24,7 +24,7 @@ class Core(Elaboratable):
         self.gen_params = gen_params
         self.wb_master = wb_master
 
-        # make fifo_fetch visible outside of the core for injecting instructions
+        # make fifo_fetch visible outside the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
         self.free_rf_fifo = BasicFifo(
             self.gen_params.phys_regs_bits,
@@ -79,7 +79,9 @@ class Core(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules += self.rs_blocks
+        for n, block in enumerate(self.rs_blocks):
+            setattr(m.submodules, f"rs_block_{n}", block)
+
         m.submodules.announcement = self.announcement
         m.submodules.result_collector = self.result_collector
         m.submodules.update_combiner = self.update_combiner

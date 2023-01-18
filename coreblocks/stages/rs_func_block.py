@@ -27,11 +27,10 @@ class RSFuncBlock(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.accept_fifo = accept_fifo = Forwarder(self.fu_layouts.accept)
-
         m.submodules.rs = rs = RS(
             gen_params=self.gen_params, ready_for=(func_unit.optypes for func_unit in self.func_units)
         )
+
         for n, func_unit in enumerate(self.func_units):
             wakeup_select = WakeupSelect(
                 gen_params=self.gen_params, get_ready=rs.get_ready_list[n], take_row=rs.take, issue=func_unit.issue
