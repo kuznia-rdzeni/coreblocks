@@ -131,10 +131,11 @@ class Forwarder(Elaboratable):
             m.d.sync += reg.eq(arg)
             m.d.sync += reg_valid.eq(1)
 
+        with m.If(reg_valid):
+            m.d.comb += read_value.eq(reg)  # write method is not ready
+
         @def_method(m, self.read, ready=reg_valid | self.write.run)
         def _(arg):
-            with m.If(reg_valid):
-                m.d.comb += read_value.eq(reg)  # write method is not ready
             m.d.sync += reg_valid.eq(0)
             return read_value
 
