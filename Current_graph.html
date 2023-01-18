@@ -107,10 +107,10 @@
                 RRAT_commit[&quot;commit&quot;]
             end
             subgraph RegisterFile[&quot;RF RegisterFile&quot;]
-                RegisterFile_read2[&quot;read2&quot;]
-                RegisterFile_write[&quot;write&quot;]
                 RegisterFile_free[&quot;free&quot;]
+                RegisterFile_write[&quot;write&quot;]
                 RegisterFile_read1[&quot;read1&quot;]
+                RegisterFile_read2[&quot;read2&quot;]
             end
             subgraph ReorderBuffer[&quot;ROB ReorderBuffer&quot;]
                 ReorderBuffer_put[&quot;put&quot;]
@@ -118,20 +118,20 @@
                 ReorderBuffer_retire[&quot;retire&quot;]
             end
             subgraph RSFuncBlock[&quot;alu_block RSFuncBlock&quot;]
-                RSFuncBlock_insert[&quot;insert&quot;]
-                RSFuncBlock_update[&quot;update&quot;]
                 RSFuncBlock_select[&quot;select&quot;]
                 RSFuncBlock_get_result[&quot;get_result&quot;]
+                RSFuncBlock_insert[&quot;insert&quot;]
+                RSFuncBlock_update[&quot;update&quot;]
                 subgraph Forwarder[&quot;accept_fifo Forwarder&quot;]
                     Forwarder_read[&quot;read&quot;]
                     Forwarder_write[&quot;write&quot;]
                 end
                 subgraph RS[&quot;rs RS&quot;]
-                    RS_take[&quot;take&quot;]
                     RS_select[&quot;select&quot;]
                     RS_RS[&quot;RS&quot;]
                     RS_update[&quot;update&quot;]
                     RS_insert[&quot;insert&quot;]
+                    RS_take[&quot;take&quot;]
                 end
                 subgraph AluFuncUnit[&quot;func_unit_0 AluFuncUnit&quot;]
                     AluFuncUnit_accept[&quot;accept&quot;]
@@ -264,7 +264,7 @@ Retirement_Retirement --&gt; BasicFifo_write
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 16:29 2023-01-16.
+      <span class="lastupdated">Last updated on 09:37 2023-01-18.
       </span></p>
   </div>
 

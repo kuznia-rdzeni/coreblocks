@@ -26,10 +26,10 @@
                    RRAT_commit["commit"]
                end
                subgraph RegisterFile["RF RegisterFile"]
-                   RegisterFile_read2["read2"]
-                   RegisterFile_write["write"]
                    RegisterFile_free["free"]
+                   RegisterFile_write["write"]
                    RegisterFile_read1["read1"]
+                   RegisterFile_read2["read2"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
                    ReorderBuffer_put["put"]
@@ -37,20 +37,20 @@
                    ReorderBuffer_retire["retire"]
                end
                subgraph RSFuncBlock["alu_block RSFuncBlock"]
-                   RSFuncBlock_insert["insert"]
-                   RSFuncBlock_update["update"]
                    RSFuncBlock_select["select"]
                    RSFuncBlock_get_result["get_result"]
+                   RSFuncBlock_insert["insert"]
+                   RSFuncBlock_update["update"]
                    subgraph Forwarder["accept_fifo Forwarder"]
                        Forwarder_read["read"]
                        Forwarder_write["write"]
                    end
                    subgraph RS["rs RS"]
-                       RS_take["take"]
                        RS_select["select"]
                        RS_RS["RS"]
                        RS_update["update"]
                        RS_insert["insert"]
+                       RS_take["take"]
                    end
                    subgraph AluFuncUnit["func_unit_0 AluFuncUnit"]
                        AluFuncUnit_accept["accept"]
