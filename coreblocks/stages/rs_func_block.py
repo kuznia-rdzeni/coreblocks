@@ -6,7 +6,7 @@ from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
 from coreblocks.utils.protocols import FuncUnit
-from coreblocks.transactions.lib import Forwarder, ManyToOneCollectorMethod
+from coreblocks.transactions.lib import ManyToOneCollectorMethod
 
 __all__ = ["RSFuncBlock"]
 
