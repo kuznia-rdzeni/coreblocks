@@ -80,7 +80,7 @@ class Core(Elaboratable):
         )
 
         for n, block in enumerate(self.rs_blocks):
-            setattr(m.submodules, f"rs_block_{n}", block)
+            m.submodules[f"rs_block_{n}"] = block
 
         m.submodules.announcement = self.announcement
         m.submodules.result_collector = self.result_collector
