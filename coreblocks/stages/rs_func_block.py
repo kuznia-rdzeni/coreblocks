@@ -12,7 +12,33 @@ __all__ = ["RSFuncBlock"]
 
 
 class RSFuncBlock(Elaboratable):
+    """
+    Module combining multiple functional units with single RS unit. With
+    input interface of RS and output interface of single FU.
+
+    Attributes
+    ----------
+    optypes: set[OpType]
+        Set of `OpType`\\s supported by this unit.
+    insert: Method
+        RS insert method.
+    select: Method
+        RS select method.
+    update: Method
+        RS update method.
+    get_result: Method
+        Method used for getting single result out of one of FUs. It uses
+        layout described by `FuncUnitLayouts`.
+    """
     def __init__(self, gen_params: GenParams, func_units: Iterable[FuncUnit]):
+        """
+        Parameters
+        ----------
+        gen_params: GenParams
+            Core generation parameters.
+        func_units: Iterable[FuncUnit]
+            Functional units to be used by this module.
+        """
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
