@@ -34,6 +34,7 @@ _funct7_itypes = [InstrType.R]
 class Encoding:
     """
     Class representing encoding of single RISC-V instruction.
+
     Attributes
     ----------
     opcode: Opcode
@@ -203,6 +204,7 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
     """
     Class performing instruction decoding into elementary components like opcodes, funct3 etc.
     It uses combinatorial connection via its attributes.
+
     Attributes
     ----------
     instr: Signal(gen.isa.ilen), in
@@ -249,6 +251,7 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
     def __init__(self, gen: GenParams):
         """
         Decoder constructor.
+
         Parameters
         ----------
         gen: GenParams
@@ -307,12 +310,14 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
     def _extract(self, start: int, sig):
         """
         Method used to for extracting fragment of instruction into provided Signal starting from ```start``` bit.
+
         Parameters
         ----------
         start: int
             Start of instruction span to be extracted into.
         sig: Signal
             Signal into which fragment (with length of sig's length) of input will be extracted.
+
         Returns
         ----------
         Assign
@@ -323,10 +328,12 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
     def _match(self, encodings: list[Encoding]) -> Value:
         """
         Creates amaranth value of instruction belonging into list of encodings.
+
         Parameters
         ----------
         encodings: List[Encoding]
             List of encoding to be checked against currently decoding instruction.
+
         Returns
         ----------
         Value
