@@ -1,6 +1,6 @@
 from amaranth import Elaboratable, Module
 
-from coreblocks.transactions.lib import FIFO, MethodProduct, ManyToOneCollectorMethod
+from coreblocks.transactions.lib import FIFO, MethodProduct, Collector
 from coreblocks.params.layouts import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
@@ -40,7 +40,7 @@ class Core(Elaboratable):
         alu = AluFuncUnit(gen=self.gen_params)
         self.rs_blocks = [RSFuncBlock(gen_params=self.gen_params, func_units=[alu])]
 
-        self.result_collector = ManyToOneCollectorMethod([block.get_result for block in self.rs_blocks])
+        self.result_collector = Collector([block.get_result for block in self.rs_blocks])
         self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
 
         self.announcement = ResultAnnouncement(

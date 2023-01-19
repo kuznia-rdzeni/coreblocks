@@ -6,7 +6,7 @@ from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
 from coreblocks.utils.protocols import FuncUnit
-from coreblocks.transactions.lib import ManyToOneCollectorMethod
+from coreblocks.transactions.lib import Collector
 
 __all__ = ["RSFuncBlock"]
 
@@ -38,9 +38,7 @@ class RSFuncBlock(Elaboratable):
             setattr(m.submodules, f"func_unit_{n}", func_unit)
             setattr(m.submodules, f"wakeup_select_{n}", wakeup_select)
 
-        m.submodules.collector = collector = ManyToOneCollectorMethod(
-            [func_unit.accept for func_unit in self.func_units]
-        )
+        m.submodules.collector = collector = Collector([func_unit.accept for func_unit in self.func_units])
 
         self.insert.proxy(m, rs.insert)
         self.select.proxy(m, rs.select)

@@ -14,7 +14,7 @@ from coreblocks.structs_common.rat import FRAT
 from coreblocks.params import RSLayouts, DecodeLayouts, GenParams, Opcode, OpType, Funct3, Funct7
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.utils import AutoDebugSignals
-from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO
+from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
 
 
 class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
@@ -168,6 +168,7 @@ class TestScheduler(TestCaseWithSimulator):
         input_queues: Optional[Iterable[deque]] = None,
         output_queues: Optional[Iterable[deque]] = None,
         check: Optional[Callable[[RecordIntDict, RecordIntDict], TestGen[None]]] = None,
+        always_enable: bool = False
     ):
         """Create queue gather-and-test process
 
@@ -202,6 +203,8 @@ class TestScheduler(TestCaseWithSimulator):
             Testbench generator which will be called with parameters ``result``
             and ``outputs``, meaning results from the call to ``io`` and item
             gathered from ``output_queues``.
+        always_enable: bool
+            Makes `io` method always appearing to be enabled.
 
         Returns
         -------
@@ -215,6 +218,8 @@ class TestScheduler(TestCaseWithSimulator):
         """
 
         def queue_process():
+            if always_enable:
+                yield from io.enable()
             while True:
                 inputs = {}
                 outputs = {}
@@ -229,6 +234,8 @@ class TestScheduler(TestCaseWithSimulator):
                     return
 
                 result = yield from io.call(inputs)
+                if always_enable:
+                    yield from io.enable()
 
                 # this could possibly be extended to automatically compare 'results' and
                 # 'outputs' if check is None but that needs some dict deepcompare
@@ -263,25 +270,7 @@ class TestScheduler(TestCaseWithSimulator):
             # recycle ROB entry
             self.free_ROB_entries_queue.append({"rob_id": got["rs_data"]["rob_id"]})
 
-        def queue_process():
-            yield from io.enable()
-            while True:
-                outputs = {}
-
-                if output_queues is not None:
-                    outputs = yield from self.queue_gather(output_queues)
-
-                # Check if queue signalled to end the process
-                if outputs is None:
-                    return
-
-                result = yield from io.call({})
-                yield from io.enable()
-
-                yield Settle()
-                yield from check(result, outputs)
-
-        return queue_process
+        return self.make_queue_process(io=io, output_queues=output_queues, check=check, always_enable=True)
 
     def test_randomized(self):
         def instr_input_process():
@@ -353,7 +342,8 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_ROB_entries_queue.append(None)
 
         def rs_alloc_process(io: TestbenchIO, rs_id: int):
-            def mock(_):
+            @def_method_mock(lambda: io, settle=1, enable=True)
+            def process(_):
                 random_entry = random.randint(0, self.gen_params.rs_entries - 1)
                 expected = self.expected_rename_queue.popleft()
                 expected["rs_entry_id"] = random_entry
@@ -366,9 +356,6 @@ class TestScheduler(TestCaseWithSimulator):
                         self.expected_rs_entry_queue[i].append(None)
 
                 return {"rs_entry_id": random_entry}
-
-            def process():
-                yield from io.method_handle_loop(mock, settle=1)
 
             return process
 

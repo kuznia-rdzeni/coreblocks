@@ -8,7 +8,7 @@ from ..utils._typing import ValueLike
 __all__ = [
     "FIFO",
     "Forwarder",
-    "ManyToOneCollectorMethod",
+    "Collector",
     "ClickIn",
     "ClickOut",
     "AdapterTrans",
@@ -143,8 +143,8 @@ class Forwarder(Elaboratable):
         return m
 
 
-class ManyToOneCollectorMethod(Elaboratable):
-    """ManyToOneCollectorMethod.
+class Collector(Elaboratable):
+    """Single result collector.
 
     Creates method that collects results of many method with identical
     layout. Each call of this function will return single result of one

@@ -15,8 +15,8 @@ from coreblocks.utils import OneHotSwitchDynamic
 # Important
 #
 # In order to add new instructions to be decoded by this decoder assuming they do not required additional
-# fields to be extracted you need to add them into `_instructions_by_optype` map, and register new OpType
-# into new or existing extension in `_optypes_by_extensions` map.
+# fields to be extracted you need to add them into ```_instructions_by_optype``` map, and register new OpType
+# into new or existing extension in ```_optypes_by_extensions``` map.
 
 # Lists which fields are used by which Instruction's types
 
@@ -34,17 +34,16 @@ _funct7_itypes = [InstrType.R]
 class Encoding:
     """
     Class representing encoding of single RISC-V instruction.
-
     Attributes
     ----------
     opcode: Opcode
         Opcode of instruction.
     funct3: Optional[Funct3]
-        Three bits function identifier. If not exists for instruction then `None`.
+        Three bits function identifier. If not exists for instruction then ```None```.
     funct7: Optional[Funct7]
-        Seven bits function identifier. If not exists for instruction then `None`.
+        Seven bits function identifier. If not exists for instruction then ```None```.
     funct12: Optional[Funct12]
-        Twelve bits function identifier. If not exists for instruction then `None`.
+        Twelve bits function identifier. If not exists for instruction then ```None```.
     """
 
     def __init__(
@@ -204,7 +203,6 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
     """
     Class performing instruction decoding into elementary components like opcodes, funct3 etc.
     It uses combinatorial connection via its attributes.
-
     Attributes
     ----------
     instr: Signal(gen.isa.ilen), in
@@ -234,13 +232,13 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
     imm: Signal(gen.isa.xlen), out
         Immediate values provided in instruction. If no immediate values were provided then value is 0.
     succ: Signal(FenceTarget), out
-        Successor for `FENCE` instructions.
+        Successor for ```FENCE``` instructions.
     pred: Signal(FenceTarget), out
-        Predecessor for `FENCE` instructions.
+        Predecessor for ```FENCE``` instructions.
     fm: Signal(FenceFm), out
-        Fence mode for `FENCE` instructions.
+        Fence mode for ```FENCE``` instructions.
     csr: Signal(gen.isa.csr_alen), out
-        Address of Control and Source Register for `CSR` instructions.
+        Address of Control and Source Register for ```CSR``` instructions.
     op: Signal(OpType), out
         Operation type of instruction, used to define functional unit to perform this kind of instructions.
     illegal: Signal(1), out
@@ -251,7 +249,6 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
     def __init__(self, gen: GenParams):
         """
         Decoder constructor.
-
         Parameters
         ----------
         gen: GenParams
@@ -309,15 +306,13 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
 
     def _extract(self, start: int, sig):
         """
-        Method used to for extracting fragment of instruction into provided Signal starting from `start` bit.
-
+        Method used to for extracting fragment of instruction into provided Signal starting from ```start``` bit.
         Parameters
         ----------
         start: int
             Start of instruction span to be extracted into.
         sig: Signal
             Signal into which fragment (with length of sig's length) of input will be extracted.
-
         Returns
         ----------
         Assign
@@ -328,12 +323,10 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
     def _match(self, encodings: list[Encoding]) -> Value:
         """
         Creates amaranth value of instruction belonging into list of encodings.
-
         Parameters
         ----------
         encodings: List[Encoding]
             List of encoding to be checked against currently decoding instruction.
-
         Returns
         ----------
         Value

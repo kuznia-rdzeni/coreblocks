@@ -31,21 +31,17 @@ class RSSelector(Elaboratable, AutoDebugSignals):
             m.submodules.instr_fifo = instr_fifo = FIFO(scheduler_layouts.rs_select_in, 2)
             m.submodules.out_fifo = out_fifo = FIFO(scheduler_layouts.rs_select_out, 2)
 
-            # adapters
-            rs1_alloc_adapter = Adapter(o=rs_layouts.select_out)
-            rs2_alloc_adapter = Adapter(o=rs_layouts.select_out)
-
             # mocked input and output
             m.submodules.instr_in = self.instr_in = TestbenchIO(AdapterTrans(instr_fifo.write))
             m.submodules.instr_out = self.instr_out = TestbenchIO(AdapterTrans(out_fifo.read))
-            m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(rs1_alloc_adapter)
-            m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(rs2_alloc_adapter)
+            m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
+            m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
 
             # rs selector
             m.submodules.selector = self.selector = RSSelection(
                 gen_params=self.gen_params,
                 get_instr=instr_fifo.read,
-                rs_select=[(rs1_alloc_adapter.iface, _rs1_optypes), (rs2_alloc_adapter.iface, _rs2_optypes)],
+                rs_select=[(self.rs1_alloc.adapter.iface, _rs1_optypes), (self.rs2_alloc.adapter.iface, _rs2_optypes)],
                 push_instr=out_fifo.write,
             )
 
@@ -127,19 +123,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
     def create_output_process(self, instr_count: int, random_wait: int = 0):
         def check(got, expected):
-            self.assertEqual(got["opcode"], expected["opcode"])
-            self.assertEqual(got["exec_fn"]["op_type"], expected["exec_fn"]["op_type"])
-            self.assertEqual(got["exec_fn"]["funct3"], expected["exec_fn"]["funct3"])
-            self.assertEqual(got["exec_fn"]["funct7"], expected["exec_fn"]["funct7"])
-            self.assertEqual(got["regs_p"]["rp_dst"], expected["regs_p"]["rp_dst"])
-            self.assertEqual(got["regs_p"]["rp_s1"], expected["regs_p"]["rp_s1"])
-            self.assertEqual(got["regs_p"]["rp_s2"], expected["regs_p"]["rp_s2"])
-            self.assertEqual(got["rob_id"], expected["rob_id"])
-            self.assertEqual(got["imm"], expected["imm"])
-            self.assertEqual(got["pc"], expected["pc"])
-
-            self.assertEqual(got["rs_entry_id"], expected["rs_entry_id"])
-            self.assertEqual(got["rs_selected"], expected["rs_selected"])
+            self.assertEqual(got, expected)
 
         def process():
             for _ in range(instr_count):

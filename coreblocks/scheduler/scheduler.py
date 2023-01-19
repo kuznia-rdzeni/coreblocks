@@ -8,7 +8,7 @@ from coreblocks.transactions.lib import FIFO, Forwarder
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from coreblocks.utils import assign, AssignType
 
-__all__ = ["Scheduler", "RSSelection"]
+__all__ = ["Scheduler"]
 
 
 class RegAllocation(Elaboratable):
@@ -150,9 +150,7 @@ class RSSelection(Elaboratable):
 
         data_out = Record(self.output_layout)
 
-        for i in range(len(self.rs_select)):
-            alloc, optypes = self.rs_select[i]
-
+        for i, (alloc, optypes) in enumerate(self.rs_select):
             # checks if RS can perform this kind of operation
             with Transaction().body(m, request=(decoded & self.decode_optype_set(optypes)).bool()):
                 instr = forwarder.read(m)
@@ -181,14 +179,16 @@ class RSInsertion(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        # This transaction will not be stalled by single RS because insert methods do not use conditional calling,
+        # therefore we can use single transaction here.
         with Transaction().body(m):
             instr = self.get_instr(m)
             source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
             source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
 
-            for i in range(len(self.rs_insert)):
+            for i, rs_insert in enumerate(self.rs_insert):
                 with m.If(instr.rs_selected == i):
-                    self.rs_insert[i](
+                    rs_insert(
                         m,
                         {
                             # when operand value is valid the convention is to set operand source to 0
@@ -264,7 +264,7 @@ class Scheduler(Elaboratable):
         m.submodules.rs_selector = RSSelection(
             gen_params=self.gen_params,
             get_instr=reg_alloc_out_buf.read,
-            rs_select=[(self.rs[i].select, self.rs[i].optypes) for i in range(len(self.rs))],
+            rs_select=[(rs.select, rs.optypes) for rs in self.rs],
             push_instr=rs_select_out_buf.write,
         )
 
