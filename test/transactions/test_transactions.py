@@ -17,7 +17,7 @@ from coreblocks.transactions._utils import Scheduler
 from coreblocks.utils import AutoDebugSignals
 
 from coreblocks.transactions.core import (
-    ConflictPriority,
+    Priority,
     TransactionScheduler,
     trivial_roundrobin_cc_scheduler,
     eager_deterministic_cc_scheduler,
@@ -207,7 +207,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
 
 
 class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
-    def __init__(self, priority: ConflictPriority, unsatisfiable=False):
+    def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
         self.r2 = Signal()
@@ -241,7 +241,7 @@ class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
 
 
 class MethodPriorityTestCircuit(Elaboratable, AutoDebugSignals):
-    def __init__(self, priority: ConflictPriority, unsatisfiable=False):
+    def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
         self.r2 = Signal()
@@ -291,8 +291,8 @@ class TestTransactionPriorities(TestCaseWithSimulator):
     def setUp(self):
         random.seed(42)
 
-    @parameterized.expand([(ConflictPriority.UNDEFINED,), (ConflictPriority.LEFT,), (ConflictPriority.RIGHT,)])
-    def test_priorities(self, priority: ConflictPriority):
+    @parameterized.expand([(Priority.UNDEFINED,), (Priority.LEFT,), (Priority.RIGHT,)])
+    def test_priorities(self, priority: Priority):
         m = self.circuit(priority)
 
         def process():
@@ -304,21 +304,21 @@ class TestTransactionPriorities(TestCaseWithSimulator):
                 yield
                 self.assertNotEqual((yield m.t1), (yield m.t2))
                 if r1 == 1 and r2 == 1:
-                    if priority == ConflictPriority.LEFT:
+                    if priority == Priority.LEFT:
                         self.assertTrue((yield m.t1))
-                    if priority == ConflictPriority.RIGHT:
+                    if priority == Priority.RIGHT:
                         self.assertTrue((yield m.t2))
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
 
-    @parameterized.expand([(ConflictPriority.UNDEFINED,), (ConflictPriority.LEFT,), (ConflictPriority.RIGHT,)])
-    def test_unsatisfiable(self, priority: ConflictPriority):
+    @parameterized.expand([(Priority.UNDEFINED,), (Priority.LEFT,), (Priority.RIGHT,)])
+    def test_unsatisfiable(self, priority: Priority):
         m = self.circuit(priority, True)
 
         import graphlib
 
-        if priority != ConflictPriority.UNDEFINED:
+        if priority != Priority.UNDEFINED:
             cm = self.assertRaises(graphlib.CycleError)
         else:
             cm = contextlib.nullcontext()

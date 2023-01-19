@@ -1,7 +1,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import Callable, ClassVar, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
+from typing import Callable, ClassVar, Mapping, TypeAlias, TypedDict, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
 from typing_extensions import Self
@@ -13,7 +13,7 @@ from ..utils._typing import StatementLike, ValueLike, DebugSignals
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
-    "ConflictPriority",
+    "Priority",
     "TransactionManager",
     "TransactionContext",
     "TransactionModule",
@@ -25,23 +25,33 @@ __all__ = [
 ]
 
 
-ConflictGraph: TypeAlias = Graph["Transaction"]
-ConflictGraphCC: TypeAlias = GraphCC["Transaction"]
+TransactionGraph: TypeAlias = Graph["Transaction"]
+TransactionGraphCC: TypeAlias = GraphCC["Transaction"]
 PriorityOrder: TypeAlias = dict["Transaction", int]
 TransactionScheduler: TypeAlias = Callable[
-    ["TransactionManager", Module, ConflictGraph, ConflictGraphCC, PriorityOrder], None
+    ["TransactionManager", Module, TransactionGraph, TransactionGraphCC, PriorityOrder], None
 ]
 RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 
 
-class ConflictPriority(Enum):
+class Priority(Enum):
     UNDEFINED = auto()
     LEFT = auto()
     RIGHT = auto()
 
 
+class RelationBase(TypedDict):
+    end: Union["Transaction", "Method"]
+    priority: Priority
+    conflict: bool
+
+
+class Relation(RelationBase):
+    start: Union["Transaction", "Method"]
+
+
 def eager_deterministic_cc_scheduler(
-    manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC, porder: PriorityOrder
+    manager: "TransactionManager", m: Module, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
 ):
     """eager_deterministic_cc_scheduler
 
@@ -60,7 +70,7 @@ def eager_deterministic_cc_scheduler(
         arbitrating which agent should get a grant signal.
     m : Module
         Module to which signals and calculations should be connected.
-    gr : ConflictGraph
+    gr : TransactionGraph
         Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : Set[Transaction]
         Connected components of the graph `gr` for which scheduler
@@ -79,7 +89,7 @@ def eager_deterministic_cc_scheduler(
 
 
 def trivial_roundrobin_cc_scheduler(
-    manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC, porder: PriorityOrder
+    manager: "TransactionManager", m: Module, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
 ):
     """trivial_roundrobin_cc_scheduler
 
@@ -96,7 +106,7 @@ def trivial_roundrobin_cc_scheduler(
         arbitrating which agent should get grant signal.
     m : Module
         Module to which signals and calculations should be connected.
-    gr : ConflictGraph
+    gr : TransactionGraph
         Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : Set[Transaction]
         Connected components of the graph `gr` for which scheduler
@@ -126,13 +136,13 @@ class TransactionManager(Elaboratable):
 
     def __init__(self, cc_scheduler: TransactionScheduler = eager_deterministic_cc_scheduler):
         self.transactions: list[Transaction] = []
-        self.conflicts: list[Tuple[Transaction | Method, Transaction | Method, ConflictPriority]] = []
+        self.relations: list[Relation] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
     def add_transaction(self, transaction: "Transaction"):
         self.transactions.append(transaction)
 
-    def _conflict_graph(self) -> Tuple[ConflictGraph, PriorityOrder]:
+    def _conflict_graph(self) -> Tuple[TransactionGraph, TransactionGraph, PriorityOrder]:
         """_conflict_graph
 
         This function generates the graph of transaction conflicts. Conflicts
@@ -155,9 +165,11 @@ class TransactionManager(Elaboratable):
         an exception is thrown.
 
         Returns
-        ----------
-        gr : ConflictGraph
+        -------
+        cgr : TransactionGraph
             Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
+        rgr : TransactionGraph
+            Graph of relations between transactions, which includes conflicts and orderings.
         porder : PriorityOrder
             Linear ordering of transactions which is consistent with priority constraints.
         """
@@ -168,21 +180,26 @@ class TransactionManager(Elaboratable):
             else:
                 return [end]
 
-        gr: ConflictGraph = {}  # Conflict graph
-        pgr: ConflictGraph = {}  # Priority graph
+        cgr: TransactionGraph = {}  # Conflict graph
+        pgr: TransactionGraph = {}  # Priority graph
+        rgr: TransactionGraph = {}  # Relation graph
 
-        def add_edge(transaction: Transaction, transaction2: Transaction, priority: ConflictPriority):
-            gr[transaction].add(transaction2)
-            gr[transaction2].add(transaction)
+        def add_edge(begin: Transaction, end: Transaction, priority: Priority, conflict: bool):
+            rgr[begin].add(end)
+            rgr[end].add(begin)
+            if conflict:
+                cgr[begin].add(end)
+                cgr[end].add(begin)
             match priority:
-                case ConflictPriority.LEFT:
-                    pgr[transaction2].add(transaction)
-                case ConflictPriority.RIGHT:
-                    pgr[transaction].add(transaction2)
+                case Priority.LEFT:
+                    pgr[end].add(begin)
+                case Priority.RIGHT:
+                    pgr[begin].add(end)
 
         for transaction in self.transactions:
-            gr[transaction] = set()
+            cgr[transaction] = set()
             pgr[transaction] = set()
+            rgr[transaction] = set()
 
         for transaction, methods in self.methods_by_transaction.items():
             for method in methods:
@@ -190,19 +207,19 @@ class TransactionManager(Elaboratable):
                     continue
                 for transaction2 in self.transactions_by_method[method]:
                     if transaction is not transaction2:
-                        add_edge(transaction, transaction2, ConflictPriority.UNDEFINED)
+                        add_edge(transaction, transaction2, Priority.UNDEFINED, True)
 
-        for (end1, end2, priority) in self.conflicts:
-            for transaction in end_trans(end1):
-                for transaction2 in end_trans(end2):
-                    add_edge(transaction, transaction2, priority)
+        for relation in self.relations:
+            for start in end_trans(relation["start"]):
+                for end in end_trans(relation["end"]):
+                    add_edge(start, end, relation["priority"], relation["conflict"])
 
         porder: PriorityOrder = {}
 
         for (k, transaction) in enumerate(TopologicalSorter(pgr).static_order()):
             porder[transaction] = k
 
-        return gr, porder
+        return cgr, rgr, porder
 
     def _call_graph(self, transaction: "Transaction", method: "Method", arg: ValueLike, enable: ValueLike):
         if not method.defined:
@@ -212,8 +229,8 @@ class TransactionManager(Elaboratable):
         self.method_uses[transaction][method] = (arg, enable)
         self.methods_by_transaction[transaction].append(method)
         self.transactions_by_method[method].append(transaction)
-        for end in method.conflicts:
-            self.conflicts.append((method, end[0], end[1]))
+        for relation in method.relations:
+            self.relations.append(Relation(**relation, start=method))
         for method, (arg, enable) in method.method_uses.items():
             self._call_graph(transaction, method, arg, enable)
 
@@ -224,17 +241,17 @@ class TransactionManager(Elaboratable):
         self.method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
 
         for transaction in self.transactions:
-            for end in transaction.conflicts:
-                self.conflicts.append((transaction, end[0], end[1]))
+            for relation in transaction.relations:
+                self.relations.append(Relation(**relation, start=transaction))
             for method, (arg, enable) in transaction.method_uses.items():
                 self._call_graph(transaction, method, arg, enable)
 
-        gr, porder = self._conflict_graph()
+        cgr, rgr, porder = self._conflict_graph()
 
         m = Module()
 
-        for cc in _graph_ccs(gr):
-            self.cc_scheduler(m, gr, cc, porder)
+        for cc in _graph_ccs(rgr):
+            self.cc_scheduler(m, cgr, cc, porder)
 
         for method, transactions in self.transactions_by_method.items():
             granted = Signal(len(transactions))
@@ -347,26 +364,38 @@ class TransactionBase(Owned):
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
-        self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
+        self.relations: list[RelationBase] = []
 
-    def add_conflict(
-        self, end: Union["Transaction", "Method"], priority: ConflictPriority = ConflictPriority.UNDEFINED
-    ) -> None:
+    def add_conflict(self, end: Union["Transaction", "Method"], priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
 
         Record that that the given ``Transaction`` or ``Method`` cannot execute
-        simultaneously with this ``Method``.  Typical reason is using a common
-        resource (register write or memory port).
+        simultaneously with this ``Method`` or ``Transaction``. Typical reason
+        is using a common resource (register write or memory port).
 
         Parameters
         ----------
         end: Transaction or Method
             The conflicting ``Transaction`` or ``Method``
-        priority: ConflictPriority, optional
+        priority: Priority, optional
             Is one of conflicting ``Transaction``\\s or ``Method``\\s prioritized?
             Defaults to undefined priority relation.
         """
-        self.conflicts.append((end, priority))
+        self.relations.append(RelationBase(end=end, priority=priority, conflict=True))
+
+    def schedule_before(self, end: Union["Transaction", "Method"]) -> None:
+        """Adds a priority relation.
+
+        Record that that the given `Transaction` or `Method` needs to be
+        scheduled before this `Method` or `Transaction`, without adding
+        a conflict. Typical reason is data forwarding.
+
+        Parameters
+        ----------
+        end: Transaction or Method
+            The other `Transaction` or `Method`
+        """
+        self.relations.append(RelationBase(end=end, priority=Priority.RIGHT, conflict=False))
 
     def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
         if method in self.method_uses:
@@ -460,7 +489,9 @@ class Transaction(TransactionBase):
         This context manager allows to conveniently define the actions
         performed by a ``Transaction`` when it's granted. Each assignment
         added to a domain under ``body`` is guarded by the ``grant`` signal.
-        ``Method`` calls can be performed under ``body``.
+        Combinational assignments which do not need to be guarded by
+        ``grant`` can be added to ``Transaction.comb`` instead of
+        ``m.d.comb``. ``Method`` calls can be performed under ``body``.
 
         Parameters
         ----------
@@ -515,7 +546,7 @@ class Method(TransactionBase):
     of them must wait. (Non-exclusive methods are an exception to this
     behavior.) Calling a ``Method`` always takes a single clock cycle.
 
-    Data is combinatorially transferred between to and from ``Method``\\s
+    Data is combinationally transferred between to and from ``Method``\\s
     using Amaranth ``Record``\\s. The transfer can take place in both directions
     at the same time: from the called ``Method`` to the caller (``data_out``)
     and from the caller to the called ``Method`` (``data_in``).
@@ -618,10 +649,12 @@ class Method(TransactionBase):
     def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
         """Define method body
 
-        The ``body`` function should be used to define body of
-        a method. It uses the ``ready`` and ``ret`` signals provided by
-        the user to feed internal transactions logic and to pass this data
-        to method users. Inside the body, other ``Method`` s can be called.
+        The ``body`` context manager can be used to define the actions
+        performed by a ``Method`` when it's run. Each assignment added to
+        a domain under ``body`` is guarded by the ``run`` signal.
+        Combinational assignments which do not need to be guarded by ``run``
+        can be added to ``Method.comb`` instead of ``m.d.comb``. ``Method``
+        calls can be performed under ``body``.
 
         Parameters
         ----------
@@ -631,11 +664,11 @@ class Method(TransactionBase):
         ready : Signal, in
             Signal to indicate if the method is ready to be run. By
             default it is ``Const(1)``, so the method is always ready.
-            Assigned combinatorially to the ``ready`` attribute.
+            Assigned combinationially to the ``ready`` attribute.
         out : Record, in
             Data generated by the ``Method``, which will be passed to
             the caller (a ``Transaction`` or another ``Method``). Assigned
-            combinatorially to the ``data_out`` attribute.
+            combinationally to the ``data_out`` attribute.
 
         Returns
         -------
@@ -686,8 +719,9 @@ class Method(TransactionBase):
 def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     """Define a method.
 
-    This decorator allows to define transactional methods in more
-    elegant way using Python's ``def`` syntax.
+    This decorator allows to define transactional methods in an
+    elegant way using Python's ``def`` syntax. Internally, ``def_method``
+    uses ``Method.body``.
 
     The decorated function should take one argument, which will be a
     record with input signals and return output values.
@@ -702,7 +736,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     ready: Signal
         Signal to indicate if the method is ready to be run. By
         default it is ``Const(1)``, so the method is always ready.
-        Assigned combinatorially to the ``ready`` attribute.
+        Assigned combinationally to the ``ready`` attribute.
 
     Examples
     --------
