@@ -62,7 +62,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
         def __init__(self):
             pass
 
-        def elaborate(self, plaform):
+        def elaborate(self, platform):
             m = Module()
             tm = TransactionModule(m)
             m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())

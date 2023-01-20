@@ -10,7 +10,7 @@ from amaranth.sim import *
 from amaranth.sim.core import Command
 from coreblocks.transactions.core import DebugSignals, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
-from coreblocks.utils._typing import ValueLike
+from coreblocks.utils._typing import ValueLike, HasElaborate, HasDebugSignals
 from .gtkw_extension import write_vcd_ext
 
 
@@ -99,8 +99,8 @@ def signed_to_int(x: int, xlen: int) -> int:
     return x | -(x & (2 ** (xlen - 1)))
 
 
-class SimpleTestCircuit:
-    def __init__(self, dut: Elaboratable):
+class SimpleTestCircuit(Elaboratable):
+    def __init__(self, dut: HasElaborate):
         self._dut = dut
         self._io = dict[str, TestbenchIO]()
 
@@ -129,11 +129,11 @@ class SimpleTestCircuit:
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def run_simulation(self, module, max_cycles=10e4, extra_signals=()):
+    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, extra_signals=()):
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
-        if not extra_signals and hasattr(module, "debug_signals"):
+        if not extra_signals and isinstance(module, HasDebugSignals):
             extra_signals = module.debug_signals
 
         sim = Simulator(module)
