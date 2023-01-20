@@ -57,25 +57,25 @@ class TestRSSelect(TestCaseWithSimulator):
         random.seed(1789)
 
     def random_wait(self, n: int):
-        for i in range(random.randint(0, n)):
+        for i in range(random.randrange(n + 1)):
             yield
 
     def create_instr_input_process(self, instr_count: int, optypes: set[OpType], random_wait: int = 0):
         def process():
             for i in range(instr_count):
-                rp_dst = random.randint(0, self.gen_params.phys_regs_bits - 1)
-                rp_s1 = random.randint(0, self.gen_params.phys_regs_bits - 1)
-                rp_s2 = random.randint(0, self.gen_params.phys_regs_bits - 1)
+                rp_dst = random.randrange(self.gen_params.phys_regs_bits)
+                rp_s1 = random.randrange(self.gen_params.phys_regs_bits)
+                rp_s2 = random.randrange(self.gen_params.phys_regs_bits)
 
                 op_type = random.choice(list(optypes)).value
                 funct3 = random.choice(list(Funct3)).value
                 funct7 = random.choice(list(Funct7)).value
 
                 opcode = random.choice(list(Opcode)).value
-                immediate = random.randint(0, 2**32 - 1)
+                immediate = random.randrange(2**32)
 
-                rob_id = random.randint(0, self.gen_params.rob_entries_bits - 1)
-                pc = random.randint(0, 2**32 - 1)
+                rob_id = random.randrange(self.gen_params.rob_entries_bits)
+                pc = random.randrange(2**32)
 
                 instr = {
                     "opcode": opcode,
@@ -103,7 +103,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
     def create_rs_alloc_process(self, io: TestbenchIO, rs_id: int, random_wait: int = 0):
         def mock(_):
-            random_entry = random.randint(0, self.gen_params.rs_entries - 1)
+            random_entry = random.randrange(self.gen_params.rs_entries)
             expected = self.instr_in.popleft()
             expected["rs_entry_id"] = random_entry
             expected["rs_selected"] = rs_id

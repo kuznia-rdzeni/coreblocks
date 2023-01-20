@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Sequence
 
 from amaranth import *
 
@@ -116,7 +116,7 @@ class ROBAllocation(Elaboratable):
 
 class RSSelection(Elaboratable):
     def __init__(
-        self, gen_params: GenParams, get_instr: Method, rs_select: list[Tuple[Method, set[OpType]]], push_instr: Method
+        self, gen_params: GenParams, get_instr: Method, rs_select: Sequence[tuple[Method, set[OpType]]], push_instr: Method
     ):
         self.gen_params = gen_params
 
@@ -167,7 +167,7 @@ class RSSelection(Elaboratable):
 
 class RSInsertion(Elaboratable):
     def __init__(
-        self, *, get_instr: Method, rs_insert: list[Method], rf_read1: Method, rf_read2: Method, gen_params: GenParams
+        self, *, get_instr: Method, rs_insert: Sequence[Method], rf_read1: Method, rf_read2: Method, gen_params: GenParams
     ):
         self.gen_params = gen_params
 
@@ -220,7 +220,7 @@ class Scheduler(Elaboratable):
         rob_put: Method,
         rf_read1: Method,
         rf_read2: Method,
-        reservation_stations: list[RSFuncBlock],
+        reservation_stations: Sequence[RSFuncBlock],
         gen_params: GenParams
     ):
         self.gen_params = gen_params

@@ -109,8 +109,6 @@ class TestScheduler(TestCaseWithSimulator):
     instr_count: int
 
     def setUp(self):
-        # self.rs = [{OpType.ARITHMETIC, OpType.COMPARE}, {OpType.MUL, OpType.COMPARE}]
-        # self.instr_count = 500
         self.rs_count = len(self.rs)
         self.gen_params = GenParams("rv32i", rs_number_bits=math.ceil(math.log2(self.rs_count)))
         self.expected_rename_queue = deque()
@@ -118,7 +116,7 @@ class TestScheduler(TestCaseWithSimulator):
         self.free_regs_queue = deque()
         self.free_ROB_entries_queue = deque()
         self.expected_rs_entry_queue = [deque() for _ in self.rs]
-        self.current_RAT = [0 for _ in range(0, self.gen_params.isa.reg_cnt)]
+        self.current_RAT = [0] * self.gen_params.isa.reg_cnt
         self.allocated_instr_count = 0
         self.m = SchedulerTestCircuit(self.gen_params, self.rs)
 
@@ -127,7 +125,7 @@ class TestScheduler(TestCaseWithSimulator):
         # set up static RF state lookup table
         RFEntry = namedtuple("RFEntry", ["value", "valid"])
         self.rf_state = [
-            RFEntry(random.randint(0, self.gen_params.isa.xlen - 1), random.randint(0, 1))
+            RFEntry(random.randint(0, self.gen_params.isa.xlen - 1), random.randrange(2))
             for _ in range(2**self.gen_params.phys_regs_bits)
         ]
         self.rf_state[0] = RFEntry(0, 1)
@@ -287,15 +285,15 @@ class TestScheduler(TestCaseWithSimulator):
                 op_types_set = op_types_set.union(rs)
 
             for i in range(self.instr_count):
-                rl_s1 = random.randint(0, self.gen_params.isa.reg_cnt - 1)
-                rl_s2 = random.randint(0, self.gen_params.isa.reg_cnt - 1)
-                rl_dst = random.randint(0, self.gen_params.isa.reg_cnt - 1)
+                rl_s1 = random.randrange(self.gen_params.isa.reg_cnt)
+                rl_s2 = random.randrange(self.gen_params.isa.reg_cnt)
+                rl_dst = random.randrange(self.gen_params.isa.reg_cnt)
 
                 opcode = random.choice(list(Opcode)).value
                 op_type = random.choice(list(op_types_set)).value
                 funct3 = random.choice(list(Funct3)).value
                 funct7 = random.choice(list(Funct7)).value
-                immediate = random.randint(0, 2**32 - 1)
+                immediate = random.randrange(2**32)
                 rp_s1 = self.current_RAT[rl_s1]
                 rp_s2 = self.current_RAT[rl_s2]
                 rp_dst = self.expected_phys_reg_queue.popleft() if rl_dst != 0 else 0
@@ -344,7 +342,7 @@ class TestScheduler(TestCaseWithSimulator):
         def rs_alloc_process(io: TestbenchIO, rs_id: int):
             @def_method_mock(lambda: io, settle=1, enable=True)
             def process(_):
-                random_entry = random.randint(0, self.gen_params.rs_entries - 1)
+                random_entry = random.randrange(self.gen_params.rs_entries)
                 expected = self.expected_rename_queue.popleft()
                 expected["rs_entry_id"] = random_entry
                 self.expected_rs_entry_queue[rs_id].append(expected)
