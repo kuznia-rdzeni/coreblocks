@@ -116,7 +116,11 @@ class ROBAllocation(Elaboratable):
 
 class RSSelection(Elaboratable):
     def __init__(
-        self, gen_params: GenParams, get_instr: Method, rs_select: Sequence[tuple[Method, set[OpType]]], push_instr: Method
+        self,
+        gen_params: GenParams,
+        get_instr: Method,
+        rs_select: Sequence[tuple[Method, set[OpType]]],
+        push_instr: Method,
     ):
         self.gen_params = gen_params
 
@@ -167,7 +171,13 @@ class RSSelection(Elaboratable):
 
 class RSInsertion(Elaboratable):
     def __init__(
-        self, *, get_instr: Method, rs_insert: Sequence[Method], rf_read1: Method, rf_read2: Method, gen_params: GenParams
+        self,
+        *,
+        get_instr: Method,
+        rs_insert: Sequence[Method],
+        rf_read1: Method,
+        rf_read2: Method,
+        gen_params: GenParams
     ):
         self.gen_params = gen_params
 
