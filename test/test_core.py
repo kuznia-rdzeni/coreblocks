@@ -12,7 +12,6 @@ from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave,
 import random
 import subprocess
 import tempfile
-import struct
 from typing import Dict
 from parameterized import parameterized_class
 from riscvmodel.insn import (
@@ -102,7 +101,7 @@ class TestCoreBase(TestCaseWithSimulator):
     def compare_core_states(self, sw_core):
         for i in range(self.gp.isa.reg_cnt):
             reg_val = sw_core.state.intreg.regs[i].value
-            unsigned_val = reg_val if reg_val >= 0 else reg_val + 2**32
+            unsigned_val = reg_val & 0xffffffff
             self.assertEqual((yield from self.get_arch_reg_val(i)), unsigned_val)
 
 
@@ -166,7 +165,7 @@ class TestCoreSimple(TestCoreBase):
 
 class TestCoreRandomized(TestCoreBase):
     def randomized_input(self):
-        halt_pc = (len(self.instr_mem)) * self.gp.isa.ilen_bytes
+        halt_pc = len(self.instr_mem) * self.gp.isa.ilen_bytes
 
         # set PC to halt at specific instruction (numbered from 0)
         yield self.m.core.fetch.halt_pc.eq(halt_pc)
@@ -245,16 +244,12 @@ class TestCoreAsmSource(TestCoreBase):
         self.bin_src = []
 
         with tempfile.NamedTemporaryFile() as asm_tmp:
-            res = subprocess.run(["riscv64-unknown-elf-as", "-o", asm_tmp.name, self.base_dir + self.source_file])
-            res.check_returncode()
-            with tempfile.NamedTemporaryFile() as bin_tmp:
-                res = subprocess.run(
-                    ["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, bin_tmp.name]
-                )
-                res.check_returncode()
-                while word := bin_tmp.read(4):
-                    bin_instr = struct.unpack("<I", word)[0]
-                    self.bin_src.append(bin_instr)
+            subprocess.check_call(["riscv64-unknown-elf-as", "-o", asm_tmp.name, self.base_dir + self.source_file])
+            code = subprocess.check_output(["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, "/dev/stdout"])
+            for word_idx in range(0, len(code), 4):
+                word = code[word_idx:word_idx+4]
+                bin_instr = int.from_bytes(word, "little")
+                self.bin_src.append(bin_instr)
 
         self.m = TestElaboratable(self.gp, instr_mem=self.bin_src)
         with self.run_simulation(self.m) as sim:
