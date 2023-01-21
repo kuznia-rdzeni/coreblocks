@@ -1,5 +1,6 @@
 from itertools import takewhile
 from enum import unique, Enum, IntEnum, IntFlag, auto
+from amaranth.hdl.ast import Const, ValueCastable
 
 __all__ = [
     "InstrType",
@@ -24,8 +25,26 @@ class InstrType(Enum):
     J = 5
 
 
+class ValueCastableHack(int, ValueCastable):
+    @ValueCastable.lowermethod
+    def as_value(self):
+        raise NotImplementedError("width information lost!")
+
+
+class BitEnum(ValueCastableHack, Enum):
+    """
+    A helper class that defines Amaranth enums with a width
+    """
+    def __init_subclass__(cls, *, width, **kwargs):
+        cls.__width = width
+
+    @ValueCastable.lowermethod
+    def as_value(self):
+        return Const(self.value, self.__width)
+
+
 @unique
-class Opcode(IntEnum):
+class Opcode(BitEnum, width=5):
     OP_IMM = 0b00100
     LUI = 0b01101
     AUIPC = 0b00101
@@ -40,7 +59,7 @@ class Opcode(IntEnum):
     SYSTEM = 0b11100
 
 
-class Funct3(IntEnum):
+class Funct3(BitEnum, width=3):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
     BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = 0b001
     W = SLT = CSRRS = MULHSU = SH1ADD = 0b010
@@ -51,7 +70,7 @@ class Funct3(IntEnum):
     BGEU = AND = CSRRCI = REMU = REMUW = 0b111
 
 
-class Funct7(IntEnum):
+class Funct7(BitEnum, width=7):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = 0b0100000
     MULDIV = 0b0000001
@@ -61,7 +80,7 @@ class Funct7(IntEnum):
     BSET = 0b0010100
 
 
-class Funct12(IntEnum):
+class Funct12(BitEnum, width=12):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
     MRET = 0b001100000010
@@ -69,7 +88,7 @@ class Funct12(IntEnum):
 
 
 @unique
-class FenceTarget(IntFlag):
+class FenceTarget(BitEnum, width=4):
     MEM_W = 0b0001
     MEM_R = 0b0010
     DEV_O = 0b0100
@@ -77,7 +96,7 @@ class FenceTarget(IntFlag):
 
 
 @unique
-class FenceFm(IntEnum):
+class FenceFm(BitEnum, width=4):
     NONE = 0b0000
     TSO = 0b1000
 
