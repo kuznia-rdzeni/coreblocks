@@ -122,42 +122,39 @@ class TestRSSelect(TestCaseWithSimulator):
         return process
 
     def create_output_process(self, instr_count: int, random_wait: int = 0):
-        def check(got, expected):
-            self.assertEqual(got, expected)
-
         def process():
             for _ in range(instr_count):
-                result = yield from self.m.instr_out.call({})
+                result = yield from self.m.instr_out.call()
                 outputs = self.expected_out.popleft()
 
                 yield from self.random_wait(random_wait)
                 yield Settle()
-                check(result, outputs)
+                self.assertEqual(result, outputs)
 
         return process
 
     def test_base_functionality(self):
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.create_instr_input_process(100, _rs1_optypes.union(_rs2_optypes)))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, 0))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, 1))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1))
             sim.add_sync_process(self.create_output_process(100))
 
     def test_only_rs1(self):
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, 0))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0))
             sim.add_sync_process(self.create_output_process(100))
 
     def test_only_rs2(self):
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, 1))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1))
             sim.add_sync_process(self.create_output_process(100))
 
     def test_delays(self):
         with self.run_simulation(self.m, max_cycles=5000) as sim:
             sim.add_sync_process(self.create_instr_input_process(300, _rs1_optypes.union(_rs2_optypes), random_wait=4))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, 0, random_wait=12))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, 1, random_wait=12))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, random_wait=12))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, random_wait=12))
             sim.add_sync_process(self.create_output_process(300, random_wait=12))

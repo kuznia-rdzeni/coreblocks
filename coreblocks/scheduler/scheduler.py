@@ -139,6 +139,9 @@ class RSSelection(Elaboratable):
         return res
 
     def elaborate(self, platform):
+        # Module de facto performs two stages. First it get instruction and decode its `OpType` into
+        # hot wire. Second, it selects first available RS supporting this instruction.
+        # In the future, we can try to move here FIFO in order to avoid using `Forwarder`.
         m = Module()
         m.submodules.forwarder = forwarder = Forwarder(self.input_layout)
 

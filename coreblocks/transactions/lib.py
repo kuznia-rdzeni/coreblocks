@@ -169,6 +169,10 @@ class Collector(Elaboratable):
         self.layout = method_list[0].data_out.layout
         self.get_single = Method(o=self.layout)
 
+        for method in method_list:
+            if self.layout != method.data_out.layout:
+                raise Exception("Not all methods have this same layout")
+
     def elaborate(self, platform):
         m = Module()
 
