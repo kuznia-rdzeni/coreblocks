@@ -158,9 +158,6 @@ class Extension(IntFlag):
     G = I | M | A | F | D | ZICSR | ZIFENCEI
 
 
-# Mapping of names to corresponding extension
-_extension_map = {e.name.lower(): e for e in Extension if e.name}
-
 # Extensions which are mutually exclusive
 _extension_exclusive = [
     [Extension.I, Extension.E],
@@ -240,20 +237,21 @@ class ISA:
         self.extensions = Extension(0)
 
         def parse_extension(e):
-            val = _extension_map[e]
+            val = Extension[e.upper()]
             if self.extensions & val:
                 raise RuntimeError("Duplication in ISA extensions string")
             self.extensions |= val
 
         for es in extensions_str.split("_"):
             for i, e in enumerate(es):
-                if e in _extension_map:
+                try:
                     parse_extension(e)
-                elif es[i:] in _extension_map:
-                    parse_extension(es[i:])
+                except KeyError:
+                    try:
+                        parse_extension(es[i:])
+                    except KeyError:
+                        raise RuntimeError(f"Neither {es[i]} nor {es[i:]} is a valid extension in {es}") from None
                     break
-                else:
-                    raise RuntimeError(f"Neither {es[i]} nor {es[i:]} is a valid extension in {es}")
 
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
