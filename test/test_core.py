@@ -10,6 +10,11 @@ from coreblocks.params import GenParams
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
 import random
+import subprocess
+import tempfile
+import struct
+from typing import Dict
+from parameterized import parameterized_class
 from riscvmodel.insn import (
     InstructionADDI,
     InstructionSLTI,
@@ -20,10 +25,10 @@ from riscvmodel.insn import (
     InstructionSLLI,
     InstructionSRLI,
     InstructionSRAI,
-    InstructionJALR,
+    InstructionLUI,
 )
 from riscvmodel.model import Model
-from riscvmodel.isa import InstructionRType, InstructionUType, InstructionJType, InstructionBType, get_insns
+from riscvmodel.isa import InstructionRType, get_insns
 from riscvmodel.variant import RV32I
 
 
@@ -64,7 +69,7 @@ def gen_riscv_lui_instr(dst, imm):
     return 0b0110111 | dst << 7 | imm << 12
 
 
-class TestCore(TestCaseWithSimulator):
+class TestCoreBase(TestCaseWithSimulator):
     def check_RAT_alloc(self, rat, expected_alloc_count=None):  # noqa: N802
         allocated = []
         for i in range(self.m.gp.isa.reg_cnt):
@@ -94,7 +99,15 @@ class TestCore(TestCaseWithSimulator):
     def push_instr(self, opcode):
         yield from self.m.io_in.call({"data": opcode})
 
-    def run_test(self):
+    def compare_core_states(self, sw_core):
+        for i in range(self.gp.isa.reg_cnt):
+            reg_val = sw_core.state.intreg.regs[i].value
+            unsigned_val = reg_val if reg_val >= 0 else reg_val + 2**32
+            self.assertEqual((yield from self.get_arch_reg_val(i)), unsigned_val)
+
+
+class TestCoreSimple(TestCoreBase):
+    def simple_test(self):
         # this test first provokes allocation of physical registers,
         # then sets the values in those registers, and finally runs
         # an actual computation.
@@ -148,14 +161,10 @@ class TestCore(TestCaseWithSimulator):
         self.m = m
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(self.run_test)
+            sim.add_sync_process(self.simple_test)
 
-    def compare_core_states(self, sw_core):
-        for i in range(self.gp.isa.reg_cnt):
-            reg_val = sw_core.state.intreg.regs[i].value
-            unsigned_val = reg_val if reg_val >= 0 else reg_val + 2**32
-            self.assertEqual((yield from self.get_arch_reg_val(i)), unsigned_val)
 
+class TestCoreRandomized(TestCoreBase):
     def randomized_input(self):
         halt_pc = (len(self.instr_mem)) * self.gp.isa.ilen_bytes
 
@@ -178,9 +187,6 @@ class TestCore(TestCaseWithSimulator):
         random.seed(42)
 
         instructions = get_insns(cls=InstructionRType, variant=RV32I)
-        instructions += get_insns(cls=InstructionUType, variant=RV32I)  # lui, auipc
-        instructions += get_insns(cls=InstructionJType, variant=RV32I)  # jal
-        instructions += get_insns(cls=InstructionBType, variant=RV32I)  # branches
         instructions += [
             InstructionADDI,
             InstructionSLTI,
@@ -191,7 +197,7 @@ class TestCore(TestCaseWithSimulator):
             InstructionSLLI,
             InstructionSRLI,
             InstructionSRAI,
-            InstructionJALR,
+            InstructionLUI,
         ]
 
         # allocate some random values for registers
@@ -216,3 +222,40 @@ class TestCore(TestCaseWithSimulator):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(self.randomized_input)
+
+
+@parameterized_class(
+    ("name", "source_file", "instr_count", "expected_regvals"), [("fibonacci", "fibonacci.asm", 800, {2: 2971215073})]
+)
+class TestCoreAsmSource(TestCoreBase):
+    source_file: str
+    instr_count: int
+    expected_regvals: Dict[int, int]
+
+    def run_and_check(self):
+        for i in range(self.instr_count):
+            yield
+
+        for reg_id, val in self.expected_regvals.items():
+            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)  # last fibonacci number to fit in 32 bits
+
+    def test_asm_source(self):
+        self.gp = GenParams("rv32i")
+        self.base_dir = "test/asm/"
+        self.bin_src = []
+
+        with tempfile.NamedTemporaryFile() as asm_tmp:
+            res = subprocess.run(["riscv64-unknown-elf-as", "-o", asm_tmp.name, self.base_dir + self.source_file])
+            res.check_returncode()
+            with tempfile.NamedTemporaryFile() as bin_tmp:
+                res = subprocess.run(
+                    ["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, bin_tmp.name]
+                )
+                res.check_returncode()
+                while word := bin_tmp.read(4):
+                    bin_instr = struct.unpack("<I", word)[0]
+                    self.bin_src.append(bin_instr)
+
+        self.m = TestElaboratable(self.gp, instr_mem=self.bin_src)
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.run_and_check)
