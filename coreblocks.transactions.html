@@ -818,6 +818,39 @@ returns empty result.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.transactions.lib.Collector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.lib.</span></span><span class="sig-name descname"><span class="pre">Collector</span></span><a class="headerlink" href="#coreblocks.transactions.lib.Collector" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Single result collector.</p>
+<p>Creates method that collects results of many method with identical
+layout. Each call of this function will return single result of one
+of provided methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>layout: Layout</strong></dt><dd><p>Output layout of provided methods.</p>
+</dd>
+<dt><strong>get_single: Method</strong></dt><dd><p>Method which returns single result of provided methods.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.transactions.lib.Collector.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">coreblocks.transactions.core.Method</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.lib.Collector.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>method_list: list[Method]</strong></dt><dd><p>List of methods from which results will be collected.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.transactions.lib.ConnectAndTransformTrans">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.lib.</span></span><span class="sig-name descname"><span class="pre">ConnectAndTransformTrans</span></span><a class="headerlink" href="#coreblocks.transactions.lib.ConnectAndTransformTrans" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -1522,7 +1555,7 @@ Assigned combinationally to the <code class="docutils literal notranslate"><span
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:40 2023-01-18.
+      <span class="lastupdated">Last updated on 23:28 2023-01-22.
       </span></p>
   </div>
 
