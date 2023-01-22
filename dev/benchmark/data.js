@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1674035063314,
+  "lastUpdate": 1674430309119,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -1714,6 +1714,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 4786,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "marekbauer07@gmail.com",
+            "name": "Marek Bauer",
+            "username": "speederking07"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "03a9268ba585271e1d52817e03a034f1fe4f0df8",
+          "message": "Multiple RS support (#190)",
+          "timestamp": "2023-01-23T00:27:46+01:00",
+          "tree_id": "06a71804f0c3f4fd1cae0a3be469e04a795fa285",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/03a9268ba585271e1d52817e03a034f1fe4f0df8"
+        },
+        "date": 1674430308149,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 61.82,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 13944,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 242,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 560,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4907,
             "unit": "LUT"
           }
         ]
