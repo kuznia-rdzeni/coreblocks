@@ -29,65 +29,64 @@ class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
         rs_layouts = self.gen_params.get(RSLayouts)
         decode_layouts = self.gen_params.get(DecodeLayouts)
 
-        with tm.transaction_context():
-            # data structures
-            m.submodules.instr_fifo = instr_fifo = FIFO(decode_layouts.decoded_instr, 16)
-            m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
-                self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
-            )
-            m.submodules.rat = rat = FRAT(gen_params=self.gen_params)
-            m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
-            m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
+        # data structures
+        m.submodules.instr_fifo = instr_fifo = FIFO(decode_layouts.decoded_instr, 16)
+        m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
+            self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
+        )
+        m.submodules.rat = rat = FRAT(gen_params=self.gen_params)
+        m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
+        m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
 
-            # mocked RSFuncBlock
-            class MockedRSFuncBlock:
-                def __init__(self, select, insert, optypes):
-                    self.select = select
-                    self.insert = insert
-                    self.optypes = optypes
+        # mocked RSFuncBlock
+        class MockedRSFuncBlock:
+            def __init__(self, select, insert, optypes):
+                self.select = select
+                self.insert = insert
+                self.optypes = optypes
 
-            method_rs_alloc = []
-            method_rs_insert = []
-            rs_blocks = []
-            self.rs_alloc = []
-            self.rs_insert = []
+        method_rs_alloc = []
+        method_rs_insert = []
+        rs_blocks = []
+        self.rs_alloc = []
+        self.rs_insert = []
 
-            # mocked RS
-            for i, rs in enumerate(self.rs):
-                alloc_adapter = Adapter(o=rs_layouts.select_out)
-                insert_adapter = Adapter(i=rs_layouts.insert_in)
+        # mocked RS
+        for i, rs in enumerate(self.rs):
+            alloc_adapter = Adapter(o=rs_layouts.select_out)
+            insert_adapter = Adapter(i=rs_layouts.insert_in)
 
-                select_test = TestbenchIO(alloc_adapter)
-                insert_test = TestbenchIO(insert_adapter)
+            select_test = TestbenchIO(alloc_adapter)
+            insert_test = TestbenchIO(insert_adapter)
 
-                method_rs_alloc.append(alloc_adapter)
-                method_rs_insert.append(insert_adapter)
-                self.rs_alloc.append(select_test)
-                self.rs_insert.append(insert_test)
-                rs_blocks.append(MockedRSFuncBlock(alloc_adapter.iface, insert_adapter.iface, rs))
+            method_rs_alloc.append(alloc_adapter)
+            method_rs_insert.append(insert_adapter)
+            self.rs_alloc.append(select_test)
+            self.rs_insert.append(insert_test)
+            rs_blocks.append(MockedRSFuncBlock(alloc_adapter.iface, insert_adapter.iface, rs))
 
-                m.submodules[f"rs_alloc_{i}"] = self.rs_alloc[i]
-                m.submodules[f"rs_insert_{i}"] = self.rs_insert[i]
+            m.submodules[f"rs_alloc_{i}"] = self.rs_alloc[i]
+            m.submodules[f"rs_insert_{i}"] = self.rs_insert[i]
 
-            # mocked input and output
-            m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write))
-            m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free))
-            m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
-            m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
-            m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
-            m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
+        # mocked input and output
+        m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write))
+        m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free))
+        m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
+        m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
+        m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
+        m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
 
-            # main scheduler
-            m.submodules.scheduler = self.scheduler = Scheduler(
-                get_instr=instr_fifo.read,
-                get_free_reg=free_rf_fifo.read,
-                rat_rename=rat.rename,
-                rob_put=self.rob.put,
-                rf_read1=self.rf.read1,
-                rf_read2=self.rf.read2,
-                reservation_stations=rs_blocks,  # noqa
-                gen_params=self.gen_params,
-            )
+        # main scheduler
+        m.submodules.scheduler = self.scheduler = Scheduler(
+            get_instr=instr_fifo.read,
+            get_free_reg=free_rf_fifo.read,
+            rat_rename=rat.rename,
+            rob_put=self.rob.put,
+            rf_read1=self.rf.read1,
+            rf_read2=self.rf.read2,
+            reservation_stations=rs_blocks,  # noqa
+            gen_params=self.gen_params,
+        )
 
         return tm
 
@@ -125,7 +124,7 @@ class TestScheduler(TestCaseWithSimulator):
         # set up static RF state lookup table
         RFEntry = namedtuple("RFEntry", ["value", "valid"])
         self.rf_state = [
-            RFEntry(random.randint(0, self.gen_params.isa.xlen - 1), random.randrange(2))
+            RFEntry(random.randrange(self.gen_params.isa.xlen), random.randrange(2))
             for _ in range(2**self.gen_params.phys_regs_bits)
         ]
         self.rf_state[0] = RFEntry(0, 1)
@@ -202,7 +201,7 @@ class TestScheduler(TestCaseWithSimulator):
             and ``outputs``, meaning results from the call to ``io`` and item
             gathered from ``output_queues``.
         always_enable: bool
-            Makes `io` method always appears enabled.
+            Makes `io` method always appear enabled.
 
         Returns
         -------

@@ -26,24 +26,23 @@ class RSSelector(Elaboratable, AutoDebugSignals):
         rs_layouts = self.gen_params.get(RSLayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
-        with tm.transaction_context():
-            # data structures
-            m.submodules.instr_fifo = instr_fifo = FIFO(scheduler_layouts.rs_select_in, 2)
-            m.submodules.out_fifo = out_fifo = FIFO(scheduler_layouts.rs_select_out, 2)
+        # data structures
+        m.submodules.instr_fifo = instr_fifo = FIFO(scheduler_layouts.rs_select_in, 2)
+        m.submodules.out_fifo = out_fifo = FIFO(scheduler_layouts.rs_select_out, 2)
 
-            # mocked input and output
-            m.submodules.instr_in = self.instr_in = TestbenchIO(AdapterTrans(instr_fifo.write))
-            m.submodules.instr_out = self.instr_out = TestbenchIO(AdapterTrans(out_fifo.read))
-            m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
-            m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
+        # mocked input and output
+        m.submodules.instr_in = self.instr_in = TestbenchIO(AdapterTrans(instr_fifo.write))
+        m.submodules.instr_out = self.instr_out = TestbenchIO(AdapterTrans(out_fifo.read))
+        m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
+        m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
 
-            # rs selector
-            m.submodules.selector = self.selector = RSSelection(
-                gen_params=self.gen_params,
-                get_instr=instr_fifo.read,
-                rs_select=[(self.rs1_alloc.adapter.iface, _rs1_optypes), (self.rs2_alloc.adapter.iface, _rs2_optypes)],
-                push_instr=out_fifo.write,
-            )
+        # rs selector
+        m.submodules.selector = self.selector = RSSelection(
+            gen_params=self.gen_params,
+            get_instr=instr_fifo.read,
+            rs_select=[(self.rs1_alloc.adapter.iface, _rs1_optypes), (self.rs2_alloc.adapter.iface, _rs2_optypes)],
+            push_instr=out_fifo.write,
+        )
 
         return tm
 
