@@ -89,6 +89,7 @@ class SchedulerLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
+            ("rs_selected", gen_params.rs_number_bits),
             ("rs_entry_id", gen_params.rs_entries_bits),
             ("imm", gen_params.isa.xlen),
             ("pc", gen_params.isa.xlen),

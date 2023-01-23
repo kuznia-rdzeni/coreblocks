@@ -1,5 +1,6 @@
 from amaranth import Elaboratable, Module
-from coreblocks.transactions.lib import FIFO
+
+from coreblocks.transactions.lib import FIFO, MethodProduct, Collector
 from coreblocks.params.layouts import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
@@ -23,7 +24,7 @@ class Core(Elaboratable):
         self.gen_params = gen_params
         self.wb_master = wb_master
 
-        # make fifo_fetch visible outside of the core for injecting instructions
+        # make fifo_fetch visible outside the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
         self.free_rf_fifo = BasicFifo(
             self.gen_params.phys_regs_bits,
@@ -37,12 +38,16 @@ class Core(Elaboratable):
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
         alu = AluFuncUnit(gen=self.gen_params)
-        self.alu_block = RSFuncBlock(gen_params=self.gen_params, func_units=[alu])
+        self.rs_blocks = [RSFuncBlock(gen_params=self.gen_params, func_units=[alu])]
+
+        self.result_collector = Collector([block.get_result for block in self.rs_blocks])
+        self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
+
         self.announcement = ResultAnnouncement(
             gen=self.gen_params,
-            get_result=self.alu_block.get_result,
+            get_result=self.result_collector.get_single,
             rob_mark_done=self.ROB.mark_done,
-            rs_write_val=self.alu_block.update,
+            rs_write_val=self.update_combiner.method,
             rf_write_val=self.RF.write,
         )
 
@@ -70,13 +75,16 @@ class Core(Elaboratable):
             rob_put=rob.put,
             rf_read1=rf.read1,
             rf_read2=rf.read2,
-            rs_alloc=self.alu_block.select,
-            rs_insert=self.alu_block.insert,
+            reservation_stations=self.rs_blocks,
             gen_params=self.gen_params,
         )
 
-        m.submodules.alu_block = self.alu_block
+        for n, block in enumerate(self.rs_blocks):
+            m.submodules[f"rs_block_{n}"] = block
+
         m.submodules.announcement = self.announcement
+        m.submodules.result_collector = self.result_collector
+        m.submodules.update_combiner = self.update_combiner
         m.submodules.retirement = Retirement(
             rob_retire=rob.retire, r_rat_commit=rrat.commit, free_rf_put=free_rf_fifo.write, rf_free=rf.free
         )
