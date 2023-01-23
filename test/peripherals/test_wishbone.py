@@ -257,7 +257,7 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
                 result = yield from pwbm.result_adapter.call()
                 cres = res_queue.pop()
                 self.assertEqual(result["data"], cres)
-                assert not result["err"]
+                self.assertFalse(result["err"])
 
         def slave_process():
             yield Passive()
@@ -265,13 +265,13 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
             wbw = pwbm.pwbm.wb
             while True:
                 if (yield wbw.cyc) and (yield wbw.stb):
-                    assert not (yield wbw.stall)
-                    assert req_queue
+                    self.assertFalse((yield wbw.stall))
+                    self.assertTrue(req_queue)
                     c_req = req_queue.pop()
-                    assert (yield wbw.adr) == c_req["addr"]
-                    assert (yield wbw.dat_w) == c_req["data"]
-                    assert (yield wbw.we) == c_req["we"]
-                    assert (yield wbw.sel) == c_req["sel"]
+                    self.assertEqual((yield wbw.adr), c_req["addr"])
+                    self.assertEqual((yield wbw.dat_w), c_req["data"])
+                    self.assertEqual((yield wbw.we), c_req["we"])
+                    self.assertEqual((yield wbw.sel), c_req["sel"])
 
                     slave_queue.appendleft((yield wbw.dat_w))
                     res_queue.appendleft((yield wbw.dat_w))
