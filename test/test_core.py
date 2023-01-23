@@ -68,6 +68,10 @@ def gen_riscv_lui_instr(dst, imm):
 
 
 class TestCoreBase(TestCaseWithSimulator):
+    def setUp(self):
+        self.gp = GenParams("rv32i")
+        self.m = TestElaboratable(self.gp)
+
     def check_RAT_alloc(self, rat, expected_alloc_count=None):  # noqa: N802
         allocated = []
         for i in range(self.m.gp.isa.reg_cnt):
@@ -100,7 +104,7 @@ class TestCoreBase(TestCaseWithSimulator):
     def compare_core_states(self, sw_core):
         for i in range(self.gp.isa.reg_cnt):
             reg_val = sw_core.state.intreg.regs[i].value
-            unsigned_val = reg_val & 0xffffffff
+            unsigned_val = reg_val & 0xFFFFFFFF
             self.assertEqual((yield from self.get_arch_reg_val(i)), unsigned_val)
 
 
@@ -154,32 +158,12 @@ class TestCoreSimple(TestCoreBase):
         self.assertEqual((yield from self.get_arch_reg_val(5)), 1 << 12)
 
     def test_simple(self):
-        gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
-        m = TestElaboratable(gp)
-        self.m = m
-
-        with self.run_simulation(m) as sim:
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.simple_test)
 
 
 class TestCoreRandomized(TestCoreBase):
-    def randomized_input(self):
-        halt_pc = len(self.instr_mem) * self.gp.isa.ilen_bytes
-
-        # set PC to halt at specific instruction (numbered from 0)
-        yield self.m.core.fetch.halt_pc.eq(halt_pc)
-
-        # wait for PC to go past all instruction
-        while (yield self.m.core.fetch.pc) < halt_pc:
-            yield
-
-        # finish calculations
-        for _ in range(50):
-            yield
-
-        yield from self.compare_core_states(self.software_core)
-
-    def test_randomized(self):
+    def setUp(self):
         self.gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
         self.instr_count = 300
         random.seed(42)
@@ -214,11 +198,26 @@ class TestCoreRandomized(TestCoreBase):
         self.software_core.execute(instr_list)
 
         self.instr_mem = list(map(lambda x: x.encode(), init_instr_list + instr_list))
+        self.m = TestElaboratable(self.gp, instr_mem=self.instr_mem)
 
-        m = TestElaboratable(self.gp, instr_mem=self.instr_mem)
-        self.m = m
+    def randomized_input(self):
+        halt_pc = len(self.instr_mem) * self.gp.isa.ilen_bytes
 
-        with self.run_simulation(m) as sim:
+        # set PC to halt at specific instruction (numbered from 0)
+        yield self.m.core.fetch.halt_pc.eq(halt_pc)
+
+        # wait for PC to go past all instruction
+        while (yield self.m.core.fetch.pc) < halt_pc:
+            yield
+
+        # finish calculations
+        for _ in range(50):
+            yield
+
+        yield from self.compare_core_states(self.software_core)
+
+    def test_randomized(self):
+        with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.randomized_input)
 
 
@@ -230,6 +229,32 @@ class TestCoreAsmSource(TestCoreBase):
     instr_count: int
     expected_regvals: dict[int, int]
 
+    def setUp(self):
+        self.gp = GenParams("rv32i")
+        self.base_dir = "test/asm/"
+        self.bin_src = []
+
+        with tempfile.NamedTemporaryFile() as asm_tmp:
+            subprocess.check_call(
+                [
+                    "riscv64-unknown-elf-as",
+                    "-mabi=ilp32",
+                    "-march=rv32i",
+                    "-o",
+                    asm_tmp.name,
+                    self.base_dir + self.source_file,
+                ]
+            )
+            code = subprocess.check_output(
+                ["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, "/dev/stdout"]
+            )
+            for word_idx in range(0, len(code), 4):
+                word = code[word_idx : word_idx + 4]
+                bin_instr = int.from_bytes(word, "little")
+                self.bin_src.append(bin_instr)
+
+        self.m = TestElaboratable(self.gp, instr_mem=self.bin_src)
+
     def run_and_check(self):
         for i in range(self.instr_count):
             yield
@@ -238,18 +263,5 @@ class TestCoreAsmSource(TestCoreBase):
             self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
 
     def test_asm_source(self):
-        self.gp = GenParams("rv32i")
-        self.base_dir = "test/asm/"
-        self.bin_src = []
-
-        with tempfile.NamedTemporaryFile() as asm_tmp:
-            subprocess.check_call(["riscv64-unknown-elf-as", "-mabi=ilp32", "-march=rv32i", "-o", asm_tmp.name, self.base_dir + self.source_file])
-            code = subprocess.check_output(["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, "/dev/stdout"])
-            for word_idx in range(0, len(code), 4):
-                word = code[word_idx:word_idx+4]
-                bin_instr = int.from_bytes(word, "little")
-                self.bin_src.append(bin_instr)
-
-        self.m = TestElaboratable(self.gp, instr_mem=self.bin_src)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_and_check)
