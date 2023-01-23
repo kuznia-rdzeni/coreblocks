@@ -213,20 +213,6 @@ class TestWishboneAribiter(TestCaseWithSimulator):
 
 
 class TestPipelinedWishboneMaster(TestCaseWithSimulator):
-    class TestCircuit(Elaboratable):
-        def __init__(self, wb_params: WishboneParameters):
-            self.wb_params = wb_params
-
-        def elaborate(self, platform):
-            m = Module()
-            tm = TransactionModule(m)
-
-            m.submodules.pwbm = self.pwbm = PipelinedWishboneMaster(self.wb_params)
-            m.submodules.request_adapter = self.request_adapter = TestbenchIO(AdapterTrans(self.pwbm.request))
-            m.submodules.result_adapter = self.result_adapter = TestbenchIO(AdapterTrans(self.pwbm.result))
-
-            return tm
-
     def test_randomized(self):
         requests = 1000
 
@@ -236,7 +222,7 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
 
         random.seed(42)
         wb_params = WishboneParameters()
-        pwbm = TestPipelinedWishboneMaster.TestCircuit(wb_params)
+        pwbm = SimpleTestCircuit(PipelinedWishboneMaster((wb_params)))
 
         def request_process():
             for _ in range(requests):
@@ -247,14 +233,14 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
                     "sel": random.randint(0, 2**wb_params.granularity - 1),
                 }
                 req_queue.appendleft(request)
-                yield from pwbm.request_adapter.call(request)
+                yield from pwbm.request.call(request)
 
         def verify_process():
             for _ in range(requests):
                 while random.random() < 0.8:
                     yield
 
-                result = yield from pwbm.result_adapter.call()
+                result = yield from pwbm.result.call()
                 cres = res_queue.pop()
                 self.assertEqual(result["data"], cres)
                 self.assertFalse(result["err"])
@@ -262,7 +248,7 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
         def slave_process():
             yield Passive()
 
-            wbw = pwbm.pwbm.wb
+            wbw = pwbm._dut.wb
             while True:
                 if (yield wbw.cyc) and (yield wbw.stb):
                     self.assertFalse((yield wbw.stall))
