@@ -19,6 +19,14 @@ In the future, we would like to achieve the following goals:
    We don't wish to compete with high performance cores like [BOOM](https://github.com/riscv-boom/riscv-boom) though.
  * Wide(r) RISC-V support. Currently, we are focusing on getting the support for the core RV32I ISA right, but the ambitious long term plan is to be able to run full operating systems (e.g. Linux) on the core.
 
+## State of the project
+
+The core is currently incomplete and cannot be readily used in other projects.
+We plan to achieve full RV32I support soon and to make the core easily usable in [LiteX](https://github.com/enjoy-digital/litex).
+
+The transaction system we use as the foundation for the core is well-tested and usable.
+We plan to make it available as a separate Python package.
+
 ## Contributing
 
 Set up the [development environment](https://kuznia-rdzeni.github.io/coreblocks/Development_environment.html) following the project documetation.
