@@ -189,8 +189,8 @@ class RSSelection(Elaboratable):
         push_instr: Method
             Method used for pushing instruction which selected RS to next step.
             Uses `SchedulerLayouts`.
-        rs_select: list[Tuple[Method, set[OpType]]]
-            List of pairs each representing single RS in which instruction can be allocated.
+        rs_select: Sequence[tuple[Method, set[OpType]]]
+            Sequence of pairs each representing single RS in which instruction can be allocated.
             First element of pair is method used for allocating an entry in RS. Second
             element is set of `OpType`\\s that can be handled by this RS.
         gen_params: GenParams
@@ -268,8 +268,8 @@ class RSInsertion(Elaboratable):
         ----------
         get_instr: Method
             Method providing instructions with entry in ROB. Uses `SchedulerLayouts`.
-        rs_insert: list[Method]
-            List of methods used to pushing instruction into RS. Ordering of this list
+        rs_insert: Sequence[Method]
+            Sequence of methods used to pushing instruction into RS. Ordering of this list
             determinate id of specific RS. They have layout described in `RSLayouts`.
         rf_read1: Method
             Method used for getting id of physical register holding value of first source
@@ -367,8 +367,8 @@ class Scheduler(Elaboratable):
         rf_read2: Method
             Method used for getting id of physical register holding value of second source
             register. It has layout described in `RFLayouts`.
-        reservation_stations: list[RSFuncBlock]
-            List of units with RS interfaces to which instructions should be inserted.
+        reservation_stations: Sequence[RSFuncBlock]
+            Sequence of units with RS interfaces to which instructions should be inserted.
         gen_params: GenParams
             Core generation parameters.
         """
