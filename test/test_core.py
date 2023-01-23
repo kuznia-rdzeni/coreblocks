@@ -12,7 +12,6 @@ from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave,
 import random
 import subprocess
 import tempfile
-from typing import Dict
 from parameterized import parameterized_class
 from riscvmodel.insn import (
     InstructionADDI,
@@ -224,19 +223,19 @@ class TestCoreRandomized(TestCoreBase):
 
 
 @parameterized_class(
-    ("name", "source_file", "instr_count", "expected_regvals"), [("fibonacci", "fibonacci.asm", 800, {2: 2971215073})]
+    ("name", "source_file", "instr_count", "expected_regvals"), [("fibonacci", "fibonacci.asm", 1200, {2: 2971215073})]
 )
 class TestCoreAsmSource(TestCoreBase):
     source_file: str
     instr_count: int
-    expected_regvals: Dict[int, int]
+    expected_regvals: dict[int, int]
 
     def run_and_check(self):
         for i in range(self.instr_count):
             yield
 
         for reg_id, val in self.expected_regvals.items():
-            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)  # last fibonacci number to fit in 32 bits
+            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
 
     def test_asm_source(self):
         self.gp = GenParams("rv32i")
@@ -244,7 +243,7 @@ class TestCoreAsmSource(TestCoreBase):
         self.bin_src = []
 
         with tempfile.NamedTemporaryFile() as asm_tmp:
-            subprocess.check_call(["riscv64-unknown-elf-as", "-o", asm_tmp.name, self.base_dir + self.source_file])
+            subprocess.check_call(["riscv64-unknown-elf-as", "-mabi=ilp32", "-march=rv32i", "-o", asm_tmp.name, self.base_dir + self.source_file])
             code = subprocess.check_output(["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, "/dev/stdout"])
             for word_idx in range(0, len(code), 4):
                 word = code[word_idx:word_idx+4]
