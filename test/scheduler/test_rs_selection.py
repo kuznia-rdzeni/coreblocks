@@ -26,24 +26,23 @@ class RSSelector(Elaboratable, AutoDebugSignals):
         rs_layouts = self.gen_params.get(RSLayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
-        with tm.transaction_context():
-            # data structures
-            m.submodules.instr_fifo = instr_fifo = FIFO(scheduler_layouts.rs_select_in, 2)
-            m.submodules.out_fifo = out_fifo = FIFO(scheduler_layouts.rs_select_out, 2)
+        # data structures
+        m.submodules.instr_fifo = instr_fifo = FIFO(scheduler_layouts.rs_select_in, 2)
+        m.submodules.out_fifo = out_fifo = FIFO(scheduler_layouts.rs_select_out, 2)
 
-            # mocked input and output
-            m.submodules.instr_in = self.instr_in = TestbenchIO(AdapterTrans(instr_fifo.write))
-            m.submodules.instr_out = self.instr_out = TestbenchIO(AdapterTrans(out_fifo.read))
-            m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
-            m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
+        # mocked input and output
+        m.submodules.instr_in = self.instr_in = TestbenchIO(AdapterTrans(instr_fifo.write))
+        m.submodules.instr_out = self.instr_out = TestbenchIO(AdapterTrans(out_fifo.read))
+        m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
+        m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
 
-            # rs selector
-            m.submodules.selector = self.selector = RSSelection(
-                gen_params=self.gen_params,
-                get_instr=instr_fifo.read,
-                rs_select=[(self.rs1_alloc.adapter.iface, _rs1_optypes), (self.rs2_alloc.adapter.iface, _rs2_optypes)],
-                push_instr=out_fifo.write,
-            )
+        # rs selector
+        m.submodules.selector = self.selector = RSSelection(
+            gen_params=self.gen_params,
+            get_instr=instr_fifo.read,
+            rs_select=[(self.rs1_alloc.adapter.iface, _rs1_optypes), (self.rs2_alloc.adapter.iface, _rs2_optypes)],
+            push_instr=out_fifo.write,
+        )
 
         return tm
 
@@ -57,25 +56,25 @@ class TestRSSelect(TestCaseWithSimulator):
         random.seed(1789)
 
     def random_wait(self, n: int):
-        for i in range(random.randint(0, n)):
+        for i in range(random.randrange(n + 1)):
             yield
 
     def create_instr_input_process(self, instr_count: int, optypes: set[OpType], random_wait: int = 0):
         def process():
             for i in range(instr_count):
-                rp_dst = random.randint(0, self.gen_params.phys_regs_bits - 1)
-                rp_s1 = random.randint(0, self.gen_params.phys_regs_bits - 1)
-                rp_s2 = random.randint(0, self.gen_params.phys_regs_bits - 1)
+                rp_dst = random.randrange(self.gen_params.phys_regs_bits)
+                rp_s1 = random.randrange(self.gen_params.phys_regs_bits)
+                rp_s2 = random.randrange(self.gen_params.phys_regs_bits)
 
                 op_type = random.choice(list(optypes)).value
                 funct3 = random.choice(list(Funct3)).value
                 funct7 = random.choice(list(Funct7)).value
 
                 opcode = random.choice(list(Opcode)).value
-                immediate = random.randint(0, 2**32 - 1)
+                immediate = random.randrange(2**32)
 
-                rob_id = random.randint(0, self.gen_params.rob_entries_bits - 1)
-                pc = random.randint(0, 2**32 - 1)
+                rob_id = random.randrange(self.gen_params.rob_entries_bits)
+                pc = random.randrange(2**32)
 
                 instr = {
                     "opcode": opcode,
@@ -103,7 +102,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
     def create_rs_alloc_process(self, io: TestbenchIO, rs_id: int, random_wait: int = 0):
         def mock(_):
-            random_entry = random.randint(0, self.gen_params.rs_entries - 1)
+            random_entry = random.randrange(self.gen_params.rs_entries)
             expected = self.instr_in.popleft()
             expected["rs_entry_id"] = random_entry
             expected["rs_selected"] = rs_id
@@ -122,17 +121,14 @@ class TestRSSelect(TestCaseWithSimulator):
         return process
 
     def create_output_process(self, instr_count: int, random_wait: int = 0):
-        def check(got, expected):
-            self.assertEqual(got, expected)
-
         def process():
             for _ in range(instr_count):
-                result = yield from self.m.instr_out.call({})
+                result = yield from self.m.instr_out.call()
                 outputs = self.expected_out.popleft()
 
                 yield from self.random_wait(random_wait)
                 yield Settle()
-                check(result, outputs)
+                self.assertEqual(result, outputs)
 
         return process
 

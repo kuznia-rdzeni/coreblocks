@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Sequence
 
 from amaranth import *
 
@@ -178,7 +178,7 @@ class RSSelection(Elaboratable):
         *,
         get_instr: Method,
         push_instr: Method,
-        rs_select: list[Tuple[Method, set[OpType]]],
+        rs_select: Sequence[tuple[Method, set[OpType]]],
         gen_params: GenParams
     ):
         """
@@ -213,6 +213,9 @@ class RSSelection(Elaboratable):
         return res
 
     def elaborate(self, platform):
+        # Module de facto performs two stages. First it gets an instruction and decodes its `OpType` into
+        # one-hot signal. Second, it selects first available RS which supports this instruction type.
+        # In the future, we can try to move FIFO here in order to avoid using `Forwarder`.
         m = Module()
         m.submodules.forwarder = forwarder = Forwarder(self.input_layout)
 
@@ -252,7 +255,13 @@ class RSInsertion(Elaboratable):
     """
 
     def __init__(
-        self, *, get_instr: Method, rs_insert: list[Method], rf_read1: Method, rf_read2: Method, gen_params: GenParams
+        self,
+        *,
+        get_instr: Method,
+        rs_insert: Sequence[Method],
+        rf_read1: Method,
+        rf_read2: Method,
+        gen_params: GenParams
     ):
         """
         Parameters
@@ -336,7 +345,7 @@ class Scheduler(Elaboratable):
         rob_put: Method,
         rf_read1: Method,
         rf_read2: Method,
-        reservation_stations: list[RSFuncBlock],
+        reservation_stations: Sequence[RSFuncBlock],
         gen_params: GenParams
     ):
         """
