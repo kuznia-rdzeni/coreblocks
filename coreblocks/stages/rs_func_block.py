@@ -30,6 +30,7 @@ class RSFuncBlock(Elaboratable):
         Method used for getting single result out of one of FUs. It uses
         layout described by `FuncUnitLayouts`.
     """
+
     def __init__(self, gen_params: GenParams, func_units: Iterable[FuncUnit]):
         """
         Parameters

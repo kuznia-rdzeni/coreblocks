@@ -139,8 +139,8 @@ class TestRSSelect(TestCaseWithSimulator):
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.create_instr_input_process(100, _rs1_optypes.union(_rs2_optypes)))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, 0))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, 1))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1))
             sim.add_sync_process(self.create_output_process(100))
 
     def test_only_rs1(self):
@@ -151,7 +151,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, 0))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0))
             sim.add_sync_process(self.create_output_process(100))
 
     def test_only_rs2(self):
@@ -162,7 +162,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, 1))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1))
             sim.add_sync_process(self.create_output_process(100))
 
     def test_delays(self):
@@ -173,6 +173,6 @@ class TestRSSelect(TestCaseWithSimulator):
 
         with self.run_simulation(self.m, max_cycles=5000) as sim:
             sim.add_sync_process(self.create_instr_input_process(300, _rs1_optypes.union(_rs2_optypes), random_wait=4))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, 0, random_wait=12))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, 1, random_wait=12))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, random_wait=12))
+            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, random_wait=12))
             sim.add_sync_process(self.create_output_process(300, random_wait=12))
