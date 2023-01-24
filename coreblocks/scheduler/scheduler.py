@@ -269,8 +269,8 @@ class RSInsertion(Elaboratable):
         get_instr: Method
             Method providing instructions with entry in ROB. Uses `SchedulerLayouts`.
         rs_insert: Sequence[Method]
-            Sequence of methods used to pushing instruction into RS. Ordering of this list
-            determinate id of specific RS. They have layout described in `RSLayouts`.
+            Sequence of methods used for pushing an instruction into the RS. Ordering of this list
+            determines the id of a specific RS. They have layout described in `RSLayouts`.
         rf_read1: Method
             Method used for getting id of physical register holding value of first source
             register. It has layout described in `RFLayouts`.
