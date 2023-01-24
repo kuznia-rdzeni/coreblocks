@@ -156,8 +156,8 @@ class TestRSSelect(TestCaseWithSimulator):
 
     def test_only_rs2(self):
         """
-        Test checking if instruction will get allocated if second RS is full and
-        RS select method not available.
+        Test checking if an instruction will get allocated if the second RS is full and
+        the RS select method is not available.
         """
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
