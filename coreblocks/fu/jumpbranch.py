@@ -2,6 +2,7 @@ from amaranth import *
 
 from enum import IntFlag, unique, auto
 
+from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitExtrasOutputs, FuncUnitParams
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -9,7 +10,9 @@ from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch
 
-__all__ = ["JumpBranchFuncUnit"]
+__all__ = ["JumpBranchFuncUnit", "JumpFU"]
+
+from coreblocks.utils.protocols import FuncUnit
 
 
 class JumpBranchFn(Signal):
@@ -170,3 +173,9 @@ class JumpBranchFuncUnit(Elaboratable):
                 fifo_branch.write(m, arg={"next_pc": Mux(jb.taken, jb.jmp_addr, jb.reg_res)})
 
         return m
+
+
+class JumpFU(FuncUnitParams):
+    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> tuple[FuncUnit, FuncUnitExtrasOutputs]:
+        unit = JumpBranchFuncUnit(gen_params)
+        return unit, FuncUnitExtrasOutputs(branch_result=unit.branch_result)

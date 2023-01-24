@@ -49,7 +49,7 @@ class RSSelector(Elaboratable, AutoDebugSignals):
 
 class TestRSSelect(TestCaseWithSimulator):
     def setUp(self):
-        self.gen_params = GenParams("rv32i", rs_number_bits=1)
+        self.gen_params = GenParams("rv32i", rs_block_number=2)
         self.m = RSSelector(self.gen_params)
         self.expected_out = deque()
         self.instr_in = deque()

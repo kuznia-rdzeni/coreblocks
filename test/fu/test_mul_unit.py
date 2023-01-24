@@ -1,9 +1,9 @@
 from parameterized import parameterized_class
 from typing import Dict
 
-from coreblocks.params import OpType, Funct3, Funct7, GenParams
-from coreblocks.fu.mul_unit import MulUnit, MulFn
-from coreblocks.params.mul_params import MulUnitParams
+from coreblocks.params import *
+from coreblocks.fu.mul_unit import MulFn, MulFU, MulType
+from coreblocks.params.fu_params import FuncUnitParams
 
 from test.common import signed_to_int, int_to_signed
 
@@ -39,29 +39,35 @@ ops = {
 
 
 @parameterized_class(
-    ("name", "gen_params"),
+    ("name", "mul_unit"),
     [
         (
             "recursive_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.recursive_multiplier(32)),
+            MulFU(MulType.RECURSIVE_MUL, dsp_width=8),
         ),
         (
             "sequential_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.sequence_multiplier(16)),
+            MulFU(MulType.SEQUENCE_MUL, dsp_width=8),
         ),
         (
             "shift_multiplier",
-            GenParams("rv64im", mul_unit_params=MulUnitParams.shift_multiplier()),
+            MulFU(MulType.SHIFT_MUL),
         ),
     ],
 )
 class MultiplierUnitTest(GenericFunctionalTestUnit):
-    gen_params: GenParams
+    mul_unit: FuncUnitParams
 
     def test_test(self):
         self.run_pipeline()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
-            ops, MulUnit, compute_result, gen=self.gen_params, number_of_tests=600, seed=32323, method_name=method_name
+            ops,
+            self.mul_unit,
+            compute_result,
+            gen=GenParams("rv32im"),
+            number_of_tests=600,
+            seed=32323,
+            method_name=method_name,
         )

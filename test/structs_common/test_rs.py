@@ -36,7 +36,7 @@ class TestElaboratable(Elaboratable, AutoDebugSignals):
     def elaborate(self, platform) -> TransactionModule:
         m = Module()
         tm = TransactionModule(m)
-        rs = RS(self.gp, self.ready_for)
+        rs = RS(self.gp, 2**self.gp.rs_entries_bits, self.ready_for)
 
         self.rs = rs
         self.io_select = TestbenchIO(AdapterTrans(rs.select))

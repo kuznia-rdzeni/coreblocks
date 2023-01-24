@@ -2,10 +2,12 @@ from amaranth import *
 from typing import Dict, Callable, Any
 from parameterized import parameterized_class
 
-from coreblocks.params import OpType, Funct3, GenParams
-from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn
+from coreblocks.params import *
+from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpFU
+from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitExtrasOutputs, FuncUnitParams
 from coreblocks.transactions.lib import Method, def_method
 from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
+from coreblocks.utils.protocols import FuncUnit
 
 from test.common import signed_to_int
 
@@ -17,6 +19,7 @@ class JumpBranchWrapper(Elaboratable):
         self.jb = JumpBranchFuncUnit(GenParams("rv32i"))
         self.issue = self.jb.issue
         self.accept = Method(o=gen_params.get(FuncUnitLayouts).accept + gen_params.get(FetchLayouts).branch_verify)
+        self.optypes = set()
 
     def elaborate(self, platform):
         m = Module()
@@ -30,6 +33,11 @@ class JumpBranchWrapper(Elaboratable):
             return {"next_pc": br.next_pc, "result": res.result, "rob_id": res.rob_id, "rp_dst": res.rp_dst}
 
         return m
+
+
+class JumpBranchWrapperFU(FuncUnitParams):
+    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> tuple[FuncUnit, FuncUnitExtrasOutputs]:
+        return JumpBranchWrapper(gen_params), FuncUnitExtrasOutputs()
 
 
 @staticmethod
@@ -98,13 +106,13 @@ ops_auipc = {
         (
             "branches_and_jumps",
             ops,
-            JumpBranchWrapper,
+            JumpBranchWrapperFU(),
             compute_result,
         ),
         (
             "auipc",
             ops_auipc,
-            JumpBranchFuncUnit,
+            JumpFU(),
             compute_result_auipc,
         ),
     ],

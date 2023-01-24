@@ -10,7 +10,9 @@ __all__ = ["RS"]
 
 
 class RS(Elaboratable):
-    def __init__(self, gen_params: GenParams, ready_for: Optional[Iterable[Iterable[OpType]]] = None) -> None:
+    def __init__(
+        self, gen_params: GenParams, rs_entries: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None
+    ) -> None:
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
         self.layouts = gen_params.get(RSLayouts)
@@ -29,12 +31,13 @@ class RS(Elaboratable):
         self.ready_for = [list(op_list) for op_list in ready_for]
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
-        self.data = Array(Record(self.internal_layout) for _ in range(2**self.gen_params.rs_entries_bits))
+        self.rs_entries = rs_entries
+        self.data = Array(Record(self.internal_layout) for _ in range(self.rs_entries))
 
     def elaborate(self, platform) -> Module:
         m = Module()
 
-        m.submodules.enc_select = PriorityEncoder(width=2**self.gen_params.rs_entries_bits)
+        m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
 
         for record in self.data:
             m.d.comb += record.rec_ready.eq(

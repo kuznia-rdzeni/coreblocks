@@ -1,5 +1,6 @@
 from amaranth import Elaboratable, Module
 
+from coreblocks.params.fu_params import FuncBlockExtrasInputs
 from coreblocks.transactions.lib import FIFO, MethodProduct, Collector
 from coreblocks.params.layouts import *
 from coreblocks.params.genparams import GenParams
@@ -8,10 +9,10 @@ from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.scheduler.scheduler import Scheduler
-from coreblocks.fu.alu import AluFuncUnit
+from coreblocks.fu.alu import AluFU
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
-from coreblocks.stages.rs_func_block import RSFuncBlock
+from coreblocks.stages.rs_func_block import RSBlock
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.utils.fifo import BasicFifo
@@ -37,8 +38,9 @@ class Core(Elaboratable):
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        alu = AluFuncUnit(gen=self.gen_params)
-        self.rs_blocks = [RSFuncBlock(gen_params=self.gen_params, func_units=[alu])]
+        # alu = AluFuncUnit(gen=self.gen_params)
+        block_input = FuncBlockExtrasInputs(wishbone_bus=wb_master)
+        self.rs_blocks = [RSBlock([AluFU()], rs_entries=2).get_module(self.gen_params, block_input)[0]]
 
         self.result_collector = Collector([block.get_result for block in self.rs_blocks])
         self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])

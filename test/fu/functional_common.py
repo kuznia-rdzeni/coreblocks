@@ -1,10 +1,11 @@
 import random
 from collections import deque
-from typing import Dict, Callable, Any, Type
+from typing import Dict, Callable, Any
 
 from amaranth import Elaboratable, Module
 
 from coreblocks.params import GenParams
+from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitParams
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 from test.common import TestbenchIO, TestCaseWithSimulator
@@ -18,11 +19,11 @@ class FunctionalTestCircuit(Elaboratable):
     ----------
     gen: GenParams
         Core generation parameters.
-    func_unit : Type
+    func_unit : FuncUnitParams
         Class of functional unit to be tested.
     """
 
-    def __init__(self, gen: GenParams, func_unit: Type):
+    def __init__(self, gen: GenParams, func_unit: FuncUnitParams):
         self.gen = gen
         self.func_unit = func_unit
 
@@ -30,7 +31,7 @@ class FunctionalTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        m.submodules.func_unit = func_unit = self.func_unit(self.gen)
+        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen, FuncUnitExtrasInputs())[0]
 
         # mocked input and output
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
@@ -48,7 +49,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
     ----------
     operations: Dict[Any, Dict]
         List of operations performed by this unit.
-    func_unit: Type
+    func_unit: FuncUnitParams
         Class of functional unit to be tested.
     expected: Callable[[int, int, int, int, Any, int], Dict[str, int]]
         Function computing expected results
@@ -68,7 +69,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
     def __init__(
         self,
         operations: Dict[Any, Dict],
-        func_unit: Type,
+        func_unit: FuncUnitParams,
         expected: Callable[[int, int, int, int, Any, int], Dict[str, int]],
         number_of_tests: int = 2000,
         seed: int = 40,

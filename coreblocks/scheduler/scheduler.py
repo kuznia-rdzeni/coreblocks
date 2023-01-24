@@ -2,11 +2,12 @@ from typing import Sequence
 
 from amaranth import *
 
-from coreblocks.stages.rs_func_block import RSFuncBlock
 from coreblocks.transactions import Method, Transaction
 from coreblocks.transactions.lib import FIFO, Forwarder
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from coreblocks.utils import assign, AssignType
+from coreblocks.utils.protocols import FuncBlock
+
 
 __all__ = ["Scheduler"]
 
@@ -233,7 +234,7 @@ class Scheduler(Elaboratable):
         rob_put: Method,
         rf_read1: Method,
         rf_read2: Method,
-        reservation_stations: Sequence[RSFuncBlock],
+        reservation_stations: Sequence[FuncBlock],
         gen_params: GenParams
     ):
         self.gen_params = gen_params

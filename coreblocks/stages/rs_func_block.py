@@ -1,22 +1,24 @@
 from amaranth import *
 from typing import Iterable
 from coreblocks.params import GenParams
+from coreblocks.params.fu_params import FuncBlockExtrasInputs, FuncBlockExtrasOutputs, FuncUnitParams, FuncBlockParams
 from coreblocks.params.layouts import FuncUnitLayouts, RSLayouts
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
-from coreblocks.utils.protocols import FuncUnit
+from coreblocks.utils.protocols import FuncUnit, FuncBlock
 from coreblocks.transactions.lib import Collector
 
-__all__ = ["RSFuncBlock"]
+__all__ = ["RSFuncBlock", "RSBlock"]
 
 
 class RSFuncBlock(Elaboratable):
-    def __init__(self, gen_params: GenParams, func_units: Iterable[FuncUnit]):
+    def __init__(self, gen_params: GenParams, func_units: Iterable[FuncUnit], rs_entries: int):
         self.gen_params = gen_params
         self.rs_layouts = gen_params.get(RSLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.func_units = list(func_units)
+        self.rs_entries = rs_entries
         self.optypes = set.union(*(func_unit.optypes for func_unit in func_units))
 
         self.insert = Method(i=self.rs_layouts.insert_in)
@@ -28,7 +30,9 @@ class RSFuncBlock(Elaboratable):
         m = Module()
 
         m.submodules.rs = rs = RS(
-            gen_params=self.gen_params, ready_for=(func_unit.optypes for func_unit in self.func_units)
+            gen_params=self.gen_params,
+            rs_entries=self.rs_entries,
+            ready_for=(func_unit.optypes for func_unit in self.func_units),
         )
 
         for n, func_unit in enumerate(self.func_units):
@@ -46,3 +50,18 @@ class RSFuncBlock(Elaboratable):
         self.get_result.proxy(m, collector.get_single)
 
         return m
+
+
+class RSBlock(FuncBlockParams):
+    def __init__(self, func_units: Iterable[FuncUnitParams], rs_entries: int):
+        self.func_units = func_units
+        self.rs_entries = rs_entries
+
+    def get_module(
+        self, gen_params: GenParams, inputs: FuncBlockExtrasInputs
+    ) -> tuple[FuncBlock, FuncBlockExtrasOutputs]:
+        modules = list(map(lambda u: u.get_module(gen_params, inputs), self.func_units))
+        fu_units = list(map(lambda u: u[0], modules))
+        extra_outputs = list(map(lambda u: u[1], modules))
+        rs_unit = RSFuncBlock(gen_params=gen_params, func_units=fu_units, rs_entries=self.rs_entries)
+        return rs_unit, FuncBlockExtrasOutputs.from_func_units(extra_outputs)

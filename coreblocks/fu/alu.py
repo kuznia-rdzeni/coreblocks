@@ -2,6 +2,7 @@ from amaranth import *
 
 from enum import IntEnum, unique
 
+from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitExtrasOutputs, FuncUnitParams
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -9,7 +10,9 @@ from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch, AutoDebugSignals
 
-__all__ = ["AluFuncUnit"]
+__all__ = ["AluFuncUnit", "AluFU"]
+
+from coreblocks.utils.protocols import FuncUnit
 
 
 class AluFn(Signal):
@@ -142,3 +145,8 @@ class AluFuncUnit(Elaboratable):
             fifo.write(m, arg={"rob_id": arg.rob_id, "result": alu.out, "rp_dst": arg.rp_dst})
 
         return m
+
+
+class AluFU(FuncUnitParams):
+    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> tuple[FuncUnit, FuncUnitExtrasOutputs]:
+        return AluFuncUnit(gen_params), FuncUnitExtrasOutputs()

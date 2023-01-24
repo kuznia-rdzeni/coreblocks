@@ -1,5 +1,4 @@
 import random
-import math
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
@@ -109,7 +108,7 @@ class TestScheduler(TestCaseWithSimulator):
 
     def setUp(self):
         self.rs_count = len(self.optype_sets)
-        self.gen_params = GenParams("rv32i", rs_number_bits=math.ceil(math.log2(self.rs_count)))
+        self.gen_params = GenParams("rv32i", rs_block_number=self.rs_count)
         self.expected_rename_queue = deque()
         self.expected_phys_reg_queue = deque()
         self.free_regs_queue = deque()

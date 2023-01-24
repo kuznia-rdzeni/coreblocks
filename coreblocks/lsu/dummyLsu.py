@@ -1,10 +1,14 @@
 from amaranth import *
+
+from coreblocks.params.fu_params import FuncBlockExtrasInputs, FuncBlockExtrasOutputs, FuncBlockParams
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3, LSULayouts
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign
 
-__all__ = ["LSUDummy"]
+__all__ = ["LSUDummy", "LSUBlock"]
+
+from coreblocks.utils.protocols import FuncBlock
 
 
 class LSUDummyInternals(Elaboratable):
@@ -225,6 +229,7 @@ class LSUDummy(Elaboratable):
         self.rs_layouts = gen_params.get(RSLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.lsu_layouts = gen_params.get(LSULayouts)
+        self.optypes = set()  # TODO: add optypes
 
         self.insert = Method(i=self.rs_layouts.insert_in)
         self.select = Method(o=self.rs_layouts.select_out)
@@ -282,3 +287,11 @@ class LSUDummy(Elaboratable):
             m.d.sync += reserved.eq(0)
 
         return m
+
+
+class LSUBlock(FuncBlockParams):
+    def get_module(
+        self, gen_params: GenParams, inputs: FuncBlockExtrasInputs
+    ) -> tuple[FuncBlock, FuncBlockExtrasOutputs]:
+        unit = LSUDummy(gen_params, inputs.wishbone_bus)
+        return unit, FuncBlockExtrasOutputs(lsu_commit=unit.commit)
