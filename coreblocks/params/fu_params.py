@@ -35,7 +35,7 @@ class FuncBlockExtrasOutputs:
 
     @staticmethod
     def from_func_units(fu_outputs: Iterable[FuncUnitExtrasOutputs]) -> "FuncBlockExtrasOutputs":
-        branch_result = list(filter(lambda x: x is not None, map(lambda out: out.branch_result, fu_outputs)))
+        branch_result = [out.branch_result for out in fu_outputs if out.branch_result is not None]
         return FuncBlockExtrasOutputs(branch_result=branch_result)
 
 
