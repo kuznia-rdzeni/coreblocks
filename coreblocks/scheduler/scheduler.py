@@ -168,9 +168,9 @@ class RSSelection(Elaboratable):
     """
     Module performing "Reservation Station selection" step of scheduling process.
 
-    For each instruction it selects first available RS which can handle. It
-    uses multiple transactions, so it do not require all methods to be available
-    at this same time.
+    For each instruction it selects the first available RS capable of handling
+    given instruction. It uses multiple transactions, so it does not require all 
+    methods to be available at this same time.
     """
 
     def __init__(
