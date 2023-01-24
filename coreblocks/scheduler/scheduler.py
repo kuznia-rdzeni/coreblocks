@@ -365,8 +365,8 @@ class Scheduler(Elaboratable):
         rob_put: Method
             Method used for getting a free entry in ROB. It has layout described in `ROBLayouts`.
         rf_read1: Method
-            Method used for getting id of physical register holding value of first source
-            register. It has layout described in `RFLayouts`.
+            Method used for getting the id of a physical register holding the value
+            of the first source register. It has layout described in `RFLayouts`.
         rf_read2: Method
             Method used for getting id of physical register holding value of second source
             register. It has layout described in `RFLayouts`.
