@@ -26,7 +26,7 @@ class WakeupSelect(Elaboratable):
         get_ready : Method
             Method which is invoked to get vector of readiness. It uses `RSLayouts.get_ready_list_out`.
         take_row : Method
-            Method which is invoked to get single ready row. It uses `RSLayouts.take_out`.
+            Method which is invoked to get a single ready row. It uses `RSLayouts.take_out`.
         issue : Method
             Method which is invoked to a push row down the pipeline. It uses `FuncUnitLayouts.issue`.
         """
