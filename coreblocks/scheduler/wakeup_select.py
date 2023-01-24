@@ -28,7 +28,7 @@ class WakeupSelect(Elaboratable):
         take_row : Method
             Method which is invoked to get single ready row. It uses `RSLayouts.take_out`.
         issue : Method
-            Method which is invoked to push row down the pipeline. It uses `FuncUnitLayouts.issue`.
+            Method which is invoked to a push row down the pipeline. It uses `FuncUnitLayouts.issue`.
         """
         self.gen_params = gen_params
         self.get_ready = get_ready  # assumption: ready only if nonzero result
