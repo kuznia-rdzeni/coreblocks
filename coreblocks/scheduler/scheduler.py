@@ -368,8 +368,8 @@ class Scheduler(Elaboratable):
             Method used for getting the id of a physical register holding the value
             of the first source register. It has layout described in `RFLayouts`.
         rf_read2: Method
-            Method used for getting id of physical register holding value of second source
-            register. It has layout described in `RFLayouts`.
+            Method used for getting the id of a physical register holding the value of
+            a second source register. It has layout described in `RFLayouts`.
         reservation_stations: Sequence[RSFuncBlock]
             Sequence of units with RS interfaces to which instructions should be inserted.
         gen_params: GenParams
