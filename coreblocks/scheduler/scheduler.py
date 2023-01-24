@@ -275,8 +275,8 @@ class RSInsertion(Elaboratable):
             Method used for getting the id of a physical register holding value
             of a first source register. It has layout described in `RFLayouts`.
         rf_read2: Method
-            Method used for getting id of physical register holding value of second source
-            register. It has layout described in `RFLayouts`.
+            Method used for getting the id of a physical register holding value of a second
+            source register. It has layout described in `RFLayouts`.
         gen_params: GenParams
             Core generation parameters.
         """
