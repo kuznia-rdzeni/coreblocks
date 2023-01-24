@@ -360,8 +360,8 @@ class Scheduler(Elaboratable):
         get_free_reg: Method
             Method providing the id of a currently free physical register.
         rat_rename: Method
-            Method used for renaming source register in F-RAT. It has layout described in
-            `RATLayouts`.
+            Method used for renaming the source register in F-RAT. It has layout described
+            in `RATLayouts`.
         rob_put: Method
             Method used for getting free entry in ROB. It has layout described in `ROBLayouts`.
         rf_read1: Method
