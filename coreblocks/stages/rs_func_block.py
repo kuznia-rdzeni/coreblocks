@@ -27,7 +27,7 @@ class RSFuncBlock(Elaboratable):
     update: Method
         RS update method.
     get_result: Method
-        Method used for getting single result out of one of FUs. It uses
+        Method used for getting single result out of one of the FUs. It uses
         layout described by `FuncUnitLayouts`.
     """
 
