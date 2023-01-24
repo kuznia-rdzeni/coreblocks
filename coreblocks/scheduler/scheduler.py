@@ -168,9 +168,9 @@ class RSSelection(Elaboratable):
     """
     Module performing "Reservation Station selection" step of scheduling process.
 
-    For each instruction it selects first available RS which can handle. It
-    uses multiple transactions, so it do not require all methods to be available
-    at this same time.
+    For each instruction it selects the first available RS capable of handling
+    given instruction. It uses multiple transactions, so it does not require all 
+    methods to be available at this same time.
     """
 
     def __init__(
@@ -187,12 +187,12 @@ class RSSelection(Elaboratable):
         get_instr: Method
             Method providing instructions with entry in ROB. Uses `SchedulerLayouts`.
         push_instr: Method
-            Method used for pushing instruction which selected RS to next step.
+            Method used for pushing instruction with selected RS to next step.
             Uses `SchedulerLayouts`.
         rs_select: Sequence[tuple[Method, set[OpType]]]
             Sequence of pairs each representing single RS in which instruction can be allocated.
-            First element of pair is method used for allocating an entry in RS. Second
-            element is set of `OpType`\\s that can be handled by this RS.
+            First element of the pair is a method used for allocating an entry in RS. Second
+            element is a set of `OpType`\\s that can be handled by this RS.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -250,8 +250,8 @@ class RSInsertion(Elaboratable):
     """
     Module performing "Reservation Station insertion" step of scheduling process.
 
-    It requires all method to be available at this same time in order to insert
-    single instruction to RS.
+    It requires all methods to be available at this same time in order to insert
+    a single instruction to RS.
     """
 
     def __init__(
@@ -269,14 +269,14 @@ class RSInsertion(Elaboratable):
         get_instr: Method
             Method providing instructions with entry in ROB. Uses `SchedulerLayouts`.
         rs_insert: Sequence[Method]
-            Sequence of methods used to pushing instruction into RS. Ordering of this list
-            determinate id of specific RS. They have layout described in `RSLayouts`.
+            Sequence of methods used for pushing an instruction into the RS. Ordering of this list
+            determines the id of a specific RS. They have layout described in `RSLayouts`.
         rf_read1: Method
-            Method used for getting id of physical register holding value of first source
-            register. It has layout described in `RFLayouts`.
+            Method used for getting the id of a physical register holding value
+            of a first source register. It has layout described in `RFLayouts`.
         rf_read2: Method
-            Method used for getting id of physical register holding value of second source
-            register. It has layout described in `RFLayouts`.
+            Method used for getting the id of a physical register holding value of a second
+            source register. It has layout described in `RFLayouts`.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -323,10 +323,13 @@ class RSInsertion(Elaboratable):
 
 class Scheduler(Elaboratable):
     """
-    Module responsible for preparing instruction to be inserted into RS. It supports
-    multiple RS configurations, in which case it will send instruction to first available
-    RS which supports this kind of instructions. Warning!!! Instruction without any supporting
-    RS will get stuck and block scheduler pipline.
+    Module responsible for preparing an instruction to be inserted into RS. It supports
+    multiple RS configurations, in which case, it will send the instruction to the first
+    available RS which supports this kind of instructions.
+    
+    Warnings
+    --------
+    Instruction without any supporting RS will get stuck and block the scheduler pipline.
 
     In order to prepare instruction it performs following steps:
     - register allocation
@@ -355,18 +358,18 @@ class Scheduler(Elaboratable):
             Method providing decoded instructions to be scheduled for execution. It has
             layout as described by `DecodeLayouts`.
         get_free_reg: Method
-            Method providing id of currently free physical register.
+            Method providing the id of a currently free physical register.
         rat_rename: Method
-            Method used for renaming source register in F-RAT. It has layout described in
-            `RATLayouts`.
+            Method used for renaming the source register in F-RAT. It has layout described
+            in `RATLayouts`.
         rob_put: Method
-            Method used for getting free entry in ROB. It has layout described in `ROBLayouts`.
+            Method used for getting a free entry in ROB. It has layout described in `ROBLayouts`.
         rf_read1: Method
-            Method used for getting id of physical register holding value of first source
-            register. It has layout described in `RFLayouts`.
+            Method used for getting the id of a physical register holding the value
+            of the first source register. It has layout described in `RFLayouts`.
         rf_read2: Method
-            Method used for getting id of physical register holding value of second source
-            register. It has layout described in `RFLayouts`.
+            Method used for getting the id of a physical register holding the value of
+            a second source register. It has layout described in `RFLayouts`.
         reservation_stations: Sequence[RSFuncBlock]
             Sequence of units with RS interfaces to which instructions should be inserted.
         gen_params: GenParams

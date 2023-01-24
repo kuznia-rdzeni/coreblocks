@@ -10,11 +10,10 @@ __all__ = ["WakeupSelect"]
 class WakeupSelect(Elaboratable):
     """
     Simple Wakeup Select unit.
-    Works by firstly getting readiness vector from method `get_ready` (it is binary vector, where 1
-    on i-th position means i-th row is ready to be taken and 0 means it is not). In next step if any
-    row is ready to be taken it calls `take_row` with i (position of last ready row) as argument
-    in order to get its value and then calls method `issue` with i-th row as argument. It is prepared
-    to work with RS and functional unit interfaces.
+    Works by firstly getting readiness vector from the method `get_ready` (it is a binary vector, where 1 on i-th position
+    means i-th row is ready to be taken and 0 means it is not). In next step if any row is ready to be taken it calls
+    `take_row` with i (position of last ready row) as an argument in order to get its value and then calls method
+    `issue` with i-th row as argument. It is prepared to work with RS and functional unit interfaces.
 
     """
 
@@ -23,13 +22,13 @@ class WakeupSelect(Elaboratable):
         Parameters
         ----------
         gen_params : GenParams
-            Instance of GenParams with parameters describing core.
+            Instance of GenParams with parameters describing the core.
         get_ready : Method
-            Method which is invoked to get vector of readiness. It uses `RSLayouts.get_ready_list_out`.
+            Method which is invoked to get the vector of readiness. It uses `RSLayouts.get_ready_list_out`.
         take_row : Method
-            Method which is invoked to get single ready row. It uses `RSLayouts.take_out`.
+            Method which is invoked to get a single ready row. It uses `RSLayouts.take_out`.
         issue : Method
-            Method which is invoked to push row down the pipeline. It uses `FuncUnitLayouts.issue`.
+            Method which is invoked to a push row down the pipeline. It uses `FuncUnitLayouts.issue`.
         """
         self.gen_params = gen_params
         self.get_ready = get_ready  # assumption: ready only if nonzero result
