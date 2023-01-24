@@ -187,7 +187,7 @@ class RSSelection(Elaboratable):
         get_instr: Method
             Method providing instructions with entry in ROB. Uses `SchedulerLayouts`.
         push_instr: Method
-            Method used for pushing instruction which selected RS to next step.
+            Method used for pushing instruction with selected RS to next step.
             Uses `SchedulerLayouts`.
         rs_select: Sequence[tuple[Method, set[OpType]]]
             Sequence of pairs each representing single RS in which instruction can be allocated.
