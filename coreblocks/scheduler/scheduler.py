@@ -191,7 +191,7 @@ class RSSelection(Elaboratable):
             Uses `SchedulerLayouts`.
         rs_select: Sequence[tuple[Method, set[OpType]]]
             Sequence of pairs each representing single RS in which instruction can be allocated.
-            First element of pair is method used for allocating an entry in RS. Second
+            First element of the pair is a method used for allocating an entry in RS. Second
             element is set of `OpType`\\s that can be handled by this RS.
         gen_params: GenParams
             Core generation parameters.
