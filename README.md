@@ -30,3 +30,13 @@ We plan to make it available as a separate Python package.
 ## Contributing
 
 Set up the [development environment](https://kuznia-rdzeni.github.io/coreblocks/Development_environment.html) following the project documetation.
+
+External contributors are welcome to submit pull requests for simple contributions directly.
+For larger changes, please discuss your plans with us through the [issues page](https://github.com/kuznia-rdzeni/coreblocks/issues) or the [discussions page](https://github.com/kuznia-rdzeni/coreblocks/discussions) first.
+This way, you can ensure that the contribution fits the project and will be merged sooner.
+
+## License
+
+Copyright © 2022, University of Wrocław.
+
+This project is [three-clause BSD](https://github.com/kuznia-rdzeni/coreblocks/blob/master/LICENSE) licensed.
