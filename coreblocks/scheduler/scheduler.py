@@ -272,8 +272,8 @@ class RSInsertion(Elaboratable):
             Sequence of methods used for pushing an instruction into the RS. Ordering of this list
             determines the id of a specific RS. They have layout described in `RSLayouts`.
         rf_read1: Method
-            Method used for getting id of physical register holding value of first source
-            register. It has layout described in `RFLayouts`.
+            Method used for getting the id of a physical register holding value
+            of a first source register. It has layout described in `RFLayouts`.
         rf_read2: Method
             Method used for getting id of physical register holding value of second source
             register. It has layout described in `RFLayouts`.
