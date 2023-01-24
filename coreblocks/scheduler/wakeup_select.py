@@ -10,9 +10,9 @@ __all__ = ["WakeupSelect"]
 class WakeupSelect(Elaboratable):
     """
     Simple Wakeup Select unit.
-    Works by firstly getting readiness vector from method `get_ready` (it is binary vector, where 1 on i-th position
+    Works by firstly getting readiness vector from the method `get_ready` (it is a binary vector, where 1 on i-th position
     means i-th row is ready to be taken and 0 means it is not). In next step if any row is ready to be taken it calls
-    `take_row` with i (position of last ready row) as argument in order to get its value and then calls method
+    `take_row` with i (position of last ready row) as an argument in order to get its value and then calls method
     `issue` with i-th row as argument. It is prepared to work with RS and functional unit interfaces.
 
     """
