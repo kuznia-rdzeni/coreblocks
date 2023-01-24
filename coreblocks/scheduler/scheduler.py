@@ -169,7 +169,7 @@ class RSSelection(Elaboratable):
     Module performing "Reservation Station selection" step of scheduling process.
 
     For each instruction it selects the first available RS capable of handling
-    given instruction. It uses multiple transactions, so it does not require all 
+    given instruction. It uses multiple transactions, so it does not require all
     methods to be available at this same time.
     """
 
@@ -326,7 +326,7 @@ class Scheduler(Elaboratable):
     Module responsible for preparing an instruction to be inserted into RS. It supports
     multiple RS configurations, in which case, it will send the instruction to the first
     available RS which supports this kind of instructions.
-    
+
     Warnings
     --------
     Instruction without any supporting RS will get stuck and block the scheduler pipline.
