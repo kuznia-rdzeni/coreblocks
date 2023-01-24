@@ -68,6 +68,9 @@ def gen_riscv_lui_instr(dst, imm):
 
 
 class TestCoreBase(TestCaseWithSimulator):
+    gp: GenParams
+    m: TestElaboratable
+
     def check_RAT_alloc(self, rat, expected_alloc_count=None):  # noqa: N802
         allocated = []
         for i in range(self.m.gp.isa.reg_cnt):
@@ -100,7 +103,7 @@ class TestCoreBase(TestCaseWithSimulator):
     def compare_core_states(self, sw_core):
         for i in range(self.gp.isa.reg_cnt):
             reg_val = sw_core.state.intreg.regs[i].value
-            unsigned_val = reg_val & 0xffffffff
+            unsigned_val = reg_val & 0xFFFFFFFF
             self.assertEqual((yield from self.get_arch_reg_val(i)), unsigned_val)
 
 
@@ -243,10 +246,21 @@ class TestCoreAsmSource(TestCoreBase):
         self.bin_src = []
 
         with tempfile.NamedTemporaryFile() as asm_tmp:
-            subprocess.check_call(["riscv64-unknown-elf-as", "-mabi=ilp32", "-march=rv32i", "-o", asm_tmp.name, self.base_dir + self.source_file])
-            code = subprocess.check_output(["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, "/dev/stdout"])
+            subprocess.check_call(
+                [
+                    "riscv64-unknown-elf-as",
+                    "-mabi=ilp32",
+                    "-march=rv32i",
+                    "-o",
+                    asm_tmp.name,
+                    self.base_dir + self.source_file,
+                ]
+            )
+            code = subprocess.check_output(
+                ["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, "/dev/stdout"]
+            )
             for word_idx in range(0, len(code), 4):
-                word = code[word_idx:word_idx+4]
+                word = code[word_idx : word_idx + 4]
                 bin_instr = int.from_bytes(word, "little")
                 self.bin_src.append(bin_instr)
 
