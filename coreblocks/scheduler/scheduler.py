@@ -363,7 +363,7 @@ class Scheduler(Elaboratable):
             Method used for renaming the source register in F-RAT. It has layout described
             in `RATLayouts`.
         rob_put: Method
-            Method used for getting free entry in ROB. It has layout described in `ROBLayouts`.
+            Method used for getting a free entry in ROB. It has layout described in `ROBLayouts`.
         rf_read1: Method
             Method used for getting id of physical register holding value of first source
             register. It has layout described in `RFLayouts`.
