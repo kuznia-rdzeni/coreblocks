@@ -167,7 +167,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
     def test_delays(self):
         """
-        Test checking if instructions gets allocated correctly if there are delays
+        Test checking if instructions get allocated correctly if there are delays
         in methods availability.
         """
 
