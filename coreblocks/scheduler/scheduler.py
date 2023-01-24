@@ -250,8 +250,8 @@ class RSInsertion(Elaboratable):
     """
     Module performing "Reservation Station insertion" step of scheduling process.
 
-    It requires all method to be available at this same time in order to insert
-    single instruction to RS.
+    It requires all methods to be available at this same time in order to insert
+    a single instruction to RS.
     """
 
     def __init__(
