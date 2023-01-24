@@ -358,7 +358,7 @@ class Scheduler(Elaboratable):
             Method providing decoded instructions to be scheduled for execution. It has
             layout as described by `DecodeLayouts`.
         get_free_reg: Method
-            Method providing id of currently free physical register.
+            Method providing the id of a currently free physical register.
         rat_rename: Method
             Method used for renaming source register in F-RAT. It has layout described in
             `RATLayouts`.
