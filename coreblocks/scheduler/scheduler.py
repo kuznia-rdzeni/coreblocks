@@ -323,10 +323,13 @@ class RSInsertion(Elaboratable):
 
 class Scheduler(Elaboratable):
     """
-    Module responsible for preparing instruction to be inserted into RS. It supports
-    multiple RS configurations, in which case it will send instruction to first available
-    RS which supports this kind of instructions. Warning!!! Instruction without any supporting
-    RS will get stuck and block scheduler pipline.
+    Module responsible for preparing an instruction to be inserted into RS. It supports
+    multiple RS configurations, in which case, it will send the instruction to the first
+    available RS which supports this kind of instructions.
+    
+    Warnings
+    --------
+    Instruction without any supporting RS will get stuck and block the scheduler pipline.
 
     In order to prepare instruction it performs following steps:
     - register allocation
