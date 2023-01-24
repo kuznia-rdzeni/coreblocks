@@ -22,7 +22,7 @@ class WakeupSelect(Elaboratable):
         Parameters
         ----------
         gen_params : GenParams
-            Instance of GenParams with parameters describing core.
+            Instance of GenParams with parameters describing the core.
         get_ready : Method
             Method which is invoked to get vector of readiness. It uses `RSLayouts.get_ready_list_out`.
         take_row : Method
