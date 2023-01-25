@@ -1,5 +1,5 @@
 from amaranth import *
-from ._typing import DebugSignals
+from ._typing import DebugSignals, HasDebugSignals
 
 
 class AutoDebugSignals:
@@ -18,7 +18,7 @@ class AutoDebugSignals:
 
         for v in vars(self):
             a = getattr(self, v)
-            if hasattr(a, "debug_signals"):
+            if isinstance(a, HasDebugSignals):
                 smap[v] = a.debug_signals()
             elif isinstance(a, Signal) or isinstance(a, Record):
                 slist.append(a)
