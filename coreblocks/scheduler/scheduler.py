@@ -13,7 +13,8 @@ __all__ = ["Scheduler"]
 
 class RegAllocation(Elaboratable):
     """
-    Module performing "Register allocation" step of scheduling process.
+    Module performing "Register allocation" (allocating physical register for
+    instruction output). Step of scheduling process.
     """
 
     def __init__(self, *, get_instr: Method, push_instr: Method, get_free_reg: Method, gen_params: GenParams):
@@ -22,9 +23,9 @@ class RegAllocation(Elaboratable):
         ----------
         get_instr: Method
             Method providing decoded instructions to be scheduled for execution. It has
-            layout as described by `DecodeLayouts`.
+            layout as described by `SchedulerLayouts.reg_alloc_in`.
         push_instr: Method
-            Method used for pushing serviced instruction to next step. Uses `SchedulerLayouts`.
+            Method used for pushing serviced instruction to next step. Uses `SchedulerLayouts.reg_alloc_out`.
         get_free_reg: Method
             Method providing id of currently free physical register.
         gen_params: GenParams
@@ -60,7 +61,9 @@ class RegAllocation(Elaboratable):
 
 class Renaming(Elaboratable):
     """
-    Module performing "Renaming source register" step of scheduling process.
+    Module performing "Renaming source register" (translation from logical register
+    name to physical register name) step of scheduling process. Additionally it updates
+    F-RAT with translation from logical destination register to physical destination register.
     """
 
     def __init__(self, *, get_instr: Method, push_instr: Method, rename: Method, gen_params: GenParams):
@@ -68,9 +71,9 @@ class Renaming(Elaboratable):
         Parameters
         ----------
         get_instr: Method
-            Method providing instructions with allocated register. Uses `SchedulerLayouts`.
+            Method providing instructions with allocated register. Uses `SchedulerLayouts.renaming_in`.
         push_instr: Method
-            Method used for pushing serviced instruction to next step. Uses `SchedulerLayouts`.
+            Method used for pushing serviced instruction to next step. Uses `SchedulerLayouts.renaming_out`.
         rename: Method
             Method used for renaming source register in F-RAT. It has layout described in
             `RATLayouts`.
@@ -123,11 +126,11 @@ class ROBAllocation(Elaboratable):
         Parameters
         ----------
         get_instr: Method
-            Method providing instructions with renamed register. Uses `SchedulerLayouts`.
+            Method providing instructions with renamed register. Uses `SchedulerLayouts.rob_allocate_in`.
         push_instr: Method
-            Method used for pushing serviced instruction to next step. Uses `SchedulerLayouts`.
+            Method used for pushing serviced instruction to next step. Uses `SchedulerLayouts.rob_allocate_out`.
         rob_put: Method
-            Method used for getting free entry in ROB. It has layout described in `ROBLayouts`.
+            Method used for getting free entry in ROB. It has layout described in `ROBLayouts.data_layout`.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -185,14 +188,15 @@ class RSSelection(Elaboratable):
         Parameters
         ----------
         get_instr: Method
-            Method providing instructions with entry in ROB. Uses `SchedulerLayouts`.
+            Method providing instructions with entry in ROB. Uses `SchedulerLayouts.rs_select_in`.
         push_instr: Method
             Method used for pushing instruction with selected RS to next step.
-            Uses `SchedulerLayouts`.
+            Uses `SchedulerLayouts.rs_select_out`.
         rs_select: Sequence[tuple[Method, set[OpType]]]
             Sequence of pairs each representing single RS in which instruction can be allocated.
             First element of the pair is a method used for allocating an entry in RS. Second
-            element is a set of `OpType`\\s that can be handled by this RS.
+            element is a set of `OpType`\\s that can be handled by this RS. Methods layout
+            is described by `RSLayouts.select_out`.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -267,16 +271,18 @@ class RSInsertion(Elaboratable):
         Parameters
         ----------
         get_instr: Method
-            Method providing instructions with entry in ROB. Uses `SchedulerLayouts`.
+            Method providing instructions with reserved entry in ROB. Uses `SchedulerLayouts.rs_insert_in`.
         rs_insert: Sequence[Method]
             Sequence of methods used for pushing an instruction into the RS. Ordering of this list
-            determines the id of a specific RS. They have layout described in `RSLayouts`.
+            determines the id of a specific RS. They have layout described in `RSLayouts.insert_in`.
         rf_read1: Method
             Method used for getting the id of a physical register holding value
-            of a first source register. It has layout described in `RFLayouts`.
+            of a first source register. It has layout described in `RFLayouts.rf_read_out`
+            and `RFLayouts.rf_read_in`.
         rf_read2: Method
             Method used for getting the id of a physical register holding value of a second
-            source register. It has layout described in `RFLayouts`.
+            source register. It has layout described in `RFLayouts.rf_read_out`
+            and `RFLayouts.rf_read_in`.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -323,13 +329,9 @@ class RSInsertion(Elaboratable):
 
 class Scheduler(Elaboratable):
     """
-    Module responsible for preparing an instruction to be inserted into RS. It supports
+    Module responsible for preparing an instruction and its insertion into RS. It supports
     multiple RS configurations, in which case, it will send the instruction to the first
     available RS which supports this kind of instructions.
-
-    Warnings
-    --------
-    Instruction without any supporting RS will get stuck and block the scheduler pipline.
 
     In order to prepare instruction it performs following steps:
     - register allocation
@@ -337,6 +339,10 @@ class Scheduler(Elaboratable):
     - ROB allocation
     - RS selection
     - RS insertion
+
+    Warnings
+    --------
+    Instruction without any supporting RS will get stuck and block the scheduler pipline.
     """
 
     def __init__(
@@ -356,20 +362,22 @@ class Scheduler(Elaboratable):
         ----------
         get_instr: Method
             Method providing decoded instructions to be scheduled for execution. It has
-            layout as described by `DecodeLayouts`.
+            layout as described by `DecodeLayouts.decoded_instr`.
         get_free_reg: Method
             Method providing the id of a currently free physical register.
         rat_rename: Method
             Method used for renaming the source register in F-RAT. It has layout described
-            in `RATLayouts`.
+            in `RATLayouts.rat_rename_in` and `RATLayouts.rat_rename_out`.
         rob_put: Method
-            Method used for getting a free entry in ROB. It has layout described in `ROBLayouts`.
+            Method used for getting a free entry in ROB. It has layout described in `ROBLayouts.data_layout`.
         rf_read1: Method
             Method used for getting the id of a physical register holding the value
-            of the first source register. It has layout described in `RFLayouts`.
+            of the first source register. It has layout described in `RFLayouts.rf_read_out`
+            and `RFLayouts.rf_read_in`.
         rf_read2: Method
             Method used for getting the id of a physical register holding the value of
-            a second source register. It has layout described in `RFLayouts`.
+            a second source register. It has layout described in `RFLayouts.rf_read_out`
+            and `RFLayouts.rf_read_in`.
         reservation_stations: Sequence[RSFuncBlock]
             Sequence of units with RS interfaces to which instructions should be inserted.
         gen_params: GenParams
