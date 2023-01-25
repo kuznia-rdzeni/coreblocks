@@ -136,7 +136,6 @@ class RSSelection(Elaboratable):
         res = 0x0
         for op in optypes:
             res |= 1 << op - OpType.UNKNOWN
-        print(f"{res:12b}")
         return res
 
     def elaborate(self, platform):
@@ -160,7 +159,6 @@ class RSSelection(Elaboratable):
 
         for i, (alloc, optypes) in enumerate(self.rs_select):
             # checks if RS can perform this kind of operation
-            print(i)
             with Transaction().body(m, request=(decoded & self.decode_optype_set(optypes)).bool()):
                 instr = forwarder.read(m)
                 allocated_field = alloc(m)
