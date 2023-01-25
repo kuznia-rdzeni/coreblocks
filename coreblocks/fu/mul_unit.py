@@ -6,7 +6,7 @@ from amaranth import *
 from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
-from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitExtrasOutputs, FuncUnitParams
+from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitParams
 from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
@@ -252,5 +252,5 @@ class MulFU(FuncUnitParams):
         self.mul_unit_type = mul_unit_type
         self.dsp_width = dsp_width
 
-    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> tuple[FuncUnit, FuncUnitExtrasOutputs]:
-        return MulUnit(gen_params, self.mul_unit_type, self.dsp_width), FuncUnitExtrasOutputs()
+    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> FuncUnit:
+        return MulUnit(gen_params, self.mul_unit_type, self.dsp_width)

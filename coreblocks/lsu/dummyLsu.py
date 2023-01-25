@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.params.fu_params import FuncBlockExtrasInputs, FuncBlockExtrasOutputs, FuncBlockParams
+from coreblocks.params.fu_params import FuncBlockExtrasInputs, FuncBlockParams
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3, LSULayouts
 from coreblocks.peripherals.wishbone import WishboneMaster
@@ -290,8 +290,5 @@ class LSUDummy(Elaboratable):
 
 
 class LSUBlock(FuncBlockParams):
-    def get_module(
-        self, gen_params: GenParams, inputs: FuncBlockExtrasInputs
-    ) -> tuple[FuncBlock, FuncBlockExtrasOutputs]:
-        unit = LSUDummy(gen_params, inputs.wishbone_bus)
-        return unit, FuncBlockExtrasOutputs(lsu_commit=unit.commit)
+    def get_module(self, gen_params: GenParams, inputs: FuncBlockExtrasInputs) -> FuncBlock:
+        return LSUDummy(gen_params, inputs.wishbone_bus)

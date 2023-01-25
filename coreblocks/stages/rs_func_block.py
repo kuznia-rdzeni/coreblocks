@@ -1,12 +1,12 @@
 from amaranth import *
 from typing import Iterable
 from coreblocks.params import GenParams
-from coreblocks.params.fu_params import FuncBlockExtrasInputs, FuncBlockExtrasOutputs, FuncUnitParams, FuncBlockParams
+from coreblocks.params.fu_params import FuncBlockExtrasInputs, FuncUnitParams, FuncBlockParams
 from coreblocks.params.layouts import FuncUnitLayouts, RSLayouts
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
-from coreblocks.utils.protocols import FuncUnit, FuncBlock
+from coreblocks.utils.protocols import FuncUnit, FuncBlock, JumpUnit
 from coreblocks.transactions.lib import Collector
 
 __all__ = ["RSFuncBlock", "RSBlock"]
@@ -25,6 +25,10 @@ class RSFuncBlock(Elaboratable):
         self.select = Method(o=self.rs_layouts.select_out)
         self.update = Method(i=self.rs_layouts.update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
+
+        for u in func_units:
+            if isinstance(u, JumpUnit):
+                self.branch_result = u.branch_result
 
     def elaborate(self, platform):
         m = Module()
@@ -57,11 +61,7 @@ class RSBlock(FuncBlockParams):
         self.func_units = func_units
         self.rs_entries = rs_entries
 
-    def get_module(
-        self, gen_params: GenParams, inputs: FuncBlockExtrasInputs
-    ) -> tuple[FuncBlock, FuncBlockExtrasOutputs]:
+    def get_module(self, gen_params: GenParams, inputs: FuncBlockExtrasInputs) -> FuncBlock:
         modules = list(map(lambda u: u.get_module(gen_params, inputs), self.func_units))
-        fu_units = list(map(lambda u: u[0], modules))
-        extra_outputs = list(map(lambda u: u[1], modules))
-        rs_unit = RSFuncBlock(gen_params=gen_params, func_units=fu_units, rs_entries=self.rs_entries)
-        return rs_unit, FuncBlockExtrasOutputs.from_func_units(extra_outputs)
+        rs_unit = RSFuncBlock(gen_params=gen_params, func_units=modules, rs_entries=self.rs_entries)
+        return rs_unit

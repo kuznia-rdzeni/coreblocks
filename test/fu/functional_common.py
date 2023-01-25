@@ -31,7 +31,7 @@ class FunctionalTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen, FuncUnitExtrasInputs())[0]
+        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen, FuncUnitExtrasInputs())
 
         # mocked input and output
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))

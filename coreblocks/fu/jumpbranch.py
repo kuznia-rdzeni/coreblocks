@@ -2,7 +2,7 @@ from amaranth import *
 
 from enum import IntFlag, unique, auto
 
-from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitExtrasOutputs, FuncUnitParams
+from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitParams
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -176,6 +176,5 @@ class JumpBranchFuncUnit(Elaboratable):
 
 
 class JumpFU(FuncUnitParams):
-    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> tuple[FuncUnit, FuncUnitExtrasOutputs]:
-        unit = JumpBranchFuncUnit(gen_params)
-        return unit, FuncUnitExtrasOutputs(branch_result=unit.branch_result)
+    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> FuncUnit:
+        return JumpBranchFuncUnit(gen_params)

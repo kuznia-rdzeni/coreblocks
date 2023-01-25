@@ -2,7 +2,7 @@ from amaranth import *
 
 from enum import IntEnum, unique
 
-from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitExtrasOutputs, FuncUnitParams
+from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitParams
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -148,5 +148,5 @@ class AluFuncUnit(Elaboratable):
 
 
 class AluFU(FuncUnitParams):
-    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> tuple[FuncUnit, FuncUnitExtrasOutputs]:
-        return AluFuncUnit(gen_params), FuncUnitExtrasOutputs()
+    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> FuncUnit:
+        return AluFuncUnit(gen_params)

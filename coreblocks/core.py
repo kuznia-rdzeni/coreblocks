@@ -19,6 +19,8 @@ from coreblocks.utils.fifo import BasicFifo
 
 __all__ = ["Core"]
 
+from coreblocks.utils.protocols import JumpUnit, LSUUnit
+
 
 class Core(Elaboratable):
     def __init__(self, *, gen_params: GenParams, wb_master: WishboneMaster):
@@ -80,7 +82,7 @@ class Core(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        if self.func_blocks_unifier.branch_result is not None:
+        if isinstance(self.func_blocks_unifier, JumpUnit):
             m.submodules.verify_branch = ConnectTrans(self.func_blocks_unifier.branch_result, self.fetch.verify_branch)
 
         m.submodules.announcement = self.announcement
@@ -97,11 +99,8 @@ class FuncBlocksUnifier(Elaboratable):
     def __init__(self, *, gen_params: GenParams, blocks: Iterable[FuncBlockParams], extra_input: FuncBlockExtrasInputs):
         self.rs_blocks = []
 
-        outputs = []
         for n, block in enumerate(blocks):
-            unit, extras_output = block.get_module(gen_params=gen_params, inputs=extra_input)
-            self.rs_blocks.append(unit)
-            outputs.append(extras_output)
+            self.rs_blocks.append(block.get_module(gen_params=gen_params, inputs=extra_input))
 
         self.result_collector = Collector([block.get_result for block in self.rs_blocks])
         self.get_result = self.result_collector.get_single
@@ -109,21 +108,13 @@ class FuncBlocksUnifier(Elaboratable):
         self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
         self.update = self.update_combiner.method
 
-        branch_result_methods = [item for out in outputs for item in out.branch_result]
+        for u in self.rs_blocks:
+            if isinstance(u, JumpUnit):
+                self.branch_result = u.branch_result
 
-        self.branch_result_collector = None
-        match branch_result_methods:
-            case []:
-                self.branch_result = None
-            case [method]:
-                self.branch_result = method
-            case [*methods]:
-                self.branch_result_collector = br_collector = Collector(methods)
-                self.branch_result = br_collector.get_single
-
-        lsu_commit_methods = [out.lsu_commit for out in outputs if out.lsu_commit is not None]
-        # TODO: LSU
-        self.lsu_commit = None
+        for u in self.rs_blocks:
+            if isinstance(u, LSUUnit):
+                self.commit = u.commit
 
     def elaborate(self, platform):
         m = Module()
@@ -133,8 +124,5 @@ class FuncBlocksUnifier(Elaboratable):
 
         m.submodules["result_collector"] = self.result_collector
         m.submodules["update_combiner"] = self.update_combiner
-
-        if self.branch_result_collector is not None:
-            m.submodules["branch_result_collector"] = self.branch_result_collector
 
         return m

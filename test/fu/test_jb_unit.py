@@ -4,7 +4,7 @@ from parameterized import parameterized_class
 
 from coreblocks.params import *
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpFU
-from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitExtrasOutputs, FuncUnitParams
+from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitParams
 from coreblocks.transactions.lib import Method, def_method
 from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
 from coreblocks.utils.protocols import FuncUnit
@@ -36,8 +36,8 @@ class JumpBranchWrapper(Elaboratable):
 
 
 class JumpBranchWrapperFU(FuncUnitParams):
-    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> tuple[FuncUnit, FuncUnitExtrasOutputs]:
-        return JumpBranchWrapper(gen_params), FuncUnitExtrasOutputs()
+    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> FuncUnit:
+        return JumpBranchWrapper(gen_params)
 
 
 @staticmethod
