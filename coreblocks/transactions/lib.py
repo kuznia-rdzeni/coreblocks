@@ -260,9 +260,6 @@ class AdapterBase(Elaboratable):
     def debug_signals(self) -> DebugSignals:
         return [self.en, self.done, self.data_in, self.data_out]
 
-    def elaborate(self, platform) -> Module:
-        ...
-
 
 class AdapterTrans(AdapterBase):
     """Adapter transaction.
