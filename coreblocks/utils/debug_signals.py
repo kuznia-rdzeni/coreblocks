@@ -20,6 +20,11 @@ def auto_debug_signals(thing) -> DebugSignals:
             smap[v] = a.debug_signals()
         elif isinstance(a, Elaboratable):
             smap[v] = auto_debug_signals(a)
+        elif isinstance(a, Array):
+            for i, e in enumerate(a):
+                if isinstance(e, Record):
+                    e.name = f"{v}[{i}]"
+            smap[v] = a
         elif isinstance(a, Signal) or isinstance(a, Record):
             slist.append(a)
 
