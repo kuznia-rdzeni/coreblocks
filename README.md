@@ -27,6 +27,12 @@ We plan to achieve full RV32I support soon and to make the core easily usable in
 The transaction system we use as the foundation for the core is well-tested and usable.
 We plan to make it available as a separate Python package.
 
+## Documentation
+
+The [documentation for our project](https://kuznia-rdzeni.github.io/coreblocks/) is automatically generated using [Sphinx](https://www.sphinx-doc.org/).
+
+Resource usage and maximum clock frequency is [automatically measured and recorded](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
+
 ## Contributing
 
 Set up the [development environment](https://kuznia-rdzeni.github.io/coreblocks/Development_environment.html) following the project documetation.
