@@ -1,6 +1,6 @@
 from amaranth import *
 from coreblocks.transactions import Method, def_method, Transaction
-from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3, LSULayouts
+from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign
 
@@ -210,6 +210,8 @@ class LSUDummy(Elaboratable):
     get_result : Method
         To put load/store results to the next stage of pipeline.
     """
+
+    optypes = {OpType.LOAD, OpType.STORE}
 
     def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
         """

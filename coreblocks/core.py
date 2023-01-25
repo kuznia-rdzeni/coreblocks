@@ -10,6 +10,7 @@ from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.fu.alu import AluFuncUnit
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit
+from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
 from coreblocks.stages.rs_func_block import RSFuncBlock
@@ -21,9 +22,10 @@ __all__ = ["Core"]
 
 
 class Core(Elaboratable):
-    def __init__(self, *, gen_params: GenParams, wb_master: WishboneMaster):
+    def __init__(self, *, gen_params: GenParams, wb_master_instr: WishboneMaster, wb_master_data: WishboneMaster):
         self.gen_params = gen_params
-        self.wb_master = wb_master
+        self.wb_master_instr = wb_master_instr
+        self.wb_master_data = wb_master_data
 
         # make fifo_fetch visible outside the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
@@ -32,7 +34,7 @@ class Core(Elaboratable):
             2**self.gen_params.phys_regs_bits,
             init=[i for i in range(1, 2**self.gen_params.phys_regs_bits)],
         )
-        self.fetch = Fetch(self.gen_params, self.wb_master, self.fifo_fetch.write)
+        self.fetch = Fetch(self.gen_params, self.wb_master_instr, self.fifo_fetch.write)
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params)
@@ -40,7 +42,8 @@ class Core(Elaboratable):
 
         alu = AluFuncUnit(gen=self.gen_params)
         self.jb_unit = JumpBranchFuncUnit(gen=self.gen_params)
-        self.rs_blocks = [RSFuncBlock(gen_params=self.gen_params, func_units=[alu, self.jb_unit])]
+        self.lsu_unit = LSUDummy(gen_params=self.gen_params, bus=self.wb_master_data)
+        self.rs_blocks = [RSFuncBlock(gen_params=self.gen_params, func_units=[alu, self.jb_unit]), self.lsu_unit]
 
         self.result_collector = Collector([block.get_result for block in self.rs_blocks])
         self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
