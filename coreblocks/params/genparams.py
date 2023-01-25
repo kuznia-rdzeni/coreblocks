@@ -24,7 +24,7 @@ class GenParams(DependentCache):
         self,
         isa_str: str,
         *,
-        fu_configuration: list[FuncBlockParams] | None = None,
+        func_units_config: list[FuncBlockParams] | None = None,
         phys_regs_bits: int = 7,
         rob_entries_bits: int = 8,
         start_pc: int = 0,
@@ -34,15 +34,15 @@ class GenParams(DependentCache):
         super().__init__()
         self.isa = ISA(isa_str)
 
-        if fu_configuration is None:
+        if func_units_config is None:
             from coreblocks.params.fu_config import DEFAULT_FU_CONFIG
 
-            func_units_config = DEFAULT_FU_CONFIG
+            self.func_units_config = DEFAULT_FU_CONFIG
         else:
-            func_units_config = fu_configuration
+            self.func_units_config = func_units_config
 
         required_rs_entries = 1
-        for block in func_units_config:
+        for block in self.func_units_config:
             import coreblocks.stages.rs_func_block as rs_block
 
             if isinstance(block, rs_block.RSBlock):
@@ -56,8 +56,8 @@ class GenParams(DependentCache):
             raise Exception("Not enough RS entries for this FU configuration")
 
         if rs_block_number is None:
-            self.rs_number_bits = (len(func_units_config) - 1).bit_length()
-        elif len(func_units_config) <= rs_block_number:
+            self.rs_number_bits = (len(self.func_units_config) - 1).bit_length()
+        elif len(self.func_units_config) <= rs_block_number:
             self.rs_number_bits = (rs_block_number - 1).bit_length()
         else:
             raise Exception("RS block number is lower than required by FU configuration")
