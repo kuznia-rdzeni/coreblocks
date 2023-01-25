@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1674430309119,
+  "lastUpdate": 1674650404315,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -1738,6 +1738,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/03a9268ba585271e1d52817e03a034f1fe4f0df8"
         },
         "date": 1674430308149,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 61.82,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 13944,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 242,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 560,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4907,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5d3b511e853313eb7fb3eabbb61f2b6f0beae5dc",
+          "message": "Remove unneeded backticks (#211)",
+          "timestamp": "2023-01-25T13:35:29+01:00",
+          "tree_id": "e866b256a61d7e9abb3a5dbb09e871e1f873b928",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5d3b511e853313eb7fb3eabbb61f2b6f0beae5dc"
+        },
+        "date": 1674650402757,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
