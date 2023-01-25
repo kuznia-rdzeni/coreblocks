@@ -8,7 +8,6 @@ clearDataMem:
 initMem:
     li x2, 1
     sb x2, 4(x0)
-#    li x2, 2971215073 # last fibonacci number to fit in 32 bits
     li x2, 55 # fib(10)
     sw x2, 8(x0)
 loop:
