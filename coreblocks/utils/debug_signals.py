@@ -2,26 +2,26 @@ from amaranth import *
 from ._typing import DebugSignals
 
 
-class AutoDebugSignals:
-    """Mixin for automatic debug signal generation.
+def auto_debug_signals(thing) -> DebugSignals:
+    """Automatic debug signal generation.
 
-    Should be mixed in to `Elaboratable`\\s. Adds a method `debug_signals`,
-    which exposes class attributes with debug signals (Amaranth `Signal`\\s
-    and `Record`\\s, `Method`\\s, and other classes which define
+    Exposes class attributes with debug signals (Amaranth `Signal`\\s and
+    `Record`\\s, `Elaboratable`\\s, `Method`\\s, classes which define
     `debug_signals`). Used for generating ``gtkw`` files in tests,
     for use in ``gtkwave``.
     """
 
-    def debug_signals(self) -> DebugSignals:
-        slist: list[DebugSignals] = []
-        smap: dict[str, DebugSignals] = {}
+    slist: list[DebugSignals] = []
+    smap: dict[str, DebugSignals] = {}
 
-        for v in vars(self):
-            a = getattr(self, v)
-            if hasattr(a, "debug_signals"):
-                smap[v] = a.debug_signals()
-            elif isinstance(a, Signal) or isinstance(a, Record):
-                slist.append(a)
+    for v in vars(thing):
+        a = getattr(thing, v)
+        if hasattr(a, "debug_signals"):
+            smap[v] = a.debug_signals()
+        elif isinstance(a, Elaboratable):
+            smap[v] = auto_debug_signals(a)
+        elif isinstance(a, Signal) or isinstance(a, Record):
+            slist.append(a)
 
-        slist.append(smap)
-        return slist
+    slist.append(smap)
+    return slist
