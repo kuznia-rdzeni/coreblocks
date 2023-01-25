@@ -129,8 +129,8 @@ def trivial_roundrobin_cc_scheduler(
 class TransactionManager(Elaboratable):
     """Transaction manager
 
-    This module is responsible for granting ``Transaction``\\s and running
-    ``Method``\\s. It takes care that two conflicting ``Transaction``\\s
+    This module is responsible for granting `Transaction`\\s and running
+    `Method`\\s. It takes care that two conflicting `Transaction`\\s
     are never granted in the same clock cycle.
     """
 
@@ -306,10 +306,10 @@ class TransactionContext:
 
 class TransactionModule(Elaboratable):
     """
-    ``TransactionModule`` is used as wrapper on ``Module`` class,
-    which add support for transaction to the ``Module``. It creates a
-    ``TransactionManager`` which will handle transaction scheduling
-    and can be used in definition of ``Method``\\s and ``Transaction``\\s.
+    `TransactionModule` is used as wrapper on `Module` class,
+    which add support for transaction to the `Module`. It creates a
+    `TransactionManager` which will handle transaction scheduling
+    and can be used in definition of `Method`\\s and `Transaction`\\s.
     """
 
     def __init__(self, module: Module, manager: Optional[TransactionManager] = None):
@@ -317,7 +317,7 @@ class TransactionModule(Elaboratable):
         Parameters
         ----------
         module: Module
-                The ``Module`` which should be wrapped to add support for
+                The `Module` which should be wrapped to add support for
                 transactions and methods.
         """
         if manager is None:
@@ -369,16 +369,16 @@ class TransactionBase(Owned):
     def add_conflict(self, end: Union["Transaction", "Method"], priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
 
-        Record that that the given ``Transaction`` or ``Method`` cannot execute
-        simultaneously with this ``Method`` or ``Transaction``. Typical reason
+        Record that that the given `Transaction` or `Method` cannot execute
+        simultaneously with this `Method` or `Transaction`. Typical reason
         is using a common resource (register write or memory port).
 
         Parameters
         ----------
         end: Transaction or Method
-            The conflicting ``Transaction`` or ``Method``
+            The conflicting `Transaction` or `Method`
         priority: Priority, optional
-            Is one of conflicting ``Transaction``\\s or ``Method``\\s prioritized?
+            Is one of conflicting `Transaction`\\s or `Method`\\s prioritized?
             Defaults to undefined priority relation.
         """
         self.relations.append(RelationBase(end=end, priority=priority, conflict=True))
@@ -427,36 +427,36 @@ class TransactionBase(Owned):
 class Transaction(TransactionBase):
     """Transaction.
 
-    A ``Transaction`` represents a task which needs to be regularly done.
-    Execution of a ``Transaction`` always lasts a single clock cycle.
-    A ``Transaction`` signals readiness for execution by setting the
-    ``request`` signal. If the conditions for its execution are met, it
-    can be granted by the ``TransactionManager``.
+    A `Transaction` represents a task which needs to be regularly done.
+    Execution of a `Transaction` always lasts a single clock cycle.
+    A `Transaction` signals readiness for execution by setting the
+    `request` signal. If the conditions for its execution are met, it
+    can be granted by the `TransactionManager`.
 
-    A ``Transaction`` can, as part of its execution, call a number of
-    ``Method``\\s. A ``Transaction`` can be granted only if every ``Method``
+    A `Transaction` can, as part of its execution, call a number of
+    `Method`\\s. A `Transaction` can be granted only if every `Method`
     it runs is ready.
 
-    A ``Transaction`` cannot execute concurrently with another, conflicting
-    ``Transaction``. Conflicts between ``Transaction``\\s are either explicit
-    or implicit. An explicit conflict is added using the ``add_conflict``
-    method. Implicit conflicts arise between pairs of ``Transaction``\\s
-    which use the same ``Method``.
+    A `Transaction` cannot execute concurrently with another, conflicting
+    `Transaction`. Conflicts between `Transaction`\\s are either explicit
+    or implicit. An explicit conflict is added using the `add_conflict`
+    method. Implicit conflicts arise between pairs of `Transaction`\\s
+    which use the same `Method`.
 
-    A module which defines a ``Transaction`` should use ``body`` to
+    A module which defines a `Transaction` should use `body` to
     describe used methods and the transaction's effect on the module state.
-    The used methods should be called inside the ``body``'s
-    ``with`` block.
+    The used methods should be called inside the `body`'s
+    `with` block.
 
     Attributes
     ----------
     name: str
-        Name of this ``Transaction``.
+        Name of this `Transaction`.
     request: Signal, in
         Signals that the transaction wants to run. If omitted, the transaction
         is always ready. Defined in the constructor.
     grant: Signal, out
-        Signals that the transaction is granted by the ``TransactionManager``,
+        Signals that the transaction is granted by the `TransactionManager`,
         and all used methods are called.
     """
 
@@ -465,13 +465,13 @@ class Transaction(TransactionBase):
         Parameters
         ----------
         name: str or None
-            Name hint for this ``Transaction``. If ``None`` (default) the name is
-            inferred from the variable name this ``Transaction`` is assigned to.
-            If the ``Transaction`` was not assigned, the name is inferred from
-            the class name where the ``Transaction`` was constructed.
+            Name hint for this `Transaction`. If `None` (default) the name is
+            inferred from the variable name this `Transaction` is assigned to.
+            If the `Transaction` was not assigned, the name is inferred from
+            the class name where the `Transaction` was constructed.
         manager: TransactionManager
-            The ``TransactionManager`` controlling this ``Transaction``.
-            If omitted, the manager is received from ``TransactionContext``.
+            The `TransactionManager` controlling this `Transaction`.
+            If omitted, the manager is received from `TransactionContext`.
         """
         super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$transaction")
@@ -484,22 +484,22 @@ class Transaction(TransactionBase):
 
     @contextmanager
     def body(self, m: Module, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
-        """Defines the ``Transaction`` body.
+        """Defines the `Transaction` body.
 
         This context manager allows to conveniently define the actions
-        performed by a ``Transaction`` when it's granted. Each assignment
-        added to a domain under ``body`` is guarded by the ``grant`` signal.
+        performed by a `Transaction` when it's granted. Each assignment
+        added to a domain under `body` is guarded by the `grant` signal.
         Combinational assignments which do not need to be guarded by
-        ``grant`` can be added to ``Transaction.comb`` instead of
-        ``m.d.comb``. ``Method`` calls can be performed under ``body``.
+        `grant` can be added to `Transaction.comb` instead of
+        `m.d.comb`. `Method` calls can be performed under `body`.
 
         Parameters
         ----------
         m: Module
-            The module where the ``Transaction`` is defined.
+            The module where the `Transaction` is defined.
         request: Signal
-            Indicates that the ``Transaction`` wants to be executed. By
-            default it is ``Const(1)``, so it wants to be executed in
+            Indicates that the `Transaction` wants to be executed. By
+            default it is `Const(1)`, so it wants to be executed in
             every clock cycle.
         """
         m.d.comb += self.request.eq(request)
@@ -538,39 +538,39 @@ def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> lis
 class Method(TransactionBase):
     """Transactional method.
 
-    A ``Method`` serves to interface a module with external ``Transaction``\\s
-    or ``Method``\\s. It can be called by at most once in a given clock cycle.
-    When a given ``Method`` is required by multiple ``Transaction``\\s
-    (either directly, or indirectly via another ``Method``) simultenaously,
-    at most one of them is granted by the ``TransactionManager``, and the rest
+    A `Method` serves to interface a module with external `Transaction`\\s
+    or `Method`\\s. It can be called by at most once in a given clock cycle.
+    When a given `Method` is required by multiple `Transaction`\\s
+    (either directly, or indirectly via another `Method`) simultenaously,
+    at most one of them is granted by the `TransactionManager`, and the rest
     of them must wait. (Non-exclusive methods are an exception to this
-    behavior.) Calling a ``Method`` always takes a single clock cycle.
+    behavior.) Calling a `Method` always takes a single clock cycle.
 
-    Data is combinationally transferred between to and from ``Method``\\s
-    using Amaranth ``Record``\\s. The transfer can take place in both directions
-    at the same time: from the called ``Method`` to the caller (``data_out``)
-    and from the caller to the called ``Method`` (``data_in``).
+    Data is combinationally transferred between to and from `Method`\\s
+    using Amaranth `Record`\\s. The transfer can take place in both directions
+    at the same time: from the called `Method` to the caller (`data_out`)
+    and from the caller to the called `Method` (`data_in`).
 
-    A module which defines a ``Method`` should use ``body`` or ``def_method``
+    A module which defines a `Method` should use `body` or `def_method`
     to describe the method's effect on the module state.
 
     Attributes
     ----------
     name: str
-        Name of this ``Method``.
+        Name of this `Method`.
     ready: Signal, in
         Signals that the method is ready to run in the current cycle.
-        Typically defined by calling ``body``.
+        Typically defined by calling `body`.
     run: Signal, out
         Signals that the method is called in the current cycle by some
-        ``Transaction``. Defined by the ``TransactionManager``.
+        `Transaction`. Defined by the `TransactionManager`.
     data_in: Record, out
-        Contains the data passed to the ``Method`` by the caller
-        (a ``Transaction`` or another ``Method``).
+        Contains the data passed to the `Method` by the caller
+        (a `Transaction` or another `Method`).
     data_out: Record, in
-        Contains the data passed from the ``Method`` to the caller
-        (a ``Transaction`` or another ``Method``). Typically defined by
-        calling ``body``.
+        Contains the data passed from the `Method` to the caller
+        (a `Transaction` or another `Method`). Typically defined by
+        calling `body`.
     """
 
     def __init__(
@@ -580,14 +580,14 @@ class Method(TransactionBase):
         Parameters
         ----------
         name: str or None
-            Name hint for this ``Method``. If ``None`` (default) the name is
-            inferred from the variable name this ``Method`` is assigned to.
+            Name hint for this `Method`. If `None` (default) the name is
+            inferred from the variable name this `Method` is assigned to.
         i: int or record layout
-            The format of ``data_in``.
-            An ``int`` corresponds to a ``Record`` with a single ``data`` field.
+            The format of `data_in`.
+            An `int` corresponds to a `Record` with a single `data` field.
         o: int or record layout
-            The format of ``data_in``.
-            An ``int`` corresponds to a ``Record`` with a single ``data`` field.
+            The format of `data_in`.
+            An `int` corresponds to a `Record` with a single `data` field.
         nonexclusive: bool
             If true, the method is non-exclusive: it can be called by multiple
             transactions in the same clock cycle. If such a situation happens,
@@ -608,35 +608,35 @@ class Method(TransactionBase):
 
     @staticmethod
     def like(other: "Method", *, name: Optional[str] = None) -> "Method":
-        """Constructs a new ``Method`` based on another.
+        """Constructs a new `Method` based on another.
 
-        The returned ``Method`` has the same input/output data layouts as the
-        ``other`` ``Method``.
+        The returned `Method` has the same input/output data layouts as the
+        `other` `Method`.
 
         Parameters
         ----------
         other : Method
-            The ``Method`` which serves as a blueprint for the new ``Method``.
+            The `Method` which serves as a blueprint for the new `Method`.
         name : str, optional
-            Name of the new ``Method``.
+            Name of the new `Method`.
 
         Returns
         -------
         Method
-            The freshly constructed ``Method``.
+            The freshly constructed `Method`.
         """
         return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
 
     def proxy(self, m: Module, method: "Method"):
         """Define as a proxy for another method.
 
-        The calls to this method will be forwarded to ``method``.
+        The calls to this method will be forwarded to `method`.
 
         Parameters
         ----------
         m : Module
             Module in which operations on signals should be executed,
-            ``proxy`` uses the combinational domain only.
+            `proxy` uses the combinational domain only.
         method : Method
             Method for which this method is a proxy for.
         """
@@ -649,32 +649,32 @@ class Method(TransactionBase):
     def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
         """Define method body
 
-        The ``body`` context manager can be used to define the actions
-        performed by a ``Method`` when it's run. Each assignment added to
-        a domain under ``body`` is guarded by the ``run`` signal.
-        Combinational assignments which do not need to be guarded by ``run``
-        can be added to ``Method.comb`` instead of ``m.d.comb``. ``Method``
-        calls can be performed under ``body``.
+        The `body` context manager can be used to define the actions
+        performed by a `Method` when it's run. Each assignment added to
+        a domain under `body` is guarded by the `run` signal.
+        Combinational assignments which do not need to be guarded by `run`
+        can be added to `Method.comb` instead of `m.d.comb`. `Method`
+        calls can be performed under `body`.
 
         Parameters
         ----------
         m : Module
             Module in which operations on signals should be executed,
-            ``body`` uses the combinational domain only.
+            `body` uses the combinational domain only.
         ready : Signal, in
             Signal to indicate if the method is ready to be run. By
-            default it is ``Const(1)``, so the method is always ready.
-            Assigned combinationially to the ``ready`` attribute.
+            default it is `Const(1)`, so the method is always ready.
+            Assigned combinationially to the `ready` attribute.
         out : Record, in
-            Data generated by the ``Method``, which will be passed to
-            the caller (a ``Transaction`` or another ``Method``). Assigned
-            combinationally to the ``data_out`` attribute.
+            Data generated by the `Method`, which will be passed to
+            the caller (a `Transaction` or another `Method`). Assigned
+            combinationally to the `data_out` attribute.
 
         Returns
         -------
         data_in : Record, out
-            Data passed from the caller (a ``Transaction`` or another
-            ``Method``) to this ``Method``.
+            Data passed from the caller (a `Transaction` or another
+            `Method`) to this `Method`.
 
         Examples
         --------
@@ -720,8 +720,8 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     """Define a method.
 
     This decorator allows to define transactional methods in an
-    elegant way using Python's ``def`` syntax. Internally, ``def_method``
-    uses ``Method.body``.
+    elegant way using Python's `def` syntax. Internally, `def_method`
+    uses `Method.body`.
 
     The decorated function should take one argument, which will be a
     record with input signals and return output values.
@@ -735,8 +735,8 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         The method whose body is going to be defined.
     ready: Signal
         Signal to indicate if the method is ready to be run. By
-        default it is ``Const(1)``, so the method is always ready.
-        Assigned combinationally to the ``ready`` attribute.
+        default it is `Const(1)`, so the method is always ready.
+        Assigned combinationally to the `ready` attribute.
 
     Examples
     --------
