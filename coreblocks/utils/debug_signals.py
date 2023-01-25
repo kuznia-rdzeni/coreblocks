@@ -5,10 +5,10 @@ from ._typing import DebugSignals
 def auto_debug_signals(thing) -> DebugSignals:
     """Automatic debug signal generation.
 
-    Exposes class attributes with debug signals (Amaranth `Signal`\\s and
-    `Record`\\s, `Elaboratable`\\s, `Method`\\s, classes which define
-    `debug_signals`). Used for generating ``gtkw`` files in tests,
-    for use in ``gtkwave``.
+    Exposes class attributes with debug signals (Amaranth `Signal`\\s,
+    `Record`\\s, `Array`\\s and `Elaboratable`\\s, `Method`\\s, classes
+    which define `debug_signals`). Used for generating ``gtkw`` files in
+    tests, for use in ``gtkwave``.
     """
 
     slist: list[DebugSignals] = []
