@@ -83,9 +83,9 @@ class TracingFragment(Fragment):
                     raise NotImplementedError(f"Monkey-patching missed some Fragment in {old_obj}.elaborate()?")
                 # This is literally taken from Amaranth {{
                 elif isinstance(obj, Elaboratable):
-                    code = obj.elaborate.__code__      # type: ignore
-                    obj._MustUse__used = True          # type: ignore
-                    new_obj = obj.elaborate(platform)  # type: ignore
+                    code = obj.elaborate.__code__
+                    obj._MustUse__used = True  # type: ignore
+                    new_obj = obj.elaborate(platform)
                 elif hasattr(obj, "elaborate"):
                     warnings.warn(
                         message="Class {!r} is an elaboratable that does not explicitly inherit from "
