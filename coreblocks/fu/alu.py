@@ -128,7 +128,7 @@ class AluFuncUnit(Elaboratable):
         m.submodules.decoder = decoder = AluFnDecoder(self.gen)
 
         @def_method(m, self.accept)
-        def _(arg):
+        def _():
             return fifo.read(m)
 
         @def_method(m, self.issue)

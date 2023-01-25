@@ -161,7 +161,7 @@ class MulUnit(Elaboratable, AutoDebugSignals):
         # half_sign_bit = xlen // 2 - 1  # position of sign bit considering only half of input being used
 
         @def_method(m, self.accept)
-        def _(arg):
+        def _():
             return result_fifo.read(m)
 
         @def_method(m, self.issue)

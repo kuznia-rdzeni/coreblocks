@@ -1,6 +1,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
+from inspect import signature
 from typing import Callable, ClassVar, Mapping, TypeAlias, TypedDict, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
@@ -750,12 +751,16 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
             return data_in.arg1 + data_in.arg2
     """
 
-    def decorator(func: Callable[[Record], Optional[RecordDict]]):
+    def decorator(func: Callable[..., Optional[RecordDict]]):
         out = Record.like(method.data_out)
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:
-            ret_out = func(arg)
+            parameters = signature(func).parameters.keys()
+            if set(parameters).issubset(set(arg.fields.keys())):
+                ret_out = func(**{k: arg[k] for k in parameters})
+            else:
+                ret_out = func(arg)
 
         if ret_out is not None:
             m.d.comb += _connect_rec_with_possibly_dict(out, ret_out)

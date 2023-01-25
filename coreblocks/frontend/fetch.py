@@ -1,4 +1,4 @@
-from amaranth import Record, Module, Signal, Elaboratable
+from amaranth import *
 from coreblocks.transactions.core import def_method
 from ..transactions import Method, Transaction
 from ..params import GenParams, FetchLayouts
@@ -61,8 +61,8 @@ class Fetch(Elaboratable):
                 self.cont(m, {"data": fetched.data, "pc": self.pc})
 
         @def_method(m, self.verify_branch, ready=stalled)
-        def _(arg):
-            m.d.sync += self.pc.eq(arg.next_pc)
+        def _(next_pc: Value):
+            m.d.sync += self.pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
 
         return m
