@@ -757,7 +757,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
 
         with method.body(m, ready=ready, out=out) as arg:
             parameters = signature(func).parameters.keys()
-            if set(parameters).issubset(set(arg.fields.keys())):
+            if parameters <= arg.fields.keys():
                 ret_out = func(**{k: arg[k] for k in parameters})
             else:
                 ret_out = func(arg)
