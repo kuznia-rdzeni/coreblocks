@@ -747,6 +747,15 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         m = Module()
         my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
         @def_method(m, my_sum_method)
+        def _(arg1, arg2):
+            return arg1 + arg2
+
+    Alternative syntax:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        @def_method(m, my_sum_method)
         def _(data_in):
             return data_in.arg1 + data_in.arg2
     """
