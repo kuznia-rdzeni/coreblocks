@@ -136,6 +136,7 @@ class RSSelection(Elaboratable):
         res = 0x0
         for op in optypes:
             res |= 1 << op - OpType.UNKNOWN
+        print(f"{res:12b}")
         return res
 
     def elaborate(self, platform):
@@ -159,6 +160,7 @@ class RSSelection(Elaboratable):
 
         for i, (alloc, optypes) in enumerate(self.rs_select):
             # checks if RS can perform this kind of operation
+            print(i)
             with Transaction().body(m, request=(decoded & self.decode_optype_set(optypes)).bool()):
                 instr = forwarder.read(m)
                 allocated_field = alloc(m)
@@ -199,11 +201,7 @@ class RSInsertion(Elaboratable):
             source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
             source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
 
-            for i, rs_insert in enumerate(self.rs_insert):
-                with m.If(instr.rs_selected == i):
-                    rs_insert(
-                        m,
-                        {
+            data = {
                             # when operand value is valid the convention is to set operand source to 0
                             "rs_data": {
                                 "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
@@ -217,8 +215,11 @@ class RSInsertion(Elaboratable):
                                 "pc": instr.pc,
                             },
                             "rs_entry_id": instr.rs_entry_id,
-                        },
-                    )
+                        }
+
+            for i, rs_insert in enumerate(self.rs_insert):
+                with m.If(instr.rs_selected == i):
+                    rs_insert(m, data)
 
         return m
 
