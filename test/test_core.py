@@ -234,7 +234,11 @@ class TestCoreRandomized(TestCoreBase):
 
 
 @parameterized_class(
-    ("name", "source_file", "instr_count", "expected_regvals"), [("fibonacci", "fibonacci.asm", 1200, {2: 2971215073})]
+    ("name", "source_file", "instr_count", "expected_regvals"), 
+    [
+#        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}),
+        ("fibonacci_mem", "fibonacci_mem.asm", 1200, {3: 55})
+    ]
 )
 class TestCoreAsmSource(TestCoreBase):
     source_file: str
