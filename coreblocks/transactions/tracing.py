@@ -7,6 +7,7 @@ import warnings
 from amaranth.hdl.ir import Elaboratable, Fragment, Instance
 from amaranth.hdl.xfrm import FragmentTransformer
 from amaranth.hdl import dsl, ir, mem, xfrm
+from coreblocks.utils import HasElaborate
 from . import core
 
 
@@ -65,7 +66,7 @@ class TracingFragment(Fragment):
                     print(line, end="")
 
     @staticmethod
-    def get(obj: Elaboratable, platform) -> "TracingFragment":
+    def get(obj: HasElaborate, platform) -> "TracingFragment":
         """
         This function code is based on Amaranth, which originally loses all information.
         It was too difficult to hook into, so this has to be a near-exact copy.
@@ -106,8 +107,8 @@ class TracingFragment(Fragment):
                         lineno=code.co_firstlineno,
                     )
                 # }} (taken from Amaranth)
-                new_obj._tracing_original = obj
-                obj._elaborated = new_obj  # type: ignore
+                new_obj._tracing_original = obj  # type: ignore
+                obj._elaborated = new_obj        # type: ignore
 
                 old_obj = obj
                 obj = new_obj

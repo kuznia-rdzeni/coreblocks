@@ -27,7 +27,7 @@ from coreblocks.transactions.core import (
 class TestNames(TestCase):
     def test_names(self):
         mgr = TransactionManager()
-        mgr._MustUse__silence = True
+        mgr._MustUse__silence = True  # type: ignore
 
         class T:
             def __init__(self):
