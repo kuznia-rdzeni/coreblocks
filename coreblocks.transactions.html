@@ -92,36 +92,36 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.core.</span></span><span class="sig-name descname"><span class="pre">Method</span></span><a class="headerlink" href="#coreblocks.transactions.core.Method" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionBase</span></code></p>
 <p>Transactional method.</p>
-<p>A <code class="docutils literal notranslate"><span class="pre">Method</span></code> serves to interface a module with external <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s
-or <code class="docutils literal notranslate"><span class="pre">Method</span></code>s. It can be called by at most once in a given clock cycle.
-When a given <code class="docutils literal notranslate"><span class="pre">Method</span></code> is required by multiple <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s
-(either directly, or indirectly via another <code class="docutils literal notranslate"><span class="pre">Method</span></code>) simultenaously,
-at most one of them is granted by the <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>, and the rest
+<p>A <cite>Method</cite> serves to interface a module with external <cite>Transaction</cite>s
+or <cite>Method</cite>s. It can be called by at most once in a given clock cycle.
+When a given <cite>Method</cite> is required by multiple <cite>Transaction</cite>s
+(either directly, or indirectly via another <cite>Method</cite>) simultenaously,
+at most one of them is granted by the <cite>TransactionManager</cite>, and the rest
 of them must wait. (Non-exclusive methods are an exception to this
-behavior.) Calling a <code class="docutils literal notranslate"><span class="pre">Method</span></code> always takes a single clock cycle.</p>
-<p>Data is combinationally transferred between to and from <code class="docutils literal notranslate"><span class="pre">Method</span></code>s
-using Amaranth <code class="docutils literal notranslate"><span class="pre">Record</span></code>s. The transfer can take place in both directions
-at the same time: from the called <code class="docutils literal notranslate"><span class="pre">Method</span></code> to the caller (<code class="docutils literal notranslate"><span class="pre">data_out</span></code>)
-and from the caller to the called <code class="docutils literal notranslate"><span class="pre">Method</span></code> (<code class="docutils literal notranslate"><span class="pre">data_in</span></code>).</p>
-<p>A module which defines a <code class="docutils literal notranslate"><span class="pre">Method</span></code> should use <code class="docutils literal notranslate"><span class="pre">body</span></code> or <code class="docutils literal notranslate"><span class="pre">def_method</span></code>
+behavior.) Calling a <cite>Method</cite> always takes a single clock cycle.</p>
+<p>Data is combinationally transferred between to and from <cite>Method</cite>s
+using Amaranth <cite>Record</cite>s. The transfer can take place in both directions
+at the same time: from the called <cite>Method</cite> to the caller (<cite>data_out</cite>)
+and from the caller to the called <cite>Method</cite> (<cite>data_in</cite>).</p>
+<p>A module which defines a <cite>Method</cite> should use <cite>body</cite> or <cite>def_method</cite>
 to describe the method’s effect on the module state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>name: str</strong></dt><dd><p>Name of this <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dt><strong>name: str</strong></dt><dd><p>Name of this <cite>Method</cite>.</p>
 </dd>
 <dt><strong>ready: Signal, in</strong></dt><dd><p>Signals that the method is ready to run in the current cycle.
-Typically defined by calling <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
+Typically defined by calling <cite>body</cite>.</p>
 </dd>
 <dt><strong>run: Signal, out</strong></dt><dd><p>Signals that the method is called in the current cycle by some
-<code class="docutils literal notranslate"><span class="pre">Transaction</span></code>. Defined by the <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>.</p>
+<cite>Transaction</cite>. Defined by the <cite>TransactionManager</cite>.</p>
 </dd>
-<dt><strong>data_in: Record, out</strong></dt><dd><p>Contains the data passed to the <code class="docutils literal notranslate"><span class="pre">Method</span></code> by the caller
-(a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or another <code class="docutils literal notranslate"><span class="pre">Method</span></code>).</p>
+<dt><strong>data_in: Record, out</strong></dt><dd><p>Contains the data passed to the <cite>Method</cite> by the caller
+(a <cite>Transaction</cite> or another <cite>Method</cite>).</p>
 </dd>
-<dt><strong>data_out: Record, in</strong></dt><dd><p>Contains the data passed from the <code class="docutils literal notranslate"><span class="pre">Method</span></code> to the caller
-(a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or another <code class="docutils literal notranslate"><span class="pre">Method</span></code>). Typically defined by
-calling <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
+<dt><strong>data_out: Record, in</strong></dt><dd><p>Contains the data passed from the <cite>Method</cite> to the caller
+(a <cite>Transaction</cite> or another <cite>Method</cite>). Typically defined by
+calling <cite>body</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -132,14 +132,14 @@ calling <code class="docutils literal notranslate"><span class="pre">body</span>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>name: str or None</strong></dt><dd><p>Name hint for this <code class="docutils literal notranslate"><span class="pre">Method</span></code>. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) the name is
-inferred from the variable name this <code class="docutils literal notranslate"><span class="pre">Method</span></code> is assigned to.</p>
+<dt><strong>name: str or None</strong></dt><dd><p>Name hint for this <cite>Method</cite>. If <cite>None</cite> (default) the name is
+inferred from the variable name this <cite>Method</cite> is assigned to.</p>
 </dd>
-<dt><strong>i: int or record layout</strong></dt><dd><p>The format of <code class="docutils literal notranslate"><span class="pre">data_in</span></code>.
-An <code class="docutils literal notranslate"><span class="pre">int</span></code> corresponds to a <code class="docutils literal notranslate"><span class="pre">Record</span></code> with a single <code class="docutils literal notranslate"><span class="pre">data</span></code> field.</p>
+<dt><strong>i: int or record layout</strong></dt><dd><p>The format of <cite>data_in</cite>.
+An <cite>int</cite> corresponds to a <cite>Record</cite> with a single <cite>data</cite> field.</p>
 </dd>
-<dt><strong>o: int or record layout</strong></dt><dd><p>The format of <code class="docutils literal notranslate"><span class="pre">data_in</span></code>.
-An <code class="docutils literal notranslate"><span class="pre">int</span></code> corresponds to a <code class="docutils literal notranslate"><span class="pre">Record</span></code> with a single <code class="docutils literal notranslate"><span class="pre">data</span></code> field.</p>
+<dt><strong>o: int or record layout</strong></dt><dd><p>The format of <cite>data_in</cite>.
+An <cite>int</cite> corresponds to a <cite>Record</cite> with a single <cite>data</cite> field.</p>
 </dd>
 <dt><strong>nonexclusive: bool</strong></dt><dd><p>If true, the method is non-exclusive: it can be called by multiple
 transactions in the same clock cycle. If such a situation happens,
@@ -155,32 +155,32 @@ receive its output. Nonexclusive methods cannot have inputs.</p>
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Method.body">
 <span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ready:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">0'd0)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.core.Method.body" title="Permalink to this definition"></a></dt>
 <dd><p>Define method body</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">body</span></code> context manager can be used to define the actions
-performed by a <code class="docutils literal notranslate"><span class="pre">Method</span></code> when it’s run. Each assignment added to
-a domain under <code class="docutils literal notranslate"><span class="pre">body</span></code> is guarded by the <code class="docutils literal notranslate"><span class="pre">run</span></code> signal.
-Combinational assignments which do not need to be guarded by <code class="docutils literal notranslate"><span class="pre">run</span></code>
-can be added to <code class="docutils literal notranslate"><span class="pre">Method.comb</span></code> instead of <code class="docutils literal notranslate"><span class="pre">m.d.comb</span></code>. <code class="docutils literal notranslate"><span class="pre">Method</span></code>
-calls can be performed under <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
+<p>The <cite>body</cite> context manager can be used to define the actions
+performed by a <cite>Method</cite> when it’s run. Each assignment added to
+a domain under <cite>body</cite> is guarded by the <cite>run</cite> signal.
+Combinational assignments which do not need to be guarded by <cite>run</cite>
+can be added to <cite>Method.comb</cite> instead of <cite>m.d.comb</cite>. <cite>Method</cite>
+calls can be performed under <cite>body</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>m</strong><span class="classifier">Module</span></dt><dd><p>Module in which operations on signals should be executed,
-<code class="docutils literal notranslate"><span class="pre">body</span></code> uses the combinational domain only.</p>
+<cite>body</cite> uses the combinational domain only.</p>
 </dd>
 <dt><strong>ready</strong><span class="classifier">Signal, in</span></dt><dd><p>Signal to indicate if the method is ready to be run. By
-default it is <code class="docutils literal notranslate"><span class="pre">Const(1)</span></code>, so the method is always ready.
-Assigned combinationially to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
+default it is <cite>Const(1)</cite>, so the method is always ready.
+Assigned combinationially to the <cite>ready</cite> attribute.</p>
 </dd>
-<dt><strong>out</strong><span class="classifier">Record, in</span></dt><dd><p>Data generated by the <code class="docutils literal notranslate"><span class="pre">Method</span></code>, which will be passed to
-the caller (a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or another <code class="docutils literal notranslate"><span class="pre">Method</span></code>). Assigned
-combinationally to the <code class="docutils literal notranslate"><span class="pre">data_out</span></code> attribute.</p>
+<dt><strong>out</strong><span class="classifier">Record, in</span></dt><dd><p>Data generated by the <cite>Method</cite>, which will be passed to
+the caller (a <cite>Transaction</cite> or another <cite>Method</cite>). Assigned
+combinationally to the <cite>data_out</cite> attribute.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl class="simple">
-<dt><strong>data_in</strong><span class="classifier">Record, out</span></dt><dd><p>Data passed from the caller (a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or another
-<code class="docutils literal notranslate"><span class="pre">Method</span></code>) to this <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dt><strong>data_in</strong><span class="classifier">Record, out</span></dt><dd><p>Data passed from the caller (a <cite>Transaction</cite> or another
+<cite>Method</cite>) to this <cite>Method</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -203,21 +203,21 @@ combinationally to the <code class="docutils literal notranslate"><span class="p
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Method.like">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">like</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></span><a class="headerlink" href="#coreblocks.transactions.core.Method.like" title="Permalink to this definition"></a></dt>
-<dd><p>Constructs a new <code class="docutils literal notranslate"><span class="pre">Method</span></code> based on another.</p>
-<p>The returned <code class="docutils literal notranslate"><span class="pre">Method</span></code> has the same input/output data layouts as the
-<code class="docutils literal notranslate"><span class="pre">other</span></code> <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dd><p>Constructs a new <cite>Method</cite> based on another.</p>
+<p>The returned <cite>Method</cite> has the same input/output data layouts as the
+<cite>other</cite> <cite>Method</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>other</strong><span class="classifier">Method</span></dt><dd><p>The <code class="docutils literal notranslate"><span class="pre">Method</span></code> which serves as a blueprint for the new <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dt><strong>other</strong><span class="classifier">Method</span></dt><dd><p>The <cite>Method</cite> which serves as a blueprint for the new <cite>Method</cite>.</p>
 </dd>
-<dt><strong>name</strong><span class="classifier">str, optional</span></dt><dd><p>Name of the new <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dt><strong>name</strong><span class="classifier">str, optional</span></dt><dd><p>Name of the new <cite>Method</cite>.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl class="simple">
-<dt>Method</dt><dd><p>The freshly constructed <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dt>Method</dt><dd><p>The freshly constructed <cite>Method</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -228,12 +228,12 @@ combinationally to the <code class="docutils literal notranslate"><span class="p
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Method.proxy">
 <span class="sig-name descname"><span class="pre">proxy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.core.Method.proxy" title="Permalink to this definition"></a></dt>
 <dd><p>Define as a proxy for another method.</p>
-<p>The calls to this method will be forwarded to <code class="docutils literal notranslate"><span class="pre">method</span></code>.</p>
+<p>The calls to this method will be forwarded to <cite>method</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>m</strong><span class="classifier">Module</span></dt><dd><p>Module in which operations on signals should be executed,
-<code class="docutils literal notranslate"><span class="pre">proxy</span></code> uses the combinational domain only.</p>
+<cite>proxy</cite> uses the combinational domain only.</p>
 </dd>
 <dt><strong>method</strong><span class="classifier">Method</span></dt><dd><p>Method for which this method is a proxy for.</p>
 </dd>
@@ -271,32 +271,32 @@ combinationally to the <code class="docutils literal notranslate"><span class="p
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.core.</span></span><span class="sig-name descname"><span class="pre">Transaction</span></span><a class="headerlink" href="#coreblocks.transactions.core.Transaction" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionBase</span></code></p>
 <p>Transaction.</p>
-<p>A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> represents a task which needs to be regularly done.
-Execution of a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> always lasts a single clock cycle.
-A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> signals readiness for execution by setting the
-<code class="docutils literal notranslate"><span class="pre">request</span></code> signal. If the conditions for its execution are met, it
-can be granted by the <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>.</p>
-<p>A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> can, as part of its execution, call a number of
-<code class="docutils literal notranslate"><span class="pre">Method</span></code>s. A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> can be granted only if every <code class="docutils literal notranslate"><span class="pre">Method</span></code>
+<p>A <cite>Transaction</cite> represents a task which needs to be regularly done.
+Execution of a <cite>Transaction</cite> always lasts a single clock cycle.
+A <cite>Transaction</cite> signals readiness for execution by setting the
+<cite>request</cite> signal. If the conditions for its execution are met, it
+can be granted by the <cite>TransactionManager</cite>.</p>
+<p>A <cite>Transaction</cite> can, as part of its execution, call a number of
+<cite>Method</cite>s. A <cite>Transaction</cite> can be granted only if every <cite>Method</cite>
 it runs is ready.</p>
-<p>A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> cannot execute concurrently with another, conflicting
-<code class="docutils literal notranslate"><span class="pre">Transaction</span></code>. Conflicts between <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s are either explicit
-or implicit. An explicit conflict is added using the <code class="docutils literal notranslate"><span class="pre">add_conflict</span></code>
-method. Implicit conflicts arise between pairs of <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s
-which use the same <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
-<p>A module which defines a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> should use <code class="docutils literal notranslate"><span class="pre">body</span></code> to
+<p>A <cite>Transaction</cite> cannot execute concurrently with another, conflicting
+<cite>Transaction</cite>. Conflicts between <cite>Transaction</cite>s are either explicit
+or implicit. An explicit conflict is added using the <cite>add_conflict</cite>
+method. Implicit conflicts arise between pairs of <cite>Transaction</cite>s
+which use the same <cite>Method</cite>.</p>
+<p>A module which defines a <cite>Transaction</cite> should use <cite>body</cite> to
 describe used methods and the transaction’s effect on the module state.
-The used methods should be called inside the <code class="docutils literal notranslate"><span class="pre">body</span></code>’s
-<code class="docutils literal notranslate"><span class="pre">with</span></code> block.</p>
+The used methods should be called inside the <cite>body</cite>’s
+<cite>with</cite> block.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>name: str</strong></dt><dd><p>Name of this <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>.</p>
+<dt><strong>name: str</strong></dt><dd><p>Name of this <cite>Transaction</cite>.</p>
 </dd>
 <dt><strong>request: Signal, in</strong></dt><dd><p>Signals that the transaction wants to run. If omitted, the transaction
 is always ready. Defined in the constructor.</p>
 </dd>
-<dt><strong>grant: Signal, out</strong></dt><dd><p>Signals that the transaction is granted by the <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>,
+<dt><strong>grant: Signal, out</strong></dt><dd><p>Signals that the transaction is granted by the <cite>TransactionManager</cite>,
 and all used methods are called.</p>
 </dd>
 </dl>
@@ -308,13 +308,13 @@ and all used methods are called.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>name: str or None</strong></dt><dd><p>Name hint for this <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) the name is
-inferred from the variable name this <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> is assigned to.
-If the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> was not assigned, the name is inferred from
-the class name where the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> was constructed.</p>
+<dt><strong>name: str or None</strong></dt><dd><p>Name hint for this <cite>Transaction</cite>. If <cite>None</cite> (default) the name is
+inferred from the variable name this <cite>Transaction</cite> is assigned to.
+If the <cite>Transaction</cite> was not assigned, the name is inferred from
+the class name where the <cite>Transaction</cite> was constructed.</p>
 </dd>
-<dt><strong>manager: TransactionManager</strong></dt><dd><p>The <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code> controlling this <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>.
-If omitted, the manager is received from <code class="docutils literal notranslate"><span class="pre">TransactionContext</span></code>.</p>
+<dt><strong>manager: TransactionManager</strong></dt><dd><p>The <cite>TransactionManager</cite> controlling this <cite>Transaction</cite>.
+If omitted, the manager is received from <cite>TransactionContext</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -324,20 +324,20 @@ If omitted, the manager is received from <code class="docutils literal notransla
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.Transaction.body">
 <span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.core.Transaction.body" title="Permalink to this definition"></a></dt>
-<dd><p>Defines the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> body.</p>
+<dd><p>Defines the <cite>Transaction</cite> body.</p>
 <p>This context manager allows to conveniently define the actions
-performed by a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> when it’s granted. Each assignment
-added to a domain under <code class="docutils literal notranslate"><span class="pre">body</span></code> is guarded by the <code class="docutils literal notranslate"><span class="pre">grant</span></code> signal.
+performed by a <cite>Transaction</cite> when it’s granted. Each assignment
+added to a domain under <cite>body</cite> is guarded by the <cite>grant</cite> signal.
 Combinational assignments which do not need to be guarded by
-<code class="docutils literal notranslate"><span class="pre">grant</span></code> can be added to <code class="docutils literal notranslate"><span class="pre">Transaction.comb</span></code> instead of
-<code class="docutils literal notranslate"><span class="pre">m.d.comb</span></code>. <code class="docutils literal notranslate"><span class="pre">Method</span></code> calls can be performed under <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
+<cite>grant</cite> can be added to <cite>Transaction.comb</cite> instead of
+<cite>m.d.comb</cite>. <cite>Method</cite> calls can be performed under <cite>body</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>m: Module</strong></dt><dd><p>The module where the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> is defined.</p>
+<dt><strong>m: Module</strong></dt><dd><p>The module where the <cite>Transaction</cite> is defined.</p>
 </dd>
-<dt><strong>request: Signal</strong></dt><dd><p>Indicates that the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> wants to be executed. By
-default it is <code class="docutils literal notranslate"><span class="pre">Const(1)</span></code>, so it wants to be executed in
+<dt><strong>request: Signal</strong></dt><dd><p>Indicates that the <cite>Transaction</cite> wants to be executed. By
+default it is <cite>Const(1)</cite>, so it wants to be executed in
 every clock cycle.</p>
 </dd>
 </dl>
@@ -378,8 +378,8 @@ every clock cycle.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.core.</span></span><span class="sig-name descname"><span class="pre">TransactionManager</span></span><a class="headerlink" href="#coreblocks.transactions.core.TransactionManager" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Transaction manager</p>
-<p>This module is responsible for granting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s and running
-<code class="docutils literal notranslate"><span class="pre">Method</span></code>s. It takes care that two conflicting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s
+<p>This module is responsible for granting <cite>Transaction</cite>s and running
+<cite>Method</cite>s. It takes care that two conflicting <cite>Transaction</cite>s
 are never granted in the same clock cycle.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.TransactionManager.__init__">
@@ -402,17 +402,17 @@ are never granted in the same clock cycle.</p>
 <dt class="sig sig-object py" id="coreblocks.transactions.core.TransactionModule">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.core.</span></span><span class="sig-name descname"><span class="pre">TransactionModule</span></span><a class="headerlink" href="#coreblocks.transactions.core.TransactionModule" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
-<p><code class="docutils literal notranslate"><span class="pre">TransactionModule</span></code> is used as wrapper on <code class="docutils literal notranslate"><span class="pre">Module</span></code> class,
-which add support for transaction to the <code class="docutils literal notranslate"><span class="pre">Module</span></code>. It creates a
-<code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code> which will handle transaction scheduling
-and can be used in definition of <code class="docutils literal notranslate"><span class="pre">Method</span></code>s and <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s.</p>
+<p><cite>TransactionModule</cite> is used as wrapper on <cite>Module</cite> class,
+which add support for transaction to the <cite>Module</cite>. It creates a
+<cite>TransactionManager</cite> which will handle transaction scheduling
+and can be used in definition of <cite>Method</cite>s and <cite>Transaction</cite>s.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.core.TransactionModule.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.TransactionManager" title="coreblocks.transactions.core.TransactionManager"><span class="pre">TransactionManager</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.core.TransactionModule.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>module: Module</strong></dt><dd><p>The <code class="docutils literal notranslate"><span class="pre">Module</span></code> which should be wrapped to add support for
+<dt><strong>module: Module</strong></dt><dd><p>The <cite>Module</cite> which should be wrapped to add support for
 transactions and methods.</p>
 </dd>
 </dl>
@@ -432,8 +432,8 @@ transactions and methods.</p>
 <span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.core.</span></span><span class="sig-name descname"><span class="pre">def_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method:</span> <span class="pre">~coreblocks.transactions.core.Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ready:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.core.def_method" title="Permalink to this definition"></a></dt>
 <dd><p>Define a method.</p>
 <p>This decorator allows to define transactional methods in an
-elegant way using Python’s <code class="docutils literal notranslate"><span class="pre">def</span></code> syntax. Internally, <code class="docutils literal notranslate"><span class="pre">def_method</span></code>
-uses <code class="docutils literal notranslate"><span class="pre">Method.body</span></code>.</p>
+elegant way using Python’s <cite>def</cite> syntax. Internally, <cite>def_method</cite>
+uses <cite>Method.body</cite>.</p>
 <p>The decorated function should take one argument, which will be a
 record with input signals and return output values.
 The returned value can be either a record or a dictionary of outputs.</p>
@@ -445,8 +445,8 @@ The returned value can be either a record or a dictionary of outputs.</p>
 <dt><strong>method: Method</strong></dt><dd><p>The method whose body is going to be defined.</p>
 </dd>
 <dt><strong>ready: Signal</strong></dt><dd><p>Signal to indicate if the method is ready to be run. By
-default it is <code class="docutils literal notranslate"><span class="pre">Const(1)</span></code>, so the method is always ready.
-Assigned combinationally to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
+default it is <cite>Const(1)</cite>, so the method is always ready.
+Assigned combinationally to the <cite>ready</cite> attribute.</p>
 </dd>
 </dl>
 </dd>
@@ -652,9 +652,9 @@ possible uses is to mock a method in a testbench.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>en: Signal, in</strong></dt><dd><p>Activates the method (sets the <code class="docutils literal notranslate"><span class="pre">ready</span></code> signal).</p>
+<dt><strong>en: Signal, in</strong></dt><dd><p>Activates the method (sets the <cite>ready</cite> signal).</p>
 </dd>
-<dt><strong>done: Signal, out</strong></dt><dd><p>Signals that the method is called (returns the <code class="docutils literal notranslate"><span class="pre">run</span></code> signal).</p>
+<dt><strong>done: Signal, out</strong></dt><dd><p>Signals that the method is called (returns the <cite>run</cite> signal).</p>
 </dd>
 <dt><strong>data_in: Record, in</strong></dt><dd><p>Data returned from the defined method.</p>
 </dd>
@@ -690,14 +690,14 @@ expose a method to plain Amaranth code, including testbenches.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>en: Signal, in</strong></dt><dd><p>Activates the transaction (sets the <code class="docutils literal notranslate"><span class="pre">request</span></code> signal).</p>
+<dt><strong>en: Signal, in</strong></dt><dd><p>Activates the transaction (sets the <cite>request</cite> signal).</p>
 </dd>
-<dt><strong>done: Signal, out</strong></dt><dd><p>Signals that the transaction is performed (returns the <code class="docutils literal notranslate"><span class="pre">grant</span></code>
+<dt><strong>done: Signal, out</strong></dt><dd><p>Signals that the transaction is performed (returns the <cite>grant</cite>
 signal).</p>
 </dd>
-<dt><strong>data_in: Record, in</strong></dt><dd><p>Data passed to the <code class="docutils literal notranslate"><span class="pre">iface</span></code> method.</p>
+<dt><strong>data_in: Record, in</strong></dt><dd><p>Data passed to the <cite>iface</cite> method.</p>
 </dd>
-<dt><strong>data_out: Record, out</strong></dt><dd><p>Data returned from the <code class="docutils literal notranslate"><span class="pre">iface</span></code> method.</p>
+<dt><strong>data_out: Record, out</strong></dt><dd><p>Data returned from the <cite>iface</cite> method.</p>
 </dd>
 </dl>
 </dd>
@@ -750,14 +750,14 @@ methods.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Clicked input.</p>
 <p>Useful for interactive simulations or FPGA button/switch interfaces.
-On a rising edge (tested synchronously) of <code class="docutils literal notranslate"><span class="pre">btn</span></code>, the <code class="docutils literal notranslate"><span class="pre">get</span></code> method
-is enabled, which returns the data present on <code class="docutils literal notranslate"><span class="pre">dat</span></code> at the time.
+On a rising edge (tested synchronously) of <cite>btn</cite>, the <cite>get</cite> method
+is enabled, which returns the data present on <cite>dat</cite> at the time.
 Inputs are synchronized.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>get: Method</strong></dt><dd><p>The method for retrieving data from the input. Accepts an empty
-argument, returns a <code class="docutils literal notranslate"><span class="pre">Record</span></code>.</p>
+argument, returns a <cite>Record</cite>.</p>
 </dd>
 <dt><strong>btn: Signal, in</strong></dt><dd><p>The button input.</p>
 </dd>
@@ -787,12 +787,12 @@ argument, returns a <code class="docutils literal notranslate"><span class="pre"
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Clicked output.</p>
 <p>Useful for interactive simulations or FPGA button/LED interfaces.
-On a rising edge (tested synchronously) of <code class="docutils literal notranslate"><span class="pre">btn</span></code>, the <code class="docutils literal notranslate"><span class="pre">put</span></code> method
-is enabled, which, when called, changes the value of the <code class="docutils literal notranslate"><span class="pre">dat</span></code> signal.</p>
+On a rising edge (tested synchronously) of <cite>btn</cite>, the <cite>put</cite> method
+is enabled, which, when called, changes the value of the <cite>dat</cite> signal.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>put: Method</strong></dt><dd><p>The method for retrieving data from the input. Accepts a <code class="docutils literal notranslate"><span class="pre">Record</span></code>,
+<dt><strong>put: Method</strong></dt><dd><p>The method for retrieving data from the input. Accepts a <cite>Record</cite>,
 returns empty result.</p>
 </dd>
 <dt><strong>btn: Signal, in</strong></dt><dd><p>The button input.</p>
@@ -855,10 +855,10 @@ of provided methods.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.lib.</span></span><span class="sig-name descname"><span class="pre">ConnectAndTransformTrans</span></span><a class="headerlink" href="#coreblocks.transactions.lib.ConnectAndTransformTrans" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Connecting transaction with transformations.</p>
-<p>Behaves like <code class="docutils literal notranslate"><span class="pre">ConnectTrans</span></code>, but modifies the transferred data using
-functions or <code class="docutils literal notranslate"><span class="pre">Method``s.</span> <span class="pre">Equivalent</span> <span class="pre">to</span> <span class="pre">a</span> <span class="pre">combination</span> <span class="pre">of</span>
-<span class="pre">``ConnectTrans</span></code> and <code class="docutils literal notranslate"><span class="pre">MethodTransformer</span></code>. The transformation
-functions take two parameters, a <code class="docutils literal notranslate"><span class="pre">Module</span></code> and the <code class="docutils literal notranslate"><span class="pre">Record</span></code> being
+<p>Behaves like <cite>ConnectTrans</cite>, but modifies the transferred data using
+functions or <cite>Method`s. Equivalent to a combination of
+`ConnectTrans</cite> and <cite>MethodTransformer</cite>. The transformation
+functions take two parameters, a <cite>Module</cite> and the <cite>Record</cite> being
 transformed.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.lib.ConnectAndTransformTrans.__init__">
@@ -870,9 +870,9 @@ transformed.</p>
 </dd>
 <dt><strong>method2: Method</strong></dt><dd><p>Second method, and the method being transformed.</p>
 </dd>
-<dt><strong>i_fun: function or Method, optional</strong></dt><dd><p>Input transformation (<code class="docutils literal notranslate"><span class="pre">method1</span></code> to <code class="docutils literal notranslate"><span class="pre">method2</span></code>).</p>
+<dt><strong>i_fun: function or Method, optional</strong></dt><dd><p>Input transformation (<cite>method1</cite> to <cite>method2</cite>).</p>
 </dd>
-<dt><strong>o_fun: function or Method, optional</strong></dt><dd><p>Output transformation (<code class="docutils literal notranslate"><span class="pre">method2</span></code> to <code class="docutils literal notranslate"><span class="pre">method1</span></code>).</p>
+<dt><strong>o_fun: function or Method, optional</strong></dt><dd><p>Output transformation (<cite>method2</cite> to <cite>method1</cite>).</p>
 </dd>
 </dl>
 </dd>
@@ -913,16 +913,16 @@ layouts.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>FIFO module.</p>
 <p>Provides a transactional interface to Amaranth FIFOs. Exposes two methods:
-<code class="docutils literal notranslate"><span class="pre">read</span></code>, and <code class="docutils literal notranslate"><span class="pre">write</span></code>. Both methods are ready only when they can
+<cite>read</cite>, and <cite>write</cite>. Both methods are ready only when they can
 be executed – i.e. the queue is respectively not empty / not full.
 It is possible to simultaneously read and write in a single clock cycle,
 but only if both readiness conditions are fulfilled.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>read: Method</strong></dt><dd><p>The read method. Accepts an empty argument, returns a <code class="docutils literal notranslate"><span class="pre">Record</span></code>.</p>
+<dt><strong>read: Method</strong></dt><dd><p>The read method. Accepts an empty argument, returns a <cite>Record</cite>.</p>
 </dd>
-<dt><strong>write: Method</strong></dt><dd><p>The write method. Accepts a <code class="docutils literal notranslate"><span class="pre">Record</span></code>, returns empty result.</p>
+<dt><strong>write: Method</strong></dt><dd><p>The write method. Accepts a <cite>Record</cite>, returns empty result.</p>
 </dd>
 </dl>
 </dd>
@@ -1015,9 +1015,9 @@ transactions. Equivalent to a set of <cite>ConnectTrans</cite>.</p>
 <p>Method filter.</p>
 <p>Takes a target method and creates a method which calls the target method
 only when some condition is true. The condition function takes two
-parameters, a module and the input <code class="docutils literal notranslate"><span class="pre">Record</span></code> of the method. Non-zero
+parameters, a module and the input <cite>Record</cite> of the method. Non-zero
 return value is interpreted as true. Alternatively to using a function,
-a <code class="docutils literal notranslate"><span class="pre">Method</span></code> can be passed as a condition.</p>
+a <cite>Method</cite> can be passed as a condition.</p>
 <p>Caveat: because of the limitations of transaction scheduling, the target
 method is locked for usage even if it is not called.</p>
 <dl class="field-list simple">
@@ -1036,8 +1036,8 @@ method is locked for usage even if it is not called.</p>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>target: Method</strong></dt><dd><p>The target method.</p>
 </dd>
-<dt><strong>condition: function or Method</strong></dt><dd><p>The condition which, when true, allows the call to <code class="docutils literal notranslate"><span class="pre">target</span></code>. When
-false, <code class="docutils literal notranslate"><span class="pre">default</span></code> is returned.</p>
+<dt><strong>condition: function or Method</strong></dt><dd><p>The condition which, when true, allows the call to <cite>target</cite>. When
+false, <cite>default</cite> is returned.</p>
 </dd>
 <dt><strong>default: Value or dict, optional</strong></dt><dd><p>The default value returned from the filtered method when the condition
 is false. If omitted, zero is returned.</p>
@@ -1069,7 +1069,7 @@ the results of every target method.</p>
 <dt><strong>targets: list[Method]</strong></dt><dd><p>A list of methods to be called.</p>
 </dd>
 <dt><strong>combiner: (int or method layout, function), optional</strong></dt><dd><p>A pair of the output layout and the combiner function. The
-combiner function takes two parameters: a <code class="docutils literal notranslate"><span class="pre">Module</span></code> and
+combiner function takes two parameters: a <cite>Module</cite> and
 a list of outputs of the target methods.</p>
 </dd>
 </dl>
@@ -1092,8 +1092,8 @@ a list of outputs of the target methods.</p>
 <p>Method transformer.</p>
 <p>Takes a target method and creates a transformed method which calls the
 original target method, transforming the input and output values.
-The transformation functions take two parameters, a <code class="docutils literal notranslate"><span class="pre">Module</span></code> and the
-<code class="docutils literal notranslate"><span class="pre">Record</span></code> being transformed. Alternatively, a <code class="docutils literal notranslate"><span class="pre">Method</span></code> can be
+The transformation functions take two parameters, a <cite>Module</cite> and the
+<cite>Record</cite> being transformed. Alternatively, a <cite>Method</cite> can be
 passed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
@@ -1193,36 +1193,36 @@ It was too difficult to hook into, so this has to be a near-exact copy.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.</span></span><span class="sig-name descname"><span class="pre">Method</span></span><a class="headerlink" href="#coreblocks.transactions.Method" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionBase</span></code></p>
 <p>Transactional method.</p>
-<p>A <code class="docutils literal notranslate"><span class="pre">Method</span></code> serves to interface a module with external <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s
-or <code class="docutils literal notranslate"><span class="pre">Method</span></code>s. It can be called by at most once in a given clock cycle.
-When a given <code class="docutils literal notranslate"><span class="pre">Method</span></code> is required by multiple <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s
-(either directly, or indirectly via another <code class="docutils literal notranslate"><span class="pre">Method</span></code>) simultenaously,
-at most one of them is granted by the <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>, and the rest
+<p>A <cite>Method</cite> serves to interface a module with external <cite>Transaction</cite>s
+or <cite>Method</cite>s. It can be called by at most once in a given clock cycle.
+When a given <cite>Method</cite> is required by multiple <cite>Transaction</cite>s
+(either directly, or indirectly via another <cite>Method</cite>) simultenaously,
+at most one of them is granted by the <cite>TransactionManager</cite>, and the rest
 of them must wait. (Non-exclusive methods are an exception to this
-behavior.) Calling a <code class="docutils literal notranslate"><span class="pre">Method</span></code> always takes a single clock cycle.</p>
-<p>Data is combinationally transferred between to and from <code class="docutils literal notranslate"><span class="pre">Method</span></code>s
-using Amaranth <code class="docutils literal notranslate"><span class="pre">Record</span></code>s. The transfer can take place in both directions
-at the same time: from the called <code class="docutils literal notranslate"><span class="pre">Method</span></code> to the caller (<code class="docutils literal notranslate"><span class="pre">data_out</span></code>)
-and from the caller to the called <code class="docutils literal notranslate"><span class="pre">Method</span></code> (<code class="docutils literal notranslate"><span class="pre">data_in</span></code>).</p>
-<p>A module which defines a <code class="docutils literal notranslate"><span class="pre">Method</span></code> should use <code class="docutils literal notranslate"><span class="pre">body</span></code> or <code class="docutils literal notranslate"><span class="pre">def_method</span></code>
+behavior.) Calling a <cite>Method</cite> always takes a single clock cycle.</p>
+<p>Data is combinationally transferred between to and from <cite>Method</cite>s
+using Amaranth <cite>Record</cite>s. The transfer can take place in both directions
+at the same time: from the called <cite>Method</cite> to the caller (<cite>data_out</cite>)
+and from the caller to the called <cite>Method</cite> (<cite>data_in</cite>).</p>
+<p>A module which defines a <cite>Method</cite> should use <cite>body</cite> or <cite>def_method</cite>
 to describe the method’s effect on the module state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>name: str</strong></dt><dd><p>Name of this <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dt><strong>name: str</strong></dt><dd><p>Name of this <cite>Method</cite>.</p>
 </dd>
 <dt><strong>ready: Signal, in</strong></dt><dd><p>Signals that the method is ready to run in the current cycle.
-Typically defined by calling <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
+Typically defined by calling <cite>body</cite>.</p>
 </dd>
 <dt><strong>run: Signal, out</strong></dt><dd><p>Signals that the method is called in the current cycle by some
-<code class="docutils literal notranslate"><span class="pre">Transaction</span></code>. Defined by the <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>.</p>
+<cite>Transaction</cite>. Defined by the <cite>TransactionManager</cite>.</p>
 </dd>
-<dt><strong>data_in: Record, out</strong></dt><dd><p>Contains the data passed to the <code class="docutils literal notranslate"><span class="pre">Method</span></code> by the caller
-(a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or another <code class="docutils literal notranslate"><span class="pre">Method</span></code>).</p>
+<dt><strong>data_in: Record, out</strong></dt><dd><p>Contains the data passed to the <cite>Method</cite> by the caller
+(a <cite>Transaction</cite> or another <cite>Method</cite>).</p>
 </dd>
-<dt><strong>data_out: Record, in</strong></dt><dd><p>Contains the data passed from the <code class="docutils literal notranslate"><span class="pre">Method</span></code> to the caller
-(a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or another <code class="docutils literal notranslate"><span class="pre">Method</span></code>). Typically defined by
-calling <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
+<dt><strong>data_out: Record, in</strong></dt><dd><p>Contains the data passed from the <cite>Method</cite> to the caller
+(a <cite>Transaction</cite> or another <cite>Method</cite>). Typically defined by
+calling <cite>body</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -1233,14 +1233,14 @@ calling <code class="docutils literal notranslate"><span class="pre">body</span>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>name: str or None</strong></dt><dd><p>Name hint for this <code class="docutils literal notranslate"><span class="pre">Method</span></code>. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) the name is
-inferred from the variable name this <code class="docutils literal notranslate"><span class="pre">Method</span></code> is assigned to.</p>
+<dt><strong>name: str or None</strong></dt><dd><p>Name hint for this <cite>Method</cite>. If <cite>None</cite> (default) the name is
+inferred from the variable name this <cite>Method</cite> is assigned to.</p>
 </dd>
-<dt><strong>i: int or record layout</strong></dt><dd><p>The format of <code class="docutils literal notranslate"><span class="pre">data_in</span></code>.
-An <code class="docutils literal notranslate"><span class="pre">int</span></code> corresponds to a <code class="docutils literal notranslate"><span class="pre">Record</span></code> with a single <code class="docutils literal notranslate"><span class="pre">data</span></code> field.</p>
+<dt><strong>i: int or record layout</strong></dt><dd><p>The format of <cite>data_in</cite>.
+An <cite>int</cite> corresponds to a <cite>Record</cite> with a single <cite>data</cite> field.</p>
 </dd>
-<dt><strong>o: int or record layout</strong></dt><dd><p>The format of <code class="docutils literal notranslate"><span class="pre">data_in</span></code>.
-An <code class="docutils literal notranslate"><span class="pre">int</span></code> corresponds to a <code class="docutils literal notranslate"><span class="pre">Record</span></code> with a single <code class="docutils literal notranslate"><span class="pre">data</span></code> field.</p>
+<dt><strong>o: int or record layout</strong></dt><dd><p>The format of <cite>data_in</cite>.
+An <cite>int</cite> corresponds to a <cite>Record</cite> with a single <cite>data</cite> field.</p>
 </dd>
 <dt><strong>nonexclusive: bool</strong></dt><dd><p>If true, the method is non-exclusive: it can be called by multiple
 transactions in the same clock cycle. If such a situation happens,
@@ -1256,32 +1256,32 @@ receive its output. Nonexclusive methods cannot have inputs.</p>
 <dt class="sig sig-object py" id="coreblocks.transactions.Method.body">
 <span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ready:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">0'd0)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.Method.body" title="Permalink to this definition"></a></dt>
 <dd><p>Define method body</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">body</span></code> context manager can be used to define the actions
-performed by a <code class="docutils literal notranslate"><span class="pre">Method</span></code> when it’s run. Each assignment added to
-a domain under <code class="docutils literal notranslate"><span class="pre">body</span></code> is guarded by the <code class="docutils literal notranslate"><span class="pre">run</span></code> signal.
-Combinational assignments which do not need to be guarded by <code class="docutils literal notranslate"><span class="pre">run</span></code>
-can be added to <code class="docutils literal notranslate"><span class="pre">Method.comb</span></code> instead of <code class="docutils literal notranslate"><span class="pre">m.d.comb</span></code>. <code class="docutils literal notranslate"><span class="pre">Method</span></code>
-calls can be performed under <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
+<p>The <cite>body</cite> context manager can be used to define the actions
+performed by a <cite>Method</cite> when it’s run. Each assignment added to
+a domain under <cite>body</cite> is guarded by the <cite>run</cite> signal.
+Combinational assignments which do not need to be guarded by <cite>run</cite>
+can be added to <cite>Method.comb</cite> instead of <cite>m.d.comb</cite>. <cite>Method</cite>
+calls can be performed under <cite>body</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>m</strong><span class="classifier">Module</span></dt><dd><p>Module in which operations on signals should be executed,
-<code class="docutils literal notranslate"><span class="pre">body</span></code> uses the combinational domain only.</p>
+<cite>body</cite> uses the combinational domain only.</p>
 </dd>
 <dt><strong>ready</strong><span class="classifier">Signal, in</span></dt><dd><p>Signal to indicate if the method is ready to be run. By
-default it is <code class="docutils literal notranslate"><span class="pre">Const(1)</span></code>, so the method is always ready.
-Assigned combinationially to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
+default it is <cite>Const(1)</cite>, so the method is always ready.
+Assigned combinationially to the <cite>ready</cite> attribute.</p>
 </dd>
-<dt><strong>out</strong><span class="classifier">Record, in</span></dt><dd><p>Data generated by the <code class="docutils literal notranslate"><span class="pre">Method</span></code>, which will be passed to
-the caller (a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or another <code class="docutils literal notranslate"><span class="pre">Method</span></code>). Assigned
-combinationally to the <code class="docutils literal notranslate"><span class="pre">data_out</span></code> attribute.</p>
+<dt><strong>out</strong><span class="classifier">Record, in</span></dt><dd><p>Data generated by the <cite>Method</cite>, which will be passed to
+the caller (a <cite>Transaction</cite> or another <cite>Method</cite>). Assigned
+combinationally to the <cite>data_out</cite> attribute.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl class="simple">
-<dt><strong>data_in</strong><span class="classifier">Record, out</span></dt><dd><p>Data passed from the caller (a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> or another
-<code class="docutils literal notranslate"><span class="pre">Method</span></code>) to this <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dt><strong>data_in</strong><span class="classifier">Record, out</span></dt><dd><p>Data passed from the caller (a <cite>Transaction</cite> or another
+<cite>Method</cite>) to this <cite>Method</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -1304,21 +1304,21 @@ combinationally to the <code class="docutils literal notranslate"><span class="p
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.Method.like">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">like</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></span><a class="headerlink" href="#coreblocks.transactions.Method.like" title="Permalink to this definition"></a></dt>
-<dd><p>Constructs a new <code class="docutils literal notranslate"><span class="pre">Method</span></code> based on another.</p>
-<p>The returned <code class="docutils literal notranslate"><span class="pre">Method</span></code> has the same input/output data layouts as the
-<code class="docutils literal notranslate"><span class="pre">other</span></code> <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dd><p>Constructs a new <cite>Method</cite> based on another.</p>
+<p>The returned <cite>Method</cite> has the same input/output data layouts as the
+<cite>other</cite> <cite>Method</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>other</strong><span class="classifier">Method</span></dt><dd><p>The <code class="docutils literal notranslate"><span class="pre">Method</span></code> which serves as a blueprint for the new <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dt><strong>other</strong><span class="classifier">Method</span></dt><dd><p>The <cite>Method</cite> which serves as a blueprint for the new <cite>Method</cite>.</p>
 </dd>
-<dt><strong>name</strong><span class="classifier">str, optional</span></dt><dd><p>Name of the new <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dt><strong>name</strong><span class="classifier">str, optional</span></dt><dd><p>Name of the new <cite>Method</cite>.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl class="simple">
-<dt>Method</dt><dd><p>The freshly constructed <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
+<dt>Method</dt><dd><p>The freshly constructed <cite>Method</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -1329,12 +1329,12 @@ combinationally to the <code class="docutils literal notranslate"><span class="p
 <dt class="sig sig-object py" id="coreblocks.transactions.Method.proxy">
 <span class="sig-name descname"><span class="pre">proxy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.Method.proxy" title="Permalink to this definition"></a></dt>
 <dd><p>Define as a proxy for another method.</p>
-<p>The calls to this method will be forwarded to <code class="docutils literal notranslate"><span class="pre">method</span></code>.</p>
+<p>The calls to this method will be forwarded to <cite>method</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>m</strong><span class="classifier">Module</span></dt><dd><p>Module in which operations on signals should be executed,
-<code class="docutils literal notranslate"><span class="pre">proxy</span></code> uses the combinational domain only.</p>
+<cite>proxy</cite> uses the combinational domain only.</p>
 </dd>
 <dt><strong>method</strong><span class="classifier">Method</span></dt><dd><p>Method for which this method is a proxy for.</p>
 </dd>
@@ -1350,32 +1350,32 @@ combinationally to the <code class="docutils literal notranslate"><span class="p
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.</span></span><span class="sig-name descname"><span class="pre">Transaction</span></span><a class="headerlink" href="#coreblocks.transactions.Transaction" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionBase</span></code></p>
 <p>Transaction.</p>
-<p>A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> represents a task which needs to be regularly done.
-Execution of a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> always lasts a single clock cycle.
-A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> signals readiness for execution by setting the
-<code class="docutils literal notranslate"><span class="pre">request</span></code> signal. If the conditions for its execution are met, it
-can be granted by the <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>.</p>
-<p>A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> can, as part of its execution, call a number of
-<code class="docutils literal notranslate"><span class="pre">Method</span></code>s. A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> can be granted only if every <code class="docutils literal notranslate"><span class="pre">Method</span></code>
+<p>A <cite>Transaction</cite> represents a task which needs to be regularly done.
+Execution of a <cite>Transaction</cite> always lasts a single clock cycle.
+A <cite>Transaction</cite> signals readiness for execution by setting the
+<cite>request</cite> signal. If the conditions for its execution are met, it
+can be granted by the <cite>TransactionManager</cite>.</p>
+<p>A <cite>Transaction</cite> can, as part of its execution, call a number of
+<cite>Method</cite>s. A <cite>Transaction</cite> can be granted only if every <cite>Method</cite>
 it runs is ready.</p>
-<p>A <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> cannot execute concurrently with another, conflicting
-<code class="docutils literal notranslate"><span class="pre">Transaction</span></code>. Conflicts between <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s are either explicit
-or implicit. An explicit conflict is added using the <code class="docutils literal notranslate"><span class="pre">add_conflict</span></code>
-method. Implicit conflicts arise between pairs of <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s
-which use the same <code class="docutils literal notranslate"><span class="pre">Method</span></code>.</p>
-<p>A module which defines a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> should use <code class="docutils literal notranslate"><span class="pre">body</span></code> to
+<p>A <cite>Transaction</cite> cannot execute concurrently with another, conflicting
+<cite>Transaction</cite>. Conflicts between <cite>Transaction</cite>s are either explicit
+or implicit. An explicit conflict is added using the <cite>add_conflict</cite>
+method. Implicit conflicts arise between pairs of <cite>Transaction</cite>s
+which use the same <cite>Method</cite>.</p>
+<p>A module which defines a <cite>Transaction</cite> should use <cite>body</cite> to
 describe used methods and the transaction’s effect on the module state.
-The used methods should be called inside the <code class="docutils literal notranslate"><span class="pre">body</span></code>’s
-<code class="docutils literal notranslate"><span class="pre">with</span></code> block.</p>
+The used methods should be called inside the <cite>body</cite>’s
+<cite>with</cite> block.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>name: str</strong></dt><dd><p>Name of this <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>.</p>
+<dt><strong>name: str</strong></dt><dd><p>Name of this <cite>Transaction</cite>.</p>
 </dd>
 <dt><strong>request: Signal, in</strong></dt><dd><p>Signals that the transaction wants to run. If omitted, the transaction
 is always ready. Defined in the constructor.</p>
 </dd>
-<dt><strong>grant: Signal, out</strong></dt><dd><p>Signals that the transaction is granted by the <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>,
+<dt><strong>grant: Signal, out</strong></dt><dd><p>Signals that the transaction is granted by the <cite>TransactionManager</cite>,
 and all used methods are called.</p>
 </dd>
 </dl>
@@ -1387,13 +1387,13 @@ and all used methods are called.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>name: str or None</strong></dt><dd><p>Name hint for this <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) the name is
-inferred from the variable name this <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> is assigned to.
-If the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> was not assigned, the name is inferred from
-the class name where the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> was constructed.</p>
+<dt><strong>name: str or None</strong></dt><dd><p>Name hint for this <cite>Transaction</cite>. If <cite>None</cite> (default) the name is
+inferred from the variable name this <cite>Transaction</cite> is assigned to.
+If the <cite>Transaction</cite> was not assigned, the name is inferred from
+the class name where the <cite>Transaction</cite> was constructed.</p>
 </dd>
-<dt><strong>manager: TransactionManager</strong></dt><dd><p>The <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code> controlling this <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>.
-If omitted, the manager is received from <code class="docutils literal notranslate"><span class="pre">TransactionContext</span></code>.</p>
+<dt><strong>manager: TransactionManager</strong></dt><dd><p>The <cite>TransactionManager</cite> controlling this <cite>Transaction</cite>.
+If omitted, the manager is received from <cite>TransactionContext</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -1403,20 +1403,20 @@ If omitted, the manager is received from <code class="docutils literal notransla
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.Transaction.body">
 <span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Transaction" title="coreblocks.transactions.core.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.transactions.Transaction.body" title="Permalink to this definition"></a></dt>
-<dd><p>Defines the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> body.</p>
+<dd><p>Defines the <cite>Transaction</cite> body.</p>
 <p>This context manager allows to conveniently define the actions
-performed by a <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> when it’s granted. Each assignment
-added to a domain under <code class="docutils literal notranslate"><span class="pre">body</span></code> is guarded by the <code class="docutils literal notranslate"><span class="pre">grant</span></code> signal.
+performed by a <cite>Transaction</cite> when it’s granted. Each assignment
+added to a domain under <cite>body</cite> is guarded by the <cite>grant</cite> signal.
 Combinational assignments which do not need to be guarded by
-<code class="docutils literal notranslate"><span class="pre">grant</span></code> can be added to <code class="docutils literal notranslate"><span class="pre">Transaction.comb</span></code> instead of
-<code class="docutils literal notranslate"><span class="pre">m.d.comb</span></code>. <code class="docutils literal notranslate"><span class="pre">Method</span></code> calls can be performed under <code class="docutils literal notranslate"><span class="pre">body</span></code>.</p>
+<cite>grant</cite> can be added to <cite>Transaction.comb</cite> instead of
+<cite>m.d.comb</cite>. <cite>Method</cite> calls can be performed under <cite>body</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>m: Module</strong></dt><dd><p>The module where the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> is defined.</p>
+<dt><strong>m: Module</strong></dt><dd><p>The module where the <cite>Transaction</cite> is defined.</p>
 </dd>
-<dt><strong>request: Signal</strong></dt><dd><p>Indicates that the <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> wants to be executed. By
-default it is <code class="docutils literal notranslate"><span class="pre">Const(1)</span></code>, so it wants to be executed in
+<dt><strong>request: Signal</strong></dt><dd><p>Indicates that the <cite>Transaction</cite> wants to be executed. By
+default it is <cite>Const(1)</cite>, so it wants to be executed in
 every clock cycle.</p>
 </dd>
 </dl>
@@ -1457,8 +1457,8 @@ every clock cycle.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.</span></span><span class="sig-name descname"><span class="pre">TransactionManager</span></span><a class="headerlink" href="#coreblocks.transactions.TransactionManager" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Transaction manager</p>
-<p>This module is responsible for granting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s and running
-<code class="docutils literal notranslate"><span class="pre">Method</span></code>s. It takes care that two conflicting <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s
+<p>This module is responsible for granting <cite>Transaction</cite>s and running
+<cite>Method</cite>s. It takes care that two conflicting <cite>Transaction</cite>s
 are never granted in the same clock cycle.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.TransactionManager.__init__">
@@ -1481,17 +1481,17 @@ are never granted in the same clock cycle.</p>
 <dt class="sig sig-object py" id="coreblocks.transactions.TransactionModule">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.</span></span><span class="sig-name descname"><span class="pre">TransactionModule</span></span><a class="headerlink" href="#coreblocks.transactions.TransactionModule" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
-<p><code class="docutils literal notranslate"><span class="pre">TransactionModule</span></code> is used as wrapper on <code class="docutils literal notranslate"><span class="pre">Module</span></code> class,
-which add support for transaction to the <code class="docutils literal notranslate"><span class="pre">Module</span></code>. It creates a
-<code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code> which will handle transaction scheduling
-and can be used in definition of <code class="docutils literal notranslate"><span class="pre">Method</span></code>s and <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>s.</p>
+<p><cite>TransactionModule</cite> is used as wrapper on <cite>Module</cite> class,
+which add support for transaction to the <cite>Module</cite>. It creates a
+<cite>TransactionManager</cite> which will handle transaction scheduling
+and can be used in definition of <cite>Method</cite>s and <cite>Transaction</cite>s.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.TransactionModule.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.TransactionManager" title="coreblocks.transactions.core.TransactionManager"><span class="pre">TransactionManager</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.TransactionModule.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>module: Module</strong></dt><dd><p>The <code class="docutils literal notranslate"><span class="pre">Module</span></code> which should be wrapped to add support for
+<dt><strong>module: Module</strong></dt><dd><p>The <cite>Module</cite> which should be wrapped to add support for
 transactions and methods.</p>
 </dd>
 </dl>
@@ -1511,8 +1511,8 @@ transactions and methods.</p>
 <span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.</span></span><span class="sig-name descname"><span class="pre">def_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~amaranth.hdl.dsl.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method:</span> <span class="pre">~coreblocks.transactions.core.Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ready:</span> <span class="pre">amaranth.hdl.ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl.ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.def_method" title="Permalink to this definition"></a></dt>
 <dd><p>Define a method.</p>
 <p>This decorator allows to define transactional methods in an
-elegant way using Python’s <code class="docutils literal notranslate"><span class="pre">def</span></code> syntax. Internally, <code class="docutils literal notranslate"><span class="pre">def_method</span></code>
-uses <code class="docutils literal notranslate"><span class="pre">Method.body</span></code>.</p>
+elegant way using Python’s <cite>def</cite> syntax. Internally, <cite>def_method</cite>
+uses <cite>Method.body</cite>.</p>
 <p>The decorated function should take one argument, which will be a
 record with input signals and return output values.
 The returned value can be either a record or a dictionary of outputs.</p>
@@ -1524,8 +1524,8 @@ The returned value can be either a record or a dictionary of outputs.</p>
 <dt><strong>method: Method</strong></dt><dd><p>The method whose body is going to be defined.</p>
 </dd>
 <dt><strong>ready: Signal</strong></dt><dd><p>Signal to indicate if the method is ready to be run. By
-default it is <code class="docutils literal notranslate"><span class="pre">Const(1)</span></code>, so the method is always ready.
-Assigned combinationally to the <code class="docutils literal notranslate"><span class="pre">ready</span></code> attribute.</p>
+default it is <cite>Const(1)</cite>, so the method is always ready.
+Assigned combinationally to the <cite>ready</cite> attribute.</p>
 </dd>
 </dl>
 </dd>
@@ -1555,7 +1555,7 @@ Assigned combinationally to the <code class="docutils literal notranslate"><span
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 23:28 2023-01-22.
+      <span class="lastupdated">Last updated on 12:36 2023-01-25.
       </span></p>
   </div>
 

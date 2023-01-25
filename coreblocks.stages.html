@@ -98,7 +98,7 @@ is also sent to RS in case if there is an instruction which waits for
 this value.</p>
 <p>Method <cite>get_result</cite> gets already serialized instruction results, so in
 case in which we have more than one FU, then their outputs should be connected by
-<code class="docutils literal notranslate"><span class="pre">ManyToOneConnectTrans</span></code> to a FIFO.</p>
+<cite>ManyToOneConnectTrans</cite> to a FIFO.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.stages.backend.ResultAnnouncement.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rob_mark_done</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs_write_val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rf_write_val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.stages.backend.ResultAnnouncement.__init__" title="Permalink to this definition"></a></dt>
@@ -180,7 +180,7 @@ It uses layout with two fields <cite>reg_id</cite> and <cite>reg_val</cite>.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 23:28 2023-01-22.
+      <span class="lastupdated">Last updated on 12:36 2023-01-25.
       </span></p>
   </div>
 
