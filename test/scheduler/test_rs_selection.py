@@ -155,6 +155,10 @@ class TestRSSelect(TestCaseWithSimulator):
     def test_delays(self):
         with self.run_simulation(self.m, max_cycles=5000) as sim:
             sim.add_sync_process(self.create_instr_input_process(300, _rs1_optypes.union(_rs2_optypes), random_wait=4))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes, random_wait=12))
-            sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes, random_wait=12))
+            sim.add_sync_process(
+                self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes, random_wait=12)
+            )
+            sim.add_sync_process(
+                self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes, random_wait=12)
+            )
             sim.add_sync_process(self.create_output_process(300, random_wait=12))

@@ -9,6 +9,7 @@ from coreblocks.core import Core
 from coreblocks.params import GenParams
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
+from typing import Optional
 import random
 import subprocess
 import tempfile
@@ -31,12 +32,13 @@ from riscvmodel.variant import RV32I
 
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams, instr_mem: list[int] = [], data_mem: list[int] = None):
+    def __init__(self, gen_params: GenParams, instr_mem: list[int] = [], data_mem: Optional[list[int]] = None):
         self.gp = gen_params
         self.instr_mem = instr_mem
-        self.data_mem = data_mem
-        if self.data_mem is None:
-            self.data_mem = [0]*(2**10)
+        if data_mem is None:
+            self.data_mem = [0] * (2**10)
+        else:
+            self.data_mem = data_mem
 
     def elaborate(self, platform):
         m = Module()
@@ -236,11 +238,8 @@ class TestCoreRandomized(TestCoreBase):
 
 
 @parameterized_class(
-    ("name", "source_file", "instr_count", "expected_regvals"), 
-    [
-        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}),
-        ("fibonacci_mem", "fibonacci_mem.asm", 500, {3: 55})
-    ]
+    ("name", "source_file", "instr_count", "expected_regvals"),
+    [("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}), ("fibonacci_mem", "fibonacci_mem.asm", 500, {3: 55})],
 )
 class TestCoreAsmSource(TestCoreBase):
     source_file: str

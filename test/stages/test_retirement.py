@@ -39,7 +39,7 @@ class RetirementTestCircuit(Elaboratable, AutoDebugSignals):
             r_rat_commit=self.rat.commit,
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
-            lsu_commit=self.mock_lsu_commit.adapter.iface
+            lsu_commit=self.mock_lsu_commit.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -64,14 +64,14 @@ class RetirementTest(TestCaseWithSimulator):
         for _ in range(self.cycles):
             rl = random.randint(0, self.gen_params.isa.reg_cnt - 1)
             rp = random.randint(1, 2**self.gen_params.phys_regs_bits - 1) if rl != 0 else 0
-            rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits-1)
+            rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits - 1)
             if rl != 0:
                 if rat_state[rl] != 0:  # phys reg 0 shouldn't be marked as free
                     self.rf_exp_q.append(rat_state[rl])
                 self.rf_free_q.append(rat_state[rl])
                 rat_state[rl] = rp
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
-                self.submit_q.append({"rob_data":{"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id})
+                self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id})
                 self.lsu_commit_q.append(rob_id)
             # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple

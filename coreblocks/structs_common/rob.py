@@ -26,7 +26,7 @@ class ReorderBuffer(Elaboratable):
         def _(arg):
             m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.data[start_idx].done.eq(0)
-            return {"rob_data": self.data[start_idx].rob_data, "rob_id":start_idx}
+            return {"rob_data": self.data[start_idx].rob_data, "rob_id": start_idx}
 
         @def_method(m, self.put, ready=put_possible)
         def _(arg):

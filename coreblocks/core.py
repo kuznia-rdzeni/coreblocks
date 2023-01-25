@@ -92,8 +92,11 @@ class Core(Elaboratable):
         m.submodules.result_collector = self.result_collector
         m.submodules.update_combiner = self.update_combiner
         m.submodules.retirement = Retirement(
-            rob_retire=rob.retire, r_rat_commit=rrat.commit, free_rf_put=free_rf_fifo.write, rf_free=rf.free,
-            lsu_commit=self.lsu_unit.commit
+            rob_retire=rob.retire,
+            r_rat_commit=rrat.commit,
+            free_rf_put=free_rf_fifo.write,
+            rf_free=rf.free,
+            lsu_commit=self.lsu_unit.commit,
         )
 
         return m
