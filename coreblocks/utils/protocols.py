@@ -22,6 +22,11 @@ class LSUUnit(Protocol):
     commit: Method
 
 
+@runtime_checkable
+class FuncUnitsHolder(Protocol):
+    func_units: list[FuncUnit]
+
+
 class FuncBlock(Protocol):
     optypes: set[OpType]
     insert: Method

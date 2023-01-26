@@ -8,7 +8,7 @@ from amaranth.sim import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit
 from coreblocks.params.isa import *
@@ -39,7 +39,7 @@ class TestAlu(TestCaseWithSimulator):
     ]
 
     def setUp(self):
-        self.gen = GenParams("rv32i")
+        self.gen = test_gen_params("rv32i")
         self.alu = Alu(self.gen)
 
         random.seed(42)
@@ -130,7 +130,7 @@ class AluFuncUnitTestCircuit(Elaboratable, AutoDebugSignals):
 
 class TestAluFuncUnit(TestCaseWithSimulator):
     def setUp(self):
-        self.gen = GenParams("rv32i")
+        self.gen = test_gen_params("rv32i")
         self.m = AluFuncUnitTestCircuit(self.gen)
 
         random.seed(42)

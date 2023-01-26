@@ -26,10 +26,6 @@ class RSFuncBlock(Elaboratable):
         self.update = Method(i=self.rs_layouts.update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
 
-        for u in func_units:
-            if isinstance(u, JumpUnit):
-                self.branch_result = u.branch_result
-
     def elaborate(self, platform):
         m = Module()
 
@@ -62,6 +58,6 @@ class RSBlock(FuncBlockParams):
         self.rs_entries = rs_entries
 
     def get_module(self, gen_params: GenParams, inputs: FuncBlockExtrasInputs) -> FuncBlock:
-        modules = list(map(lambda u: u.get_module(gen_params, inputs), self.func_units))
+        modules = list(u.get_module(gen_params, inputs) for u in self.func_units)
         rs_unit = RSFuncBlock(gen_params=gen_params, func_units=modules, rs_entries=self.rs_entries)
         return rs_unit

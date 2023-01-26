@@ -19,7 +19,7 @@ from coreblocks.utils.fifo import BasicFifo
 
 __all__ = ["Core"]
 
-from coreblocks.utils.protocols import JumpUnit, LSUUnit
+from coreblocks.utils.protocols import JumpUnit, LSUUnit, FuncUnitsHolder
 
 
 class Core(Elaboratable):
@@ -82,8 +82,7 @@ class Core(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        if isinstance(self.func_blocks_unifier, JumpUnit):
-            m.submodules.verify_branch = ConnectTrans(self.func_blocks_unifier.branch_result, self.fetch.verify_branch)
+        m.submodules.verify_branch = ConnectTrans(self.func_blocks_unifier.branch_result, self.fetch.verify_branch)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
@@ -108,13 +107,35 @@ class FuncBlocksUnifier(Elaboratable):
         self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
         self.update = self.update_combiner.method
 
-        for u in self.rs_blocks:
-            if isinstance(u, JumpUnit):
-                self.branch_result = u.branch_result
+        branch_result_methods = [
+            u.branch_result
+            for b in self.rs_blocks
+            if isinstance(b, FuncUnitsHolder)
+            for u in b.func_units
+            if isinstance(u, JumpUnit)
+        ]
 
-        for u in self.rs_blocks:
-            if isinstance(u, LSUUnit):
-                self.commit = u.commit
+        self.branch_result_collector = None
+        match branch_result_methods:
+            case []:
+                raise Exception("CPU without jumps")
+            case [method]:
+                self.branch_result = method
+            case [*methods]:
+                self.branch_result_collector = br_collector = Collector(methods)
+                self.branch_result = br_collector.get_single
+
+        commit_methods = [b.commit for b in self.rs_blocks if isinstance(b, LSUUnit)]
+
+        self.commit_product = None
+        match commit_methods:
+            case []:
+                self.commit = None
+            case [method]:
+                self.commit = method
+            case [*methods]:
+                self.commit_product = commit_product = MethodProduct(methods)
+                self.commit = commit_product.method
 
     def elaborate(self, platform):
         m = Module()
@@ -124,5 +145,11 @@ class FuncBlocksUnifier(Elaboratable):
 
         m.submodules["result_collector"] = self.result_collector
         m.submodules["update_combiner"] = self.update_combiner
+
+        if self.branch_result_collector is not None:
+            m.submodules["branch_result_collector"] = self.branch_result_collector
+
+        if self.commit_product is not None:
+            m.submodules["commit_product"] = self.commit_product
 
         return m

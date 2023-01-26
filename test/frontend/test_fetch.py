@@ -50,7 +50,7 @@ class TestElaboratable(Elaboratable, AutoDebugSignals):
 
 class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = GenParams("rv32i", start_pc=24)
+        self.gp = test_gen_params("rv32i", start_pc=24)
         self.test_module = TestElaboratable(self.gp)
         self.instr_queue = deque()
         self.iterations = 500

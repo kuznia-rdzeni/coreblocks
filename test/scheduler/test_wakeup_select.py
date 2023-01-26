@@ -13,7 +13,7 @@ from coreblocks.transactions.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
 from coreblocks.utils import AutoDebugSignals
 
-from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO
+from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 
 class WakeupTestCircuit(Elaboratable, AutoDebugSignals):
@@ -43,7 +43,7 @@ class WakeupTestCircuit(Elaboratable, AutoDebugSignals):
 
 class TestWakeupSelect(TestCaseWithSimulator):
     def setUp(self):
-        self.gen = GenParams("rv32i", rs_entries=16)
+        self.gen = test_gen_params("rv32i", rs_entries=16)
         self.m = WakeupTestCircuit(self.gen)
         self.cycles = 50
         self.taken = deque()

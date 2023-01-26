@@ -9,7 +9,7 @@ from coreblocks.scheduler.scheduler import RSSelection
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
 from coreblocks.utils import AutoDebugSignals
-from test.common import TestCaseWithSimulator, TestbenchIO
+from test.common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 _rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
 _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}
@@ -49,7 +49,7 @@ class RSSelector(Elaboratable, AutoDebugSignals):
 
 class TestRSSelect(TestCaseWithSimulator):
     def setUp(self):
-        self.gen_params = GenParams("rv32i", rs_block_number=2)
+        self.gen_params = test_gen_params("rv32i", rs_block_number=2)
         self.m = RSSelector(self.gen_params)
         self.expected_out = deque()
         self.instr_in = deque()

@@ -8,7 +8,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitParams
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
-from test.common import TestbenchIO, TestCaseWithSimulator
+from test.common import TestbenchIO, TestCaseWithSimulator, test_gen_params
 
 
 class FunctionalTestCircuit(Elaboratable):
@@ -74,7 +74,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         number_of_tests: int = 2000,
         seed: int = 40,
         zero_imm: bool = True,
-        gen: GenParams = GenParams("rv32i"),
+        gen: GenParams = test_gen_params("rv32i"),
         method_name: str = "runTest",
     ):
         super().__init__(method_name)

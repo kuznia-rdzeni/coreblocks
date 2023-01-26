@@ -5,7 +5,7 @@ from coreblocks.params import *
 from coreblocks.fu.mul_unit import MulFn, MulFU, MulType
 from coreblocks.params.fu_params import FuncUnitParams
 
-from test.common import signed_to_int, int_to_signed
+from test.common import signed_to_int, int_to_signed, test_gen_params
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
@@ -38,6 +38,10 @@ ops = {
 }
 
 
+def gen_test_params(param):
+    pass
+
+
 @parameterized_class(
     ("name", "mul_unit"),
     [
@@ -66,7 +70,7 @@ class MultiplierUnitTest(GenericFunctionalTestUnit):
             ops,
             self.mul_unit,
             compute_result,
-            gen=GenParams("rv32im"),
+            gen=test_gen_params("rv32im"),
             number_of_tests=600,
             seed=32323,
             method_name=method_name,

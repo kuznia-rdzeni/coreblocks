@@ -11,7 +11,7 @@ from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.isa import *
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator, int_to_signed, signed_to_int
+from test.common import TestbenchIO, TestCaseWithSimulator, int_to_signed, signed_to_int, test_gen_params
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
@@ -150,7 +150,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     def setUp(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gp = GenParams("rv32i", phys_regs_bits=3, rob_entries_bits=3)
+        self.gp = test_gen_params("rv32i", phys_regs_bits=3, rob_entries_bits=3)
         self.test_module = DummyLSUTestCircuit(self.gp)
         self.instr_queue = deque()
         self.announce_queue = deque()
@@ -235,7 +235,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
 
     def setUp(self) -> None:
         random.seed(14)
-        self.gp = GenParams("rv32i", phys_regs_bits=3, rob_entries_bits=3)
+        self.gp = test_gen_params("rv32i", phys_regs_bits=3, rob_entries_bits=3)
         self.test_module = DummyLSUTestCircuit(self.gp)
 
     def one_instr_test(self):
@@ -313,7 +313,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
     def setUp(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gp = GenParams("rv32i", phys_regs_bits=3, rob_entries_bits=3)
+        self.gp = test_gen_params("rv32i", phys_regs_bits=3, rob_entries_bits=3)
         self.test_module = DummyLSUTestCircuit(self.gp)
         self.instr_queue = deque()
         self.announce_queue = deque()

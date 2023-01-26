@@ -15,7 +15,7 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 from coreblocks.utils import AutoDebugSignals
 
-from test.common import TestCaseWithSimulator, TestbenchIO
+from test.common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.params import GenParams
 
@@ -60,7 +60,7 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
     gen: GenParams
 
     def setUp(self):
-        self.gen = GenParams("rv32im")
+        self.gen = test_gen_params("rv32im")
         self.m = UnsignedMultiplicationTestCircuit(self.gen, self.mul_unit)
 
         random.seed(1050)

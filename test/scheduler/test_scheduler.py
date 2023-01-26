@@ -13,7 +13,7 @@ from coreblocks.structs_common.rat import FRAT
 from coreblocks.params import RSLayouts, DecodeLayouts, GenParams, Opcode, OpType, Funct3, Funct7
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.utils import AutoDebugSignals
-from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
+from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock, test_gen_params
 
 
 class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
@@ -108,7 +108,7 @@ class TestScheduler(TestCaseWithSimulator):
 
     def setUp(self):
         self.rs_count = len(self.optype_sets)
-        self.gen_params = GenParams("rv32i", rs_block_number=self.rs_count)
+        self.gen_params = test_gen_params("rv32i", rs_block_number=self.rs_count)
         self.expected_rename_queue = deque()
         self.expected_phys_reg_queue = deque()
         self.free_regs_queue = deque()
