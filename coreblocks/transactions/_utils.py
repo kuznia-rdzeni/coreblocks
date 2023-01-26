@@ -26,7 +26,7 @@ class Scheduler(Elaboratable):
     An implementation of a round-robin scheduler, which is used in the
     transaction subsystem. It is based on Amaranth's round-robin scheduler
     but instead of using binary numbers, it uses one-hot encoding for the
-    ``grant`` output signal.
+    `grant` output signal.
 
     Attributes
     ----------
