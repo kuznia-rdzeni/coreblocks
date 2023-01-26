@@ -61,7 +61,7 @@ class RegAllocation(Elaboratable):
 
 class Renaming(Elaboratable):
     """
-    Module performing "Renaming source register" (translation from logical register
+    Module performing "Renaming source registers" (translation from logical register
     name to physical register name) step of scheduling process. Additionally it updates
     F-RAT with translation from logical destination register to physical destination register.
     """
@@ -118,7 +118,7 @@ class Renaming(Elaboratable):
 
 class ROBAllocation(Elaboratable):
     """
-    Module performing "ReOrder Buffer allocation" step of scheduling process.
+    Module performing "ReOrder Buffer entry allocation" step of scheduling process.
     """
 
     def __init__(self, *, get_instr: Method, push_instr: Method, rob_put: Method, gen_params: GenParams):
@@ -254,7 +254,7 @@ class RSInsertion(Elaboratable):
     """
     Module performing "Reservation Station insertion" step of scheduling process.
 
-    It requires all methods to be available at this same time in order to insert
+    It requires all methods to be available at the same time in order to insert
     a single instruction to RS.
     """
 
@@ -276,13 +276,11 @@ class RSInsertion(Elaboratable):
             Sequence of methods used for pushing an instruction into the RS. Ordering of this list
             determines the id of a specific RS. They have layout described in `RSLayouts.insert_in`.
         rf_read1: Method
-            Method used for getting the id of a physical register holding value
-            of a first source register. It has layout described in `RFLayouts.rf_read_out`
-            and `RFLayouts.rf_read_in`.
+            Method used for getting value of first source register and information if it is valid.
+            Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
         rf_read2: Method
-            Method used for getting the id of a physical register holding value of a second
-            source register. It has layout described in `RFLayouts.rf_read_out`
-            and `RFLayouts.rf_read_in`.
+            Method used for getting value of second source register and information if it is valid.
+            Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -334,15 +332,15 @@ class Scheduler(Elaboratable):
     available RS which supports this kind of instructions.
 
     In order to prepare instruction it performs following steps:
-    - register allocation
-    - renaming source register
-    - ROB allocation
+    - physical register allocation
+    - register renaming
+    - ROB entry allocation
     - RS selection
     - RS insertion
 
     Warnings
     --------
-    Instruction without any supporting RS will get stuck and block the scheduler pipline.
+    Instruction without any supporting RS will get stuck and block the scheduler pipeline.
     """
 
     def __init__(
@@ -371,13 +369,11 @@ class Scheduler(Elaboratable):
         rob_put: Method
             Method used for getting a free entry in ROB. It has layout described in `ROBLayouts.data_layout`.
         rf_read1: Method
-            Method used for getting the id of a physical register holding the value
-            of the first source register. It has layout described in `RFLayouts.rf_read_out`
-            and `RFLayouts.rf_read_in`.
+            Method used for getting value of first source register and information if it is valid.
+            Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
         rf_read2: Method
-            Method used for getting the id of a physical register holding the value of
-            a second source register. It has layout described in `RFLayouts.rf_read_out`
-            and `RFLayouts.rf_read_in`.
+            Method used for getting value of second source register and information if it is valid.
+            Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
         reservation_stations: Sequence[RSFuncBlock]
             Sequence of units with RS interfaces to which instructions should be inserted.
         gen_params: GenParams
