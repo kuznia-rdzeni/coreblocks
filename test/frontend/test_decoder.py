@@ -3,7 +3,6 @@ from amaranth.sim import *
 
 from ..common import TestCaseWithSimulator, test_gen_params
 
-from coreblocks.params import GenParams
 from coreblocks.params.isa import *
 from coreblocks.frontend.decoder import InstrDecoder
 
