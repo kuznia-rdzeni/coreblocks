@@ -1,6 +1,6 @@
 from typing import Protocol, runtime_checkable
 from coreblocks.transactions import Method
-from coreblocks.params.isa import OpType
+from coreblocks.params import OpType
 
 
 __all__ = ["FuncUnit", "FuncBlock", "JumpUnit", "LSUUnit"]

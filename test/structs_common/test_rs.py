@@ -1,7 +1,6 @@
 from typing import Iterable, Optional
 from amaranth import Elaboratable, Module
 from amaranth.sim import Settle
-from coreblocks.params.isa import OpType
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
@@ -9,7 +8,7 @@ from coreblocks.transactions.lib import AdapterTrans
 from ..common import TestCaseWithSimulator, TestbenchIO, get_outputs, test_gen_params
 
 from coreblocks.structs_common.rs import RS
-from coreblocks.params import GenParams
+from coreblocks.params import GenParams, OpType
 from coreblocks.utils import AutoDebugSignals
 
 

@@ -36,6 +36,7 @@ class GenParams(DependentCache):
         self.isa = ISA(isa_str)
         self.func_units_config = func_units_config
 
+        # Verification temporally disabled
         # if not optypes_required_by_extensions(self.isa.extensions) <= optypes_supported(func_units_config):
         #     raise Exception(f"Functional unit configuration fo not support all extension required by{isa_str}")
 

@@ -1,9 +1,5 @@
 from amaranth import *
 
-from enum import IntEnum, unique
-
-from coreblocks.params.fu_params import FunctionalComponentInputs, FunctionalComponentParams
-from coreblocks.params.isa import OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *

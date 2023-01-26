@@ -1,9 +1,8 @@
 from amaranth import *
 
 from coreblocks.params.fu_params import BlockComponentInputs, BlockComponentParams
-from coreblocks.params.isa import OpType
 from coreblocks.transactions import Method, def_method, Transaction
-from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3, LSULayouts
+from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3, LSULayouts, OpType
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign
 

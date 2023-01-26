@@ -4,8 +4,7 @@ from typing import Optional
 
 from amaranth import *
 
-from coreblocks.params import GenParams
-from coreblocks.params.isa import *
+from coreblocks.params import *
 from coreblocks.utils import AutoDebugSignals
 
 __all__ = ["InstrDecoder"]
@@ -16,7 +15,7 @@ from coreblocks.utils import OneHotSwitchDynamic
 #
 # In order to add new instructions to be decoded by this decoder assuming they do not required additional
 # fields to be extracted you need to add them into `_instructions_by_optype` map, and register new OpType
-# into new or existing extension in `optypes_by_extensions` map in `params.isa` module.
+# into new or existing extension in `optypes_by_extensions` map in `params.optypes` module.
 
 # Lists which fields are used by which Instruction's types
 

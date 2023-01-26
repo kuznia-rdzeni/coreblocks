@@ -1,9 +1,5 @@
 from amaranth import *
-from typing import Iterable
-from coreblocks.params import GenParams
-from coreblocks.params.fu_params import BlockComponentInputs, FunctionalComponentParams, BlockComponentParams
-from coreblocks.params.layouts import FuncUnitLayouts, RSLayouts
-from coreblocks.params.isa import OpType
+from coreblocks.params import *
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method

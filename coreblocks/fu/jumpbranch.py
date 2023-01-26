@@ -1,9 +1,7 @@
 from amaranth import *
 
-from enum import IntFlag, unique, auto
+from enum import IntFlag
 
-from coreblocks.params.fu_params import FunctionalComponentInputs, FunctionalComponentParams
-from coreblocks.params.isa import OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *

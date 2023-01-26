@@ -11,8 +11,7 @@ from coreblocks.transactions.lib import *
 from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit
-from coreblocks.params.isa import *
-from coreblocks.params import GenParams
+from coreblocks.params import *
 from coreblocks.utils import AutoDebugSignals
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Iterable
 
 import coreblocks.params.genparams as gp
-import coreblocks.params.isa as isa
+import coreblocks.params.optypes as optypes
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils.protocols import FuncBlock, FuncUnit
 
@@ -12,7 +12,7 @@ __all__ = [
     "BlockComponentInputs",
     "BlockComponentParams",
     "FunctionalComponentParams",
-    "optypes_supported"
+    "optypes_supported",
 ]
 
 
@@ -31,7 +31,7 @@ class BlockComponentParams:
     def get_module(self, gen_params: gp.GenParams, inputs: BlockComponentInputs) -> FuncBlock:
         ...
 
-    def get_optypes(self) -> set[isa.OpType]:
+    def get_optypes(self) -> set[optypes.OpType]:
         ...
 
 
@@ -39,9 +39,9 @@ class FunctionalComponentParams:
     def get_module(self, gen_params: gp.GenParams, inputs: FunctionalComponentInputs) -> FuncUnit:
         ...
 
-    def get_optypes(self) -> set[isa.OpType]:
+    def get_optypes(self) -> set[optypes.OpType]:
         ...
 
 
-def optypes_supported(block_components: Iterable[BlockComponentParams]) -> set[isa.OpType]:
+def optypes_supported(block_components: Iterable[BlockComponentParams]) -> set[optypes.OpType]:
     return {optype for block in block_components for optype in block.get_optypes()}
