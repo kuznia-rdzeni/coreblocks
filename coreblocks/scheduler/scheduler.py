@@ -22,8 +22,8 @@ class RegAllocation(Elaboratable):
         Parameters
         ----------
         get_instr: Method
-            Method providing decoded instructions to be scheduled for execution. It has
-            layout as described by `SchedulerLayouts.reg_alloc_in`.
+            Method providing decoded instructions to be scheduled for execution. Uses
+            `SchedulerLayouts.reg_alloc_in`.
         push_instr: Method
             Method used for pushing the serviced instruction to the next step. Uses `SchedulerLayouts.reg_alloc_out`.
         get_free_reg: Method
