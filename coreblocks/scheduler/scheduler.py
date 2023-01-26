@@ -13,8 +13,8 @@ __all__ = ["Scheduler"]
 
 class RegAllocation(Elaboratable):
     """
-    Module performing "Register allocation" (allocating physical register for
-    instruction output). Step of scheduling process.
+    Module performing the "Register allocation" step (allocating a physical register for
+    the instruction result). A part of the scheduling process.
     """
 
     def __init__(self, *, get_instr: Method, push_instr: Method, get_free_reg: Method, gen_params: GenParams):
@@ -25,9 +25,9 @@ class RegAllocation(Elaboratable):
             Method providing decoded instructions to be scheduled for execution. It has
             layout as described by `SchedulerLayouts.reg_alloc_in`.
         push_instr: Method
-            Method used for pushing serviced instruction to next step. Uses `SchedulerLayouts.reg_alloc_out`.
+            Method used for pushing the serviced instruction to the next step. Uses `SchedulerLayouts.reg_alloc_out`.
         get_free_reg: Method
-            Method providing id of currently free physical register.
+             Method providing the ID of a currently free physical register.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -61,9 +61,9 @@ class RegAllocation(Elaboratable):
 
 class Renaming(Elaboratable):
     """
-    Module performing "Renaming source registers" (translation from logical register
-    name to physical register name) step of scheduling process. Additionally it updates
-    F-RAT with translation from logical destination register to physical destination register.
+    Module performing the "Renaming source register" (translation from logical register
+    name to physical register name) step of the scheduling process. Additionally it updates
+    the F-RAT with the translation from the logical destination register ID to the physical ID.
     """
 
     def __init__(self, *, get_instr: Method, push_instr: Method, rename: Method, gen_params: GenParams):
@@ -71,12 +71,12 @@ class Renaming(Elaboratable):
         Parameters
         ----------
         get_instr: Method
-            Method providing instructions with allocated register. Uses `SchedulerLayouts.renaming_in`.
+            Method providing instructions with an allocated physical register. Uses `SchedulerLayouts.renaming_in`.
         push_instr: Method
-            Method used for pushing serviced instruction to next step. Uses `SchedulerLayouts.renaming_out`.
+            Method used for pushing the serviced instruction to the next step. Uses `SchedulerLayouts.renaming_out`.
         rename: Method
-            Method used for renaming source register in F-RAT. It has layout described in
-            `RATLayouts`.
+            Method used for renaming the source register in F-RAT. Uses
+            `RATLayouts.rename_input_layout` and `RATLayouts.rename_output_layout`.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -126,11 +126,14 @@ class ROBAllocation(Elaboratable):
         Parameters
         ----------
         get_instr: Method
-            Method providing instructions with renamed register. Uses `SchedulerLayouts.rob_allocate_in`.
+            Method providing instructions with physical register IDs present for all used registers.
+            Uses `SchedulerLayouts.rob_allocate_in`.
         push_instr: Method
-            Method used for pushing serviced instruction to next step. Uses `SchedulerLayouts.rob_allocate_out`.
+            Method used for pushing the serviced instruction to the next step.
+            Uses `SchedulerLayouts.rob_allocate_out`.
         rob_put: Method
-            Method used for getting free entry in ROB. It has layout described in `ROBLayouts.data_layout`.
+            Method used for getting a free entry in the ROB. Uses `ROBLayouts.data_layout`
+            and `ROBLayouts.id_layout`.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -172,8 +175,8 @@ class RSSelection(Elaboratable):
     Module performing "Reservation Station selection" step of scheduling process.
 
     For each instruction it selects the first available RS capable of handling
-    given instruction. It uses multiple transactions, so it does not require all
-    methods to be available at this same time.
+    the given instruction. It uses multiple transactions, so it does not require all
+    methods to be available at the same time.
     """
 
     def __init__(
@@ -193,10 +196,10 @@ class RSSelection(Elaboratable):
             Method used for pushing instruction with selected RS to next step.
             Uses `SchedulerLayouts.rs_select_out`.
         rs_select: Sequence[tuple[Method, set[OpType]]]
-            Sequence of pairs each representing single RS in which instruction can be allocated.
-            First element of the pair is a method used for allocating an entry in RS. Second
-            element is a set of `OpType`\\s that can be handled by this RS. Methods layout
-            is described by `RSLayouts.select_out`.
+            Sequence of pairs, each representing a single RS. The components are:
+
+            - A method used for allocating an entry in the RS. Uses `RSLayouts.select_out`.
+            - A set of `OpType`\\s that can be handled by this RS.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -252,10 +255,10 @@ class RSSelection(Elaboratable):
 
 class RSInsertion(Elaboratable):
     """
-    Module performing "Reservation Station insertion" step of scheduling process.
+    Module performing the "Reservation Station insertion" step of the scheduling process.
 
     It requires all methods to be available at the same time in order to insert
-    a single instruction to RS.
+    a single instruction to the RS.
     """
 
     def __init__(
@@ -274,7 +277,7 @@ class RSInsertion(Elaboratable):
             Method providing instructions with reserved entry in ROB. Uses `SchedulerLayouts.rs_insert_in`.
         rs_insert: Sequence[Method]
             Sequence of methods used for pushing an instruction into the RS. Ordering of this list
-            determines the id of a specific RS. They have layout described in `RSLayouts.insert_in`.
+            determines the ID of a specific RS. They use `RSLayouts.insert_in`
         rf_read1: Method
             Method used for getting value of first source register and information if it is valid.
             Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
@@ -362,12 +365,12 @@ class Scheduler(Elaboratable):
             Method providing decoded instructions to be scheduled for execution. It has
             layout as described by `DecodeLayouts.decoded_instr`.
         get_free_reg: Method
-            Method providing the id of a currently free physical register.
+            Method providing the ID of a currently free physical register.
         rat_rename: Method
-            Method used for renaming the source register in F-RAT. It has layout described
-            in `RATLayouts.rat_rename_in` and `RATLayouts.rat_rename_out`.
+            Method used for renaming the source register in F-RAT. Uses `RATLayouts.rat_rename_in`
+            and `RATLayouts.rat_rename_out`.
         rob_put: Method
-            Method used for getting a free entry in ROB. It has layout described in `ROBLayouts.data_layout`.
+            Method used for getting a free entry in ROB. Uses `ROBLayouts.data_layout`.
         rf_read1: Method
             Method used for getting value of first source register and information if it is valid.
             Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
