@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from typing import TypeVar, Type
 
-from .fu_params import FuncBlockParams
 from .isa import ISA
+from .fu_params import BlockComponentParams
 
 __all__ = ["GenParams"]
 
@@ -23,7 +25,7 @@ class GenParams(DependentCache):
     def __init__(
         self,
         isa_str: str,
-        func_units_config: list[FuncBlockParams],
+        func_units_config: list[BlockComponentParams],
         *,
         phys_regs_bits: int = 7,
         rob_entries_bits: int = 8,
@@ -34,11 +36,14 @@ class GenParams(DependentCache):
         self.isa = ISA(isa_str)
         self.func_units_config = func_units_config
 
+        # if not optypes_required_by_extensions(self.isa.extensions) <= optypes_supported(func_units_config):
+        #     raise Exception(f"Functional unit configuration fo not support all extension required by{isa_str}")
+
         self.rs_entries = 1
         for block in self.func_units_config:
             import coreblocks.stages.rs_func_block as rs_block
 
-            if isinstance(block, rs_block.RSBlock):
+            if isinstance(block, rs_block.RSBlockComponent):
                 self.rs_entries = max(self.rs_entries, block.rs_entries)
 
         self.rs_number_bits = (len(self.func_units_config) - 1).bit_length()

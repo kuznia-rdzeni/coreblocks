@@ -16,7 +16,7 @@ from coreblocks.utils import OneHotSwitchDynamic
 #
 # In order to add new instructions to be decoded by this decoder assuming they do not required additional
 # fields to be extracted you need to add them into `_instructions_by_optype` map, and register new OpType
-# into new or existing extension in `_optypes_by_extensions` map.
+# into new or existing extension in `optypes_by_extensions` map in `params.isa` module.
 
 # Lists which fields are used by which Instruction's types
 
@@ -159,43 +159,6 @@ _instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.DIVU, Funct7.MULDIV),  # divu
         Encoding(Opcode.OP, Funct3.REM, Funct7.MULDIV),  # rem
         Encoding(Opcode.OP, Funct3.REMU, Funct7.MULDIV),  # remu
-    ],
-}
-
-#
-# Operation types grouped by extensions
-#
-
-_optypes_by_extensions = {
-    Extension.I: [
-        OpType.ARITHMETIC,
-        OpType.COMPARE,
-        OpType.LOGIC,
-        OpType.SHIFT,
-        OpType.AUIPC,
-        OpType.JAL,
-        OpType.JALR,
-        OpType.BRANCH,
-        OpType.LOAD,
-        OpType.STORE,
-        OpType.FENCE,
-        OpType.ECALL,
-        OpType.EBREAK,
-        OpType.MRET,
-        OpType.WFI,
-    ],
-    Extension.ZIFENCEI: [
-        OpType.FENCEI,
-    ],
-    Extension.ZICSR: [
-        OpType.CSR,
-    ],
-    Extension.M: [
-        OpType.MUL,
-        OpType.DIV_REM,
-    ],
-    Extension.ZMMUL: [
-        OpType.MUL,
     ],
 }
 
@@ -468,7 +431,7 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
 
         first_valid_optype = OpType.UNKNOWN.value + 1  # value of first OpType which is not UNKNOWN
 
-        for ext, optypes in _optypes_by_extensions.items():
+        for ext, optypes in optypes_by_extensions.items():
             if extensions & ext:
                 for optype in optypes:
                     list_of_encodings = _instructions_by_optype[optype]

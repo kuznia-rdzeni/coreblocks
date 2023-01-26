@@ -2,7 +2,8 @@ from amaranth import *
 
 from enum import IntEnum, unique
 
-from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitParams
+from coreblocks.params.fu_params import FunctionalComponentInputs, FunctionalComponentParams
+from coreblocks.params.isa import OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -10,7 +11,7 @@ from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch, AutoDebugSignals
 
-__all__ = ["AluFuncUnit", "AluFU"]
+__all__ = ["AluFuncUnit", "ALUComponent"]
 
 from coreblocks.utils.protocols import FuncUnit
 
@@ -147,6 +148,9 @@ class AluFuncUnit(Elaboratable):
         return m
 
 
-class AluFU(FuncUnitParams):
-    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> FuncUnit:
+class ALUComponent(FunctionalComponentParams):
+    def get_module(self, gen_params: GenParams, inputs: FunctionalComponentInputs) -> FuncUnit:
         return AluFuncUnit(gen_params)
+
+    def get_optypes(self) -> set[OpType]:
+        return AluFuncUnit.optypes

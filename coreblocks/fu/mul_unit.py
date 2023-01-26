@@ -6,7 +6,7 @@ from amaranth import *
 from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
-from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitParams
+from coreblocks.params.fu_params import FunctionalComponentInputs, FunctionalComponentParams
 from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
@@ -14,7 +14,7 @@ from coreblocks.transactions.lib import *
 from coreblocks.utils import AutoDebugSignals
 
 
-__all__ = ["MulUnit", "MulFn", "MulFU"]
+__all__ = ["MulUnit", "MulFn", "MulComponent"]
 
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
@@ -247,10 +247,13 @@ class MulUnit(Elaboratable, AutoDebugSignals):
         return m
 
 
-class MulFU(FuncUnitParams):
+class MulComponent(FunctionalComponentParams):
     def __init__(self, mul_unit_type: MulType, *, dsp_width: int = 32):
         self.mul_unit_type = mul_unit_type
         self.dsp_width = dsp_width
 
-    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> FuncUnit:
+    def get_module(self, gen_params: GenParams, inputs: FunctionalComponentInputs) -> FuncUnit:
         return MulUnit(gen_params, self.mul_unit_type, self.dsp_width)
+
+    def get_optypes(self) -> set[OpType]:
+        return MulUnit.optypes

@@ -7,12 +7,16 @@ __all__ = [
     "Funct3",
     "Funct7",
     "Funct12",
-    "OpType",
     "Extension",
     "FenceTarget",
     "FenceFm",
+    "OpType",
+    "optypes_by_extensions",
+    "optypes_required_by_extensions",
     "ISA",
 ]
+
+from typing import Iterable
 
 
 @unique
@@ -209,6 +213,54 @@ _extension_implications = {
     Extension.M: Extension.ZMMUL,
     Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
 }
+
+
+#
+# Operation types grouped by extensions
+#
+
+optypes_by_extensions = {
+    Extension.I: [
+        OpType.ARITHMETIC,
+        OpType.COMPARE,
+        OpType.LOGIC,
+        OpType.SHIFT,
+        OpType.AUIPC,
+        OpType.JAL,
+        OpType.JALR,
+        OpType.BRANCH,
+        OpType.LOAD,
+        OpType.STORE,
+        OpType.FENCE,
+        OpType.ECALL,
+        OpType.EBREAK,
+        OpType.MRET,
+        OpType.WFI,
+    ],
+    Extension.ZIFENCEI: [
+        OpType.FENCEI,
+    ],
+    Extension.ZICSR: [
+        OpType.CSR,
+    ],
+    Extension.M: [
+        OpType.MUL,
+        OpType.DIV_REM,
+    ],
+    Extension.ZMMUL: [
+        OpType.MUL,
+    ],
+}
+
+
+def optypes_required_by_extensions(extensions: Iterable[Extension]) -> set[OpType]:
+    optypes = set()
+    for ext in extensions:
+        if ext in optypes_by_extensions:
+            optypes = optypes.union(optypes_by_extensions[ext])
+        else:
+            raise Exception(f"Core do not support {ext} extension")
+    return optypes
 
 
 class ISA:

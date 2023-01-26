@@ -1,12 +1,13 @@
 from amaranth import *
 
-from coreblocks.params.fu_params import FuncBlockExtrasInputs, FuncBlockParams
+from coreblocks.params.fu_params import BlockComponentInputs, BlockComponentParams
+from coreblocks.params.isa import OpType
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3, LSULayouts
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign
 
-__all__ = ["LSUDummy", "LSUBlock"]
+__all__ = ["LSUDummy", "LSUBlockComponent"]
 
 from coreblocks.utils.protocols import FuncBlock
 
@@ -215,6 +216,8 @@ class LSUDummy(Elaboratable):
         To put load/store results to the next stage of pipeline.
     """
 
+    optypes = {OpType.LOAD, OpType.STORE}
+
     def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
         """
         Parameters
@@ -229,7 +232,6 @@ class LSUDummy(Elaboratable):
         self.rs_layouts = gen_params.get(RSLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.lsu_layouts = gen_params.get(LSULayouts)
-        self.optypes = set()  # TODO: add optypes
 
         self.insert = Method(i=self.rs_layouts.insert_in)
         self.select = Method(o=self.rs_layouts.select_out)
@@ -289,6 +291,9 @@ class LSUDummy(Elaboratable):
         return m
 
 
-class LSUBlock(FuncBlockParams):
-    def get_module(self, gen_params: GenParams, inputs: FuncBlockExtrasInputs) -> FuncBlock:
+class LSUBlockComponent(BlockComponentParams):
+    def get_module(self, gen_params: GenParams, inputs: BlockComponentInputs) -> FuncBlock:
         return LSUDummy(gen_params, inputs.wishbone_bus)
+
+    def get_optypes(self) -> set[OpType]:
+        return LSUDummy.optypes

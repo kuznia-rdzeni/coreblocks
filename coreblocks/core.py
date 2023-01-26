@@ -1,7 +1,7 @@
 from typing import Iterable
 from amaranth import *
 
-from coreblocks.params.fu_params import FuncBlockExtrasInputs, FuncBlockParams
+from coreblocks.params.fu_params import BlockComponentInputs, BlockComponentParams
 from coreblocks.transactions.lib import FIFO, ConnectTrans, MethodProduct, Collector
 from coreblocks.params.layouts import *
 from coreblocks.params.genparams import GenParams
@@ -42,7 +42,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_input=FuncBlockExtrasInputs(wishbone_bus=wb_master),
+            extra_input=BlockComponentInputs(wishbone_bus=wb_master),
         )
 
         self.announcement = ResultAnnouncement(
@@ -94,7 +94,9 @@ class Core(Elaboratable):
 
 # TODO: Move somewhere else
 class FuncBlocksUnifier(Elaboratable):
-    def __init__(self, *, gen_params: GenParams, blocks: Iterable[FuncBlockParams], extra_input: FuncBlockExtrasInputs):
+    def __init__(
+        self, *, gen_params: GenParams, blocks: Iterable[BlockComponentParams], extra_input: BlockComponentInputs
+    ):
         self.rs_blocks = []
 
         for n, block in enumerate(blocks):

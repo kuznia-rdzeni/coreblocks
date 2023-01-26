@@ -2,7 +2,8 @@ from amaranth import *
 
 from enum import IntFlag, unique, auto
 
-from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitParams
+from coreblocks.params.fu_params import FunctionalComponentInputs, FunctionalComponentParams
+from coreblocks.params.isa import OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -10,7 +11,7 @@ from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch
 
-__all__ = ["JumpBranchFuncUnit", "JumpFU"]
+__all__ = ["JumpBranchFuncUnit", "JumpComponent"]
 
 from coreblocks.utils.protocols import FuncUnit
 
@@ -175,6 +176,9 @@ class JumpBranchFuncUnit(Elaboratable):
         return m
 
 
-class JumpFU(FuncUnitParams):
-    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> FuncUnit:
+class JumpComponent(FunctionalComponentParams):
+    def get_module(self, gen_params: GenParams, inputs: FunctionalComponentInputs) -> FuncUnit:
         return JumpBranchFuncUnit(gen_params)
+
+    def get_optypes(self) -> set[OpType]:
+        return JumpBranchFuncUnit.optypes

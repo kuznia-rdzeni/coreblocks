@@ -10,7 +10,7 @@ from amaranth.sim import *
 from amaranth.sim.core import Command
 
 from coreblocks.params import GenParams
-from coreblocks.stages.rs_func_block import RSBlock
+from coreblocks.stages.rs_func_block import RSBlockComponent
 from coreblocks.transactions.core import DebugSignals, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.utils._typing import ValueLike
@@ -380,7 +380,7 @@ def test_gen_params(
 ):
     return GenParams(
         isa_str,
-        func_units_config=[RSBlock([], rs_entries=rs_entries) for _ in range(rs_block_number)],
+        func_units_config=[RSBlockComponent([], rs_entries=rs_entries) for _ in range(rs_block_number)],
         phys_regs_bits=phys_regs_bits,
         rob_entries_bits=rob_entries_bits,
         start_pc=start_pc,

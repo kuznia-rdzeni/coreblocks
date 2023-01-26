@@ -1,33 +1,47 @@
 from __future__ import annotations
 
-from coreblocks.peripherals.wishbone import WishboneMaster
+from typing import Iterable
+
 import coreblocks.params.genparams as gp
+import coreblocks.params.isa as isa
+from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils.protocols import FuncBlock, FuncUnit
 
 __all__ = [
-    "FuncUnitExtrasInputs",
-    "FuncBlockExtrasInputs",
-    "FuncBlockParams",
-    "FuncUnitParams",
+    "FunctionalComponentInputs",
+    "BlockComponentInputs",
+    "BlockComponentParams",
+    "FunctionalComponentParams",
+    "optypes_supported"
 ]
 
 
 # extra constructor parameters of FuncUnit
-class FuncUnitExtrasInputs:
+class FunctionalComponentInputs:
     pass
 
 
 # extra constructor parameters of FuncBlock
-class FuncBlockExtrasInputs(FuncUnitExtrasInputs):
+class BlockComponentInputs(FunctionalComponentInputs):
     def __init__(self, *, wishbone_bus: WishboneMaster):
         self.wishbone_bus = wishbone_bus
 
 
-class FuncBlockParams:
-    def get_module(self, gen_params: gp.GenParams, inputs: FuncBlockExtrasInputs) -> FuncBlock:
+class BlockComponentParams:
+    def get_module(self, gen_params: gp.GenParams, inputs: BlockComponentInputs) -> FuncBlock:
+        ...
+
+    def get_optypes(self) -> set[isa.OpType]:
         ...
 
 
-class FuncUnitParams:
-    def get_module(self, gen_params: gp.GenParams, inputs: FuncUnitExtrasInputs) -> FuncUnit:
+class FunctionalComponentParams:
+    def get_module(self, gen_params: gp.GenParams, inputs: FunctionalComponentInputs) -> FuncUnit:
         ...
+
+    def get_optypes(self) -> set[isa.OpType]:
+        ...
+
+
+def optypes_supported(block_components: Iterable[BlockComponentParams]) -> set[isa.OpType]:
+    return {optype for block in block_components for optype in block.get_optypes()}

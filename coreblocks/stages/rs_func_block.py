@@ -1,15 +1,16 @@
 from amaranth import *
 from typing import Iterable
 from coreblocks.params import GenParams
-from coreblocks.params.fu_params import FuncBlockExtrasInputs, FuncUnitParams, FuncBlockParams
+from coreblocks.params.fu_params import BlockComponentInputs, FunctionalComponentParams, BlockComponentParams
 from coreblocks.params.layouts import FuncUnitLayouts, RSLayouts
+from coreblocks.params.isa import OpType
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
 from coreblocks.utils.protocols import FuncUnit, FuncBlock
 from coreblocks.transactions.lib import Collector
 
-__all__ = ["RSFuncBlock", "RSBlock"]
+__all__ = ["RSFuncBlock", "RSBlockComponent"]
 
 
 class RSFuncBlock(Elaboratable):
@@ -52,12 +53,15 @@ class RSFuncBlock(Elaboratable):
         return m
 
 
-class RSBlock(FuncBlockParams):
-    def __init__(self, func_units: Iterable[FuncUnitParams], rs_entries: int):
+class RSBlockComponent(BlockComponentParams):
+    def __init__(self, func_units: Iterable[FunctionalComponentParams], rs_entries: int):
         self.func_units = func_units
         self.rs_entries = rs_entries
 
-    def get_module(self, gen_params: GenParams, inputs: FuncBlockExtrasInputs) -> FuncBlock:
+    def get_module(self, gen_params: GenParams, inputs: BlockComponentInputs) -> FuncBlock:
         modules = list(u.get_module(gen_params, inputs) for u in self.func_units)
         rs_unit = RSFuncBlock(gen_params=gen_params, func_units=modules, rs_entries=self.rs_entries)
         return rs_unit
+
+    def get_optypes(self) -> set[OpType]:
+        return {optype for unit in self.func_units for optype in unit.get_optypes()}

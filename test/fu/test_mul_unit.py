@@ -2,8 +2,8 @@ from parameterized import parameterized_class
 from typing import Dict
 
 from coreblocks.params import *
-from coreblocks.fu.mul_unit import MulFn, MulFU, MulType
-from coreblocks.params.fu_params import FuncUnitParams
+from coreblocks.fu.mul_unit import MulFn, MulComponent, MulType
+from coreblocks.params.fu_params import FunctionalComponentParams
 
 from test.common import signed_to_int, int_to_signed, test_gen_params
 
@@ -47,20 +47,20 @@ def gen_test_params(param):
     [
         (
             "recursive_multiplier",
-            MulFU(MulType.RECURSIVE_MUL, dsp_width=8),
+            MulComponent(MulType.RECURSIVE_MUL, dsp_width=8),
         ),
         (
             "sequential_multiplier",
-            MulFU(MulType.SEQUENCE_MUL, dsp_width=8),
+            MulComponent(MulType.SEQUENCE_MUL, dsp_width=8),
         ),
         (
             "shift_multiplier",
-            MulFU(MulType.SHIFT_MUL),
+            MulComponent(MulType.SHIFT_MUL),
         ),
     ],
 )
 class MultiplierUnitTest(GenericFunctionalTestUnit):
-    mul_unit: FuncUnitParams
+    mul_unit: FunctionalComponentParams
 
     def test_test(self):
         self.run_pipeline()

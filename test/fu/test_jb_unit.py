@@ -3,8 +3,9 @@ from typing import Dict, Callable, Any
 from parameterized import parameterized_class
 
 from coreblocks.params import *
-from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpFU
-from coreblocks.params.fu_params import FuncUnitExtrasInputs, FuncUnitParams
+from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
+from coreblocks.params.fu_params import FunctionalComponentInputs, FunctionalComponentParams
+from coreblocks.params.isa import OpType
 from coreblocks.transactions.lib import Method, def_method
 from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
 from coreblocks.utils.protocols import FuncUnit
@@ -35,9 +36,12 @@ class JumpBranchWrapper(Elaboratable):
         return m
 
 
-class JumpBranchWrapperFU(FuncUnitParams):
-    def get_module(self, gen_params: GenParams, inputs: FuncUnitExtrasInputs) -> FuncUnit:
+class JumpBranchWrapperComponent(FunctionalComponentParams):
+    def get_module(self, gen_params: GenParams, inputs: FunctionalComponentInputs) -> FuncUnit:
         return JumpBranchWrapper(gen_params)
+
+    def get_optypes(self) -> set[OpType]:
+        return JumpBranchFuncUnit.optypes
 
 
 @staticmethod
@@ -106,13 +110,13 @@ ops_auipc = {
         (
             "branches_and_jumps",
             ops,
-            JumpBranchWrapperFU(),
+            JumpBranchWrapperComponent(),
             compute_result,
         ),
         (
             "auipc",
             ops_auipc,
-            JumpFU(),
+            JumpComponent(),
             compute_result_auipc,
         ),
     ],
