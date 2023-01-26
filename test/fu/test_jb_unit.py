@@ -128,7 +128,7 @@ class JumpBranchUnitTest(GenericFunctionalTestUnit):
             self.ops,
             self.func_unit,
             self.compute_result,
-            gen=GenParams("rv32i"),
+            gen=test_gen_params("rv32i"),
             number_of_tests=300,
             seed=32323,
             zero_imm=False,

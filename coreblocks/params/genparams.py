@@ -23,21 +23,16 @@ class GenParams(DependentCache):
     def __init__(
         self,
         isa_str: str,
+        func_units_config: list[FuncBlockParams],
         *,
-        func_units_config: list[FuncBlockParams] | None = None,
         phys_regs_bits: int = 7,
         rob_entries_bits: int = 8,
         start_pc: int = 0,
     ):
         super().__init__()
+
         self.isa = ISA(isa_str)
-
-        if func_units_config is None:
-            from coreblocks.params.fu_config import DEFAULT_FU_CONFIG
-
-            self.func_units_config = DEFAULT_FU_CONFIG
-        else:
-            self.func_units_config = func_units_config
+        self.func_units_config = func_units_config
 
         self.rs_entries = 1
         for block in self.func_units_config:
