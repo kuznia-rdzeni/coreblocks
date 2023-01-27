@@ -1,5 +1,5 @@
 from enum import IntFlag, unique
-from amaranth import Signal, Module, Elaboratable, Record, Mux
+from amaranth import Signal, Module, Elaboratable, Record, Mux, Cat
 
 from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType, Funct7
 from coreblocks.transactions import Method
@@ -30,7 +30,7 @@ class ZbsFunctionDecoder(Elaboratable):
 
     Attributes
     ----------
-    exec_fn: Record(gen.get(CommonLayouts).exec_fn), in
+    exec_fn: Record(CommonLayouts.exec_fn), in
         Function to be decoded.
     zbs_function: ZbsFunction, out
         Function decoded into OneHotWire output.
@@ -50,21 +50,17 @@ class ZbsFunctionDecoder(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-
-        with m.Switch(self.combine_funct3_funct7(self.exec_fn.funct3, self.exec_fn.funct7)):
-            with m.Case(self.combine_funct3_funct7(Funct3.BCLR, Funct7.BCLR)):
+        with m.Switch(Cat(self.exec_fn.funct3, self.exec_fn.funct7)):
+            with m.Case(Cat(Funct3.BCLR, Funct7.BCLR)._as_const()):
                 m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BCLR)
-            with m.Case(self.combine_funct3_funct7(Funct3.BEXT, Funct7.BEXT)):
+            with m.Case(Cat(Funct3.BEXT, Funct7.BEXT)._as_const()):
                 m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BEXT)
-            with m.Case(self.combine_funct3_funct7(Funct3.BINV, Funct7.BINV)):
+            with m.Case(Cat(Funct3.BINV, Funct7.BINV)._as_const()):
                 m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BINV)
-            with m.Case(self.combine_funct3_funct7(Funct3.BSET, Funct7.BSET)):
+            with m.Case(Cat(Funct3.BSET, Funct7.BSET)._as_const()):
                 m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BSET)
 
         return m
-
-    def combine_funct3_funct7(self, funct3: Funct3, funct7: Funct7):
-        return funct3 | (funct7 << 3)
 
 
 class Zbs(Elaboratable):
@@ -119,13 +115,13 @@ class ZbsUnit(Elaboratable):
 
     Attributes
     ----------
-    issue: Method(i=gen.get(FuncUnitLayouts).issue)
+    issue: Method(i=FuncUnitLayouts.issue)
         Method used for requesting computation.
-    accept: Method(i=gen.get(FuncUnitLayouts).accept)
+    accept: Method(i=FuncUnitLayouts.accept)
         Method used for getting result of requested computation.
     """
 
-    op_types = {OpType.BIT_MANIPULATION}
+    op_types = {OpType.SINGLE_BIT_MANIPULATION}
 
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(FuncUnitLayouts)

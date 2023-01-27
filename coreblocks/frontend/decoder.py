@@ -160,7 +160,7 @@ _instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.REM, Funct7.MULDIV),  # rem
         Encoding(Opcode.OP, Funct3.REMU, Funct7.MULDIV),  # remu
     ],
-    OpType.BIT_MANIPULATION: [
+    OpType.SINGLE_BIT_MANIPULATION: [
         Encoding(Opcode.OP, Funct3.BCLR, Funct7.BCLR),  # bclr
         Encoding(Opcode.OP_IMM, Funct3.BCLR, Funct7.BCLR),  # bclri
         Encoding(Opcode.OP, Funct3.BEXT, Funct7.BEXT),  # bext
@@ -207,7 +207,7 @@ _optypes_by_extensions = {
     Extension.ZMMUL: [
         OpType.MUL,
     ],
-    Extension.ZBS: [OpType.BIT_MANIPULATION],
+    Extension.ZBS: [OpType.SINGLE_BIT_MANIPULATION],
 }
 
 

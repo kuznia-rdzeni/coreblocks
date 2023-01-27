@@ -1,12 +1,10 @@
-from typing import Dict
-
 from coreblocks.params import Funct3, Funct7, GenParams
 from coreblocks.fu.zbs import ZbsUnit, ZbsFunction
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
 
-def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbsFunction.Function, xlen: int) -> Dict[str, int]:
+def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbsFunction.Function, xlen: int) -> dict[str, int]:
     val2 = i_imm if i_imm else i2
 
     if fn == ZbsFunction.Function.BCLR:
@@ -43,7 +41,7 @@ ops = {
 }
 
 
-class MultiplierUnitTest(GenericFunctionalTestUnit):
+class ZbsUnitTest(GenericFunctionalTestUnit):
     gen_params: GenParams
 
     def test_test(self):

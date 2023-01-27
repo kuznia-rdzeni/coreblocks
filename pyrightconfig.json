@@ -3,10 +3,11 @@
     "coreblocks",
     "test"
   ],
-  
+
   "exclude": [
     "**/node_modules",
-    "**/__pycache__"
+    "**/__pycache__",
+    "coreblocks/fu/zbs.py"
   ],
 
   "ignore": [

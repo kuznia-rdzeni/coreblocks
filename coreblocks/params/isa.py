@@ -108,7 +108,7 @@ class OpType(IntEnum):
     CSR = auto()
     MUL = auto()
     DIV_REM = auto()
-    BIT_MANIPULATION = auto()
+    SINGLE_BIT_MANIPULATION = auto()
 
 
 @unique
