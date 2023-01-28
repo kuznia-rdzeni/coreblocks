@@ -85,10 +85,21 @@ class TestCSRUnit(TestCaseWithSimulator):
             op = yield from self.generate_instruction()
 
             yield from self.dut.select.call()
+
             yield from self.dut.insert.call({"rs_data": op["instr"]})
 
+            while random.random() < 0.5:
+                yield
+
             yield from self.dut.update.call({"tag": op["exp"]["rs1"]["rp_s1"], "value": op["exp"]["rs1"]["value"]})
+
+            while random.random() < 0.5:
+                yield
+
             yield self.dut.rob_single_insn.eq(1)
+
+            while random.random() < 0.5:
+                yield
 
             res = yield from self.dut.accept.call()
 

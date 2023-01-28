@@ -35,8 +35,8 @@ class CSRUnit(Elaboratable):
 
         reserved = Signal()
         ready_to_process = Signal()
+        done = Signal()
 
-        result_ready = Signal()
         current_result = Signal(self.gen_params.isa.xlen)
 
         instr = Record(self.rs_layouts.data_layout + [("valid", 1), ("orig_rp_s1", self.gen_params.phys_regs_bits)])
@@ -64,34 +64,23 @@ class CSRUnit(Elaboratable):
             | (instr.exec_fn.funct3 == Funct3.CSRRCI & (instr.s1_val != 0))
         )
 
-        with m.FSM("Start"):  # TODO: eliminate FSM, it is not needed
-            with m.State("Start"):
-                with m.If(ready_to_process):
-                    with m.If(should_read_csr):
-                        m.next = "Read"
-                    with m.Elif(should_write_csr):
-                        m.next = "Write"
-            with m.State("Read"):
-                # TODO: Call registered side effects handlers
-                m.d.sync += current_result.eq(self.regfile[instr.csr])
-                with m.If(should_write_csr):
-                    m.next = "Write"
-                with m.Else():
-                    m.next = "End"
-            with m.State("Write"):
-                # "may be modified as side effects of instruction execution. In these cases, if a CSR access
-                # instruction reads a CSR, it reads the value prior to the execution of the instruction.
-                # If a CSR access instruction writes such a CSR, the write is done instead of the increment. "
-                with m.If((instr.exec_fn.funct3 == Funct3.CSRRW) | (instr.exec_fn.funct3 == Funct3.CSRRWI)):
-                    m.d.sync += self.regfile[instr.csr].eq(instr.s1_val)
-                with m.If((instr.exec_fn.funct3 == Funct3.CSRRS) | (instr.exec_fn.funct3 == Funct3.CSRRSI)):
-                    m.d.sync += self.regfile[instr.csr].eq(current_result | instr.s1_val)  # always reads to instr
-                with m.If((instr.exec_fn.funct3 == Funct3.CSRRC) | (instr.exec_fn.funct3 == Funct3.CSRRCI)):
-                    m.d.sync += self.regfile[instr.csr].eq(current_result & (~instr.s1_val))  # always reads to instr
-                m.next = "End"
-            with m.State("End"):
-                m.d.comb += result_ready.eq(1)
-                m.next = "Start"
+        with m.If(ready_to_process & should_read_csr & ~done):
+            # TODO: Call registered side effects handlers
+            m.d.sync += current_result.eq(self.regfile[instr.csr])
+
+        with m.If(ready_to_process & should_write_csr & ~done):
+            # "may be modified as side effects of instruction execution. In these cases, if a CSR access
+            # instruction reads a CSR, it reads the value prior to the execution of the instruction.
+            # If a CSR access instruction writes such a CSR, the write is done instead of the increment."
+            with m.If((instr.exec_fn.funct3 == Funct3.CSRRW) | (instr.exec_fn.funct3 == Funct3.CSRRWI)):
+                m.d.sync += self.regfile[instr.csr].eq(instr.s1_val)
+            with m.If((instr.exec_fn.funct3 == Funct3.CSRRS) | (instr.exec_fn.funct3 == Funct3.CSRRSI)):
+                m.d.sync += self.regfile[instr.csr].eq(self.regfile[instr.csr] | instr.s1_val)
+            with m.If((instr.exec_fn.funct3 == Funct3.CSRRC) | (instr.exec_fn.funct3 == Funct3.CSRRCI)):
+                m.d.sync += self.regfile[instr.csr].eq(self.regfile[instr.csr] & (~instr.s1_val))
+
+        with m.If(ready_to_process & ~done):
+            m.d.sync += done.eq(1)
 
         @def_method(m, self.select, ~reserved)
         def _(arg):
@@ -113,10 +102,11 @@ class CSRUnit(Elaboratable):
                 m.d.sync += instr.s1_val.eq(arg.value)
                 m.d.sync += instr.rp_s1.eq(0)
 
-        @def_method(m, self.accept, result_ready)
+        @def_method(m, self.accept, done)
         def _(arg):
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
+            m.d.sync += done.eq(0)
             self.fetch_continue(m)
             return {
                 "rob_id": instr.rob_id,

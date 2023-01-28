@@ -154,6 +154,7 @@ class RSInterfaceLayouts:
             ("s2_val", gen_params.isa.xlen),
             ("imm", gen_params.isa.xlen),
             ("pc", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
         ]
 
         self.select_out = [("rs_entry_id", gen_params.rs_entries_bits)]
