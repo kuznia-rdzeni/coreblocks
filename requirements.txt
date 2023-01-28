@@ -1,2 +1,2 @@
 amaranth-yosys==0.10.0.dev46
-git+https://github.com/amaranth-lang/amaranth
+git+https://github.com/amaranth-lang/amaranth@64b96e1
