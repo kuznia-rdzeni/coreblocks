@@ -8,8 +8,8 @@
            end
            subgraph Core["core Core"]
                subgraph FIFO["fifo_fetch FIFO"]
-                   FIFO_write["write"]
                    FIFO_read["read"]
+                   FIFO_write["write"]
                end
                subgraph BasicFifo["free_rf_fifo BasicFifo"]
                    BasicFifo_read["read"]
@@ -17,8 +17,8 @@
                end
                subgraph Fetch["fetch Fetch"]
                    Fetch_Fetch["Fetch"]
-                   Fetch_FetchRQ["FetchRQ"]
                    Fetch_verify_branch["verify_branch"]
+                   Fetch_FetchRQ["FetchRQ"]
                end
                subgraph FRAT["FRAT FRAT"]
                    FRAT_rename["rename"]
@@ -27,27 +27,27 @@
                    RRAT_commit["commit"]
                end
                subgraph RegisterFile["RF RegisterFile"]
-                   RegisterFile_read2["read2"]
-                   RegisterFile_read1["read1"]
                    RegisterFile_write["write"]
                    RegisterFile_free["free"]
+                   RegisterFile_read1["read1"]
+                   RegisterFile_read2["read2"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
-                   ReorderBuffer_retire["retire"]
                    ReorderBuffer_mark_done["mark_done"]
                    ReorderBuffer_put["put"]
+                   ReorderBuffer_retire["retire"]
                end
                subgraph JumpBranchFuncUnit["jb_unit JumpBranchFuncUnit"]
-                   JumpBranchFuncUnit_branch_result["branch_result"]
                    JumpBranchFuncUnit_accept["accept"]
                    JumpBranchFuncUnit_issue["issue"]
+                   JumpBranchFuncUnit_branch_result["branch_result"]
                    subgraph FIFO1["fifo_res FIFO"]
-                       FIFO1_read["read"]
                        FIFO1_write["write"]
+                       FIFO1_read["read"]
                    end
                    subgraph FIFO2["fifo_branch FIFO"]
-                       FIFO2_write["write"]
                        FIFO2_read["read"]
+                       FIFO2_write["write"]
                    end
                end
                subgraph Collector["result_collector Collector"]
@@ -69,8 +69,8 @@
                    ResultAnnouncement_ResultAnnouncement["ResultAnnouncement"]
                end
                subgraph FIFO3["fifo_decode FIFO"]
-                   FIFO3_read["read"]
                    FIFO3_write["write"]
+                   FIFO3_read["read"]
                end
                subgraph Decode["decode Decode"]
                    Decode_Decode["Decode"]
@@ -91,15 +91,15 @@
                        Renaming_Renaming["Renaming"]
                    end
                    subgraph FIFO6["reg_alloc_out_buf FIFO"]
-                       FIFO6_read["read"]
                        FIFO6_write["write"]
+                       FIFO6_read["read"]
                    end
                    subgraph ROBAllocation["rob_alloc ROBAllocation"]
                        ROBAllocation_ROBAllocation["ROBAllocation"]
                    end
                    subgraph FIFO7["rs_select_out_buf FIFO"]
-                       FIFO7_write["write"]
                        FIFO7_read["read"]
+                       FIFO7_write["write"]
                    end
                    subgraph RSSelection["rs_selector RSSelection"]
                        RSSelection_RSSelection["RSSelection"]
@@ -114,17 +114,17 @@
                    end
                end
                subgraph RSFuncBlock["rs_block_0 RSFuncBlock"]
-                   RSFuncBlock_get_result["get_result"]
-                   RSFuncBlock_insert["insert"]
                    RSFuncBlock_update["update"]
                    RSFuncBlock_select["select"]
+                   RSFuncBlock_get_result["get_result"]
+                   RSFuncBlock_insert["insert"]
                    subgraph RS["rs RS"]
-                       RS_RS["RS"]
                        RS_select["select"]
-                       RS_update["update"]
-                       RS_insert["insert"]
                        RS_take["take"]
                        RS_RS["RS"]
+                       RS_RS["RS"]
+                       RS_update["update"]
+                       RS_insert["insert"]
                    end
                    subgraph AluFuncUnit["func_unit_0 AluFuncUnit"]
                        AluFuncUnit_accept["accept"]
