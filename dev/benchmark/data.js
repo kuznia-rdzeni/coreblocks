@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1674721119105,
+  "lastUpdate": 1675019337925,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -1895,6 +1895,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 16079,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 420,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5076,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9df1f1f9287ed8da9325eaafb9c151ee0af43df0",
+          "message": "Bump Amaranth version to latest master (#218)\n\nNeeded for #194\n\nCo-authored-by: KrosFire <hubik080@gmail.com>",
+          "timestamp": "2023-01-29T20:04:01+01:00",
+          "tree_id": "b97022276c3cd0d64d3df0b1acb827437ba43d0c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9df1f1f9287ed8da9325eaafb9c151ee0af43df0"
+        },
+        "date": 1675019336081,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 53.58,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 16540,
             "unit": "LUT4"
           },
           {
