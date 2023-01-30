@@ -15,8 +15,8 @@ from coreblocks.utils import OneHotSwitchDynamic
 # Important
 #
 # In order to add new instructions to be decoded by this decoder assuming they do not required additional
-# fields to be extracted you need to add them into ```_instructions_by_optype``` map, and register new OpType
-# into new or existing extension in ```_optypes_by_extensions``` map.
+# fields to be extracted you need to add them into `_instructions_by_optype` map, and register new OpType
+# into new or existing extension in `_optypes_by_extensions` map.
 
 # Lists which fields are used by which Instruction's types
 
@@ -40,11 +40,11 @@ class Encoding:
     opcode: Opcode
         Opcode of instruction.
     funct3: Optional[Funct3]
-        Three bits function identifier. If not exists for instruction then ```None```.
+        Three bits function identifier. If not exists for instruction then `None`.
     funct7: Optional[Funct7]
-        Seven bits function identifier. If not exists for instruction then ```None```.
+        Seven bits function identifier. If not exists for instruction then `None`.
     funct12: Optional[Funct12]
-        Twelve bits function identifier. If not exists for instruction then ```None```.
+        Twelve bits function identifier. If not exists for instruction then `None`.
     """
 
     def __init__(
@@ -245,13 +245,13 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
     imm: Signal(gen.isa.xlen), out
         Immediate values provided in instruction. If no immediate values were provided then value is 0.
     succ: Signal(FenceTarget), out
-        Successor for ```FENCE``` instructions.
+        Successor for `FENCE` instructions.
     pred: Signal(FenceTarget), out
-        Predecessor for ```FENCE``` instructions.
+        Predecessor for `FENCE` instructions.
     fm: Signal(FenceFm), out
-        Fence mode for ```FENCE``` instructions.
+        Fence mode for `FENCE` instructions.
     csr: Signal(gen.isa.csr_alen), out
-        Address of Control and Source Register for ```CSR``` instructions.
+        Address of Control and Source Register for `CSR` instructions.
     op: Signal(OpType), out
         Operation type of instruction, used to define functional unit to perform this kind of instructions.
     illegal: Signal(1), out
@@ -320,7 +320,7 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
 
     def _extract(self, start: int, sig):
         """
-        Method used to for extracting fragment of instruction into provided Signal starting from ```start``` bit.
+        Method used to for extracting fragment of instruction into provided Signal starting from `start` bit.
 
         Parameters
         ----------

@@ -8,6 +8,7 @@ from ..utils._typing import ValueLike
 __all__ = [
     "FIFO",
     "Forwarder",
+    "Collector",
     "ClickIn",
     "ClickOut",
     "AdapterTrans",
@@ -30,7 +31,7 @@ class FIFO(Elaboratable):
     """FIFO module.
 
     Provides a transactional interface to Amaranth FIFOs. Exposes two methods:
-    ``read``, and ``write``. Both methods are ready only when they can
+    `read`, and `write`. Both methods are ready only when they can
     be executed -- i.e. the queue is respectively not empty / not full.
     It is possible to simultaneously read and write in a single clock cycle,
     but only if both readiness conditions are fulfilled.
@@ -38,9 +39,9 @@ class FIFO(Elaboratable):
     Attributes
     ----------
     read: Method
-        The read method. Accepts an empty argument, returns a ``Record``.
+        The read method. Accepts an empty argument, returns a `Record`.
     write: Method
-        The write method. Accepts a ``Record``, returns empty result.
+        The write method. Accepts a `Record`, returns empty result.
     """
 
     def __init__(self, layout: MethodLayout, depth: int, fifo_type=amaranth.lib.fifo.SyncFIFO):
@@ -131,10 +132,11 @@ class Forwarder(Elaboratable):
             m.d.sync += reg.eq(arg)
             m.d.sync += reg_valid.eq(1)
 
+        with m.If(reg_valid):
+            m.d.comb += read_value.eq(reg)  # write method is not ready
+
         @def_method(m, self.read, ready=reg_valid | self.write.run)
         def _(arg):
-            with m.If(reg_valid):
-                m.d.comb += read_value.eq(reg)  # write method is not ready
             m.d.sync += reg_valid.eq(0)
             return read_value
 
@@ -148,15 +150,15 @@ class ClickIn(Elaboratable):
     """Clicked input.
 
     Useful for interactive simulations or FPGA button/switch interfaces.
-    On a rising edge (tested synchronously) of ``btn``, the ``get`` method
-    is enabled, which returns the data present on ``dat`` at the time.
+    On a rising edge (tested synchronously) of `btn`, the `get` method
+    is enabled, which returns the data present on `dat` at the time.
     Inputs are synchronized.
 
     Attributes
     ----------
     get: Method
         The method for retrieving data from the input. Accepts an empty
-        argument, returns a ``Record``.
+        argument, returns a `Record`.
     btn: Signal, in
         The button input.
     dat: Record, in
@@ -205,13 +207,13 @@ class ClickOut(Elaboratable):
     """Clicked output.
 
     Useful for interactive simulations or FPGA button/LED interfaces.
-    On a rising edge (tested synchronously) of ``btn``, the ``put`` method
-    is enabled, which, when called, changes the value of the ``dat`` signal.
+    On a rising edge (tested synchronously) of `btn`, the `put` method
+    is enabled, which, when called, changes the value of the `dat` signal.
 
     Attributes
     ----------
     put: Method
-        The method for retrieving data from the input. Accepts a ``Record``,
+        The method for retrieving data from the input. Accepts a `Record`,
         returns empty result.
     btn: Signal, in
         The button input.
@@ -267,14 +269,14 @@ class AdapterTrans(AdapterBase):
     Attributes
     ----------
     en: Signal, in
-        Activates the transaction (sets the ``request`` signal).
+        Activates the transaction (sets the `request` signal).
     done: Signal, out
-        Signals that the transaction is performed (returns the ``grant``
+        Signals that the transaction is performed (returns the `grant`
         signal).
     data_in: Record, in
-        Data passed to the ``iface`` method.
+        Data passed to the `iface` method.
     data_out: Record, out
-        Data returned from the ``iface`` method.
+        Data returned from the `iface` method.
     """
 
     def __init__(self, iface: Method):
@@ -312,9 +314,9 @@ class Adapter(AdapterBase):
     Attributes
     ----------
     en: Signal, in
-        Activates the method (sets the ``ready`` signal).
+        Activates the method (sets the `ready` signal).
     done: Signal, out
-        Signals that the method is called (returns the ``run`` signal).
+        Signals that the method is called (returns the `run` signal).
     data_in: Record, in
         Data returned from the defined method.
     data_out: Record, out
@@ -358,8 +360,8 @@ class MethodTransformer(Elaboratable):
 
     Takes a target method and creates a transformed method which calls the
     original target method, transforming the input and output values.
-    The transformation functions take two parameters, a ``Module`` and the
-    ``Record`` being transformed. Alternatively, a ``Method`` can be
+    The transformation functions take two parameters, a `Module` and the
+    `Record` being transformed. Alternatively, a `Method` can be
     passed.
 
     Attributes
@@ -414,9 +416,9 @@ class MethodFilter(Elaboratable):
 
     Takes a target method and creates a method which calls the target method
     only when some condition is true. The condition function takes two
-    parameters, a module and the input ``Record`` of the method. Non-zero
+    parameters, a module and the input `Record` of the method. Non-zero
     return value is interpreted as true. Alternatively to using a function,
-    a ``Method`` can be passed as a condition.
+    a `Method` can be passed as a condition.
 
     Caveat: because of the limitations of transaction scheduling, the target
     method is locked for usage even if it is not called.
@@ -436,8 +438,8 @@ class MethodFilter(Elaboratable):
         target: Method
             The target method.
         condition: function or Method
-            The condition which, when true, allows the call to ``target``. When
-            false, ``default`` is returned.
+            The condition which, when true, allows the call to `target`. When
+            false, `default` is returned.
         default: Value or dict, optional
             The default value returned from the filtered method when the condition
             is false. If omitted, zero is returned.
@@ -486,7 +488,7 @@ class MethodProduct(Elaboratable):
             A list of methods to be called.
         combiner: (int or method layout, function), optional
             A pair of the output layout and the combiner function. The
-            combiner function takes two parameters: a ``Module`` and
+            combiner function takes two parameters: a `Module` and
             a list of outputs of the target methods.
 
         Attributes
@@ -553,10 +555,10 @@ class ConnectTrans(Elaboratable):
 class ConnectAndTransformTrans(Elaboratable):
     """Connecting transaction with transformations.
 
-    Behaves like ``ConnectTrans``, but modifies the transferred data using
-    functions or ``Method``s. Equivalent to a combination of
-    ``ConnectTrans`` and ``MethodTransformer``. The transformation
-    functions take two parameters, a ``Module`` and the ``Record`` being
+    Behaves like `ConnectTrans`, but modifies the transferred data using
+    functions or `Method`s. Equivalent to a combination of
+    `ConnectTrans` and `MethodTransformer`. The transformation
+    functions take two parameters, a `Module` and the `Record` being
     transformed.
     """
 
@@ -576,9 +578,9 @@ class ConnectAndTransformTrans(Elaboratable):
         method2: Method
             Second method, and the method being transformed.
         i_fun: function or Method, optional
-            Input transformation (``method1`` to ``method2``).
+            Input transformation (`method1` to `method2`).
         o_fun: function or Method, optional
-            Output transformation (``method2`` to ``method1``).
+            Output transformation (`method2` to `method1`).
         """
         self.method1 = method1
         self.method2 = method2
@@ -626,6 +628,50 @@ class ManyToOneConnectTrans(Elaboratable):
             setattr(
                 m.submodules, f"ManyToOneConnectTrans_input_{i}", ConnectTrans(self.m_put_result, self.get_results[i])
             )
+
+        return m
+
+
+class Collector(Elaboratable):
+    """Single result collector.
+
+    Creates method that collects results of many method with identical
+    layout. Each call of this function will return single result of one
+    of provided methods.
+
+    Attributes
+    ----------
+    layout: Layout
+        Output layout of provided methods.
+    get_single: Method
+        Method which returns single result of provided methods.
+    """
+
+    def __init__(self, method_list: list[Method]):
+        """
+        Parameters
+        ----------
+        method_list: list[Method]
+            List of methods from which results will be collected.
+        """
+        self.method_list = method_list
+        self.layout = method_list[0].data_out.layout
+        self.get_single = Method(o=self.layout)
+
+        for method in method_list:
+            if self.layout != method.data_out.layout:
+                raise Exception("Not all methods have this same layout")
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.forwarder = forwarder = Forwarder(self.layout)
+
+        m.submodules.connect = ManyToOneConnectTrans(
+            get_results=[get for get in self.method_list], put_result=forwarder.write
+        )
+
+        self.get_single.proxy(m, forwarder.read)
 
         return m
 

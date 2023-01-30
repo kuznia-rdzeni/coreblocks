@@ -6,7 +6,7 @@ from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
 from coreblocks.utils.protocols import FuncUnit
-from coreblocks.transactions.lib import Forwarder, ManyToOneConnectTrans
+from coreblocks.transactions.lib import Collector
 
 __all__ = ["RSFuncBlock"]
 
@@ -27,11 +27,10 @@ class RSFuncBlock(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.accept_fifo = accept_fifo = Forwarder(self.fu_layouts.accept)
-
         m.submodules.rs = rs = RS(
             gen_params=self.gen_params, ready_for=(func_unit.optypes for func_unit in self.func_units)
         )
+
         for n, func_unit in enumerate(self.func_units):
             wakeup_select = WakeupSelect(
                 gen_params=self.gen_params, get_ready=rs.get_ready_list[n], take_row=rs.take, issue=func_unit.issue
@@ -39,13 +38,11 @@ class RSFuncBlock(Elaboratable):
             setattr(m.submodules, f"func_unit_{n}", func_unit)
             setattr(m.submodules, f"wakeup_select_{n}", wakeup_select)
 
-        m.submodules.connect = ManyToOneConnectTrans(
-            get_results=[func_unit.accept for func_unit in self.func_units], put_result=accept_fifo.write
-        )
+        m.submodules.collector = collector = Collector([func_unit.accept for func_unit in self.func_units])
 
         self.insert.proxy(m, rs.insert)
         self.select.proxy(m, rs.select)
         self.update.proxy(m, rs.update)
-        self.get_result.proxy(m, accept_fifo.read)
+        self.get_result.proxy(m, collector.get_single)
 
         return m

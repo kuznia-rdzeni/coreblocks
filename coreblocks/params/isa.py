@@ -217,10 +217,10 @@ _extension_implications = {
 
 class ISA:
     """
-    ``ISA`` is a class that gathers all ISA-specific configurations.
+    `ISA` is a class that gathers all ISA-specific configurations.
 
-    For each of the numeric configuration value ``val``, a corresponding
-    ``val_log`` field is provided if relevant.
+    For each of the numeric configuration value `val`, a corresponding
+    `val_log` field is provided if relevant.
 
     Attributes
     ----------
@@ -242,7 +242,7 @@ class ISA:
         ----------
         isa_str : str
             String identifying a specific RISC-V ISA. Please refer to GCC's
-            machine-dependent ``arch`` option for details.
+            machine-dependent `arch` option for details.
         """
         isa_str = isa_str.lower()
         if isa_str[0:2] != "rv":
