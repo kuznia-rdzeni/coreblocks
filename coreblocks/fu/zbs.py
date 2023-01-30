@@ -50,14 +50,15 @@ class ZbsFunctionDecoder(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
+
         with m.Switch(Cat(self.exec_fn.funct3, self.exec_fn.funct7)):
-            with m.Case(Cat(Funct3.BCLR, Funct7.BCLR)._as_const()):
+            with m.Case(Cat(Funct3.BCLR, Funct7.BCLR)._as_const()):  # type: ignore
                 m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BCLR)
-            with m.Case(Cat(Funct3.BEXT, Funct7.BEXT)._as_const()):
+            with m.Case(Cat(Funct3.BEXT, Funct7.BEXT)._as_const()):  # type: ignore
                 m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BEXT)
-            with m.Case(Cat(Funct3.BINV, Funct7.BINV)._as_const()):
+            with m.Case(Cat(Funct3.BINV, Funct7.BINV)._as_const()):  # type: ignore
                 m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BINV)
-            with m.Case(Cat(Funct3.BSET, Funct7.BSET)._as_const()):
+            with m.Case(Cat(Funct3.BSET, Funct7.BSET)._as_const()):  # type: ignore
                 m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BSET)
 
         return m
