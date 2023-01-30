@@ -1,6 +1,6 @@
 from amaranth import Elaboratable, Module
 
-from coreblocks.transactions.lib import FIFO, MethodProduct, Collector
+from coreblocks.transactions.lib import FIFO, ConnectTrans, MethodProduct, Collector
 from coreblocks.params.layouts import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
@@ -9,6 +9,7 @@ from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.fu.alu import AluFuncUnit
+from coreblocks.fu.jumpbranch import JumpBranchFuncUnit
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
 from coreblocks.stages.rs_func_block import RSFuncBlock
@@ -38,7 +39,8 @@ class Core(Elaboratable):
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
         alu = AluFuncUnit(gen=self.gen_params)
-        self.rs_blocks = [RSFuncBlock(gen_params=self.gen_params, func_units=[alu])]
+        self.jb_unit = JumpBranchFuncUnit(gen=self.gen_params)
+        self.rs_blocks = [RSFuncBlock(gen_params=self.gen_params, func_units=[alu, self.jb_unit])]
 
         self.result_collector = Collector([block.get_result for block in self.rs_blocks])
         self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
@@ -82,6 +84,7 @@ class Core(Elaboratable):
         for n, block in enumerate(self.rs_blocks):
             m.submodules[f"rs_block_{n}"] = block
 
+        m.submodules.verify_branch = ConnectTrans(self.jb_unit.branch_result, self.fetch.verify_branch)
         m.submodules.announcement = self.announcement
         m.submodules.result_collector = self.result_collector
         m.submodules.update_combiner = self.update_combiner
