@@ -14,7 +14,7 @@ def OneHotSwitch(m: Module, test: Value):
     """One-hot switch.
 
     This function allows one-hot matching in the style similar to the standard
-    Amaranth ``Switch``. This allows to get the performance benefit of using
+    Amaranth `Switch`. This allows to get the performance benefit of using
     the one-hot representation.
 
     Example::
@@ -131,7 +131,7 @@ def assign(
     """Safe record assignment.
 
     This function generates assignment statements for records and reports
-    errors in case of mismatch. If either of ``lhs`` or ``rhs`` is not
+    errors in case of mismatch. If either of `lhs` or `rhs` is not
     a Record, checks for the same bit width and generates a single
     assignment statement.
 
@@ -145,15 +145,15 @@ def assign(
         Determines which fields will be assigned. Possible values:
 
         AssignType.COMMON
-            Only fields common to ``lhs`` and ``rhs`` are assigned.
+            Only fields common to `lhs` and `rhs` are assigned.
         AssignType.RHS
-            All fields in ``rhs`` are assigned. If one of them is not present
-            in ``lhs``, an exception is raised.
+            All fields in `rhs` are assigned. If one of them is not present
+            in `lhs`, an exception is raised.
         AssignType.ALL
             Assume that both records have the same layouts. All fields present
-            in ``lhs`` or ``rhs`` are assigned.
+            in `lhs` or `rhs` are assigned.
         Mapping
-            Keys are field names, values follow the format for ``fields``.
+            Keys are field names, values follow the format for `fields`.
         Iterable
             Items are field names. For subrecords, AssignType.ALL is assumed.
 

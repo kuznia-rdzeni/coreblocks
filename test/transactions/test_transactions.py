@@ -14,7 +14,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.transactions._utils import Scheduler
-from coreblocks.utils import AutoDebugSignals, HasElaborate
+from coreblocks.utils import HasElaborate
 
 from coreblocks.transactions.core import (
     Priority,
@@ -104,7 +104,7 @@ class TestScheduler(TestCaseWithSimulator):
             sim.add_sync_process(process)
 
 
-class TransactionConflictTestCircuit(Elaboratable, AutoDebugSignals):
+class TransactionConflictTestCircuit(Elaboratable):
     def __init__(self, scheduler):
         self.scheduler = scheduler
 
@@ -219,7 +219,7 @@ class PriorityTestCircuit(Elaboratable):
         raise NotImplementedError()
 
 
-class TransactionPriorityTestCircuit(PriorityTestCircuit, AutoDebugSignals):
+class TransactionPriorityTestCircuit(PriorityTestCircuit):
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
@@ -245,7 +245,7 @@ class TransactionPriorityTestCircuit(PriorityTestCircuit, AutoDebugSignals):
         return tm
 
 
-class MethodPriorityTestCircuit(PriorityTestCircuit, AutoDebugSignals):
+class MethodPriorityTestCircuit(PriorityTestCircuit):
     def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()

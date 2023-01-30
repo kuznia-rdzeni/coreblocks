@@ -304,9 +304,9 @@ class WishboneMemorySlave(Elaboratable):
     wb_params: WishboneParameters
         Parameters for bus generation.
     **kwargs: dict
-        Keyword arguments for the underlying Amaranth's ``Memory``. If ``width`` and ``depth``
-        are not specified, then they're inferred from ``wb_params``: ``data_width`` becomes
-        ``width`` and ``2 ** addr_width`` becomes ``depth``.
+        Keyword arguments for the underlying Amaranth's `Memory`. If `width` and `depth`
+        are not specified, then they're inferred from `wb_params`: `data_width` becomes
+        `width` and `2 ** addr_width` becomes `depth`.
 
     Attributes
     ----------

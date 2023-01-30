@@ -7,7 +7,7 @@ from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
-from coreblocks.utils import OneHotSwitch, AutoDebugSignals
+from coreblocks.utils import OneHotSwitch
 
 __all__ = ["AluFuncUnit"]
 
@@ -30,7 +30,7 @@ class AluFn(Signal):
         super().__init__(AluFn.Fn, *args, **kwargs)
 
 
-class Alu(Elaboratable, AutoDebugSignals):
+class Alu(Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen
 

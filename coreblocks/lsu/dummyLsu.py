@@ -246,10 +246,10 @@ class LSUDummy(Elaboratable):
         @def_method(m, self.select, ~reserved)
         def _(arg):
             # We always return 0, because we have only one place in instruction storage.
-            m.d.sync += reserved.eq(0)
+            m.d.sync += reserved.eq(1)
             return 0
 
-        @def_method(m, self.insert, ~current_instr.valid)
+        @def_method(m, self.insert)
         def _(arg):
             m.d.sync += assign(current_instr, arg.rs_data)
             m.d.sync += current_instr.valid.eq(1)

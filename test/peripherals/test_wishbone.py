@@ -6,7 +6,6 @@ from coreblocks.peripherals.wishbone import *
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
-from coreblocks.utils import AutoDebugSignals
 
 from ..common import *
 
@@ -58,7 +57,7 @@ class WishboneInterfaceWrapper:
 
 
 class TestWishboneMaster(TestCaseWithSimulator):
-    class WishboneMasterTestModule(Elaboratable, AutoDebugSignals):
+    class WishboneMasterTestModule(Elaboratable):
         def __init__(self):
             pass
 
@@ -213,7 +212,7 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             sim.add_sync_process(process)
 
 
-class WishboneMemorySlaveCircuit(Elaboratable, AutoDebugSignals):
+class WishboneMemorySlaveCircuit(Elaboratable):
     def __init__(self, wb_params: WishboneParameters, mem_args: dict):
         self.wb_params = wb_params
         self.mem_args = mem_args
