@@ -6,8 +6,7 @@
 
   "exclude": [
     "**/node_modules",
-    "**/__pycache__",
-    "coreblocks/fu/zbs.py"
+    "**/__pycache__"
   ],
 
   "ignore": [
