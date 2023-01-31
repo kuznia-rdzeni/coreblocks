@@ -88,6 +88,49 @@
 <div class="section" id="module-coreblocks.peripherals.wishbone">
 <span id="coreblocks-peripherals-wishbone-module"></span><h2>coreblocks.peripherals.wishbone module<a class="headerlink" href="#module-coreblocks.peripherals.wishbone" title="Permalink to this heading"></a></h2>
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.PipelinedWishboneMaster">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">PipelinedWishboneMaster</span></span><a class="headerlink" href="#coreblocks.peripherals.wishbone.PipelinedWishboneMaster" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Pipelined Wishbone bus master interface.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>wb_params: WishboneParameters</strong></dt><dd><p>Parameters for bus generation.</p>
+</dd>
+<dt><strong>max_req: int</strong></dt><dd><p>Size of the response buffer, limits the number of pending requests. Defaults to 8.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>wb: Record (like WishboneLayout)</strong></dt><dd><p>Wishbone bus output.</p>
+</dd>
+<dt><strong>request: Method</strong></dt><dd><p>Transactional method to start a new Wishbone request.
+Ready if new request can be immediately sent.
+Takes <cite>requestLayout</cite> as argument.</p>
+</dd>
+<dt><strong>result: Method</strong></dt><dd><p>Transactional method to read results from completed requests sequentially.
+Ready if buffered results are available.
+Returns state of request (error or success) and data (in case of read request) as <cite>resultLayout</cite>.</p>
+</dd>
+<dt><strong>requests_finished: Signal, out</strong></dt><dd><p>True, if there are no requests waiting for response</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.PipelinedWishboneMaster.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_req</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.PipelinedWishboneMaster.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.PipelinedWishboneMaster.generate_method_layouts">
+<span class="sig-name descname"><span class="pre">generate_method_layouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.PipelinedWishboneMaster.generate_method_layouts" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneArbiter">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneArbiter</span></span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneArbiter" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -225,7 +268,11 @@ are not specified, then they’re inferred from <cite>wb_params</cite>: <cite>da
 </dd>
 <dt><strong>ssel_tga: Signal</strong></dt><dd><p>Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
 to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
-is asserted.</p>
+is asserted.
+Note that if Pipelined Wishbone implementation is used, then before staring any new request with
+different <cite>ssel_tga</cite> value, all pending request have to be finished (and <cite>stall</cite> cleared) and
+there have to be  one cycle delay from previouse request (to deassert the STB signal).  Holding new
+requests should be implemented in block that controlls <cite>ssel_tga</cite> signal, before the Wishbone Master.</p>
 </dd>
 </dl>
 </dd>
@@ -279,7 +326,7 @@ is asserted.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 22:12 2023-01-30.
+      <span class="lastupdated">Last updated on 10:15 2023-01-31.
       </span></p>
   </div>
 
