@@ -54,8 +54,8 @@ class RSBlockComponent(BlockComponentParams):
         self.func_units = func_units
         self.rs_entries = rs_entries
 
-    def get_module(self, gen_params: GenParams, inputs: BlockComponentInputs) -> FuncBlock:
-        modules = list(u.get_module(gen_params, inputs) for u in self.func_units)
+    def get_module(self, gen_params: GenParams, dependencies: ComponentDependencies) -> FuncBlock:
+        modules = list(u.get_module(gen_params, dependencies) for u in self.func_units)
         rs_unit = RSFuncBlock(gen_params=gen_params, func_units=modules, rs_entries=self.rs_entries)
         return rs_unit
 

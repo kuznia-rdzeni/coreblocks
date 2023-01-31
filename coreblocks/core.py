@@ -1,7 +1,7 @@
 from typing import Iterable
 from amaranth import *
 
-from coreblocks.params.fu_params import BlockComponentInputs, BlockComponentParams
+from coreblocks.params.fu_params import ComponentDependencies, BlockComponentParams
 from coreblocks.transactions.lib import FIFO, ConnectTrans, MethodProduct, Collector
 from coreblocks.params.layouts import *
 from coreblocks.params.genparams import GenParams
@@ -42,7 +42,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_input=BlockComponentInputs(wishbone_bus=wb_master),
+            dependencies=ComponentDependencies(wishbone_bus=wb_master),
         )
 
         self.announcement = ResultAnnouncement(
@@ -95,12 +95,12 @@ class Core(Elaboratable):
 # TODO: Move somewhere else
 class FuncBlocksUnifier(Elaboratable):
     def __init__(
-        self, *, gen_params: GenParams, blocks: Iterable[BlockComponentParams], extra_input: BlockComponentInputs
+        self, *, gen_params: GenParams, blocks: Iterable[BlockComponentParams], dependencies: ComponentDependencies
     ):
         self.rs_blocks = []
 
         for n, block in enumerate(blocks):
-            self.rs_blocks.append(block.get_module(gen_params=gen_params, inputs=extra_input))
+            self.rs_blocks.append(block.get_module(gen_params=gen_params, dependencies=dependencies))
 
         self.result_collector = Collector([block.get_result for block in self.rs_blocks])
         self.get_result = self.result_collector.get_single
