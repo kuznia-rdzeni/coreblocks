@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, Any
+from typing import Iterable
 
 import coreblocks.params.genparams as gp
 import coreblocks.params.optypes as optypes
