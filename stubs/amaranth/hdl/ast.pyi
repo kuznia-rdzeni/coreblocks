@@ -36,7 +36,7 @@ class Shape:
         ...
     
     @staticmethod
-    def cast(obj, *, src_loc_at=...):
+    def cast(obj: ShapeLike, *, src_loc_at=...):
         ...
     
     def __repr__(self) -> str:
@@ -57,7 +57,7 @@ def signed(width) -> Shape:
 
 class Value(metaclass=ABCMeta):
     @staticmethod
-    def cast(obj) -> Value:
+    def cast(obj: ValueLike) -> Value:
         """Converts ``obj`` to an Amaranth """
         ...
     
