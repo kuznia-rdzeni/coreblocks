@@ -8,13 +8,12 @@ from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.params import GenParams
-from coreblocks.utils import AutoDebugSignals
 
 from queue import Queue
 from random import Random
 
 
-class TestElaboratable(Elaboratable, AutoDebugSignals):
+class TestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gp = gen_params
 

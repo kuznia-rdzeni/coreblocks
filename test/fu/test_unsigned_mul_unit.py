@@ -13,14 +13,13 @@ from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
-from coreblocks.utils import AutoDebugSignals
 
 from test.common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.params import GenParams
 
 
-class UnsignedMultiplicationTestCircuit(Elaboratable, AutoDebugSignals):
+class UnsignedMultiplicationTestCircuit(Elaboratable):
     def __init__(self, gen: GenParams, mul_unit: Type[MulBaseUnsigned]):
         self.gen = gen
         self.mul_unit = mul_unit

@@ -12,7 +12,6 @@ from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit
 from coreblocks.params import *
-from coreblocks.utils import AutoDebugSignals
 
 
 def _cast_to_int_xlen(x, xlen):
@@ -110,7 +109,7 @@ class TestAlu(TestCaseWithSimulator):
         self.check_fn(AluFn.Fn.SLTU, operator.lt)
 
 
-class AluFuncUnitTestCircuit(Elaboratable, AutoDebugSignals):
+class AluFuncUnitTestCircuit(Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen
 

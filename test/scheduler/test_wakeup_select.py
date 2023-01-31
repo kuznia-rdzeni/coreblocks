@@ -11,12 +11,11 @@ from coreblocks.params import GenParams, RSLayouts
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
-from coreblocks.utils import AutoDebugSignals
 
 from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 
-class WakeupTestCircuit(Elaboratable, AutoDebugSignals):
+class WakeupTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.layouts = gen_params.get(RSLayouts)

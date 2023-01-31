@@ -2,15 +2,14 @@ from coreblocks.stages.retirement import *
 
 from coreblocks.transactions.lib import FIFO, Adapter
 from coreblocks.structs_common.rat import RRAT
-from coreblocks.params import ROBLayouts, RFLayouts
-from coreblocks.utils import AutoDebugSignals
+from coreblocks.params import ROBLayouts, RFLayouts, GenParams
 
 from ..common import *
 from collections import deque
 import random
 
 
-class RetirementTestCircuit(Elaboratable, AutoDebugSignals):
+class RetirementTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 

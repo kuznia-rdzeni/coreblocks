@@ -8,11 +8,10 @@ from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter, ManyToOneCo
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.params.layouts import *
 from coreblocks.params import GenParams
-from coreblocks.utils import AutoDebugSignals
-from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
+from ..common import TestCaseWithSimulator, TestbenchIO
 
 
-class BackendTestCircuit(Elaboratable, AutoDebugSignals):
+class BackendTestCircuit(Elaboratable):
     def __init__(self, gen: GenParams, fu_count: int = 1):
         self.gen = gen
 

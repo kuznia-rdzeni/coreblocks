@@ -1,4 +1,4 @@
-from enum import IntFlag, unique, IntEnum
+from enum import IntFlag, unique
 from typing import Tuple
 
 from amaranth import *
@@ -11,7 +11,6 @@ from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts,
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
-from coreblocks.utils import AutoDebugSignals
 
 
 __all__ = ["MulUnit", "MulFn", "MulComponent"]
@@ -100,20 +99,7 @@ def get_input(arg: Record) -> Tuple[Value, Value]:
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
 
-class MulType(IntEnum):
-    """
-    Enum of different multiplication units types
-    """
-
-    #: The cheapest multiplication unit in terms of resources, it uses Russian Peasants Algorithm.
-    SHIFT_MUL = 0
-    #: Uses single DSP unit for multiplication, which makes balance between performance and cost.
-    SEQUENCE_MUL = 1
-    #: Fastest way of multiplying using only one cycle, but costly in terms of resources.
-    RECURSIVE_MUL = 2
-
-
-class MulUnit(Elaboratable, AutoDebugSignals):
+class MulUnit(Elaboratable):
     """
     Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
     module. It uses standard FuncUnitLayout.

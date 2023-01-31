@@ -8,8 +8,7 @@ from coreblocks.transactions.lib import AdapterTrans
 from ..common import TestCaseWithSimulator, TestbenchIO, get_outputs, test_gen_params
 
 from coreblocks.structs_common.rs import RS
-from coreblocks.params import GenParams, OpType
-from coreblocks.utils import AutoDebugSignals
+from coreblocks.params import *
 
 
 def create_check_list(gp: GenParams, insert_list: list[dict]) -> list[dict]:
@@ -27,7 +26,7 @@ def create_check_list(gp: GenParams, insert_list: list[dict]) -> list[dict]:
     return check_list
 
 
-class TestElaboratable(Elaboratable, AutoDebugSignals):
+class TestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams, ready_for: Optional[Iterable[Iterable[OpType]]] = None) -> None:
         self.gp = gen_params
         self.ready_for = ready_for
