@@ -11,7 +11,6 @@ from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts,
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
-from coreblocks.utils import AutoDebugSignals
 
 
 __all__ = ["MulUnit", "MulFn"]
@@ -99,7 +98,7 @@ def get_input(arg: Record) -> Tuple[Value, Value]:
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
 
-class MulUnit(Elaboratable, AutoDebugSignals):
+class MulUnit(Elaboratable):
     """
     Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
     module. It uses standard FuncUnitLayout.

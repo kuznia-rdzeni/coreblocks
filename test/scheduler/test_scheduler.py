@@ -13,11 +13,10 @@ from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
 from coreblocks.params import RSLayouts, DecodeLayouts, GenParams, Opcode, OpType, Funct3, Funct7
 from coreblocks.structs_common.rob import ReorderBuffer
-from coreblocks.utils import AutoDebugSignals
 from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
 
 
-class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
+class SchedulerTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams, rs: list[set[OpType]]):
         self.gen_params = gen_params
         self.rs = rs
@@ -170,36 +169,36 @@ class TestScheduler(TestCaseWithSimulator):
         """Create queue gather-and-test process
 
         This function returns a simulation process that does the following steps:
-        1. Gathers dicts from multiple ``queues`` (one dict from each) and joins
+        1. Gathers dicts from multiple `queues` (one dict from each) and joins
            them together (items from queues are popped using popleft)
-        2. ``io`` is called with items gathered from ``input_queues``
-        3. If ``check`` was supplied, it's called with the results returned from
-           call in step 2. and items gathered from ``output_queues``
+        2. `io` is called with items gathered from `input_queues`
+        3. If `check` was supplied, it's called with the results returned from
+           call in step 2. and items gathered from `output_queues`
         Steps 1-3 are repeated until one of the queues receives None
 
-        Intention is to simplify writing tests with queues: ``input_queues`` lets
+        Intention is to simplify writing tests with queues: `input_queues` lets
         the user specify multiple data sources (queues) from which to gather
-        arguments for call to ``io``, and multiple data sources (queues) from which
-        to gather reference values to test against the results from the call to ``io``.
+        arguments for call to `io`, and multiple data sources (queues) from which
+        to gather reference values to test against the results from the call to `io`.
 
         Parameters
         ----------
         io : TestbenchIO
-            TestbenchIO to call with items gathered from ``input_queues``.
+            TestbenchIO to call with items gathered from `input_queues`.
         input_queues : deque[dict], optional
             Queue of dictionaries containing fields and values of a record to call
-            ``io`` with. Different fields may be split across multiple queues.
+            `io` with. Different fields may be split across multiple queues.
             Fields with the same name in different queues must not be used.
             Dictionaries are popped from the deques using popleft.
         output_queues : deque[dict], optional
             Queue of dictionaries containing reference fields and values to compare
-            results of ``io`` call with. Different fields may be split across
+            results of `io` call with. Different fields may be split across
             multiple queues. Fields with the same name in different queues must
             not be used. Dictionaries are popped from the deques using popleft.
         check : Callable[[dict, dict], TestGen]
-            Testbench generator which will be called with parameters ``result``
-            and ``outputs``, meaning results from the call to ``io`` and item
-            gathered from ``output_queues``.
+            Testbench generator which will be called with parameters `result`
+            and `outputs`, meaning results from the call to `io` and item
+            gathered from `output_queues`.
         always_enable: bool
             Makes `io` method always appear enabled.
 
@@ -211,7 +210,7 @@ class TestScheduler(TestCaseWithSimulator):
         Raises
         ------
         ValueError
-            If neither ``input_queues`` nor ``output_queues`` are supplied.
+            If neither `input_queues` nor `output_queues` are supplied.
         """
 
         def queue_process():
