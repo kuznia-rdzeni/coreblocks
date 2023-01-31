@@ -46,7 +46,7 @@ class FastRecursiveMul(Elaboratable):
             m = Module()
             m.submodules.dsp = dsp = DSPMulUnit(self.dsp_width)
             with Transaction().body(m):
-                res = dsp.compute(m, {"i1": self.i1, "i2": self.i2})
+                res = dsp.compute(m, {"i1": self.i1 | 0, "i2": self.i2 | 0})  # allow bit extension
                 m.d.comb += self.r.eq(res)
 
             return m
