@@ -8,7 +8,7 @@ from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter, ManyToOneCo
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.params.layouts import *
 from coreblocks.params import GenParams
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 
 class BackendTestCircuit(Elaboratable):

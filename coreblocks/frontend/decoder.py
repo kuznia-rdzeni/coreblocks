@@ -5,7 +5,6 @@ from typing import Optional
 from amaranth import *
 
 from coreblocks.params import *
-from coreblocks.utils import AutoDebugSignals
 
 __all__ = ["InstrDecoder"]
 
