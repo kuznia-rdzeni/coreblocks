@@ -1,6 +1,6 @@
 from amaranth import *
 from coreblocks.transactions import Method, def_method, Priority
-from coreblocks.transactions._utils import _coerce_layout, MethodLayout
+from coreblocks.transactions._utils import MethodLayout
 from typing import List, Optional
 
 
@@ -25,7 +25,7 @@ class BasicFifo(Elaboratable):
         """
         Parameters
         ----------
-        layout: Layout or int
+        layout: record layout
             Layout of data stored in the FIFO.
             If integer is given, Record with field `data` and width of this paramter is used as internal layout.
         depth: int
@@ -34,7 +34,7 @@ class BasicFifo(Elaboratable):
             List of memory elements to initialize FIFO at reset. List may be smaller than `depth`.
             If `Record` is used as `layout`, it has to be flattened to `int` first.
         """
-        self.layout = _coerce_layout(layout)
+        self.layout = layout
         self.width = len(Record(self.layout))
         self.depth = depth
 
