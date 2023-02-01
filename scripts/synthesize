@@ -7,14 +7,20 @@ import argparse
 from amaranth.build import Platform
 from amaranth import Module, Elaboratable, Cat
 
+from typing import Optional
+
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params, io_pins: int, instr_mem: list[int] = []):
+    def __init__(self, gen_params, io_pins: int, instr_mem: list[int] = [], data_mem: Optional[list[int]]=None):
         from coreblocks.params.genparams import GenParams
 
         self.gp: GenParams = gen_params
         self.io_pins: int = io_pins
         self.instr_mem = instr_mem
+        if data_mem is None:
+            self.data_mem = [0] * (2**10)
+        else:
+            self.data_mem = data_mem
 
     def elaborate(self, platform: Platform):
         from coreblocks.core import Core
@@ -27,9 +33,16 @@ class TestElaboratable(Elaboratable):
 
         self.wb_master = WishboneMaster(wb_params=wb_params)
         self.wb_mem_slave = WishboneMemorySlave(wb_params=wb_params, width=32, depth=32, init=self.instr_mem)
-        self.core = Core(gen_params=self.gp, wb_master=self.wb_master)
+
+        self.wb_master_data = WishboneMaster(wb_params=wb_params)
+        self.wb_mem_slave_data = WishboneMemorySlave(
+            wb_params=wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
+        )
+
+        self.core = Core(gen_params=self.gp, wb_master=self.wb_master, wb_master_data=self.wb_master_data)
 
         m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
+        m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_mem_slave_data.bus)
 
         # Request platform pins
         data_out_pins = Cat(platform.request("data_out", 0).o)
@@ -42,6 +55,7 @@ class TestElaboratable(Elaboratable):
 
         m.submodules.wb_master = self.wb_master
         m.submodules.wb_mem_slave = self.wb_mem_slave
+        m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core
 
         return tm
