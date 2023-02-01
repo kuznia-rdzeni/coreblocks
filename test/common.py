@@ -2,7 +2,7 @@ import unittest
 import os
 import functools
 from contextlib import contextmanager, nullcontext
-from typing import Callable, Mapping, Union, Generator, TypeVar, Optional, Any, cast
+from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -99,8 +99,11 @@ def signed_to_int(x: int, xlen: int) -> int:
     return x | -(x & (2 ** (xlen - 1)))
 
 
-class SimpleTestCircuit(Elaboratable):
-    def __init__(self, dut: HasElaborate):
+_T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
+
+
+class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
+    def __init__(self, dut: _T_HasElaborate):
         self._dut = dut
         self._io = dict[str, TestbenchIO]()
 
