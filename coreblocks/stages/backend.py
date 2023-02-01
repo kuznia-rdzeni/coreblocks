@@ -16,7 +16,7 @@ class ResultAnnouncement(Elaboratable):
 
     Method `get_result` gets already serialized instruction results, so in
     case in which we have more than one FU, then their outputs should be connected by
-    ``ManyToOneConnectTrans`` to a FIFO.
+    `ManyToOneConnectTrans` to a FIFO.
     """
 
     def __init__(
