@@ -51,6 +51,8 @@ class ZbsFunctionDecoder(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        # We ignore type errors here because m.Case() requires a non Amaranth Value
+        # Discussion: https://github.com/kuznia-rdzeni/coreblocks/pull/194#issuecomment-1407378082
         with m.Switch(Cat(self.exec_fn.funct3, self.exec_fn.funct7)):
             with m.Case(Cat(Funct3.BCLR, Funct7.BCLR)._as_const()):  # type: ignore
                 m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BCLR)
