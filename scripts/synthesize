@@ -54,6 +54,7 @@ class TestElaboratable(Elaboratable):
         m.d.comb += Cat(data_out_pins).eq(Cat(self.core.announcement.debug_signals()))
 
         m.submodules.wb_master = self.wb_master
+        m.submodules.wb_master_data = self.wb_master_data
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core
