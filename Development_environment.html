@@ -48,6 +48,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#using-scripts">Using scripts</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#run-tests">run_tests</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#lint-sh">lint.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#core-graph">core_graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#build-docs-sh">build-docs.sh</a></li>
 </ul>
 </li>
 </ul>
@@ -146,6 +148,19 @@
 </div>
 <p>This way you may display the changes <code class="docutils literal notranslate"><span class="pre">black</span></code> would apply to <code class="docutils literal notranslate"><span class="pre">[filename]</span></code> if you chose the <code class="docutils literal notranslate"><span class="pre">format</span></code> option for <code class="docutils literal notranslate"><span class="pre">lint.sh</span></code> script. This may help you locate the formatting issues.</p>
 </div>
+<div class="section" id="core-graph">
+<h3>core_graph<a class="headerlink" href="#core-graph" title="Permalink to this heading"></a></h3>
+<p>Visualizes the core architecture as a graph. The script outputs a file in one of supported graph formats, which need to be passed to an appropriate tool to get a graph.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">core_graph</span></code> script has the following options:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-p</span></code>, <code class="docutils literal notranslate"><span class="pre">--prune</span></code> – removes disconnected nodes from the output graph.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-f</span> <span class="pre">FORMAT</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">FORMAT</span></code> – selects the output format. Supported formats are <code class="docutils literal notranslate"><span class="pre">elk</span></code> (for <a class="reference external" href="https://www.eclipse.org/elk/">Eclipse Layout Kernel</a>), <code class="docutils literal notranslate"><span class="pre">dot</span></code> (for <a class="reference external" href="https://graphviz.org/">Graphviz</a>), <code class="docutils literal notranslate"><span class="pre">mermaid</span></code> (for <a class="reference external" href="https://mermaid.js.org/">Mermaid</a>).</p></li>
+</ul>
+</div>
+<div class="section" id="build-docs-sh">
+<h3>build-docs.sh<a class="headerlink" href="#build-docs-sh" title="Permalink to this heading"></a></h3>
+<p>Generates local documentation using <a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a>. The generated HTML files are located in <code class="docutils literal notranslate"><span class="pre">build/html</span></code>.</p>
+</div>
 </div>
 </div>
 
@@ -161,7 +176,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 13:46 2023-02-01.
+      <span class="lastupdated">Last updated on 20:41 2023-02-01.
       </span></p>
   </div>
 
