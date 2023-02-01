@@ -86,7 +86,7 @@ class BasicFifo(Elaboratable):
             m.d.sync += self.level.eq(0)
 
         @def_method(m, self.write, ready=self.write_ready)
-        def _(arg: Value) -> None:
+        def _(arg: Record) -> None:
             m.d.comb += self.buff_wrport.addr.eq(self.write_idx)
             m.d.comb += self.buff_wrport.data.eq(arg)
             m.d.comb += self.buff_wrport.en.eq(1)

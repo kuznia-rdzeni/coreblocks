@@ -1,7 +1,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
-from inspect import signature
+from inspect import Parameter, signature
 from typing import Callable, ClassVar, Mapping, TypeAlias, TypedDict, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
@@ -575,7 +575,7 @@ class Method(TransactionBase):
     """
 
     def __init__(
-        self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0, nonexclusive: bool = False
+        self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = (), nonexclusive: bool = False
     ):
         """
         Parameters
@@ -765,11 +765,21 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:
-            parameters = signature(func).parameters.keys()
-            if parameters <= arg.fields.keys():
-                ret_out = func(**{k: arg[k] for k in parameters})
-            else:
+            parameters = signature(func).parameters
+            kw_parameters = set(
+                n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
+            )
+            if (
+                len(parameters) == 1
+                and "arg" in parameters
+                and parameters["arg"].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
+                and parameters["arg"].annotation in {Parameter.empty, Record}
+            ):
                 ret_out = func(arg)
+            elif kw_parameters <= arg.fields.keys():
+                ret_out = func(**arg.fields)
+            else:
+                raise TypeError(f"Invalid def_method for {method}")
 
         if ret_out is not None:
             m.d.comb += _connect_rec_with_possibly_dict(out, ret_out)

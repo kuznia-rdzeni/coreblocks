@@ -262,12 +262,12 @@ class MethodTransformerTestCircuit(Elaboratable):
                 ometh = Method(i=self.iosize, o=self.iosize)
 
                 @def_method(m, imeth)
-                def _(v: Record):
-                    return itransform(m, v)
+                def _(arg: Record):
+                    return itransform(m, arg)
 
                 @def_method(m, ometh)
-                def _(v: Record):
-                    return otransform(m, v)
+                def _(arg: Record):
+                    return otransform(m, arg)
 
                 trans = MethodTransformer(
                     self.target.adapter.iface, i_transform=(self.iosize, imeth), o_transform=(self.iosize, ometh)
@@ -342,8 +342,8 @@ class MethodFilterTestCircuit(Elaboratable):
                 cmeth = Method(i=self.iosize, o=1)
 
                 @def_method(m, cmeth)
-                def _(v):
-                    return condition(m, v)
+                def _(arg: Record):
+                    return condition(m, arg)
 
                 filt = MethodFilter(self.target.adapter.iface, cmeth)
             else:

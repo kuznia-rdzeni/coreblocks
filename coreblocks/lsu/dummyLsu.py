@@ -250,7 +250,7 @@ class LSUDummy(Elaboratable):
             return 0
 
         @def_method(m, self.insert)
-        def _(rs_data: Record):
+        def _(rs_data: Record, rs_entry_id: Value):
             m.d.sync += assign(current_instr, rs_data)
             m.d.sync += current_instr.valid.eq(1)
 
