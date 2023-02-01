@@ -13,11 +13,10 @@ from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
 from coreblocks.params import RSLayouts, DecodeLayouts, GenParams, Opcode, OpType, Funct3, Funct7
 from coreblocks.structs_common.rob import ReorderBuffer
-from coreblocks.utils import AutoDebugSignals
 from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
 
 
-class SchedulerTestCircuit(Elaboratable, AutoDebugSignals):
+class SchedulerTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams, rs: list[set[OpType]]):
         self.gen_params = gen_params
         self.rs = rs

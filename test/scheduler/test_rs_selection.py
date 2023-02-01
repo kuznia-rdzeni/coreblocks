@@ -8,14 +8,13 @@ from coreblocks.params import GenParams, RSLayouts, SchedulerLayouts, OpType, Op
 from coreblocks.scheduler.scheduler import RSSelection
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
-from coreblocks.utils import AutoDebugSignals
 from test.common import TestCaseWithSimulator, TestbenchIO
 
 _rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
 _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}
 
 
-class RSSelector(Elaboratable, AutoDebugSignals):
+class RSSelector(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 

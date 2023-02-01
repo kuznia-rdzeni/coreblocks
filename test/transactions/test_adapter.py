@@ -55,8 +55,6 @@ class Consumer(Elaboratable):
 
 class TestElaboratable(Elaboratable):
     def __init__(self):
-        self.m = Module()
-        self.tm = TransactionModule(self.m)
 
         self.echo = Echo()
         self.consumer = Consumer()
@@ -64,14 +62,15 @@ class TestElaboratable(Elaboratable):
         self.io_consume = TestbenchIO(AdapterTrans(self.consumer.action))
 
     def elaborate(self, platform):
-        m = self.m
+        m = Module()
+        tm = TransactionModule(m)
 
         m.submodules.echo = self.echo
         m.submodules.io_echo = self.io_echo
         m.submodules.consumer = self.consumer
         m.submodules.io_consume = self.io_consume
 
-        return self.tm
+        return tm
 
 
 class TestAdapterTrans(TestCaseWithSimulator):
