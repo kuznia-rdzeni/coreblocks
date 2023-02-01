@@ -5,8 +5,10 @@ from functools import reduce
 from typing import List
 import operator
 
-from coreblocks.transactions import Method
+from coreblocks.transactions import Method, def_method
+from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.utils.utils import OneHotSwitchDynamic
+from coreblocks.utils.fifo import BasicFifo
 
 
 class WishboneParameters:
@@ -53,6 +55,7 @@ class WishboneLayout:
             ("ack", 1, DIR_FANIN if master else DIR_FANOUT),
             ("adr", wb_params.addr_width, DIR_FANOUT if master else DIR_FANIN),
             ("cyc", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("stall", 1, DIR_FANIN if master else DIR_FANOUT),
             ("err", 1, DIR_FANIN if master else DIR_FANOUT),
             ("lock", 1, DIR_FANOUT if master else DIR_FANIN),
             ("rty", 1, DIR_FANIN if master else DIR_FANOUT),
@@ -167,6 +170,105 @@ class WishboneMaster(Elaboratable):
         return m
 
 
+class PipelinedWishboneMaster(Elaboratable):
+    """Pipelined Wishbone bus master interface.
+
+    Parameters
+    ----------
+    wb_params: WishboneParameters
+        Parameters for bus generation.
+    max_req: int
+        Size of the response buffer, limits the number of pending requests. Defaults to 8.
+
+    Attributes
+    ----------
+    wb: Record (like WishboneLayout)
+        Wishbone bus output.
+    request: Method
+        Transactional method to start a new Wishbone request.
+        Ready if new request can be immediately sent.
+        Takes `requestLayout` as argument.
+    result: Method
+        Transactional method to read results from completed requests sequentially.
+        Ready if buffered results are available.
+        Returns state of request (error or success) and data (in case of read request) as `resultLayout`.
+    requests_finished: Signal, out
+        True, if there are no requests waiting for response
+    """
+
+    def __init__(self, wb_params: WishboneParameters, *, max_req: int = 8):
+        self.wb_params = wb_params
+        self.max_req = max_req
+
+        self.generate_method_layouts(wb_params)
+        self.request = Method(i=self.request_in_layout)
+        self.result = Method(o=self.result_out_layout)
+
+        self.requests_finished = Signal()
+
+        self.wb_layout = WishboneLayout(wb_params).wb_layout
+        self.wb = Record(self.wb_layout)
+
+    def generate_method_layouts(self, wb_params: WishboneParameters):
+        # generate method layouts locally
+        self.request_in_layout = [
+            ("addr", wb_params.addr_width),
+            ("data", wb_params.data_width),
+            ("we", 1),
+            ("sel", wb_params.data_width // wb_params.granularity),
+        ]
+
+        self.result_out_layout = [("data", wb_params.data_width), ("err", 1)]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.result_fifo = self.result_fifo = BasicFifo(self.result_out_layout, self.max_req)
+        m.submodules.result_write_adapter = self.result_write_adapter = AdapterTrans(self.result_fifo.write)
+
+        pending_req_cnt = Signal(range(self.max_req + 1))
+        req_start = Signal()
+        req_finish = Signal()
+
+        request_ready = Signal()
+        # assure that responses to all instructions in flight can be buffered
+        m.d.comb += request_ready.eq(~self.wb.stall & (pending_req_cnt + self.result_fifo.level < self.max_req))
+        m.d.comb += self.requests_finished.eq(pending_req_cnt == 0)
+
+        # assert cyc when starting new request or waiting for ack
+        m.d.comb += self.wb.cyc.eq(self.wb.stb | pending_req_cnt > 0)
+
+        with m.If(self.wb.ack | self.wb.err | self.wb.rty):
+            m.d.comb += self.result_write_adapter.en.eq(1)
+            m.d.comb += self.result_write_adapter.data_in.data.eq(self.wb.dat_r)
+            # retrying in not possible in PipelinedMaster, treat RTY as ERR.
+            m.d.comb += self.result_write_adapter.data_in.err.eq(self.wb.err | self.wb.rty)
+
+            m.d.comb += req_finish.eq(1)
+
+        self.result.proxy(m, self.result_fifo.read)
+
+        @def_method(m, self.request, ready=request_ready)
+        def _(arg) -> None:
+            m.d.comb += self.wb.stb.eq(1)
+
+            Method.comb += [
+                self.wb.adr.eq(arg.addr),
+                self.wb.dat_w.eq(arg.data),
+                self.wb.we.eq(arg.we),
+                self.wb.sel.eq(arg.sel),
+            ]
+
+            m.d.comb += req_start.eq(1)
+
+        with m.If(req_start & ~req_finish):
+            m.d.sync += pending_req_cnt.eq(pending_req_cnt + 1)
+        with m.If(req_finish & ~req_start):
+            m.d.sync += pending_req_cnt.eq(pending_req_cnt - 1)
+
+        return m
+
+
 class WishboneMuxer(Elaboratable):
     """Wishbone Muxer.
 
@@ -182,6 +284,10 @@ class WishboneMuxer(Elaboratable):
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
         is asserted.
+        Note that if Pipelined Wishbone implementation is used, then before staring any new request with
+        different `ssel_tga` value, all pending request have to be finished (and `stall` cleared) and
+        there have to be  one cycle delay from previouse request (to deassert the STB signal).  Holding new
+        requests should be implemented in block that controlls `ssel_tga` signal, before the Wishbone Master.
     """
 
     def __init__(self, master_wb: Record, slaves: List[Record], ssel_tga: Signal):
@@ -223,7 +329,7 @@ class WishboneMuxer(Elaboratable):
         m.d.comb += self.master_wb.rty.eq(reduce(operator.or_, [self.slaves[i].rty for i in range(len(self.slaves))]))
         for i in OneHotSwitchDynamic(m, self.txn_sel):
             # mux S->M data
-            m.d.comb += self.master_wb.connect(self.slaves[i], include=["dat_r"])
+            m.d.comb += self.master_wb.connect(self.slaves[i], include=["dat_r", "stall"])
         return m
 
 
@@ -273,7 +379,7 @@ class WishboneArbiter(Elaboratable):
             m.d.comb += self.masters[i].err.eq((m.submodules.rr.grant == i) & self.slave_wb.err)
             m.d.comb += self.masters[i].rty.eq((m.submodules.rr.grant == i) & self.slave_wb.rty)
             # remaining S->M signals are shared, master will only accept response if bus termination signal is present
-            m.d.comb += self.masters[i].dat_r.eq(self.slave_wb.dat_r)
+            m.d.comb += self.masters[i].connect(self.slave_wb, include=["dat_r", "stall"])
 
         # combine reset singnal
         m.d.comb += self.slave_wb.rst.eq(reduce(operator.or_, [self.masters[i].rst for i in range(len(self.masters))]))
