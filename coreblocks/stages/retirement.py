@@ -8,7 +8,7 @@ class Retirement(Elaboratable):
         self, *, rob_retire: Method, r_rat_commit: Method, free_rf_put: Method, rf_free: Method, lsu_commit: Method
     ):
         self.rob_retire = rob_retire
-        self.rat_put = r_rat_commit
+        self.r_rat_commit = r_rat_commit
         self.free_rf_put = free_rf_put
         self.rf_free = rf_free
         self.lsu_commit = lsu_commit
@@ -20,7 +20,7 @@ class Retirement(Elaboratable):
             rob_entry = self.rob_retire(m)
 
             # set rl_dst -> rp_dst in R-RAT
-            rat_out = self.rat_put(m, {"rl_dst": rob_entry.rob_data.rl_dst, "rp_dst": rob_entry.rob_data.rp_dst})
+            rat_out = self.r_rat_commit(m, {"rl_dst": rob_entry.rob_data.rl_dst, "rp_dst": rob_entry.rob_data.rp_dst})
 
             self.rf_free(m, rat_out.old_rp_dst)
             self.lsu_commit(m, {"rob_id": rob_entry.rob_id})
