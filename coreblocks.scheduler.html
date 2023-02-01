@@ -91,10 +91,49 @@
 <dt class="sig sig-object py" id="coreblocks.scheduler.scheduler.Scheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.scheduler.scheduler.</span></span><span class="sig-name descname"><span class="pre">Scheduler</span></span><a class="headerlink" href="#coreblocks.scheduler.scheduler.Scheduler" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module responsible for preparing an instruction and its insertion into RS. It supports
+multiple RS configurations, in which case, it will send the instruction to the first
+available RS which supports this kind of instructions.</p>
+<p>In order to prepare instruction it performs following steps:
+- physical register allocation
+- register renaming
+- ROB entry allocation
+- RS selection
+- RS insertion</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Instruction without any supporting RS will get stuck and block the scheduler pipeline.</p>
+</div>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.scheduler.scheduler.Scheduler.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_instr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_free_reg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rat_rename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rob_put</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rf_read1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rf_read2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reservation_stations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSFuncBlock" title="coreblocks.stages.rs_func_block.RSFuncBlock"><span class="pre">RSFuncBlock</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.scheduler.scheduler.Scheduler.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>get_instr: Method</strong></dt><dd><p>Method providing decoded instructions to be scheduled for execution. It has
+layout as described by <cite>DecodeLayouts.decoded_instr</cite>.</p>
+</dd>
+<dt><strong>get_free_reg: Method</strong></dt><dd><p>Method providing the ID of a currently free physical register.</p>
+</dd>
+<dt><strong>rat_rename: Method</strong></dt><dd><p>Method used for renaming the source register in F-RAT. Uses <cite>RATLayouts.rat_rename_in</cite>
+and <cite>RATLayouts.rat_rename_out</cite>.</p>
+</dd>
+<dt><strong>rob_put: Method</strong></dt><dd><p>Method used for getting a free entry in ROB. Uses <cite>ROBLayouts.data_layout</cite>.</p>
+</dd>
+<dt><strong>rf_read1: Method</strong></dt><dd><p>Method used for getting value of first source register and information if it is valid.
+Uses <cite>RFLayouts.rf_read_out</cite> and <cite>RFLayouts.rf_read_in</cite>.</p>
+</dd>
+<dt><strong>rf_read2: Method</strong></dt><dd><p>Method used for getting value of second source register and information if it is valid.
+Uses <cite>RFLayouts.rf_read_out</cite> and <cite>RFLayouts.rf_read_in</cite>.</p>
+</dd>
+<dt><strong>reservation_stations: Sequence[RSFuncBlock]</strong></dt><dd><p>Sequence of units with RS interfaces to which instructions should be inserted.</p>
+</dd>
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -105,10 +144,30 @@
 <dt class="sig sig-object py" id="coreblocks.scheduler.wakeup_select.WakeupSelect">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.scheduler.wakeup_select.</span></span><span class="sig-name descname"><span class="pre">WakeupSelect</span></span><a class="headerlink" href="#coreblocks.scheduler.wakeup_select.WakeupSelect" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Simple Wakeup Select unit.
+Works by firstly getting readiness vector from the method <cite>get_ready</cite> (it is a binary vector,
+where 1 on i-th position means i-th row is ready to be taken and 0 means it is not). In next
+step if any row is ready to be taken it calls <cite>take_row</cite> with i (position of last ready row)
+as an argument in order to get its value and then calls method <cite>issue</cite> with i-th row as
+argument. It is prepared to work with RS and functional unit interfaces.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.scheduler.wakeup_select.WakeupSelect.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_ready</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">take_row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">issue</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.scheduler.wakeup_select.WakeupSelect.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Instance of GenParams with parameters describing the core.</p>
+</dd>
+<dt><strong>get_ready</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to get the vector of readiness. It uses <cite>RSLayouts.get_ready_list_out</cite>.</p>
+</dd>
+<dt><strong>take_row</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to get a single ready row. It uses <cite>RSLayouts.take_out</cite>.</p>
+</dd>
+<dt><strong>issue</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to a push row down the pipeline. It uses <cite>FuncUnitLayouts.issue</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -130,7 +189,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 10:15 2023-01-31.
+      <span class="lastupdated">Last updated on 13:46 2023-02-01.
       </span></p>
   </div>
 

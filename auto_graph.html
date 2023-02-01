@@ -93,8 +93,8 @@
                 BasicFifo_read[&quot;read&quot;]
             end
             subgraph Fetch[&quot;fetch Fetch&quot;]
-                Fetch_verify_branch[&quot;verify_branch&quot;]
                 Fetch_Fetch[&quot;Fetch&quot;]
+                Fetch_verify_branch[&quot;verify_branch&quot;]
                 Fetch_FetchRQ[&quot;FetchRQ&quot;]
             end
             subgraph FRAT[&quot;FRAT FRAT&quot;]
@@ -105,14 +105,14 @@
             end
             subgraph RegisterFile[&quot;RF RegisterFile&quot;]
                 RegisterFile_read1[&quot;read1&quot;]
+                RegisterFile_read2[&quot;read2&quot;]
                 RegisterFile_write[&quot;write&quot;]
                 RegisterFile_free[&quot;free&quot;]
-                RegisterFile_read2[&quot;read2&quot;]
             end
             subgraph ReorderBuffer[&quot;ROB ReorderBuffer&quot;]
-                ReorderBuffer_put[&quot;put&quot;]
-                ReorderBuffer_retire[&quot;retire&quot;]
                 ReorderBuffer_mark_done[&quot;mark_done&quot;]
+                ReorderBuffer_retire[&quot;retire&quot;]
+                ReorderBuffer_put[&quot;put&quot;]
             end
             subgraph JumpBranchFuncUnit[&quot;jb_unit JumpBranchFuncUnit&quot;]
                 JumpBranchFuncUnit_issue[&quot;issue&quot;]
@@ -193,8 +193,8 @@
             subgraph RSFuncBlock[&quot;rs_block_0 RSFuncBlock&quot;]
                 RSFuncBlock_update[&quot;update&quot;]
                 RSFuncBlock_select[&quot;select&quot;]
-                RSFuncBlock_get_result[&quot;get_result&quot;]
                 RSFuncBlock_insert[&quot;insert&quot;]
+                RSFuncBlock_get_result[&quot;get_result&quot;]
                 subgraph RS[&quot;rs RS&quot;]
                     RS_take[&quot;take&quot;]
                     RS_RS[&quot;RS&quot;]
@@ -321,7 +321,7 @@ Retirement_Retirement --&gt; BasicFifo_write
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 10:15 2023-01-31.
+      <span class="lastupdated">Last updated on 13:46 2023-02-01.
       </span></p>
   </div>
 

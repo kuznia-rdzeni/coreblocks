@@ -16,8 +16,8 @@
                    BasicFifo_read["read"]
                end
                subgraph Fetch["fetch Fetch"]
-                   Fetch_verify_branch["verify_branch"]
                    Fetch_Fetch["Fetch"]
+                   Fetch_verify_branch["verify_branch"]
                    Fetch_FetchRQ["FetchRQ"]
                end
                subgraph FRAT["FRAT FRAT"]
@@ -28,14 +28,14 @@
                end
                subgraph RegisterFile["RF RegisterFile"]
                    RegisterFile_read1["read1"]
+                   RegisterFile_read2["read2"]
                    RegisterFile_write["write"]
                    RegisterFile_free["free"]
-                   RegisterFile_read2["read2"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
-                   ReorderBuffer_put["put"]
-                   ReorderBuffer_retire["retire"]
                    ReorderBuffer_mark_done["mark_done"]
+                   ReorderBuffer_retire["retire"]
+                   ReorderBuffer_put["put"]
                end
                subgraph JumpBranchFuncUnit["jb_unit JumpBranchFuncUnit"]
                    JumpBranchFuncUnit_issue["issue"]
@@ -116,8 +116,8 @@
                subgraph RSFuncBlock["rs_block_0 RSFuncBlock"]
                    RSFuncBlock_update["update"]
                    RSFuncBlock_select["select"]
-                   RSFuncBlock_get_result["get_result"]
                    RSFuncBlock_insert["insert"]
+                   RSFuncBlock_get_result["get_result"]
                    subgraph RS["rs RS"]
                        RS_take["take"]
                        RS_RS["RS"]
