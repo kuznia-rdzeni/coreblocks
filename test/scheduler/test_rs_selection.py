@@ -132,6 +132,10 @@ class TestRSSelect(TestCaseWithSimulator):
         return process
 
     def test_base_functionality(self):
+        """
+        Test checking basic functionality when both RS select methods are available.
+        """
+
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.create_instr_input_process(100, _rs1_optypes.union(_rs2_optypes)))
             sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0))
@@ -139,18 +143,33 @@ class TestRSSelect(TestCaseWithSimulator):
             sim.add_sync_process(self.create_output_process(100))
 
     def test_only_rs1(self):
+        """
+        Test checking if instruction will get allocated if first the RS is full and
+        the RS select method is not available.
+        """
+
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
             sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0))
             sim.add_sync_process(self.create_output_process(100))
 
     def test_only_rs2(self):
+        """
+        Test checking if an instruction will get allocated if the second RS is full and
+        the RS select method is not available.
+        """
+
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_sync_process(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
             sim.add_sync_process(self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1))
             sim.add_sync_process(self.create_output_process(100))
 
     def test_delays(self):
+        """
+        Test checking if instructions get allocated correctly if there are delays
+        in methods availability.
+        """
+
         with self.run_simulation(self.m, max_cycles=5000) as sim:
             sim.add_sync_process(self.create_instr_input_process(300, _rs1_optypes.union(_rs2_optypes), random_wait=4))
             sim.add_sync_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, random_wait=12))
