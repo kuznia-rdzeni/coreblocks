@@ -120,7 +120,7 @@ def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
         return set.intersection(*[set(cast(Record, el).fields) for el in elems])
 
 
-def assign_rhs_fields(val: AssignRHS) -> Optional[set[str]]:
+def assign_arg_fields(val: AssignRHS) -> Optional[set[str]]:
     if isinstance(val, ArrayProxy):
         return arrayproxy_fields(val)
     elif isinstance(val, Record):
@@ -169,8 +169,8 @@ def assign(lhs: AssignLHS, rhs: AssignRHS, *, fields: AssignFields = AssignType.
     ValueError
         If the assignment can't be safely performed.
     """
-    lhs_fields = assign_rhs_fields(lhs)
-    rhs_fields = assign_rhs_fields(rhs)
+    lhs_fields = assign_arg_fields(lhs)
+    rhs_fields = assign_arg_fields(rhs)
 
     if lhs_fields is not None and rhs_fields is not None:
         # asserts for type checking
@@ -208,15 +208,14 @@ def assign(lhs: AssignLHS, rhs: AssignRHS, *, fields: AssignFields = AssignType.
         if not isinstance(lhs, ValueLike) or not isinstance(rhs, ValueLike):
             raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
 
-        lhs_val = Value.cast(lhs)
         rhs_val = Value.cast(rhs)
 
         def has_explicit_shape(val: ValueLike):
             return isinstance(val, Signal) or isinstance(val, ArrayProxy)
 
         if isinstance(lhs, Record) or isinstance(rhs, Record) or has_explicit_shape(lhs) and has_explicit_shape(rhs):
-            if lhs_val.shape() != rhs_val.shape():
+            if lhs.shape() != rhs_val.shape():
                 raise ValueError(
-                    "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs_val.shape(), lhs, rhs_val.shape(), rhs)
+                    "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs.shape(), lhs, rhs_val.shape(), rhs)
                 )
-        yield lhs_val.eq(rhs_val)
+        yield lhs.eq(rhs_val)
