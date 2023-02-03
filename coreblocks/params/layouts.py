@@ -134,6 +134,8 @@ class ROBLayouts:
             ("done", 1),
         ]
 
+        self.retire_layout = [("rob_data", self.data_layout), ("rob_id", gen_params.rob_entries_bits)]
+
 
 class RSLayouts:
     def __init__(self, gen_params: GenParams):
