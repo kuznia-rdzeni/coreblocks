@@ -94,6 +94,7 @@ class SchedulerLayouts:
             ("imm", gen_params.isa.xlen),
             ("pc", gen_params.isa.xlen),
         ]
+        self.free_rf_layout = [("reg_id", gen_params.phys_regs_bits)]
 
 
 class RFLayouts:

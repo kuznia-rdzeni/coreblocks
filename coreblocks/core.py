@@ -30,7 +30,7 @@ class Core(Elaboratable):
         # make fifo_fetch visible outside the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
         self.free_rf_fifo = BasicFifo(
-            self.gen_params.phys_regs_bits,
+            self.gen_params.get(SchedulerLayouts).free_rf_layout,
             2**self.gen_params.phys_regs_bits,
             init=[i for i in range(1, 2**self.gen_params.phys_regs_bits)],
         )

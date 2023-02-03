@@ -9,7 +9,7 @@ from collections import deque
 from typing import Iterable, Callable
 from parameterized import parameterized, parameterized_class
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
@@ -110,7 +110,7 @@ class TransactionConflictTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m, TransactionManager(self.scheduler))
-        adapter = Adapter(i=32, o=32)
+        adapter = Adapter(i=data_layout(32), o=data_layout(32))
         m.submodules.out = self.out = TestbenchIO(adapter)
         m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
         m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))

@@ -3,7 +3,7 @@ from coreblocks.stages.retirement import *
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
 from coreblocks.structs_common.rat import RRAT
-from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts
+from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
 
 from ..common import *
 from collections import deque
@@ -21,10 +21,11 @@ class RetirementTestCircuit(Elaboratable):
         rob_layouts = self.gen_params.get(ROBLayouts)
         rf_layouts = self.gen_params.get(RFLayouts)
         lsu_layouts = self.gen_params.get(LSULayouts)
+        scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(
-            self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
+            scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
 
         m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.retire_layout))
@@ -86,7 +87,7 @@ class RetirementTest(TestCaseWithSimulator):
         def free_reg_process():
             while self.rf_exp_q:
                 reg = yield from retc.free_rf_adapter.call()
-                self.assertEqual(reg["data"], self.rf_exp_q.popleft())
+                self.assertEqual(reg["reg_id"], self.rf_exp_q.popleft())
 
         def rat_process():
             while self.rat_map_q:
