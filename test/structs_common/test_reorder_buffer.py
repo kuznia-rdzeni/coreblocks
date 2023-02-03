@@ -48,7 +48,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
             rob_id = yield from self.m.io_in.call(regs)
             self.to_execute_list.append((rob_id, phys_reg))
-            self.retire_queue.put(regs)
+            self.retire_queue.put((regs, rob_id["rob_id"]))
 
     def do_updates(self):
         yield Passive()
@@ -72,13 +72,14 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 is_ready = yield self.m.io_out.adapter.done
                 self.assertEqual(is_ready, 0)  # transaction should not be ready if there is nothing to retire
             else:
-                regs = self.retire_queue.get()
+                regs, rob_id_exp = self.retire_queue.get()
                 results = yield from self.m.io_out.call()
-                phys_reg = results["rp_dst"]
+                phys_reg = results["rob_data"]["rp_dst"]
+                self.assertEqual(rob_id_exp, results["rob_id"])
                 self.assertIn(phys_reg, self.executed_list)
                 self.executed_list.remove(phys_reg)
 
-                self.assertEqual(results, regs)
+                self.assertEqual(results["rob_data"], regs)
                 self.regs_left_queue.put(phys_reg)
 
                 cnt += 1

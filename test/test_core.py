@@ -9,6 +9,7 @@ from coreblocks.core import Core
 from coreblocks.params import GenParams
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
 
+from typing import Optional
 import random
 import subprocess
 import tempfile
@@ -31,30 +32,41 @@ from riscvmodel.variant import RV32I
 
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams, instr_mem: list[int] = []):
+    def __init__(self, gen_params: GenParams, instr_mem: list[int] = [], data_mem: Optional[list[int]] = None):
         self.gp = gen_params
         self.instr_mem = instr_mem
+        if data_mem is None:
+            self.data_mem = [0] * (2**10)
+        else:
+            self.data_mem = data_mem
 
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
 
         wb_params = WishboneParameters(data_width=32, addr_width=30)
-        self.wb_master = WishboneMaster(wb_params=wb_params)
+        self.wb_master_instr = WishboneMaster(wb_params=wb_params)
+        self.wb_master_data = WishboneMaster(wb_params=wb_params)
         self.wb_mem_slave = WishboneMemorySlave(
             wb_params=wb_params, width=32, depth=len(self.instr_mem), init=self.instr_mem
         )
-        self.core = Core(gen_params=self.gp, wb_master=self.wb_master)
+        self.wb_mem_slave_data = WishboneMemorySlave(
+            wb_params=wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
+        )
+        self.core = Core(gen_params=self.gp, wb_master_instr=self.wb_master_instr, wb_master_data=self.wb_master_data)
         self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
 
-        m.submodules.wb_master = self.wb_master
+        m.submodules.wb_master_instr = self.wb_master_instr
+        m.submodules.wb_master_data = self.wb_master_data
         m.submodules.wb_mem_slave = self.wb_mem_slave
+        m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
 
-        m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
+        m.d.comb += self.wb_master_instr.wbMaster.connect(self.wb_mem_slave.bus)
+        m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_mem_slave_data.bus)
 
         return tm
 
@@ -226,7 +238,8 @@ class TestCoreRandomized(TestCoreBase):
 
 
 @parameterized_class(
-    ("name", "source_file", "instr_count", "expected_regvals"), [("fibonacci", "fibonacci.asm", 1200, {2: 2971215073})]
+    ("name", "source_file", "instr_count", "expected_regvals"),
+    [("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}), ("fibonacci_mem", "fibonacci_mem.asm", 500, {3: 55})],
 )
 class TestCoreAsmSource(TestCoreBase):
     source_file: str

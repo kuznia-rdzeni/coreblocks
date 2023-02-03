@@ -29,7 +29,7 @@ def generate_register(max_reg_val: int, phys_regs_bits: int) -> tuple[int, int, 
     return rp, val, ann_data, real_val
 
 
-def generate_random_op(ops: dict[str, tuple[Opcode, Funct3]]) -> tuple[tuple[Opcode, Funct3], int, bool]:
+def generate_random_op(ops: dict[str, tuple[OpType, Funct3]]) -> tuple[tuple[OpType, Funct3], int, bool]:
     ops_k = list(ops.keys())
     op = ops[ops_k[random.randint(0, len(ops) - 1)]]
     signess = False
@@ -59,7 +59,7 @@ def shift_mask_based_on_addr(mask: int, addr: int) -> int:
     return mask
 
 
-def check_instr(addr: int, op: tuple[Opcode, Funct3]) -> bool:
+def check_instr(addr: int, op: tuple[OpType, Funct3]) -> bool:
     rest = addr % 4
     if op[1] in {Funct3.B, Funct3.BU}:
         return True
@@ -99,11 +99,11 @@ class DummyLSUTestCircuit(Elaboratable):
 class TestDummyLSULoads(TestCaseWithSimulator):
     def generate_instr(self, max_reg_val, max_imm_val):
         ops = {
-            "LB": (Opcode.LOAD, Funct3.B),
-            "LBU": (Opcode.LOAD, Funct3.BU),
-            "LH": (Opcode.LOAD, Funct3.H),
-            "LHU": (Opcode.LOAD, Funct3.HU),
-            "LW": (Opcode.LOAD, Funct3.W),
+            "LB": (OpType.LOAD, Funct3.B),
+            "LBU": (OpType.LOAD, Funct3.BU),
+            "LH": (OpType.LOAD, Funct3.H),
+            "LHU": (OpType.LOAD, Funct3.HU),
+            "LW": (OpType.LOAD, Funct3.W),
         }
         for i in range(self.tests_number):
             # generate new instructions till we generate correct one
@@ -218,7 +218,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
         rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
 
-        exec_fn = {"op_type": Opcode.LOAD, "funct3": Funct3.W, "funct7": 0}
+        exec_fn = {"op_type": OpType.LOAD, "funct3": Funct3.W, "funct7": 0}
         instr = {
             "rp_s1": 0,
             "rp_s2": 0,
@@ -264,9 +264,9 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
 class TestDummyLSUStores(TestCaseWithSimulator):
     def generate_instr(self, max_reg_val, max_imm_val):
         ops = {
-            "SB": (Opcode.STORE, Funct3.B),
-            "SH": (Opcode.STORE, Funct3.H),
-            "SW": (Opcode.STORE, Funct3.W),
+            "SB": (OpType.STORE, Funct3.B),
+            "SH": (OpType.STORE, Funct3.H),
+            "SW": (OpType.STORE, Funct3.W),
         }
         for i in range(self.tests_number):
             while True:
