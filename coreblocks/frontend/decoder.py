@@ -6,7 +6,6 @@ from amaranth import *
 
 from coreblocks.params import GenParams
 from coreblocks.params.isa import *
-from coreblocks.utils import AutoDebugSignals
 
 __all__ = ["InstrDecoder"]
 
@@ -211,7 +210,7 @@ _optypes_by_extensions = {
 }
 
 
-class InstrDecoder(Elaboratable, AutoDebugSignals):
+class InstrDecoder(Elaboratable):
     """
     Class performing instruction decoding into elementary components like opcodes, funct3 etc.
     It uses combinatorial connection via its attributes.

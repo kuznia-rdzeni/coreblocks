@@ -9,7 +9,6 @@ __all__ = [
     "Scheduler",
     "_graph_ccs",
     "MethodLayout",
-    "_coerce_layout",
     "ROGraph",
     "Graph",
     "GraphCC",
@@ -117,14 +116,7 @@ def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
     return ccs
 
 
-MethodLayout = int | LayoutLike
-
-
-def _coerce_layout(int_or_layout: MethodLayout) -> LayoutLike:
-    if isinstance(int_or_layout, int):
-        return [("data", int_or_layout)]
-    else:
-        return int_or_layout
+MethodLayout: TypeAlias = LayoutLike
 
 
 def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:

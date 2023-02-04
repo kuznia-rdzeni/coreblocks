@@ -574,7 +574,7 @@ class Method(TransactionBase):
     """
 
     def __init__(
-        self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0, nonexclusive: bool = False
+        self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = (), nonexclusive: bool = False
     ):
         """
         Parameters
@@ -582,10 +582,10 @@ class Method(TransactionBase):
         name: str or None
             Name hint for this `Method`. If `None` (default) the name is
             inferred from the variable name this `Method` is assigned to.
-        i: int or record layout
+        i: record layout
             The format of `data_in`.
             An `int` corresponds to a `Record` with a single `data` field.
-        o: int or record layout
+        o: record layout
             The format of `data_in`.
             An `int` corresponds to a `Record` with a single `data` field.
         nonexclusive: bool
@@ -599,8 +599,8 @@ class Method(TransactionBase):
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal()
         self.run = Signal()
-        self.data_in = Record(_coerce_layout(i))
-        self.data_out = Record(_coerce_layout(o))
+        self.data_in = Record(i)
+        self.data_out = Record(o)
         self.defined = False
         self.nonexclusive = nonexclusive
         if nonexclusive:

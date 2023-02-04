@@ -9,12 +9,11 @@ from collections import deque
 from typing import Iterable, Callable
 from parameterized import parameterized, parameterized_class
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.transactions._utils import Scheduler
-from coreblocks.utils import AutoDebugSignals
 
 from coreblocks.transactions.core import (
     Priority,
@@ -104,14 +103,14 @@ class TestScheduler(TestCaseWithSimulator):
             sim.add_sync_process(process)
 
 
-class TransactionConflictTestCircuit(Elaboratable, AutoDebugSignals):
+class TransactionConflictTestCircuit(Elaboratable):
     def __init__(self, scheduler):
         self.scheduler = scheduler
 
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m, TransactionManager(self.scheduler))
-        adapter = Adapter(i=32, o=32)
+        adapter = Adapter(i=data_layout(32), o=data_layout(32))
         m.submodules.out = self.out = TestbenchIO(adapter)
         m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
         m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))
@@ -206,7 +205,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
             sim.add_sync_process(self.make_out_process(probout))
 
 
-class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
+class TransactionPriorityTestCircuit(Elaboratable):
     def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
@@ -240,7 +239,7 @@ class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
         return tm
 
 
-class MethodPriorityTestCircuit(Elaboratable, AutoDebugSignals):
+class MethodPriorityTestCircuit(Elaboratable):
     def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()

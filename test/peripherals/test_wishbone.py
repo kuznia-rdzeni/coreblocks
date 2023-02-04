@@ -1,12 +1,10 @@
-# Testbench for WishboneMaster, WishboneMuxer and WishboneArbiter
-
 import random
+from collections import deque
 
 from coreblocks.peripherals.wishbone import *
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
-from coreblocks.utils import AutoDebugSignals
 
 from ..common import *
 
@@ -58,7 +56,7 @@ class WishboneInterfaceWrapper:
 
 
 class TestWishboneMaster(TestCaseWithSimulator):
-    class WishboneMasterTestModule(Elaboratable, AutoDebugSignals):
+    class WishboneMasterTestModule(Elaboratable):
         def __init__(self):
             pass
 
@@ -213,7 +211,73 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             sim.add_sync_process(process)
 
 
-class WishboneMemorySlaveCircuit(Elaboratable, AutoDebugSignals):
+class TestPipelinedWishboneMaster(TestCaseWithSimulator):
+    def test_randomized(self):
+        requests = 1000
+
+        req_queue = deque()
+        res_queue = deque()
+        slave_queue = deque()
+
+        random.seed(42)
+        wb_params = WishboneParameters()
+        pwbm = SimpleTestCircuit(PipelinedWishboneMaster((wb_params)))
+
+        def request_process():
+            for _ in range(requests):
+                request = {
+                    "addr": random.randint(0, 2**wb_params.addr_width - 1),
+                    "data": random.randint(0, 2**wb_params.data_width - 1),
+                    "we": random.randint(0, 1),
+                    "sel": random.randint(0, 2**wb_params.granularity - 1),
+                }
+                req_queue.appendleft(request)
+                yield from pwbm.request.call(request)
+
+        def verify_process():
+            for _ in range(requests):
+                while random.random() < 0.8:
+                    yield
+
+                result = yield from pwbm.result.call()
+                cres = res_queue.pop()
+                self.assertEqual(result["data"], cres)
+                self.assertFalse(result["err"])
+
+        def slave_process():
+            yield Passive()
+
+            wbw = pwbm._dut.wb
+            while True:
+                if (yield wbw.cyc) and (yield wbw.stb):
+                    self.assertFalse((yield wbw.stall))
+                    self.assertTrue(req_queue)
+                    c_req = req_queue.pop()
+                    self.assertEqual((yield wbw.adr), c_req["addr"])
+                    self.assertEqual((yield wbw.dat_w), c_req["data"])
+                    self.assertEqual((yield wbw.we), c_req["we"])
+                    self.assertEqual((yield wbw.sel), c_req["sel"])
+
+                    slave_queue.appendleft((yield wbw.dat_w))
+                    res_queue.appendleft((yield wbw.dat_w))
+
+                if slave_queue and random.random() < 0.4:
+                    yield wbw.ack.eq(1)
+                    yield wbw.dat_r.eq(slave_queue.pop())
+                else:
+                    yield wbw.ack.eq(0)
+
+                yield wbw.stall.eq(random.random() < 0.3)
+
+                yield
+
+        with self.run_simulation(pwbm) as sim:
+            sim.add_sync_process(request_process)
+            sim.add_sync_process(verify_process)
+            sim.add_sync_process(slave_process)
+
+
+class WishboneMemorySlaveCircuit(Elaboratable):
     def __init__(self, wb_params: WishboneParameters, mem_args: dict):
         self.wb_params = wb_params
         self.mem_args = mem_args

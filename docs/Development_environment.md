@@ -63,3 +63,16 @@ When confronted with `would reformat [filename]` message from `black` you may ru
 black --diff [filename]
 ```
 This way you may display the changes `black` would apply to `[filename]` if you chose the `format` option for `lint.sh` script. This may help you locate the formatting issues.
+
+### core\_graph
+
+Visualizes the core architecture as a graph. The script outputs a file in one of supported graph formats, which need to be passed to an appropriate tool to get a graph.
+
+The `core_graph` script has the following options:
+
+* `-p`, `--prune` -- removes disconnected nodes from the output graph.
+* `-f FORMAT`, `--format FORMAT` -- selects the output format. Supported formats are `elk` (for [Eclipse Layout Kernel](https://www.eclipse.org/elk/)), `dot` (for [Graphviz](https://graphviz.org/)), `mermaid` (for [Mermaid](https://mermaid.js.org/)).
+
+### build-docs.sh
+
+Generates local documentation using [Sphinx](https://www.sphinx-doc.org/). The generated HTML files are located in `build/html`.

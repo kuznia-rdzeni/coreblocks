@@ -10,7 +10,7 @@ from amaranth.sim import *
 from amaranth.sim.core import Command
 from coreblocks.transactions.core import DebugSignals, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
-from coreblocks.utils._typing import ValueLike
+from coreblocks.utils import ValueLike, auto_debug_signals, LayoutLike
 from .gtkw_extension import write_vcd_ext
 
 
@@ -19,6 +19,10 @@ RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
+
+
+def data_layout(val: int) -> LayoutLike:
+    return [("data", val)]
 
 
 def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
@@ -129,12 +133,14 @@ class SimpleTestCircuit(Elaboratable):
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def run_simulation(self, module, max_cycles=10e4, extra_signals=()):
+    def run_simulation(self, module: Elaboratable, max_cycles=10e4):
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
-        if not extra_signals and hasattr(module, "debug_signals"):
+        if hasattr(module, "debug_signals"):
             extra_signals = module.debug_signals
+        else:
+            extra_signals = functools.partial(auto_debug_signals, module)
 
         sim = Simulator(module)
         sim.add_clock(clk_period)

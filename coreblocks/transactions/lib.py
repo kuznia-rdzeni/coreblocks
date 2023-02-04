@@ -2,7 +2,7 @@ from typing import Callable, Tuple, Optional
 from amaranth import *
 from .core import *
 from .core import DebugSignals, RecordDict, _connect_rec_with_possibly_dict
-from ._utils import _coerce_layout, MethodLayout
+from ._utils import MethodLayout
 from ..utils._typing import ValueLike
 
 __all__ = [
@@ -48,7 +48,7 @@ class FIFO(Elaboratable):
         """
         Parameters
         ----------
-        layout: int or record layout
+        layout: record layout
             The format of records stored in the FIFO.
         depth: int
             Size of the FIFO.
@@ -56,7 +56,6 @@ class FIFO(Elaboratable):
             FIFO module conforming to Amaranth library FIFO interface. Defaults
             to SyncFIFO.
         """
-        layout = _coerce_layout(layout)
         self.width = len(Record(layout))
         self.depth = depth
         self.fifoType = fifo_type
@@ -111,7 +110,7 @@ class Forwarder(Elaboratable):
         """
         Parameters
         ----------
-        layout: int or record layout
+        layout: record layout
             The format of records forwarded.
         """
         self.read = Method(o=layout)
@@ -165,16 +164,16 @@ class ClickIn(Elaboratable):
         The data input.
     """
 
-    def __init__(self, layout: MethodLayout = 1):
+    def __init__(self, layout: MethodLayout):
         """
         Parameters
         ----------
-        layout: int or record layout
+        layout: record layout
             The data format for the input.
         """
         self.get = Method(o=layout)
         self.btn = Signal()
-        self.dat = Record(_coerce_layout(layout))
+        self.dat = Record(layout)
 
     def elaborate(self, platform):
         m = Module()
@@ -221,16 +220,16 @@ class ClickOut(Elaboratable):
         The data output.
     """
 
-    def __init__(self, layout: MethodLayout = 1):
+    def __init__(self, layout: MethodLayout):
         """
         Parameters
         ----------
-        layout: int or record layout
+        layout: record layout
             The data format for the output.
         """
         self.put = Method(i=layout)
         self.btn = Signal()
-        self.dat = Record(_coerce_layout(layout))
+        self.dat = Record(layout)
 
     def elaborate(self, platform):
         m = Module()
@@ -323,13 +322,13 @@ class Adapter(AdapterBase):
         Data passed as argument to the defined method.
     """
 
-    def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0):
+    def __init__(self, *, i: MethodLayout = (), o: MethodLayout = ()):
         """
         Parameters
         ----------
-        i: int or record layout
+        i: record layout
             The input layout of the defined method.
-        o: int or record layout
+        o: record layout
             The output layout of the defined method.
         """
         super().__init__(Method(i=i, o=o))
@@ -382,11 +381,11 @@ class MethodTransformer(Elaboratable):
         ----------
         target: Method
             The target method.
-        i_transform: (int or record layout, function or Method), optional
+        i_transform: (record layout, function or Method), optional
             Input transformation. If specified, it should be a pair of a
             function and a input layout for the transformed method.
             If not present, input is not transformed.
-        o_transform: (int or record layout, function or Method), optional
+        o_transform: (record layout, function or Method), optional
             Output transformation. If specified, it should be a pair of a
             function and a output layout for the transformed method.
             If not present, output is not transformed.
