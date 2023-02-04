@@ -36,6 +36,14 @@ coreblocks.fu.mul\_unit module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.fu.zbs module
+------------------------
+
+.. automodule:: coreblocks.fu.zbs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

@@ -3,8 +3,8 @@
    flowchart TB
        subgraph TestElaboratable["TestElaboratable"]
            subgraph WishboneMaster["wb_master_instr WishboneMaster"]
-               WishboneMaster_request["request"]
                WishboneMaster_result["result"]
+               WishboneMaster_request["request"]
            end
            subgraph WishboneMaster1["wb_master_data WishboneMaster"]
                WishboneMaster1_result["result"]
@@ -16,8 +16,8 @@
                    FIFO_read["read"]
                end
                subgraph BasicFifo["free_rf_fifo BasicFifo"]
-                   BasicFifo_write["write"]
                    BasicFifo_read["read"]
+                   BasicFifo_write["write"]
                end
                subgraph Fetch["fetch Fetch"]
                    Fetch_FetchRQ["FetchRQ"]
@@ -31,23 +31,23 @@
                    RRAT_commit["commit"]
                end
                subgraph RegisterFile["RF RegisterFile"]
+                   RegisterFile_read2["read2"]
                    RegisterFile_write["write"]
                    RegisterFile_free["free"]
                    RegisterFile_read1["read1"]
-                   RegisterFile_read2["read2"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
                    ReorderBuffer_put["put"]
-                   ReorderBuffer_retire["retire"]
                    ReorderBuffer_mark_done["mark_done"]
+                   ReorderBuffer_retire["retire"]
                end
                subgraph JumpBranchFuncUnit["jb_unit JumpBranchFuncUnit"]
                    JumpBranchFuncUnit_accept["accept"]
                    JumpBranchFuncUnit_issue["issue"]
                    JumpBranchFuncUnit_branch_result["branch_result"]
                    subgraph FIFO1["fifo_res FIFO"]
-                       FIFO1_read["read"]
                        FIFO1_write["write"]
+                       FIFO1_read["read"]
                    end
                    subgraph FIFO2["fifo_branch FIFO"]
                        FIFO2_write["write"]
@@ -91,16 +91,16 @@
                    ResultAnnouncement_ResultAnnouncement["ResultAnnouncement"]
                end
                subgraph FIFO3["fifo_decode FIFO"]
-                   FIFO3_read["read"]
                    FIFO3_write["write"]
+                   FIFO3_read["read"]
                end
                subgraph Decode["decode Decode"]
                    Decode_Decode["Decode"]
                end
                subgraph Scheduler["scheduler Scheduler"]
                    subgraph FIFO4["alloc_rename_buf FIFO"]
-                       FIFO4_write["write"]
                        FIFO4_read["read"]
+                       FIFO4_write["write"]
                    end
                    subgraph RegAllocation["reg_alloc RegAllocation"]
                        RegAllocation_RegAllocation["RegAllocation"]
@@ -128,8 +128,8 @@
                        RSSelection_RSSelection["RSSelection"]
                        RSSelection_RSSelection["RSSelection"]
                        subgraph Forwarder1["forwarder Forwarder"]
-                           Forwarder1_write["write"]
                            Forwarder1_read["read"]
+                           Forwarder1_write["write"]
                        end
                    end
                    subgraph RSInsertion["rs_insertion RSInsertion"]
@@ -142,12 +142,12 @@
                    RSFuncBlock_get_result["get_result"]
                    RSFuncBlock_update["update"]
                    subgraph RS["rs RS"]
+                       RS_insert["insert"]
+                       RS_RS["RS"]
                        RS_RS["RS"]
                        RS_update["update"]
                        RS_select["select"]
                        RS_take["take"]
-                       RS_insert["insert"]
-                       RS_RS["RS"]
                    end
                    subgraph AluFuncUnit["func_unit_0 AluFuncUnit"]
                        AluFuncUnit_issue["issue"]
@@ -166,8 +166,8 @@
                    subgraph Collector1["collector Collector"]
                        Collector1_get_single["get_single"]
                        subgraph Forwarder2["forwarder Forwarder"]
-                           Forwarder2_read["read"]
                            Forwarder2_write["write"]
+                           Forwarder2_read["read"]
                        end
                        subgraph ManyToOneConnectTrans1["connect ManyToOneConnectTrans"]
                            subgraph ConnectTrans2["ManyToOneConnectTrans_input_0 ConnectTrans"]

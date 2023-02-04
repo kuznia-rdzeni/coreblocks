@@ -217,6 +217,132 @@ module. It uses standard FuncUnitLayout.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.fu.zbs">
+<span id="coreblocks-fu-zbs-module"></span><h2>coreblocks.fu.zbs module<a class="headerlink" href="#module-coreblocks.fu.zbs" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.Zbs">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.zbs.</span></span><span class="sig-name descname"><span class="pre">Zbs</span></span><a class="headerlink" href="#coreblocks.fu.zbs.Zbs" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module responsible for executing Zbs instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>function: ZbsFunction, in</strong></dt><dd><p>Function to be executed.</p>
+</dd>
+<dt><strong>in1: Signal(xlen), in</strong></dt><dd><p>First input.</p>
+</dd>
+<dt><strong>in2: Signal(xlen), in</strong></dt><dd><p>Second input.</p>
+</dd>
+<dt><strong>Args:</strong></dt><dd></dd>
+<dt><strong>—-</strong></dt><dd><p>gen_params: Core generation parameters.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.Zbs.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.Zbs.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.zbs.</span></span><span class="sig-name descname"><span class="pre">ZbsFunction</span></span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Signal</span></code></p>
+<p>Enum of Zbs functions.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.Function">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Function</span></span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.Function" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></p>
+<p>An enumeration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.Function.BCLR">
+<span class="sig-name descname"><span class="pre">BCLR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.Function.BCLR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.Function.BEXT">
+<span class="sig-name descname"><span class="pre">BEXT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.Function.BEXT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.Function.BINV">
+<span class="sig-name descname"><span class="pre">BINV</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.Function.BINV" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.Function.BSET">
+<span class="sig-name descname"><span class="pre">BSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.Function.BSET" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunctionDecoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.zbs.</span></span><span class="sig-name descname"><span class="pre">ZbsFunctionDecoder</span></span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunctionDecoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module decoding function into hot wired ZbsFunction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>exec_fn: Record(CommonLayouts.exec_fn), in</strong></dt><dd><p>Function to be decoded.</p>
+</dd>
+<dt><strong>zbs_function: ZbsFunction, out</strong></dt><dd><p>Function decoded into OneHotWire output.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunctionDecoder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunctionDecoder.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsUnit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.zbs.</span></span><span class="sig-name descname"><span class="pre">ZbsUnit</span></span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsUnit" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module responsible for executing Zbs instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>issue: Method(i=FuncUnitLayouts.issue)</strong></dt><dd><p>Method used for requesting computation.</p>
+</dd>
+<dt><strong>accept: Method(i=FuncUnitLayouts.accept)</strong></dt><dd><p>Method used for getting result of requested computation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsUnit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsUnit.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsUnit.op_types">
+<span class="sig-name descname"><span class="pre">op_types</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{OpType.SINGLE_BIT_MANIPULATION}</span></em><a class="headerlink" href="#coreblocks.fu.zbs.ZbsUnit.op_types" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.fu">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.fu" title="Permalink to this heading"></a></h2>
 </div>
@@ -234,7 +360,7 @@ module. It uses standard FuncUnitLayout.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 10:42 2023-02-03.
+      <span class="lastupdated">Last updated on 17:20 2023-02-04.
       </span></p>
   </div>
 
