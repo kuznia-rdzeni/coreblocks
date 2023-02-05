@@ -215,11 +215,9 @@ class MulUnit(Elaboratable):
                 #     m.d.comb += value1.eq(i1h)
                 #     m.d.comb += value2.eq(i2h)
 
-            params_fifo.write(
-                m, {"rob_id": arg.rob_id, "rp_dst": arg.rp_dst, "negative_res": negative_res, "high_res": high_res}
-            )
+            params_fifo.write(m, rob_id=arg.rob_id, rp_dst=arg.rp_dst, negative_res=negative_res, high_res=high_res)
 
-            multiplier.issue(m, {"i1": value1, "i2": value2})
+            multiplier.issue(m, i1=value1, i2=value2)
 
         with Transaction().body(m):
             response = multiplier.accept(m)  # get result from unsigned multiplier
@@ -227,6 +225,6 @@ class MulUnit(Elaboratable):
             sign_result = Mux(params.negative_res, -response.o, response.o)  # changing sign of result
             result = Mux(params.high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 
-            result_fifo.write(m, arg={"rob_id": params.rob_id, "result": result, "rp_dst": params.rp_dst})
+            result_fifo.write(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst)
 
         return m
