@@ -35,9 +35,14 @@ params_c = [
 
 @parameterized_class(["name", "f", "g", "h", "constr", "c"], [t + u for t in params_fgh for u in params_c])
 class TestAssign(TestCase):
+    # constructs `assign` arguments (records, proxies, dicts) which have an "inner" and "outer" part
+    # parameterized with a Record-like constructor and a layout of the inner part
     f: Callable[[Callable[[LayoutLike], AssignLHS], LayoutLike], AssignLHS]
+    # constructs field specifications for `assign`, takes field specifications for the inner part
     g: Callable[[AssignFields], AssignFields]
+    # extracts the inner part of the structure
     h: Callable[[AssignLHS], Record | ArrayProxy]
+    # Record-like constructor, takes a record layout
     c: Callable[[LayoutLike], AssignLHS]
 
     def test_rhs_exception(self):
