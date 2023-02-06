@@ -43,7 +43,6 @@ ops = {
 
 
 class ZbsUnitTest(GenericFunctionalTestUnit):
-
     def test_test(self):
         self.run_pipeline()
 

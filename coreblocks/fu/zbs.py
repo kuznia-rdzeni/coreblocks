@@ -1,8 +1,16 @@
 from enum import IntFlag, unique
 from amaranth import Signal, Module, Elaboratable, Record, Mux, Cat
 
-from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType, Funct7, \
-    FunctionalComponentParams, ComponentDependencies
+from coreblocks.params import (
+    Funct3,
+    CommonLayouts,
+    GenParams,
+    FuncUnitLayouts,
+    OpType,
+    Funct7,
+    FunctionalComponentParams,
+    ComponentDependencies,
+)
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import FIFO
 from coreblocks.transactions.core import def_method
