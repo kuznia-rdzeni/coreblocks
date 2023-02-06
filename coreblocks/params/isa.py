@@ -42,11 +42,11 @@ class Opcode(IntEnum):
 
 class Funct3(IntEnum):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
-    BNE = H = SLL = FENCEI = CSRRW = MULH = 0b001
+    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = 0b001
     W = SLT = CSRRS = MULHSU = 0b010
     SLTU = CSRRC = MULHU = 0b011
     BLT = BU = XOR = DIV = DIVW = 0b100
-    BGE = HU = SR = CSRRWI = DIVU = DIVUW = 0b101
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = 0b101
     BLTU = OR = CSRRSI = REM = REMW = 0b110
     BGEU = AND = CSRRCI = REMU = REMUW = 0b111
 
@@ -55,6 +55,9 @@ class Funct7(IntEnum):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = 0b0100000
     MULDIV = 0b0000001
+    BCLR = BEXT = 0b0100100
+    BINV = 0b0110100
+    BSET = 0b0010100
 
 
 class Funct12(IntEnum):
@@ -76,6 +79,35 @@ class FenceTarget(IntFlag):
 class FenceFm(IntEnum):
     NONE = 0b0000
     TSO = 0b1000
+
+
+@unique
+class OpType(IntEnum):
+    """
+    Enum of operation types. Do not confuse with Opcode.
+    """
+
+    UNKNOWN = auto()  # needs to be first
+    ARITHMETIC = auto()
+    COMPARE = auto()
+    LOGIC = auto()
+    SHIFT = auto()
+    AUIPC = auto()
+    JAL = auto()
+    JALR = auto()
+    BRANCH = auto()
+    LOAD = auto()
+    STORE = auto()
+    FENCE = auto()
+    ECALL = auto()
+    EBREAK = auto()
+    MRET = auto()
+    WFI = auto()
+    FENCEI = auto()
+    CSR = auto()
+    MUL = auto()
+    DIV_REM = auto()
+    SINGLE_BIT_MANIPULATION = auto()
 
 
 @unique

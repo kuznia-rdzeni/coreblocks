@@ -2,7 +2,7 @@ from coreblocks.stages.retirement import *
 
 from coreblocks.transactions.lib import FIFO, Adapter
 from coreblocks.structs_common.rat import RRAT
-from coreblocks.params import ROBLayouts, RFLayouts, GenParams
+from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
 
 from ..common import *
 from collections import deque
@@ -19,21 +19,26 @@ class RetirementTestCircuit(Elaboratable):
 
         rob_layouts = self.gen_params.get(ROBLayouts)
         rf_layouts = self.gen_params.get(RFLayouts)
+        lsu_layouts = self.gen_params.get(LSULayouts)
+        scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(
-            self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
+            scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
 
-        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.data_layout))
+        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.retire_layout))
 
         m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
+
+        m.submodules.mock_lsu_commit = self.mock_lsu_commit = TestbenchIO(Adapter(i=lsu_layouts.commit))
 
         m.submodules.retirement = self.retirement = Retirement(
             rob_retire=self.mock_rob_retire.adapter.iface,
             r_rat_commit=self.rat.commit,
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
+            lsu_commit=self.mock_lsu_commit.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -48,6 +53,7 @@ class RetirementTest(TestCaseWithSimulator):
         self.rat_map_q = deque()
         self.submit_q = deque()
         self.rf_free_q = deque()
+        self.lsu_commit_q = deque()
 
         random.seed(8)
         self.cycles = 256
@@ -57,13 +63,15 @@ class RetirementTest(TestCaseWithSimulator):
         for _ in range(self.cycles):
             rl = random.randint(0, self.gen_params.isa.reg_cnt - 1)
             rp = random.randint(1, 2**self.gen_params.phys_regs_bits - 1) if rl != 0 else 0
+            rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits - 1)
             if rl != 0:
                 if rat_state[rl] != 0:  # phys reg 0 shouldn't be marked as free
                     self.rf_exp_q.append(rat_state[rl])
                 self.rf_free_q.append(rat_state[rl])
                 rat_state[rl] = rp
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
-                self.submit_q.append({"rl_dst": rl, "rp_dst": rp})
+                self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id})
+                self.lsu_commit_q.append(rob_id)
             # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
@@ -78,7 +86,7 @@ class RetirementTest(TestCaseWithSimulator):
         def free_reg_process():
             while self.rf_exp_q:
                 reg = yield from retc.free_rf_adapter.call()
-                self.assertEqual(reg["data"], self.rf_exp_q.popleft())
+                self.assertEqual(reg["reg_id"], self.rf_exp_q.popleft())
 
         def rat_process():
             while self.rat_map_q:
@@ -97,8 +105,13 @@ class RetirementTest(TestCaseWithSimulator):
         def rf_free_process(reg):
             self.assertEqual(reg["reg_id"], self.rf_free_q.popleft())
 
+        @def_method_mock(lambda: retc.mock_lsu_commit, condition=lambda: bool(self.lsu_commit_q))
+        def lsu_commit_process(reg):
+            self.assertEqual(reg["rob_id"], self.lsu_commit_q.popleft())
+
         with self.run_simulation(retc) as sim:
             sim.add_sync_process(submit_process)
             sim.add_sync_process(free_reg_process)
             sim.add_sync_process(rat_process)
             sim.add_sync_process(rf_free_process)
+            sim.add_sync_process(lsu_commit_process)

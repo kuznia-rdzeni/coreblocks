@@ -11,7 +11,7 @@ from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
-from coreblocks.params import RSLayouts, DecodeLayouts, GenParams, Opcode, OpType, Funct3, Funct7
+from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, Opcode, OpType, Funct3, Funct7
 from coreblocks.structs_common.rob import ReorderBuffer
 from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock, test_gen_params
 
@@ -27,11 +27,12 @@ class SchedulerTestCircuit(Elaboratable):
 
         rs_layouts = self.gen_params.get(RSLayouts)
         decode_layouts = self.gen_params.get(DecodeLayouts)
+        scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
         # data structures
         m.submodules.instr_fifo = instr_fifo = FIFO(decode_layouts.decoded_instr, 16)
         m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
-            self.gen_params.phys_regs_bits, 2**self.gen_params.phys_regs_bits
+            scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
         m.submodules.rat = rat = FRAT(gen_params=self.gen_params)
         m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
@@ -132,7 +133,7 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_phys_reg(i)
 
     def free_phys_reg(self, reg_id):
-        self.free_regs_queue.append({"data": reg_id})
+        self.free_regs_queue.append({"reg_id": reg_id})
         self.expected_phys_reg_queue.append(reg_id)
 
     def queue_gather(self, queues: Iterable[deque]):

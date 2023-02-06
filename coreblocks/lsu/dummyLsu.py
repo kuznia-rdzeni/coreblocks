@@ -1,8 +1,7 @@
 from amaranth import *
 
-from coreblocks.params.fu_params import ComponentDependencies, BlockComponentParams
 from coreblocks.transactions import Method, def_method, Transaction
-from coreblocks.params import RSLayouts, GenParams, FuncUnitLayouts, Opcode, Funct3, LSULayouts, OpType
+from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign
 
@@ -48,7 +47,6 @@ class LSUDummyInternals(Elaboratable):
         self.result_ready = Signal()
         self.execute_store = Signal()
         self.store_ready = Signal()
-        self.ready_for_store = Signal()
 
     def calculate_addr(self):
         """Calculate Load/Store address as defined by RiscV spec"""
@@ -144,7 +142,7 @@ class LSUDummyInternals(Elaboratable):
             )
 
         def check_if_instr_is_load(current_instr: Record) -> Value:
-            return current_instr.exec_fn.op_type == Opcode.LOAD
+            return current_instr.exec_fn.op_type == OpType.LOAD
 
         m = Module()
 
@@ -159,7 +157,6 @@ class LSUDummyInternals(Elaboratable):
                     m.next = "LoadInit"
                 with m.If(instr_ready & ~instr_is_load):
                     m.d.sync += self.result_ready.eq(1)
-                    m.d.sync += self.ready_for_store.eq(1)
                     m.next = "StoreWaitForExec"
             with m.State("LoadInit"):
                 with m.If(~op_initiated):
@@ -187,7 +184,6 @@ class LSUDummyInternals(Elaboratable):
                 self.op_end(m, op_initiated, True)
                 with m.If(self.store_ready):
                     m.d.sync += self.store_ready.eq(0)
-                    m.d.sync += self.ready_for_store.eq(0)
                     m.next = "Start"
         return m
 
@@ -213,6 +209,8 @@ class LSUDummy(Elaboratable):
         and we have a value which can be used in further computations.
     get_result : Method
         To put load/store results to the next stage of pipeline.
+    commit : Method
+        Used to inform LSU that new instruction have been retired.
     """
 
     optypes = {OpType.LOAD, OpType.STORE}
@@ -272,14 +270,14 @@ class LSUDummy(Elaboratable):
         @def_method(m, self.get_result, result_ready)
         def _(arg):
             m.d.comb += internal.get_result_ack.eq(1)
-            with m.If(current_instr.exec_fn.op_type == Opcode.LOAD):
+            with m.If(current_instr.exec_fn.op_type == OpType.LOAD):
                 m.d.sync += current_instr.eq(0)
                 m.d.sync += reserved.eq(0)
             return {"rob_id": current_instr.rob_id, "rp_dst": current_instr.rp_dst, "result": internal.loadedData}
 
-        @def_method(m, self.commit, internal.ready_for_store)
+        @def_method(m, self.commit)
         def _(arg):
-            with m.If((current_instr.exec_fn.op_type == Opcode.STORE) & (arg.rob_id == current_instr.rob_id)):
+            with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (arg.rob_id == current_instr.rob_id)):
                 m.d.sync += internal.execute_store.eq(1)
 
         with m.If(internal.store_ready):

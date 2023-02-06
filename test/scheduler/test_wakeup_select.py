@@ -24,8 +24,8 @@ class WakeupTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        ready_mock = Adapter(o=self.gen_params.rs_entries)
-        take_row_mock = Adapter(i=self.gen_params.rs_entries_bits, o=self.layouts.take_out)
+        ready_mock = Adapter(o=self.layouts.get_ready_list_out)
+        take_row_mock = Adapter(i=self.layouts.take_in, o=self.layouts.take_out)
         issue_mock = Adapter(i=self.layouts.take_out)
         m.submodules.ready_mock = self.ready_mock = TestbenchIO(ready_mock)
         m.submodules.take_row_mock = self.take_row_mock = TestbenchIO(take_row_mock)
@@ -84,7 +84,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
             inserted_count += self.maybe_insert(rs)
             ready = Cat(entry is not None for entry in rs)
 
-            yield from self.m.ready_mock.call_init({"data": ready})
+            yield from self.m.ready_mock.call_init({"ready_list": ready})
             if any(entry is not None for entry in rs):
                 yield from self.m.ready_mock.enable()
             else:
@@ -94,7 +94,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
 
             take_position = yield from self.m.take_row_mock.call_result()
             if take_position is not None:
-                take_position = cast(int, take_position["data"])
+                take_position = cast(int, take_position["rs_entry_id"])
                 entry = rs[take_position]
                 self.assertIsNotNone(entry)
                 entry = cast(RecordIntDict, entry)  # for type checking
