@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1675531621364,
+  "lastUpdate": 1675717466271,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -2277,6 +2277,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e536f66272747081487984021af04fa3222a0dd0"
         },
         "date": 1675531620471,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 55.28,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17250,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 510,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5447,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "269e6474c64796ff25ebe252a5f45e6aa70ede25",
+          "message": "Kwargs in method calls (#225)",
+          "timestamp": "2023-02-06T21:55:49+01:00",
+          "tree_id": "bd0f28ee4bea46fdde96467e903ced1ce7db4a7b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/269e6474c64796ff25ebe252a5f45e6aa70ede25"
+        },
+        "date": 1675717464404,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
