@@ -30,6 +30,7 @@ class OpType(IntEnum):
     CSR = auto()
     MUL = auto()
     DIV_REM = auto()
+    SINGLE_BIT_MANIPULATION = auto()
 
 
 #
@@ -66,6 +67,9 @@ optypes_by_extensions = {
     ],
     Extension.ZMMUL: [
         OpType.MUL,
+    ],
+    Extension.ZBS: [
+        OpType.SINGLE_BIT_MANIPULATION,
     ],
 }
 

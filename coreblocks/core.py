@@ -40,12 +40,10 @@ class Core(Elaboratable):
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        self.lsu_unit = LSUDummy(gen_params=self.gen_params, bus=self.wb_master_data)
-
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            dependencies=ComponentDependencies(wishbone_bus=wb_master),
+            dependencies=ComponentDependencies(wishbone_bus=wb_master_data),
         )
 
         self.announcement = ResultAnnouncement(
@@ -93,7 +91,7 @@ class Core(Elaboratable):
             r_rat_commit=rrat.commit,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
-            lsu_commit=self.lsu_unit.commit,
+            lsu_commit=self.func_blocks_unifier.commit,
         )
 
         return m
@@ -138,7 +136,7 @@ class FuncBlocksUnifier(Elaboratable):
         self.commit_product = None
         match commit_methods:
             case []:
-                self.commit = None
+                raise Exception("CPU without side effects")
             case [method]:
                 self.commit = method
             case [*methods]:

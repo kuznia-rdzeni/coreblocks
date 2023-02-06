@@ -2,6 +2,7 @@ from amaranth import Elaboratable, Module
 
 from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.jumpbranch import JumpComponent
+from coreblocks.lsu.dummyLsu import LSUBlockComponent
 from coreblocks.stages.rs_func_block import RSBlockComponent
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
@@ -174,7 +175,7 @@ class TestCoreSimple(TestCoreBase):
     def test_simple(self):
         gp = GenParams(
             "rv32i",
-            [RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4)],
+            [RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4), LSUBlockComponent()],
             phys_regs_bits=6,
             rob_entries_bits=7,
         )
@@ -205,7 +206,7 @@ class TestCoreRandomized(TestCoreBase):
     def test_randomized(self):
         self.gp = GenParams(
             "rv32i",
-            [RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4)],
+            [RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4), LSUBlockComponent()],
             phys_regs_bits=6,
             rob_entries_bits=7,
         )

@@ -2,12 +2,10 @@ import random
 from collections import deque
 from typing import Optional
 
-from amaranth import Elaboratable, Module
 from amaranth.sim import Settle, Passive
 
-from coreblocks.params import GenParams
+from coreblocks.params import OpType, GenParams
 from coreblocks.transactions import TransactionModule
-from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.isa import *
 from coreblocks.peripherals.wishbone import *
