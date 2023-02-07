@@ -20,12 +20,12 @@ class LongDividerUnit(Elaboratable):
     def elaborate(self, platform) -> Module:
         m = Module()
         num_cpy = Signal(unsigned(self.bit_width))
+        m.d.sync += num_cpy.eq(self.num)
 
         with m.If(self.reset):
             m.d.sync += self.valid.eq(0)
             m.d.sync += self.quotient.eq(0)
             m.d.sync += self.remainder.eq(0)
-            m.d.sync += num_cpy.eq(self.num)
 
         with m.If(~self.valid & ~self.reset):
             with Transaction().body(m):

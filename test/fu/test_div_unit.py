@@ -19,7 +19,7 @@ from coreblocks.params import GenParams
 from test.fu.functional_common import FunctionalTestCircuit
 
 
-class UnsignedMultiplicationTestCircuit(Elaboratable, AutoDebugSignals):
+class DivisionTestCircuit(Elaboratable, AutoDebugSignals):
     def __init__(self, gen: GenParams, div_unit: Type[DividerBase]):
         self.gen = gen
         self.div_unit = div_unit
@@ -57,13 +57,18 @@ class DivisionTestUnit(TestCaseWithSimulator):
         random.seed(1050)
         self.requests = deque()
         self.responses = deque()
-        max_int = 2**self.gen.isa.xlen - 1
+        max_int = 2**(self.gen.isa.xlen - 1) - 1
+        min_int =  -2**(self.gen.isa.xlen - 1)
+
+        print(f"xlen: {self.gen.isa.xlen}")
+
         for _ in range(100):
             data1 = random.randint(1, max_int)
             data2 = random.randint(1, max_int)
+            print(f"Data1 {data1} data2 {data2}")
             q = data1 // data2
             r = data1 % data2
-
+            print(f"Q: {q} R: {r}")
             self.requests.append(
                 {
                     "dividend": data1,

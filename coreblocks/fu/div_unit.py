@@ -54,11 +54,13 @@ class DivUnit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.result_fifo = result_fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
+        m.submodules.result_fifo = result_fifo = FIFO(
+            self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.params_fifo = params_fifo = FIFO(
             [
                 ("rob_id", self.gen.rob_entries_bits),
                 ("rp_dst", self.gen.phys_regs_bits),
+                ("sign", 1)
             ],
             2,
         )
@@ -66,6 +68,8 @@ class DivUnit(Elaboratable):
         m.submodules.decoder = decoder = DivFnDecoder(self.gen)
 
         m.submodules.divider = LongDivider(self.gen)
+        xlen = self.gen.isa.xlen
+        sign_pos = xlen - 1
 
         @def_method(m, self.accept)
         def _(arg):
@@ -76,22 +80,36 @@ class DivUnit(Elaboratable):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
 
             arg1, arg2 = arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
+            sgn1, sgn2 = arg1[sign_pos], arg2[sign_pos]
+            result_sign = sgn1 ^ sgn2
 
             dividend = Signal(self.gen.isa.xlen)
             divisor = Signal(self.gen.isa.xlen)
+            sign = Signal()
+
+            uarg1 = Mux(arg1[sign_pos], arg1 & (2**xlen - 1), arg1)
+            uarg2 = Mux(arg2[sign_pos], arg2 | -(arg2 & (2 ** (xlen - 1))), arg2)
 
             with OneHotSwitch(m, decoder.div_fn) as OneHotCase:
                 with OneHotCase(DivFn.Fn.DIV):
+                    m.d.comb += sign.eq(result_sign)
+                    m.d.comb += dividend.eq(uarg1)
+                    m.d.comb += divisor.eq(uarg2)
+                with OneHotCase(DivFn.Fn.DIVU):
+                    m.d.comb += sign.eq(0)
                     m.d.comb += dividend.eq(arg1)
                     m.d.comb += divisor.eq(arg2)
-                with OneHotCase(DivFn.Fn.DIVU):
-                    pass
                 with OneHotCase(DivFn.Fn.REM):
-                    pass
+                    m.d.comb += sign.eq(result_sign)
+                    m.d.comb += dividend.eq(arg1)
+                    m.d.comb += divisor.eq(arg2)
                 with OneHotCase(DivFn.Fn.REMU):
-                    pass
+                    m.d.comb += sign.eq(0)
+                    m.d.comb += dividend.eq(arg1)
+                    m.d.comb += divisor.eq(arg2)
 
-            params_fifo.write(m, {"rob_id": arg.rob_id, "rp_dst": arg.rp_dst})
+            params_fifo.write(
+                m, {"rob_id": arg.rob_id, "rp_dst": arg.rp_dst, "sign": sign})
             divider.issue(m, {"divident": dividend, "divisor": divisor})
 
         with Transaction().body(m):
@@ -102,7 +120,8 @@ class DivUnit(Elaboratable):
                 m,
                 arg={
                     "rob_id": params.rob_id,
-                    "result": response.q,
+                    # "result": response.q,
+                    "result": Mux(params.sign, response.q, response.q),
                     "rp_dst": params.rp_dst,
                 },
             )
