@@ -575,7 +575,7 @@ class Method(TransactionBase):
     """
 
     def __init__(
-        self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0, nonexclusive: bool = False
+        self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = (), nonexclusive: bool = False
     ):
         """
         Parameters
@@ -583,10 +583,10 @@ class Method(TransactionBase):
         name: str or None
             Name hint for this `Method`. If `None` (default) the name is
             inferred from the variable name this `Method` is assigned to.
-        i: int or record layout
+        i: record layout
             The format of `data_in`.
             An `int` corresponds to a `Record` with a single `data` field.
-        o: int or record layout
+        o: record layout
             The format of `data_in`.
             An `int` corresponds to a `Record` with a single `data` field.
         nonexclusive: bool
@@ -600,8 +600,8 @@ class Method(TransactionBase):
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal()
         self.run = Signal()
-        self.data_in = Record(_coerce_layout(i))
-        self.data_out = Record(_coerce_layout(o))
+        self.data_in = Record(i)
+        self.data_out = Record(o)
         self.defined = False
         self.nonexclusive = nonexclusive
         if nonexclusive:
@@ -701,9 +701,63 @@ class Method(TransactionBase):
         finally:
             self.defined = True
 
-    def __call__(self, m: Module, arg: RecordDict = C(0, 0), enable: ValueLike = C(1)) -> Record:
+    def __call__(
+        self, m: Module, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
+    ) -> Record:
+        """Call a method.
+
+        Methods can only be called from transaction and method bodies.
+        Calling a `Method` marks, for the purpose of transaction scheduling,
+        the dependency between the calling context and the called `Method`.
+        It also connects the method's inputs to the parameters and the
+        method's outputs to the return value.
+
+        Parameters
+        ----------
+        m : Module
+            Module in which operations on signals should be executed,
+        arg : Value or dict of Values
+            Call argument. Can be passed as a `Record` of the method's
+            input layout or as a dictionary. Alternative syntax uses
+            keyword arguments.
+        enable : Value
+            Configures the call as enabled in the current clock cycle.
+            Disabled calls still lock the called method in transaction
+            scheduling. Calls are by default enabled.
+        **kwargs : Value or dict of Values
+            Allows to pass method arguments using keyword argument
+            syntax. Equivalent to passing a dict as the argument.
+
+        Returns
+        -------
+        data_out : Record
+            The result of the method call.
+
+        Examples
+        --------
+        .. highlight:: python
+        .. code-block:: python
+
+            m = Module()
+            with Transaction.body(m):
+                ret = my_sum_method(m, arg1=2, arg2=3)
+
+        Alternative syntax:
+
+        .. highlight:: python
+        .. code-block:: python
+
+            with Transaction.body(m):
+                ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
+        """
         enable_sig = Signal()
         arg_rec = Record.like(self.data_in)
+
+        if arg is not None and kwargs:
+            raise ValueError("Method call with both keyword arguments and legacy record argument")
+
+        if arg is None:
+            arg = kwargs
 
         m.d.comb += enable_sig.eq(enable)
         TransactionBase.comb += _connect_rec_with_possibly_dict(arg_rec, arg)

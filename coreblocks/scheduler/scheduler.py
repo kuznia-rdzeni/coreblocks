@@ -304,26 +304,25 @@ class RSInsertion(Elaboratable):
             source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
             source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
 
+            data = {
+                # when operand value is valid the convention is to set operand source to 0
+                "rs_data": {
+                    "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
+                    "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
+                    "rp_dst": instr.regs_p.rp_dst,
+                    "rob_id": instr.rob_id,
+                    "exec_fn": instr.exec_fn,
+                    "s1_val": Mux(source1.valid, source1.reg_val, 0),
+                    "s2_val": Mux(source2.valid, source2.reg_val, 0),
+                    "imm": instr.imm,
+                    "pc": instr.pc,
+                },
+                "rs_entry_id": instr.rs_entry_id,
+            }
+
             for i, rs_insert in enumerate(self.rs_insert):
                 with m.If(instr.rs_selected == i):
-                    rs_insert(
-                        m,
-                        {
-                            # when operand value is valid the convention is to set operand source to 0
-                            "rs_data": {
-                                "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
-                                "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
-                                "rp_dst": instr.regs_p.rp_dst,
-                                "rob_id": instr.rob_id,
-                                "exec_fn": instr.exec_fn,
-                                "s1_val": Mux(source1.valid, source1.reg_val, 0),
-                                "s2_val": Mux(source2.valid, source2.reg_val, 0),
-                                "imm": instr.imm,
-                                "pc": instr.pc,
-                            },
-                            "rs_entry_id": instr.rs_entry_id,
-                        },
-                    )
+                    rs_insert(m, data)
 
         return m
 

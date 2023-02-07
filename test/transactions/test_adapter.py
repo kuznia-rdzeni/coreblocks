@@ -4,15 +4,15 @@ from coreblocks.transactions import TransactionModule, Method, def_method
 from coreblocks.transactions.lib import AdapterTrans
 
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 
 class Echo(Elaboratable):
     def __init__(self):
         self.data_bits = 8
 
-        self.layout_in = [("data", self.data_bits)]
-        self.layout_out = [("data", self.data_bits)]
+        self.layout_in = data_layout(self.data_bits)
+        self.layout_out = data_layout(self.data_bits)
 
         self.action = Method(i=self.layout_in, o=self.layout_out)
 
@@ -34,7 +34,7 @@ class Consumer(Elaboratable):
     def __init__(self):
         self.data_bits = 8
 
-        self.layout_in = [("data", self.data_bits)]
+        self.layout_in = data_layout(self.data_bits)
         self.layout_out = []
 
         self.action = Method(i=self.layout_in, o=self.layout_out)

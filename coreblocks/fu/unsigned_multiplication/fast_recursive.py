@@ -46,7 +46,7 @@ class FastRecursiveMul(Elaboratable):
             m = Module()
             m.submodules.dsp = dsp = DSPMulUnit(self.dsp_width)
             with Transaction().body(m):
-                res = dsp.compute(m, {"i1": self.i1, "i2": self.i2})
+                res = dsp.compute(m, i1=self.i1, i2=self.i2)
                 m.d.comb += self.r.eq(res)
 
             return m
@@ -122,7 +122,7 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
         def _(arg):
             m.d.comb += mul.i1.eq(arg.i1)
             m.d.comb += mul.i2.eq(arg.i2)
-            fifo.write(m, {"o": mul.r})
+            fifo.write(m, o=mul.r)
 
         @def_method(m, self.accept)
         def _(arg):
