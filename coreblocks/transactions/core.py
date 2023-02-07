@@ -798,10 +798,10 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     .. code-block:: python
 
         m = Module()
-        my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
+        my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=[("res",8)])
         @def_method(m, my_sum_method)
         def _(data_in):
-            return data_in.arg1 + data_in.arg2
+            return {"res": data_in.arg1 + data_in.arg2}
     """
 
     def decorator(func: Callable[[Record], Optional[RecordDict]]):
