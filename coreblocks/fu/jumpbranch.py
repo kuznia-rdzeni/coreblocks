@@ -8,10 +8,10 @@ from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch
+from coreblocks.utils.protocols import FuncUnit
+
 
 __all__ = ["JumpBranchFuncUnit", "JumpComponent"]
-
-from coreblocks.utils.protocols import FuncUnit
 
 
 class JumpBranchFn(Signal):

@@ -1,13 +1,14 @@
 from amaranth import *
 
+from coreblocks.params.fu_params import Key
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign
+from coreblocks.utils.protocols import FuncBlock
+
 
 __all__ = ["LSUDummy", "LSUBlockComponent"]
-
-from coreblocks.utils.protocols import FuncBlock
 
 
 class LSUDummyInternals(Elaboratable):
@@ -290,9 +291,7 @@ class LSUDummy(Elaboratable):
 
 class LSUBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams, dependencies: ComponentDependencies) -> FuncBlock:
-        if dependencies.wishbone_bus is None:
-            raise Exception("LSU requires wishbone bus, but it was not provided as dependency")
-        return LSUDummy(gen_params, dependencies.wishbone_bus)
+        return LSUDummy(gen_params, dependencies.get(Key[WishboneMaster]("wishbone_bus")))
 
     def get_optypes(self) -> set[OpType]:
         return LSUDummy.optypes

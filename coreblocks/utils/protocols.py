@@ -3,7 +3,7 @@ from coreblocks.transactions import Method
 from coreblocks.params import OpType
 
 
-__all__ = ["FuncUnit", "FuncBlock", "JumpUnit", "LSUUnit"]
+__all__ = ["FuncUnit", "FuncBlock", "JumpUnit", "LSUUnit", "FuncUnitsHolder"]
 
 
 class FuncUnit(Protocol):
