@@ -163,10 +163,10 @@ class JumpBranchFuncUnit(Elaboratable):
             m.d.comb += jb.in_pc.eq(arg.pc)
             m.d.comb += jb.in_imm.eq(arg.imm)
 
-            fifo_res.write(m, arg={"rob_id": arg.rob_id, "result": jb.reg_res, "rp_dst": arg.rp_dst})
+            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst)
 
             # skip writing next branch target for auipc
             with m.If(decoder.jb_fn != JumpBranchFn.Fn.AUIPC):
-                fifo_branch.write(m, arg={"next_pc": Mux(jb.taken, jb.jmp_addr, jb.reg_res)})
+                fifo_branch.write(m, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res))
 
         return m
