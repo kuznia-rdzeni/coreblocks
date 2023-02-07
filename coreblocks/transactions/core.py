@@ -700,9 +700,63 @@ class Method(TransactionBase):
         finally:
             self.defined = True
 
-    def __call__(self, m: Module, arg: RecordDict = C(0, 0), enable: ValueLike = C(1)) -> Record:
+    def __call__(
+        self, m: Module, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
+    ) -> Record:
+        """Call a method.
+
+        Methods can only be called from transaction and method bodies.
+        Calling a `Method` marks, for the purpose of transaction scheduling,
+        the dependency between the calling context and the called `Method`.
+        It also connects the method's inputs to the parameters and the
+        method's outputs to the return value.
+
+        Parameters
+        ----------
+        m : Module
+            Module in which operations on signals should be executed,
+        arg : Value or dict of Values
+            Call argument. Can be passed as a `Record` of the method's
+            input layout or as a dictionary. Alternative syntax uses
+            keyword arguments.
+        enable : Value
+            Configures the call as enabled in the current clock cycle.
+            Disabled calls still lock the called method in transaction
+            scheduling. Calls are by default enabled.
+        **kwargs : Value or dict of Values
+            Allows to pass method arguments using keyword argument
+            syntax. Equivalent to passing a dict as the argument.
+
+        Returns
+        -------
+        data_out : Record
+            The result of the method call.
+
+        Examples
+        --------
+        .. highlight:: python
+        .. code-block:: python
+
+            m = Module()
+            with Transaction.body(m):
+                ret = my_sum_method(m, arg1=2, arg2=3)
+
+        Alternative syntax:
+
+        .. highlight:: python
+        .. code-block:: python
+
+            with Transaction.body(m):
+                ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
+        """
         enable_sig = Signal()
         arg_rec = Record.like(self.data_in)
+
+        if arg is not None and kwargs:
+            raise ValueError("Method call with both keyword arguments and legacy record argument")
+
+        if arg is None:
+            arg = kwargs
 
         m.d.comb += enable_sig.eq(enable)
         TransactionBase.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
@@ -744,10 +798,10 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     .. code-block:: python
 
         m = Module()
-        my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
+        my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=[("res",8)])
         @def_method(m, my_sum_method)
         def _(data_in):
-            return data_in.arg1 + data_in.arg2
+            return {"res": data_in.arg1 + data_in.arg2}
     """
 
     def decorator(func: Callable[[Record], Optional[RecordDict]]):

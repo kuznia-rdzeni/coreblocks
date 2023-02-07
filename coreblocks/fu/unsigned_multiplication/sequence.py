@@ -53,7 +53,7 @@ class RecursiveWithSingleDSPMul(Elaboratable):
 
             with m.If(~self.confirm & ~self.reset):
                 with Transaction().body(m):
-                    res = self.dsp.compute(m, {"i1": self.i1, "i2": self.i2})
+                    res = self.dsp.compute(m, i1=self.i1, i2=self.i2)
                     m.d.sync += self.result.eq(res)
                     m.d.sync += self.confirm.eq(1)
 
