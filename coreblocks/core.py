@@ -1,9 +1,8 @@
-from typing import Iterable
 from amaranth import *
 
-from coreblocks.params.fu_params import ComponentDependencies, BlockComponentParams
+from coreblocks.params.fu_params import ComponentDependencies
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.transactions.lib import FIFO, ConnectTrans, MethodProduct, Collector
+from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
@@ -16,7 +15,6 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.utils.fifo import BasicFifo
-from coreblocks.utils.protocols import JumpUnit, LSUUnit, FuncUnitsHolder
 
 
 __all__ = ["Core"]
