@@ -297,7 +297,7 @@ class AdapterTrans(AdapterBase):
         m.d.comb += data_in.eq(self.data_in)
 
         with Transaction().body(m, request=self.en):
-            data_out = self.iface(m, arg=data_in)
+            data_out = self.iface(m, data_in)
             Transaction.comb += self.data_out.eq(data_out)
             m.d.comb += self.done.eq(1)
 

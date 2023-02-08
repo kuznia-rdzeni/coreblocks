@@ -48,7 +48,7 @@ class FastRecursiveMul(Elaboratable):
             with Transaction().body(m):
                 # The bit width of the `i1` and `i2` parameters of `dsp` is different than of `self.i1`
                 # and `self.i2`, which triggers an error. Using `| 0` silences it.
-                res = dsp.compute(m, {"i1": self.i1 | 0, "i2": self.i2 | 0})
+                res = dsp.compute(m, i1=self.i1 | 0, i2=self.i2 | 0)
                 m.d.comb += self.r.eq(res)
 
             return m
@@ -124,7 +124,7 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
         def _(arg):
             m.d.comb += mul.i1.eq(arg.i1)
             m.d.comb += mul.i2.eq(arg.i2)
-            fifo.write(m, {"o": mul.r})
+            fifo.write(m, o=mul.r)
 
         @def_method(m, self.accept)
         def _(arg):

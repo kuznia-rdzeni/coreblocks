@@ -58,7 +58,7 @@ class Fetch(Elaboratable):
 
                 m.d.sync += self.pc.eq(self.pc + self.gp.isa.ilen_bytes)
 
-                self.cont(m, {"data": fetched.data, "pc": self.pc})
+                self.cont(m, data=fetched.data, pc=self.pc)
 
         @def_method(m, self.verify_branch, ready=stalled)
         def _(arg):

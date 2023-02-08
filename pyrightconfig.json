@@ -3,7 +3,7 @@
     "coreblocks",
     "test"
   ],
-  
+
   "exclude": [
     "**/node_modules",
     "**/__pycache__"
