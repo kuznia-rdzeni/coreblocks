@@ -9,7 +9,7 @@ from coreblocks.params import (
     OpType,
     Funct7,
     FunctionalComponentParams,
-    ComponentDependencies,
+    ComponentConnections,
 )
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import FIFO
@@ -169,7 +169,7 @@ class ZbsUnit(Elaboratable):
 
 
 class ZbsComponent(FunctionalComponentParams):
-    def get_module(self, gen_params: GenParams, dependencies: ComponentDependencies) -> FuncUnit:
+    def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncUnit:
         return ZbsUnit(gen_params)
 
     def get_optypes(self) -> set[OpType]:

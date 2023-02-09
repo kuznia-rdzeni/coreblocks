@@ -6,7 +6,7 @@ from amaranth import *
 from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
-from coreblocks.params.fu_params import FunctionalComponentParams, ComponentDependencies
+from coreblocks.params.fu_params import FunctionalComponentParams, ComponentConnections
 from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
@@ -249,7 +249,7 @@ class MulComponent(FunctionalComponentParams):
         self.mul_unit_type = mul_unit_type
         self.dsp_width = dsp_width
 
-    def get_module(self, gen_params: GenParams, dependencies: ComponentDependencies) -> FuncUnit:
+    def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncUnit:
         return MulUnit(gen_params, self.mul_unit_type, self.dsp_width)
 
     def get_optypes(self) -> set[OpType]:

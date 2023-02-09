@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from abc import abstractmethod
-from typing import Iterable, Generic, TypeVar
+from abc import abstractmethod, ABC
+from typing import Iterable, Generic, TypeVar, Protocol
 
 import coreblocks.params.genparams as gp
 import coreblocks.params.optypes as optypes
+from coreblocks.transactions import Method
 from coreblocks.utils.protocols import FuncBlock, FuncUnit
 
 __all__ = [
-    "ComponentDependencies",
+    "ComponentConnections",
     "BlockComponentParams",
     "FunctionalComponentParams",
     "optypes_supported",
@@ -17,25 +18,62 @@ __all__ = [
 T = TypeVar("T")
 
 
-class Key(Generic[T]):
-    def __init__(self, name: str):
-        self.name = name
+class Unifier(Protocol):
+    method: Method
+
+    def __init__(self, targets: list[Method]):
+        ...
+
+
+class DependencyKey(Generic[T], ABC):
+    pass
+
+
+class OutputKey(ABC):
+    @classmethod
+    @property
+    def unifier(cls) -> Unifier | None:
+        return None
+
+    @classmethod
+    @property
+    @abstractmethod
+    def method_name(cls) -> str:
+        ...
 
 
 # extra constructor parameters of FuncBlock
-class ComponentDependencies:
-    def __init__(self, **dependencies):
-        self.dependencies = dependencies
+class ComponentConnections:
+    def __init__(self):
+        self.dependencies = {}
+        self.outputs = {}
 
-    def get(self, key: Key[T]) -> T:
-        if key.name not in self.dependencies:
-            raise Exception(f"Dependency {key.name} not provided")
-        return self.dependencies[key.name]
+    def set_dependency(self, key: type[DependencyKey[T]], dependency: T) -> ComponentConnections:
+        self.dependencies[key] = dependency
+        return self
+
+    def set_output(self, key: type[OutputKey], output: Method) -> ComponentConnections:
+        if key in self.outputs:
+            if key.unifier is not None:
+                self.outputs[key].append(output)
+            else:
+                raise Exception(f"Cannot handle multiple {key} without unifier")
+        else:
+            self.outputs[key] = [output]
+        return self
+
+    def get_dependency(self, key: type[DependencyKey[T]]) -> T:
+        if key not in self.dependencies:
+            raise Exception(f"Dependency {key} not provided")
+        return self.dependencies[key]
+
+    def get_outputs(self) -> dict[type[OutputKey], list[Method]]:
+        return self.outputs
 
 
-class BlockComponentParams:
+class BlockComponentParams(ABC):
     @abstractmethod
-    def get_module(self, gen_params: gp.GenParams, dependencies: ComponentDependencies) -> FuncBlock:
+    def get_module(self, gen_params: gp.GenParams, connections: ComponentConnections) -> FuncBlock:
         ...
 
     @abstractmethod
@@ -43,9 +81,9 @@ class BlockComponentParams:
         ...
 
 
-class FunctionalComponentParams:
+class FunctionalComponentParams(ABC):
     @abstractmethod
-    def get_module(self, gen_params: gp.GenParams, dependencies: ComponentDependencies) -> FuncUnit:
+    def get_module(self, gen_params: gp.GenParams, connections: ComponentConnections) -> FuncUnit:
         ...
 
     @abstractmethod

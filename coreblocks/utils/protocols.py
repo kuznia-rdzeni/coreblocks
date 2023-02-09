@@ -1,30 +1,15 @@
-from typing import Protocol, runtime_checkable
+from typing import Protocol
 from coreblocks.transactions import Method
 from coreblocks.params import OpType
 
 
-__all__ = ["FuncUnit", "FuncBlock", "JumpUnit", "LSUUnit", "FuncUnitsHolder"]
+__all__ = ["FuncUnit", "FuncBlock"]
 
 
 class FuncUnit(Protocol):
     optypes: set[OpType]
     issue: Method
     accept: Method
-
-
-@runtime_checkable
-class JumpUnit(Protocol):
-    branch_result: Method
-
-
-@runtime_checkable
-class LSUUnit(Protocol):
-    commit: Method
-
-
-@runtime_checkable
-class FuncUnitsHolder(Protocol):
-    func_units: list[FuncUnit]
 
 
 class FuncBlock(Protocol):

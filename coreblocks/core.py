@@ -1,6 +1,7 @@
 from amaranth import *
 
-from coreblocks.params.fu_params import ComponentDependencies
+from coreblocks.params.fu_params import ComponentConnections
+from coreblocks.params.keys import WishboneDataKey
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
@@ -42,7 +43,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            dependencies=ComponentDependencies(wishbone_bus=wb_master_data),
+            connections=ComponentConnections().set_dependency(WishboneDataKey, wb_master_data),
         )
 
         self.announcement = ResultAnnouncement(

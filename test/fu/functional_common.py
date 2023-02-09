@@ -5,7 +5,7 @@ from typing import Dict, Callable, Any
 from amaranth import Elaboratable, Module
 
 from coreblocks.params import GenParams
-from coreblocks.params.fu_params import FunctionalComponentParams, ComponentDependencies
+from coreblocks.params.fu_params import FunctionalComponentParams, ComponentConnections
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 from test.common import TestbenchIO, TestCaseWithSimulator, test_gen_params
@@ -31,7 +31,7 @@ class FunctionalTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen, ComponentDependencies())
+        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen, ComponentConnections())
 
         # mocked input and output
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
