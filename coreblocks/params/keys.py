@@ -1,4 +1,4 @@
-from coreblocks.params.fu_params import DependencyKey, OutputKey
+from coreblocks.params.fu_params import DependencyKey, OutputKey, Unifier
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.transactions.lib import MethodProduct, Collector
 
@@ -8,10 +8,20 @@ class WishboneDataKey(DependencyKey[WishboneMaster]):
 
 
 class CommitOutputKey(OutputKey):
-    unifier = MethodProduct
-    method_name = "commit"
+    @classmethod
+    def unifier(cls) -> type[Unifier]:
+        return MethodProduct
+
+    @classmethod
+    def method_name(cls) -> str:
+        return "commit"
 
 
 class BranchResultOutputKey(OutputKey):
-    unifier = Collector
-    method_name = "branch_result"
+    @classmethod
+    def unifier(cls) -> type[Unifier]:
+        return Collector
+
+    @classmethod
+    def method_name(cls) -> str:
+        return "branch_result"

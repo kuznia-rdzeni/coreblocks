@@ -31,12 +31,11 @@ class DependencyKey(Generic[T], ABC):
 
 class OutputKey(ABC):
     @classmethod
-    @property
-    def unifier(cls) -> Unifier | None:
+    @abstractmethod
+    def unifier(cls) -> type[Unifier] | None:
         return None
 
     @classmethod
-    @property
     @abstractmethod
     def method_name(cls) -> str:
         ...
@@ -54,7 +53,7 @@ class ComponentConnections:
 
     def set_output(self, key: type[OutputKey], output: Method) -> ComponentConnections:
         if key in self.outputs:
-            if key.unifier is not None:
+            if key.unifier() is not None:
                 self.outputs[key].append(output)
             else:
                 raise Exception(f"Cannot handle multiple {key} without unifier")

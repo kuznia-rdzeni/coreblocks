@@ -28,12 +28,13 @@ class FuncBlocksUnifier(Elaboratable):
         self.extra_outputs = {}
 
         for (key, output_methods) in connections.get_outputs().items():
-            if key.unifier is not None and len(output_methods) > 1:
-                unifier = key.unifier(output_methods)
-                self.unifiers[key.method_name + "_unifier"] = unifier
-                self.extra_outputs[key.method_name] = unifier.method
+            unifier_type = key.unifier()
+            if unifier_type is not None and len(output_methods) > 1:
+                unifier = unifier_type(output_methods)
+                self.unifiers[key.method_name() + "_unifier"] = unifier
+                self.extra_outputs[key.method_name()] = unifier.method
             elif len(output_methods) == 1:
-                self.extra_outputs[key.method_name] = output_methods[0]
+                self.extra_outputs[key.method_name()] = output_methods[0]
 
     def __getattr__(self, item):
         return self.extra_outputs[item]
