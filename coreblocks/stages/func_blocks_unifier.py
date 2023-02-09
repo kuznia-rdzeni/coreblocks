@@ -3,10 +3,13 @@ from typing import Iterable
 from amaranth import *
 
 from coreblocks.params import GenParams, BlockComponentParams, ComponentConnections
+from coreblocks.transactions import Method
 from coreblocks.transactions.lib import MethodProduct, Collector
 
 
 __all__ = ["FuncBlocksUnifier"]
+
+from coreblocks.utils.protocols import Unifier
 
 
 class FuncBlocksUnifier(Elaboratable):
@@ -24,8 +27,8 @@ class FuncBlocksUnifier(Elaboratable):
         self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
         self.update = self.update_combiner.method
 
-        self.unifiers = {}
-        self.extra_outputs = {}
+        self.unifiers: dict[str, Unifier] = {}
+        self.extra_outputs: dict[str, Method] = {}
 
         for (key, output_methods) in connections.get_outputs().items():
             unifier_type = key.unifier()

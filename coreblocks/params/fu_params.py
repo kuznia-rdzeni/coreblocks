@@ -1,32 +1,23 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from typing import Iterable, Generic, TypeVar, Protocol
+from typing import Iterable, Generic, TypeVar
 
 import coreblocks.params.genparams as gp
 import coreblocks.params.optypes as optypes
 from coreblocks.transactions import Method
-from coreblocks.utils.protocols import FuncBlock, FuncUnit
+from coreblocks.utils.protocols import FuncBlock, FuncUnit, Unifier
 
 __all__ = [
     "ComponentConnections",
     "BlockComponentParams",
     "FunctionalComponentParams",
     "optypes_supported",
-    "Unifier",
     "DependencyKey",
     "OutputKey",
 ]
 
 T = TypeVar("T")
-
-
-class Unifier(Protocol):
-    method: Method
-
-    @abstractmethod
-    def __init__(self, targets: list[Method]):
-        ...
 
 
 class DependencyKey(Generic[T], ABC):

@@ -1,6 +1,7 @@
-from coreblocks.params.fu_params import DependencyKey, OutputKey, Unifier
+from coreblocks.params.fu_params import DependencyKey, OutputKey
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.transactions.lib import MethodProduct, Collector
+from coreblocks.utils.protocols import Unifier
 
 
 class WishboneDataKey(DependencyKey[WishboneMaster]):
