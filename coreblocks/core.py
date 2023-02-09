@@ -50,7 +50,7 @@ class Core(Elaboratable):
 
         self.announcement = ResultAnnouncement(
             gen=self.gen_params,
-            get_result=self.result_collector.get_single,
+            get_result=self.result_collector.method,
             rob_mark_done=self.ROB.mark_done,
             rs_write_val=self.update_combiner.method,
             rf_write_val=self.RF.write,
