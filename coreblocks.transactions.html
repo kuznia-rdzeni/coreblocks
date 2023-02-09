@@ -822,22 +822,20 @@ returns empty result.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.lib.</span></span><span class="sig-name descname"><span class="pre">Collector</span></span><a class="headerlink" href="#coreblocks.transactions.lib.Collector" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Single result collector.</p>
-<p>Creates method that collects results of many method with identical
-layout. Each call of this function will return single result of one
-of provided methods.</p>
+<p>Creates method that collects results of many methods with identical
+layouts. Each call of this method will return a single result of one
+of the provided methods.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>layout: Layout</strong></dt><dd><p>Output layout of provided methods.</p>
-</dd>
-<dt><strong>get_single: Method</strong></dt><dd><p>Method which returns single result of provided methods.</p>
+<dt><strong>method: Method</strong></dt><dd><p>Method which returns single result of provided methods.</p>
 </dd>
 </dl>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.transactions.lib.Collector.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">coreblocks.transactions.core.Method</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.lib.Collector.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">coreblocks.transactions.core.Method</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.lib.Collector.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -1555,7 +1553,7 @@ Assigned combinationally to the <cite>ready</cite> attribute.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 13:14 2023-02-07.
+      <span class="lastupdated">Last updated on 18:53 2023-02-09.
       </span></p>
   </div>
 

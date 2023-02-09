@@ -93,17 +93,17 @@
         end
         subgraph Core[&quot;core Core&quot;]
             subgraph FIFO[&quot;fifo_fetch FIFO&quot;]
-                FIFO_read[&quot;read&quot;]
                 FIFO_write[&quot;write&quot;]
+                FIFO_read[&quot;read&quot;]
             end
             subgraph BasicFifo[&quot;free_rf_fifo BasicFifo&quot;]
                 BasicFifo_write[&quot;write&quot;]
                 BasicFifo_read[&quot;read&quot;]
             end
             subgraph Fetch[&quot;fetch Fetch&quot;]
+                Fetch_Fetch[&quot;Fetch&quot;]
                 Fetch_FetchRQ[&quot;FetchRQ&quot;]
                 Fetch_verify_branch[&quot;verify_branch&quot;]
-                Fetch_Fetch[&quot;Fetch&quot;]
             end
             subgraph FRAT[&quot;FRAT FRAT&quot;]
                 FRAT_rename[&quot;rename&quot;]
@@ -112,35 +112,35 @@
                 RRAT_commit[&quot;commit&quot;]
             end
             subgraph RegisterFile[&quot;RF RegisterFile&quot;]
-                RegisterFile_write[&quot;write&quot;]
-                RegisterFile_free[&quot;free&quot;]
                 RegisterFile_read1[&quot;read1&quot;]
                 RegisterFile_read2[&quot;read2&quot;]
+                RegisterFile_free[&quot;free&quot;]
+                RegisterFile_write[&quot;write&quot;]
             end
             subgraph ReorderBuffer[&quot;ROB ReorderBuffer&quot;]
+                ReorderBuffer_retire[&quot;retire&quot;]
                 ReorderBuffer_mark_done[&quot;mark_done&quot;]
                 ReorderBuffer_put[&quot;put&quot;]
-                ReorderBuffer_retire[&quot;retire&quot;]
             end
             subgraph JumpBranchFuncUnit[&quot;jb_unit JumpBranchFuncUnit&quot;]
                 JumpBranchFuncUnit_accept[&quot;accept&quot;]
                 JumpBranchFuncUnit_issue[&quot;issue&quot;]
                 JumpBranchFuncUnit_branch_result[&quot;branch_result&quot;]
                 subgraph FIFO1[&quot;fifo_res FIFO&quot;]
-                    FIFO1_read[&quot;read&quot;]
                     FIFO1_write[&quot;write&quot;]
+                    FIFO1_read[&quot;read&quot;]
                 end
                 subgraph FIFO2[&quot;fifo_branch FIFO&quot;]
-                    FIFO2_read[&quot;read&quot;]
                     FIFO2_write[&quot;write&quot;]
+                    FIFO2_read[&quot;read&quot;]
                 end
             end
             subgraph LSUDummy[&quot;lsu_unit LSUDummy&quot;]
-                LSUDummy_commit[&quot;commit&quot;]
                 LSUDummy_select[&quot;select&quot;]
                 LSUDummy_insert[&quot;insert&quot;]
                 LSUDummy_update[&quot;update&quot;]
                 LSUDummy_get_result[&quot;get_result&quot;]
+                LSUDummy_commit[&quot;commit&quot;]
                 subgraph LSUDummyInternals[&quot;internal LSUDummyInternals&quot;]
                     LSUDummyInternals_LSUDummyInternals[&quot;LSUDummyInternals&quot;]
                     LSUDummyInternals_LSUDummyInternals[&quot;LSUDummyInternals&quot;]
@@ -151,7 +151,7 @@
                 end
             end
             subgraph Collector[&quot;result_collector Collector&quot;]
-                Collector_get_single[&quot;get_single&quot;]
+                Collector_method[&quot;method&quot;]
                 subgraph Forwarder[&quot;forwarder Forwarder&quot;]
                     Forwarder_write[&quot;write&quot;]
                     Forwarder_read[&quot;read&quot;]
@@ -180,8 +180,8 @@
             end
             subgraph Scheduler[&quot;scheduler Scheduler&quot;]
                 subgraph FIFO4[&quot;alloc_rename_buf FIFO&quot;]
-                    FIFO4_write[&quot;write&quot;]
                     FIFO4_read[&quot;read&quot;]
+                    FIFO4_write[&quot;write&quot;]
                 end
                 subgraph RegAllocation[&quot;reg_alloc RegAllocation&quot;]
                     RegAllocation_RegAllocation[&quot;RegAllocation&quot;]
@@ -194,15 +194,15 @@
                     Renaming_Renaming[&quot;Renaming&quot;]
                 end
                 subgraph FIFO6[&quot;reg_alloc_out_buf FIFO&quot;]
-                    FIFO6_write[&quot;write&quot;]
                     FIFO6_read[&quot;read&quot;]
+                    FIFO6_write[&quot;write&quot;]
                 end
                 subgraph ROBAllocation[&quot;rob_alloc ROBAllocation&quot;]
                     ROBAllocation_ROBAllocation[&quot;ROBAllocation&quot;]
                 end
                 subgraph FIFO7[&quot;rs_select_out_buf FIFO&quot;]
-                    FIFO7_write[&quot;write&quot;]
                     FIFO7_read[&quot;read&quot;]
+                    FIFO7_write[&quot;write&quot;]
                 end
                 subgraph RSSelection[&quot;rs_selector RSSelection&quot;]
                     RSSelection_RSSelection[&quot;RSSelection&quot;]
@@ -218,10 +218,10 @@
                 end
             end
             subgraph RSFuncBlock[&quot;rs_block_0 RSFuncBlock&quot;]
-                RSFuncBlock_select[&quot;select&quot;]
-                RSFuncBlock_insert[&quot;insert&quot;]
                 RSFuncBlock_get_result[&quot;get_result&quot;]
                 RSFuncBlock_update[&quot;update&quot;]
+                RSFuncBlock_select[&quot;select&quot;]
+                RSFuncBlock_insert[&quot;insert&quot;]
                 subgraph RS[&quot;rs RS&quot;]
                     RS_RS[&quot;RS&quot;]
                     RS_update[&quot;update&quot;]
@@ -234,8 +234,8 @@
                     AluFuncUnit_issue[&quot;issue&quot;]
                     AluFuncUnit_accept[&quot;accept&quot;]
                     subgraph FIFO8[&quot;fifo FIFO&quot;]
-                        FIFO8_write[&quot;write&quot;]
                         FIFO8_read[&quot;read&quot;]
+                        FIFO8_write[&quot;write&quot;]
                     end
                 end
                 subgraph WakeupSelect[&quot;wakeup_select_0 WakeupSelect&quot;]
@@ -245,10 +245,10 @@
                     WakeupSelect1_WakeupSelect[&quot;WakeupSelect&quot;]
                 end
                 subgraph Collector1[&quot;collector Collector&quot;]
-                    Collector1_get_single[&quot;get_single&quot;]
+                    Collector1_method[&quot;method&quot;]
                     subgraph Forwarder2[&quot;forwarder Forwarder&quot;]
-                        Forwarder2_read[&quot;read&quot;]
                         Forwarder2_write[&quot;write&quot;]
+                        Forwarder2_read[&quot;read&quot;]
                     end
                     subgraph ManyToOneConnectTrans1[&quot;connect ManyToOneConnectTrans&quot;]
                         subgraph ConnectTrans2[&quot;ManyToOneConnectTrans_input_0 ConnectTrans&quot;]
@@ -332,7 +332,7 @@ WishboneMaster1_result --&gt; LSUDummyInternals_LSUDummyInternals
 JumpBranchFuncUnit_branch_result --&gt; ConnectTrans4_ConnectTrans
 FIFO2_read --&gt; ConnectTrans4_ConnectTrans
 ConnectTrans4_ConnectTrans --&gt; Fetch_verify_branch
-Collector_get_single --&gt; ResultAnnouncement_ResultAnnouncement
+Collector_method --&gt; ResultAnnouncement_ResultAnnouncement
 Forwarder_read --&gt; ResultAnnouncement_ResultAnnouncement
 ResultAnnouncement_ResultAnnouncement --&gt; ReorderBuffer_mark_done
 ResultAnnouncement_ResultAnnouncement --&gt; RegisterFile_write
@@ -344,7 +344,7 @@ ResultAnnouncement_ResultAnnouncement --&gt; LSUDummy_update
 ConnectTrans_ConnectTrans --&gt; Forwarder_write
 ConnectTrans1_ConnectTrans --&gt; Forwarder_write
 RSFuncBlock_get_result --&gt; ConnectTrans_ConnectTrans
-Collector1_get_single --&gt; ConnectTrans_ConnectTrans
+Collector1_method --&gt; ConnectTrans_ConnectTrans
 Forwarder2_read --&gt; ConnectTrans_ConnectTrans
 LSUDummy_get_result --&gt; ConnectTrans1_ConnectTrans
 ReorderBuffer_retire --&gt; Retirement_Retirement
@@ -366,7 +366,7 @@ Retirement_Retirement --&gt; BasicFifo_write
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 13:14 2023-02-07.
+      <span class="lastupdated">Last updated on 18:53 2023-02-09.
       </span></p>
   </div>
 
