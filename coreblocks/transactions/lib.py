@@ -514,6 +514,48 @@ class MethodProduct(Elaboratable):
         return m
 
 
+class Collector(Elaboratable):
+    """Single result collector.
+
+    Creates method that collects results of many methods with identical
+    layouts. Each call of this method will return a single result of one
+    of the provided methods.
+
+    Attributes
+    ----------
+    method: Method
+        Method which returns single result of provided methods.
+    """
+
+    def __init__(self, targets: list[Method]):
+        """
+        Parameters
+        ----------
+        method_list: list[Method]
+            List of methods from which results will be collected.
+        """
+        self.method_list = targets
+        layout = targets[0].data_out.layout
+        self.method = Method(o=layout)
+
+        for method in targets:
+            if layout != method.data_out.layout:
+                raise Exception("Not all methods have this same layout")
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout)
+
+        m.submodules.connect = ManyToOneConnectTrans(
+            get_results=[get for get in self.method_list], put_result=forwarder.write
+        )
+
+        self.method.proxy(m, forwarder.read)
+
+        return m
+
+
 # Example transactions
 
 
@@ -627,50 +669,6 @@ class ManyToOneConnectTrans(Elaboratable):
             setattr(
                 m.submodules, f"ManyToOneConnectTrans_input_{i}", ConnectTrans(self.m_put_result, self.get_results[i])
             )
-
-        return m
-
-
-class Collector(Elaboratable):
-    """Single result collector.
-
-    Creates method that collects results of many method with identical
-    layout. Each call of this function will return single result of one
-    of provided methods.
-
-    Attributes
-    ----------
-    layout: Layout
-        Output layout of provided methods.
-    get_single: Method
-        Method which returns single result of provided methods.
-    """
-
-    def __init__(self, method_list: list[Method]):
-        """
-        Parameters
-        ----------
-        method_list: list[Method]
-            List of methods from which results will be collected.
-        """
-        self.method_list = method_list
-        self.layout = method_list[0].data_out.layout
-        self.get_single = Method(o=self.layout)
-
-        for method in method_list:
-            if self.layout != method.data_out.layout:
-                raise Exception("Not all methods have this same layout")
-
-    def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.forwarder = forwarder = Forwarder(self.layout)
-
-        m.submodules.connect = ManyToOneConnectTrans(
-            get_results=[get for get in self.method_list], put_result=forwarder.write
-        )
-
-        self.get_single.proxy(m, forwarder.read)
 
         return m
 
