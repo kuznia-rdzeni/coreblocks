@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, Type
+from typing import TypeVar, Type, Protocol, runtime_checkable
 
 from .isa import ISA
 from .fu_params import BlockComponentParams
@@ -41,10 +41,13 @@ class GenParams(DependentCache):
         #     raise Exception(f"Functional unit configuration fo not support all extension required by{isa_str}")
 
         self.rs_entries = 1
-        for block in self.func_units_config:
-            import coreblocks.stages.rs_func_block as rs_block
 
-            if isinstance(block, rs_block.RSBlockComponent):
+        @runtime_checkable
+        class HasRSEntries(Protocol):
+            rs_entries: int
+
+        for block in self.func_units_config:
+            if isinstance(block, HasRSEntries):
                 self.rs_entries = max(self.rs_entries, block.rs_entries)
 
         self.rs_number_bits = (len(self.func_units_config) - 1).bit_length()

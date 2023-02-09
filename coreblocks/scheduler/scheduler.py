@@ -377,7 +377,7 @@ class Scheduler(Elaboratable):
         rf_read2: Method
             Method used for getting value of second source register and information if it is valid.
             Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
-        reservation_stations: Sequence[RSFuncBlock]
+        reservation_stations: Sequence[FuncBlock]
             Sequence of units with RS interfaces to which instructions should be inserted.
         gen_params: GenParams
             Core generation parameters.

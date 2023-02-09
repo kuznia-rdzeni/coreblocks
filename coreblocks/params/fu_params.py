@@ -13,6 +13,9 @@ __all__ = [
     "BlockComponentParams",
     "FunctionalComponentParams",
     "optypes_supported",
+    "Unifier",
+    "DependencyKey",
+    "OutputKey",
 ]
 
 T = TypeVar("T")
@@ -21,6 +24,7 @@ T = TypeVar("T")
 class Unifier(Protocol):
     method: Method
 
+    @abstractmethod
     def __init__(self, targets: list[Method]):
         ...
 
