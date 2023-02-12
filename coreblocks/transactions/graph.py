@@ -2,6 +2,7 @@
 Utilities for extracting dependency graphs from Amaranth designs.
 """
 
+import json
 from enum import IntFlag
 from abc import ABC
 from collections import defaultdict
@@ -211,6 +212,44 @@ class OwnershipGraph:
                 fp.write(f"{indent}    edge {caller_name} -> {callee_name}\n")
 
         fp.write(f"{indent}}}\n")
+
+    def dump_json(self, fp, owner: Optional[int] = None):
+        if owner is None:
+            obj = {"modules": [], "calls": []}
+            for owner in self.names:
+                if owner not in self.labels:
+                    obj["modules"].append(self.dump_json(fp, owner))
+            for fr, to, direction in self.edges:
+                if direction == Direction.OUT:
+                    fr, to = to, fr
+
+                caller_name = self.get_name(fr)
+                callee_name = self.get_name(to)
+                obj["calls"].append({"source": caller_name, "target": callee_name})
+            json.dump(obj, fp)
+            return
+
+        subowners = self.graph.pop(owner)
+        if owner in self.stray:
+            return
+        owned = self.owned[owner]
+        obj = {
+            "id": self.names[owner],
+            "label": self.labels.get(owner, self.names[owner]),
+            "transactions": [],
+            "methods": [],
+            "submodules": [],
+        }
+        for x in owned:
+            xobj = {"id": self.get_name(x), "label": x.name}
+            if x.__class__.__name__ == "Method":
+                obj["methods"].append(xobj)
+            else:
+                obj["transactions"].append(xobj)
+        for subowner in subowners:
+            if subowner in self.graph:
+                obj["submodules"].append(self.dump_json(fp, subowner))
+        return obj
 
     def dump_mermaid(self, fp, owner: Optional[int] = None, indent: str = ""):
         if owner is None:
