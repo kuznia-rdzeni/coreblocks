@@ -235,13 +235,13 @@ class OwnershipGraph:
         owned = self.owned[owner]
         obj = {
             "id": self.names[owner],
-            "label": self.labels.get(owner, self.names[owner]),
+            "name": self.labels.get(owner, self.names[owner]),
             "transactions": [],
             "methods": [],
             "submodules": [],
         }
         for x in owned:
-            xobj = {"id": self.get_name(x), "label": x.name}
+            xobj = {"id": self.get_name(x), "name": x.name}
             if x.__class__.__name__ == "Method":
                 obj["methods"].append(xobj)
             else:
