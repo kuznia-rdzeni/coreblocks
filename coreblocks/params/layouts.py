@@ -14,6 +14,7 @@ __all__ = [
     "UnsignedMulUnitLayouts",
     "RATLayouts",
     "LSULayouts",
+    "CSRLayouts",
 ]
 
 
@@ -291,3 +292,17 @@ class LSULayouts:
         self.commit = [
             ("rob_id", gen_params.rob_entries_bits),
         ]
+
+
+class CSRLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.read = [
+            ("data", gen_params.isa.xlen),
+            ("read", 1),
+            ("written", 1),
+        ]
+
+        self.write = [("data", gen_params.isa.xlen)]
+
+        self._fu_read = [("data", gen_params.isa.xlen)]
+        self._fu_write = [("data", gen_params.isa.xlen)]
