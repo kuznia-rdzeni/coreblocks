@@ -89,6 +89,7 @@ class RS(Elaboratable):
                 "rob_id": record.rs_data.rob_id,
                 "exec_fn": record.rs_data.exec_fn,
                 "imm": record.rs_data.imm,
+                "csr": record.rs_data.csr,
                 "pc": record.rs_data.pc,
             }
 

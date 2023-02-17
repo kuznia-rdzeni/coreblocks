@@ -51,6 +51,7 @@ class SchedulerLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
         self.reg_alloc_out = self.renaming_in = [
@@ -60,6 +61,7 @@ class SchedulerLayouts:
             ("regs_l", common.regs_l),
             ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
         self.renaming_out = self.rob_allocate_in = [
@@ -75,6 +77,7 @@ class SchedulerLayouts:
             ),
             ("regs_p", common.regs_p),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
         self.rob_allocate_out = self.rs_select_in = [
@@ -84,6 +87,7 @@ class SchedulerLayouts:
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
         self.rs_select_out = self.rs_insert_in = [
@@ -95,6 +99,7 @@ class SchedulerLayouts:
             ("rs_selected", gen_params.rs_number_bits),
             ("rs_entry_id", gen_params.rs_entries_bits),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
         self.free_rf_layout = [("reg_id", gen_params.phys_regs_bits)]
@@ -154,8 +159,8 @@ class RSInterfaceLayouts:
             ("s1_val", gen_params.isa.xlen),
             ("s2_val", gen_params.isa.xlen),
             ("imm", gen_params.isa.xlen),
-            ("pc", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
+            ("pc", gen_params.isa.xlen),
         ]
 
         self.select_out = [("rs_entry_id", gen_params.rs_entries_bits)]
@@ -229,6 +234,7 @@ class DecodeLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen.isa.xlen),
+            ("csr", gen.isa.csr_alen),
             ("pc", gen.isa.xlen),
         ]
 
@@ -244,6 +250,7 @@ class FuncUnitLayouts:
             ("rob_id", gen.rob_entries_bits),
             ("exec_fn", common.exec_fn),
             ("imm", gen.isa.xlen),
+            ("csr", gen.isa.csr_alen),
             ("pc", gen.isa.xlen),
         ]
 
