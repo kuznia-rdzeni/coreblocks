@@ -1,9 +1,9 @@
 from typing import Callable, Tuple, Optional
 from amaranth import *
 from .core import *
-from .core import DebugSignals, RecordDict, _connect_rec_with_possibly_dict
+from .core import DebugSignals, RecordDict
 from ._utils import MethodLayout
-from ..utils._typing import ValueLike
+from ..utils import ValueLike, assign, AssignType
 
 __all__ = [
     "FIFO",
@@ -455,7 +455,7 @@ class MethodFilter(Elaboratable):
         m = Module()
 
         ret = Record.like(self.target.data_out)
-        m.d.comb += _connect_rec_with_possibly_dict(ret, self.default)
+        m.d.comb += assign(ret, self.default, fields=AssignType.ALL)
 
         @def_method(m, self.method)
         def _(arg):

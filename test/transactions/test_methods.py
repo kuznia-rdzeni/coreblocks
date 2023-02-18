@@ -65,7 +65,7 @@ class TestDefMethod(TestCaseWithSimulator):
             def _(arg):
                 return {"foo1": Signal(3), "baz": Signal(4)}
 
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(KeyError):
             self.do_test_definition(method_definer)
 
     def test_fields_invalid2(self):
@@ -247,11 +247,11 @@ class Quadruple(Elaboratable):
 
         @def_method(m, self.double)
         def _(arg):
-            return self.id(m, arg) * 2
+            return {"data": self.id(m, arg).data * 2}
 
         @def_method(m, self.quadruple)
         def _(arg):
-            return self.double(m, arg) * 2
+            return {"data": self.double(m, arg).data * 2}
 
         return m
 
@@ -285,7 +285,7 @@ class Quadruple2(Elaboratable):
 
         @def_method(m, self.quadruple)
         def _(arg):
-            return 2 * m.submodules.sub.double(m, arg)
+            return {"data": 2 * m.submodules.sub.double(m, arg).data}
 
         return m
 

@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Iterable, Literal, Mapping, Optional, cast, overload
+from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from ._typing import ValueLike
@@ -102,7 +102,9 @@ class AssignType(Enum):
     ALL = 3
 
 
-AssignFields = AssignType | Iterable[str] | Mapping[str, "AssignFields"]
+AssignFields: TypeAlias = AssignType | Iterable[str] | Mapping[str, "AssignFields"]
+AssignLHS: TypeAlias = Value | Record | Mapping[str, "AssignLHS"]
+AssignRHS: TypeAlias = ValueLike | Mapping[str, "AssignRHS"]
 
 
 def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
@@ -118,16 +120,16 @@ def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
         return set.intersection(*[set(cast(Record, el).fields) for el in elems])
 
 
-def valuelike_fields(val: ValueLike) -> Optional[set[str]]:
+def assign_arg_fields(val: AssignRHS) -> Optional[set[str]]:
     if isinstance(val, ArrayProxy):
         return arrayproxy_fields(val)
     elif isinstance(val, Record):
         return set(val.fields)
+    elif isinstance(val, dict):
+        return set(val.keys())
 
 
-def assign(
-    lhs: Value | Record | ArrayProxy, rhs: ValueLike, *, fields: AssignFields = AssignType.RHS
-) -> Iterable[Assign]:
+def assign(lhs: AssignLHS, rhs: AssignRHS, *, fields: AssignFields = AssignType.RHS) -> Iterable[Assign]:
     """Safe record assignment.
 
     This function generates assignment statements for records and reports
@@ -137,10 +139,10 @@ def assign(
 
     Parameters
     ----------
-    lhs : Record or Signal or ArrayProxy
-        Record or signal being assigned.
-    rhs : Record or Value-castable
-        Record or signal containing assigned values.
+    lhs : Record or Signal or ArrayProxy or dict
+        Record, signal or dict being assigned.
+    rhs : Record or Value-castable or dict
+        Record, signal or dict containing assigned values.
     fields : AssignType or Iterable or Mapping, optional
         Determines which fields will be assigned. Possible values:
 
@@ -167,13 +169,13 @@ def assign(
     ValueError
         If the assignment can't be safely performed.
     """
-    lhs_fields = valuelike_fields(lhs)
-    rhs_fields = valuelike_fields(rhs)
+    lhs_fields = assign_arg_fields(lhs)
+    rhs_fields = assign_arg_fields(rhs)
 
     if lhs_fields is not None and rhs_fields is not None:
         # asserts for type checking
-        assert isinstance(lhs, Record) or isinstance(lhs, ArrayProxy)
-        assert isinstance(rhs, Record) or isinstance(rhs, ArrayProxy)
+        assert isinstance(lhs, Record) or isinstance(lhs, ArrayProxy) or isinstance(lhs, Mapping)
+        assert isinstance(rhs, Record) or isinstance(rhs, ArrayProxy) or isinstance(rhs, Mapping)
 
         if fields is AssignType.COMMON:
             names = lhs_fields & rhs_fields
@@ -184,14 +186,14 @@ def assign(
         else:
             names = set(fields)
 
-        if len(names) == 0:
+        if not names and (lhs_fields or rhs_fields):
             raise ValueError("There are no common fields in assigment lhs: {} rhs: {}".format(lhs_fields, rhs_fields))
 
         for name in names:
             if name not in lhs_fields:
-                raise ValueError("Field {} not present in lhs".format(name))
+                raise KeyError("Field {} not present in lhs".format(name))
             if name not in rhs_fields:
-                raise ValueError("Field {} not present in rhs".format(name))
+                raise KeyError("Field {} not present in rhs".format(name))
 
             subfields = fields
             if isinstance(fields, Mapping):
@@ -203,7 +205,17 @@ def assign(
     else:
         if not isinstance(fields, AssignType):
             raise ValueError("Fields on assigning non-records")
-        rhs = Value.cast(rhs)
-        if lhs.shape() != rhs.shape():
-            raise ValueError("Shapes not matching: {} and {}".format(lhs.shape(), rhs.shape()))
-        yield lhs.eq(rhs)
+        if not isinstance(lhs, ValueLike) or not isinstance(rhs, ValueLike):
+            raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
+
+        rhs_val = Value.cast(rhs)
+
+        def has_explicit_shape(val: ValueLike):
+            return isinstance(val, Signal) or isinstance(val, ArrayProxy)
+
+        if isinstance(lhs, Record) or isinstance(rhs, Record) or has_explicit_shape(lhs) and has_explicit_shape(rhs):
+            if lhs.shape() != rhs_val.shape():
+                raise ValueError(
+                    "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs.shape(), lhs, rhs_val.shape(), rhs)
+                )
+        yield lhs.eq(rhs_val)
