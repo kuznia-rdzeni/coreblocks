@@ -158,11 +158,9 @@ class RSInterfaceLayouts:
 
         self.select_out = [("rs_entry_id", gen_params.rs_entries_bits)]
 
-        self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
-
         self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
 
-        self.take_in = [("rs_entry_id", gen_params.rs_entries_bits)]
+        self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
 
 
 class RSLayouts:
@@ -190,7 +188,7 @@ class RSLayouts:
 
         self.update_in = rs_interface.update_in
 
-        self.take_in = rs_interface.take_in
+        self.take_in = [("rs_entry_id", gen_params.rs_entries_bits)]
 
         self.take_out = layout_subset(
             rs_interface.data_layout,
