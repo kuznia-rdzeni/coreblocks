@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
-from ._typing import ValueLike
+from ._typing import ValueLike, LayoutList
 
 
 __all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch"]
@@ -205,6 +205,7 @@ def assign(lhs: AssignLHS, rhs: AssignRHS, *, fields: AssignFields = AssignType.
     else:
         if not isinstance(fields, AssignType):
             raise ValueError("Fields on assigning non-records")
+
         if not isinstance(lhs, ValueLike) or not isinstance(rhs, ValueLike):
             raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
 
@@ -219,3 +220,11 @@ def assign(lhs: AssignLHS, rhs: AssignRHS, *, fields: AssignFields = AssignType.
                     "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs.shape(), lhs, rhs_val.shape(), rhs)
                 )
         yield lhs.eq(rhs_val)
+
+
+def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
+    result = []
+    for field in layout:
+        if field[0] in fields:
+            result.append(field)
+    return result

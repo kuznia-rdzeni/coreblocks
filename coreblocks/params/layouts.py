@@ -1,4 +1,5 @@
 from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode
+from coreblocks.utils.utils import layout_subset
 
 __all__ = [
     "SchedulerLayouts",
@@ -7,6 +8,7 @@ __all__ = [
     "FetchLayouts",
     "DecodeLayouts",
     "FuncUnitLayouts",
+    "RSInterfaceLayouts",
     "RSLayouts",
     "RFLayouts",
     "UnsignedMulUnitLayouts",
@@ -137,12 +139,14 @@ class ROBLayouts:
         self.retire_layout = [("rob_data", self.data_layout), ("rob_id", gen_params.rob_entries_bits)]
 
 
-class RSLayouts:
+class RSInterfaceLayouts:
     def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)
         self.data_layout = [
             ("rp_s1", gen_params.phys_regs_bits),
             ("rp_s2", gen_params.phys_regs_bits),
+            ("rp_s1_val", gen_params.phys_regs_bits),
+            ("rp_s2_val", gen_params.phys_regs_bits),
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
             ("exec_fn", common.exec_fn),
@@ -151,24 +155,55 @@ class RSLayouts:
             ("imm", gen_params.isa.xlen),
             ("pc", gen_params.isa.xlen),
         ]
-
-        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
 
         self.select_out = [("rs_entry_id", gen_params.rs_entries_bits)]
 
         self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
 
+        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
+
         self.take_in = [("rs_entry_id", gen_params.rs_entries_bits)]
 
-        self.take_out = [
-            ("s1_val", gen_params.isa.xlen),
-            ("s2_val", gen_params.isa.xlen),
-            ("rp_dst", gen_params.phys_regs_bits),
-            ("rob_id", gen_params.rob_entries_bits),
-            ("exec_fn", common.exec_fn),
-            ("imm", gen_params.isa.xlen),
-            ("pc", gen_params.isa.xlen),
-        ]
+
+class RSLayouts:
+    def __init__(self, gen_params: GenParams):
+        rs_interface = gen_params.get(RSInterfaceLayouts)
+
+        self.data_layout = layout_subset(
+            rs_interface.data_layout,
+            fields={
+                "rp_s1",
+                "rp_s2",
+                "rp_dst",
+                "rob_id",
+                "exec_fn",
+                "s1_val",
+                "s2_val",
+                "imm",
+                "pc",
+            },
+        )
+
+        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
+
+        self.select_out = rs_interface.select_out
+
+        self.update_in = rs_interface.update_in
+
+        self.take_in = rs_interface.take_in
+
+        self.take_out = layout_subset(
+            rs_interface.data_layout,
+            fields={
+                "s1_val",
+                "s2_val",
+                "rp_dst",
+                "rob_id",
+                "exec_fn",
+                "imm",
+                "pc",
+            },
+        )
 
         self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
 
