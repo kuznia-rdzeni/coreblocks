@@ -16,13 +16,13 @@
                    FIFO_read["read"]
                end
                subgraph BasicFifo["free_rf_fifo BasicFifo"]
-                   BasicFifo_write["write"]
                    BasicFifo_read["read"]
+                   BasicFifo_write["write"]
                end
                subgraph Fetch["fetch Fetch"]
+                   Fetch_verify_branch["verify_branch"]
                    Fetch_Fetch["Fetch"]
                    Fetch_FetchRQ["FetchRQ"]
-                   Fetch_verify_branch["verify_branch"]
                end
                subgraph FRAT["FRAT FRAT"]
                    FRAT_rename["rename"]
@@ -32,34 +32,34 @@
                end
                subgraph RegisterFile["RF RegisterFile"]
                    RegisterFile_read1["read1"]
-                   RegisterFile_read2["read2"]
-                   RegisterFile_free["free"]
                    RegisterFile_write["write"]
+                   RegisterFile_free["free"]
+                   RegisterFile_read2["read2"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
-                   ReorderBuffer_retire["retire"]
                    ReorderBuffer_mark_done["mark_done"]
                    ReorderBuffer_put["put"]
+                   ReorderBuffer_retire["retire"]
                end
                subgraph JumpBranchFuncUnit["jb_unit JumpBranchFuncUnit"]
+                   JumpBranchFuncUnit_branch_result["branch_result"]
                    JumpBranchFuncUnit_accept["accept"]
                    JumpBranchFuncUnit_issue["issue"]
-                   JumpBranchFuncUnit_branch_result["branch_result"]
                    subgraph FIFO1["fifo_res FIFO"]
                        FIFO1_write["write"]
                        FIFO1_read["read"]
                    end
                    subgraph FIFO2["fifo_branch FIFO"]
-                       FIFO2_write["write"]
                        FIFO2_read["read"]
+                       FIFO2_write["write"]
                    end
                end
                subgraph LSUDummy["lsu_unit LSUDummy"]
-                   LSUDummy_select["select"]
                    LSUDummy_insert["insert"]
-                   LSUDummy_update["update"]
                    LSUDummy_get_result["get_result"]
                    LSUDummy_commit["commit"]
+                   LSUDummy_select["select"]
+                   LSUDummy_update["update"]
                    subgraph LSUDummyInternals["internal LSUDummyInternals"]
                        LSUDummyInternals_LSUDummyInternals["LSUDummyInternals"]
                        LSUDummyInternals_LSUDummyInternals["LSUDummyInternals"]
@@ -72,8 +72,8 @@
                subgraph Collector["result_collector Collector"]
                    Collector_method["method"]
                    subgraph Forwarder["forwarder Forwarder"]
-                       Forwarder_write["write"]
                        Forwarder_read["read"]
+                       Forwarder_write["write"]
                    end
                    subgraph ManyToOneConnectTrans["connect ManyToOneConnectTrans"]
                        subgraph ConnectTrans["ManyToOneConnectTrans_input_0 ConnectTrans"]
@@ -99,8 +99,8 @@
                end
                subgraph Scheduler["scheduler Scheduler"]
                    subgraph FIFO4["alloc_rename_buf FIFO"]
-                       FIFO4_read["read"]
                        FIFO4_write["write"]
+                       FIFO4_read["read"]
                    end
                    subgraph RegAllocation["reg_alloc RegAllocation"]
                        RegAllocation_RegAllocation["RegAllocation"]
@@ -142,11 +142,11 @@
                    RSFuncBlock_select["select"]
                    RSFuncBlock_insert["insert"]
                    subgraph RS["rs RS"]
-                       RS_RS["RS"]
                        RS_update["update"]
                        RS_select["select"]
                        RS_take["take"]
                        RS_insert["insert"]
+                       RS_RS["RS"]
                        RS_RS["RS"]
                    end
                    subgraph AluFuncUnit["func_unit_0 AluFuncUnit"]
