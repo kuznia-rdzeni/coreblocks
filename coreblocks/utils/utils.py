@@ -205,7 +205,6 @@ def assign(lhs: AssignLHS, rhs: AssignRHS, *, fields: AssignFields = AssignType.
     else:
         if not isinstance(fields, AssignType):
             raise ValueError("Fields on assigning non-records")
-
         if not isinstance(lhs, ValueLike) or not isinstance(rhs, ValueLike):
             raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
 
@@ -223,8 +222,4 @@ def assign(lhs: AssignLHS, rhs: AssignRHS, *, fields: AssignFields = AssignType.
 
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
-    result = []
-    for field in layout:
-        if field[0] in fields:
-            result.append(field)
-    return result
+    return [item for item in layout if item[0] in fields]
