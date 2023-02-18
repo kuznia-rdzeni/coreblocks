@@ -35,7 +35,6 @@ class LSUDummyInternals(Elaboratable):
             Reference to signal containing instruction currently processed by LSU.
         """
         self.gen_params = gen_params
-        self.rs_layouts = gen_params.get(RSLayouts)
         self.current_instr = current_instr
         self.bus = bus
 
@@ -223,13 +222,12 @@ class LSUDummy(Elaboratable):
         """
 
         self.gen_params = gen_params
-        self.rs_layouts = gen_params.get(RSLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.lsu_layouts = gen_params.get(LSULayouts)
 
-        self.insert = Method(i=self.rs_layouts.insert_in)
-        self.select = Method(o=self.rs_layouts.select_out)
-        self.update = Method(i=self.rs_layouts.update_in)
+        self.insert = Method(i=self.lsu_layouts.rs_insert_in)
+        self.select = Method(o=self.lsu_layouts.rs_select_out)
+        self.update = Method(i=self.lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
         self.commit = Method(i=self.lsu_layouts.commit)
 
@@ -238,7 +236,7 @@ class LSUDummy(Elaboratable):
     def elaborate(self, platform):
         m = Module()
         reserved = Signal()  # means that current_instr is reserved
-        current_instr = Record(self.rs_layouts.data_layout + [("valid", 1)])
+        current_instr = Record(self.lsu_layouts.rs_data_layout + [("valid", 1)])
 
         m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
 

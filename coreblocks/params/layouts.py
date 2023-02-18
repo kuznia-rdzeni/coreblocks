@@ -266,6 +266,27 @@ class UnsignedMulUnitLayouts:
 
 class LSULayouts:
     def __init__(self, gen_params: GenParams):
+        rs_interface = gen_params.get(RSInterfaceLayouts)
+        self.rs_data_layout = layout_subset(
+            rs_interface.data_layout,
+            fields={
+                "rp_s1",
+                "rp_s2",
+                "rp_dst",
+                "rob_id",
+                "exec_fn",
+                "s1_val",
+                "s2_val",
+                "imm",
+            },
+        )
+
+        self.rs_insert_in = [("rs_data", self.rs_data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
+
+        self.rs_select_out = rs_interface.select_out
+
+        self.rs_update_in = rs_interface.update_in
+
         self.commit = [
             ("rob_id", gen_params.rob_entries_bits),
         ]
