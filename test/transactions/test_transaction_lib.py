@@ -126,7 +126,7 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
         with tm.transaction_context():
             get_results = []
             for i in range(self.count):
-                input = TestbenchIO(Adapter(i=self.lay, o=self.lay))
+                input = TestbenchIO(Adapter(o=self.lay))
                 get_results.append(input.adapter.iface)
                 setattr(m.submodules, f"input_{i}", input)
                 setattr(self, f"input_{i}", input)
@@ -426,7 +426,7 @@ class MethodProductTestCircuit(Elaboratable):
 
         combiner = None
         if self.add_combiner:
-            combiner = (layout, lambda _, vs: sum(vs))
+            combiner = (layout, lambda _, vs: {"data": sum(vs)})
 
         m.submodules.product = product = MethodProduct(methods, combiner)
 
