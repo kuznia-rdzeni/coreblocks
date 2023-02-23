@@ -94,6 +94,7 @@ class SchedulerLayouts:
             ("imm", gen_params.isa.xlen),
             ("pc", gen_params.isa.xlen),
         ]
+        self.free_rf_layout = [("reg_id", gen_params.phys_regs_bits)]
 
 
 class RFLayouts:
@@ -132,6 +133,8 @@ class ROBLayouts:
             ("rob_data", self.data_layout),
             ("done", 1),
         ]
+
+        self.retire_layout = [("rob_data", self.data_layout), ("rob_id", gen_params.rob_entries_bits)]
 
 
 class RSLayouts:

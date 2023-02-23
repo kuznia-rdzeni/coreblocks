@@ -10,7 +10,7 @@ from amaranth.sim import *
 from amaranth.sim.core import Command
 from coreblocks.transactions.core import DebugSignals, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
-from coreblocks.utils import ValueLike, auto_debug_signals
+from coreblocks.utils import ValueLike, auto_debug_signals, LayoutLike
 from .gtkw_extension import write_vcd_ext
 
 
@@ -19,6 +19,10 @@ RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
+
+
+def data_layout(val: int) -> LayoutLike:
+    return [("data", val)]
 
 
 def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:

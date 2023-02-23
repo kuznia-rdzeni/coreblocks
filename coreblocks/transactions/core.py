@@ -8,7 +8,9 @@ from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
-from amaranth.hdl.ast import Assign, Statement
+from amaranth.hdl.ast import Statement
+
+from coreblocks.utils import AssignType, assign
 from ._utils import *
 from ..utils._typing import StatementLike, ValueLike, DebugSignals
 from .graph import Owned, OwnershipGraph, Direction
@@ -517,25 +519,6 @@ class Transaction(TransactionBase):
         return [self.request, self.grant]
 
 
-def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> list[Assign]:
-    if not isinstance(src, Mapping):
-        return [dst.eq(src)]
-
-    if not isinstance(dst, Record):
-        raise TypeError("Cannot connect a dict of signals to a non-record.")
-
-    exprs: list[Assign] = []
-    for k, v in src.items():
-        exprs += _connect_rec_with_possibly_dict(dst[k], v)
-
-    # Make sure all fields of the record are specified in the dict.
-    for field_name, _, _ in dst.layout:
-        if field_name not in src:
-            raise KeyError("Field {} is not specified in the dict.".format(field_name))
-
-    return exprs
-
-
 class Method(TransactionBase):
     """Transactional method.
 
@@ -583,10 +566,10 @@ class Method(TransactionBase):
         name: str or None
             Name hint for this `Method`. If `None` (default) the name is
             inferred from the variable name this `Method` is assigned to.
-        i: int or record layout
+        i: record layout
             The format of `data_in`.
             An `int` corresponds to a `Record` with a single `data` field.
-        o: int or record layout
+        o: record layout
             The format of `data_in`.
             An `int` corresponds to a `Record` with a single `data` field.
         nonexclusive: bool
@@ -600,8 +583,8 @@ class Method(TransactionBase):
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal()
         self.run = Signal()
-        self.data_in = Record(_coerce_layout(i))
-        self.data_out = Record(_coerce_layout(o))
+        self.data_in = Record(i)
+        self.data_out = Record(o)
         self.defined = False
         self.nonexclusive = nonexclusive
         if nonexclusive:
@@ -701,12 +684,66 @@ class Method(TransactionBase):
         finally:
             self.defined = True
 
-    def __call__(self, m: Module, arg: RecordDict = C(0, 0), enable: ValueLike = C(1)) -> Record:
+    def __call__(
+        self, m: Module, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
+    ) -> Record:
+        """Call a method.
+
+        Methods can only be called from transaction and method bodies.
+        Calling a `Method` marks, for the purpose of transaction scheduling,
+        the dependency between the calling context and the called `Method`.
+        It also connects the method's inputs to the parameters and the
+        method's outputs to the return value.
+
+        Parameters
+        ----------
+        m : Module
+            Module in which operations on signals should be executed,
+        arg : Value or dict of Values
+            Call argument. Can be passed as a `Record` of the method's
+            input layout or as a dictionary. Alternative syntax uses
+            keyword arguments.
+        enable : Value
+            Configures the call as enabled in the current clock cycle.
+            Disabled calls still lock the called method in transaction
+            scheduling. Calls are by default enabled.
+        **kwargs : Value or dict of Values
+            Allows to pass method arguments using keyword argument
+            syntax. Equivalent to passing a dict as the argument.
+
+        Returns
+        -------
+        data_out : Record
+            The result of the method call.
+
+        Examples
+        --------
+        .. highlight:: python
+        .. code-block:: python
+
+            m = Module()
+            with Transaction.body(m):
+                ret = my_sum_method(m, arg1=2, arg2=3)
+
+        Alternative syntax:
+
+        .. highlight:: python
+        .. code-block:: python
+
+            with Transaction.body(m):
+                ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
+        """
         enable_sig = Signal()
         arg_rec = Record.like(self.data_in)
 
+        if arg is not None and kwargs:
+            raise ValueError("Method call with both keyword arguments and legacy record argument")
+
+        if arg is None:
+            arg = kwargs
+
         m.d.comb += enable_sig.eq(enable)
-        TransactionBase.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
+        TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
         return self.data_out
 
@@ -749,7 +786,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     .. code-block:: python
 
         m = Module()
-        my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
+        my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=[("res",8)])
         @def_method(m, my_sum_method)
         def _(arg1, arg2):
             return arg1 + arg2
@@ -770,7 +807,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
 
         @def_method(m, my_sum_method)
         def _(arg):
-            return arg.arg1 + arg.arg2
+            return {"res": arg.arg1 + arg.arg2}
     """
 
     def decorator(func: Callable[..., Optional[RecordDict]]):
@@ -795,6 +832,6 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
                 raise TypeError(f"Invalid def_method for {method}")
 
         if ret_out is not None:
-            m.d.comb += _connect_rec_with_possibly_dict(out, ret_out)
+            m.d.comb += assign(out, ret_out, fields=AssignType.ALL)
 
     return decorator

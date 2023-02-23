@@ -2,7 +2,7 @@
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
@@ -87,7 +87,7 @@ class TestDefMethod(TestCaseWithSimulator):
         def definition(arg):
             return {"foo1": Signal(3), "baz": Signal(4)}
 
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(KeyError):
             self.do_test_definition(definition)
 
     def test_fields_invalid2(self):
@@ -249,7 +249,7 @@ class TestInvalidMethods(TestCase):
     def test_undefined_in_trans(self):
         class Undefined(Elaboratable):
             def __init__(self):
-                self.meth = Method(i=1)
+                self.meth = Method(i=data_layout(1))
 
             def elaborate(self, platform):
                 return Module()
@@ -272,9 +272,10 @@ WIDTH = 8
 
 class Quadruple(Elaboratable):
     def __init__(self):
-        self.id = Method(i=WIDTH, o=WIDTH)
-        self.double = Method(i=WIDTH, o=WIDTH)
-        self.quadruple = Method(i=WIDTH, o=WIDTH)
+        layout = data_layout(WIDTH)
+        self.id = Method(i=layout, o=layout)
+        self.double = Method(i=layout, o=layout)
+        self.quadruple = Method(i=layout, o=layout)
 
     def elaborate(self, platform):
         m = Module()
@@ -285,11 +286,11 @@ class Quadruple(Elaboratable):
 
         @def_method(m, self.double)
         def _(arg):
-            return self.id(m, arg) * 2
+            return {"data": self.id(m, arg).data * 2}
 
         @def_method(m, self.quadruple)
         def _(arg):
-            return self.double(m, arg) * 2
+            return {"data": self.double(m, arg).data * 2}
 
         return m
 
@@ -313,7 +314,8 @@ class QuadrupleCircuit(Elaboratable):
 
 class Quadruple2(Elaboratable):
     def __init__(self):
-        self.quadruple = Method(i=WIDTH, o=WIDTH)
+        layout = data_layout(WIDTH)
+        self.quadruple = Method(i=layout, o=layout)
 
     def elaborate(self, platform):
         m = Module()
@@ -322,7 +324,7 @@ class Quadruple2(Elaboratable):
 
         @def_method(m, self.quadruple)
         def _(arg):
-            return 2 * m.submodules.sub.double(m, arg)
+            return {"data": 2 * m.submodules.sub.double(m, arg).data}
 
         return m
 
@@ -347,7 +349,7 @@ class ConditionalCallCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        meth = Method(i=1)
+        meth = Method(i=data_layout(1))
 
         m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
         m.submodules.out = self.out = TestbenchIO(Adapter())
@@ -505,7 +507,7 @@ class NonexclusiveMethodCircuit(Elaboratable):
         self.running = Signal()
         self.data = Signal(WIDTH)
 
-        method = Method(o=WIDTH, nonexclusive=True)
+        method = Method(o=data_layout(WIDTH), nonexclusive=True)
 
         @def_method(m, method, self.ready)
         def _():

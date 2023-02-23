@@ -1,9 +1,9 @@
 from typing import Callable, Tuple, Optional
 from amaranth import *
 from .core import *
-from .core import DebugSignals, RecordDict, _connect_rec_with_possibly_dict
-from ._utils import _coerce_layout, MethodLayout
-from ..utils._typing import ValueLike
+from .core import DebugSignals, RecordDict
+from ._utils import MethodLayout
+from ..utils import ValueLike, assign, AssignType
 
 __all__ = [
     "FIFO",
@@ -48,7 +48,7 @@ class FIFO(Elaboratable):
         """
         Parameters
         ----------
-        layout: int or record layout
+        layout: record layout
             The format of records stored in the FIFO.
         depth: int
             Size of the FIFO.
@@ -56,7 +56,6 @@ class FIFO(Elaboratable):
             FIFO module conforming to Amaranth library FIFO interface. Defaults
             to SyncFIFO.
         """
-        layout = _coerce_layout(layout)
         self.width = len(Record(layout))
         self.depth = depth
         self.fifoType = fifo_type
@@ -111,7 +110,7 @@ class Forwarder(Elaboratable):
         """
         Parameters
         ----------
-        layout: int or record layout
+        layout: record layout
             The format of records forwarded.
         """
         self.read = Method(o=layout)
@@ -165,16 +164,16 @@ class ClickIn(Elaboratable):
         The data input.
     """
 
-    def __init__(self, layout: MethodLayout = 1):
+    def __init__(self, layout: MethodLayout):
         """
         Parameters
         ----------
-        layout: int or record layout
+        layout: record layout
             The data format for the input.
         """
         self.get = Method(o=layout)
         self.btn = Signal()
-        self.dat = Record(_coerce_layout(layout))
+        self.dat = Record(layout)
 
     def elaborate(self, platform):
         m = Module()
@@ -221,16 +220,16 @@ class ClickOut(Elaboratable):
         The data output.
     """
 
-    def __init__(self, layout: MethodLayout = 1):
+    def __init__(self, layout: MethodLayout):
         """
         Parameters
         ----------
-        layout: int or record layout
+        layout: record layout
             The data format for the output.
         """
         self.put = Method(i=layout)
         self.btn = Signal()
-        self.dat = Record(_coerce_layout(layout))
+        self.dat = Record(layout)
 
     def elaborate(self, platform):
         m = Module()
@@ -298,7 +297,7 @@ class AdapterTrans(AdapterBase):
         m.d.comb += data_in.eq(self.data_in)
 
         with Transaction().body(m, request=self.en):
-            data_out = self.iface(m, arg=data_in)
+            data_out = self.iface(m, data_in)
             Transaction.comb += self.data_out.eq(data_out)
             m.d.comb += self.done.eq(1)
 
@@ -323,13 +322,13 @@ class Adapter(AdapterBase):
         Data passed as argument to the defined method.
     """
 
-    def __init__(self, *, i: MethodLayout = 0, o: MethodLayout = 0):
+    def __init__(self, *, i: MethodLayout = (), o: MethodLayout = ()):
         """
         Parameters
         ----------
-        i: int or record layout
+        i: record layout
             The input layout of the defined method.
-        o: int or record layout
+        o: record layout
             The output layout of the defined method.
         """
         super().__init__(Method(i=i, o=o))
@@ -382,11 +381,11 @@ class MethodTransformer(Elaboratable):
         ----------
         target: Method
             The target method.
-        i_transform: (int or record layout, function or Method), optional
+        i_transform: (record layout, function or Method), optional
             Input transformation. If specified, it should be a pair of a
             function and a input layout for the transformed method.
             If not present, input is not transformed.
-        o_transform: (int or record layout, function or Method), optional
+        o_transform: (record layout, function or Method), optional
             Output transformation. If specified, it should be a pair of a
             function and a output layout for the transformed method.
             If not present, output is not transformed.
@@ -456,7 +455,7 @@ class MethodFilter(Elaboratable):
         m = Module()
 
         ret = Record.like(self.target.data_out)
-        m.d.comb += _connect_rec_with_possibly_dict(ret, self.default)
+        m.d.comb += assign(ret, self.default, fields=AssignType.ALL)
 
         @def_method(m, self.method)
         def _(arg):
@@ -511,6 +510,48 @@ class MethodProduct(Elaboratable):
             for target in self.targets:
                 results.append(target(m, arg))
             return self.combiner[1](m, results)
+
+        return m
+
+
+class Collector(Elaboratable):
+    """Single result collector.
+
+    Creates method that collects results of many methods with identical
+    layouts. Each call of this method will return a single result of one
+    of the provided methods.
+
+    Attributes
+    ----------
+    method: Method
+        Method which returns single result of provided methods.
+    """
+
+    def __init__(self, targets: list[Method]):
+        """
+        Parameters
+        ----------
+        method_list: list[Method]
+            List of methods from which results will be collected.
+        """
+        self.method_list = targets
+        layout = targets[0].data_out.layout
+        self.method = Method(o=layout)
+
+        for method in targets:
+            if layout != method.data_out.layout:
+                raise Exception("Not all methods have this same layout")
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout)
+
+        m.submodules.connect = ManyToOneConnectTrans(
+            get_results=[get for get in self.method_list], put_result=forwarder.write
+        )
+
+        self.method.proxy(m, forwarder.read)
 
         return m
 
@@ -628,50 +669,6 @@ class ManyToOneConnectTrans(Elaboratable):
             setattr(
                 m.submodules, f"ManyToOneConnectTrans_input_{i}", ConnectTrans(self.m_put_result, self.get_results[i])
             )
-
-        return m
-
-
-class Collector(Elaboratable):
-    """Single result collector.
-
-    Creates method that collects results of many method with identical
-    layout. Each call of this function will return single result of one
-    of provided methods.
-
-    Attributes
-    ----------
-    layout: Layout
-        Output layout of provided methods.
-    get_single: Method
-        Method which returns single result of provided methods.
-    """
-
-    def __init__(self, method_list: list[Method]):
-        """
-        Parameters
-        ----------
-        method_list: list[Method]
-            List of methods from which results will be collected.
-        """
-        self.method_list = method_list
-        self.layout = method_list[0].data_out.layout
-        self.get_single = Method(o=self.layout)
-
-        for method in method_list:
-            if self.layout != method.data_out.layout:
-                raise Exception("Not all methods have this same layout")
-
-    def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.forwarder = forwarder = Forwarder(self.layout)
-
-        m.submodules.connect = ManyToOneConnectTrans(
-            get_results=[get for get in self.method_list], put_result=forwarder.write
-        )
-
-        self.get_single.proxy(m, forwarder.read)
 
         return m
 
