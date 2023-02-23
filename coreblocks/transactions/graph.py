@@ -218,7 +218,9 @@ class OwnershipGraph:
             obj = {"modules": [], "calls": []}
             for owner in self.names:
                 if owner not in self.labels:
-                    obj["modules"].append(self.dump_json(fp, owner))
+                    mod_json = self.dump_json(fp, owner)
+                    if mod_json:
+                        obj["modules"].append(mod_json)
             for fr, to, direction in self.edges:
                 if direction == Direction.OUT:
                     fr, to = to, fr
@@ -248,7 +250,9 @@ class OwnershipGraph:
                 obj["transactions"].append(xobj)
         for subowner in subowners:
             if subowner in self.graph:
-                obj["submodules"].append(self.dump_json(fp, subowner))
+                sub_json = self.dump_json(fp, subowner)
+                if sub_json:
+                    obj["submodules"].append(sub_json)
         return obj
 
     def dump_mermaid(self, fp, owner: Optional[int] = None, indent: str = ""):
