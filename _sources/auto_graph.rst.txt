@@ -16,8 +16,8 @@
                    FIFO_read["read"]
                end
                subgraph BasicFifo["free_rf_fifo BasicFifo"]
-                   BasicFifo_read["read"]
                    BasicFifo_write["write"]
+                   BasicFifo_read["read"]
                end
                subgraph Fetch["fetch Fetch"]
                    Fetch_verify_branch["verify_branch"]
@@ -32,14 +32,14 @@
                end
                subgraph RegisterFile["RF RegisterFile"]
                    RegisterFile_read1["read1"]
+                   RegisterFile_read2["read2"]
                    RegisterFile_write["write"]
                    RegisterFile_free["free"]
-                   RegisterFile_read2["read2"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
-                   ReorderBuffer_mark_done["mark_done"]
-                   ReorderBuffer_put["put"]
                    ReorderBuffer_retire["retire"]
+                   ReorderBuffer_put["put"]
+                   ReorderBuffer_mark_done["mark_done"]
                end
                subgraph JumpBranchFuncUnit["jb_unit JumpBranchFuncUnit"]
                    JumpBranchFuncUnit_branch_result["branch_result"]
@@ -62,11 +62,11 @@
                    LSUDummy_update["update"]
                    subgraph LSUDummyInternals["internal LSUDummyInternals"]
                        LSUDummyInternals_LSUDummyInternals["LSUDummyInternals"]
-                       LSUDummyInternals_LSUDummyInternals["LSUDummyInternals"]
-                       LSUDummyInternals_LSUDummyInternals["LSUDummyInternals"]
-                       LSUDummyInternals_LSUDummyInternals["LSUDummyInternals"]
-                       LSUDummyInternals_LSUDummyInternals["LSUDummyInternals"]
-                       LSUDummyInternals_LSUDummyInternals["LSUDummyInternals"]
+                       LSUDummyInternals_LSUDummyInternals1["LSUDummyInternals"]
+                       LSUDummyInternals_LSUDummyInternals2["LSUDummyInternals"]
+                       LSUDummyInternals_LSUDummyInternals3["LSUDummyInternals"]
+                       LSUDummyInternals_LSUDummyInternals4["LSUDummyInternals"]
+                       LSUDummyInternals_LSUDummyInternals5["LSUDummyInternals"]
                    end
                end
                subgraph Collector["result_collector Collector"]
@@ -125,8 +125,8 @@
                    end
                    subgraph RSSelection["rs_selector RSSelection"]
                        RSSelection_RSSelection["RSSelection"]
-                       RSSelection_RSSelection["RSSelection"]
-                       RSSelection_RSSelection["RSSelection"]
+                       RSSelection_RSSelection1["RSSelection"]
+                       RSSelection_RSSelection2["RSSelection"]
                        subgraph Forwarder1["forwarder Forwarder"]
                            Forwarder1_write["write"]
                            Forwarder1_read["read"]
@@ -147,7 +147,7 @@
                        RS_take["take"]
                        RS_insert["insert"]
                        RS_RS["RS"]
-                       RS_RS["RS"]
+                       RS_RS1["RS"]
                    end
                    subgraph AluFuncUnit["func_unit_0 AluFuncUnit"]
                        AluFuncUnit_issue["issue"]
@@ -214,20 +214,20 @@
    ROBAllocation_ROBAllocation --> FIFO6_write
    FIFO6_read --> RSSelection_RSSelection
    RSSelection_RSSelection --> Forwarder1_write
-   Forwarder1_read --> RSSelection_RSSelection
-   Forwarder1_read --> RSSelection_RSSelection
-   RSFuncBlock_select --> RSSelection_RSSelection
-   RS_select --> RSSelection_RSSelection
-   RSSelection_RSSelection --> FIFO7_write
-   RSSelection_RSSelection --> FIFO7_write
-   LSUDummy_select --> RSSelection_RSSelection
+   Forwarder1_read --> RSSelection_RSSelection2
+   Forwarder1_read --> RSSelection_RSSelection1
+   RSFuncBlock_select --> RSSelection_RSSelection2
+   RS_select --> RSSelection_RSSelection2
+   RSSelection_RSSelection2 --> FIFO7_write
+   RSSelection_RSSelection1 --> FIFO7_write
+   LSUDummy_select --> RSSelection_RSSelection1
    FIFO7_read --> RSInsertion_RSInsertion
    RegisterFile_read1 --> RSInsertion_RSInsertion
    RegisterFile_read2 --> RSInsertion_RSInsertion
    RSInsertion_RSInsertion --> RSFuncBlock_insert
    RSInsertion_RSInsertion --> RS_insert
    RSInsertion_RSInsertion --> LSUDummy_insert
-   RS_RS --> WakeupSelect_WakeupSelect
+   RS_RS1 --> WakeupSelect_WakeupSelect
    RS_take --> WakeupSelect_WakeupSelect
    RS_take --> WakeupSelect1_WakeupSelect
    WakeupSelect_WakeupSelect --> AluFuncUnit_issue
@@ -243,11 +243,11 @@
    JumpBranchFuncUnit_accept --> ConnectTrans3_ConnectTrans
    FIFO1_read --> ConnectTrans3_ConnectTrans
    LSUDummyInternals_LSUDummyInternals --> WishboneMaster1_request
-   LSUDummyInternals_LSUDummyInternals --> WishboneMaster1_request
-   LSUDummyInternals_LSUDummyInternals --> WishboneMaster1_request
-   LSUDummyInternals_LSUDummyInternals --> WishboneMaster1_request
-   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals
-   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals
+   LSUDummyInternals_LSUDummyInternals1 --> WishboneMaster1_request
+   LSUDummyInternals_LSUDummyInternals2 --> WishboneMaster1_request
+   LSUDummyInternals_LSUDummyInternals4 --> WishboneMaster1_request
+   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals3
+   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals5
    JumpBranchFuncUnit_branch_result --> ConnectTrans4_ConnectTrans
    FIFO2_read --> ConnectTrans4_ConnectTrans
    ConnectTrans4_ConnectTrans --> Fetch_verify_branch

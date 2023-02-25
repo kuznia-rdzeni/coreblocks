@@ -93,8 +93,8 @@
                 FIFO_read[&quot;read&quot;]
             end
             subgraph BasicFifo[&quot;free_rf_fifo BasicFifo&quot;]
-                BasicFifo_read[&quot;read&quot;]
                 BasicFifo_write[&quot;write&quot;]
+                BasicFifo_read[&quot;read&quot;]
             end
             subgraph Fetch[&quot;fetch Fetch&quot;]
                 Fetch_verify_branch[&quot;verify_branch&quot;]
@@ -109,14 +109,14 @@
             end
             subgraph RegisterFile[&quot;RF RegisterFile&quot;]
                 RegisterFile_read1[&quot;read1&quot;]
+                RegisterFile_read2[&quot;read2&quot;]
                 RegisterFile_write[&quot;write&quot;]
                 RegisterFile_free[&quot;free&quot;]
-                RegisterFile_read2[&quot;read2&quot;]
             end
             subgraph ReorderBuffer[&quot;ROB ReorderBuffer&quot;]
-                ReorderBuffer_mark_done[&quot;mark_done&quot;]
-                ReorderBuffer_put[&quot;put&quot;]
                 ReorderBuffer_retire[&quot;retire&quot;]
+                ReorderBuffer_put[&quot;put&quot;]
+                ReorderBuffer_mark_done[&quot;mark_done&quot;]
             end
             subgraph JumpBranchFuncUnit[&quot;jb_unit JumpBranchFuncUnit&quot;]
                 JumpBranchFuncUnit_branch_result[&quot;branch_result&quot;]
@@ -139,11 +139,11 @@
                 LSUDummy_update[&quot;update&quot;]
                 subgraph LSUDummyInternals[&quot;internal LSUDummyInternals&quot;]
                     LSUDummyInternals_LSUDummyInternals[&quot;LSUDummyInternals&quot;]
-                    LSUDummyInternals_LSUDummyInternals[&quot;LSUDummyInternals&quot;]
-                    LSUDummyInternals_LSUDummyInternals[&quot;LSUDummyInternals&quot;]
-                    LSUDummyInternals_LSUDummyInternals[&quot;LSUDummyInternals&quot;]
-                    LSUDummyInternals_LSUDummyInternals[&quot;LSUDummyInternals&quot;]
-                    LSUDummyInternals_LSUDummyInternals[&quot;LSUDummyInternals&quot;]
+                    LSUDummyInternals_LSUDummyInternals1[&quot;LSUDummyInternals&quot;]
+                    LSUDummyInternals_LSUDummyInternals2[&quot;LSUDummyInternals&quot;]
+                    LSUDummyInternals_LSUDummyInternals3[&quot;LSUDummyInternals&quot;]
+                    LSUDummyInternals_LSUDummyInternals4[&quot;LSUDummyInternals&quot;]
+                    LSUDummyInternals_LSUDummyInternals5[&quot;LSUDummyInternals&quot;]
                 end
             end
             subgraph Collector[&quot;result_collector Collector&quot;]
@@ -202,8 +202,8 @@
                 end
                 subgraph RSSelection[&quot;rs_selector RSSelection&quot;]
                     RSSelection_RSSelection[&quot;RSSelection&quot;]
-                    RSSelection_RSSelection[&quot;RSSelection&quot;]
-                    RSSelection_RSSelection[&quot;RSSelection&quot;]
+                    RSSelection_RSSelection1[&quot;RSSelection&quot;]
+                    RSSelection_RSSelection2[&quot;RSSelection&quot;]
                     subgraph Forwarder1[&quot;forwarder Forwarder&quot;]
                         Forwarder1_write[&quot;write&quot;]
                         Forwarder1_read[&quot;read&quot;]
@@ -224,7 +224,7 @@
                     RS_take[&quot;take&quot;]
                     RS_insert[&quot;insert&quot;]
                     RS_RS[&quot;RS&quot;]
-                    RS_RS[&quot;RS&quot;]
+                    RS_RS1[&quot;RS&quot;]
                 end
                 subgraph AluFuncUnit[&quot;func_unit_0 AluFuncUnit&quot;]
                     AluFuncUnit_issue[&quot;issue&quot;]
@@ -291,20 +291,20 @@ ROBAllocation_ROBAllocation --&gt; ReorderBuffer_put
 ROBAllocation_ROBAllocation --&gt; FIFO6_write
 FIFO6_read --&gt; RSSelection_RSSelection
 RSSelection_RSSelection --&gt; Forwarder1_write
-Forwarder1_read --&gt; RSSelection_RSSelection
-Forwarder1_read --&gt; RSSelection_RSSelection
-RSFuncBlock_select --&gt; RSSelection_RSSelection
-RS_select --&gt; RSSelection_RSSelection
-RSSelection_RSSelection --&gt; FIFO7_write
-RSSelection_RSSelection --&gt; FIFO7_write
-LSUDummy_select --&gt; RSSelection_RSSelection
+Forwarder1_read --&gt; RSSelection_RSSelection2
+Forwarder1_read --&gt; RSSelection_RSSelection1
+RSFuncBlock_select --&gt; RSSelection_RSSelection2
+RS_select --&gt; RSSelection_RSSelection2
+RSSelection_RSSelection2 --&gt; FIFO7_write
+RSSelection_RSSelection1 --&gt; FIFO7_write
+LSUDummy_select --&gt; RSSelection_RSSelection1
 FIFO7_read --&gt; RSInsertion_RSInsertion
 RegisterFile_read1 --&gt; RSInsertion_RSInsertion
 RegisterFile_read2 --&gt; RSInsertion_RSInsertion
 RSInsertion_RSInsertion --&gt; RSFuncBlock_insert
 RSInsertion_RSInsertion --&gt; RS_insert
 RSInsertion_RSInsertion --&gt; LSUDummy_insert
-RS_RS --&gt; WakeupSelect_WakeupSelect
+RS_RS1 --&gt; WakeupSelect_WakeupSelect
 RS_take --&gt; WakeupSelect_WakeupSelect
 RS_take --&gt; WakeupSelect1_WakeupSelect
 WakeupSelect_WakeupSelect --&gt; AluFuncUnit_issue
@@ -320,11 +320,11 @@ FIFO8_read --&gt; ConnectTrans2_ConnectTrans
 JumpBranchFuncUnit_accept --&gt; ConnectTrans3_ConnectTrans
 FIFO1_read --&gt; ConnectTrans3_ConnectTrans
 LSUDummyInternals_LSUDummyInternals --&gt; WishboneMaster1_request
-LSUDummyInternals_LSUDummyInternals --&gt; WishboneMaster1_request
-LSUDummyInternals_LSUDummyInternals --&gt; WishboneMaster1_request
-LSUDummyInternals_LSUDummyInternals --&gt; WishboneMaster1_request
-WishboneMaster1_result --&gt; LSUDummyInternals_LSUDummyInternals
-WishboneMaster1_result --&gt; LSUDummyInternals_LSUDummyInternals
+LSUDummyInternals_LSUDummyInternals1 --&gt; WishboneMaster1_request
+LSUDummyInternals_LSUDummyInternals2 --&gt; WishboneMaster1_request
+LSUDummyInternals_LSUDummyInternals4 --&gt; WishboneMaster1_request
+WishboneMaster1_result --&gt; LSUDummyInternals_LSUDummyInternals3
+WishboneMaster1_result --&gt; LSUDummyInternals_LSUDummyInternals5
 JumpBranchFuncUnit_branch_result --&gt; ConnectTrans4_ConnectTrans
 FIFO2_read --&gt; ConnectTrans4_ConnectTrans
 ConnectTrans4_ConnectTrans --&gt; Fetch_verify_branch
@@ -358,7 +358,7 @@ Retirement_Retirement --&gt; BasicFifo_write
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 12:01 2023-02-18.
+      <span class="lastupdated">Last updated on 18:04 2023-02-25.
       </span></p>
   </div>
 
