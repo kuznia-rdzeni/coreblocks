@@ -84,7 +84,7 @@
 <ol class="arabic simple">
 <li><p>Make sure that you use <code class="docutils literal notranslate"><span class="pre">yield</span> <span class="pre">from</span></code> when calling generator functions in tests - e.g. <code class="docutils literal notranslate"><span class="pre">TestbenchIO</span></code> functions (notable exception: <code class="docutils literal notranslate"><span class="pre">yield</span> <span class="pre">Settle()</span></code> instead of <code class="docutils literal notranslate"><span class="pre">yield</span> <span class="pre">from</span> <span class="pre">Settle()</span></code>)</p></li>
 <li><p>If a signal has an unexpected value in tests try adding <code class="docutils literal notranslate"><span class="pre">yield</span> <span class="pre">Settle()</span></code> right before you read it.</p></li>
-<li><p>Make sure you don’t do <code class="docutils literal notranslate"><span class="pre">.eq</span></code> on two records with different layouts - you have to painstakingly write <code class="docutils literal notranslate"><span class="pre">.eq</span></code> for every record’s field.</p></li>
+<li><p>Make sure you don’t do <code class="docutils literal notranslate"><span class="pre">.eq</span></code> on two records with different layouts. Use <code class="docutils literal notranslate"><span class="pre">assign</span></code> from <code class="docutils literal notranslate"><span class="pre">coreblocks.utils</span></code> instead.</p></li>
 <li><p>Make sure all amaranth statements are added to some domain.</p></li>
 <li><p>Check if your code doesn’t have any combinational loops - especially if your simulation hangs.</p></li>
 </ol>
@@ -103,7 +103,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 18:04 2023-02-25.
+      <span class="lastupdated">Last updated on 19:09 2023-02-26.
       </span></p>
   </div>
 
