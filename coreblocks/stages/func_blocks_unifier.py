@@ -30,7 +30,7 @@ class FuncBlocksUnifier(Elaboratable):
         self.unifiers: dict[str, Unifier] = {}
         self.extra_outputs: dict[str, Method] = {}
 
-        for (key, output_methods) in connections.get_outputs().items():
+        for (key, output_methods) in connections.get_methods().items():
             unifier_type = key.unifier()
             if unifier_type is not None and len(output_methods) > 1:
                 unifier = unifier_type(output_methods)

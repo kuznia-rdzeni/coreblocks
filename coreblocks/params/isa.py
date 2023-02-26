@@ -82,35 +82,6 @@ class FenceFm(IntEnum):
 
 
 @unique
-class OpType(IntEnum):
-    """
-    Enum of operation types. Do not confuse with Opcode.
-    """
-
-    UNKNOWN = auto()  # needs to be first
-    ARITHMETIC = auto()
-    COMPARE = auto()
-    LOGIC = auto()
-    SHIFT = auto()
-    AUIPC = auto()
-    JAL = auto()
-    JALR = auto()
-    BRANCH = auto()
-    LOAD = auto()
-    STORE = auto()
-    FENCE = auto()
-    ECALL = auto()
-    EBREAK = auto()
-    MRET = auto()
-    WFI = auto()
-    FENCEI = auto()
-    CSR = auto()
-    MUL = auto()
-    DIV_REM = auto()
-    SINGLE_BIT_MANIPULATION = auto()
-
-
-@unique
 class Extension(IntFlag):
     """
     Enum of available RISC-V extensions.

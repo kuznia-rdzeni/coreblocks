@@ -14,7 +14,7 @@ __all__ = [
     "FunctionalComponentParams",
     "optypes_supported",
     "DependencyKey",
-    "OutputKey",
+    "MethodKey",
 ]
 
 T = TypeVar("T")
@@ -24,7 +24,7 @@ class DependencyKey(Generic[T], ABC):
     pass
 
 
-class OutputKey(ABC):
+class MethodKey(ABC):
     @classmethod
     @abstractmethod
     def unifier(cls) -> type[Unifier] | None:
@@ -33,7 +33,7 @@ class OutputKey(ABC):
     @classmethod
     @abstractmethod
     def method_name(cls) -> str:
-        ...
+        raise NotImplementedError()
 
 
 # extra constructor parameters of FuncBlock
@@ -46,7 +46,7 @@ class ComponentConnections:
         self.dependencies[key] = dependency
         return self
 
-    def set_output(self, key: type[OutputKey], output: Method) -> ComponentConnections:
+    def register_method(self, key: type[MethodKey], output: Method) -> ComponentConnections:
         if key in self.outputs:
             if key.unifier() is not None:
                 self.outputs[key].append(output)
@@ -61,28 +61,28 @@ class ComponentConnections:
             raise Exception(f"Dependency {key} not provided")
         return self.dependencies[key]
 
-    def get_outputs(self) -> dict[type[OutputKey], list[Method]]:
+    def get_methods(self) -> dict[type[MethodKey], list[Method]]:
         return self.outputs
 
 
 class BlockComponentParams(ABC):
     @abstractmethod
     def get_module(self, gen_params: gp.GenParams, connections: ComponentConnections) -> FuncBlock:
-        ...
+        raise NotImplementedError()
 
     @abstractmethod
     def get_optypes(self) -> set[optypes.OpType]:
-        ...
+        raise NotImplementedError()
 
 
 class FunctionalComponentParams(ABC):
     @abstractmethod
     def get_module(self, gen_params: gp.GenParams, connections: ComponentConnections) -> FuncUnit:
-        ...
+        raise NotImplementedError()
 
     @abstractmethod
     def get_optypes(self) -> set[optypes.OpType]:
-        ...
+        raise NotImplementedError()
 
 
 def optypes_supported(block_components: Iterable[BlockComponentParams]) -> set[optypes.OpType]:
