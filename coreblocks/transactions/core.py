@@ -7,7 +7,9 @@ from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
-from amaranth.hdl.ast import Assign, Statement
+from amaranth.hdl.ast import Statement
+
+from coreblocks.utils import AssignType, assign
 from ._utils import *
 from ..utils._typing import StatementLike, ValueLike, DebugSignals
 from .graph import Owned, OwnershipGraph, Direction
@@ -516,25 +518,6 @@ class Transaction(TransactionBase):
         return [self.request, self.grant]
 
 
-def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> list[Assign]:
-    if not isinstance(src, Mapping):
-        return [dst.eq(src)]
-
-    if not isinstance(dst, Record):
-        raise TypeError("Cannot connect a dict of signals to a non-record.")
-
-    exprs: list[Assign] = []
-    for k, v in src.items():
-        exprs += _connect_rec_with_possibly_dict(dst[k], v)
-
-    # Make sure all fields of the record are specified in the dict.
-    for field_name, _, _ in dst.layout:
-        if field_name not in src:
-            raise KeyError("Field {} is not specified in the dict.".format(field_name))
-
-    return exprs
-
-
 class Method(TransactionBase):
     """Transactional method.
 
@@ -759,7 +742,7 @@ class Method(TransactionBase):
             arg = kwargs
 
         m.d.comb += enable_sig.eq(enable)
-        TransactionBase.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
+        TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
         return self.data_out
 
@@ -812,6 +795,6 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
             ret_out = func(arg)
 
         if ret_out is not None:
-            m.d.comb += _connect_rec_with_possibly_dict(out, ret_out)
+            m.d.comb += assign(out, ret_out, fields=AssignType.ALL)
 
     return decorator

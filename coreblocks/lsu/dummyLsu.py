@@ -252,7 +252,7 @@ class LSUDummy(Elaboratable):
         def _(arg):
             # We always return 0, because we have only one place in instruction storage.
             m.d.sync += reserved.eq(1)
-            return 0
+            return {"rs_entry_id": 0}
 
         @def_method(m, self.insert)
         def _(arg):
