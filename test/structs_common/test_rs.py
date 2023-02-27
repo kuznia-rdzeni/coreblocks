@@ -75,7 +75,6 @@ class TestRSMethodInsert(TestCaseWithSimulator):
                     "s1_val": id,
                     "s2_val": id,
                     "imm": id,
-                    "csr": id,
                     "pc": id,
                 },
             }
@@ -120,7 +119,6 @@ class TestRSMethodSelect(TestCaseWithSimulator):
                     "s1_val": id,
                     "s2_val": id,
                     "imm": id,
-                    "csr": id,
                     "pc": id,
                 },
             }
@@ -184,7 +182,6 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
                     "s1_val": id,
                     "s2_val": id,
                     "imm": id,
-                    "csr": id,
                     "pc": id,
                 },
             }
@@ -275,7 +272,6 @@ class TestRSMethodTake(TestCaseWithSimulator):
                     "s1_val": id,
                     "s2_val": id,
                     "imm": id,
-                    "csr": id,
                     "pc": id,
                 },
             }
@@ -332,7 +328,6 @@ class TestRSMethodTake(TestCaseWithSimulator):
             "s1_val": 0,
             "s2_val": 0,
             "imm": 1,
-            "csr": 2,
             "pc": 40,
         }
 
@@ -375,7 +370,6 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
                     "s1_val": id,
                     "s2_val": id,
                     "imm": id,
-                    "csr": id,
                     "pc": id,
                 },
             }

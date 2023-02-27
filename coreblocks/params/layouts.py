@@ -159,7 +159,6 @@ class RSInterfaceLayouts:
             ("s1_val", gen_params.isa.xlen),
             ("s2_val", gen_params.isa.xlen),
             ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
 
@@ -250,7 +249,6 @@ class FuncUnitLayouts:
             ("rob_id", gen.rob_entries_bits),
             ("exec_fn", common.exec_fn),
             ("imm", gen.isa.xlen),
-            ("csr", gen.isa.csr_alen),
             ("pc", gen.isa.xlen),
         ]
 
