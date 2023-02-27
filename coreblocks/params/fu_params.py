@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
+from dataclasses import dataclass
 from typing import Iterable, Generic, TypeVar
 
 import coreblocks.params.genparams as gp
 import coreblocks.params.optypes as optypes
+from coreblocks.params import blocks_method_unifiers
 from coreblocks.transactions import Method
-from coreblocks.utils.protocols import FuncBlock, FuncUnit, Unifier
+from coreblocks.utils.protocols import FuncBlock, FuncUnit
 
 __all__ = [
     "ComponentConnections",
@@ -14,55 +16,41 @@ __all__ = [
     "FunctionalComponentParams",
     "optypes_supported",
     "DependencyKey",
-    "MethodKey",
 ]
 
 T = TypeVar("T")
 
 
-class DependencyKey(Generic[T], ABC):
-    pass
-
-
-class MethodKey(ABC):
-    @classmethod
-    @abstractmethod
-    def unifier(cls) -> type[Unifier] | None:
-        return None
-
-    @classmethod
-    @abstractmethod
-    def method_name(cls) -> str:
-        raise NotImplementedError()
+@dataclass(frozen=True)
+class DependencyKey(Generic[T]):
+    name: str
+    dep_type: type[T]
 
 
 # extra constructor parameters of FuncBlock
 class ComponentConnections:
     def __init__(self):
         self.dependencies = {}
-        self.outputs = {}
+        self.registered_methods = {}
 
-    def set_dependency(self, key: type[DependencyKey[T]], dependency: T) -> ComponentConnections:
+    def set_dependency(self, key: DependencyKey[T], dependency: T) -> ComponentConnections:
         self.dependencies[key] = dependency
         return self
 
-    def register_method(self, key: type[MethodKey], output: Method) -> ComponentConnections:
-        if key in self.outputs:
-            if key.unifier() is not None:
-                self.outputs[key].append(output)
+    def register_method(self, method: Method) -> ComponentConnections:
+        if method.name in self.registered_methods:
+            if method.name in blocks_method_unifiers:
+                self.registered_methods[method.name].append(method)
             else:
-                raise Exception(f"Cannot handle multiple {key} without unifier")
+                raise Exception(f"Cannot handle multiple {method.name} methods without unifier")
         else:
-            self.outputs[key] = [output]
+            self.registered_methods[method.name] = [method]
         return self
 
-    def get_dependency(self, key: type[DependencyKey[T]]) -> T:
+    def get_dependency(self, key: DependencyKey[T]) -> T:
         if key not in self.dependencies:
-            raise Exception(f"Dependency {key} not provided")
+            raise Exception(f"Dependency {key.name} not provided")
         return self.dependencies[key]
-
-    def get_methods(self) -> dict[type[MethodKey], list[Method]]:
-        return self.outputs
 
 
 class BlockComponentParams(ABC):

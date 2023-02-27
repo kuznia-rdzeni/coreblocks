@@ -2,10 +2,9 @@ from typing import Iterable
 
 from amaranth import *
 
-from coreblocks.params import GenParams, BlockComponentParams, ComponentConnections
+from coreblocks.params import GenParams, BlockComponentParams, ComponentConnections, blocks_method_unifiers
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import MethodProduct, Collector
-
 
 __all__ = ["FuncBlocksUnifier"]
 
@@ -14,9 +13,15 @@ from coreblocks.utils.protocols import Unifier
 
 class FuncBlocksUnifier(Elaboratable):
     def __init__(
-        self, *, gen_params: GenParams, blocks: Iterable[BlockComponentParams], connections: ComponentConnections
+        self,
+        *,
+        gen_params: GenParams,
+        blocks: Iterable[BlockComponentParams],
+        connections: ComponentConnections,
+        extra_methods_required: Iterable[str],
     ):
         self.rs_blocks = []
+        self.extra_methods_required = extra_methods_required
 
         for n, block in enumerate(blocks):
             self.rs_blocks.append(block.get_module(gen_params=gen_params, connections=connections))
@@ -28,19 +33,23 @@ class FuncBlocksUnifier(Elaboratable):
         self.update = self.update_combiner.method
 
         self.unifiers: dict[str, Unifier] = {}
-        self.extra_outputs: dict[str, Method] = {}
+        self.extra_methods: dict[str, Method] = {}
 
-        for (key, output_methods) in connections.get_methods().items():
-            unifier_type = key.unifier()
-            if unifier_type is not None and len(output_methods) > 1:
-                unifier = unifier_type(output_methods)
-                self.unifiers[key.method_name() + "_unifier"] = unifier
-                self.extra_outputs[key.method_name()] = unifier.method
-            elif len(output_methods) == 1:
-                self.extra_outputs[key.method_name()] = output_methods[0]
+        for name in extra_methods_required:
+            if name not in connections.registered_methods or connections.registered_methods[name] == []:
+                raise Exception(f"Method {name} is not provided by FU configuration.")
+            elif len(connections.registered_methods[name]) == 1:
+                self.extra_methods[name] = connections.registered_methods[name][0]
+            else:
+                unifier = blocks_method_unifiers[name](connections.registered_methods[name])
+                self.unifiers[name + "_unifier"] = unifier
+                self.extra_methods[name] = unifier.method
 
-    def __getattr__(self, item):
-        return self.extra_outputs[item]
+    def __getattr__(self, item: str) -> Method:
+        if item in self.extra_methods_required:
+            return self.extra_methods[item]
+        else:
+            raise Exception(f"Method {item} was not declared as required.")
 
     def elaborate(self, platform):
         m = Module()

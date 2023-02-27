@@ -1,6 +1,5 @@
 from amaranth import *
 
-from coreblocks.params.keys import WishboneDataKey
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
@@ -291,8 +290,8 @@ class LSUDummy(Elaboratable):
 
 class LSUBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncBlock:
-        unit = LSUDummy(gen_params, connections.get_dependency(WishboneDataKey))
-        connections.register_method(CommitMethodKey, unit.commit)
+        unit = LSUDummy(gen_params, connections.get_dependency(DependencyKey("wishbone_data", WishboneMaster)))
+        connections.register_method(unit.commit)
         return unit
 
     def get_optypes(self) -> set[OpType]:

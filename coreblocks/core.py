@@ -1,7 +1,6 @@
 from amaranth import *
 
-from coreblocks.params.fu_params import ComponentConnections
-from coreblocks.params.keys import WishboneDataKey
+from coreblocks.params.fu_params import ComponentConnections, DependencyKey
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
@@ -16,7 +15,6 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.utils.fifo import BasicFifo
-
 
 __all__ = ["Core"]
 
@@ -43,7 +41,10 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            connections=ComponentConnections().set_dependency(WishboneDataKey, wb_master_data),
+            connections=ComponentConnections().set_dependency(
+                DependencyKey("wishbone_data", WishboneMaster), wb_master_data
+            ),
+            extra_methods_required=["commit", "branch_result"],
         )
 
         self.announcement = ResultAnnouncement(
