@@ -250,6 +250,9 @@ class ClickOut(Elaboratable):
 
 
 class AdapterBase(Elaboratable):
+    data_in: Record
+    data_out: Record
+
     def __init__(self, iface: Method):
         self.iface = iface
         self.en = Signal()

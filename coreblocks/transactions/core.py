@@ -15,6 +15,7 @@ from ..utils._typing import StatementLike, ValueLike, DebugSignals
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
+    "MethodLayout",
     "Priority",
     "TransactionManager",
     "TransactionContext",
@@ -332,7 +333,7 @@ class TransactionModule(Elaboratable):
 
     def elaborate(self, platform):
         with self.transaction_context():
-            for name in self.module._named_submodules:
+            for name in self.module._named_submodules:  # type: ignore
                 self.module._named_submodules[name] = Fragment.get(self.module._named_submodules[name], platform)
             for idx in range(len(self.module._anon_submodules)):
                 self.module._anon_submodules[idx] = Fragment.get(self.module._anon_submodules[idx], platform)

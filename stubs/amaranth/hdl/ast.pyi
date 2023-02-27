@@ -6,14 +6,12 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import MutableMapping, MutableSequence, MutableSet
 from typing import Any, Iterable, Iterator, Mapping, NoReturn, Optional, Sequence, Type, TypeVar, final, overload
 from enum import Enum
+from coreblocks.utils import ValueLike, ShapeLike, StatementLike
 
 __all__ = ["Shape", "signed", "unsigned", "Value", "Const", "C", "AnyConst", "AnySeq", "Operator", "Mux", "Part", "Slice", "Cat", "Repl", "Array", "ArrayProxy", "Signal", "ClockSignal", "ResetSignal", "UserValue", "ValueCastable", "Sample", "Past", "Stable", "Rose", "Fell", "Initial", "Statement", "Switch", "Property", "Assign", "Assert", "Assume", "Cover", "ValueKey", "ValueDict", "ValueSet", "SignalKey", "SignalDict", "SignalSet", "ValueLike", "ShapeLike", "StatementLike", "SwitchKey"]
 
 
 T = TypeVar("T")
-ValueLike = Value | int | Enum | ValueCastable
-ShapeLike = Shape | int | range | Type[Enum]
-StatementLike = Statement | Iterable[StatementLike]
 Flattenable = T | Iterable[Flattenable[T]]
 SwitchKey = str | int | Enum
 
@@ -38,7 +36,7 @@ class Shape:
         ...
     
     @staticmethod
-    def cast(obj, *, src_loc_at=...):
+    def cast(obj: ShapeLike, *, src_loc_at=...):
         ...
     
     def __repr__(self) -> str:
@@ -59,7 +57,7 @@ def signed(width) -> Shape:
 
 class Value(metaclass=ABCMeta):
     @staticmethod
-    def cast(obj) -> Value:
+    def cast(obj: ValueLike) -> Value:
         """Converts ``obj`` to an Amaranth """
         ...
     
@@ -581,12 +579,7 @@ class Assign(Statement):
     
 
 
-class UnusedProperty(UnusedMustUse):
-    ...
-
-
-class Property(Statement, MustUse):
-    _MustUse__warning = UnusedProperty
+class Property(Statement):
     def __init__(self, test, *, _check=..., _en=..., src_loc_at=...) -> None:
         ...
     
