@@ -101,7 +101,7 @@ class CSRUnit(Elaboratable):
 
         current_result = Signal(self.gen_params.isa.xlen)
 
-        instr = Record(self.csr_layouts.rs_data_layout + [("valid", 1), ("orig_rp_s1", self.gen_params.phys_regs_bits)])
+        instr = Record(self.csr_layouts.rs_data_layout + [("valid", 1)])
 
         m.d.comb += ready_to_process.eq(self.rob_empty & instr.valid & (instr.rp_s1 == 0))
 
@@ -119,8 +119,8 @@ class CSRUnit(Elaboratable):
         should_write_csr = Signal()
         m.d.comb += should_write_csr.eq(
             (instr.exec_fn.funct3 == Funct3.CSRRW)
-            | ((instr.exec_fn.funct3 == Funct3.CSRRS) & (instr.orig_rp_s1 != 0))
-            | ((instr.exec_fn.funct3 == Funct3.CSRRC) & (instr.orig_rp_s1 != 0))
+            | ((instr.exec_fn.funct3 == Funct3.CSRRS) & (instr.rp_s1_reg != 0))  # original register number
+            | ((instr.exec_fn.funct3 == Funct3.CSRRC) & (instr.rp_s1_reg != 0))
             | (instr.exec_fn.funct3 == Funct3.CSRRWI)
             | (instr.exec_fn.funct3 == Funct3.CSRRSI & (instr.s1_val != 0))
             | (instr.exec_fn.funct3 == Funct3.CSRRCI & (instr.s1_val != 0))
@@ -161,9 +161,6 @@ class CSRUnit(Elaboratable):
         def _(rs_entry_id, rs_data):
             # TODO: CSRR*I handling
             m.d.sync += assign(instr, rs_data)
-            # Information on rp_s1 is lost in update but we need it,
-            # to decide if write side effects should be produced
-            m.d.sync += instr.orig_rp_s1.eq(rs_data.rp_s1)
             m.d.sync += instr.valid.eq(1)
 
         @def_method(m, self.update)

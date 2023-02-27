@@ -65,31 +65,45 @@ class TestCSRUnit(TestCaseWithSimulator):
             Funct3.CSRRW,
             Funct3.CSRRC,
             Funct3.CSRRS,
+            #            Funct3.CSRRWI,
+            #            Funct3.CSRRCI,
+            #            Funct3.CSRRSI,
         ]
 
         op = random.choice(ops)
-        rd = random.randint(0, 2**self.gp.phys_regs_bits - 1)
-        rs1 = random.randint(0, 2**self.gp.phys_regs_bits - 1)
+        rd = random.randint(0, 15)
+        rs1 = random.randint(0, 15)
+        imm = random.randint(0, 2**self.gp.isa.xlen - 1)
         csr = random.randint(0, self.csr_count - 1)
 
-        exp = yield from self.gen_expected_out(op, rd, rs1, csr)
+        imm_op = op == Funct3.CSRRWI or op == Funct3.CSRRCI or op == Funct3.CSRRSI
+
+        exp = yield from self.gen_expected_out(op, rd, imm if imm_op else rs1, csr)
+
+        value_available = random.random() < 0.2
 
         return {
             "instr": {
                 "exec_fn": {"op_type": OpType.CSR, "funct3": op, "funct7": 0},
-                "rp_s1": rs1,
+                "rp_s1": 0 if value_available or imm_op else rs1,
+                "rp_s1_reg": rs1,
+                "s1_val": exp["rs1"]["value"] if value_available and not imm_op else 0,
                 "rp_dst": rd,
+                "imm": imm,
                 "csr": csr,
             },
             "exp": exp,
         }
 
+    def random_wait(self, prob: float = 0.5):
+        while random.random() < prob:
+            yield
+
     def process_test(self):
         yield from self.dut.fetch_continue.enable()
         for _ in range(self.cycles):
-            while random.random() < 0.5:
-                yield
 
+            yield from self.random_wait()
             yield self.dut.rob_single_insn.eq(0)
 
             op = yield from self.generate_instruction()
@@ -98,19 +112,14 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             yield from self.dut.insert.call({"rs_data": op["instr"]})
 
-            while random.random() < 0.5:
-                yield
+            yield from self.random_wait()
+            if op["exp"]["rs1"]["rp_s1"]:
+                yield from self.dut.update.call({"tag": op["exp"]["rs1"]["rp_s1"], "value": op["exp"]["rs1"]["value"]})
 
-            yield from self.dut.update.call({"tag": op["exp"]["rs1"]["rp_s1"], "value": op["exp"]["rs1"]["value"]})
-
-            while random.random() < 0.5:
-                yield
-
+            yield from self.random_wait()
             yield self.dut.rob_single_insn.eq(1)
 
-            while random.random() < 0.5:
-                yield
-
+            yield from self.random_wait()
             res = yield from self.dut.accept.call()
 
             self.assertTrue(self.dut.fetch_continue.done())
@@ -179,7 +188,9 @@ class TestCSRRegister(TestCaseWithSimulator):
                 },
             )
 
-            previous_data = (yield from self.dut.read.call_result())["data"]
+            read_result = yield from self.dut.read.call_result()
+            self.assertIsNotNone(read_result)
+            previous_data = read_result["data"]  # type: ignore
 
             yield from self.dut._fu_read.disable()
             yield from self.dut._fu_write.disable()
