@@ -1,6 +1,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
+from inspect import Parameter, signature
 from typing import Callable, ClassVar, Mapping, TypeAlias, TypedDict, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
@@ -761,9 +762,13 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     elegant way using Python's `def` syntax. Internally, `def_method`
     uses `Method.body`.
 
-    The decorated function should take one argument, which will be a
-    record with input signals and return output values.
-    The returned value can be either a record or a dictionary of outputs.
+    The decorated function should take keyword arguments corresponding to the
+    fields of the method's input layout. The `**kwargs` syntax is supported.
+    Alternatively, it can take one argument named `arg`, which will be a
+    record with input signals.
+
+    The returned value can be either a record with the method's output layout
+    or a dictionary of outputs.
 
     Parameters
     ----------
@@ -784,16 +789,48 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         m = Module()
         my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=[("res",8)])
         @def_method(m, my_sum_method)
-        def _(data_in):
-            return {"res": data_in.arg1 + data_in.arg2}
+        def _(arg1, arg2):
+            return arg1 + arg2
+
+    Alternative syntax (keyword args in dictionary):
+
+    .. highlight:: python
+    .. code-block:: python
+
+        @def_method(m, my_sum_method)
+        def _(**args):
+            return args["arg1"] + args["arg2"]
+
+    Alternative syntax (arg record):
+
+    .. highlight:: python
+    .. code-block:: python
+
+        @def_method(m, my_sum_method)
+        def _(arg):
+            return {"res": arg.arg1 + arg.arg2}
     """
 
-    def decorator(func: Callable[[Record], Optional[RecordDict]]):
+    def decorator(func: Callable[..., Optional[RecordDict]]):
         out = Record.like(method.data_out)
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:
-            ret_out = func(arg)
+            parameters = signature(func).parameters
+            kw_parameters = set(
+                n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
+            )
+            if kw_parameters <= arg.fields.keys():
+                ret_out = func(**arg.fields)
+            elif (
+                len(parameters) == 1
+                and "arg" in parameters
+                and parameters["arg"].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
+                and parameters["arg"].annotation in {Parameter.empty, Record}
+            ):
+                ret_out = func(arg)
+            else:
+                raise TypeError(f"Invalid def_method for {method}")
 
         if ret_out is not None:
             m.d.comb += assign(out, ret_out, fields=AssignType.ALL)

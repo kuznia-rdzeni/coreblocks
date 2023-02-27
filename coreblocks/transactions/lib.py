@@ -76,7 +76,7 @@ class FIFO(Elaboratable):
             Method.comb += fifo.w_data.eq(arg)
 
         @def_method(m, self.read, ready=fifo.r_rdy)
-        def _(arg):
+        def _():
             m.d.comb += fifo.r_en.eq(1)
             return fifo.r_data
 
@@ -135,7 +135,7 @@ class Forwarder(Elaboratable):
             m.d.comb += read_value.eq(reg)  # write method is not ready
 
         @def_method(m, self.read, ready=reg_valid | self.write.run)
-        def _(arg):
+        def _():
             m.d.sync += reg_valid.eq(0)
             return read_value
 
@@ -188,7 +188,7 @@ class ClickIn(Elaboratable):
         get_data = Signal.like(self.dat)
 
         @def_method(m, self.get, ready=get_ready)
-        def _(arg):
+        def _():
             m.d.sync += get_ready.eq(0)
             return get_data
 

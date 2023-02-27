@@ -1,4 +1,4 @@
-from amaranth import Array, Record, Module, Signal, Elaboratable
+from amaranth import *
 from ..transactions import Method, def_method
 from ..params import GenParams, ROBLayouts
 
@@ -23,7 +23,7 @@ class ReorderBuffer(Elaboratable):
         put_possible = (end_idx + 1) % (2**self.params.rob_entries_bits) != start_idx
 
         @def_method(m, self.retire, ready=self.data[start_idx].done)
-        def _(arg):
+        def _():
             m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.data[start_idx].done.eq(0)
             return {"rob_data": self.data[start_idx].rob_data, "rob_id": start_idx}
@@ -39,7 +39,7 @@ class ReorderBuffer(Elaboratable):
         # If functional units aren't flushed, finished obsolete instructions
         # could mark fields in ROB as done when they shouldn't.
         @def_method(m, self.mark_done)
-        def _(arg):
-            m.d.sync += self.data[arg.rob_id].done.eq(1)
+        def _(rob_id: Value):
+            m.d.sync += self.data[rob_id].done.eq(1)
 
         return m

@@ -262,11 +262,11 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
         method2 = Method()
 
         @def_method(m, method1, ready=self.r1)
-        def _(_):
+        def _():
             m.d.comb += self.t1.eq(1)
 
         @def_method(m, method2, ready=self.r2)
-        def _(_):
+        def _():
             m.d.comb += self.t2.eq(1)
 
         with tm.transaction_context():

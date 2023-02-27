@@ -87,7 +87,7 @@ class BasicFifo(Elaboratable):
             m.d.sync += self.level.eq(0)
 
         @def_method(m, self.write, ready=self.write_ready)
-        def _(arg) -> None:
+        def _(arg: Record) -> None:
             m.d.comb += self.buff_wrport.addr.eq(self.write_idx)
             m.d.comb += self.buff_wrport.data.eq(arg)
             m.d.comb += self.buff_wrport.en.eq(1)
@@ -95,7 +95,7 @@ class BasicFifo(Elaboratable):
             m.d.sync += self.write_idx.eq(mod_incr(self.write_idx, self.depth))
 
         @def_method(m, self.read, self.read_ready)
-        def _(arg) -> ValueLike:
+        def _() -> ValueLike:
             m.d.comb += self.buff_rdport.addr.eq(self.read_idx)
 
             m.d.sync += self.read_idx.eq(mod_incr(self.read_idx, self.depth))
@@ -103,7 +103,7 @@ class BasicFifo(Elaboratable):
             return self.buff_rdport.data
 
         @def_method(m, self.clear)
-        def _(arg) -> None:
+        def _() -> None:
             m.d.sync += self.read_idx.eq(0)
             m.d.sync += self.write_idx.eq(0)
 

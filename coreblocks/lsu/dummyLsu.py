@@ -245,27 +245,27 @@ class LSUDummy(Elaboratable):
         result_ready = internal.result_ready
 
         @def_method(m, self.select, ~reserved)
-        def _(arg):
+        def _():
             # We always return 0, because we have only one place in instruction storage.
             m.d.sync += reserved.eq(1)
             return {"rs_entry_id": 0}
 
         @def_method(m, self.insert)
-        def _(arg):
-            m.d.sync += assign(current_instr, arg.rs_data)
+        def _(rs_data: Record, rs_entry_id: Value):
+            m.d.sync += assign(current_instr, rs_data)
             m.d.sync += current_instr.valid.eq(1)
 
         @def_method(m, self.update)
-        def _(arg):
-            with m.If(current_instr.rp_s1 == arg.tag):
-                m.d.sync += current_instr.s1_val.eq(arg.value)
+        def _(tag: Value, value: Value):
+            with m.If(current_instr.rp_s1 == tag):
+                m.d.sync += current_instr.s1_val.eq(value)
                 m.d.sync += current_instr.rp_s1.eq(0)
-            with m.If(current_instr.rp_s2 == arg.tag):
-                m.d.sync += current_instr.s2_val.eq(arg.value)
+            with m.If(current_instr.rp_s2 == tag):
+                m.d.sync += current_instr.s2_val.eq(value)
                 m.d.sync += current_instr.rp_s2.eq(0)
 
         @def_method(m, self.get_result, result_ready)
-        def _(arg):
+        def _():
             m.d.comb += internal.get_result_ack.eq(1)
             with m.If(current_instr.exec_fn.op_type == OpType.LOAD):
                 m.d.sync += current_instr.eq(0)
@@ -273,8 +273,8 @@ class LSUDummy(Elaboratable):
             return {"rob_id": current_instr.rob_id, "rp_dst": current_instr.rp_dst, "result": internal.loadedData}
 
         @def_method(m, self.commit)
-        def _(arg):
-            with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (arg.rob_id == current_instr.rob_id)):
+        def _(rob_id: Value):
+            with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
                 m.d.sync += internal.execute_store.eq(1)
 
         with m.If(internal.store_ready):
