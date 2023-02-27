@@ -3,7 +3,7 @@ from amaranth import *
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.utils import assign
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.layouts import RSLayouts, FuncUnitLayouts, CSRLayouts
+from coreblocks.params.layouts import FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3
 
 
@@ -78,11 +78,11 @@ class CSRUnit(Elaboratable):
         self.fetch_continue = fetch_continue
 
         # Standard RS interface
-        self.rs_layouts = gen_params.get(RSLayouts)
+        self.csr_layouts = gen_params.get(CSRLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
-        self.select = Method(o=self.rs_layouts.select_out)
-        self.insert = Method(i=self.rs_layouts.insert_in)
-        self.update = Method(i=self.rs_layouts.update_in)
+        self.select = Method(o=self.csr_layouts.rs_select_out)
+        self.insert = Method(i=self.csr_layouts.rs_insert_in)
+        self.update = Method(i=self.csr_layouts.rs_update_in)
         self.accept = Method(o=self.fu_layouts.accept)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
@@ -101,7 +101,7 @@ class CSRUnit(Elaboratable):
 
         current_result = Signal(self.gen_params.isa.xlen)
 
-        instr = Record(self.rs_layouts.data_layout + [("valid", 1), ("orig_rp_s1", self.gen_params.phys_regs_bits)])
+        instr = Record(self.csr_layouts.rs_data_layout + [("valid", 1), ("orig_rp_s1", self.gen_params.phys_regs_bits)])
 
         m.d.comb += ready_to_process.eq(self.rob_empty & instr.valid & (instr.rp_s1 == 0))
 
