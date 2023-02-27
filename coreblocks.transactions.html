@@ -434,9 +434,12 @@ transactions and methods.</p>
 <p>This decorator allows to define transactional methods in an
 elegant way using Python’s <cite>def</cite> syntax. Internally, <cite>def_method</cite>
 uses <cite>Method.body</cite>.</p>
-<p>The decorated function should take one argument, which will be a
-record with input signals and return output values.
-The returned value can be either a record or a dictionary of outputs.</p>
+<p>The decorated function should take keyword arguments corresponding to the
+fields of the method’s input layout. The <cite>**kwargs</cite> syntax is supported.
+Alternatively, it can take one argument named <cite>arg</cite>, which will be a
+record with input signals.</p>
+<p>The returned value can be either a record with the method’s output layout
+or a dictionary of outputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -455,8 +458,20 @@ Assigned combinationally to the <cite>ready</cite> attribute.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="n">Module</span><span class="p">()</span>
 <span class="n">my_sum_method</span> <span class="o">=</span> <span class="n">Method</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;arg1&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">),(</span><span class="s2">&quot;arg2&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">)],</span> <span class="n">o</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;res&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">)])</span>
 <span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">my_sum_method</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">data_in</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;res&quot;</span><span class="p">:</span> <span class="n">data_in</span><span class="o">.</span><span class="n">arg1</span> <span class="o">+</span> <span class="n">data_in</span><span class="o">.</span><span class="n">arg2</span><span class="p">}</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">arg1</span> <span class="o">+</span> <span class="n">arg2</span>
+</pre></div>
+</div>
+<p>Alternative syntax (keyword args in dictionary):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">my_sum_method</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;arg1&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;arg2&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Alternative syntax (arg record):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">my_sum_method</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;res&quot;</span><span class="p">:</span> <span class="n">arg</span><span class="o">.</span><span class="n">arg1</span> <span class="o">+</span> <span class="n">arg</span><span class="o">.</span><span class="n">arg2</span><span class="p">}</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1511,9 +1526,12 @@ transactions and methods.</p>
 <p>This decorator allows to define transactional methods in an
 elegant way using Python’s <cite>def</cite> syntax. Internally, <cite>def_method</cite>
 uses <cite>Method.body</cite>.</p>
-<p>The decorated function should take one argument, which will be a
-record with input signals and return output values.
-The returned value can be either a record or a dictionary of outputs.</p>
+<p>The decorated function should take keyword arguments corresponding to the
+fields of the method’s input layout. The <cite>**kwargs</cite> syntax is supported.
+Alternatively, it can take one argument named <cite>arg</cite>, which will be a
+record with input signals.</p>
+<p>The returned value can be either a record with the method’s output layout
+or a dictionary of outputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -1532,8 +1550,20 @@ Assigned combinationally to the <cite>ready</cite> attribute.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="n">Module</span><span class="p">()</span>
 <span class="n">my_sum_method</span> <span class="o">=</span> <span class="n">Method</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;arg1&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">),(</span><span class="s2">&quot;arg2&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">)],</span> <span class="n">o</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;res&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">)])</span>
 <span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">my_sum_method</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">data_in</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;res&quot;</span><span class="p">:</span> <span class="n">data_in</span><span class="o">.</span><span class="n">arg1</span> <span class="o">+</span> <span class="n">data_in</span><span class="o">.</span><span class="n">arg2</span><span class="p">}</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">arg1</span> <span class="o">+</span> <span class="n">arg2</span>
+</pre></div>
+</div>
+<p>Alternative syntax (keyword args in dictionary):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">my_sum_method</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;arg1&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;arg2&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Alternative syntax (arg record):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">my_sum_method</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;res&quot;</span><span class="p">:</span> <span class="n">arg</span><span class="o">.</span><span class="n">arg1</span> <span class="o">+</span> <span class="n">arg</span><span class="o">.</span><span class="n">arg2</span><span class="p">}</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1553,7 +1583,7 @@ Assigned combinationally to the <cite>ready</cite> attribute.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 10:30 2023-02-27.
+      <span class="lastupdated">Last updated on 11:27 2023-02-27.
       </span></p>
   </div>
 
