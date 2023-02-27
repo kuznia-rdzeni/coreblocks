@@ -6,7 +6,7 @@ If something doesn't work and you're puzzled as to why - go through this checkli
 
 2. If a signal has an unexpected value in tests try adding `yield Settle()` right before you read it.
 
-3. Make sure you don't do `.eq` on two records with different layouts - you have to painstakingly write `.eq` for every record's field.
+3. Make sure you don't do `.eq` on two records with different layouts. Use `assign` from `coreblocks.utils` instead.
 
 4. Make sure all amaranth statements are added to some domain.
 
