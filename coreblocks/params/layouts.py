@@ -145,8 +145,8 @@ class RSInterfaceLayouts:
         self.data_layout = [
             ("rp_s1", gen_params.phys_regs_bits),
             ("rp_s2", gen_params.phys_regs_bits),
-            ("rp_s1_val", gen_params.phys_regs_bits),
-            ("rp_s2_val", gen_params.phys_regs_bits),
+            ("rp_s1_reg", gen_params.phys_regs_bits),
+            ("rp_s2_reg", gen_params.phys_regs_bits),
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
             ("exec_fn", common.exec_fn),
