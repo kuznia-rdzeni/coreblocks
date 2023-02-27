@@ -20,9 +20,9 @@ class FRAT(Elaboratable):
         m = Module()
 
         @def_method(m, self.rename)
-        def _(arg):
-            m.d.sync += self.entries[arg.rl_dst].eq(arg.rp_dst)
-            return {"rp_s1": self.entries[arg.rl_s1], "rp_s2": self.entries[arg.rl_s2]}
+        def _(rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value):
+            m.d.sync += self.entries[rl_dst].eq(rp_dst)
+            return {"rp_s1": self.entries[rl_s1], "rp_s2": self.entries[rl_s2]}
 
         return m
 
@@ -42,8 +42,8 @@ class RRAT(Elaboratable):
         m = Module()
 
         @def_method(m, self.commit)
-        def _(arg):
-            m.d.sync += self.entries[arg.rl_dst].eq(arg.rp_dst)
-            return {"old_rp_dst": self.entries[arg.rl_dst]}
+        def _(rp_dst: Value, rl_dst: Value):
+            m.d.sync += self.entries[rl_dst].eq(rp_dst)
+            return {"old_rp_dst": self.entries[rl_dst]}
 
         return m

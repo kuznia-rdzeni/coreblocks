@@ -28,7 +28,9 @@ class OwnershipGraph:
 
     def __init__(self, root):
         self.class_counters: defaultdict[type, int] = defaultdict(int)
+        self.owned_counters: defaultdict[tuple[int, str], int] = defaultdict(int)
         self.names: dict[int, str] = {}
+        self.owned_names: dict[int, str] = {}
         self.hier: dict[int, str] = {}
         self.labels: dict[int, str] = {}
         self.graph: dict[int, list[int]] = {}
@@ -39,7 +41,7 @@ class OwnershipGraph:
 
     def remember(self, owner: Elaboratable) -> int:
         while hasattr(owner, "_tracing_original"):
-            owner = owner._tracing_original
+            owner = owner._tracing_original  # type: ignore
         owner_id = id(owner)
         if owner_id not in self.names:
             tp = type(owner)
@@ -60,14 +62,14 @@ class OwnershipGraph:
                     for obj, field in owner.subfragments:
                         self.remember_field(owner_id, field, obj)
                 try:
-                    owner = owner._elaborated
+                    owner = owner._elaborated  # type: ignore
                 except AttributeError:
                     break
         return owner_id
 
     def remember_field(self, owner_id: int, field: str, obj: Elaboratable):
         while hasattr(obj, "_tracing_original"):
-            obj = obj._tracing_original
+            obj = obj._tracing_original  # type: ignore
         obj_id = id(obj)
         if obj_id == owner_id or obj_id in self.labels:
             return
@@ -85,17 +87,24 @@ class OwnershipGraph:
 
     def get_name(self, obj: Owned) -> str:
         assert obj.owner is not None
+        obj_id = id(obj)
+        name = self.owned_names.get(obj_id)
+        if name is not None:
+            return name
         owner_id = self.remember(obj.owner)
-        return f"{self.names[owner_id]}_{obj.name}"
+        count = self.owned_counters[(owner_id, obj.name)]
+        self.owned_counters[(owner_id, obj.name)] = count + 1
+        suffix = str(count) if count else ""
+        name = self.owned_names[obj_id] = f"{self.names[owner_id]}_{obj.name}{suffix}"
+        return name
 
     def get_hier_name(self, obj: Owned) -> str:
         """
         Get hierarchical name.
         Might raise KeyError if not yet hierarchized.
         """
-        assert obj.owner is not None
-        owner_id = self.remember(obj.owner)
-        name = f"{self.names[owner_id]}_{obj.name}"
+        name = self.get_name(obj)
+        owner_id = id(obj.owner)
         hier = self.hier[owner_id]
         return f"{hier}.{name}"
 

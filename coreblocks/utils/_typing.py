@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple, Type, TypeAlias, Iterable, Mapping
+from typing import Protocol, Sequence, Tuple, Type, TypeAlias, Iterable, Mapping, runtime_checkable
 from enum import Enum
 from amaranth import *
 from amaranth.hdl.ast import Statement, ValueCastable
@@ -14,3 +14,14 @@ LayoutLike = Layout | Sequence[Tuple[str, ShapeLike | "LayoutLike"] | Tuple[str,
 # Internal Coreblocks types
 DebugSignals: TypeAlias = Signal | Record | Iterable["DebugSignals"] | Mapping[str, "DebugSignals"]
 LayoutList = list[Tuple[str, ShapeLike | "LayoutList"]]
+
+
+class HasElaborate(Protocol):
+    def elaborate(self, platform) -> "HasElaborate":
+        ...
+
+
+@runtime_checkable
+class HasDebugSignals(Protocol):
+    def debug_signals(self) -> DebugSignals:
+        ...
