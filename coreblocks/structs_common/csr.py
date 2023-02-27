@@ -40,22 +40,22 @@ class CSRRegister(Elaboratable):
         m.d.sync += self.side_effects.eq(0)
 
         @def_method(m, self.write)
-        def _(arg):
-            m.d.comb += write_internal.data.eq(arg.data)
+        def _(data):
+            m.d.comb += write_internal.data.eq(data)
             m.d.comb += write_internal.active.eq(1)
 
         @def_method(m, self._fu_write)
-        def _(arg):
-            m.d.comb += fu_write_internal.data.eq(arg.data)
+        def _(data):
+            m.d.comb += fu_write_internal.data.eq(data)
             m.d.comb += fu_write_internal.active.eq(1)
             m.d.sync += self.side_effects.write.eq(1)
 
         @def_method(m, self.read)
-        def _(arg):
+        def _():
             return {"data": self.value, "read": self.side_effects.read, "written": self.side_effects.write}
 
         @def_method(m, self._fu_read)
-        def _(arg):
+        def _():
             m.d.sync += self.side_effects.read.eq(1)
             return self.value
 
@@ -153,27 +153,27 @@ class CSRUnit(Elaboratable):
             m.d.sync += done.eq(1)
 
         @def_method(m, self.select, ~reserved)
-        def _(arg):
+        def _():
             m.d.sync += reserved.eq(1)
-            return 0  # only one CSR instruction is allowed
+            return {"rs_entry_id": 0}  # only one CSR instruction is allowed
 
         @def_method(m, self.insert)
-        def _(arg):
+        def _(rs_entry_id, rs_data):
             # TODO: CSRR*I handling
-            m.d.sync += assign(instr, arg.rs_data)
+            m.d.sync += assign(instr, rs_data)
             # Information on rp_s1 is lost in update but we need it,
             # to decide if write side effects should be produced
-            m.d.sync += instr.orig_rp_s1.eq(arg.rs_data.rp_s1)
+            m.d.sync += instr.orig_rp_s1.eq(rs_data.rp_s1)
             m.d.sync += instr.valid.eq(1)
 
         @def_method(m, self.update)
-        def _(arg):
-            with m.If(arg.tag == instr.rp_s1):
-                m.d.sync += instr.s1_val.eq(arg.value)
+        def _(tag, value):
+            with m.If(tag == instr.rp_s1):
+                m.d.sync += instr.s1_val.eq(value)
                 m.d.sync += instr.rp_s1.eq(0)
 
         @def_method(m, self.accept, done)
-        def _(arg):
+        def _():
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)

@@ -22,7 +22,7 @@ class CSRUnitTestCircuit(Elaboratable):
 
         self.rob_single_insn = Signal()
 
-        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(Adapter(i=1, o=1))
+        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(Adapter())
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params, self.rob_single_insn, self.fetch_continue.adapter.iface)
 
