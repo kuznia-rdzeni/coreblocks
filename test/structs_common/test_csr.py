@@ -44,17 +44,17 @@ class CSRUnitTestCircuit(Elaboratable):
 
 
 class TestCSRUnit(TestCaseWithSimulator):
-    def gen_expected_out(self, op, rd, rs1, csr):
+    def gen_expected_out(self, op, rd, rs1, operand_val, csr):
         exp_read = {"rp_dst": rd, "result": (yield self.dut.csr[csr].value)}
-        rs1_val = {"rp_s1": rs1, "value": random.randint(0, 2**self.gp.isa.xlen - 1) if rs1 else 0}
+        rs1_val = {"rp_s1": rs1, "value": operand_val}
 
         exp_write = {}
-        if op == Funct3.CSRRW:
-            exp_write = {"csr": csr, "value": rs1_val["value"]}
-        elif op == Funct3.CSRRC and rs1:
-            exp_write = {"csr": csr, "value": exp_read["result"] & ~rs1_val["value"]}
-        elif op == Funct3.CSRRS and rs1:
-            exp_write = {"csr": csr, "value": exp_read["result"] | rs1_val["value"]}
+        if op == Funct3.CSRRW or op == Funct3.CSRRWI:
+            exp_write = {"csr": csr, "value": operand_val}
+        elif (op == Funct3.CSRRC and rs1) or op == Funct3.CSRRCI:
+            exp_write = {"csr": csr, "value": exp_read["result"] & ~operand_val}
+        elif (op == Funct3.CSRRS and rs1) or op == Funct3.CSRRSI:
+            exp_write = {"csr": csr, "value": exp_read["result"] | operand_val}
         else:
             exp_write = {"csr": csr, "value": (yield self.dut.csr[csr].value)}
 
@@ -65,20 +65,22 @@ class TestCSRUnit(TestCaseWithSimulator):
             Funct3.CSRRW,
             Funct3.CSRRC,
             Funct3.CSRRS,
-            #            Funct3.CSRRWI,
-            #            Funct3.CSRRCI,
-            #            Funct3.CSRRSI,
+            Funct3.CSRRWI,
+            Funct3.CSRRCI,
+            Funct3.CSRRSI,
         ]
 
         op = random.choice(ops)
-        rd = random.randint(0, 15)
-        rs1 = random.randint(0, 15)
-        imm = random.randint(0, 2**self.gp.isa.xlen - 1)
-        csr = random.randint(0, self.csr_count - 1)
-
         imm_op = op == Funct3.CSRRWI or op == Funct3.CSRRCI or op == Funct3.CSRRSI
 
-        exp = yield from self.gen_expected_out(op, rd, imm if imm_op else rs1, csr)
+        rd = random.randint(0, 15)
+        rs1 = 0 if imm_op else random.randint(0, 15)
+        imm = random.randint(0, 2**self.gp.isa.xlen - 1)
+        rs1_val = random.randint(0, 2**self.gp.isa.xlen - 1) if rs1 else 0
+        operand_val = imm if imm_op else rs1_val
+        csr = random.randint(0, self.csr_count - 1)
+
+        exp = yield from self.gen_expected_out(op, rd, rs1, operand_val, csr)
 
         value_available = random.random() < 0.2
 

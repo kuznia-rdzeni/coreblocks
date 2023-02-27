@@ -122,8 +122,8 @@ class CSRUnit(Elaboratable):
             | ((instr.exec_fn.funct3 == Funct3.CSRRS) & (instr.rp_s1_reg != 0))  # original register number
             | ((instr.exec_fn.funct3 == Funct3.CSRRC) & (instr.rp_s1_reg != 0))
             | (instr.exec_fn.funct3 == Funct3.CSRRWI)
-            | (instr.exec_fn.funct3 == Funct3.CSRRSI & (instr.s1_val != 0))
-            | (instr.exec_fn.funct3 == Funct3.CSRRCI & (instr.s1_val != 0))
+            | ((instr.exec_fn.funct3 == Funct3.CSRRSI) & (instr.s1_val != 0))
+            | ((instr.exec_fn.funct3 == Funct3.CSRRCI) & (instr.s1_val != 0))
         )
 
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
@@ -159,8 +159,18 @@ class CSRUnit(Elaboratable):
 
         @def_method(m, self.insert)
         def _(rs_entry_id, rs_data):
-            # TODO: CSRR*I handling
             m.d.sync += assign(instr, rs_data)
+
+            immediate_op = Signal()
+            m.d.comb += immediate_op.eq(
+                (rs_data.exec_fn.funct3 == Funct3.CSRRWI)
+                | (rs_data.exec_fn.funct3 == Funct3.CSRRSI)
+                | (rs_data.exec_fn.funct3 == Funct3.CSRRCI)
+            )
+
+            with m.If(immediate_op):  # Pass immediate as first operand
+                m.d.sync += instr.s1_val.eq(rs_data.imm)
+
             m.d.sync += instr.valid.eq(1)
 
         @def_method(m, self.update)
