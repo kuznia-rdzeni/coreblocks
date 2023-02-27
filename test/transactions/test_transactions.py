@@ -14,6 +14,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.transactions._utils import Scheduler
+from coreblocks.utils import HasElaborate
 
 from coreblocks.transactions.core import (
     Priority,
@@ -26,7 +27,7 @@ from coreblocks.transactions.core import (
 class TestNames(TestCase):
     def test_names(self):
         mgr = TransactionManager()
-        mgr._MustUse__silence = True
+        mgr._MustUse__silence = True  # type: ignore
 
         class T:
             def __init__(self):
@@ -205,7 +206,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
             sim.add_sync_process(self.make_out_process(probout))
 
 
-class TransactionPriorityTestCircuit(Elaboratable):
+class PriorityTestCircuit(Elaboratable):
     def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
@@ -214,6 +215,11 @@ class TransactionPriorityTestCircuit(Elaboratable):
         self.t2 = Signal()
         self.unsatisfiable = unsatisfiable
 
+    def elaborate(self, platform) -> HasElaborate:
+        raise NotImplementedError()
+
+
+class TransactionPriorityTestCircuit(PriorityTestCircuit):
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
@@ -239,7 +245,7 @@ class TransactionPriorityTestCircuit(Elaboratable):
         return tm
 
 
-class MethodPriorityTestCircuit(Elaboratable):
+class MethodPriorityTestCircuit(PriorityTestCircuit):
     def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
@@ -285,7 +291,7 @@ class MethodPriorityTestCircuit(Elaboratable):
     ("name", "circuit"), [("transaction", TransactionPriorityTestCircuit), ("method", MethodPriorityTestCircuit)]
 )
 class TestTransactionPriorities(TestCaseWithSimulator):
-    circuit: type[Elaboratable]
+    circuit: type[PriorityTestCircuit]
 
     def setUp(self):
         random.seed(42)

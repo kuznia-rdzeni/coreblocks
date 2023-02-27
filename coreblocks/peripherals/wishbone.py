@@ -357,7 +357,7 @@ class WishboneArbiter(Elaboratable):
         self.arb_enable = Signal()
         self.req_signal = Signal(len(masters))
 
-    def elaborate(self, plaform):
+    def elaborate(self, platform):
         m = Module()
 
         m.d.sync += self.prev_cyc.eq(self.slave_wb.cyc)

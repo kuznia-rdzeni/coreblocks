@@ -1,6 +1,7 @@
 from amaranth import *
 from coreblocks.transactions import Method, def_method, Priority
 from coreblocks.transactions._utils import MethodLayout
+from coreblocks.utils._typing import ValueLike
 from typing import List, Optional
 
 
@@ -94,7 +95,7 @@ class BasicFifo(Elaboratable):
             m.d.sync += self.write_idx.eq(mod_incr(self.write_idx, self.depth))
 
         @def_method(m, self.read, self.read_ready)
-        def _() -> Record:
+        def _() -> ValueLike:
             m.d.comb += self.buff_rdport.addr.eq(self.read_idx)
 
             m.d.sync += self.read_idx.eq(mod_incr(self.read_idx, self.depth))

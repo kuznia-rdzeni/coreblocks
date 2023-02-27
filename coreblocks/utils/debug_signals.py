@@ -1,5 +1,5 @@
 from amaranth import *
-from ._typing import DebugSignals
+from ._typing import DebugSignals, HasDebugSignals
 
 
 def auto_debug_signals(thing) -> DebugSignals:
@@ -16,7 +16,7 @@ def auto_debug_signals(thing) -> DebugSignals:
 
     for v in vars(thing):
         a = getattr(thing, v)
-        if hasattr(a, "debug_signals"):
+        if isinstance(a, HasDebugSignals):
             smap[v] = a.debug_signals()
         elif isinstance(a, Elaboratable):
             smap[v] = auto_debug_signals(a)

@@ -1,6 +1,7 @@
 import random
 from operator import and_
 from functools import reduce
+from typing import TypeAlias
 from amaranth.sim import Settle
 from parameterized import parameterized
 
@@ -19,9 +20,12 @@ from ..common import (
 )
 
 
+FIFO_Like: TypeAlias = FIFO | Forwarder
+
+
 class TestFifoBase(TestCaseWithSimulator):
     def do_test_fifo(
-        self, fifo_class: type[Elaboratable], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs: dict = {}
+        self, fifo_class: type[FIFO_Like], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs: dict = {}
     ):
         iosize = 8
 
