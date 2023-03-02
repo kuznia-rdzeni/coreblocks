@@ -7,13 +7,54 @@ from coreblocks.params.layouts import FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3
 
 
-# +FENCE, see decode imm
-# make sure that rob is empty/all instuctions done?
-# TODO: Implement read only map (priv 2.1)
-
-
 class CSRRegister(Elaboratable):
+    """CSR Register
+    Used to define a CSR register and specify its behaviour.
+    `CSRRegister`s need to be registered to a `CSRUnit` in order to be
+    accesible by instructions.
+
+    Attributes
+    ----------
+    read: Method
+        Reads register value and side effect status.
+        Side effect fields `read` and `written` are set if register was accessed by _fu_read or _fu_write
+        methods (by CSR instruction) in a current cycle; they can be used to trigger other actions.
+        Always ready.
+    write: Method
+        Updates register value.
+        Always ready. If _fu_write is called simultaneously, this call is ignored.
+    _fu_read: Method
+        Method connected automatically by `CSRUnit`. Reads register value.
+    _fu_write: Method
+        Method connected automatically by `CSRUnit`. Updates register value.
+        Always ready. Has priority over `write` method.
+
+    Examples
+    --------
+    .. highlight:: python
+    .. code-block:: python
+        # Timer register that increments on each cycle and resets if read by CSR instruction
+        csr = CSRRegister(1, gp)
+        with Transaction.body(m):
+            csr_val = csr.read()
+            with m.If(csr_val.read):
+                csr.write(0)
+            with m.Else():
+                csr.write(csr_val.data + 1)
+    """
+
     def __init__(self, csr_number: int, gen_params: GenParams, *, ro_bits: int = 0):
+        """
+        Parameters
+        ----------
+        csr_number: int
+            Address of this CSR Register.
+        gen_params: GenParams
+            Core generation parameters.
+        ro_bits: int
+            Bit mask of read-only bits in register.
+            Writes from _fu_write (instructions) to those bits are ignored.
+        """
         self.gen_params = gen_params
         self.csr_number = csr_number
         self.ro_bits = ro_bits
@@ -71,7 +112,41 @@ class CSRRegister(Elaboratable):
 
 
 class CSRUnit(Elaboratable):
+    """
+    Unit for performing Control and Status Regitsters computations.
+
+    Accepts instructions with `OpType.CSR`.
+    Uses `RS` interface for input and `FU` interface for output.
+    Depends on stalling the `Fetch` stage on CSR instructions and holds computation
+    unitl all other instructions are commited.
+
+    Each CSR register have to be specified by `CSRRegister` class and
+    registered by `register` method.
+
+    Attributes
+    ----------
+    select: Method
+        Method from standard RS interface. Reserves a place for instruction.
+    insert: Method
+        Method from standard RS interface. Puts instruction in reserved place.
+    update: Method
+        Method from standard RS interface. Receives announcements of computed register values.
+    accept: Method
+        Method from standard FU interface. Used to receive instruction result and pass it
+        to the next pipeline stage.
+    """
+
     def __init__(self, gen_params: GenParams, rob_single_instr: Signal, fetch_continue: Method):
+        """
+        Parameters
+        ----------
+        gen_params: GenParams
+            Core generation parameters.
+        rob_single_instr: Signal, in
+            Signalls that there is only one instruction left in `ROB`.
+        fetch_continue: Method
+            Method to resume `Fetch` unit from stalled PC.
+        """
         self.gen_params = gen_params
 
         self.rob_empty = rob_single_instr
@@ -88,6 +163,15 @@ class CSRUnit(Elaboratable):
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
     def register(self, csr: CSRRegister):
+        """
+        Registers `CSRRegister` - makes it accesible by this unit.
+        Call this method from other constructors.
+
+        Parameters
+        ----------
+        csr: CSRRegister
+            `CSRRegister` to register.
+        """
         if csr.csr_number in self.regfile:
             raise RuntimeError(f"CSR number {csr.csr_number} already registered")
         self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
