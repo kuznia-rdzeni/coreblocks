@@ -20,9 +20,9 @@
                    BasicFifo_write["write"]
                end
                subgraph Fetch["fetch Fetch"]
-                   Fetch_Fetch["Fetch"]
-                   Fetch_verify_branch["verify_branch"]
                    Fetch_FetchRQ["FetchRQ"]
+                   Fetch_verify_branch["verify_branch"]
+                   Fetch_Fetch["Fetch"]
                end
                subgraph FRAT["FRAT FRAT"]
                    FRAT_rename["rename"]
@@ -31,15 +31,15 @@
                    RRAT_commit["commit"]
                end
                subgraph RegisterFile["RF RegisterFile"]
-                   RegisterFile_read1["read1"]
                    RegisterFile_free["free"]
-                   RegisterFile_write["write"]
                    RegisterFile_read2["read2"]
+                   RegisterFile_write["write"]
+                   RegisterFile_read1["read1"]
                end
                subgraph ReorderBuffer["ROB ReorderBuffer"]
-                   ReorderBuffer_put["put"]
                    ReorderBuffer_retire["retire"]
                    ReorderBuffer_mark_done["mark_done"]
+                   ReorderBuffer_put["put"]
                end
                subgraph JumpBranchFuncUnit["jb_unit JumpBranchFuncUnit"]
                    JumpBranchFuncUnit_issue["issue"]
@@ -55,10 +55,10 @@
                    end
                end
                subgraph LSUDummy["lsu_unit LSUDummy"]
-                   LSUDummy_select["select"]
                    LSUDummy_update["update"]
-                   LSUDummy_insert["insert"]
+                   LSUDummy_select["select"]
                    LSUDummy_get_result["get_result"]
+                   LSUDummy_insert["insert"]
                    LSUDummy_commit["commit"]
                    subgraph LSUDummyInternals["internal LSUDummyInternals"]
                        LSUDummyInternals_LSUDummyInternals["LSUDummyInternals"]
@@ -72,8 +72,8 @@
                subgraph Collector["result_collector Collector"]
                    Collector_method["method"]
                    subgraph Forwarder["forwarder Forwarder"]
-                       Forwarder_read["read"]
                        Forwarder_write["write"]
+                       Forwarder_read["read"]
                    end
                    subgraph ManyToOneConnectTrans["connect ManyToOneConnectTrans"]
                        subgraph ConnectTrans["ManyToOneConnectTrans_input_0 ConnectTrans"]
@@ -91,8 +91,8 @@
                    ResultAnnouncement_ResultAnnouncement["ResultAnnouncement"]
                end
                subgraph FIFO3["fifo_decode FIFO"]
-                   FIFO3_write["write"]
                    FIFO3_read["read"]
+                   FIFO3_write["write"]
                end
                subgraph Decode["decode Decode"]
                    Decode_Decode["Decode"]
@@ -120,8 +120,8 @@
                        ROBAllocation_ROBAllocation["ROBAllocation"]
                    end
                    subgraph FIFO7["rs_select_out_buf FIFO"]
-                       FIFO7_write["write"]
                        FIFO7_read["read"]
+                       FIFO7_write["write"]
                    end
                    subgraph RSSelection["rs_selector RSSelection"]
                        RSSelection_RSSelection["RSSelection"]
@@ -137,17 +137,17 @@
                    end
                end
                subgraph RSFuncBlock["rs_block_0 RSFuncBlock"]
-                   RSFuncBlock_select["select"]
-                   RSFuncBlock_insert["insert"]
-                   RSFuncBlock_get_result["get_result"]
                    RSFuncBlock_update["update"]
+                   RSFuncBlock_insert["insert"]
+                   RSFuncBlock_select["select"]
+                   RSFuncBlock_get_result["get_result"]
                    subgraph RS["rs RS"]
-                       RS_RS["RS"]
-                       RS_update["update"]
                        RS_select["select"]
                        RS_take["take"]
                        RS_insert["insert"]
+                       RS_RS["RS"]
                        RS_RS1["RS"]
+                       RS_update["update"]
                    end
                    subgraph AluFuncUnit["func_unit_0 AluFuncUnit"]
                        AluFuncUnit_issue["issue"]
@@ -166,8 +166,8 @@
                    subgraph Collector1["collector Collector"]
                        Collector1_method["method"]
                        subgraph Forwarder2["forwarder Forwarder"]
-                           Forwarder2_write["write"]
                            Forwarder2_read["read"]
+                           Forwarder2_write["write"]
                        end
                        subgraph ManyToOneConnectTrans1["connect ManyToOneConnectTrans"]
                            subgraph ConnectTrans2["ManyToOneConnectTrans_input_0 ConnectTrans"]
@@ -212,27 +212,27 @@
    FIFO5_read --> ROBAllocation_ROBAllocation
    ROBAllocation_ROBAllocation --> ReorderBuffer_put
    ROBAllocation_ROBAllocation --> FIFO6_write
-   FIFO6_read --> RSSelection_RSSelection2
-   RSSelection_RSSelection2 --> Forwarder1_write
-   Forwarder1_read --> RSSelection_RSSelection
+   FIFO6_read --> RSSelection_RSSelection
+   RSSelection_RSSelection --> Forwarder1_write
    Forwarder1_read --> RSSelection_RSSelection1
-   RSFuncBlock_select --> RSSelection_RSSelection
-   RS_select --> RSSelection_RSSelection
-   RSSelection_RSSelection --> FIFO7_write
+   Forwarder1_read --> RSSelection_RSSelection2
+   RSFuncBlock_select --> RSSelection_RSSelection1
+   RS_select --> RSSelection_RSSelection1
    RSSelection_RSSelection1 --> FIFO7_write
-   LSUDummy_select --> RSSelection_RSSelection1
+   RSSelection_RSSelection2 --> FIFO7_write
+   LSUDummy_select --> RSSelection_RSSelection2
    FIFO7_read --> RSInsertion_RSInsertion
    RegisterFile_read1 --> RSInsertion_RSInsertion
    RegisterFile_read2 --> RSInsertion_RSInsertion
    RSInsertion_RSInsertion --> RSFuncBlock_insert
    RSInsertion_RSInsertion --> RS_insert
    RSInsertion_RSInsertion --> LSUDummy_insert
-   RS_RS --> WakeupSelect_WakeupSelect
+   RS_RS1 --> WakeupSelect_WakeupSelect
    RS_take --> WakeupSelect_WakeupSelect
    RS_take --> WakeupSelect1_WakeupSelect
    WakeupSelect_WakeupSelect --> AluFuncUnit_issue
    WakeupSelect_WakeupSelect --> FIFO8_write
-   RS_RS1 --> WakeupSelect1_WakeupSelect
+   RS_RS --> WakeupSelect1_WakeupSelect
    WakeupSelect1_WakeupSelect --> JumpBranchFuncUnit_issue
    WakeupSelect1_WakeupSelect --> FIFO1_write
    WakeupSelect1_WakeupSelect --> FIFO2_write
@@ -242,12 +242,12 @@
    FIFO8_read --> ConnectTrans2_ConnectTrans
    JumpBranchFuncUnit_accept --> ConnectTrans3_ConnectTrans
    FIFO1_read --> ConnectTrans3_ConnectTrans
-   LSUDummyInternals_LSUDummyInternals --> WishboneMaster1_request
-   LSUDummyInternals_LSUDummyInternals2 --> WishboneMaster1_request
+   LSUDummyInternals_LSUDummyInternals5 --> WishboneMaster1_request
    LSUDummyInternals_LSUDummyInternals1 --> WishboneMaster1_request
-   LSUDummyInternals_LSUDummyInternals4 --> WishboneMaster1_request
-   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals3
-   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals5
+   LSUDummyInternals_LSUDummyInternals2 --> WishboneMaster1_request
+   LSUDummyInternals_LSUDummyInternals3 --> WishboneMaster1_request
+   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals4
+   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals
    JumpBranchFuncUnit_branch_result --> ConnectTrans4_ConnectTrans
    FIFO2_read --> ConnectTrans4_ConnectTrans
    ConnectTrans4_ConnectTrans --> Fetch_verify_branch
