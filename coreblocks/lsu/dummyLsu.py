@@ -290,8 +290,9 @@ class LSUDummy(Elaboratable):
 
 class LSUBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncBlock:
-        unit = LSUDummy(gen_params, connections.get_dependency(DependencyKey("wishbone_data", WishboneMaster)))
-        connections.register_method(unit.commit)
+        wb_master = connections.register_dependency(DependencyKey("wishbone_data", WishboneMaster))
+        unit = LSUDummy(gen_params, wb_master)
+        connections.register_method(InstructionCommitKey(), unit.commit)
         return unit
 
     def get_optypes(self) -> set[OpType]:

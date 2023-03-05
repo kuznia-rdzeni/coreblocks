@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable, Generic, TypeVar
 
 import coreblocks.params.genparams as gp
@@ -16,16 +16,42 @@ __all__ = [
     "FunctionalComponentParams",
     "optypes_supported",
     "DependencyKey",
+    "InstructionCommitKey",
+    "BranchResolvedKey"
 ]
 
 T = TypeVar("T")
 
 
-@dataclass(frozen=True)
+@dataclass
 class DependencyKey(Generic[T]):
     name: str
     dep_type: type[T]
 
+    def __hash__(self):
+        return hash(self.name) ^ (hash(self.dep_type)*2)
+
+    #TODO Add test for RO
+    def __setattr__(self, n, v):
+        if hasattr(self, n) and (n == "name" or n == "dep_type"):
+            raise RuntimeError("Modifing ro field")
+        super().__setattr__(n, v)
+
+@dataclass
+class InstructionCommitKey(DependencyKey[Method]):
+    name : str = field(default="commit", init=False)
+    dep_type : type[Method] = field(default=Method, init=False)
+
+    def __hash__(self):
+        return super().__hash__()
+
+@dataclass
+class BranchResolvedKey(DependencyKey[Method]):
+    name : str = field(default="branch_result", init=False)
+    dep_type : type[Method] = field(default=Method, init=False)
+
+    def __hash__(self):
+        return super().__hash__()
 
 # extra constructor parameters of FuncBlock
 class ComponentConnections:
@@ -37,7 +63,7 @@ class ComponentConnections:
         self.dependencies[key] = dependency
         return self
 
-    def register_method(self, method: Method) -> ComponentConnections:
+    def register_method(self, key: DependencyKey[T], method: Method) -> ComponentConnections:
         if method.name in self.registered_methods:
             if method.name in blocks_method_unifiers:
                 self.registered_methods[method.name].append(method)
@@ -47,7 +73,7 @@ class ComponentConnections:
             self.registered_methods[method.name] = [method]
         return self
 
-    def get_dependency(self, key: DependencyKey[T]) -> T:
+    def register_dependency(self, key: DependencyKey[T]) -> T:
         if key not in self.dependencies:
             raise Exception(f"Dependency {key.name} not provided")
         return self.dependencies[key]
