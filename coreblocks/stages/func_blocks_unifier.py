@@ -2,7 +2,7 @@ from typing import Iterable
 
 from amaranth import *
 
-from coreblocks.params import GenParams, BlockComponentParams, ComponentConnections, blocks_method_unifiers, DependencyKey
+from coreblocks.params import GenParams, BlockComponentParams, ComponentConnections, DependencyKey
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import MethodProduct, Collector
 
@@ -38,12 +38,10 @@ class FuncBlocksUnifier(Elaboratable):
         for key in extra_methods_required:
             if key not in connections.registered_methods or connections.registered_methods[key] == []:
                 raise Exception(f"Method {key} is not provided by FU configuration.")
-            elif len(connections.registered_methods[key]) == 1:
-                self.extra_methods[key] = connections.registered_methods[key][0]
             else:
-                unifier = blocks_method_unifiers[key.name](connections.registered_methods[key])
-                self.unifiers[key.name + "_unifier"] = unifier
-                self.extra_methods[key] = unifier.method
+                method, unifiers = key.get_unified(connections)
+                self.extra_methods[key] = method
+                self.unifiers |= unifiers
 
     # TODO - maybe better name
     def get_connected(self, item: DependencyKey[Method]) -> Method:

@@ -16,6 +16,7 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.utils.fifo import BasicFifo
+from coreblocks.transactions.lib import MethodProduct
 
 __all__ = ["Core"]
 
@@ -42,8 +43,9 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
+            #TODO Remove MethodProduct as it is simply stub
             connections=ComponentConnections().set_dependency(
-                DependencyKey("wishbone_data", WishboneMaster), wb_master_data
+                DependencyKey("wishbone_data", WishboneMaster, MethodProduct), wb_master_data
             ),
             extra_methods_required=[InstructionCommitKey(), BranchResolvedKey()],
         )
