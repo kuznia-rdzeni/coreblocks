@@ -2,7 +2,7 @@ from typing import Iterable
 
 from amaranth import *
 
-from coreblocks.params import GenParams, BlockComponentParams, ComponentConnections, blocks_method_unifiers
+from coreblocks.params import GenParams, BlockComponentParams, ComponentConnections, blocks_method_unifiers, DependencyKey
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import MethodProduct, Collector
 
@@ -18,7 +18,7 @@ class FuncBlocksUnifier(Elaboratable):
         gen_params: GenParams,
         blocks: Iterable[BlockComponentParams],
         connections: ComponentConnections,
-        extra_methods_required: Iterable[str],
+        extra_methods_required: Iterable[DependencyKey[Method]],
     ):
         self.rs_blocks = []
         self.extra_methods_required = extra_methods_required
@@ -33,19 +33,20 @@ class FuncBlocksUnifier(Elaboratable):
         self.update = self.update_combiner.method
 
         self.unifiers: dict[str, Unifier] = {}
-        self.extra_methods: dict[str, Method] = {}
+        self.extra_methods: dict[DependencyKey[Method], Method] = {}
 
-        for name in extra_methods_required:
-            if name not in connections.registered_methods or connections.registered_methods[name] == []:
-                raise Exception(f"Method {name} is not provided by FU configuration.")
-            elif len(connections.registered_methods[name]) == 1:
-                self.extra_methods[name] = connections.registered_methods[name][0]
+        for key in extra_methods_required:
+            if key not in connections.registered_methods or connections.registered_methods[key] == []:
+                raise Exception(f"Method {key} is not provided by FU configuration.")
+            elif len(connections.registered_methods[key]) == 1:
+                self.extra_methods[key] = connections.registered_methods[key][0]
             else:
-                unifier = blocks_method_unifiers[name](connections.registered_methods[name])
-                self.unifiers[name + "_unifier"] = unifier
-                self.extra_methods[name] = unifier.method
+                unifier = blocks_method_unifiers[key.name](connections.registered_methods[key])
+                self.unifiers[key.name + "_unifier"] = unifier
+                self.extra_methods[key] = unifier.method
 
-    def __getattr__(self, item: str) -> Method:
+    # TODO - maybe better name
+    def get_connected(self, item: DependencyKey[Method]) -> Method:
         if item in self.extra_methods_required:
             return self.extra_methods[item]
         else:

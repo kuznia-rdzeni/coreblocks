@@ -50,8 +50,10 @@ class BranchResolvedKey(DependencyKey[Method]):
     name : str = field(default="branch_result", init=False)
     dep_type : type[Method] = field(default=Method, init=False)
 
+    #TODO Ugly - make it better
     def __hash__(self):
-        return super().__hash__()
+        h = super().__hash__()
+        return h
 
 # extra constructor parameters of FuncBlock
 class ComponentConnections:
@@ -63,14 +65,14 @@ class ComponentConnections:
         self.dependencies[key] = dependency
         return self
 
-    def register_method(self, key: DependencyKey[T], method: Method) -> ComponentConnections:
-        if method.name in self.registered_methods:
+    def register_method(self, key: DependencyKey[Method], method: Method) -> ComponentConnections:
+        if key in self.registered_methods:
             if method.name in blocks_method_unifiers:
-                self.registered_methods[method.name].append(method)
+                self.registered_methods[key].append(method)
             else:
-                raise Exception(f"Cannot handle multiple {method.name} methods without unifier")
+                raise Exception(f"Cannot handle multiple {key} methods without unifier")
         else:
-            self.registered_methods[method.name] = [method]
+            self.registered_methods[key] = [method]
         return self
 
     def register_dependency(self, key: DependencyKey[T]) -> T:
