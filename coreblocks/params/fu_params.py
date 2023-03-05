@@ -6,9 +6,9 @@ from typing import Iterable, Generic, TypeVar
 
 import coreblocks.params.genparams as gp
 import coreblocks.params.optypes as optypes
-from coreblocks.params import blocks_method_unifiers
 from coreblocks.transactions import Method
-from coreblocks.utils.protocols import FuncBlock, FuncUnit
+from coreblocks.utils.protocols import FuncBlock, FuncUnit, Unifier
+from coreblocks.transactions.lib import MethodProduct, Collector
 
 __all__ = [
     "ComponentConnections",
@@ -27,6 +27,8 @@ T = TypeVar("T")
 class DependencyKey(Generic[T]):
     name: str
     dep_type: type[T]
+    #TODO Make unifier optional
+    unifier: type[Unifier]
 
     def __hash__(self):
         return hash(self.name) ^ (hash(self.dep_type)*2)
@@ -37,10 +39,21 @@ class DependencyKey(Generic[T]):
             raise RuntimeError("Modifing ro field")
         super().__setattr__(n, v)
 
+    def get_unified(self, connections : 'ComponentConnections'):
+        unifiers = {}
+        if len(connections.registered_methods[self]) == 1:
+            method = connections.registered_methods[self][0]
+        else:
+            unifier_inst = self.unifier(connections.registered_methods[self])
+            unifiers[self.name + "_unifier"] = unifier_inst
+            method = unifier_inst.method
+        return method, unifiers
+
 @dataclass
 class InstructionCommitKey(DependencyKey[Method]):
     name : str = field(default="commit", init=False)
     dep_type : type[Method] = field(default=Method, init=False)
+    unifier : type[Unifier] = field(default=MethodProduct, init=False)
 
     def __hash__(self):
         return super().__hash__()
@@ -49,6 +62,7 @@ class InstructionCommitKey(DependencyKey[Method]):
 class BranchResolvedKey(DependencyKey[Method]):
     name : str = field(default="branch_result", init=False)
     dep_type : type[Method] = field(default=Method, init=False)
+    unifier : type[Unifier] = field(default=Collector, init=False)
 
     #TODO Ugly - make it better
     def __hash__(self):
@@ -67,10 +81,7 @@ class ComponentConnections:
 
     def register_method(self, key: DependencyKey[Method], method: Method) -> ComponentConnections:
         if key in self.registered_methods:
-            if method.name in blocks_method_unifiers:
-                self.registered_methods[key].append(method)
-            else:
-                raise Exception(f"Cannot handle multiple {key} methods without unifier")
+            self.registered_methods[key].append(method)
         else:
             self.registered_methods[key] = [method]
         return self
