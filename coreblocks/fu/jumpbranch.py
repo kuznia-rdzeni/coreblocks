@@ -177,7 +177,7 @@ class JumpBranchFuncUnit(Elaboratable):
 class JumpComponent(FunctionalComponentParams):
     def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncUnit:
         unit = JumpBranchFuncUnit(gen_params)
-        connections.register_method(unit.branch_result)
+        connections.register_method(BranchResolvedKey(), unit.branch_result)
         return unit
 
     def get_optypes(self) -> set[OpType]:
