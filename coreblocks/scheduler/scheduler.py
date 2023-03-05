@@ -309,6 +309,8 @@ class RSInsertion(Elaboratable):
                 "rs_data": {
                     "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
                     "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
+                    "rp_s1_reg": instr.regs_p.rp_s1,
+                    "rp_s2_reg": instr.regs_p.rp_s2,
                     "rp_dst": instr.regs_p.rp_dst,
                     "rob_id": instr.rob_id,
                     "exec_fn": instr.exec_fn,
@@ -321,8 +323,11 @@ class RSInsertion(Elaboratable):
             }
 
             for i, rs_insert in enumerate(self.rs_insert):
+                # connect only matching fields
+                arg = Record.like(rs_insert.data_in)
+                m.d.comb += assign(arg, data, fields=AssignType.COMMON)
                 with m.If(instr.rs_selected == i):
-                    rs_insert(m, data)
+                    rs_insert(m, arg)
 
         return m
 
