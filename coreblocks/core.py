@@ -4,6 +4,7 @@ from coreblocks.params.fu_params import ComponentConnections, DependencyKey
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
+from coreblocks.params.fu_params import InstructionCommitKey, BranchResolvedKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
@@ -44,7 +45,7 @@ class Core(Elaboratable):
             connections=ComponentConnections().set_dependency(
                 DependencyKey("wishbone_data", WishboneMaster), wb_master_data
             ),
-            extra_methods_required=["commit", "branch_result"],
+            extra_methods_required=[InstructionCommitKey(), BranchResolvedKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -83,7 +84,7 @@ class Core(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.verify_branch = ConnectTrans(self.func_blocks_unifier.branch_result, self.fetch.verify_branch)
+        m.submodules.verify_branch = ConnectTrans(self.func_blocks_unifier.get_connected(BranchResolvedKey()), self.fetch.verify_branch)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
@@ -92,7 +93,7 @@ class Core(Elaboratable):
             r_rat_commit=rrat.commit,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
-            lsu_commit=self.func_blocks_unifier.commit,
+            lsu_commit=self.func_blocks_unifier.get_connected(InstructionCommitKey()),
         )
 
         return m
