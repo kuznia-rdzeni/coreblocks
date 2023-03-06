@@ -1,8 +1,9 @@
 from __future__ import annotations
+from collections import defaultdict
 
 from abc import abstractmethod, ABC
 from dataclasses import dataclass, field
-from typing import Iterable, Generic, TypeVar
+from typing import Any, Iterable, Generic, TypeVar
 
 import coreblocks.params.genparams as gp
 import coreblocks.params.optypes as optypes
@@ -24,59 +25,64 @@ __all__ = [
 ]
 
 T = TypeVar("T")
+U = TypeVar("U")
 
 
-class DependencyKey(Generic[T]):
-    # TODO Make unifier optional
+class DependencyKey(Generic[T, U], ABC):
+    @abstractmethod
+    def combine(self, data: list[T]) -> U:
+        raise NotImplementedError()
+
+
+class SimpleKey(Generic[T], DependencyKey[T, T]):
+    def combine(self, data: list[T]) -> T:
+        if len(data) != 1:
+            raise RuntimeError(f"Key {self} assigned {len(data)} values, expected 1")
+        return data[0]
+
+
+class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]]):
     unifier: type[Unifier]
 
-    def get_unified(self, connections: "ComponentConnections"):
-        unifiers = {}
-        if len(connections.registered_methods[self]) == 1:
-            method = connections.registered_methods[self][0]
+    def combine(self, data: list[Method]) -> tuple[Method, dict[str, Unifier]]:
+        if len(data) == 1:
+            return data[0], {}
         else:
-            unifier_inst = self.unifier(connections.registered_methods[self])
+            unifiers: dict[str, Unifier] = {}
+            unifier_inst = self.unifier(data)
             unifiers[self.__class__.__name__ + "_unifier"] = unifier_inst
             method = unifier_inst.method
         return method, unifiers
 
 
 @dataclass(frozen=True)
-class WishboneDataKey(DependencyKey[WishboneMaster]):
+class WishboneDataKey(SimpleKey[WishboneMaster]):
     pass
 
 
 @dataclass(frozen=True)
-class InstructionCommitKey(DependencyKey[Method]):
+class InstructionCommitKey(UnifierKey):
     unifier: type[Unifier] = field(default=MethodProduct, init=False)
 
 
 @dataclass(frozen=True)
-class BranchResolvedKey(DependencyKey[Method]):
+class BranchResolvedKey(UnifierKey):
     unifier: type[Unifier] = field(default=Collector, init=False)
 
 
 # extra constructor parameters of FuncBlock
 class ComponentConnections:
     def __init__(self):
-        self.dependencies = {}
-        self.registered_methods = {}
+        self.dependencies = defaultdict[DependencyKey, list](list)
 
-    def set_dependency(self, key: DependencyKey[T], dependency: T) -> ComponentConnections:
-        self.dependencies[key] = dependency
+    def with_dependency(self, key: DependencyKey[T, Any], dependency: T) -> ComponentConnections:
+        self.dependencies[key].append(dependency)
         return self
 
-    def register_method(self, key: DependencyKey[Method], method: Method) -> ComponentConnections:
-        if key in self.registered_methods:
-            self.registered_methods[key].append(method)
-        else:
-            self.registered_methods[key] = [method]
-        return self
-
-    def get_dependency(self, key: DependencyKey[T]) -> T:
+    def get_dependency(self, key: DependencyKey[Any, U]) -> U:
         if key not in self.dependencies:
-            raise Exception(f"Dependency {key} not provided")
-        return self.dependencies[key]
+            raise KeyError(f"Dependency {key} not provided")
+        return key.combine(self.dependencies[key])
 
 
 class BlockComponentParams(ABC):
