@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.params.fu_params import ComponentConnections, DependencyKey
+from coreblocks.params.fu_params import ComponentConnections, WishboneDataKey
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
@@ -16,7 +16,6 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.utils.fifo import BasicFifo
-from coreblocks.transactions.lib import MethodProduct
 
 __all__ = ["Core"]
 
@@ -43,10 +42,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            #TODO Remove MethodProduct as it is simply stub
-            connections=ComponentConnections().set_dependency(
-                DependencyKey("wishbone_data", WishboneMaster, MethodProduct), wb_master_data
-            ),
+            connections=ComponentConnections().set_dependency(WishboneDataKey(), wb_master_data),
             extra_methods_required=[InstructionCommitKey(), BranchResolvedKey()],
         )
 
@@ -86,7 +82,9 @@ class Core(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.verify_branch = ConnectTrans(self.func_blocks_unifier.get_connected(BranchResolvedKey()), self.fetch.verify_branch)
+        m.submodules.verify_branch = ConnectTrans(
+            self.func_blocks_unifier.get_connected(BranchResolvedKey()), self.fetch.verify_branch
+        )
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
