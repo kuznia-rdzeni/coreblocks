@@ -2,15 +2,12 @@ from __future__ import annotations
 from collections import defaultdict
 
 from abc import abstractmethod, ABC
-from dataclasses import dataclass, field
 from typing import Any, Iterable, Generic, TypeVar
 
 import coreblocks.params.genparams as gp
 import coreblocks.params.optypes as optypes
 from coreblocks.transactions import Method
 from coreblocks.utils.protocols import FuncBlock, FuncUnit, Unifier
-from coreblocks.transactions.lib import MethodProduct, Collector
-from coreblocks.peripherals.wishbone import WishboneMaster
 
 
 __all__ = [
@@ -19,9 +16,6 @@ __all__ = [
     "FunctionalComponentParams",
     "optypes_supported",
     "DependencyKey",
-    "WishboneDataKey",
-    "InstructionCommitKey",
-    "BranchResolvedKey",
 ]
 
 T = TypeVar("T")
@@ -53,21 +47,6 @@ class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]]):
             unifiers[self.__class__.__name__ + "_unifier"] = unifier_inst
             method = unifier_inst.method
         return method, unifiers
-
-
-@dataclass(frozen=True)
-class WishboneDataKey(SimpleKey[WishboneMaster]):
-    pass
-
-
-@dataclass(frozen=True)
-class InstructionCommitKey(UnifierKey):
-    unifier: type[Unifier] = field(default=MethodProduct, init=False)
-
-
-@dataclass(frozen=True)
-class BranchResolvedKey(UnifierKey):
-    unifier: type[Unifier] = field(default=Collector, init=False)
 
 
 # extra constructor parameters of FuncBlock
