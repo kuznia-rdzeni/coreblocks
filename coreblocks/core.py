@@ -1,10 +1,10 @@
 from amaranth import *
 
-from coreblocks.params.fu_params import ComponentConnections, WishboneDataKey
+from coreblocks.params.fu_params import ComponentConnections
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.fu_params import InstructionCommitKey, BranchResolvedKey
+from coreblocks.params.keys import InstructionCommitKey, BranchResolvedKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
