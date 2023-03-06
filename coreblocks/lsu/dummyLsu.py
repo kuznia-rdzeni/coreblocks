@@ -1,6 +1,5 @@
 from amaranth import *
 
-from coreblocks.transactions.lib import MethodProduct
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
@@ -291,7 +290,7 @@ class LSUDummy(Elaboratable):
 
 class LSUBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncBlock:
-        wb_master = connections.register_dependency(DependencyKey("wishbone_data", WishboneMaster, MethodProduct))
+        wb_master = connections.get_dependency(WishboneDataKey())
         unit = LSUDummy(gen_params, wb_master)
         connections.register_method(InstructionCommitKey(), unit.commit)
         return unit

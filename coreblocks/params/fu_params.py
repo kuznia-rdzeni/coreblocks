@@ -9,6 +9,8 @@ import coreblocks.params.optypes as optypes
 from coreblocks.transactions import Method
 from coreblocks.utils.protocols import FuncBlock, FuncUnit, Unifier
 from coreblocks.transactions.lib import MethodProduct, Collector
+from coreblocks.peripherals.wishbone import WishboneMaster
+
 
 __all__ = [
     "ComponentConnections",
@@ -16,58 +18,43 @@ __all__ = [
     "FunctionalComponentParams",
     "optypes_supported",
     "DependencyKey",
+    "WishboneDataKey",
     "InstructionCommitKey",
-    "BranchResolvedKey"
+    "BranchResolvedKey",
 ]
 
 T = TypeVar("T")
 
 
-@dataclass
 class DependencyKey(Generic[T]):
-    name: str
-    dep_type: type[T]
-    #TODO Make unifier optional
+    # TODO Make unifier optional
     unifier: type[Unifier]
 
-    def __hash__(self):
-        return hash(self.name) ^ (hash(self.dep_type)*2)
-
-    #TODO Add test for RO
-    def __setattr__(self, n, v):
-        if hasattr(self, n) and (n == "name" or n == "dep_type"):
-            raise RuntimeError("Modifing ro field")
-        super().__setattr__(n, v)
-
-    def get_unified(self, connections : 'ComponentConnections'):
+    def get_unified(self, connections: "ComponentConnections"):
         unifiers = {}
         if len(connections.registered_methods[self]) == 1:
             method = connections.registered_methods[self][0]
         else:
             unifier_inst = self.unifier(connections.registered_methods[self])
-            unifiers[self.name + "_unifier"] = unifier_inst
+            unifiers[self.__class__.__name__ + "_unifier"] = unifier_inst
             method = unifier_inst.method
         return method, unifiers
 
-@dataclass
+
+@dataclass(frozen=True)
+class WishboneDataKey(DependencyKey[WishboneMaster]):
+    pass
+
+
+@dataclass(frozen=True)
 class InstructionCommitKey(DependencyKey[Method]):
-    name : str = field(default="commit", init=False)
-    dep_type : type[Method] = field(default=Method, init=False)
-    unifier : type[Unifier] = field(default=MethodProduct, init=False)
+    unifier: type[Unifier] = field(default=MethodProduct, init=False)
 
-    def __hash__(self):
-        return super().__hash__()
 
-@dataclass
+@dataclass(frozen=True)
 class BranchResolvedKey(DependencyKey[Method]):
-    name : str = field(default="branch_result", init=False)
-    dep_type : type[Method] = field(default=Method, init=False)
-    unifier : type[Unifier] = field(default=Collector, init=False)
+    unifier: type[Unifier] = field(default=Collector, init=False)
 
-    #TODO Ugly - make it better
-    def __hash__(self):
-        h = super().__hash__()
-        return h
 
 # extra constructor parameters of FuncBlock
 class ComponentConnections:
@@ -86,9 +73,9 @@ class ComponentConnections:
             self.registered_methods[key] = [method]
         return self
 
-    def register_dependency(self, key: DependencyKey[T]) -> T:
+    def get_dependency(self, key: DependencyKey[T]) -> T:
         if key not in self.dependencies:
-            raise Exception(f"Dependency {key.name} not provided")
+            raise Exception(f"Dependency {key} not provided")
         return self.dependencies[key]
 
 
