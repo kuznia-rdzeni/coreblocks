@@ -42,7 +42,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            connections=ComponentConnections().set_dependency(WishboneDataKey(), wb_master_data),
+            connections=ComponentConnections().with_dependency(WishboneDataKey(), wb_master_data),
             extra_methods_required=[InstructionCommitKey(), BranchResolvedKey()],
         )
 
@@ -83,7 +83,7 @@ class Core(Elaboratable):
         )
 
         m.submodules.verify_branch = ConnectTrans(
-            self.func_blocks_unifier.get_connected(BranchResolvedKey()), self.fetch.verify_branch
+            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch
         )
 
         m.submodules.announcement = self.announcement
@@ -93,7 +93,7 @@ class Core(Elaboratable):
             r_rat_commit=rrat.commit,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
-            lsu_commit=self.func_blocks_unifier.get_connected(InstructionCommitKey()),
+            lsu_commit=self.func_blocks_unifier.get_extra_method(InstructionCommitKey()),
         )
 
         return m

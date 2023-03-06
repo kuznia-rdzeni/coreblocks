@@ -292,7 +292,7 @@ class LSUBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncBlock:
         wb_master = connections.get_dependency(WishboneDataKey())
         unit = LSUDummy(gen_params, wb_master)
-        connections.register_method(InstructionCommitKey(), unit.commit)
+        connections.with_dependency(InstructionCommitKey(), unit.commit)
         return unit
 
     def get_optypes(self) -> set[OpType]:

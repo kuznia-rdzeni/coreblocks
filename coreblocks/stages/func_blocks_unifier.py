@@ -2,7 +2,8 @@ from typing import Iterable
 
 from amaranth import *
 
-from coreblocks.params import GenParams, BlockComponentParams, ComponentConnections, DependencyKey
+from coreblocks.params import GenParams, BlockComponentParams, ComponentConnections
+from coreblocks.params.fu_params import UnifierKey
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import MethodProduct, Collector
 
@@ -18,13 +19,10 @@ class FuncBlocksUnifier(Elaboratable):
         gen_params: GenParams,
         blocks: Iterable[BlockComponentParams],
         connections: ComponentConnections,
-        extra_methods_required: Iterable[DependencyKey[Method]],
+        extra_methods_required: Iterable[UnifierKey],
     ):
-        self.rs_blocks = []
+        self.rs_blocks = [block.get_module(gen_params=gen_params, connections=connections) for block in blocks]
         self.extra_methods_required = extra_methods_required
-
-        for n, block in enumerate(blocks):
-            self.rs_blocks.append(block.get_module(gen_params=gen_params, connections=connections))
 
         self.result_collector = Collector([block.get_result for block in self.rs_blocks])
         self.get_result = self.result_collector.method
@@ -33,22 +31,18 @@ class FuncBlocksUnifier(Elaboratable):
         self.update = self.update_combiner.method
 
         self.unifiers: dict[str, Unifier] = {}
-        self.extra_methods: dict[DependencyKey[Method], Method] = {}
+        self.extra_methods: dict[UnifierKey, Method] = {}
 
         for key in extra_methods_required:
-            if key not in connections.registered_methods or connections.registered_methods[key] == []:
-                raise Exception(f"Method {key} is not provided by FU configuration.")
-            else:
-                method, unifiers = key.get_unified(connections)
-                self.extra_methods[key] = method
-                self.unifiers |= unifiers
+            method, unifiers = connections.get_dependency(key)
+            self.extra_methods[key] = method
+            self.unifiers |= unifiers
 
-    # TODO - maybe better name
-    def get_connected(self, item: DependencyKey[Method]) -> Method:
+    def get_extra_method(self, item: UnifierKey) -> Method:
         if item in self.extra_methods_required:
             return self.extra_methods[item]
         else:
-            raise Exception(f"Method {item} was not declared as required.")
+            raise ValueError(f"Method {item} was not declared as required.")
 
     def elaborate(self, platform):
         m = Module()
