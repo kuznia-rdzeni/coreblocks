@@ -293,7 +293,7 @@ class LSUBlockComponent(BlockComponentParams):
         connections = gen_params.get(DependencyManager)
         wb_master = connections.get_dependency(WishboneDataKey())
         unit = LSUDummy(gen_params, wb_master)
-        connections.with_dependency(InstructionCommitKey(), unit.commit)
+        connections.add_dependency(InstructionCommitKey(), unit.commit)
         return unit
 
     def get_optypes(self) -> set[OpType]:
