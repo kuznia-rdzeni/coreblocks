@@ -11,7 +11,7 @@ from coreblocks.utils.protocols import FuncBlock, FuncUnit, Unifier
 
 
 __all__ = [
-    "ComponentConnections",
+    "DependencyManager",
     "BlockComponentParams",
     "FunctionalComponentParams",
     "optypes_supported",
@@ -54,11 +54,11 @@ class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]]):
 
 
 # extra constructor parameters of FuncBlock
-class ComponentConnections:
+class DependencyManager:
     def __init__(self):
         self.dependencies = defaultdict[DependencyKey, list](list)
 
-    def with_dependency(self, key: DependencyKey[T, Any], dependency: T) -> ComponentConnections:
+    def with_dependency(self, key: DependencyKey[T, Any], dependency: T) -> DependencyManager:
         self.dependencies[key].append(dependency)
         return self
 
@@ -70,7 +70,7 @@ class ComponentConnections:
 
 class BlockComponentParams(ABC):
     @abstractmethod
-    def get_module(self, gen_params: gp.GenParams, connections: ComponentConnections) -> FuncBlock:
+    def get_module(self, gen_params: gp.GenParams) -> FuncBlock:
         raise NotImplementedError()
 
     @abstractmethod
@@ -80,7 +80,7 @@ class BlockComponentParams(ABC):
 
 class FunctionalComponentParams(ABC):
     @abstractmethod
-    def get_module(self, gen_params: gp.GenParams, connections: ComponentConnections) -> FuncUnit:
+    def get_module(self, gen_params: gp.GenParams) -> FuncUnit:
         raise NotImplementedError()
 
     @abstractmethod

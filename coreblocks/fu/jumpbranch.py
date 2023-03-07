@@ -175,8 +175,9 @@ class JumpBranchFuncUnit(Elaboratable):
 
 
 class JumpComponent(FunctionalComponentParams):
-    def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncUnit:
+    def get_module(self, gen_params: GenParams) -> FuncUnit:
         unit = JumpBranchFuncUnit(gen_params)
+        connections = gen_params.get(DependencyManager)
         connections.with_dependency(BranchResolvedKey(), unit.branch_result)
         return unit
 

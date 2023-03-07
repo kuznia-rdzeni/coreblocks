@@ -35,7 +35,7 @@ class JumpBranchWrapper(Elaboratable):
 
 
 class JumpBranchWrapperComponent(FunctionalComponentParams):
-    def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncUnit:
+    def get_module(self, gen_params: GenParams) -> FuncUnit:
         return JumpBranchWrapper(gen_params)
 
     def get_optypes(self) -> set[OpType]:

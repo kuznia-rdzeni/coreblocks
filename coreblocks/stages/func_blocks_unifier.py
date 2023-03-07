@@ -2,7 +2,7 @@ from typing import Iterable
 
 from amaranth import *
 
-from coreblocks.params import GenParams, BlockComponentParams, ComponentConnections
+from coreblocks.params import GenParams, BlockComponentParams, DependencyManager
 from coreblocks.params.fu_params import UnifierKey
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import MethodProduct, Collector
@@ -18,10 +18,9 @@ class FuncBlocksUnifier(Elaboratable):
         *,
         gen_params: GenParams,
         blocks: Iterable[BlockComponentParams],
-        connections: ComponentConnections,
         extra_methods_required: Iterable[UnifierKey],
     ):
-        self.rs_blocks = [block.get_module(gen_params=gen_params, connections=connections) for block in blocks]
+        self.rs_blocks = [block.get_module(gen_params) for block in blocks]
         self.extra_methods_required = extra_methods_required
 
         self.result_collector = Collector([block.get_result for block in self.rs_blocks])
@@ -32,6 +31,8 @@ class FuncBlocksUnifier(Elaboratable):
 
         self.unifiers: dict[str, Unifier] = {}
         self.extra_methods: dict[UnifierKey, Method] = {}
+
+        connections = gen_params.get(DependencyManager)
 
         for key in extra_methods_required:
             method, unifiers = connections.get_dependency(key)

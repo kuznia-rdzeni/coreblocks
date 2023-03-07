@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.params.fu_params import ComponentConnections
+from coreblocks.params.fu_params import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
@@ -39,10 +39,12 @@ class Core(Elaboratable):
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
+        connections = gen_params.get(DependencyManager)
+        connections.with_dependency(WishboneDataKey(), wb_master_data)
+
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            connections=ComponentConnections().with_dependency(WishboneDataKey(), wb_master_data),
             extra_methods_required=[InstructionCommitKey(), BranchResolvedKey()],
         )
 

@@ -186,48 +186,48 @@ class FetchLayouts:
 
 
 class DecodeLayouts:
-    def __init__(self, gen: GenParams):
-        common = gen.get(CommonLayouts)
+    def __init__(self, gen_params: GenParams):
+        common = gen_params.get(CommonLayouts)
         self.decoded_instr = [
             ("opcode", Opcode),
             ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
-            ("imm", gen.isa.xlen),
-            ("pc", gen.isa.xlen),
+            ("imm", gen_params.isa.xlen),
+            ("pc", gen_params.isa.xlen),
         ]
 
 
 class FuncUnitLayouts:
-    def __init__(self, gen: GenParams):
-        common = gen.get(CommonLayouts)
+    def __init__(self, gen_params: GenParams):
+        common = gen_params.get(CommonLayouts)
 
         self.issue = [
-            ("s1_val", gen.isa.xlen),
-            ("s2_val", gen.isa.xlen),
-            ("rp_dst", gen.phys_regs_bits),
-            ("rob_id", gen.rob_entries_bits),
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
+            ("rp_dst", gen_params.phys_regs_bits),
+            ("rob_id", gen_params.rob_entries_bits),
             ("exec_fn", common.exec_fn),
-            ("imm", gen.isa.xlen),
-            ("pc", gen.isa.xlen),
+            ("imm", gen_params.isa.xlen),
+            ("pc", gen_params.isa.xlen),
         ]
 
         self.accept = [
-            ("rob_id", gen.rob_entries_bits),
-            ("result", gen.isa.xlen),
-            ("rp_dst", gen.phys_regs_bits),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("result", gen_params.isa.xlen),
+            ("rp_dst", gen_params.phys_regs_bits),
         ]
 
 
 class UnsignedMulUnitLayouts:
-    def __init__(self, gen: GenParams):
+    def __init__(self, gen_params: GenParams):
         self.issue = [
-            ("i1", gen.isa.xlen),
-            ("i2", gen.isa.xlen),
+            ("i1", gen_params.isa.xlen),
+            ("i2", gen_params.isa.xlen),
         ]
 
         self.accept = [
-            ("o", 2 * gen.isa.xlen),
+            ("o", 2 * gen_params.isa.xlen),
         ]
 
 
