@@ -58,9 +58,8 @@ class DependencyManager:
     def __init__(self):
         self.dependencies = defaultdict[DependencyKey, list](list)
 
-    def with_dependency(self, key: DependencyKey[T, Any], dependency: T) -> DependencyManager:
+    def add_dependency(self, key: DependencyKey[T, Any], dependency: T) -> None:
         self.dependencies[key].append(dependency)
-        return self
 
     def get_dependency(self, key: DependencyKey[Any, U]) -> U:
         if key not in self.dependencies:

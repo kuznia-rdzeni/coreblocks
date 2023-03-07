@@ -178,7 +178,7 @@ class JumpComponent(FunctionalComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         unit = JumpBranchFuncUnit(gen_params)
         connections = gen_params.get(DependencyManager)
-        connections.with_dependency(BranchResolvedKey(), unit.branch_result)
+        connections.add_dependency(BranchResolvedKey(), unit.branch_result)
         return unit
 
     def get_optypes(self) -> set[OpType]:

@@ -40,7 +40,7 @@ class Core(Elaboratable):
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
         connections = gen_params.get(DependencyManager)
-        connections.with_dependency(WishboneDataKey(), wb_master_data)
+        connections.add_dependency(WishboneDataKey(), wb_master_data)
 
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
