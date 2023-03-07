@@ -145,7 +145,7 @@ class AluFuncUnit(Elaboratable):
 
 
 class ALUComponent(FunctionalComponentParams):
-    def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncUnit:
+    def get_module(self, gen_params: GenParams) -> FuncUnit:
         return AluFuncUnit(gen_params)
 
     def get_optypes(self) -> set[OpType]:

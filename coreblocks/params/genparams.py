@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from inspect import signature
 from typing import TypeVar, Type, Protocol, runtime_checkable
 
 from .isa import ISA
@@ -17,7 +18,12 @@ class DependentCache:
     def get(self, cls: Type[T]) -> T:
         v = self._depcache.get(cls, None)
         if v is None:
-            v = self._depcache[cls] = cls(self)
+            sig = signature(cls)
+            if "gen_params" in sig.parameters:
+                v = cls(gen_params=self)
+            else:
+                v = cls()
+            self._depcache[cls] = v
         return v
 
 

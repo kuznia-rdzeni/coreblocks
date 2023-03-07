@@ -289,7 +289,8 @@ class LSUDummy(Elaboratable):
 
 
 class LSUBlockComponent(BlockComponentParams):
-    def get_module(self, gen_params: GenParams, connections: ComponentConnections) -> FuncBlock:
+    def get_module(self, gen_params: GenParams) -> FuncBlock:
+        connections = gen_params.get(DependencyManager)
         wb_master = connections.get_dependency(WishboneDataKey())
         unit = LSUDummy(gen_params, wb_master)
         connections.with_dependency(InstructionCommitKey(), unit.commit)
