@@ -27,6 +27,10 @@ class DependencyKey(Generic[T, U], ABC):
     def combine(self, data: list[T]) -> U:
         raise NotImplementedError()
 
+    @abstractmethod
+    def __hash__(self) -> int:
+        raise NotImplementedError()
+
 
 class SimpleKey(Generic[T], DependencyKey[T, T]):
     def combine(self, data: list[T]) -> T:
