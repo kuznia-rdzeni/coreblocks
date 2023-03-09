@@ -211,7 +211,7 @@ class View(ValueCastable):
     def eq(self, other: ValueLike) -> Assign:
         ...
     
-    def __getitem__(self, key: ValueLike) -> Value:
+    def __getitem__(self, key: str | ValueLike) -> Value:
         ...
     
     def __getattr__(self, name: str) -> Value:
