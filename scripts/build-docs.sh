@@ -5,6 +5,7 @@ ROOT_PATH=$(dirname $0)/..
 export PYTHONPATH=$PYTHONPATH:$ROOT_PATH
 DOCS_DIR=$ROOT_PATH/"docs"
 BUILD_DIR=$ROOT_PATH/"build"
+export SPHINXOPTS=-W
 CLEAN=false
 
 function print_help() {
@@ -56,5 +57,5 @@ fi
 $ROOT_PATH/scripts/core_graph -p -f mermaid $DOCS_DIR/auto_graph.rst
 sed -i -e '1i\.. mermaid::\n' -e 's/^/   /' $DOCS_DIR/auto_graph.rst
 
-sphinx-apidoc -o $DOCS_DIR $ROOT_PATH/coreblocks/
-sphinx-build -M html $DOCS_DIR $BUILD_DIR
+sphinx-apidoc -o $DOCS_DIR $ROOT_PATH/coreblocks/ || exit 1
+sphinx-build -b html -W $DOCS_DIR $BUILD_DIR || exit 1
