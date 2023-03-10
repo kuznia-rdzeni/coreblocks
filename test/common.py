@@ -2,7 +2,7 @@ import unittest
 import os
 import functools
 from contextlib import contextmanager, nullcontext
-from typing import Callable, Mapping, Union, Generator, TypeVar, Optional, Any, cast
+from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -13,7 +13,7 @@ from coreblocks.params import GenParams
 from coreblocks.stages.rs_func_block import RSBlockComponent
 from coreblocks.transactions.core import DebugSignals, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
-from coreblocks.utils import ValueLike, auto_debug_signals, LayoutLike
+from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike
 from .gtkw_extension import write_vcd_ext
 
 
@@ -106,8 +106,11 @@ def signed_to_int(x: int, xlen: int) -> int:
     return x | -(x & (2 ** (xlen - 1)))
 
 
-class SimpleTestCircuit(Elaboratable):
-    def __init__(self, dut: Elaboratable):
+_T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
+
+
+class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
+    def __init__(self, dut: _T_HasElaborate):
         self._dut = dut
         self._io = dict[str, TestbenchIO]()
 
@@ -136,11 +139,11 @@ class SimpleTestCircuit(Elaboratable):
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def run_simulation(self, module: Elaboratable, max_cycles=10e4):
+    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
-        if hasattr(module, "debug_signals"):
+        if isinstance(module, HasDebugSignals):
             extra_signals = module.debug_signals
         else:
             extra_signals = functools.partial(auto_debug_signals, module)

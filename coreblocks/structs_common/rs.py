@@ -57,31 +57,31 @@ class RS(Elaboratable):
         m.d.comb += m.submodules.enc_select.i.eq(select_vector)
 
         @def_method(m, self.select, ready=select_possible)
-        def _(arg) -> Signal:
+        def _() -> Signal:
             m.d.sync += self.data[m.submodules.enc_select.o].rec_reserved.eq(1)
             return m.submodules.enc_select.o
 
         @def_method(m, self.insert)
-        def _(arg) -> None:
-            m.d.sync += self.data[arg.rs_entry_id].rs_data.eq(arg.rs_data)
-            m.d.sync += self.data[arg.rs_entry_id].rec_full.eq(1)
-            m.d.sync += self.data[arg.rs_entry_id].rec_reserved.eq(1)
+        def _(rs_entry_id: Value, rs_data: Value) -> None:
+            m.d.sync += self.data[rs_entry_id].rs_data.eq(rs_data)
+            m.d.sync += self.data[rs_entry_id].rec_full.eq(1)
+            m.d.sync += self.data[rs_entry_id].rec_reserved.eq(1)
 
         @def_method(m, self.update)
-        def _(arg) -> None:
+        def _(tag: Value, value: Value) -> None:
             for record in self.data:
                 with m.If(record.rec_full.bool()):
-                    with m.If(record.rs_data.rp_s1 == arg.tag):
+                    with m.If(record.rs_data.rp_s1 == tag):
                         m.d.sync += record.rs_data.rp_s1.eq(0)
-                        m.d.sync += record.rs_data.s1_val.eq(arg.value)
+                        m.d.sync += record.rs_data.s1_val.eq(value)
 
-                    with m.If(record.rs_data.rp_s2 == arg.tag):
+                    with m.If(record.rs_data.rp_s2 == tag):
                         m.d.sync += record.rs_data.rp_s2.eq(0)
-                        m.d.sync += record.rs_data.s2_val.eq(arg.value)
+                        m.d.sync += record.rs_data.s2_val.eq(value)
 
         @def_method(m, self.take, ready=take_possible)
-        def _(arg) -> RecordDict:
-            record = self.data[arg.rs_entry_id]
+        def _(rs_entry_id: Value) -> RecordDict:
+            record = self.data[rs_entry_id]
             m.d.sync += record.rec_reserved.eq(0)
             m.d.sync += record.rec_full.eq(0)
             return {
@@ -97,7 +97,7 @@ class RS(Elaboratable):
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
 
             @def_method(m, get_ready_list, ready=ready_list.any())
-            def _(arg) -> RecordDict:
+            def _() -> RecordDict:
                 return {"ready_list": ready_list}
 
         return m

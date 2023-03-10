@@ -148,11 +148,11 @@ class JumpBranchFuncUnit(Elaboratable):
         m.submodules.decoder = decoder = JumpBranchFnDecoder(self.gen)
 
         @def_method(m, self.accept)
-        def _(arg):
+        def _():
             return fifo_res.read(m)
 
         @def_method(m, self.branch_result)
-        def _(arg):
+        def _():
             return fifo_branch.read(m)
 
         @def_method(m, self.issue)

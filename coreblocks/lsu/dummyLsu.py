@@ -38,7 +38,6 @@ class LSUDummyInternals(Elaboratable):
             Reference to signal containing instruction currently processed by LSU.
         """
         self.gen_params = gen_params
-        self.rs_layouts = gen_params.get(RSLayouts)
         self.current_instr = current_instr
         self.bus = bus
 
@@ -226,13 +225,12 @@ class LSUDummy(Elaboratable):
         """
 
         self.gen_params = gen_params
-        self.rs_layouts = gen_params.get(RSLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.lsu_layouts = gen_params.get(LSULayouts)
 
-        self.insert = Method(i=self.rs_layouts.insert_in)
-        self.select = Method(o=self.rs_layouts.select_out)
-        self.update = Method(i=self.rs_layouts.update_in)
+        self.insert = Method(i=self.lsu_layouts.rs_insert_in)
+        self.select = Method(o=self.lsu_layouts.rs_select_out)
+        self.update = Method(i=self.lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
         self.commit = Method(i=self.lsu_layouts.commit)
 
@@ -241,34 +239,34 @@ class LSUDummy(Elaboratable):
     def elaborate(self, platform):
         m = Module()
         reserved = Signal()  # means that current_instr is reserved
-        current_instr = Record(self.rs_layouts.data_layout + [("valid", 1)])
+        current_instr = Record(self.lsu_layouts.rs_data_layout + [("valid", 1)])
 
         m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
 
         result_ready = internal.result_ready
 
         @def_method(m, self.select, ~reserved)
-        def _(arg):
+        def _():
             # We always return 0, because we have only one place in instruction storage.
             m.d.sync += reserved.eq(1)
             return {"rs_entry_id": 0}
 
         @def_method(m, self.insert)
-        def _(arg):
-            m.d.sync += assign(current_instr, arg.rs_data)
+        def _(rs_data: Record, rs_entry_id: Value):
+            m.d.sync += assign(current_instr, rs_data)
             m.d.sync += current_instr.valid.eq(1)
 
         @def_method(m, self.update)
-        def _(arg):
-            with m.If(current_instr.rp_s1 == arg.tag):
-                m.d.sync += current_instr.s1_val.eq(arg.value)
+        def _(tag: Value, value: Value):
+            with m.If(current_instr.rp_s1 == tag):
+                m.d.sync += current_instr.s1_val.eq(value)
                 m.d.sync += current_instr.rp_s1.eq(0)
-            with m.If(current_instr.rp_s2 == arg.tag):
-                m.d.sync += current_instr.s2_val.eq(arg.value)
+            with m.If(current_instr.rp_s2 == tag):
+                m.d.sync += current_instr.s2_val.eq(value)
                 m.d.sync += current_instr.rp_s2.eq(0)
 
         @def_method(m, self.get_result, result_ready)
-        def _(arg):
+        def _():
             m.d.comb += internal.get_result_ack.eq(1)
             with m.If(current_instr.exec_fn.op_type == OpType.LOAD):
                 m.d.sync += current_instr.eq(0)
@@ -276,8 +274,8 @@ class LSUDummy(Elaboratable):
             return {"rob_id": current_instr.rob_id, "rp_dst": current_instr.rp_dst, "result": internal.loadedData}
 
         @def_method(m, self.commit)
-        def _(arg):
-            with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (arg.rob_id == current_instr.rob_id)):
+        def _(rob_id: Value):
+            with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
                 m.d.sync += internal.execute_store.eq(1)
 
         with m.If(internal.store_ready):

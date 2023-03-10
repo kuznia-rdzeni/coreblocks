@@ -14,21 +14,19 @@ from unittest import TestCase
 
 class TestDefMethod(TestCaseWithSimulator):
     class TestModule(Elaboratable):
-        def __init__(self, method_define_fn):
+        def __init__(self, method_definition):
             self.transactionManager = TransactionManager()
             self.method = Method(
-                o=[
-                    ("foo1", 3),
-                    ("foo2", [("bar1", 4), ("bar2", 6)]),
-                ]
+                i=[("foo1", 3), ("foo2", [("bar1", 4), ("bar2", 6)])],
+                o=[("foo1", 3), ("foo2", [("bar1", 4), ("bar2", 6)])],
             )
 
-            self.method_define_fn = method_define_fn
+            self.method_definition = method_definition
 
         def elaborate(self, platform):
             m = Module()
 
-            self.method_define_fn(m, self.method)
+            def_method(m, self.method)(self.method_definition)
 
             m.submodules += self.transactionManager
 
@@ -42,49 +40,90 @@ class TestDefMethod(TestCaseWithSimulator):
             pass
 
     def test_fields_valid1(self):
-        def method_definer(m, method):
-            @def_method(m, method)
-            def _(arg):
-                return {"foo1": Signal(3), "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
+        def definition(arg):
+            return {"foo1": Signal(3), "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
-        self.do_test_definition(method_definer)
+        self.do_test_definition(definition)
 
     def test_fields_valid2(self):
-        def method_definer(m, method):
-            rec = Record([("bar1", 4), ("bar2", 6)])
+        rec = Record([("bar1", 4), ("bar2", 6)])
 
-            @def_method(m, method)
-            def _(arg):
-                return {"foo1": Signal(3), "foo2": rec}
+        def definition(arg):
+            return {"foo1": Signal(3), "foo2": rec}
 
-        self.do_test_definition(method_definer)
+        self.do_test_definition(definition)
+
+    def test_fields_valid3(self):
+        def definition(arg):
+            return arg
+
+        self.do_test_definition(definition)
+
+    def test_fields_valid4(self):
+        def definition(arg: Record):
+            return arg
+
+        self.do_test_definition(definition)
+
+    def test_fields_valid5(self):
+        def definition(**arg):
+            return arg
+
+        self.do_test_definition(definition)
+
+    def test_fields_valid6(self):
+        def definition(foo1, foo2):
+            return {"foo1": foo1, "foo2": foo2}
+
+        self.do_test_definition(definition)
+
+    def test_fields_valid7(self):
+        def definition(foo1, **arg):
+            return {"foo1": foo1, "foo2": arg["foo2"]}
+
+        self.do_test_definition(definition)
 
     def test_fields_invalid1(self):
-        def method_definer(m, method):
-            @def_method(m, method)
-            def _(arg):
-                return {"foo1": Signal(3), "baz": Signal(4)}
+        def definition(arg):
+            return {"foo1": Signal(3), "baz": Signal(4)}
 
         with self.assertRaises(KeyError):
-            self.do_test_definition(method_definer)
+            self.do_test_definition(definition)
 
     def test_fields_invalid2(self):
-        def method_definer(m, method):
-            @def_method(m, method)
-            def _(arg):
-                return {"foo1": Signal(3)}
+        def definition(arg):
+            return {"foo1": Signal(3)}
 
         with self.assertRaises(KeyError):
-            self.do_test_definition(method_definer)
+            self.do_test_definition(definition)
 
     def test_fields_invalid3(self):
-        def method_definer(m, method):
-            @def_method(m, method)
-            def _(arg):
-                return {"foo1": {"baz1": Signal(), "baz2": Signal()}, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
+        def definition(arg):
+            return {"foo1": {"baz1": Signal(), "baz2": Signal()}, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
         with self.assertRaises(TypeError):
-            self.do_test_definition(method_definer)
+            self.do_test_definition(definition)
+
+    def test_fields_invalid4(self):
+        def definition(arg: Value):
+            return arg
+
+        with self.assertRaises(TypeError):
+            self.do_test_definition(definition)
+
+    def test_fields_invalid5(self):
+        def definition(foo):
+            return foo
+
+        with self.assertRaises(TypeError):
+            self.do_test_definition(definition)
+
+    def test_fields_invalid6(self):
+        def definition(foo1):
+            return {"foo1": foo1, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
+
+        with self.assertRaises(TypeError):
+            self.do_test_definition(definition)
 
 
 class AdapterCircuit(Elaboratable):
@@ -471,7 +510,7 @@ class NonexclusiveMethodCircuit(Elaboratable):
         method = Method(o=data_layout(WIDTH), nonexclusive=True)
 
         @def_method(m, method, self.ready)
-        def _(_):
+        def _():
             m.d.comb += self.running.eq(1)
             return {"data": self.data}
 
