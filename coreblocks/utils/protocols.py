@@ -3,6 +3,7 @@ from amaranth import *
 from typing import Protocol
 from coreblocks.transactions import Method
 from coreblocks.params import OpType
+from ._typing import HasElaborate
 
 
 __all__ = ["FuncUnit", "FuncBlock", "Unifier"]
@@ -18,13 +19,13 @@ class Unifier(Protocol):
         ...
 
 
-class FuncUnit(Protocol):
+class FuncUnit(HasElaborate, Protocol):
     optypes: set[OpType]
     issue: Method
     accept: Method
 
 
-class FuncBlock(Protocol):
+class FuncBlock(HasElaborate, Protocol):
     optypes: set[OpType]
     insert: Method
     select: Method
