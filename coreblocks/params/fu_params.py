@@ -28,6 +28,7 @@ class DependencyKey(Generic[T, U], ABC):
     Dependency keys are used to access dependencies in the `DependencyManager`.
     Concrete instances of dependency keys should be frozen data classes.
     """
+
     @abstractmethod
     def combine(self, data: list[T]) -> U:
         """Combine multiple dependencies with the same key.
@@ -57,6 +58,7 @@ class SimpleKey(Generic[T], DependencyKey[T, T]):
     keys and dependencies. If more than one dependency is added to a simple key,
     an error is raised.
     """
+
     def combine(self, data: list[T]) -> T:
         if len(data) != 1:
             raise RuntimeError(f"Key {self} assigned {len(data)} values, expected 1")
@@ -71,6 +73,7 @@ class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]]):
     unifier is used to present a single method interface to the caller, which
     allows to customize the calling behavior.
     """
+
     unifier: type[Unifier]
 
     def combine(self, data: list[Method]) -> tuple[Method, dict[str, Unifier]]:
@@ -89,6 +92,7 @@ class DependencyManager:
 
     Tracks dependencies across the core.
     """
+
     def __init__(self):
         self.dependencies = defaultdict[DependencyKey, list](list)
 
