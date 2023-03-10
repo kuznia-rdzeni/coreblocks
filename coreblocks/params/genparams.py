@@ -19,8 +19,8 @@ class DependentCache:
         v = self._depcache.get(cls, None)
         if v is None:
             sig = signature(cls)
-            if "gen_params" in sig.parameters:
-                v = cls(gen_params=self)
+            if sig.parameters:
+                v = cls(self)
             else:
                 v = cls()
             self._depcache[cls] = v
