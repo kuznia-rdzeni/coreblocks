@@ -24,8 +24,8 @@ this two works present a survey of the interrupt topic as for time of writing.
 
 ## Interrupt Handling for Out-of-Order Execution Processors
 
-> Interrupt Handling for Out, 1993
-> H. C. Torng and Martin Day
+> Interrupt Handling for Out-of-Order Execution Processors
+> H. C. Torng and Martin Day, 1993
 
 This article describe one of first probes for implementation of exceptions in out-of-order processors. In that time ROB
 was a very new idea. Authors of this paper introduced Instruction Window (IW) as theirs proposition for implementation
