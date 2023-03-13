@@ -10,6 +10,7 @@ from amaranth import Module, Elaboratable, Cat
 from typing import Optional
 
 
+
 class TestElaboratable(Elaboratable):
     def __init__(self, gen_params, io_pins: int, instr_mem: list[int] = [], data_mem: Optional[list[int]]=None):
         from coreblocks.params.genparams import GenParams
@@ -65,8 +66,12 @@ class TestElaboratable(Elaboratable):
 def synthesize(platform: str):
     from coreblocks.params.genparams import GenParams
     from constants.ecp5_platforms import ECP5BG381Platform
+    from coreblocks.fu.alu import ALUComponent
+    from coreblocks.fu.jumpbranch import JumpComponent
+    from coreblocks.lsu.dummyLsu import LSUBlockComponent
+    from coreblocks.stages.rs_func_block import RSBlockComponent
 
-    gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
+    gp = GenParams("rv32i", [RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4), LSUBlockComponent()])
 
     if platform == "ecp5":
         ECP5BG381Platform().build(TestElaboratable(gen_params=gp, io_pins=6))

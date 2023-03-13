@@ -1,5 +1,6 @@
-from coreblocks.params import Funct3, Funct7, GenParams
-from coreblocks.fu.zbs import ZbsUnit, ZbsFunction
+from coreblocks.params import Funct3, Funct7
+from coreblocks.fu.zbs import ZbsFunction, ZbsComponent
+from test.common import test_gen_params
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
@@ -42,17 +43,15 @@ ops = {
 
 
 class ZbsUnitTest(GenericFunctionalTestUnit):
-    gen_params: GenParams
-
     def test_test(self):
         self.run_pipeline()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
             ops,
-            ZbsUnit,
+            ZbsComponent(),
             compute_result,
-            gen=GenParams("rv32i"),
+            gen=test_gen_params("rv32i"),
             number_of_tests=600,
             seed=32323,
             method_name=method_name,

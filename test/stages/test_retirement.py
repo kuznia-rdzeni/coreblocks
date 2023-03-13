@@ -1,7 +1,6 @@
 from coreblocks.stages.retirement import *
 
-from coreblocks.transactions import TransactionModule
-from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
+from coreblocks.transactions.lib import FIFO, Adapter
 from coreblocks.structs_common.rat import RRAT
 from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
 
@@ -49,7 +48,7 @@ class RetirementTestCircuit(Elaboratable):
 
 class RetirementTest(TestCaseWithSimulator):
     def setUp(self):
-        self.gen_params = GenParams("rv32i")
+        self.gen_params = test_gen_params("rv32i")
         self.rf_exp_q = deque()
         self.rat_map_q = deque()
         self.submit_q = deque()

@@ -7,7 +7,6 @@ __all__ = [
     "Funct3",
     "Funct7",
     "Funct12",
-    "OpType",
     "Extension",
     "FenceTarget",
     "FenceFm",
@@ -80,35 +79,6 @@ class FenceTarget(IntFlag):
 class FenceFm(IntEnum):
     NONE = 0b0000
     TSO = 0b1000
-
-
-@unique
-class OpType(IntEnum):
-    """
-    Enum of operation types. Do not confuse with Opcode.
-    """
-
-    UNKNOWN = auto()  # needs to be first
-    ARITHMETIC = auto()
-    COMPARE = auto()
-    LOGIC = auto()
-    SHIFT = auto()
-    AUIPC = auto()
-    JAL = auto()
-    JALR = auto()
-    BRANCH = auto()
-    LOAD = auto()
-    STORE = auto()
-    FENCE = auto()
-    ECALL = auto()
-    EBREAK = auto()
-    MRET = auto()
-    WFI = auto()
-    FENCEI = auto()
-    CSR = auto()
-    MUL = auto()
-    DIV_REM = auto()
-    SINGLE_BIT_MANIPULATION = auto()
 
 
 @unique

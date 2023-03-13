@@ -1,4 +1,4 @@
-from enum import IntFlag, unique
+from enum import IntFlag, unique, IntEnum
 from typing import Tuple
 
 from amaranth import *
@@ -6,16 +6,17 @@ from amaranth import *
 from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
-from coreblocks.params.mul_params import MulType, MulUnitParams
+from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
 
 
-__all__ = ["MulUnit", "MulFn"]
+__all__ = ["MulUnit", "MulFn", "MulComponent", "MulType"]
 
 from coreblocks.utils import OneHotSwitch
+from coreblocks.utils.protocols import FuncUnit
 
 
 class MulFn(Signal):
@@ -98,6 +99,19 @@ def get_input(arg: Record) -> Tuple[Value, Value]:
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
 
+class MulType(IntEnum):
+    """
+    Enum of different multiplication units types
+    """
+
+    #: The cheapest multiplication unit in terms of resources, it uses Russian Peasants Algorithm.
+    SHIFT_MUL = 0
+    #: Uses single DSP unit for multiplication, which makes balance between performance and cost.
+    SEQUENCE_MUL = 1
+    #: Fastest way of multiplying using only one cycle, but costly in terms of resources.
+    RECURSIVE_MUL = 2
+
+
 class MulUnit(Elaboratable):
     """
     Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
@@ -113,7 +127,7 @@ class MulUnit(Elaboratable):
 
     optypes = {OpType.MUL}
 
-    def __init__(self, gen: GenParams):
+    def __init__(self, gen: GenParams, mul_type: MulType, dsp_width: int = 32):
         """
         Parameters
         ----------
@@ -121,6 +135,8 @@ class MulUnit(Elaboratable):
             Core generation parameters.
         """
         self.gen = gen
+        self.mul_type = mul_type
+        self.dsp_width = dsp_width
 
         layouts = gen.get(FuncUnitLayouts)
 
@@ -143,15 +159,13 @@ class MulUnit(Elaboratable):
         m.submodules.decoder = decoder = MulFnDecoder(self.gen)
 
         # Selecting unsigned integer multiplication module
-        match self.gen.mul_unit_params:
-            case MulUnitParams(mul_type=MulType.SHIFT_MUL):
+        match self.mul_type:
+            case MulType.SHIFT_MUL:
                 m.submodules.multiplier = multiplier = ShiftUnsignedMul(self.gen)
-            case MulUnitParams(mul_type=MulType.SEQUENCE_MUL):
-                m.submodules.multiplier = multiplier = SequentialUnsignedMul(self.gen)
-            case MulUnitParams(mul_type=MulType.RECURSIVE_MUL):
-                m.submodules.multiplier = multiplier = RecursiveUnsignedMul(self.gen)
-            case _:
-                raise Exception("Nonexistent multiplication unit type")
+            case MulType.SEQUENCE_MUL:
+                m.submodules.multiplier = multiplier = SequentialUnsignedMul(self.gen, self.dsp_width)
+            case MulType.RECURSIVE_MUL:
+                m.submodules.multiplier = multiplier = RecursiveUnsignedMul(self.gen, self.dsp_width)
 
         xlen = self.gen.isa.xlen
         sign_bit = xlen - 1  # position of sign bit
@@ -228,3 +242,15 @@ class MulUnit(Elaboratable):
             result_fifo.write(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst)
 
         return m
+
+
+class MulComponent(FunctionalComponentParams):
+    def __init__(self, mul_unit_type: MulType, *, dsp_width: int = 32):
+        self.mul_unit_type = mul_unit_type
+        self.dsp_width = dsp_width
+
+    def get_module(self, gen_params: GenParams) -> FuncUnit:
+        return MulUnit(gen_params, self.mul_unit_type, self.dsp_width)
+
+    def get_optypes(self) -> set[OpType]:
+        return MulUnit.optypes
