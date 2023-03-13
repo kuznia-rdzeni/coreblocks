@@ -4,6 +4,14 @@ coreblocks.params package
 Submodules
 ----------
 
+coreblocks.params.fu\_params module
+-----------------------------------
+
+.. automodule:: coreblocks.params.fu_params
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.params.genparams module
 ----------------------------------
 
@@ -20,6 +28,14 @@ coreblocks.params.isa module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.params.keys module
+-----------------------------
+
+.. automodule:: coreblocks.params.keys
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.params.layouts module
 --------------------------------
 
@@ -28,10 +44,10 @@ coreblocks.params.layouts module
    :undoc-members:
    :show-inheritance:
 
-coreblocks.params.mul\_params module
-------------------------------------
+coreblocks.params.optypes module
+--------------------------------
 
-.. automodule:: coreblocks.params.mul_params
+.. automodule:: coreblocks.params.optypes
    :members:
    :undoc-members:
    :show-inheritance:

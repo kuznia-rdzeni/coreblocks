@@ -135,6 +135,25 @@ It uses layout with two fields <cite>reg_id</cite> and <cite>reg_val</cite>.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.stages.func_blocks_unifier">
+<span id="coreblocks-stages-func-blocks-unifier-module"></span><h2>coreblocks.stages.func_blocks_unifier module<a class="headerlink" href="#module-coreblocks.stages.func_blocks_unifier" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.stages.func_blocks_unifier.</span></span><span class="sig-name descname"><span class="pre">FuncBlocksUnifier</span></span><a class="headerlink" href="#coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.fu_params.BlockComponentParams" title="coreblocks.params.fu_params.BlockComponentParams"><span class="pre">BlockComponentParams</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_methods_required</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">UnifierKey</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier.get_extra_method">
+<span class="sig-name descname"><span class="pre">get_extra_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">UnifierKey</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></span><a class="headerlink" href="#coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier.get_extra_method" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.stages.retirement">
 <span id="coreblocks-stages-retirement-module"></span><h2>coreblocks.stages.retirement module<a class="headerlink" href="#module-coreblocks.stages.retirement" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -151,6 +170,27 @@ It uses layout with two fields <cite>reg_id</cite> and <cite>reg_val</cite>.</p>
 </div>
 <div class="section" id="module-coreblocks.stages.rs_func_block">
 <span id="coreblocks-stages-rs-func-block-module"></span><h2>coreblocks.stages.rs_func_block module<a class="headerlink" href="#module-coreblocks.stages.rs_func_block" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.stages.rs_func_block.RSBlockComponent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.stages.rs_func_block.</span></span><span class="sig-name descname"><span class="pre">RSBlockComponent</span></span><a class="headerlink" href="#coreblocks.stages.rs_func_block.RSBlockComponent" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="coreblocks.params.html#coreblocks.params.fu_params.BlockComponentParams" title="coreblocks.params.fu_params.BlockComponentParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">BlockComponentParams</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.stages.rs_func_block.RSBlockComponent.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_units</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams" title="coreblocks.params.fu_params.FunctionalComponentParams"><span class="pre">FunctionalComponentParams</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs_entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.stages.rs_func_block.RSBlockComponent.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.stages.rs_func_block.RSBlockComponent.get_module">
+<span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncBlock" title="coreblocks.utils.protocols.FuncBlock"><span class="pre">FuncBlock</span></a></span></span><a class="headerlink" href="#coreblocks.stages.rs_func_block.RSBlockComponent.get_module" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.stages.rs_func_block.RSBlockComponent.get_optypes">
+<span class="sig-name descname"><span class="pre">get_optypes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.stages.rs_func_block.RSBlockComponent.get_optypes" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.stages.rs_func_block.RSFuncBlock">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.stages.rs_func_block.</span></span><span class="sig-name descname"><span class="pre">RSFuncBlock</span></span><a class="headerlink" href="#coreblocks.stages.rs_func_block.RSFuncBlock" title="Permalink to this definition"></a></dt>
@@ -176,13 +216,15 @@ layout described by <cite>FuncUnitLayouts</cite>.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.stages.rs_func_block.RSFuncBlock.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_units</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><span class="pre">FuncUnit</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.stages.rs_func_block.RSFuncBlock.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_units</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><span class="pre">FuncUnit</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs_entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.stages.rs_func_block.RSFuncBlock.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
 </dd>
 <dt><strong>func_units: Iterable[FuncUnit]</strong></dt><dd><p>Functional units to be used by this module.</p>
+</dd>
+<dt><strong>rs_entries: int</strong></dt><dd><p>Number of entries in RS.</p>
 </dd>
 </dl>
 </dd>
@@ -209,7 +251,7 @@ layout described by <cite>FuncUnitLayouts</cite>.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 10:13 2023-03-09.
+      <span class="lastupdated">Last updated on 13:33 2023-03-13.
       </span></p>
   </div>
 

@@ -146,7 +146,7 @@ If <cite>Record</cite> is used as <cite>layout</cite>, it has to be flattened to
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.utils.protocols.FuncBlock">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.utils.protocols.</span></span><span class="sig-name descname"><span class="pre">FuncBlock</span></span><a class="headerlink" href="#coreblocks.utils.protocols.FuncBlock" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">HasElaborate</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.utils.protocols.FuncBlock.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.utils.protocols.FuncBlock.__init__" title="Permalink to this definition"></a></dt>
@@ -164,7 +164,7 @@ If <cite>Record</cite> is used as <cite>layout</cite>, it has to be flattened to
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.utils.protocols.FuncBlock.optypes">
-<span class="sig-name descname"><span class="pre">optypes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.OpType" title="coreblocks.params.isa.OpType"><span class="pre">coreblocks.params.isa.OpType</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.utils.protocols.FuncBlock.optypes" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">optypes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.utils.protocols.FuncBlock.optypes" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -182,7 +182,7 @@ If <cite>Record</cite> is used as <cite>layout</cite>, it has to be flattened to
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.utils.protocols.FuncUnit">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.utils.protocols.</span></span><span class="sig-name descname"><span class="pre">FuncUnit</span></span><a class="headerlink" href="#coreblocks.utils.protocols.FuncUnit" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">HasElaborate</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.utils.protocols.FuncUnit.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.utils.protocols.FuncUnit.__init__" title="Permalink to this definition"></a></dt>
@@ -200,7 +200,23 @@ If <cite>Record</cite> is used as <cite>layout</cite>, it has to be flattened to
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.utils.protocols.FuncUnit.optypes">
-<span class="sig-name descname"><span class="pre">optypes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.OpType" title="coreblocks.params.isa.OpType"><span class="pre">coreblocks.params.isa.OpType</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.utils.protocols.FuncUnit.optypes" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">optypes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.utils.protocols.FuncUnit.optypes" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.utils.protocols.Unifier">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.utils.protocols.</span></span><span class="sig-name descname"><span class="pre">Unifier</span></span><a class="headerlink" href="#coreblocks.utils.protocols.Unifier" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.utils.protocols.Unifier.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.utils.protocols.Unifier.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.utils.protocols.Unifier.method">
+<span class="sig-name descname"><span class="pre">method</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></em><a class="headerlink" href="#coreblocks.utils.protocols.Unifier.method" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -353,7 +369,7 @@ in <cite>lhs</cite> or <cite>rhs</cite> are assigned.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 10:13 2023-03-09.
+      <span class="lastupdated">Last updated on 13:33 2023-03-13.
       </span></p>
   </div>
 

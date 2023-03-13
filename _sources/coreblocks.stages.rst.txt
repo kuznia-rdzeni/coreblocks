@@ -12,6 +12,14 @@ coreblocks.stages.backend module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.stages.func\_blocks\_unifier module
+----------------------------------------------
+
+.. automodule:: coreblocks.stages.func_blocks_unifier
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.stages.retirement module
 -----------------------------------
 
