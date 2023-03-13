@@ -33,7 +33,7 @@ of interrupts in out-of-order processors. IW will store all dispatched instructi
 interrupt IW will be a part of context and will be copied to memory by interrupt handler. After restoring the context
 all instructions from IW will be restarted so that the state of CPU will be precise.
 
-Idea of IW is simmilar to ROB, but they are few differences:
+Idea of IW is similar to ROB, but they are few differences:
 - ROB is not a part of context
 - ROB remove instructions in-order, IW allow to remove instructions out-of-order
 - Tags in IW are in one-hot-encoding, which will in current implementation cause big overhead.
