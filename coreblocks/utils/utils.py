@@ -138,16 +138,27 @@ def assign(
 ) -> Iterable[Assign]:
     """Safe record assignment.
 
-    This function generates assignment statements for records and reports
-    errors in case of mismatch. If either of `lhs` or `rhs` is not
-    a Record, checks for the same bit width and generates a single
-    assignment statement.
+    This function recursively generates assignment statements for
+    field-containing structures. This includes: Amaranth `Record`\\s,
+    Amaranth `View`\\s using `StructLayout`, Python `dict`\\s. In case of
+    mismatching fields or bit widths, error is raised.
+
+    When both `lhs` and `rhs` are field-containing, `assign` generates
+    assignment statements according to the value of the `field` parameter.
+    If either of `lhs` or `rhs` is not field-containing, `assign` checks for
+    the same bit width and generates a single assignment statement.
+
+    The bit width check is performed if:
+
+    - Any of `lhs` or `rhs` is a `Record` or `View`.
+    - Both `lhs` and `rhs` have an explicitly defined shape (e.g. are a
+      `Signal`, a field of a `Record` or a `View`).
 
     Parameters
     ----------
-    lhs : Record or Signal or ArrayProxy or dict
+    lhs : Record or View or Value-castable or dict
         Record, signal or dict being assigned.
-    rhs : Record or Value-castable or dict
+    rhs : Record or View or Value-castable or dict
         Record, signal or dict containing assigned values.
     fields : AssignType or Iterable or Mapping, optional
         Determines which fields will be assigned. Possible values:
@@ -239,6 +250,8 @@ def assign(
         if (
             isinstance(lhs, Record)
             or isinstance(rhs, Record)
+            or isinstance(lhs, data.View)
+            or isinstance(rhs, data.View)
             or (lhs_strict or has_explicit_shape(lhs))
             and (rhs_strict or has_explicit_shape(rhs))
         ):
