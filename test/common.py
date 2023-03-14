@@ -382,7 +382,7 @@ def test_gen_params(
     isa_str: str,
     *,
     phys_regs_bits: int = 7,
-    rob_entries_bits: int = 8,
+    rob_entries_bits: int = 7,
     start_pc: int = 0,
     rs_entries: int = 4,
     rs_block_number: int = 2,
