@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 ROOT_PATH=$(dirname $0)/..
 
 # Add coreblocks to PYTHONPATH for sphinx-apidoc
@@ -57,5 +60,5 @@ fi
 $ROOT_PATH/scripts/core_graph -p -f mermaid $DOCS_DIR/auto_graph.rst
 sed -i -e '1i\.. mermaid::\n' -e 's/^/   /' $DOCS_DIR/auto_graph.rst
 
-sphinx-apidoc -o $DOCS_DIR $ROOT_PATH/coreblocks/ || exit 1
-sphinx-build -b html -W $DOCS_DIR $BUILD_DIR || exit 1
+sphinx-apidoc -o $DOCS_DIR $ROOT_PATH/coreblocks/
+sphinx-build -b html -W $DOCS_DIR $BUILD_DIR
