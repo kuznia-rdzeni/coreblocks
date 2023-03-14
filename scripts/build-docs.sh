@@ -8,7 +8,6 @@ ROOT_PATH=$(dirname $0)/..
 export PYTHONPATH=$PYTHONPATH:$ROOT_PATH
 DOCS_DIR=$ROOT_PATH/"docs"
 BUILD_DIR=$ROOT_PATH/"build"
-export SPHINXOPTS=-W
 CLEAN=false
 
 function print_help() {
