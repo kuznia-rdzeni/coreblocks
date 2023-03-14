@@ -16,8 +16,12 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 from coreblocks.params.genparams import GenParams
 from coreblocks.transactions.graph import TracingFragment
 from test.test_core import TestElaboratable
+from coreblocks.fu.alu import ALUComponent
+from coreblocks.fu.jumpbranch import JumpComponent
+from coreblocks.lsu.dummyLsu import LSUBlockComponent
+from coreblocks.stages.rs_func_block import RSBlockComponent
 
-gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
+gp = GenParams("rv32i", [RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4), LSUBlockComponent()])
 elaboratable = TestElaboratable(gp)
 fragment = TracingFragment.get(elaboratable, platform=None).prepare()
 
