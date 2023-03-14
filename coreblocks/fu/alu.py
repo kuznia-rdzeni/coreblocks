@@ -25,10 +25,10 @@ class AluFn(Signal):
         SRA = 1 << 7  # Arithmetic right shift
         SLT = 1 << 8  # Set if less than (signed)
         SLTU = 1 << 9  # Set if less than (unsigned)
-        # ZBA extension 
-        SH1ADD = 1 << 10 # Logic left shift by 1 and add
-        SH2ADD = 1 << 11 # Logic left shift by 2 and add
-        SH3ADD = 1 << 12 # Logic left shift by 3 and add
+        # ZBA extension
+        SH1ADD = 1 << 10  # Logic left shift by 1 and add
+        SH2ADD = 1 << 11  # Logic left shift by 2 and add
+        SH3ADD = 1 << 12  # Logic left shift by 3 and add
 
     def __init__(self, *args, **kwargs):
         super().__init__(AluFn.Fn, *args, **kwargs)
