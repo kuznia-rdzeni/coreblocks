@@ -46,7 +46,7 @@ class Funct3(IntEnum):
     W = SLT = CSRRS = MULHSU = 0b010
     SLTU = CSRRC = MULHU = 0b011
     BLT = BU = XOR = DIV = DIVW = 0b100
-    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = 0b101
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = SHADD = 0b101
     BLTU = OR = CSRRSI = REM = REMW = 0b110
     BGEU = AND = CSRRCI = REMU = REMUW = 0b111
 
@@ -54,7 +54,9 @@ class Funct3(IntEnum):
 class Funct7(IntEnum):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = 0b0100000
-    MULDIV = 0b0000001
+    MULDIV = SH1ADD = 0b0000001
+    SH2ADD = 0b0000010
+    SH3ADD = 0b0000011
     BCLR = BEXT = 0b0100100
     BINV = 0b0110100
     BSET = 0b0010100

@@ -25,6 +25,10 @@ class AluFn(Signal):
         SRA = 1 << 7  # Arithmetic right shift
         SLT = 1 << 8  # Set if less than (signed)
         SLTU = 1 << 9  # Set if less than (unsigned)
+        # ZBA extension 
+        SH1ADD = 1 << 10 # Logic left shift by 1 and add
+        SH2ADD = 1 << 11 # Logic left shift by 2 and add
+        SH3ADD = 1 << 12 # Logic left shift by 3 and add
 
     def __init__(self, *args, **kwargs):
         super().__init__(AluFn.Fn, *args, **kwargs)
@@ -67,6 +71,12 @@ class Alu(Elaboratable):
                 m.d.comb += self.out.eq(self.in1.as_signed() < self.in2.as_signed())
             with OneHotCase(AluFn.Fn.SLTU):
                 m.d.comb += self.out.eq(self.in1 < self.in2)
+            with OneHotCase(AluFn.Fn.SH1ADD):
+                m.d.comb += self.out.eq(self.in1 + (self.in2 << 1))
+            with OneHotCase(AluFn.Fn.SH2ADD):
+                m.d.comb += self.out.eq(self.in1 + (self.in2 << 2))
+            with OneHotCase(AluFn.Fn.SH3ADD):
+                m.d.comb += self.out.eq(self.in1 + (self.in2 << 3))
 
         # so that Amaranth allows us to use add_clock
         dummy = Signal()
@@ -96,6 +106,9 @@ class AluFnDecoder(Elaboratable):
             (AluFn.Fn.SLL, OpType.SHIFT, Funct3.SLL),
             (AluFn.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
             (AluFn.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
+            (AluFn.Fn.SH1ADD, OpType.ADRESS_GENERATION, Funct3.SHADD, Funct7.SH1ADD),
+            (AluFn.Fn.SH2ADD, OpType.ADRESS_GENERATION, Funct3.SHADD, Funct7.SH2ADD),
+            (AluFn.Fn.SH3ADD, OpType.ADRESS_GENERATION, Funct3.SHADD, Funct7.SH3ADD),
         ]
 
         for op in ops:
@@ -110,7 +123,7 @@ class AluFnDecoder(Elaboratable):
 
 
 class AluFuncUnit(Elaboratable):
-    optypes = {OpType.ARITHMETIC, OpType.COMPARE, OpType.LOGIC, OpType.SHIFT}
+    optypes = {OpType.ARITHMETIC, OpType.COMPARE, OpType.LOGIC, OpType.SHIFT, OpType.ADRESS_GENERATION}
 
     def __init__(self, gen: GenParams):
         self.gen = gen
