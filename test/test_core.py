@@ -1,5 +1,6 @@
 from amaranth import Elaboratable, Module
 
+from coreblocks.params.configurations import basic_configuration
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
@@ -169,7 +170,7 @@ class TestCoreSimple(TestCoreBase):
         self.assertEqual((yield from self.get_arch_reg_val(5)), 1 << 12)
 
     def test_simple(self):
-        gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
+        gp = GenParams("rv32i", basic_configuration)
         m = TestElaboratable(gp)
         self.m = m
 
@@ -195,7 +196,7 @@ class TestCoreRandomized(TestCoreBase):
         yield from self.compare_core_states(self.software_core)
 
     def test_randomized(self):
-        self.gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
+        self.gp = GenParams("rv32i", basic_configuration)
         self.instr_count = 300
         random.seed(42)
 
@@ -254,7 +255,7 @@ class TestCoreAsmSource(TestCoreBase):
             self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
 
     def test_asm_source(self):
-        self.gp = GenParams("rv32i")
+        self.gp = GenParams("rv32i", basic_configuration)
         self.base_dir = "test/asm/"
         self.bin_src = []
 

@@ -1,7 +1,5 @@
 from amaranth import *
 
-from enum import IntEnum, unique
-
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -9,7 +7,9 @@ from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch
 
-__all__ = ["AluFuncUnit"]
+__all__ = ["AluFuncUnit", "ALUComponent"]
+
+from coreblocks.utils.protocols import FuncUnit
 
 
 class AluFn(Signal):
@@ -142,3 +142,11 @@ class AluFuncUnit(Elaboratable):
             fifo.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst)
 
         return m
+
+
+class ALUComponent(FunctionalComponentParams):
+    def get_module(self, gen_params: GenParams) -> FuncUnit:
+        return AluFuncUnit(gen_params)
+
+    def get_optypes(self) -> set[OpType]:
+        return AluFuncUnit.optypes
