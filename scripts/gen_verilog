@@ -4,11 +4,10 @@ import os
 import sys
 import argparse
 
-from typing import Optional
-
 from amaranth.build import Platform
 from amaranth.back import verilog
-from amaranth import Module, Elaboratable, Cat
+from amaranth import Module, Elaboratable
+
 
 class Top(Elaboratable):
     def __init__(self, gen_params):
@@ -28,7 +27,7 @@ class Top(Elaboratable):
 
         m = Module()
         tm = TransactionModule(m)
-    
+
         self.core = Core(gen_params=self.gp, wb_master_instr=self.wb_master_instr, wb_master_data=self.wb_master_data)
 
         m.submodules.wb_master_instr = self.wb_master_instr
@@ -36,6 +35,7 @@ class Top(Elaboratable):
         m.submodules.c = self.core
 
         return tm
+
 
 def gen_verilog():
     from coreblocks.params.genparams import GenParams
@@ -47,6 +47,7 @@ def gen_verilog():
         signals = list(top.wb_master_instr.wbMaster.fields.values()) + list(top.wb_master_data.wbMaster.fields.values())
 
         f.write(verilog.convert(top, ports=signals, strip_internal_attrs=True))
+
 
 def main():
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
