@@ -4,6 +4,14 @@ coreblocks.params package
 Submodules
 ----------
 
+coreblocks.params.configurations module
+---------------------------------------
+
+.. automodule:: coreblocks.params.configurations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.params.fu\_params module
 -----------------------------------
 
