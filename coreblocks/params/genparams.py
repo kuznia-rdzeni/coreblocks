@@ -33,8 +33,8 @@ class GenParams(DependentCache):
         isa_str: str,
         func_units_config: list[BlockComponentParams],
         *,
-        phys_regs_bits: int = 7,
-        rob_entries_bits: int = 8,
+        phys_regs_bits: int = 6,
+        rob_entries_bits: int = 7,
         start_pc: int = 0,
     ):
         super().__init__()

@@ -1,9 +1,6 @@
 from amaranth import Elaboratable, Module
 
-from coreblocks.fu.alu import ALUComponent
-from coreblocks.fu.jumpbranch import JumpComponent
-from coreblocks.lsu.dummyLsu import LSUBlockComponent
-from coreblocks.stages.rs_func_block import RSBlockComponent
+from coreblocks.params.configurations import basic_configuration
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
@@ -33,9 +30,6 @@ from riscvmodel.insn import (
 from riscvmodel.model import Model
 from riscvmodel.isa import InstructionRType, get_insns
 from riscvmodel.variant import RV32I
-
-
-_BASIC_CONFIGURATION = [RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4), LSUBlockComponent()]
 
 
 class TestElaboratable(Elaboratable):
@@ -176,12 +170,7 @@ class TestCoreSimple(TestCoreBase):
         self.assertEqual((yield from self.get_arch_reg_val(5)), 1 << 12)
 
     def test_simple(self):
-        gp = GenParams(
-            "rv32i",
-            _BASIC_CONFIGURATION,
-            phys_regs_bits=6,
-            rob_entries_bits=7,
-        )
+        gp = GenParams("rv32i", basic_configuration)
         m = TestElaboratable(gp)
         self.m = m
 
@@ -207,12 +196,7 @@ class TestCoreRandomized(TestCoreBase):
         yield from self.compare_core_states(self.software_core)
 
     def test_randomized(self):
-        self.gp = GenParams(
-            "rv32i",
-            _BASIC_CONFIGURATION,
-            phys_regs_bits=6,
-            rob_entries_bits=7,
-        )
+        self.gp = GenParams("rv32i", basic_configuration)
         self.instr_count = 300
         random.seed(42)
 
@@ -271,7 +255,7 @@ class TestCoreAsmSource(TestCoreBase):
             self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
 
     def test_asm_source(self):
-        self.gp = GenParams("rv32i", _BASIC_CONFIGURATION)
+        self.gp = GenParams("rv32i", basic_configuration)
         self.base_dir = "test/asm/"
         self.bin_src = []
 
