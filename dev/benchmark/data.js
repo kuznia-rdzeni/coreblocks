@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1678718669847,
+  "lastUpdate": 1678871476705,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -2841,6 +2841,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 9454,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ce7cfb53f43a18b7c59a31f0df17488e2d13d82d",
+          "message": "Fix the core_graph script after merging #209, and other cleanups (#245)",
+          "timestamp": "2023-03-15T10:04:54+01:00",
+          "tree_id": "d639b4ccece54c190692d9c9469bf2f8a2726f3c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ce7cfb53f43a18b7c59a31f0df17488e2d13d82d"
+        },
+        "date": 1678871475368,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.63,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17461,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 480,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5453,
             "unit": "LUT"
           }
         ]
