@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1678871611191,
+  "lastUpdate": 1678994755244,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -2914,6 +2914,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/1f5064a3f796015e2425e597220b2f6f63745afe"
         },
         "date": 1678871609186,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.63,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17461,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 480,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5453,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "692eae3c58c0bce50bf9aa1923d279fff442e58b",
+          "message": "Move from dockerhub to GitHub Container Registry (#249)",
+          "timestamp": "2023-03-16T20:17:13+01:00",
+          "tree_id": "f921814c9ea87dae5213e3f037513b4b1ec3a703",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/692eae3c58c0bce50bf9aa1923d279fff442e58b"
+        },
+        "date": 1678994753734,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
