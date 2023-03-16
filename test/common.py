@@ -227,7 +227,9 @@ class TestbenchIO(Elaboratable):
         yield from self.disable()
         return outputs
 
-    def call_try(self, data: RecordIntDict = {}, /, **kwdata: int | RecordIntDict) -> TestGen[Optional[RecordIntDictRet]]:
+    def call_try(
+        self, data: RecordIntDict = {}, /, **kwdata: int | RecordIntDict
+    ) -> TestGen[Optional[RecordIntDictRet]]:
         if data and kwdata:
             raise TypeError("call_try() takes either a single dict or keyword arguments")
         if not data:
