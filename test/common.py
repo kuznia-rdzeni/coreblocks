@@ -208,7 +208,11 @@ class TestbenchIO(Elaboratable):
 
     # Operations for AdapterTrans
 
-    def call_init(self, data: RecordValueDict = {}) -> TestGen[None]:
+    def call_init(self, data: RecordValueDict = {}, /, **kwdata: ValueLike | RecordValueDict) -> TestGen[None]:
+        if data and kwdata:
+            raise TypeError("call_init() takes either a single dict or keyword arguments")
+        if not data:
+            data = kwdata
         yield from self.enable()
         yield from self.set_inputs(data)
 
@@ -223,14 +227,22 @@ class TestbenchIO(Elaboratable):
         yield from self.disable()
         return outputs
 
-    def call_try(self, data: RecordIntDict = {}) -> TestGen[Optional[RecordIntDictRet]]:
+    def call_try(self, data: RecordIntDict = {}, /, **kwdata: int | RecordIntDict) -> TestGen[Optional[RecordIntDictRet]]:
+        if data and kwdata:
+            raise TypeError("call_try() takes either a single dict or keyword arguments")
+        if not data:
+            data = kwdata
         yield from self.call_init(data)
         yield
         outputs = yield from self.call_result()
         yield from self.disable()
         return outputs
 
-    def call(self, data: RecordIntDict = {}) -> TestGen[RecordIntDictRet]:
+    def call(self, data: RecordIntDict = {}, /, **kwdata: int | RecordIntDict) -> TestGen[RecordIntDictRet]:
+        if data and kwdata:
+            raise TypeError("call_try() takes either a single dict or keyword arguments")
+        if not data:
+            data = kwdata
         yield from self.call_init(data)
         yield
         return (yield from self.call_do())
