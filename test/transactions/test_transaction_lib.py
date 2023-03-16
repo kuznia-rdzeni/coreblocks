@@ -186,8 +186,8 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         def producer():
             inputs = self.inputs[i]
             for field1, field2 in inputs:
-                input_dict = {"field1": field1, "field2": field2}
-                yield from getattr(self.m, f"input_{i}").call_init(input_dict)
+                io: TestbenchIO = getattr(self.m, f"input_{i}")
+                yield from io.call_init(field1=field1, field2=field2)
                 yield from self.random_wait()
             self.producer_end[i] = True
 
