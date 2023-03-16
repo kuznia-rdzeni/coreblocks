@@ -31,7 +31,7 @@ class OpType(IntEnum):
     MUL = auto()
     DIV_REM = auto()
     SINGLE_BIT_MANIPULATION = auto()
-    ADRESS_GENERATION = auto()
+    ADDRESS_GENERATION = auto()
 
 
 #
@@ -55,7 +55,7 @@ optypes_by_extensions = {
         OpType.EBREAK,
         OpType.MRET,
         OpType.WFI,
-        OpType.ADRESS_GENERATION,
+        OpType.ADDRESS_GENERATION,
     ],
     Extension.ZIFENCEI: [
         OpType.FENCEI,

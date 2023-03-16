@@ -106,9 +106,9 @@ class AluFnDecoder(Elaboratable):
             (AluFn.Fn.SLL, OpType.SHIFT, Funct3.SLL),
             (AluFn.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
             (AluFn.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
-            (AluFn.Fn.SH1ADD, OpType.ADRESS_GENERATION, Funct3.SHADD, Funct7.SH1ADD),
-            (AluFn.Fn.SH2ADD, OpType.ADRESS_GENERATION, Funct3.SHADD, Funct7.SH2ADD),
-            (AluFn.Fn.SH3ADD, OpType.ADRESS_GENERATION, Funct3.SHADD, Funct7.SH3ADD),
+            (AluFn.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SHADD, Funct7.SH1ADD),
+            (AluFn.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SHADD, Funct7.SH2ADD),
+            (AluFn.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SHADD, Funct7.SH3ADD),
         ]
 
         for op in ops:
@@ -123,7 +123,7 @@ class AluFnDecoder(Elaboratable):
 
 
 class AluFuncUnit(Elaboratable):
-    optypes = {OpType.ARITHMETIC, OpType.COMPARE, OpType.LOGIC, OpType.SHIFT, OpType.ADRESS_GENERATION}
+    optypes = {OpType.ARITHMETIC, OpType.COMPARE, OpType.LOGIC, OpType.SHIFT, OpType.ADDRESS_GENERATION}
 
     def __init__(self, gen: GenParams):
         self.gen = gen
