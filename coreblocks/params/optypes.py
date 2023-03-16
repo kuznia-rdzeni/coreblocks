@@ -55,7 +55,6 @@ optypes_by_extensions = {
         OpType.EBREAK,
         OpType.MRET,
         OpType.WFI,
-        OpType.ADDRESS_GENERATION,
     ],
     Extension.ZIFENCEI: [
         OpType.FENCEI,
@@ -72,6 +71,9 @@ optypes_by_extensions = {
     ],
     Extension.ZBS: [
         OpType.SINGLE_BIT_MANIPULATION,
+    ],
+    Extension.ZBA: [
+        OpType.ADDRESS_GENERATION,
     ],
 }
 
