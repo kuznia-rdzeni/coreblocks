@@ -16,8 +16,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 from coreblocks.params.genparams import GenParams
 from coreblocks.transactions.graph import TracingFragment
 from test.test_core import TestElaboratable
+from coreblocks.params.configurations import basic_configuration
 
-gp = GenParams("rv32i", phys_regs_bits=6, rob_entries_bits=7)
+gp = GenParams("rv32i", basic_configuration)
 elaboratable = TestElaboratable(gp)
 fragment = TracingFragment.get(elaboratable, platform=None).prepare()
 

@@ -38,10 +38,6 @@ ops = {
 }
 
 
-def gen_test_params(param):
-    pass
-
-
 @parameterized_class(
     ("name", "mul_unit"),
     [

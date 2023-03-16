@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 if [ -z "$DOCS_DIR" ] || [ -z "$BUILD_DIR" ]; then
   echo "Documentation or build directory not specified. Exiting... "
   exit 1
