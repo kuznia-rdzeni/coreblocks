@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: docker://kuzniardzeni/amaranth-synth:ecp5
+    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5
     steps:
       - uses: actions/checkout@v3
 
