@@ -7,7 +7,9 @@ from constants.ecp5_pinout import ecp5_bg381_pins
 __all__ = ["ECP5BG381Platform"]
 
 
-def WishboneResource(*args, dat_r, dat_w, rst, ack, adr, cyc, stall, err, lock, rty, sel, stb, we, conn=None):
+def WishboneResource(  # noqa: N802
+    *args, dat_r, dat_w, rst, ack, adr, cyc, stall, err, lock, rty, sel, stb, we, conn=None
+):
     io = []
 
     io.append(Subsignal("dat_r", Pins(dat_r, dir="i", conn=conn)))
@@ -46,7 +48,22 @@ class ECP5BG381Platform(LatticeECP5Platform):
     resources = [
         Resource("rst", 0, PinsN(p(), dir="i"), Attrs(IO_TYPE="LVCMOS33")),
         Resource("clk", 0, Pins(p(), dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
-        WishboneResource(0, dat_r=p(32), dat_w=p(32), rst=p(), ack=p(), adr=p(30), cyc=p(), stall=p(), err=p(), lock=p(), rty=p(), sel=p(4), stb=p(), we=p()),
+        WishboneResource(
+            0,
+            dat_r=p(32),
+            dat_w=p(32),
+            rst=p(),
+            ack=p(),
+            adr=p(30),
+            cyc=p(),
+            stall=p(),
+            err=p(),
+            lock=p(),
+            rty=p(),
+            sel=p(4),
+            stb=p(),
+            we=p(),
+        ),
     ]
 
     connectors = []
