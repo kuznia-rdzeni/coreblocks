@@ -39,8 +39,11 @@ RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 
 
 class Priority(Enum):
+    #: Conflicting transactions/methods don't have a priority order.
     UNDEFINED = auto()
+    #: Left transaction/method is prioritized over the right one.
     LEFT = auto()
+    #: Right transaction/method is prioritized over the left one.
     RIGHT = auto()
 
 
