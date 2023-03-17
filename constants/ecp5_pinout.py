@@ -19,3 +19,7 @@ ecp5_bg381_pins = """
     C11 A11 B11 A10 B10 C10 A9 B9 E10 D10 C9 E9
     A8 D9 A7 B8 D8 C8 E8 C7 D7 C6 E7 D6 B6 E6 A6
 """.split()
+
+ecp5_bg381_pclk = """
+    G3 F2 G2 H2 L19 L20 J20 J19 B12 D11 B11 A10
+""".split()

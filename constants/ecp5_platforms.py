@@ -2,7 +2,7 @@ from amaranth.build.dsl import Subsignal
 from amaranth.vendor.lattice_ecp5 import LatticeECP5Platform
 from amaranth.build import Resource, Attrs, Pins, Clock, PinsN
 
-from constants.ecp5_pinout import ecp5_bg381_pins
+from constants.ecp5_pinout import ecp5_bg381_pins, ecp5_bg381_pclk
 
 __all__ = ["ECP5BG381Platform"]
 
@@ -36,6 +36,13 @@ def p(count: int = 1):
     return " ".join([pin_bag.pop() for _ in range(count)])
 
 
+def named_pin(names: list[str]):
+    for name in names:
+        if name in pin_bag:
+            pin_bag.remove(name)
+            return name
+
+
 # Tutorial for synthesis in amaranth:
 # https://github.com/RobertBaruch/amaranth-tutorial/blob/main/9_synthesis.md
 class ECP5BG381Platform(LatticeECP5Platform):
@@ -47,7 +54,7 @@ class ECP5BG381Platform(LatticeECP5Platform):
 
     resources = [
         Resource("rst", 0, PinsN(p(), dir="i"), Attrs(IO_TYPE="LVCMOS33")),
-        Resource("clk", 0, Pins(p(), dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
+        Resource("clk", 0, Pins(named_pin(ecp5_bg381_pclk), dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
         WishboneResource(
             0,
             dat_r=p(32),
