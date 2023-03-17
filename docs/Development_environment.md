@@ -73,6 +73,6 @@ The `core_graph.py` script has the following options:
 * `-p`, `--prune` -- removes disconnected nodes from the output graph.
 * `-f FORMAT`, `--format FORMAT` -- selects the output format. Supported formats are `elk` (for [Eclipse Layout Kernel](https://www.eclipse.org/elk/)), `dot` (for [Graphviz](https://graphviz.org/)), `mermaid` (for [Mermaid](https://mermaid.js.org/)).
 
-### build-docs.sh
+### build\_docs.sh
 
 Generates local documentation using [Sphinx](https://www.sphinx-doc.org/). The generated HTML files are located in `build/html`.
