@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: docker://kuzniardzeni/amaranth-synth:ecp5
+    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5
     steps:
       - uses: actions/checkout@v3
 
@@ -24,14 +24,14 @@ jobs:
           pip3 install -r requirements-dev.txt
 
       - name: Synthesize
-        run: PYTHONHASHSEED=0 ./scripts/synthesize --verbose
+        run: PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose
 
       - name: Print synthesis information
         run: cat ./build/top.tim
 
       - name: Collect Benchmark information
         run: |
-          ./scripts/parse_benchmark_info
+          ./scripts/parse_benchmark_info.py
           cat ./benchmark.json
 
       - name: Store benchmark result (Fmax)
