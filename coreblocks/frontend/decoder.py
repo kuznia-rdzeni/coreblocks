@@ -169,9 +169,9 @@ _instructions_by_optype = {
         Encoding(Opcode.OP_IMM, Funct3.BINV, Funct7.BINV),  # binvi
     ],
     OpType.ADDRESS_GENERATION: [
-        Encoding(Opcode.OP, Funct3.SHADD, Funct7.SH1ADD),
-        Encoding(Opcode.OP, Funct3.SHADD, Funct7.SH1ADD),
-        Encoding(Opcode.OP, Funct3.SHADD, Funct7.SH1ADD),
+        Encoding(Opcode.OP, Funct3.SHA1DD, Funct7.SHADD),
+        Encoding(Opcode.OP, Funct3.SHA2DD, Funct7.SHADD),
+        Encoding(Opcode.OP, Funct3.SHA3DD, Funct7.SHADD),
     ],
 }
 

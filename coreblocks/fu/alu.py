@@ -106,9 +106,9 @@ class AluFnDecoder(Elaboratable):
             (AluFn.Fn.SLL, OpType.SHIFT, Funct3.SLL),
             (AluFn.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
             (AluFn.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
-            (AluFn.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SHADD, Funct7.SH1ADD),
-            (AluFn.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SHADD, Funct7.SH2ADD),
-            (AluFn.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SHADD, Funct7.SH3ADD),
+            (AluFn.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SHADD),
+            (AluFn.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SHADD),
+            (AluFn.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SHADD),
         ]
 
         for op in ops:
