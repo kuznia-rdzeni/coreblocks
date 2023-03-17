@@ -33,6 +33,7 @@ class CSRRegister(Elaboratable):
     --------
     .. highlight:: python
     .. code-block:: python
+
         # Timer register that increments on each cycle and resets if read by CSR instruction
         csr = CSRRegister(1, gp)
         with Transaction.body(m):
