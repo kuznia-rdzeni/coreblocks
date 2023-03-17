@@ -1,6 +1,5 @@
 from amaranth import *
 
-from coreblocks.params import GenParams
 from coreblocks.structs_common.csr import CSRUnit, CSRRegister
 from coreblocks.params.isa import Funct3
 from coreblocks.frontend.decoder import OpType
@@ -131,7 +130,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             self.assertEqual((yield self.dut.csr[op["exp"]["exp_write"]["csr"]].value), op["exp"]["exp_write"]["value"])
 
     def test_randomized(self):
-        self.gp = GenParams("rv32i")
+        self.gp = test_gen_params("rv32i")
         random.seed(8)
 
         self.cycles = 256
@@ -199,7 +198,7 @@ class TestCSRRegister(TestCaseWithSimulator):
             yield from self.dut.write.disable()
 
     def test_randomized(self):
-        self.gp = GenParams("rv32i")
+        self.gp = test_gen_params("rv32i")
         random.seed(42)
 
         self.cycles = 200

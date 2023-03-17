@@ -8,7 +8,7 @@ from typing import Any, Iterable, Iterator, Mapping, NoReturn, Optional, Sequenc
 from enum import Enum
 from coreblocks.utils import ValueLike, ShapeLike, StatementLike
 
-__all__ = ["Shape", "signed", "unsigned", "Value", "Const", "C", "AnyConst", "AnySeq", "Operator", "Mux", "Part", "Slice", "Cat", "Repl", "Array", "ArrayProxy", "Signal", "ClockSignal", "ResetSignal", "UserValue", "ValueCastable", "Sample", "Past", "Stable", "Rose", "Fell", "Initial", "Statement", "Switch", "Property", "Assign", "Assert", "Assume", "Cover", "ValueKey", "ValueDict", "ValueSet", "SignalKey", "SignalDict", "SignalSet", "ValueLike", "ShapeLike", "StatementLike", "SwitchKey"]
+__all__ = ["Shape", "signed", "unsigned", "Value", "Const", "C", "AnyConst", "AnySeq", "Operator", "Mux", "Part", "Slice", "Cat", "Repl", "Array", "ArrayProxy", "Signal", "ClockSignal", "ResetSignal", "ValueCastable", "Sample", "Past", "Stable", "Rose", "Fell", "Initial", "Statement", "Switch", "Property", "Assign", "Assert", "Assume", "Cover", "ValueKey", "ValueDict", "ValueSet", "SignalKey", "SignalDict", "SignalSet", "ValueLike", "ShapeLike", "StatementLike", "SwitchKey"]
 
 
 T = TypeVar("T")
@@ -474,24 +474,6 @@ class ArrayProxy(Value):
         ...
     
     def __repr__(self) -> str:
-        ...
-    
-
-
-class UserValue(Value):
-    """Value with custom lowering.
-
-   """
-    @deprecated("instead of `UserValue`, use `Val", stacklevel=3)
-    def __init__(self, *, src_loc_at=...) -> None:
-        ...
-    
-    @abstractmethod
-    def lower(self): # -> None:
-        """Conversion to a concrete represe"""
-        ...
-    
-    def shape(self) -> Shape:
         ...
     
 
