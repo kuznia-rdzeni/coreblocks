@@ -13,6 +13,7 @@ class ReorderBuffer(Elaboratable):
         self.mark_done = Method(i=layouts.id_layout)
         self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
         self.retire = Method(o=layouts.retire_layout)
+        self.interrupt = Method()
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
     def elaborate(self, platform):
@@ -34,7 +35,7 @@ class ReorderBuffer(Elaboratable):
             m.d.sync += self.data[start_idx].done.eq(0)
             # TODO: because of a problem with mocking nonexclusive methods,
             # retire replicates functionality of peek
-            return {"rob_data": self.data[start_idx].rob_data, "rob_id": start_idx}
+            return {"rob_data": self.data[start_idx].rob_data, "rob_id": start_idx, "interrupt": self.data[start_idx].interrupt}
 
         @def_method(m, self.put, ready=put_possible)
         def _(arg):
@@ -42,6 +43,10 @@ class ReorderBuffer(Elaboratable):
             m.d.sync += self.data[end_idx].done.eq(0)
             m.d.sync += end_idx.eq(end_idx + 1)
             return end_idx
+
+        @def_method(m, self.interrupt)
+        def _():
+            m.d.sync += self.data[start_idx].interrupt.eq(1)
 
         # TODO: There is a potential race condition when ROB is flushed.
         # If functional units aren't flushed, finished obsolete instructions

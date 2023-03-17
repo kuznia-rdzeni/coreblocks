@@ -3,10 +3,11 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import Method, Transaction, TModule
-from coreblocks.transactions.lib import FIFO, Forwarder
+from coreblocks.transactions.lib import FIFO, Forwarder, MethodProduct
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from coreblocks.utils import assign, AssignType
 from coreblocks.utils.protocols import FuncBlock
+from coreblocks.utils.fifo import BasicFifo
 
 
 __all__ = ["Scheduler"]
@@ -403,7 +404,7 @@ class Scheduler(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(self.layouts.reg_alloc_out, 2)
+        m.submodules.alloc_rename_buf = alloc_rename_buf = BasicFifo(self.layouts.reg_alloc_out, 2)
         m.submodules.reg_alloc = RegAllocation(
             get_instr=self.get_instr,
             push_instr=alloc_rename_buf.write,
@@ -411,7 +412,7 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.rename_out_buf = rename_out_buf = FIFO(self.layouts.renaming_out, 2)
+        m.submodules.rename_out_buf = rename_out_buf = BasicFifo(self.layouts.renaming_out, 2)
         m.submodules.renaming = Renaming(
             get_instr=alloc_rename_buf.read,
             push_instr=rename_out_buf.write,
@@ -419,15 +420,15 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.reg_alloc_out_buf = reg_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
+        m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = BasicFifo(self.layouts.rob_allocate_out, 2)
         m.submodules.rob_alloc = ROBAllocation(
             get_instr=rename_out_buf.read,
-            push_instr=reg_alloc_out_buf.write,
+            push_instr=rob_alloc_out_buf.write,
             rob_put=self.rob_put,
             gen_params=self.gen_params,
         )
 
-        m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
+        m.submodules.rs_select_out_buf = rs_select_out_buf = BasicFifo(self.layouts.rs_select_out, 2)
         m.submodules.rs_selector = RSSelection(
             gen_params=self.gen_params,
             get_instr=reg_alloc_out_buf.read,
@@ -442,5 +443,7 @@ class Scheduler(Elaboratable):
             rf_read2=self.rf_read2,
             gen_params=self.gen_params,
         )
+
+        self.clear_fifos = MethodProduct([alloc_rename_buf.clear, rename_out_buf.clear, rob_alloc_out_buf.clear, rs_select_out_buf.clear])
 
         return m
