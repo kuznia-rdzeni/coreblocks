@@ -10,9 +10,8 @@ from amaranth import Module, Elaboratable, Cat
 from typing import Optional
 
 
-
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params, io_pins: int, instr_mem: list[int] = [], data_mem: Optional[list[int]]=None):
+    def __init__(self, gen_params, io_pins: int, instr_mem: list[int] = [], data_mem: Optional[list[int]] = None):
         from coreblocks.params.genparams import GenParams
 
         self.gp: GenParams = gen_params
