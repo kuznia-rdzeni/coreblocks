@@ -72,11 +72,11 @@ class Alu(Elaboratable):
             with OneHotCase(AluFn.Fn.SLTU):
                 m.d.comb += self.out.eq(self.in1 < self.in2)
             with OneHotCase(AluFn.Fn.SH1ADD):
-                m.d.comb += self.out.eq(self.in1 + (self.in2 << 1))
+                m.d.comb += self.out.eq((self.in1 << 1) + self.in2)
             with OneHotCase(AluFn.Fn.SH2ADD):
-                m.d.comb += self.out.eq(self.in1 + (self.in2 << 2))
+                m.d.comb += self.out.eq((self.in1 << 2) + self.in2)
             with OneHotCase(AluFn.Fn.SH3ADD):
-                m.d.comb += self.out.eq(self.in1 + (self.in2 << 3))
+                m.d.comb += self.out.eq((self.in1 << 3) + self.in2)
 
         # so that Amaranth allows us to use add_clock
         dummy = Signal()
