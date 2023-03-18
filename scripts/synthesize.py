@@ -22,20 +22,20 @@ from coreblocks.params.configurations import basic_configuration
 
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gp: GenParams = gen_params
+    def __init__(self, gen_params: GenParams, wb_params: WishboneParameters):
+        self.gen_params = gen_params
+        self.wb_params = wb_params
 
     def elaborate(self, platform: Platform):
-
         m = Module()
         tm = TransactionModule(m)
 
-        wb_params = WishboneParameters(data_width=32, addr_width=30)
+        self.wb_master_instr = WishboneMaster(wb_params=self.wb_params)
+        self.wb_master_data = WishboneMaster(wb_params=self.wb_params)
 
-        self.wb_master_instr = WishboneMaster(wb_params=wb_params)
-        self.wb_master_data = WishboneMaster(wb_params=wb_params)
-
-        self.core = Core(gen_params=self.gp, wb_master_instr=self.wb_master_instr, wb_master_data=self.wb_master_data)
+        self.core = Core(
+            gen_params=self.gen_params, wb_master_instr=self.wb_master_instr, wb_master_data=self.wb_master_data
+        )
 
         # Combine Wishbone buses with an arbiter
         wb = Record.like(self.wb_master_instr.wbMaster)
@@ -56,12 +56,13 @@ class TestElaboratable(Elaboratable):
 
 
 def synthesize(platform: str):
-    from constants.ecp5_platforms import ECP5BG381Platform
+    from constants.ecp5_platforms import make_ecp5_platform
 
-    gp = GenParams("rv32i", basic_configuration)
+    gen_params = GenParams("rv32i", basic_configuration)
+    wb_params = WishboneParameters(data_width=32, addr_width=30)
 
     if platform == "ecp5":
-        ECP5BG381Platform().build(TestElaboratable(gen_params=gp))
+        make_ecp5_platform(wb_params)().build(TestElaboratable(gen_params, wb_params))
 
 
 def main():
