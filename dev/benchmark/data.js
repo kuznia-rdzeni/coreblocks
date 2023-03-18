@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1679071377453,
+  "lastUpdate": 1679138817160,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -3061,6 +3061,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/1eb458fbf062a6b7e818c94ff313a9f154ebd542"
         },
         "date": 1679071375901,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 57.47,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 16887,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 480,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 844,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5453,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fa6ec8da8237a5c04a1fc15baacd846a40e4db45",
+          "message": "Add comments to `Priority` enum. (#255)",
+          "timestamp": "2023-03-18T12:21:31+01:00",
+          "tree_id": "fd042fd285efedc306d85add5d2c41770e689fc8",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/fa6ec8da8237a5c04a1fc15baacd846a40e4db45"
+        },
+        "date": 1679138816385,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
