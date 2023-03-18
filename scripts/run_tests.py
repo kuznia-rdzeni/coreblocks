@@ -6,12 +6,15 @@ import re
 import sys
 import os
 
+
 def get_topdir_path():
     script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
     return os.path.abspath(os.path.join(script_path, os.pardir))
 
+
 def cd_to_topdir():
     os.chdir(get_topdir_path())
+
 
 def load_tests():
     suite = unittest.TestLoader().discover(".")
