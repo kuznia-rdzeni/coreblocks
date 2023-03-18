@@ -15,7 +15,7 @@ When I have prepared this overview, I have decided to look at articles from diff
 working at that time. So there is probably a lot of other works which can be worth checking out. Specifically:
 - W. Walker and H. G. Cragon. “Interrupt processing in concurrent processors.” IEEE Computer, vol. 28, no. 6, June 1995
 - M. Moudgill and S. Vassiliadis. “Precise interrupts.” IEEE Micro, vol. 16, no. 1, pp. 58–67, February 1996
-These two works present a survey of the topic of interrogation as a time of writing.
+These two works present a survey of the topic of interrupts as a time of writing.
 
 ## Interrupt handling in old PCs
 
