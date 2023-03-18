@@ -6,7 +6,7 @@ import argparse
 
 from amaranth.build import Platform
 from amaranth.back import verilog
-from amaranth import Module, Elaboratable, Record, Signal
+from amaranth import Module, Elaboratable, Record
 
 
 class Top(Elaboratable):
@@ -47,18 +47,15 @@ class Top(Elaboratable):
         return tm
 
 
-def record_to_signals(record: Record) -> list[Signal]:
-    return list(record.fields.values())
-
-
 def gen_verilog():
     from coreblocks.params.genparams import GenParams
     from coreblocks.params.configurations import basic_configuration
+    from coreblocks.utils.utils import flatten_signals
 
     top = Top(GenParams("rv32i", basic_configuration))
 
     with open("core.v", "w") as f:
-        signals = record_to_signals(top.wb_instr) + record_to_signals(top.wb_data)
+        signals = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
 
         f.write(verilog.convert(top, ports=signals, strip_internal_attrs=True))
 

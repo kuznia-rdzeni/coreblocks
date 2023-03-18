@@ -10,6 +10,7 @@ ValueLike = Value | int | Enum | ValueCastable
 ShapeLike = Shape | int | range | Type[Enum]
 StatementLike: TypeAlias = Statement | Iterable["StatementLike"]
 LayoutLike = Layout | Sequence[Tuple[str, ShapeLike | "LayoutLike"] | Tuple[str, ShapeLike | "LayoutLike", Direction]]
+SignalLike = Signal | Record | Iterable["SignalLike"] | Mapping[str, "SignalLike"]
 
 # Internal Coreblocks types
 DebugSignals: TypeAlias = Signal | Record | Iterable["DebugSignals"] | Mapping[str, "DebugSignals"]
