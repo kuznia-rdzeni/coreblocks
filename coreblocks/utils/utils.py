@@ -6,7 +6,7 @@ from amaranth.hdl.ast import Assign, ArrayProxy
 from ._typing import ValueLike, LayoutList, SignalLike
 
 
-__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch"]
+__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch", "flatten_signals"]
 
 
 @contextmanager
