@@ -23,6 +23,10 @@ __all__ = ["Core"]
 class Core(Elaboratable):
     def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneBus, wb_data_bus: WishboneBus):
         self.gen_params = gen_params
+
+        self.wb_instr_bus = wb_instr_bus
+        self.wb_data_bus = wb_data_bus
+
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
 
@@ -58,6 +62,12 @@ class Core(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
+
+        m.d.comb += self.wb_master_instr.wbMaster.connect(self.wb_instr_bus)
+        m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_data_bus)
+
+        m.submodules.wb_master_instr = self.wb_master_instr
+        m.submodules.wb_master_data = self.wb_master_data
 
         m.submodules.free_rf_fifo = free_rf_fifo = self.free_rf_fifo
         m.submodules.FRAT = frat = self.FRAT

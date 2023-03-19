@@ -42,7 +42,7 @@ class GenParams(DependentCache):
 
         self.isa = ISA(isa_str)
         self.func_units_config = func_units_config
-        self.bus_params = WishboneParameters(self.isa.xlen, self.isa.xlen)
+        self.wb_params = WishboneParameters(data_width=self.isa.xlen, addr_width=self.isa.xlen)
 
         # Verification temporally disabled
         # if not optypes_required_by_extensions(self.isa.extensions) <= optypes_supported(func_units_config):

@@ -8,7 +8,7 @@ from .common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
-from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
+from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
 
 from typing import Optional
 import random
@@ -45,29 +45,27 @@ class TestElaboratable(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        wb_params = WishboneParameters(data_width=32, addr_width=30)
-        self.wb_master_instr = WishboneMaster(wb_params=wb_params)
-        self.wb_master_data = WishboneMaster(wb_params=wb_params)
+        wb_instr_bus = WishboneBus(self.gp.wb_params)
+        wb_data_bus = WishboneBus(self.gp.wb_params)
+
         self.wb_mem_slave = WishboneMemorySlave(
-            wb_params=wb_params, width=32, depth=len(self.instr_mem), init=self.instr_mem
+            wb_params=self.gp.wb_params, width=32, depth=len(self.instr_mem), init=self.instr_mem
         )
         self.wb_mem_slave_data = WishboneMemorySlave(
-            wb_params=wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
+            wb_params=self.gp.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
         )
-        self.core = Core(gen_params=self.gp, wb_master_instr=self.wb_master_instr, wb_master_data=self.wb_master_data)
+        self.core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
         self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
 
-        m.submodules.wb_master_instr = self.wb_master_instr
-        m.submodules.wb_master_data = self.wb_master_data
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
 
-        m.d.comb += self.wb_master_instr.wbMaster.connect(self.wb_mem_slave.bus)
-        m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_mem_slave_data.bus)
+        m.d.comb += wb_instr_bus.connect(self.wb_mem_slave.bus)
+        m.d.comb += wb_data_bus.connect(self.wb_mem_slave_data.bus)
 
         return tm
 

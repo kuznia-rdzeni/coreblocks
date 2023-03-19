@@ -38,7 +38,7 @@ class TestElaboratable(Elaboratable):
             wb_params=self.gp.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
         )
 
-        self.core = Core(gen_params=self.gp, wb_master_instr=self.wb_master, wb_master_data=self.wb_master_data)
+        self.core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
 
         m.d.comb += wb_instr_bus.connect(self.wb_mem_slave.bus)
         m.d.comb += wb_data_bus.connect(self.wb_mem_slave_data.bus)
