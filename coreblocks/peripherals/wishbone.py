@@ -73,6 +73,7 @@ class WishboneBus(Record):
     wb_params: WishboneParameters
         Parameters for bus generation.
     """
+
     def __init__(self, wb_params: WishboneParameters):
         super().__init__(WishboneLayout(wb_params).wb_layout)
 

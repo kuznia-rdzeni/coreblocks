@@ -25,7 +25,7 @@ class TestElaboratable(Elaboratable):
     def elaborate(self, platform: Platform):
         from coreblocks.core import Core
         from coreblocks.transactions import TransactionModule
-        from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave, WishboneParameters
+        from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
 
         m = Module()
         tm = TransactionModule(m)
