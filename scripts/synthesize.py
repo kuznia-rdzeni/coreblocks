@@ -25,24 +25,23 @@ class TestElaboratable(Elaboratable):
     def elaborate(self, platform: Platform):
         from coreblocks.core import Core
         from coreblocks.transactions import TransactionModule
-        from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
+        from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave, WishboneParameters
 
         m = Module()
         tm = TransactionModule(m)
-        wb_params = WishboneParameters(data_width=32, addr_width=30)
 
-        self.wb_master = WishboneMaster(wb_params=wb_params)
-        self.wb_mem_slave = WishboneMemorySlave(wb_params=wb_params, width=32, depth=32, init=self.instr_mem)
+        wb_instr_bus = WishboneBus(self.gp.wb_params)
+        wb_data_bus = WishboneBus(self.gp.wb_params)
 
-        self.wb_master_data = WishboneMaster(wb_params=wb_params)
+        self.wb_mem_slave = WishboneMemorySlave(wb_params=self.gp.wb_params, width=32, depth=32, init=self.instr_mem)
         self.wb_mem_slave_data = WishboneMemorySlave(
-            wb_params=wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
+            wb_params=self.gp.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
         )
 
         self.core = Core(gen_params=self.gp, wb_master_instr=self.wb_master, wb_master_data=self.wb_master_data)
 
-        m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
-        m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_mem_slave_data.bus)
+        m.d.comb += wb_instr_bus.connect(self.wb_mem_slave.bus)
+        m.d.comb += wb_data_bus.connect(self.wb_mem_slave_data.bus)
 
         # Request platform pins
         data_out_pins = Cat(platform.request("data_out", 0).o)
@@ -53,8 +52,6 @@ class TestElaboratable(Elaboratable):
         # Connect pins to the core
         m.d.comb += Cat(data_out_pins).eq(Cat(self.core.announcement.debug_signals()))
 
-        m.submodules.wb_master = self.wb_master
-        m.submodules.wb_master_data = self.wb_master_data
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core

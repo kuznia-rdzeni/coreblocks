@@ -65,6 +65,18 @@ class WishboneLayout:
         ]
 
 
+class WishboneBus(Record):
+    """Wishbone bus.
+
+    Parameters
+    ----------
+    wb_params: WishboneParameters
+        Parameters for bus generation.
+    """
+    def __init__(self, wb_params: WishboneParameters):
+        super().__init__(WishboneLayout(wb_params).wb_layout)
+
+
 class WishboneMaster(Elaboratable):
     """Wishbone bus master interface.
 

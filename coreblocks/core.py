@@ -13,7 +13,7 @@ from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
-from coreblocks.peripherals.wishbone import WishboneMaster
+from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.utils.fifo import BasicFifo
 
@@ -21,10 +21,10 @@ __all__ = ["Core"]
 
 
 class Core(Elaboratable):
-    def __init__(self, *, gen_params: GenParams, wb_master_instr: WishboneMaster, wb_master_data: WishboneMaster):
+    def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneBus, wb_data_bus: WishboneBus):
         self.gen_params = gen_params
-        self.wb_master_instr = wb_master_instr
-        self.wb_master_data = wb_master_data
+        self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
+        self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
 
         # make fifo_fetch visible outside the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
@@ -40,7 +40,7 @@ class Core(Elaboratable):
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
         connections = gen_params.get(DependencyManager)
-        connections.add_dependency(WishboneDataKey(), wb_master_data)
+        connections.add_dependency(WishboneDataKey(), self.wb_master_data)
 
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,

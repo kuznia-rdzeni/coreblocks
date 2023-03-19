@@ -5,6 +5,7 @@ from typing import TypeVar, Type, Protocol, runtime_checkable
 
 from .isa import ISA
 from .fu_params import BlockComponentParams
+from ..peripherals.wishbone import WishboneParameters
 
 __all__ = ["GenParams"]
 
@@ -41,6 +42,7 @@ class GenParams(DependentCache):
 
         self.isa = ISA(isa_str)
         self.func_units_config = func_units_config
+        self.bus_params = WishboneParameters(self.isa.xlen, self.isa.xlen)
 
         # Verification temporally disabled
         # if not optypes_required_by_extensions(self.isa.extensions) <= optypes_supported(func_units_config):
