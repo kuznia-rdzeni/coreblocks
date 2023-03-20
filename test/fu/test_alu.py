@@ -88,6 +88,15 @@ class TestAlu(TestCaseWithSimulator):
     def test_sub(self):
         self.check_fn(AluFn.Fn.SUB, operator.sub)
 
+    def test_sh1add(self):
+        self.check_fn(AluFn.Fn.SH1ADD, lambda in1, in2: (in1 << 1) + in2)
+
+    def test_sh2add(self):
+        self.check_fn(AluFn.Fn.SH2ADD, lambda in1, in2: (in1 << 2) + in2)
+
+    def test_sh3add(self):
+        self.check_fn(AluFn.Fn.SH3ADD, lambda in1, in2: (in1 << 3) + in2)
+
     def test_sra(self):
         def sra(in1, in2):
             xlen = self.gen.isa.xlen
