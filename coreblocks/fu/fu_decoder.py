@@ -1,11 +1,9 @@
 from amaranth import *
 
 from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
-from coreblocks.utils import OneHotSwitch
 
 from enum import IntFlag
 
