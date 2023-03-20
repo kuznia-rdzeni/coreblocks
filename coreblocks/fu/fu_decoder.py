@@ -13,39 +13,11 @@ from enum import IntFlag
 class DecoderManager(Signal):
     @unique
     class Fn(IntFlag):
-
-        ADD = auto()  # Addition
-        SLL = auto()  # Logic left shift
-        XOR = auto()  # Bitwise xor
-        SRL = auto()  # Logic right shift
-        OR = auto()  # Bitwise or
-        AND = auto()  # Bitwise and
-        SUB = auto()  # Subtraction
-        SRA = auto()  # Arithmetic right shift
-        SLT = auto()  # Set if less than (signed)
-        SLTU = auto()  # Set if less than (unsigned)
-        # ZBA extension
-        SH1ADD = auto()  # Logic left shift by 1 and add
-        SH2ADD = auto()  # Logic left shift by 2 and add
-        SH3ADD = auto()  # Logic left shift by 3 and add
+        pass
 
     @classmethod
     def get_instrutions(cls):
-        return [
-            (cls.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
-            (cls.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
-            (cls.Fn.SLT, OpType.COMPARE, Funct3.SLT),
-            (cls.Fn.SLTU, OpType.COMPARE, Funct3.SLTU),
-            (cls.Fn.XOR, OpType.LOGIC, Funct3.XOR),
-            (cls.Fn.OR, OpType.LOGIC, Funct3.OR),
-            (cls.Fn.AND, OpType.LOGIC, Funct3.AND),
-            (cls.Fn.SLL, OpType.SHIFT, Funct3.SLL),
-            (cls.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
-            (cls.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
-            (cls.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SH1ADD),
-            (cls.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SH2ADD),
-            (cls.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SH3ADD),
-        ]
+        return []
 
     @classmethod
     def get_intruction_enum(cls):
@@ -67,7 +39,7 @@ class DecoderManager(Signal):
         return Decoder(gen, cls.Fn, cls.get_instrutions())
 
     def __init__(self, *args, **kwargs):
-        super().__init__(DecoderManager.Fn, *args, **kwargs)
+        super().__init__(self.Fn, *args, **kwargs)
 
 
 class Decoder(Elaboratable):

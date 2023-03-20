@@ -16,7 +16,6 @@ from coreblocks.utils.protocols import FuncUnit
 
 # Declared once
 class AluFn(DecoderManager):
-    @unique
     class Fn(IntFlag):
 
         ADD = auto()  # Addition
@@ -35,7 +34,7 @@ class AluFn(DecoderManager):
         SH3ADD = auto()  # Logic left shift by 3 and add
 
     @classmethod
-    def get_instructions(cls):
+    def get_instrutions(cls):
         return [
             (cls.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
             (cls.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
