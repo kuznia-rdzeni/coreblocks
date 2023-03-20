@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1679166747133,
+  "lastUpdate": 1679339619569,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -3159,6 +3159,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a6debdf446a68aa7efaeaec6ebebf2ee741f77b8"
         },
         "date": 1679166745633,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 54.95,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17040,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 572,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 844,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5453,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0ef5877a591048024461d1290a43638bcbc2f3b9",
+          "message": "Add a script exporting the core to Verilog (#248)",
+          "timestamp": "2023-03-20T20:09:07+01:00",
+          "tree_id": "c4346132863bb772ecdf7d95d112c9d075ab97f9",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0ef5877a591048024461d1290a43638bcbc2f3b9"
+        },
+        "date": 1679339617771,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
