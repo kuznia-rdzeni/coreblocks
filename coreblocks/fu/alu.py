@@ -14,7 +14,7 @@ __all__ = ["AluFuncUnit", "ALUComponent"]
 
 from coreblocks.utils.protocols import FuncUnit
 
-# Declared once
+
 class AluFn(DecoderManager):
     class Fn(IntFlag):
 
