@@ -14,34 +14,23 @@ class DecoderManager(Signal):
         pass
 
     @classmethod
-    def get_instrutions(cls):
-        return []
-
-    @classmethod
-    def get_intruction_enum(cls):
-        return cls.Fn
+    def get_instructions(cls):
+        raise NotImplementedError
 
     @classmethod
     def get_op_types(cls):
-        istr = cls.get_instrutions()
-
-        op_types = set()
-
-        for inst in istr:
-            op_types.add(inst[1])
-
-        return op_types
+        return {instr[1] for instr in cls.get_instructions()}
 
     @classmethod
-    def get_decoder(cls, gen):
-        return Decoder(gen, cls.Fn, cls.get_instrutions())
+    def get_decoder(cls, gen_params: GenParams):
+        return Decoder(gen_params, cls.Fn, cls.get_instructions())
 
     def __init__(self, *args, **kwargs):
         super().__init__(self.Fn, *args, **kwargs)
 
 
 class Decoder(Elaboratable):
-    def __init__(self, gen: GenParams, decode_fn, instructions):
+    def __init__(self, gen: GenParams, decode_fn: IntFlag, instructions: Array[tuple]):
         layouts = gen.get(CommonLayouts)
 
         self.exec_fn = Record(layouts.exec_fn)
