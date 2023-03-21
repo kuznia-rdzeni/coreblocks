@@ -3,10 +3,10 @@ from enum import Enum
 from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
-from ._typing import ValueLike, LayoutList
+from ._typing import ValueLike, LayoutList, SignalBundle
 
 
-__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch"]
+__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch", "flatten_signals"]
 
 
 @contextmanager
@@ -223,3 +223,21 @@ def assign(lhs: AssignLHS, rhs: AssignRHS, *, fields: AssignFields = AssignType.
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]
+
+
+def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
+    """
+    Flattens input data, which can be either a signal, a record, a list (or a dict) of SignalBundle items.
+
+    """
+    if isinstance(signals, Mapping):
+        for x in signals.values():
+            yield from flatten_signals(x)
+    elif isinstance(signals, Iterable):
+        for x in signals:
+            yield from flatten_signals(x)
+    elif isinstance(signals, Record):
+        for x in signals.fields.values():
+            yield from flatten_signals(x)
+    else:
+        yield signals

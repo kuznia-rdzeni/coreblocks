@@ -11,7 +11,7 @@ from amaranth.sim.core import Command
 
 from coreblocks.params import GenParams
 from coreblocks.stages.rs_func_block import RSBlockComponent
-from coreblocks.transactions.core import DebugSignals, Method, TransactionModule
+from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike
 from .gtkw_extension import write_vcd_ext
@@ -287,7 +287,7 @@ class TestbenchIO(Elaboratable):
 
     # Debug signals
 
-    def debug_signals(self) -> DebugSignals:
+    def debug_signals(self) -> SignalBundle:
         return self.adapter.debug_signals()
 
 
