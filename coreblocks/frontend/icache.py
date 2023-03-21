@@ -6,12 +6,13 @@ from amaranth.utils import log2_int
 
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions import Method, Transaction
-from coreblocks.params import GenParams, FetchLayouts, ICacheLayouts
+from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.utils._typing import ValueLike
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 
 __all__ = ["ICacheParameters", "ICache"]
+
 
 class ICacheParameters:
     """Parameters of the Instruction Cache.
@@ -32,7 +33,7 @@ class ICacheParameters:
         self.block_size_bytes = block_size_bytes
 
         def is_power_of_two(n):
-            return (n != 0) and (n & (n-1) == 0)
+            return (n != 0) and (n & (n - 1) == 0)
 
         if self.num_of_ways not in {1, 2, 4, 8}:
             raise ValueError(f"num_of_ways must be 1, 2, 4 or 8, not {num_of_ways}")
@@ -40,7 +41,7 @@ class ICacheParameters:
             raise ValueError(f"num_of_sets must be a power of 2, not {num_of_sets}")
         if not is_power_of_two(block_size_bytes) or block_size_bytes < 4:
             raise ValueError(f"block_size_bytes must be a power of 2 and not smaller than 4, not {block_size_bytes}")
-        
+
         self.offset_bits = log2_int(self.block_size_bytes)
         self.index_bits = log2_int(self.num_of_sets)
 
@@ -49,13 +50,13 @@ class ICacheParameters:
 
 
 class ICache(Elaboratable):
-    """ A simple set-associative instruction cache. 
-    
+    """A simple set-associative instruction cache.
+
     The replacement policy is a pseudo random scheme. Every time a line is trashed, we select the next
     way we write to (we keep one global counter selecting the next way).
 
-    Assumes that address is always a multiple of 4 (in bytes). RISC-V specification requires 
-    that instructions are 4 byte aligned. Extension C, however, adds 16-bit instructions, but 
+    Assumes that address is always a multiple of 4 (in bytes). RISC-V specification requires
+    that instructions are 4 byte aligned. Extension C, however, adds 16-bit instructions, but
     this should be handled by the user of the cache.
 
     Address mapping example:
@@ -67,7 +68,9 @@ class ICache(Elaboratable):
     TODO - write doc
     """
 
-    def __init__(self, gen_params: GenParams, cache_params: ICacheParameters, refiller_start: Method, refiller_accept: Method) -> None:
+    def __init__(
+        self, gen_params: GenParams, cache_params: ICacheParameters, refiller_start: Method, refiller_accept: Method
+    ) -> None:
         """
         Parameters
         ----------
@@ -80,7 +83,7 @@ class ICache(Elaboratable):
         self.params = cache_params
 
         if self.params.block_size_bytes % (self.gp.isa.xlen // 8) != 0:
-            raise ValueError(f"block_size_bytes must be divisble by the machine word size")
+            raise ValueError("block_size_bytes must be divisble by the machine word size")
 
         self.refiller_start = refiller_start
         self.refiller_accept = refiller_accept
@@ -93,12 +96,20 @@ class ICache(Elaboratable):
 
         self.addr_width = self.gp.isa.xlen
 
-
     def elaborate(self, platform) -> Module:
         m = Module()
 
         tag_bits = self.addr_width - self.params.offset_bits - self.params.index_bits
         words_in_line = self.params.block_size_bytes // (self.gp.isa.xlen // 8)
+
+        def extract_index(addr: ValueLike) -> ValueLike:
+            return addr[self.params.index_start_bit : self.params.index_end_bit + 1]
+
+        def extract_tag(addr: ValueLike) -> ValueLike:
+            return addr[-tag_bits:]
+
+        def extract_d_ram_addr(addr: ValueLike) -> ValueLike:
+            return addr[log2_int(words_in_line) : self.params.index_end_bit + 1]
 
         ways = Array(Record([("tag_hit", 1)]) for _ in range(self.params.num_of_ways))
 
@@ -107,15 +118,17 @@ class ICache(Elaboratable):
         tag_read_addr = Signal(self.params.index_bits)
         tag_write_addr = Signal(self.params.index_bits)
         tag_write_en = Signal()
-        tag_data_in = Signal(1+tag_bits)
+        tag_data_in = Signal(1 + tag_bits)
 
-        data_read_addr = Signal(self.params.index_bits)
+        data_read_addr = Signal(self.params.index_bits + self.params.offset_bits - log2_int(words_in_line))
         data_write_addr = Signal(self.params.index_bits)
         data_write_en = Signal()
         data_in = Signal(self.gp.isa.xlen)
 
         lookup_valid = Signal()
         lookup_addr = Signal(self.addr_width)
+
+        resp_err = Signal()
 
         refill_start = Signal()
         refill_finish = Signal()
@@ -139,80 +152,87 @@ class ICache(Elaboratable):
                     m.next = "LOOKUP"
 
         # Instruction output
-        resp_valid = lookup_valid & fsm.ongoing("LOOKUP") & tag_hit_any
-        instr_out = Signal() # TODO(jurb)
+        resp_ready = lookup_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | resp_err)
+        instr_out = Signal(self.gp.isa.ilen)
+
+        for i, way in range(ways):
+            with m.If(way.tag_hit):
+                m.d.comb += instr_out.eq(data_mem_rp)
 
         # Tag logic
         m.d.comb += [
-            tag_read_addr.eq(lookup_addr[self.params.index_start_bit:self.params.index_end_bit+1]),
-            tag_write_addr.eq(lookup_addr[self.params.index_start_bit:self.params.index_end_bit+1]),
-            tag_data_in.eq(Cat(1, lookup_addr[-tag_bits:])),
+            tag_read_addr.eq(extract_index(lookup_addr)),
+            tag_write_addr.eq(extract_index(lookup_addr)),
+            tag_data_in.eq(Cat(1, extract_tag(lookup_addr))),
             tag_write_en.eq(fsm.ongoing("REFILL") & refill_finish & ~refill_error),
         ]
+
+        m.d.comb += data_read_addr.eq(extract_d_ram_addr(lookup_addr))
 
         for i, way in range(ways):
             # TAG RAMS
             # valid bit is the least significant bit
-            tag_mem = Memory(width=1+tag_bits, depth=self.params.num_of_sets)
+            tag_mem = Memory(width=1 + tag_bits, depth=self.params.num_of_sets)
             tag_mem_rp = tag_mem.read_port()
             tag_mem_wp = tag_mem.write_port()
-            m.submodules[f'tag_mem_{i}'] = tag_mem
+            m.submodules[f"tag_mem_{i}"] = tag_mem
 
             tag_valid = tag_mem_rp.data[0]
             tag_out = tag_mem_rp.data[1:]
 
             m.d.comb += [
-                way.tag_hit.eq(tag_valid & (tag_out == lookup_addr[-tag_bits:])),
+                way.tag_hit.eq(tag_valid & (tag_out == extract_tag(lookup_addr))),
                 tag_mem_rp.addr.eq(tag_read_addr),
                 tag_mem_wp.addr.eq(tag_write_addr),
                 tag_mem_wp.data.eq(tag_data_in),
-                tag_mem_wp.en.eq(tag_write_en & (way_selector == i))
+                tag_mem_wp.en.eq(tag_write_en & (way_selector == i)),
             ]
 
             # DATA RAMS
             data_mem = Memory(width=self.gp.isa.xlen, depth=self.params.num_of_sets * words_in_line)
             data_mem_rp = data_mem.read_port()
             data_mem_wp = data_mem.write_port()
-            m.submodules[f'data_mem_{i}'] = data_mem
+            m.submodules[f"data_mem_{i}"] = data_mem
 
             m.d.comb += [
                 data_mem_rp.addr.eq(data_read_addr),
                 data_mem_wp.addr.eq(data_write_addr),
                 data_mem_wp.data.eq(data_in),
-                data_mem_wp.en.eq(data_write_en & (way_selector == i))
+                data_mem_wp.en.eq(data_write_en & (way_selector == i)),
             ]
 
         with Transaction().body(m, request=refill_start):
-            self.refiller_start(m, addr=Cat(Repl(0, self.params.offset_bits), lookup_addr[self.params.offset_bits:]))
+            self.refiller_start(m, addr=Cat(Repl(0, self.params.offset_bits), lookup_addr[self.params.offset_bits :]))
 
         with Transaction().body(m):
             ret = self.refiller_accept(m)
 
-            Transaction.comb += [
-                data_write_addr.eq(ret.addr[log2_int(words_in_line):self.params.index_end_bit+1]), # TODO(jurb): double check slicing
-                data_in.eq(ret.data)
-            ]
+            Transaction.comb += [data_write_addr.eq(extract_d_ram_addr(ret.addr)), data_in.eq(ret.data)]
 
             m.d.comb += data_write_en.eq(1)
             m.d.comb += refill_finish.eq(ret.finish)
             m.d.comb += refill_error.eq(ret.error)
+            m.d.sync += resp_err.eq(ret.error)
 
-        @def_method(m, self.accept_res, ready=resp_valid)
+        @def_method(m, self.accept_res, ready=resp_ready)
         def _() -> ValueLike:
             m.d.sync += lookup_valid.eq(0)
+            m.d.sync += (resp_err.eq(0),)
             return {
                 "instr": instr_out,
-                "error": 0, # TODO(jurb)
+                "error": resp_err,
             }
 
-        @def_method(m, self.issue_req, ready=~refill_start)
+        @def_method(m, self.issue_req, ready=fsm.ongoing("LOOKUP") & ~refill_start)
         def _(addr) -> None:
-            m.d.comb += tag_read_addr.eq(addr[self.params.index_start_bit:self.params.index_end_bit+1])
+            m.d.comb += tag_read_addr.eq(extract_index(addr))
+            m.d.comb += data_read_addr.eq(extract_d_ram_addr(addr))
 
             m.d.sync += lookup_addr.eq(addr)
             m.d.sync += lookup_valid.eq(1)
 
         return m
+
 
 class SimpleWBCacheRefiller(Elaboratable):
     def __init__(self, gen_params: GenParams, cache_params: ICacheParameters, wb_master: WishboneMaster):
@@ -235,23 +255,25 @@ class SimpleWBCacheRefiller(Elaboratable):
         word_counter = Signal(log2_int(words_in_line))
 
         with Transaction().body(m, request=refill_active):
-            self.wb_master.request(m,
-                                   addr=Cat(word_counter, refill_address),
-                                   data=0,
-                                   we=0,
-                                   sel=Repl(1, len(self.wb_master.wb_layout['sel']))
-                                   )
+            self.wb_master.request(
+                m,
+                addr=Cat(word_counter, refill_address),
+                data=0,
+                we=0,
+                sel=Repl(1, len(self.wb_master.wb_layout["sel"])),
+            )
 
         @def_method(m, self.start_refill, ready=~refill_active)
         def _(addr) -> None:
-            m.d.sync += refill_address.eq(addr[self.cache_params.offset_bits:])
+            m.d.sync += refill_address.eq(addr[self.cache_params.offset_bits :])
             m.d.sync += refill_active.eq(1)
+            m.d.sync += word_counter.eq(0)
 
         @def_method(m, self.accept_refill)
         def _() -> ValueLike:
-            fetched = self.wb_master.result(m) #TODO: handle error
-            
-            last = word_counter == (words_in_line - 1)
+            fetched = self.wb_master.result(m)
+
+            last = word_counter == (words_in_line - 1) | fetched.err
 
             m.d.sync += word_counter.eq(word_counter + 1)
             with m.If(last):
@@ -260,7 +282,8 @@ class SimpleWBCacheRefiller(Elaboratable):
             return {
                 "addr": Cat(Repl(0, log2_int(bytes_in_word)), word_counter, refill_address),
                 "data": fetched.data,
-                "last": last
+                "error": fetched.err,
+                "last": last,
             }
-        
+
         return m

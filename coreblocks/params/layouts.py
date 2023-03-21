@@ -213,6 +213,7 @@ class RSLayouts:
 
         self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
 
+
 class ICacheLayouts:
     def __init__(self, gen_params: GenParams):
         self.issue_req = [
@@ -234,6 +235,7 @@ class ICacheLayouts:
             ("error", 1),
             ("last", 1),
         ]
+
 
 class FetchLayouts:
     def __init__(self, gen_params: GenParams):
