@@ -111,10 +111,9 @@ class TestReorderBuffer(TestCaseWithSimulator):
 class TestFullDoneCase(TestCaseWithSimulator):
     def gen_input(self):
         for _ in range(self.test_steps):
-            log_reg = self.rand.randint(0, self.log_regs - 1)
-            phys_reg = self.rand.randint(0, self.phys_regs - 1)
-            regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
-            rob_id = yield from self.m.io_in.call(regs)
+            log_reg = self.rand.randrange(self.log_regs)
+            phys_reg = self.rand.randrange(self.phys_regs)
+            rob_id = yield from self.m.io_in.call(rl_dst=log_reg, rp_dst=phys_reg)
             self.to_execute_list.append(rob_id)
 
     def do_single_update(self):

@@ -84,7 +84,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
             inserted_count += self.maybe_insert(rs)
             ready = Cat(entry is not None for entry in rs)
 
-            yield from self.m.ready_mock.call_init({"ready_list": ready})
+            yield from self.m.ready_mock.call_init(ready_list=ready)
             if any(entry is not None for entry in rs):
                 yield from self.m.ready_mock.enable()
             else:
