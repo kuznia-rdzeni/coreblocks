@@ -11,7 +11,7 @@ from coreblocks.utils._typing import ValueLike
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 
-__all__ = ["ICacheParameters", "ICache"]
+__all__ = ["ICacheParameters", "ICache", "SimpleWBCacheRefiller"]
 
 
 class ICacheParameters:
@@ -102,16 +102,16 @@ class ICache(Elaboratable):
         tag_bits = self.addr_width - self.params.offset_bits - self.params.index_bits
         words_in_line = self.params.block_size_bytes // (self.gp.isa.xlen // 8)
 
-        def extract_index(addr: ValueLike) -> ValueLike:
+        def extract_index(addr: Signal) -> ValueLike:
             return addr[self.params.index_start_bit : self.params.index_end_bit + 1]
 
-        def extract_tag(addr: ValueLike) -> ValueLike:
+        def extract_tag(addr: Signal) -> ValueLike:
             return addr[-tag_bits:]
 
-        def extract_d_ram_addr(addr: ValueLike) -> ValueLike:
+        def extract_d_ram_addr(addr: Signal) -> ValueLike:
             return addr[log2_int(words_in_line) : self.params.index_end_bit + 1]
 
-        ways = Array(Record([("tag_hit", 1)]) for _ in range(self.params.num_of_ways))
+        ways = Array(Record([("tag_hit", 1), ("data_out", self.gp.isa.xlen)]) for _ in range(self.params.num_of_ways))
 
         way_selector = Signal(len(ways))
 
@@ -155,9 +155,9 @@ class ICache(Elaboratable):
         resp_ready = lookup_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | resp_err)
         instr_out = Signal(self.gp.isa.ilen)
 
-        for i, way in range(ways):
+        for i, way in enumerate(ways):
             with m.If(way.tag_hit):
-                m.d.comb += instr_out.eq(data_mem_rp)
+                m.d.comb += instr_out.eq(way.data_out)
 
         # Tag logic
         m.d.comb += [
@@ -169,13 +169,14 @@ class ICache(Elaboratable):
 
         m.d.comb += data_read_addr.eq(extract_d_ram_addr(lookup_addr))
 
-        for i, way in range(ways):
+        for i, way in enumerate(ways):
             # TAG RAMS
             # valid bit is the least significant bit
             tag_mem = Memory(width=1 + tag_bits, depth=self.params.num_of_sets)
             tag_mem_rp = tag_mem.read_port()
             tag_mem_wp = tag_mem.write_port()
-            m.submodules[f"tag_mem_{i}"] = tag_mem
+            m.submodules[f"tag_mem_{i}_rp"] = tag_mem_rp
+            m.submodules[f"tag_mem_{i}_wp"] = tag_mem_wp
 
             tag_valid = tag_mem_rp.data[0]
             tag_out = tag_mem_rp.data[1:]
@@ -192,9 +193,11 @@ class ICache(Elaboratable):
             data_mem = Memory(width=self.gp.isa.xlen, depth=self.params.num_of_sets * words_in_line)
             data_mem_rp = data_mem.read_port()
             data_mem_wp = data_mem.write_port()
-            m.submodules[f"data_mem_{i}"] = data_mem
+            m.submodules[f"data_mem_{i}_rp"] = data_mem_rp
+            m.submodules[f"data_mem_{i}_wp"] = data_mem_wp
 
             m.d.comb += [
+                way.data_out.eq(data_mem_rp.data),
                 data_mem_rp.addr.eq(data_read_addr),
                 data_mem_wp.addr.eq(data_write_addr),
                 data_mem_wp.data.eq(data_in),
@@ -210,12 +213,12 @@ class ICache(Elaboratable):
             Transaction.comb += [data_write_addr.eq(extract_d_ram_addr(ret.addr)), data_in.eq(ret.data)]
 
             m.d.comb += data_write_en.eq(1)
-            m.d.comb += refill_finish.eq(ret.finish)
+            m.d.comb += refill_finish.eq(ret.last)
             m.d.comb += refill_error.eq(ret.error)
             m.d.sync += resp_err.eq(ret.error)
 
         @def_method(m, self.accept_res, ready=resp_ready)
-        def _() -> ValueLike:
+        def _():
             m.d.sync += lookup_valid.eq(0)
             m.d.sync += (resp_err.eq(0),)
             return {
@@ -260,7 +263,7 @@ class SimpleWBCacheRefiller(Elaboratable):
                 addr=Cat(word_counter, refill_address),
                 data=0,
                 we=0,
-                sel=Repl(1, len(self.wb_master.wb_layout["sel"])),
+                sel=Repl(1, self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
             )
 
         @def_method(m, self.start_refill, ready=~refill_active)
@@ -270,10 +273,10 @@ class SimpleWBCacheRefiller(Elaboratable):
             m.d.sync += word_counter.eq(0)
 
         @def_method(m, self.accept_refill)
-        def _() -> ValueLike:
+        def _():
             fetched = self.wb_master.result(m)
 
-            last = word_counter == (words_in_line - 1) | fetched.err
+            last = (word_counter == (words_in_line - 1)) | fetched.err
 
             m.d.sync += word_counter.eq(word_counter + 1)
             with m.If(last):
