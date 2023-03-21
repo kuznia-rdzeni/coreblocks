@@ -15,6 +15,7 @@ __all__ = [
     "RATLayouts",
     "LSULayouts",
     "CSRLayouts",
+    "ICacheLayouts",
 ]
 
 
@@ -212,6 +213,27 @@ class RSLayouts:
 
         self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
 
+class ICacheLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.issue_req = [
+            ("addr", gen_params.isa.xlen),
+        ]
+
+        self.accept_res = [
+            ("instr", gen_params.isa.ilen),
+            ("error", 1),
+        ]
+
+        self.start_refill = [
+            ("addr", gen_params.isa.xlen),
+        ]
+
+        self.accept_refill = [
+            ("addr", gen_params.isa.xlen),
+            ("data", gen_params.isa.xlen),
+            ("error", 1),
+            ("last", 1),
+        ]
 
 class FetchLayouts:
     def __init__(self, gen_params: GenParams):
