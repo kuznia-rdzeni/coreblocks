@@ -102,7 +102,7 @@ class TestRSSelect(TestCaseWithSimulator):
         return process
 
     def create_rs_alloc_process(self, io: TestbenchIO, rs_id: int, rs_optypes: set[OpType], random_wait: int = 0):
-        def mock(_):
+        def mock(arg):
             random_entry = random.randrange(self.gen_params.rs_entries)
             expected = self.instr_in.popleft()
             self.assertIn(expected["exec_fn"]["op_type"], rs_optypes)

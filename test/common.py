@@ -11,7 +11,7 @@ from amaranth.sim.core import Command
 
 from coreblocks.params import GenParams
 from coreblocks.stages.rs_func_block import RSBlockComponent
-from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
+from coreblocks.transactions.core import SignalBundle, Method, TransactionModule, call_func_smart
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike
 from .gtkw_extension import write_vcd_ext
@@ -258,7 +258,7 @@ class TestbenchIO(Elaboratable):
         yield from self.set_inputs(data)
 
     def method_handle(
-        self, function: Callable[[RecordIntDictRet], Optional[RecordIntDict]], *, settle: int = 0
+        self, function: Callable[..., Optional[RecordIntDict]], *, settle: int = 0
     ) -> TestGen[None]:
         for _ in range(settle):
             yield Settle()
@@ -266,12 +266,14 @@ class TestbenchIO(Elaboratable):
             yield
             for _ in range(settle):
                 yield Settle()
-        yield from self.method_return(function(arg) or {})
+
+        ret_out = call_func_smart(self, function, **arg)
+        yield from self.method_return(ret_out or {})
         yield
 
     def method_handle_loop(
         self,
-        function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
+        function: Callable[..., Optional[RecordIntDict]],
         *,
         settle: int = 0,
         enable: bool = True,
@@ -293,7 +295,7 @@ class TestbenchIO(Elaboratable):
 
 def def_method_mock(
     tb_getter: Callable[[], TestbenchIO], **kwargs
-) -> Callable[[Callable[[RecordIntDictRet], Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
+) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
     a function which describes functionality which we want to invoke on method call.
@@ -322,13 +324,13 @@ def def_method_mock(
     m = TestCircuit()
     def target_process(k: int):
         @def_method_mock(lambda: m.target[k], settle=1, enable=False)
-        def process(v):
-            return {"data": v["data"] + k}
+        def process(arg):
+            return {"data": arg["data"] + k}
         return process
     ```
     """
 
-    def decorator(func: Callable[[RecordIntDictRet], Optional[RecordIntDict]]) -> Callable[[], TestGen[None]]:
+    def decorator(func: Callable[..., Optional[RecordIntDict]]) -> Callable[[], TestGen[None]]:
         @functools.wraps(func)
         def mock() -> TestGen[None]:
             tb = tb_getter()
@@ -343,7 +345,7 @@ def def_method_mock(
 
 def def_class_method_mock(
     tb_getter: Callable[[Any], TestbenchIO], **kwargs
-) -> Callable[[Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]]], Callable[[Any], TestGen[None]]]:
+) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[Any], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
     a function which describe functionality which we wan't to invoke on method call.
@@ -377,15 +379,12 @@ def def_class_method_mock(
     ```
     """
 
-    def decorator(func: Callable[[Any, RecordIntDictRet], Optional[RecordIntDict]]):
+    def decorator(func: Callable[..., Optional[RecordIntDict]]):
         @functools.wraps(func)
         def mock(self) -> TestGen[None]:
-            def partial_func(x):
-                return func(self, x)
-
             tb = tb_getter(self)
             assert isinstance(tb, TestbenchIO)
-            yield from tb.method_handle_loop(partial_func, **kwargs)
+            yield from tb.method_handle_loop(func.__get__(self), **kwargs)
 
         return mock
 
