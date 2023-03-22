@@ -58,7 +58,9 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
 
     def setUp(self) -> None:
         self.gp = test_gen_params("rv32i")
-        self.cp = ICacheParameters(num_of_ways=1, num_of_sets=1, block_size_bytes=self.block_size)
+        self.cp = ICacheParameters(
+            addr_width=self.gp.isa.xlen, num_of_ways=1, num_of_sets=1, block_size_bytes=self.block_size
+        )
         self.test_module = SimpleWBCacheRefillerTestCircuit(self.gp, self.cp)
 
         self.words_per_block = self.block_size // 4
@@ -107,7 +109,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
     def refiller_process(self):
         while self.requests:
             req_addr = self.requests.pop()
-            yield from self.test_module.start_refill.call({"addr": req_addr})
+            yield from self.test_module.start_refill.call(addr=req_addr)
 
             for i in range(self.words_per_block):
                 ret = yield from self.test_module.accept_refill.call()
@@ -170,7 +172,9 @@ class TestICache(TestCaseWithSimulator):
 
     def setUp(self) -> None:
         self.gp = test_gen_params("rv32i")
-        self.cp = ICacheParameters(num_of_ways=1, num_of_sets=1, block_size_bytes=self.block_size)
+        self.cp = ICacheParameters(
+            addr_width=self.gp.isa.xlen, num_of_ways=1, num_of_sets=1, block_size_bytes=self.block_size
+        )
         self.test_module = ICacheTestCircuit(self.gp, self.cp)
 
         random.seed(42)

@@ -8,6 +8,7 @@ from coreblocks.transactions.core import def_method
 from coreblocks.transactions import Method, Transaction
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.utils._typing import ValueLike
+from coreblocks.utils import assign
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 
@@ -19,15 +20,18 @@ class ICacheParameters:
 
     Parameters
     ----------
-    num_of_ways: int
+    addr_width : int
+        Length of addresses used in the cache (in bits).
+    num_of_ways : int
         Associativity of the cache. Defaults to 2 ways.
-    num_of_sets: int
+    num_of_sets : int
         Number of cache sets. Defaults to 128 sets.
-    block_size_bytes: int
+    block_size_bytes : int
         The size of a single cache block in bytes. Defaults to 32 bytes.
     """
 
-    def __init__(self, *, num_of_ways=2, num_of_sets=128, block_size_bytes=32):
+    def __init__(self, *, addr_width, num_of_ways=2, num_of_sets=128, block_size_bytes=32):
+        self.addr_width = addr_width
         self.num_of_ways = num_of_ways
         self.num_of_sets = num_of_sets
         self.block_size_bytes = block_size_bytes
@@ -44,6 +48,7 @@ class ICacheParameters:
 
         self.offset_bits = log2_int(self.block_size_bytes)
         self.index_bits = log2_int(self.num_of_sets)
+        self.tag_bits = self.addr_width - self.offset_bits - self.index_bits
 
         self.index_start_bit = self.offset_bits
         self.index_end_bit = self.offset_bits + self.index_bits - 1
@@ -53,7 +58,7 @@ class ICache(Elaboratable):
     """A simple set-associative instruction cache.
 
     The replacement policy is a pseudo random scheme. Every time a line is trashed, we select the next
-    way we write to (we keep one global counter selecting the next way).
+    way we write to (we keep one global counter for selecting the next way).
 
     Assumes that address is always a multiple of 4 (in bytes). RISC-V specification requires
     that instructions are 4 byte aligned. Extension C, however, adds 16-bit instructions, but
@@ -76,7 +81,13 @@ class ICache(Elaboratable):
         ----------
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
-            fetch unit.
+            the cache.
+        cache_params : ICacheParameters
+            Instance of ICacheParameters.
+        refiller_start : Method
+            A method with input layout ICacheLayouts::start_refill
+        refiller_accept : Method
+            A method with output layout ICacheLayouts::accept_refill
         TODO - write doc
         """
         self.gp = gen_params
@@ -94,39 +105,27 @@ class ICache(Elaboratable):
 
         self.accept_res.schedule_before(self.issue_req)
 
-        self.addr_width = self.gp.isa.xlen
-
     def elaborate(self, platform) -> Module:
         m = Module()
 
-        tag_bits = self.addr_width - self.params.offset_bits - self.params.index_bits
-        words_in_line = self.params.block_size_bytes // (self.gp.isa.xlen // 8)
+        def extract_offset(addr: Value) -> ValueLike:
+            return addr[: self.params.offset_bits]
 
-        def extract_index(addr: Signal) -> ValueLike:
+        def extract_index(addr: Value) -> ValueLike:
             return addr[self.params.index_start_bit : self.params.index_end_bit + 1]
 
-        def extract_tag(addr: Signal) -> ValueLike:
-            return addr[-tag_bits:]
+        def extract_tag(addr: Value) -> ValueLike:
+            return addr[-self.params.tag_bits :]
 
-        def extract_d_ram_addr(addr: Signal) -> ValueLike:
-            return addr[log2_int(words_in_line) : self.params.index_end_bit + 1]
+        m.submodules.mem = self.mem = ICacheMemory(self.gp, self.params)
 
-        ways = Array(Record([("tag_hit", 1), ("data_out", self.gp.isa.xlen)]) for _ in range(self.params.num_of_ways))
-
-        way_selector = Signal(len(ways))
-
-        tag_read_addr = Signal(self.params.index_bits)
-        tag_write_addr = Signal(self.params.index_bits)
-        tag_write_en = Signal()
-        tag_data_in = Signal(1 + tag_bits)
-
-        data_read_addr = Signal(self.params.index_bits + self.params.offset_bits - log2_int(words_in_line))
-        data_write_addr = Signal(self.params.index_bits)
-        data_write_en = Signal()
-        data_in = Signal(self.gp.isa.xlen)
+        way_selector = Signal(log2_int(self.params.num_of_ways))
 
         lookup_valid = Signal()
-        lookup_addr = Signal(self.addr_width)
+        lookup_addr = Signal(self.params.addr_width)
+
+        # Address directly forwarded from issue_req method.
+        forwarded_addr = Signal(self.params.addr_width)
 
         resp_err = Signal()
 
@@ -134,7 +133,8 @@ class ICache(Elaboratable):
         refill_finish = Signal()
         refill_error = Signal()
 
-        tag_hit_any = reduce(operator.or_, (way.tag_hit for way in ways))
+        tag_hit = [tag_data.valid & tag_data.tag == lookup_addr for tag_data in self.mem.tag_rd_data]
+        tag_hit_any = reduce(operator.or_, tag_hit)
 
         # Replacement policy
         with m.If(refill_finish):
@@ -155,54 +155,25 @@ class ICache(Elaboratable):
         resp_ready = lookup_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | resp_err)
         instr_out = Signal(self.gp.isa.ilen)
 
-        for i, way in enumerate(ways):
-            with m.If(way.tag_hit):
-                m.d.comb += instr_out.eq(way.data_out)
+        for i in range(self.params.num_of_ways):
+            with m.If(tag_hit[i]):
+                m.d.comb += instr_out.eq(self.mem.data_rd_data[i]) # TODO(jurb): this doesn't work on rv64
 
-        # Tag logic
+        # Tag writing logic
         m.d.comb += [
-            tag_read_addr.eq(extract_index(lookup_addr)),
-            tag_write_addr.eq(extract_index(lookup_addr)),
-            tag_data_in.eq(Cat(1, extract_tag(lookup_addr))),
-            tag_write_en.eq(fsm.ongoing("REFILL") & refill_finish & ~refill_error),
+            self.mem.tag_wr_index.eq(extract_index(lookup_addr)),
+            self.mem.tag_wr_data.valid.eq(1),
+            self.mem.tag_wr_data.tag.eq(extract_tag(lookup_addr)),
+            self.mem.tag_wr_en.eq(fsm.ongoing("REFILL") & refill_finish & ~refill_error),
         ]
 
-        m.d.comb += data_read_addr.eq(extract_d_ram_addr(lookup_addr))
-
-        for i, way in enumerate(ways):
-            # TAG RAMS
-            # valid bit is the least significant bit
-            tag_mem = Memory(width=1 + tag_bits, depth=self.params.num_of_sets)
-            tag_mem_rp = tag_mem.read_port()
-            tag_mem_wp = tag_mem.write_port()
-            m.submodules[f"tag_mem_{i}_rp"] = tag_mem_rp
-            m.submodules[f"tag_mem_{i}_wp"] = tag_mem_wp
-
-            tag_valid = tag_mem_rp.data[0]
-            tag_out = tag_mem_rp.data[1:]
-
-            m.d.comb += [
-                way.tag_hit.eq(tag_valid & (tag_out == extract_tag(lookup_addr))),
-                tag_mem_rp.addr.eq(tag_read_addr),
-                tag_mem_wp.addr.eq(tag_write_addr),
-                tag_mem_wp.data.eq(tag_data_in),
-                tag_mem_wp.en.eq(tag_write_en & (way_selector == i)),
-            ]
-
-            # DATA RAMS
-            data_mem = Memory(width=self.gp.isa.xlen, depth=self.params.num_of_sets * words_in_line)
-            data_mem_rp = data_mem.read_port()
-            data_mem_wp = data_mem.write_port()
-            m.submodules[f"data_mem_{i}_rp"] = data_mem_rp
-            m.submodules[f"data_mem_{i}_wp"] = data_mem_wp
-
-            m.d.comb += [
-                way.data_out.eq(data_mem_rp.data),
-                data_mem_rp.addr.eq(data_read_addr),
-                data_mem_wp.addr.eq(data_write_addr),
-                data_mem_wp.data.eq(data_in),
-                data_mem_wp.en.eq(data_write_en & (way_selector == i)),
-            ]
+        # Memory read addresses
+        read_addr = Mux(fsm.ongoing("REFILL"), lookup_addr, forwarded_addr)
+        m.d.comb += [
+            self.mem.tag_rd_index.eq(extract_index(read_addr)),
+            self.mem.data_rd_addr.index.eq(extract_index(read_addr)),
+            self.mem.data_rd_addr.offset.eq(extract_offset(read_addr)),
+        ]
 
         with Transaction().body(m, request=refill_start):
             self.refiller_start(m, addr=Cat(Repl(0, self.params.offset_bits), lookup_addr[self.params.offset_bits :]))
@@ -210,9 +181,12 @@ class ICache(Elaboratable):
         with Transaction().body(m):
             ret = self.refiller_accept(m)
 
-            Transaction.comb += [data_write_addr.eq(extract_d_ram_addr(ret.addr)), data_in.eq(ret.data)]
+            Transaction.comb += [
+                self.mem.data_wr_addr.index.eq(extract_index(ret.addr)),
+                self.mem.data_wr_addr.offset.eq(extract_offset(ret.addr)),
+            ]
 
-            m.d.comb += data_write_en.eq(1)
+            m.d.comb += self.mem.data_wr_en.eq(1)
             m.d.comb += refill_finish.eq(ret.last)
             m.d.comb += refill_error.eq(ret.error)
             m.d.sync += resp_err.eq(ret.error)
@@ -220,7 +194,8 @@ class ICache(Elaboratable):
         @def_method(m, self.accept_res, ready=resp_ready)
         def _():
             m.d.sync += lookup_valid.eq(0)
-            m.d.sync += (resp_err.eq(0),)
+            m.d.sync += resp_err.eq(0)
+
             return {
                 "instr": instr_out,
                 "error": resp_err,
@@ -228,11 +203,78 @@ class ICache(Elaboratable):
 
         @def_method(m, self.issue_req, ready=fsm.ongoing("LOOKUP") & ~refill_start)
         def _(addr) -> None:
-            m.d.comb += tag_read_addr.eq(extract_index(addr))
-            m.d.comb += data_read_addr.eq(extract_d_ram_addr(addr))
+            Method.comb += forwarded_addr.eq(addr)
 
             m.d.sync += lookup_addr.eq(addr)
             m.d.sync += lookup_valid.eq(1)
+
+        return m
+
+
+class ICacheMemory(Elaboratable):
+    """
+    TODO - write doc
+    """
+
+    def __init__(self, gen_params: GenParams, cache_params: ICacheParameters) -> None:
+        self.gp = gen_params
+        self.params = cache_params
+
+        self.tag_data_layout = [("valid", 1), ("tag", self.params.tag_bits)]
+
+        self.way_wr_sel = Signal(log2_int(self.params.num_of_ways))
+
+        self.tag_rd_index = Signal(self.params.index_bits)
+        self.tag_rd_data = Array([Record(self.tag_data_layout) for _ in range(self.params.num_of_ways)])
+        self.tag_wr_index = Signal(self.params.index_bits)
+        self.tag_wr_en = Signal()
+        self.tag_wr_data = Record(self.tag_data_layout)
+
+        self.data_addr_layout = [("index", self.params.index_bits), ("offset", self.params.offset_bits)]
+
+        self.data_rd_addr = Record(self.data_addr_layout)
+        self.data_rd_data = Array([Signal(self.gp.isa.xlen) for _ in range(self.params.num_of_ways)])
+        self.data_wr_addr = Record(self.data_addr_layout)
+        self.data_wr_en = Signal()
+        self.data_wr_data = Signal(self.gp.isa.xlen)
+
+    def elaborate(self, platform) -> Module:
+        m = Module()
+
+        for i in range(self.params.num_of_ways):
+            tag_mem = Memory(width=len(self.tag_wr_data), depth=self.params.num_of_sets)
+            tag_mem_rp = tag_mem.read_port()
+            tag_mem_wp = tag_mem.write_port()
+            m.submodules[f"tag_mem_{i}_rp"] = tag_mem_rp
+            m.submodules[f"tag_mem_{i}_wp"] = tag_mem_wp
+
+            m.d.comb += [
+                assign(self.tag_rd_data[i], tag_mem_rp.data),
+                tag_mem_rp.addr.eq(self.tag_rd_index),
+                tag_mem_wp.addr.eq(self.tag_wr_index),
+                assign(tag_mem_wp.data, self.tag_wr_data),
+                tag_mem_wp.en.eq(self.tag_wr_en & (self.way_wr_sel == i)),
+            ]
+
+            words_in_line = self.params.block_size_bytes // (self.gp.isa.xlen // 8)
+            data_mem = Memory(width=self.gp.isa.xlen, depth=self.params.num_of_sets * words_in_line)
+            data_mem_rp = data_mem.read_port()
+            data_mem_wp = data_mem.write_port()
+            m.submodules[f"data_mem_{i}_rp"] = data_mem_rp
+            m.submodules[f"data_mem_{i}_wp"] = data_mem_wp
+
+            # We address the data RAM using machine words, so we have to discard a few bits from the address.
+            redundant_offset_bits = log2_int(self.gp.isa.xlen_log // 8)
+            rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[redundant_offset_bits:]
+            wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[redundant_offset_bits:]
+
+            m.d.comb += [
+                self.data_rd_data[i].eq(data_mem_rp.data),
+                data_mem_rp.addr.eq(rd_addr),
+                data_mem_wp.addr.eq(wr_addr),
+                data_mem_wp.data.eq(self.data_wr_data),
+                data_mem_wp.en.eq(self.data_wr_en & (self.way_wr_sel == i)),
+            ]
 
         return m
 
