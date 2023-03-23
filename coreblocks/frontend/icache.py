@@ -7,8 +7,8 @@ from amaranth.utils import log2_int
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions import Method, Transaction
 from coreblocks.params import GenParams, ICacheLayouts
-from coreblocks.utils._typing import ValueLike
 from coreblocks.utils import assign
+from coreblocks.transactions.lib import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 
@@ -103,110 +103,120 @@ class ICache(Elaboratable):
         self.issue_req = Method(i=layouts.issue_req)
         self.accept_res = Method(o=layouts.accept_res)
 
-        self.accept_res.schedule_before(self.issue_req)
+        self.addr_layout = [
+            ("offset", self.params.offset_bits),
+            ("index", self.params.index_bits),
+            ("tag", self.params.tag_bits),
+        ]
+
+    def deserialize_addr(self, m: Module, raw_addr: Signal) -> Record:
+        addr = Record(self.addr_layout)
+        m.d.comb += assign(addr,{
+                "offset": raw_addr[: self.params.offset_bits],
+                "index": raw_addr[self.params.index_start_bit:self.params.index_end_bit+1],
+                "tag": raw_addr[-self.params.tag_bits:],
+            })
+        return addr
+
+    def serialize_addr(self, addr: Record) -> Value:
+        return Cat(addr.offset, addr.index, addr.tag)
 
     def elaborate(self, platform) -> Module:
         m = Module()
 
-        def extract_offset(addr: Value) -> ValueLike:
-            return addr[: self.params.offset_bits]
-
-        def extract_index(addr: Value) -> ValueLike:
-            return addr[self.params.index_start_bit : self.params.index_end_bit + 1]
-
-        def extract_tag(addr: Value) -> ValueLike:
-            return addr[-self.params.tag_bits :]
-
         m.submodules.mem = self.mem = ICacheMemory(self.gp, self.params)
+        m.submodules.req_fifo = self.req_fifo = FIFO(layout=self.addr_layout, depth=2)
+        m.submodules.res_fwd = self.res_fwd = Forwarder(layout=self.gp.get(ICacheLayouts).accept_res)
 
-        way_selector = Signal(log2_int(self.params.num_of_ways))
-
-        lookup_valid = Signal()
-        lookup_addr = Signal(self.params.addr_width)
-
-        # Address directly forwarded from issue_req method.
-        forwarded_addr = Signal(self.params.addr_width)
-
-        resp_err = Signal()
-
-        refill_start = Signal()
+        # State machine logic
+        needs_refill = Signal()
         refill_finish = Signal()
         refill_error = Signal()
 
-        tag_hit = [tag_data.valid & tag_data.tag == lookup_addr for tag_data in self.mem.tag_rd_data]
-        tag_hit_any = reduce(operator.or_, tag_hit)
-
-        # Replacement policy
-        with m.If(refill_finish):
-            m.d.sync += way_selector.eq(way_selector + 1)
-
-        # State machine logic
         with m.FSM() as fsm:
             with m.State("LOOKUP"):
-                with m.If(lookup_valid & ~tag_hit_any):
-                    m.d.comb += refill_start.eq(1)
+                with m.If(needs_refill):
                     m.next = "REFILL"
 
             with m.State("REFILL"):
                 with m.If(refill_finish):
                     m.next = "LOOKUP"
 
-        # Instruction output
-        resp_ready = lookup_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | resp_err)
-        instr_out = Signal(self.gp.isa.ilen)
+        # Replacement policy
+        way_selector = Signal(log2_int(self.params.num_of_ways))
+        with m.If(refill_finish):
+            m.d.sync += way_selector.eq(way_selector + 1)
 
+        # Fast path - read requests
+        req_valid = self.req_fifo.read.ready
+        req_addr = self.req_fifo.read.data_out
+
+        tag_hit = [tag_data.valid & tag_data.tag == req_addr for tag_data in self.mem.tag_rd_data]
+        tag_hit_any = reduce(operator.or_, tag_hit)
+
+        m.d.comb += needs_refill.eq(req_valid & ~tag_hit_any)
+
+        instr_out = Signal(self.gp.isa.ilen)
         for i in range(self.params.num_of_ways):
             with m.If(tag_hit[i]):
-                m.d.comb += instr_out.eq(self.mem.data_rd_data[i]) # TODO(jurb): this doesn't work on rv64
+                m.d.comb += instr_out.eq(self.mem.data_rd_data[i])  # TODO(jurb): this won't work on rv64
 
-        # Tag writing logic
+        refill_error_d = Signal()
+        m.d.sync += refill_error_d.eq(refill_error)
+
+        with Transaction().body(m, request=fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_d)):
+            self.res_fwd.write(m, instr=instr_out, error=refill_error_d)
+
+        @def_method(m, self.accept_res)
+        def _():
+            self.req_fifo.read(m)
+            return self.res_fwd.read(m)
+
+        last_mem_read_addr = Record(self.addr_layout)
+        mem_read_addr = Record(self.addr_layout)
+
+        m.d.seq += assign(last_mem_read_addr, mem_read_addr)
+        m.d.comb += assign(mem_read_addr, last_mem_read_addr)
+
+        @def_method(m, self.issue_req, ready=fsm.ongoing("LOOKUP") & ~needs_refill)
+        def _(addr: Value) -> None:
+            addr = self.deserialize_addr(m, addr)
+            # Forward read address only if the method is called
+            m.d.comb += assign(mem_read_addr, addr)
+
+            self.req_fifo.write(m, addr)
+
         m.d.comb += [
-            self.mem.tag_wr_index.eq(extract_index(lookup_addr)),
-            self.mem.tag_wr_data.valid.eq(1),
-            self.mem.tag_wr_data.tag.eq(extract_tag(lookup_addr)),
-            self.mem.tag_wr_en.eq(fsm.ongoing("REFILL") & refill_finish & ~refill_error),
+            self.mem.tag_rd_index.eq(mem_read_addr.index),
+            self.mem.data_rd_addr.index.eq(mem_read_addr.index),
+            self.mem.data_rd_addr.offset.eq(mem_read_addr.offset),
         ]
 
-        # Memory read addresses
-        read_addr = Mux(fsm.ongoing("REFILL"), lookup_addr, forwarded_addr)
+        # Slow path - data refilling
         m.d.comb += [
-            self.mem.tag_rd_index.eq(extract_index(read_addr)),
-            self.mem.data_rd_addr.index.eq(extract_index(read_addr)),
-            self.mem.data_rd_addr.offset.eq(extract_offset(read_addr)),
+            self.mem.tag_wr_index.eq(req_addr.index),
+            self.mem.tag_wr_data.valid.eq(~refill_error),
+            self.mem.tag_wr_data.tag.eq(req_addr.tag),
+            self.mem.tag_wr_en.eq(refill_finish),
         ]
 
-        with Transaction().body(m, request=refill_start):
-            self.refiller_start(m, addr=Cat(Repl(0, self.params.offset_bits), lookup_addr[self.params.offset_bits :]))
+        with Transaction().body(m, request=needs_refill):
+            # Align to the beginning of the cache line
+            aligned_addr = self.serialize_addr(req_addr) & ~((1 << self.params.offset_bits) - 1)
+            self.refiller_start(m, addr=aligned_addr)
 
         with Transaction().body(m):
             ret = self.refiller_accept(m)
+            addr = self.deserialize_addr(m, ret.addr)
 
             Transaction.comb += [
-                self.mem.data_wr_addr.index.eq(extract_index(ret.addr)),
-                self.mem.data_wr_addr.offset.eq(extract_offset(ret.addr)),
+                self.mem.data_wr_addr.index.eq(addr.index),
+                self.mem.data_wr_addr.offset.eq(addr.offset),
             ]
 
             m.d.comb += self.mem.data_wr_en.eq(1)
             m.d.comb += refill_finish.eq(ret.last)
             m.d.comb += refill_error.eq(ret.error)
-            m.d.sync += resp_err.eq(ret.error)
-
-        @def_method(m, self.accept_res, ready=resp_ready)
-        def _():
-            m.d.sync += lookup_valid.eq(0)
-            m.d.sync += resp_err.eq(0)
-
-            return {
-                "instr": instr_out,
-                "error": resp_err,
-            }
-
-        @def_method(m, self.issue_req, ready=fsm.ongoing("LOOKUP") & ~refill_start)
-        def _(addr) -> None:
-            Method.comb += forwarded_addr.eq(addr)
-
-            m.d.sync += lookup_addr.eq(addr)
-            m.d.sync += lookup_valid.eq(1)
 
         return m
 
@@ -263,7 +273,8 @@ class ICacheMemory(Elaboratable):
             m.submodules[f"data_mem_{i}_rp"] = data_mem_rp
             m.submodules[f"data_mem_{i}_wp"] = data_mem_wp
 
-            # We address the data RAM using machine words, so we have to discard a few bits from the address.
+            # We address the data RAM using machine words, so we have to
+            # discard a few least significant bits from the address.
             redundant_offset_bits = log2_int(self.gp.isa.xlen_log // 8)
             rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[redundant_offset_bits:]
             wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[redundant_offset_bits:]
