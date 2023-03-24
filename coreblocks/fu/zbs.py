@@ -1,5 +1,5 @@
-from enum import IntFlag, auto
-from amaranth import Signal, Module, Elaboratable, Mux
+from enum import IntFlag
+from amaranth import *
 
 from coreblocks.params import (
     Funct3,
@@ -8,6 +8,7 @@ from coreblocks.params import (
     OpType,
     Funct7,
     FunctionalComponentParams,
+    auto
 )
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import FIFO
@@ -23,8 +24,8 @@ class ZbsFunction(DecoderManager):
     Enum of Zbs functions.
     """
 
-    class Function(IntFlag):
-        BCLR = auto()  # Bit clear
+    class Fn(IntFlag):
+        BCLR = auto() # Bit clear
         BEXT = auto()  # Bit extract
         BINV = auto()  # Bit invert
         BSET = auto()  # Bit set
@@ -32,10 +33,10 @@ class ZbsFunction(DecoderManager):
     @classmethod
     def get_instructions(cls):
         return [
-            (cls.Function.BCLR, OpType.SINGLE_BIT_MANIPULATION, Funct3.BCLR, Funct7.BCLR),
-            (cls.Function.BEXT, OpType.SINGLE_BIT_MANIPULATION, Funct3.BEXT, Funct7.BEXT),
-            (cls.Function.BINV, OpType.SINGLE_BIT_MANIPULATION, Funct3.BINV, Funct7.BINV),
-            (cls.Function.BSET, OpType.SINGLE_BIT_MANIPULATION, Funct3.BSET, Funct7.BSET),
+            (cls.Fn.BCLR, OpType.SINGLE_BIT_MANIPULATION, Funct3.BCLR, Funct7.BCLR),
+            (cls.Fn.BEXT, OpType.SINGLE_BIT_MANIPULATION, Funct3.BEXT, Funct7.BEXT),
+            (cls.Fn.BINV, OpType.SINGLE_BIT_MANIPULATION, Funct3.BINV, Funct7.BINV),
+            (cls.Fn.BSET, OpType.SINGLE_BIT_MANIPULATION, Funct3.BSET, Funct7.BSET),
         ]
 
 
@@ -73,13 +74,13 @@ class Zbs(Elaboratable):
         xlen_log = self.gen_params.isa.xlen_log
 
         with OneHotSwitch(m, self.function) as OneHotCase:
-            with OneHotCase(ZbsFunction.Function.BCLR):
+            with OneHotCase(ZbsFunction.Fn.BCLR):
                 m.d.comb += self.result.eq(self.in1 & ~(1 << self.in2[0:xlen_log]))
-            with OneHotCase(ZbsFunction.Function.BEXT):
+            with OneHotCase(ZbsFunction.Fn.BEXT):
                 m.d.comb += self.result.eq((self.in1 >> self.in2[0:xlen_log]) & 1)
-            with OneHotCase(ZbsFunction.Function.BINV):
+            with OneHotCase(ZbsFunction.Fn.BINV):
                 m.d.comb += self.result.eq(self.in1 ^ (1 << self.in2[0:xlen_log]))
-            with OneHotCase(ZbsFunction.Function.BSET):
+            with OneHotCase(ZbsFunction.Fn.BSET):
                 m.d.comb += self.result.eq(self.in1 | (1 << self.in2[0:xlen_log]))
 
         return m
