@@ -1,3 +1,4 @@
+from math import floor, log2
 from typing import Type
 from amaranth import *
 
@@ -6,7 +7,7 @@ from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
 
-from enum import Enum, EnumMeta, IntFlag
+from enum import IntFlag
 
 
 class DecoderManager(Signal):
@@ -45,8 +46,10 @@ class Decoder(Elaboratable):
             cond = (self.exec_fn.op_type == op[1]) & (self.exec_fn.funct3 == op[2])
             if len(op) == 4:
                 cond = cond & (self.exec_fn.funct7 == op[3])
+            
+            signal_num = floor(log2(op[0]))
 
             with m.If(cond):
-                m.d.comb += self.decode_fn.eq(op[0])
+                m.d.comb += self.decode_fn[signal_num].eq(cond)
 
         return m
