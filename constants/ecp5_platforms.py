@@ -22,7 +22,7 @@ class ECP5BG381Platform(LatticeECP5Platform):
             "data_out",
             0,
             Pins(
-                " ".join(ecp5_bg381_pins[2:51]),
+                " ".join(ecp5_bg381_pins[2:49]),
                 dir="o",
             ),
         ),

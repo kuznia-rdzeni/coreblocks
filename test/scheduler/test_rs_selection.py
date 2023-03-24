@@ -65,15 +65,16 @@ class TestRSSelect(TestCaseWithSimulator):
                 rp_s1 = random.randrange(self.gen_params.phys_regs_bits)
                 rp_s2 = random.randrange(self.gen_params.phys_regs_bits)
 
-                op_type = random.choice(list(optypes)).value
-                funct3 = random.choice(list(Funct3)).value
-                funct7 = random.choice(list(Funct7)).value
+                op_type = random.choice(list(optypes))
+                funct3 = random.choice(list(Funct3))
+                funct7 = random.choice(list(Funct7))
 
-                opcode = random.choice(list(Opcode)).value
+                opcode = random.choice(list(Opcode))
                 immediate = random.randrange(2**32)
 
                 rob_id = random.randrange(self.gen_params.rob_entries_bits)
                 pc = random.randrange(2**32)
+                csr = random.randrange(2**self.gen_params.isa.csr_alen)
 
                 instr = {
                     "opcode": opcode,
@@ -90,6 +91,7 @@ class TestRSSelect(TestCaseWithSimulator):
                     },
                     "rob_id": rob_id,
                     "imm": immediate,
+                    "csr": csr,
                     "pc": pc,
                 }
 

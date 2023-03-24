@@ -14,6 +14,7 @@ __all__ = [
     "UnsignedMulUnitLayouts",
     "RATLayouts",
     "LSULayouts",
+    "CSRLayouts",
 ]
 
 
@@ -50,6 +51,7 @@ class SchedulerLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
         self.reg_alloc_out = self.renaming_in = [
@@ -59,6 +61,7 @@ class SchedulerLayouts:
             ("regs_l", common.regs_l),
             ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
         self.renaming_out = self.rob_allocate_in = [
@@ -74,6 +77,7 @@ class SchedulerLayouts:
             ),
             ("regs_p", common.regs_p),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
         self.rob_allocate_out = self.rs_select_in = [
@@ -83,6 +87,7 @@ class SchedulerLayouts:
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
         self.rs_select_out = self.rs_insert_in = [
@@ -94,6 +99,7 @@ class SchedulerLayouts:
             ("rs_selected", gen_params.rs_number_bits),
             ("rs_entry_id", gen_params.rs_entries_bits),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
         self.free_rf_layout = [("reg_id", gen_params.phys_regs_bits)]
@@ -153,6 +159,7 @@ class RSInterfaceLayouts:
             ("s1_val", gen_params.isa.xlen),
             ("s2_val", gen_params.isa.xlen),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
 
@@ -227,6 +234,7 @@ class DecodeLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen_params.isa.xlen),
+            ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
 
@@ -290,3 +298,38 @@ class LSULayouts:
         self.commit = [
             ("rob_id", gen_params.rob_entries_bits),
         ]
+
+
+class CSRLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.read = [
+            ("data", gen_params.isa.xlen),
+            ("read", 1),
+            ("written", 1),
+        ]
+
+        self.write = [("data", gen_params.isa.xlen)]
+
+        self._fu_read = [("data", gen_params.isa.xlen)]
+        self._fu_write = [("data", gen_params.isa.xlen)]
+
+        rs_interface = gen_params.get(RSInterfaceLayouts)
+        self.rs_data_layout = layout_subset(
+            rs_interface.data_layout,
+            fields={
+                "rp_s1",
+                "rp_s1_reg",
+                "rp_dst",
+                "rob_id",
+                "exec_fn",
+                "s1_val",
+                "imm",
+                "csr",
+            },
+        )
+
+        self.rs_insert_in = [("rs_data", self.rs_data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
+
+        self.rs_select_out = rs_interface.select_out
+
+        self.rs_update_in = rs_interface.update_in
