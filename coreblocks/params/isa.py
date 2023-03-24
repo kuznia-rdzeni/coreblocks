@@ -1,5 +1,5 @@
 from itertools import takewhile
-from enum import unique, Enum, IntEnum, IntFlag, auto
+from enum import unique, Enum, IntFlag, auto
 from amaranth.hdl.ast import Const, ValueCastable
 
 __all__ = [
