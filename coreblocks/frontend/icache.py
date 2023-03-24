@@ -109,14 +109,12 @@ class ICache(Elaboratable):
             ("tag", self.params.tag_bits),
         ]
 
-    def deserialize_addr(self, m: Module, raw_addr: Signal) -> Record:
-        addr = Record(self.addr_layout)
-        m.d.comb += assign(addr,{
+    def deserialize_addr(self, raw_addr: Value) -> dict[str, Value]:
+        return {
                 "offset": raw_addr[: self.params.offset_bits],
-                "index": raw_addr[self.params.index_start_bit:self.params.index_end_bit+1],
-                "tag": raw_addr[-self.params.tag_bits:],
-            })
-        return addr
+                "index": raw_addr[self.params.index_start_bit : self.params.index_end_bit + 1],
+                "tag": raw_addr[-self.params.tag_bits :],
+            }
 
     def serialize_addr(self, addr: Record) -> Value:
         return Cat(addr.offset, addr.index, addr.tag)
@@ -151,7 +149,7 @@ class ICache(Elaboratable):
         req_valid = self.req_fifo.read.ready
         req_addr = self.req_fifo.read.data_out
 
-        tag_hit = [tag_data.valid & tag_data.tag == req_addr for tag_data in self.mem.tag_rd_data]
+        tag_hit = [tag_data.valid & (tag_data.tag == req_addr.tag) for tag_data in self.mem.tag_rd_data]
         tag_hit_any = reduce(operator.or_, tag_hit)
 
         m.d.comb += needs_refill.eq(req_valid & ~tag_hit_any)
@@ -164,7 +162,14 @@ class ICache(Elaboratable):
         refill_error_d = Signal()
         m.d.sync += refill_error_d.eq(refill_error)
 
-        with Transaction().body(m, request=fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_d)):
+        validd = Signal()
+        hit = Signal()
+        m.d.comb += [
+            validd.eq(req_valid),
+            hit.eq(tag_hit_any),
+        ]
+
+        with Transaction().body(m, request=req_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_d)):
             self.res_fwd.write(m, instr=instr_out, error=refill_error_d)
 
         @def_method(m, self.accept_res)
@@ -175,16 +180,16 @@ class ICache(Elaboratable):
         last_mem_read_addr = Record(self.addr_layout)
         mem_read_addr = Record(self.addr_layout)
 
-        m.d.seq += assign(last_mem_read_addr, mem_read_addr)
+        m.d.sync += assign(last_mem_read_addr, mem_read_addr)
         m.d.comb += assign(mem_read_addr, last_mem_read_addr)
 
         @def_method(m, self.issue_req, ready=fsm.ongoing("LOOKUP") & ~needs_refill)
         def _(addr: Value) -> None:
-            addr = self.deserialize_addr(m, addr)
+            deserialized = self.deserialize_addr(addr)
             # Forward read address only if the method is called
-            m.d.comb += assign(mem_read_addr, addr)
+            m.d.comb += assign(mem_read_addr, deserialized)
 
-            self.req_fifo.write(m, addr)
+            self.req_fifo.write(m, deserialized)
 
         m.d.comb += [
             self.mem.tag_rd_index.eq(mem_read_addr.index),
@@ -200,18 +205,19 @@ class ICache(Elaboratable):
             self.mem.tag_wr_en.eq(refill_finish),
         ]
 
-        with Transaction().body(m, request=needs_refill):
+        with Transaction().body(m, request=fsm.ongoing("LOOKUP") & needs_refill):
             # Align to the beginning of the cache line
             aligned_addr = self.serialize_addr(req_addr) & ~((1 << self.params.offset_bits) - 1)
             self.refiller_start(m, addr=aligned_addr)
 
         with Transaction().body(m):
             ret = self.refiller_accept(m)
-            addr = self.deserialize_addr(m, ret.addr)
+            deserialized = self.deserialize_addr(ret.addr)
 
             Transaction.comb += [
-                self.mem.data_wr_addr.index.eq(addr.index),
-                self.mem.data_wr_addr.offset.eq(addr.offset),
+                self.mem.data_wr_addr.index.eq(deserialized["index"]),
+                self.mem.data_wr_addr.offset.eq(deserialized["offset"]),
+                self.mem.data_wr_data.eq(ret.data),
             ]
 
             m.d.comb += self.mem.data_wr_en.eq(1)
@@ -275,7 +281,7 @@ class ICacheMemory(Elaboratable):
 
             # We address the data RAM using machine words, so we have to
             # discard a few least significant bits from the address.
-            redundant_offset_bits = log2_int(self.gp.isa.xlen_log // 8)
+            redundant_offset_bits = log2_int(self.gp.isa.xlen // 8)
             rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[redundant_offset_bits:]
             wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[redundant_offset_bits:]
 

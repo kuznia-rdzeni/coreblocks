@@ -193,6 +193,9 @@ class TestbenchIO(Elaboratable):
     def disable(self) -> TestGen[None]:
         yield self.adapter.en.eq(0)
 
+    def set_enable(self, en) -> TestGen[None]:
+        yield from self.enable() if en else self.disable()
+
     def done(self) -> TestGen[int]:
         return (yield self.adapter.done)
 
@@ -258,12 +261,14 @@ class TestbenchIO(Elaboratable):
         yield from self.set_inputs(data)
 
     def method_handle(
-        self, function: Callable[[RecordIntDictRet], Optional[RecordIntDict]], *, settle: int = 0
+        self, function: Callable[[RecordIntDictRet], Optional[RecordIntDict]], enable: Callable[[], bool], *, settle: int = 0
     ) -> TestGen[None]:
+        yield from self.set_enable(enable())
         for _ in range(settle):
             yield Settle()
         while (arg := (yield from self.method_argument())) is None:
             yield
+            yield from self.set_enable(enable())
             for _ in range(settle):
                 yield Settle()
         yield from self.method_return(function(arg) or {})
@@ -274,16 +279,15 @@ class TestbenchIO(Elaboratable):
         function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
         *,
         settle: int = 0,
-        enable: bool = True,
+        enable: Optional[Callable[[], bool]] = None,
         condition: Optional[Callable[[], bool]] = None,
     ) -> TestGen[None]:
         if condition is None:
             yield Passive()
         condition = condition or (lambda: True)
-        if enable:
-            yield from self.enable()
+        enable = enable or (lambda: True)
         while condition():
-            yield from self.method_handle(function, settle=settle)
+            yield from self.method_handle(function, enable, settle=settle)
 
     # Debug signals
 
