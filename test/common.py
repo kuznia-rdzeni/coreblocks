@@ -257,9 +257,7 @@ class TestbenchIO(Elaboratable):
     def method_return(self, data: RecordValueDict = {}) -> TestGen[None]:
         yield from self.set_inputs(data)
 
-    def method_handle(
-        self, function: Callable[..., Optional[RecordIntDict]], *, settle: int = 0
-    ) -> TestGen[None]:
+    def method_handle(self, function: Callable[..., Optional[RecordIntDict]], *, settle: int = 0) -> TestGen[None]:
         for _ in range(settle):
             yield Settle()
         while (arg := (yield from self.method_argument())) is None:
