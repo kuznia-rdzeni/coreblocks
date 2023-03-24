@@ -35,6 +35,9 @@ class BitEnum(ValueCastableHack, Enum):
     """
     A helper class that defines Amaranth enums with a width
     """
+
+    __width: int
+
     def __init_subclass__(cls, *, width, **kwargs):
         cls.__width = width
 
@@ -275,7 +278,7 @@ class ISA:
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
 
-        for (ext, imply) in _extension_implications.items():
+        for ext, imply in _extension_implications.items():
             if ext in self.extensions:
                 self.extensions |= imply
 
@@ -287,7 +290,7 @@ class ISA:
                             f"ISA extensions {exclusive[i].name} and {exclusive[j].name} are mutually exclusive"
                         )
 
-        for (ext, requirements) in _extension_requirements.items():
+        for ext, requirements in _extension_requirements.items():
             if ext in self.extensions and requirements not in self.extensions:
                 for req in Extension:
                     if req in requirements and req not in self.extensions:
