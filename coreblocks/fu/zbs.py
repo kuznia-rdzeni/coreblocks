@@ -1,9 +1,8 @@
-from enum import IntFlag, unique
-from amaranth import Signal, Module, Elaboratable, Record, Mux, Cat
+from enum import IntFlag, auto
+from amaranth import Signal, Module, Elaboratable, Mux
 
 from coreblocks.params import (
     Funct3,
-    CommonLayouts,
     GenParams,
     FuncUnitLayouts,
     OpType,
@@ -16,64 +15,28 @@ from coreblocks.transactions.core import def_method
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
+from coreblocks.fu.fu_decoder import DecoderManager
 
-class ZbsFunction(Signal):
+
+class ZbsFunction(DecoderManager):
     """
     Enum of Zbs functions.
     """
 
-    @unique
     class Function(IntFlag):
-        BCLR = 1 << 0  # Bit clear
-        BEXT = 1 << 1  # Bit extract
-        BINV = 1 << 2  # Bit invert
-        BSET = 1 << 3  # Bit set
+        BCLR = auto()  # Bit clear
+        BEXT = auto()  # Bit extract
+        BINV = auto()  # Bit invert
+        BSET = auto()  # Bit set
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(ZbsFunction.Function, *args, **kwargs)
-
-
-class ZbsFunctionDecoder(Elaboratable):
-    """
-    Module decoding function into hot wired ZbsFunction.
-
-    Attributes
-    ----------
-    exec_fn: Record(CommonLayouts.exec_fn), in
-        Function to be decoded.
-    zbs_function: ZbsFunction, out
-        Function decoded into OneHotWire output.
-    """
-
-    def __init__(self, gen: GenParams):
-        """
-        Parameters
-        ----------
-        gen: GenParams
-            Core generation parameters.
-        """
-        layouts = gen.get(CommonLayouts)
-
-        self.exec_fn = Record(layouts.exec_fn)
-        self.zbs_function = Signal(ZbsFunction.Function)
-
-    def elaborate(self, platform):
-        m = Module()
-
-        # Type errors ignored because of using `Value._as_const()`, an internal, undocumented
-        # function. Amaranth doesn't support `Cat` as an argument of `Module.Case`.
-        # Discussion: https://github.com/kuznia-rdzeni/coreblocks/pull/194#issuecomment-1407378082
-        with m.Switch(Cat(self.exec_fn.funct3, self.exec_fn.funct7)):
-            with m.Case(Cat(Funct3.BCLR, Funct7.BCLR)._as_const()):  # type: ignore
-                m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BCLR)
-            with m.Case(Cat(Funct3.BEXT, Funct7.BEXT)._as_const()):  # type: ignore
-                m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BEXT)
-            with m.Case(Cat(Funct3.BINV, Funct7.BINV)._as_const()):  # type: ignore
-                m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BINV)
-            with m.Case(Cat(Funct3.BSET, Funct7.BSET)._as_const()):  # type: ignore
-                m.d.comb += self.zbs_function.eq(ZbsFunction.Function.BSET)
-
-        return m
+    @classmethod
+    def get_instructions(cls):
+        return [
+            (cls.Function.BCLR, OpType.SINGLE_BIT_MANIPULATION, Funct3.BCLR, Funct7.BCLR),
+            (cls.Function.BEXT, OpType.SINGLE_BIT_MANIPULATION, Funct3.BEXT, Funct7.BEXT),
+            (cls.Function.BINV, OpType.SINGLE_BIT_MANIPULATION, Funct3.BINV, Funct7.BINV),
+            (cls.Function.BSET, OpType.SINGLE_BIT_MANIPULATION, Funct3.BSET, Funct7.BSET),
+        ]
 
 
 class Zbs(Elaboratable):
@@ -134,7 +97,7 @@ class ZbsUnit(Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    optypes = {OpType.SINGLE_BIT_MANIPULATION}
+    optypes = ZbsFunction.get_op_types()
 
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(FuncUnitLayouts)
@@ -148,7 +111,7 @@ class ZbsUnit(Elaboratable):
 
         m.submodules.zbs = zbs = Zbs(self.gen_params)
         m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
-        m.submodules.decoder = decoder = ZbsFunctionDecoder(self.gen_params)
+        m.submodules.decoder = decoder = ZbsFunction.get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
         def _(arg):
@@ -158,7 +121,7 @@ class ZbsUnit(Elaboratable):
         def _(arg):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
 
-            m.d.comb += zbs.function.eq(decoder.zbs_function)
+            m.d.comb += zbs.function.eq(decoder.decode_fn)
             m.d.comb += zbs.in1.eq(arg.s1_val)
             m.d.comb += zbs.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 

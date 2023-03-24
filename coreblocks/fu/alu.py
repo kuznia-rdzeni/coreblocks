@@ -7,7 +7,7 @@ from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch
 
-from .fu_decoder import DecoderManager
+from coreblocks.fu.fu_decoder import DecoderManager
 from enum import IntFlag
 
 __all__ = ["AluFuncUnit", "ALUComponent"]
