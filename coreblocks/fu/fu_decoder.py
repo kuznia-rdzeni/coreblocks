@@ -46,10 +46,9 @@ class Decoder(Elaboratable):
             cond = (self.exec_fn.op_type == op[1]) & (self.exec_fn.funct3 == op[2])
             if len(op) == 4:
                 cond = cond & (self.exec_fn.funct7 == op[3])
-            
+
             signal_num = floor(log2(op[0]))
 
-            with m.If(cond):
-                m.d.comb += self.decode_fn[signal_num].eq(cond)
+            m.d.comb += self.decode_fn[signal_num].eq(cond)
 
         return m
