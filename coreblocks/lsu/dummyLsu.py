@@ -230,6 +230,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.update = Method(i=self.lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
         self.precommit = Method(i=self.lsu_layouts.precommit)
+        self.clear = Method()
 
         self.bus = bus
 
@@ -275,6 +276,12 @@ class LSUDummy(FuncBlock, Elaboratable):
             # TODO: I/O reads
             with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
                 m.d.sync += internal.execute_store.eq(1)
+
+        @def_method(m, self.clear)
+        def _():
+            # TODO: clearing internal lsu component ;)
+            m.d.sync += current_instr.eq(0)
+            m.d.sync += reserved.eq(0)
 
         with m.If(internal.store_ready):
             m.d.sync += internal.execute_store.eq(0)

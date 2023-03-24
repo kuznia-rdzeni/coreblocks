@@ -50,12 +50,12 @@ class RRAT(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        commit_rp_dst = Signal(self.commit_input_layout.rp_dst)
-        commit_rl_dst = Signal(self.commit_input_layout.rl_dst)
+        commit_bypass = Record(self.commit_input_layout)
+
         @def_method(m, self.commit)
         def _(rp_dst: Value, rl_dst: Value):
-            m.d.comb += commit_rp_dst.eq(rp_dst)
-            m.d.comb += commit_rl_dst.eq(rl_dst)
+            m.d.comb += commit_bypass.rp_dst.eq(rp_dst)
+            m.d.comb += commit_bypass.rl_dst.eq(rl_dst)
             m.d.sync += self.entries[rl_dst].eq(rp_dst)
             return {"old_rp_dst": self.entries[rl_dst]}
 
@@ -63,9 +63,9 @@ class RRAT(Elaboratable):
         def _():
             regs = {}
             for i in range(self.gen_params.isa.reg_cnt):
-                with m.If(commit_rl_dst == i):
-                    regs[f"x{i}"] = commit_rp_dst
-                with m.Else:
+                with m.If(commit_bypass.rl_dst == i):
+                    regs[f"x{i}"] = commit_bypass.rp_dst
+                with m.Else():
                     regs[f"x{i}"] = self.entries[i]
             return regs
 

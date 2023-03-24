@@ -11,6 +11,7 @@ from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
+from coreblocks.utils.fifo import BasicFifo
 
 from coreblocks.fu.fu_decoder import DecoderManager
 
@@ -121,7 +122,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
-        self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
+        self.clear = Method()
+        self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify_in)
 
         self.jb_fn = jb_fn
 
@@ -129,8 +131,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         m = TModule()
 
         m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
-        m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
-        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
+        m.submodules.fifo_res = fifo_res = BasicFifo(self.gen.get(FuncUnitLayouts).accept, 2)
+        m.submodules.fifo_branch = fifo_branch = BasicFifo(self.gen.get(FetchLayouts).branch_verify, 2)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
 
         @def_method(m, self.accept)
@@ -156,6 +158,11 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             # skip writing next branch target for auipc
             with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):
                 fifo_branch.write(m, from_pc=jb.in_pc, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res))
+
+        @def_method(m, self.clear)
+        def _():
+            fifo_res.clear(m)
+            fifo_branch.clear(m)
 
         return m
 

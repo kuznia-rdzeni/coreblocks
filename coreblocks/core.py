@@ -3,7 +3,7 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
-from coreblocks.transactions.lib import FIFO, ConnectTrans
+from coreblocks.transactions.lib import FIFO, ConnectTrans, MethodProduct
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
@@ -17,6 +17,7 @@ from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
+from coreblocks.stages.int_coordinator import InterruptCoordinator
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.utils.fifo import BasicFifo
 
@@ -34,7 +35,7 @@ class Core(Elaboratable):
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
 
         # make fifo_fetch visible outside the core for injecting instructions
-        self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
+        self.fifo_fetch = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, 2)
         self.free_rf_fifo = BasicFifo(
             self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
@@ -93,12 +94,12 @@ class Core(Elaboratable):
         m.submodules.icache = self.icache
         m.submodules.fetch = self.fetch
 
-        m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
+        m.submodules.fifo_decode = fifo_decode = BasicFifo(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
         m.submodules.decode = Decode(
             gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=fifo_decode.write
         )
 
-        m.submodules.scheduler = Scheduler(
+        m.submodules.scheduler = scheduler = Scheduler(
             get_instr=fifo_decode.read,
             get_free_reg=free_rf_fifo.read,
             rat_rename=frat.rename,
@@ -115,6 +116,23 @@ class Core(Elaboratable):
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
+
+        m.submodules.frontend_clear = frontend_clear = MethodProduct([fifo_decode.clear, self.fifo_fetch.clear])
+
+        m.submodules.int_coordinator = int_coordinator = InterruptCoordinator(
+            gen_params=self.gen_params,
+            r_rat_get_all=self.RRAT.get_all,
+            f_rat_set_all=self.FRAT.set_all,
+            scheduler_clear=scheduler.clear,
+            frontend_clear=frontend_clear.method,
+            fu_clear=self.func_blocks_unifier.clear,
+            pc_stall=self.fetch.stall,
+            pc_verify_branch=self.fetch.verify_branch,
+            rob_can_flush=self.ROB.can_flush,
+            rob_flush=self.ROB.flush,
+            free_reg_put=self.free_rf_fifo.write,
+        )
+
         m.submodules.retirement = Retirement(
             self.gen_params,
             rob_peek=rob.peek,
@@ -123,6 +141,7 @@ class Core(Elaboratable):
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
+            trigger_int=int_coordinator.trigger,
         )
 
         m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)

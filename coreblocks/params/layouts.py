@@ -58,6 +58,7 @@ class SchedulerLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
+            ("rob_id", gen_params.rob_entries_bits),
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
@@ -66,14 +67,8 @@ class SchedulerLayouts:
             ("opcode", Opcode),
             ("illegal", 1),
             ("exec_fn", common.exec_fn),
-            (
-                "regs_l",
-                [
-                    ("rl_dst", gen_params.isa.reg_cnt_log),
-                    ("rl_dst_v", 1),
-                ],
-            ),
             ("regs_p", common.regs_p),
+            ("rob_id", gen_params.rob_entries_bits),
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
@@ -148,6 +143,10 @@ class ROBLayouts:
             ("rob_id", gen_params.rob_entries_bits),
             ("interrupt", 1),
         ]
+
+        self.can_flush_layout = [("can_flush", 1)]
+
+        self.flush_layout = [("rp_dst", gen_params.phys_regs_bits)]
 
 
 class RSInterfaceLayouts:
@@ -255,9 +254,13 @@ class FetchLayouts:
             ("pc", gen_params.isa.xlen),
         ]
 
-        self.branch_verify = [
+        self.branch_verify_in = [
             ("from_pc", gen_params.isa.xlen),
             ("next_pc", gen_params.isa.xlen),
+        ]
+
+        self.branch_verify_out = [
+            ("old_pc", gen_params.isa.xlen),
         ]
 
 

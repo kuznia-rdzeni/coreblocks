@@ -16,6 +16,7 @@ class Unifier(HasElaborate, Protocol):
 class FuncUnit(HasElaborate, Protocol):
     issue: Method
     accept: Method
+    # TODO: add clear: Method once all FUs are updated
 
 
 class FuncBlock(HasElaborate, Protocol):

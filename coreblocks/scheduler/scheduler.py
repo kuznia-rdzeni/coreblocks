@@ -19,7 +19,9 @@ class RegAllocation(Elaboratable):
     the instruction result). A part of the scheduling process.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, get_free_reg: Method, gen_params: GenParams):
+    def __init__(
+        self, *, get_instr: Method, push_instr: Method, get_free_reg: Method, rob_put: Method, gen_params: GenParams
+    ):
         """
         Parameters
         ----------
@@ -41,6 +43,7 @@ class RegAllocation(Elaboratable):
         self.get_instr = get_instr
         self.push_instr = push_instr
         self.get_free_reg = get_free_reg
+        self.rob_put = rob_put
 
     def elaborate(self, platform):
         m = TModule()
@@ -53,6 +56,14 @@ class RegAllocation(Elaboratable):
             with m.If(instr.regs_l.rl_dst != 0):
                 reg_id = self.get_free_reg(m)
                 m.d.comb += free_reg.eq(reg_id)
+
+            rob_id = self.rob_put(
+                m,
+                {
+                    "rl_dst": instr.regs_l.rl_dst,
+                    "rp_dst": free_reg,
+                },
+            )
 
             m.d.comb += assign(data_out, instr)
             m.d.comb += data_out.regs_p.rp_dst.eq(free_reg)
@@ -400,6 +411,7 @@ class Scheduler(Elaboratable):
         self.rf_read1 = rf_read1
         self.rf_read2 = rf_read2
         self.rs = reservation_stations
+        self.clear = Method()
 
     def elaborate(self, platform):
         m = TModule()
@@ -409,6 +421,7 @@ class Scheduler(Elaboratable):
             get_instr=self.get_instr,
             push_instr=alloc_rename_buf.write,
             get_free_reg=self.get_free_reg,
+            rob_put=self.rob_put,
             gen_params=self.gen_params,
         )
 
@@ -420,18 +433,10 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = BasicFifo(self.layouts.rob_allocate_out, 2)
-        m.submodules.rob_alloc = ROBAllocation(
-            get_instr=rename_out_buf.read,
-            push_instr=rob_alloc_out_buf.write,
-            rob_put=self.rob_put,
-            gen_params=self.gen_params,
-        )
-
         m.submodules.rs_select_out_buf = rs_select_out_buf = BasicFifo(self.layouts.rs_select_out, 2)
         m.submodules.rs_selector = RSSelection(
             gen_params=self.gen_params,
-            get_instr=reg_alloc_out_buf.read,
+            get_instr=rename_out_buf.read,
             rs_select=[(rs.select, optypes) for rs, optypes in self.rs],
             push_instr=rs_select_out_buf.write,
         )
@@ -444,6 +449,9 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        self.clear_fifos = MethodProduct([alloc_rename_buf.clear, rename_out_buf.clear, rob_alloc_out_buf.clear, rs_select_out_buf.clear])
+        m.submodules.clear_product = clear_product = MethodProduct(
+            [alloc_rename_buf.clear, rename_out_buf.clear, rs_select_out_buf.clear]
+        )
+        self.clear.proxy(m, clear_product.method)
 
         return m

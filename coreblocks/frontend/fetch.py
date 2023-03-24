@@ -28,7 +28,9 @@ class Fetch(Elaboratable):
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        layouts = self.gp.get(FetchLayouts)
+        self.verify_branch = Method(i=layouts.branch_verify_in, o=layouts.branch_verify_out)
+        self.stall = Method()
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
@@ -85,9 +87,16 @@ class Fetch(Elaboratable):
 
                 self.cont(m, data=instr, pc=target.addr)
 
+        self.verify_branch.add_conflict(self.stall)
+
+        @def_method(m, self.stall)
+        def _():
+            m.d.sync += stalled.eq(1)
+
         @def_method(m, self.verify_branch, ready=stalled)
         def _(from_pc: Value, next_pc: Value):
             m.d.sync += speculative_pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
+            return self.pc
 
         return m

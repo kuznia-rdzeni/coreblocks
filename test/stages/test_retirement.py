@@ -35,6 +35,8 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
+        m.submodules.mock_interrupt = self.mock_interrupt = TestbenchIO(Adapter())
+
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
             rob_retire=self.mock_rob_retire.adapter.iface,
@@ -43,6 +45,7 @@ class RetirementTestCircuit(Elaboratable):
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
             precommit=self.mock_precommit.adapter.iface,
+            trigger_int=self.mock_interrupt.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
