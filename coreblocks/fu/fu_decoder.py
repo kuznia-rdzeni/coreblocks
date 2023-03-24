@@ -1,3 +1,4 @@
+from typing import Type
 from amaranth import *
 
 from coreblocks.transactions import *
@@ -5,7 +6,7 @@ from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
 
-from enum import IntFlag
+from enum import Enum, EnumMeta, IntFlag
 
 
 class DecoderManager(Signal):
@@ -30,7 +31,7 @@ class DecoderManager(Signal):
 
 
 class Decoder(Elaboratable):
-    def __init__(self, gen: GenParams, decode_fn: IntFlag, instructions: Array[tuple]):
+    def __init__(self, gen: GenParams, decode_fn: Type[IntFlag], instructions: Array[tuple]):
         layouts = gen.get(CommonLayouts)
 
         self.exec_fn = Record(layouts.exec_fn)
