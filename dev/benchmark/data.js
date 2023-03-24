@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1679436937140,
+  "lastUpdate": 1679662598515,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -3257,6 +3257,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b7246785b4437cee50a515437ddafb9eeff4b823"
         },
         "date": 1679436936385,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 54.95,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17040,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 572,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 844,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5453,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "142e051a64e1d551958a9996db9e9dd87d56c9ad",
+          "message": "Enums enums enums (#259)",
+          "timestamp": "2023-03-24T13:51:42+01:00",
+          "tree_id": "935efcc0ee111d0cc5642e6412361eb5e1fda13b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/142e051a64e1d551958a9996db9e9dd87d56c9ad"
+        },
+        "date": 1679662597746,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
