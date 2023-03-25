@@ -309,7 +309,7 @@ class TestMethodTransformer(TestCaseWithSimulator):
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
             self.assertEqual(v["data"], (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1))
 
-    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    @def_class_method_mock(lambda self: self.m.target)
     def target(self, v):
         return {"data": (v["data"] << 1) | (v["data"] >> (self.m.iosize - 1))}
 
@@ -382,7 +382,7 @@ class TestMethodFilter(TestCaseWithSimulator):
             else:
                 self.assertEqual(v["data"], 0)
 
-    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    @def_class_method_mock(lambda self: self.m.target)
     def target(self, v):
         return {"data": v["data"] + 1}
 
@@ -464,7 +464,7 @@ class TestMethodProduct(TestCaseWithSimulator):
             # otherwise, the call succeeds
             for k in range(targets):
                 method_en[k] = True
-            yield 
+            yield
 
             data = random.randint(0, (1 << iosize) - 1)
             val = (yield from m.method.call(data=data))["data"]

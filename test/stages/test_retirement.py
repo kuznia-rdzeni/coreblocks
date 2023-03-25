@@ -79,7 +79,7 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
-        @def_method_mock(lambda: retc.mock_rob_retire, settle=1, condition=lambda: bool(self.submit_q))
+        @def_method_mock(lambda: retc.mock_rob_retire, condition=lambda: bool(self.submit_q))
         def submit_process(_):
             return self.submit_q.popleft()
 

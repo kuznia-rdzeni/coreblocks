@@ -264,20 +264,15 @@ class TestbenchIO(Elaboratable):
         self,
         function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
         *,
-        settle: int = 0,
         enable: Optional[Callable[[], bool]] = None,
     ) -> TestGen[None]:
         enable = enable or (lambda: True)
         yield from self.set_enable(enable())
         yield Settle()
-        for _ in range(settle):
-            yield Settle()
         while (arg := (yield from self.method_argument())) is None:
             yield
             yield from self.set_enable(enable())
             yield Settle()
-            for _ in range(settle):
-                yield Settle()
         yield from self.method_return(function(arg) or {})
         yield
 
@@ -285,7 +280,6 @@ class TestbenchIO(Elaboratable):
         self,
         function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
         *,
-        settle: int = 0,
         enable: Optional[Callable[[], bool]] = None,
         condition: Optional[Callable[[], bool]] = None,
     ) -> TestGen[None]:
@@ -293,7 +287,7 @@ class TestbenchIO(Elaboratable):
             yield Passive()
         condition = condition or (lambda: True)
         while condition():
-            yield from self.method_handle(function, settle=settle, enable=enable)
+            yield from self.method_handle(function, enable=enable)
 
     # Debug signals
 
@@ -331,7 +325,7 @@ def def_method_mock(
     ```
     m = TestCircuit()
     def target_process(k: int):
-        @def_method_mock(lambda: m.target[k], settle=1, enable=False)
+        @def_method_mock(lambda: m.target[k], enable=False)
         def process(v):
             return {"data": v["data"] + k}
         return process
@@ -381,7 +375,7 @@ def def_class_method_mock(
     Example
     -------
     ```
-    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    @def_class_method_mock(lambda self: self.m.target)
     def target(self, v):
         return {"data": v["data"] + 1}
     ```
