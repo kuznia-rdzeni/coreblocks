@@ -187,11 +187,14 @@ class TestbenchIO(Elaboratable):
 
     # Low-level operations
 
+    def set_enable(self, en) -> TestGen[None]:
+        yield self.adapter.en.eq(1 if en else 0)
+
     def enable(self) -> TestGen[None]:
-        yield self.adapter.en.eq(1)
+        yield from self.set_enable(True)
 
     def disable(self) -> TestGen[None]:
-        yield self.adapter.en.eq(0)
+        yield from self.set_enable(False)
 
     def done(self) -> TestGen[int]:
         return (yield self.adapter.done)
@@ -258,12 +261,17 @@ class TestbenchIO(Elaboratable):
         yield from self.set_inputs(data)
 
     def method_handle(
-        self, function: Callable[[RecordIntDictRet], Optional[RecordIntDict]], *, settle: int = 0
+        self, function: Callable[[RecordIntDictRet], Optional[RecordIntDict]], *, settle: int = 0, enable: Optional[Callable[[], bool]] = None,
     ) -> TestGen[None]:
+        enable = enable or (lambda: True)
+        yield from self.set_enable(enable())
+        yield Settle()
         for _ in range(settle):
             yield Settle()
         while (arg := (yield from self.method_argument())) is None:
             yield
+            yield from self.set_enable(enable())
+            yield Settle()
             for _ in range(settle):
                 yield Settle()
         yield from self.method_return(function(arg) or {})
@@ -274,16 +282,14 @@ class TestbenchIO(Elaboratable):
         function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
         *,
         settle: int = 0,
-        enable: bool = True,
+        enable: Optional[Callable[[], bool]] = None,
         condition: Optional[Callable[[], bool]] = None,
     ) -> TestGen[None]:
         if condition is None:
             yield Passive()
         condition = condition or (lambda: True)
-        if enable:
-            yield from self.enable()
         while condition():
-            yield from self.method_handle(function, settle=settle)
+            yield from self.method_handle(function, settle=settle, enable=enable)
 
     # Debug signals
 

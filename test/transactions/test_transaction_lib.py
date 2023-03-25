@@ -443,8 +443,10 @@ class TestMethodProduct(TestCaseWithSimulator):
         iosize = 8
         m = MethodProductTestCircuit(iosize, targets, add_combiner)
 
+        method_en = [False] * targets
+
         def target_process(k: int):
-            @def_method_mock(lambda: m.target[k], settle=1, enable=False)
+            @def_method_mock(lambda: m.target[k], settle=1, enable=lambda: method_en[k])
             def process(v):
                 return {"data": v["data"] + k}
 
@@ -454,15 +456,16 @@ class TestMethodProduct(TestCaseWithSimulator):
             # if any of the target methods is not enabled, call does not succeed
             for i in range(2**targets - 1):
                 for k in range(targets):
-                    if i & (1 << k):
-                        yield from m.target[k].enable()
-                    else:
-                        yield from m.target[k].disable()
+                    method_en[k] = i & (1 << k)
+                yield Settle()
+
                 self.assertIsNone((yield from m.method.call_try(data=0)))
 
             # otherwise, the call succeeds
             for k in range(targets):
-                yield from m.target[k].enable()
+                method_en[k] = True
+            yield Settle()
+
             data = random.randint(0, (1 << iosize) - 1)
             val = (yield from m.method.call(data=data))["data"]
             if add_combiner:
