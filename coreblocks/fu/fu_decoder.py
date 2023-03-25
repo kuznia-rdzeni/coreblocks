@@ -2,7 +2,7 @@ from math import floor, log2
 from typing import Sequence, Type
 from amaranth import *
 
-from coreblocks.params import GenParams, unique, CommonLayouts
+from coreblocks.params import GenParams, CommonLayouts
 
 from enum import IntFlag
 
