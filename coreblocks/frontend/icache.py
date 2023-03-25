@@ -57,20 +57,34 @@ class ICacheParameters:
 class ICache(Elaboratable):
     """A simple set-associative instruction cache.
 
-    The replacement policy is a pseudo random scheme. Every time a line is trashed, we select the next
-    way we write to (we keep one global counter for selecting the next way).
+    There are two methods exposed by this module, which are meant to be used
+    by the cache user: `issue_req`, `accept_res`.
 
-    Assumes that address is always a multiple of 4 (in bytes). RISC-V specification requires
-    that instructions are 4 byte aligned. Extension C, however, adds 16-bit instructions, but
-    this should be handled by the user of the cache.
+    A few notes about the cache:
+        1) The replacement policy is a pseudo random scheme. Every time a line is trashed,
+        we select the next way we write to (we keep one global counter for selecting the next way).
 
-    Address mapping example:
-     31          16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00
-    |--------------|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-    +--------------------+--------------------------+--------------+
-    | Tag                | Index                    | Offset       |
+        2) The latency during a cache hit is exactly one cycle.
 
-    TODO - write doc
+        3) Information about fetch errors is not cached. That is, if an error happens during
+        line refill, next access in that line, will retrigger a refill (which most likely
+        will return an error again).
+
+
+    Refilling a cache line is abstracted away from this module. ICache module needs two methods
+    from the refiller `refiller_start`, which is called whenever we need to refill a cache line.
+    `refiller_accept` should be ready to be called whenever the refiller has another word ready
+    to be written to cache. `refiller_accept` should set `last` bit when either an error occurs
+    or the transfer is over. After issuing `last` bit, `refiller_accept` shouldn't be ready until
+    the next transfer is started.
+
+
+    Attributes
+    ----------
+    issue_req : Method
+        A method that is used to issue a cache lookup request.
+    accept_res : ICacheParameters
+        A method that is used to accept the result of a cache lookup request.
     """
 
     def __init__(
@@ -88,7 +102,6 @@ class ICache(Elaboratable):
             A method with input layout ICacheLayouts::start_refill
         refiller_accept : Method
             A method with output layout ICacheLayouts::accept_refill
-        TODO - write doc
         """
         self.gp = gen_params
         self.params = cache_params
@@ -219,8 +232,13 @@ class ICache(Elaboratable):
 
 
 class ICacheMemory(Elaboratable):
-    """
-    TODO - write doc
+    """A helper module for managing memories used in the instruction cache.
+
+    In case of an associative cache, all address and write data lines are shared.
+    Writes are multiplexed using the `way_wr_sel` signal. Read data lines from all
+    ways are separately exposed (as an array).
+
+    The data memory is addressed using a machine word.
     """
 
     def __init__(self, gen_params: GenParams, cache_params: ICacheParameters) -> None:
@@ -322,7 +340,7 @@ class SimpleWBCacheRefiller(Elaboratable):
             m.d.sync += refill_active.eq(1)
             m.d.sync += word_counter.eq(0)
 
-        @def_method(m, self.accept_refill)
+        @def_method(m, self.accept_refill, ready=refill_active)
         def _():
             fetched = self.wb_master.result(m)
 
