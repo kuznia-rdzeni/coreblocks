@@ -446,7 +446,7 @@ class TestMethodProduct(TestCaseWithSimulator):
         method_en = [False] * targets
 
         def target_process(k: int):
-            @def_method_mock(lambda: m.target[k], settle=1, enable=lambda: method_en[k])
+            @def_method_mock(lambda: m.target[k], enable=lambda: method_en[k])
             def process(v):
                 return {"data": v["data"] + k}
 
@@ -457,14 +457,14 @@ class TestMethodProduct(TestCaseWithSimulator):
             for i in range(2**targets - 1):
                 for k in range(targets):
                     method_en[k] = bool(i & (1 << k))
-                yield Settle()
 
+                yield
                 self.assertIsNone((yield from m.method.call_try(data=0)))
 
             # otherwise, the call succeeds
             for k in range(targets):
                 method_en[k] = True
-            yield Settle()
+            yield 
 
             data = random.randint(0, (1 << iosize) - 1)
             val = (yield from m.method.call(data=data))["data"]
