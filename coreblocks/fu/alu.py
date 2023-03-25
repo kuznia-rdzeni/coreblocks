@@ -104,7 +104,6 @@ class Alu(Elaboratable):
 
 
 class AluFuncUnit(Elaboratable):
-    # No need to duplicate informations
     optypes = AluFn.get_op_types()
 
     def __init__(self, gen: GenParams):

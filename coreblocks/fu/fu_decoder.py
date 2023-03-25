@@ -1,19 +1,15 @@
 from math import floor, log2
-from typing import Type
+from typing import Sequence, Type
 from amaranth import *
 
-from coreblocks.transactions import *
-from coreblocks.transactions.lib import *
-
-from coreblocks.params import *
+from coreblocks.params import GenParams, unique, CommonLayouts
 
 from enum import IntFlag
 
 
 class DecoderManager(Signal):
-    @unique
-    class Fn(IntFlag):
-        pass
+
+    Fn: Type[IntFlag]
 
     @classmethod
     def get_instructions(cls):
@@ -34,7 +30,7 @@ class DecoderManager(Signal):
 
 
 class Decoder(Elaboratable):
-    def __init__(self, gen: GenParams, decode_fn: Type[IntFlag], instructions: Array[tuple], check_optype=True):
+    def __init__(self, gen: GenParams, decode_fn: Type[IntFlag], instructions: Sequence[tuple], check_optype: bool):
         layouts = gen.get(CommonLayouts)
 
         self.exec_fn = Record(layouts.exec_fn)
