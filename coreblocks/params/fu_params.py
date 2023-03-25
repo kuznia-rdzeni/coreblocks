@@ -65,6 +65,17 @@ class SimpleKey(Generic[T], DependencyKey[T, T]):
         return data[0]
 
 
+class ListKey(Generic[T], DependencyKey[T, list[T]]):
+    """Base class for list key.
+
+    List keys are useed when there is an one-to-many relation between keys
+    and dependecies. Provides list of dependencies.
+    """
+
+    def combine(self, data: list[T]) -> list[T]:
+        return data
+
+
 class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]]):
     """Base class for method unifier dependency keys.
 
