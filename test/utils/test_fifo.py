@@ -60,7 +60,7 @@ class TestBasicFifo(TestCaseWithSimulator):
                     yield  # random delay
 
                 v = random.randint(0, (2**fifoc.fifo.width) - 1)
-                yield from fifoc.fifo_write.call({"data": v})
+                yield from fifoc.fifo_write.call(data=v)
                 expq.appendleft(v)
 
                 if random.random() < 0.005:

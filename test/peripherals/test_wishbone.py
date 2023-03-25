@@ -76,7 +76,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
             wwb = WishboneInterfaceWrapper(wbm.wbMaster)
 
             # read request
-            yield from twbm.requestAdapter.call({"addr": 2, "data": 0, "we": 0, "sel": 1})
+            yield from twbm.requestAdapter.call(addr=2, data=0, we=0, sel=1)
             yield
             assert not (yield wbm.request.ready)
             yield from wwb.slave_verify(2, 0, 0, 1)
@@ -85,14 +85,14 @@ class TestWishboneMaster(TestCaseWithSimulator):
             assert (resp["data"]) == 8
 
             # write request
-            yield from twbm.requestAdapter.call({"addr": 3, "data": 5, "we": 1, "sel": 0})
+            yield from twbm.requestAdapter.call(addr=3, data=5, we=1, sel=0)
             yield
             yield from wwb.slave_verify(3, 5, 1, 0)
             yield from wwb.slave_respond(0)
             yield from twbm.resultAdapter.call()
 
             # RTY and ERR responese
-            yield from twbm.requestAdapter.call({"addr": 2, "data": 0, "we": 0, "sel": 0})
+            yield from twbm.requestAdapter.call(addr=2, data=0, we=0, sel=0)
             yield
             yield from wwb.slave_wait()
             yield from wwb.slave_verify(2, 0, 0, 0)
@@ -325,7 +325,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                             mem_state[addr] &= ~granularity_mask
                             mem_state[addr] |= data & granularity_mask
 
-                yield from self.m.request.call({"addr": addr, "data": data, "we": write, "sel": sel})
+                yield from self.m.request.call(addr=addr, data=data, we=write, sel=sel)
                 res = yield from self.m.result.call()
                 if write:
                     self.assertEqual((yield self.m.mem_slave.mem[addr]), mem_state[addr])

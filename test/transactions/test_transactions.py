@@ -155,7 +155,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
                 while random.random() >= prob:
                     yield
                 tgt(i)
-                r = yield from io.call({"data": i})
+                r = yield from io.call(data=i)
                 chk(r["data"])
 
         return process

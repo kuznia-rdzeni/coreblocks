@@ -42,7 +42,7 @@ class TestFetch(TestCaseWithSimulator):
 
     def decode_test_proc(self):
         # testing an OP_IMM instruction (test copied from test_decoder.py)
-        yield from self.test_module.io_in.call({"data": 0x02A28213})
+        yield from self.test_module.io_in.call(data=0x02A28213)
         decoded = yield from self.test_module.io_out.call()
 
         self.assertEqual(decoded["opcode"], Opcode.OP_IMM)
@@ -57,7 +57,7 @@ class TestFetch(TestCaseWithSimulator):
         self.assertEqual(decoded["imm"], 42)
 
         # testing an OP instruction (test copied from test_decoder.py)
-        yield from self.test_module.io_in.call({"data": 0x003100B3})
+        yield from self.test_module.io_in.call(data=0x003100B3)
         decoded = yield from self.test_module.io_out.call()
 
         self.assertEqual(decoded["opcode"], Opcode.OP)
