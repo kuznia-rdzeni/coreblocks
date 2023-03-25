@@ -175,6 +175,10 @@ class TestCaseWithSimulator(unittest.TestCase):
             sim.run_until(clk_period * max_cycles)
             self.assertFalse(sim.advance(), "Simulation time limit exceeded")
 
+    def cycle(self, cycle_cnt=1):
+        for _ in range(cycle_cnt):
+            yield
+
 
 class TestbenchIO(Elaboratable):
     def __init__(self, adapter: AdapterBase):
@@ -261,7 +265,11 @@ class TestbenchIO(Elaboratable):
         yield from self.set_inputs(data)
 
     def method_handle(
-        self, function: Callable[[RecordIntDictRet], Optional[RecordIntDict]], enable: Callable[[], bool], *, settle: int = 0
+        self,
+        function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
+        enable: Callable[[], bool],
+        *,
+        settle: int = 0,
     ) -> TestGen[None]:
         yield from self.set_enable(enable())
         for _ in range(settle):

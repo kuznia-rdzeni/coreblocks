@@ -111,10 +111,10 @@ class ICache(Elaboratable):
 
     def deserialize_addr(self, raw_addr: Value) -> dict[str, Value]:
         return {
-                "offset": raw_addr[: self.params.offset_bits],
-                "index": raw_addr[self.params.index_start_bit : self.params.index_end_bit + 1],
-                "tag": raw_addr[-self.params.tag_bits :],
-            }
+            "offset": raw_addr[: self.params.offset_bits],
+            "index": raw_addr[self.params.index_start_bit : self.params.index_end_bit + 1],
+            "tag": raw_addr[-self.params.tag_bits :],
+        }
 
     def serialize_addr(self, addr: Record) -> Value:
         return Cat(addr.offset, addr.index, addr.tag)
@@ -142,17 +142,16 @@ class ICache(Elaboratable):
 
         # Replacement policy
         way_selector = Signal(log2_int(self.params.num_of_ways))
+        m.d.comb += self.mem.way_wr_sel.eq(way_selector)
         with m.If(refill_finish):
             m.d.sync += way_selector.eq(way_selector + 1)
 
         # Fast path - read requests
-        req_valid = self.req_fifo.read.ready
-        req_addr = self.req_fifo.read.data_out
+        request_valid = self.req_fifo.read.ready
+        request_addr = Record(self.addr_layout)
 
-        tag_hit = [tag_data.valid & (tag_data.tag == req_addr.tag) for tag_data in self.mem.tag_rd_data]
+        tag_hit = [tag_data.valid & (tag_data.tag == request_addr.tag) for tag_data in self.mem.tag_rd_data]
         tag_hit_any = reduce(operator.or_, tag_hit)
-
-        m.d.comb += needs_refill.eq(req_valid & ~tag_hit_any)
 
         instr_out = Signal(self.gp.isa.ilen)
         for i in range(self.params.num_of_ways):
@@ -161,15 +160,9 @@ class ICache(Elaboratable):
 
         refill_error_d = Signal()
         m.d.sync += refill_error_d.eq(refill_error)
+        m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_d)
 
-        validd = Signal()
-        hit = Signal()
-        m.d.comb += [
-            validd.eq(req_valid),
-            hit.eq(tag_hit_any),
-        ]
-
-        with Transaction().body(m, request=req_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_d)):
+        with Transaction().body(m, request=request_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_d)):
             self.res_fwd.write(m, instr=instr_out, error=refill_error_d)
 
         @def_method(m, self.accept_res)
@@ -177,17 +170,15 @@ class ICache(Elaboratable):
             self.req_fifo.read(m)
             return self.res_fwd.read(m)
 
-        last_mem_read_addr = Record(self.addr_layout)
         mem_read_addr = Record(self.addr_layout)
-
-        m.d.sync += assign(last_mem_read_addr, mem_read_addr)
-        m.d.comb += assign(mem_read_addr, last_mem_read_addr)
+        m.d.comb += assign(mem_read_addr, request_addr)
 
         @def_method(m, self.issue_req, ready=fsm.ongoing("LOOKUP") & ~needs_refill)
         def _(addr: Value) -> None:
             deserialized = self.deserialize_addr(addr)
             # Forward read address only if the method is called
             m.d.comb += assign(mem_read_addr, deserialized)
+            m.d.sync += assign(request_addr, deserialized)
 
             self.req_fifo.write(m, deserialized)
 
@@ -199,15 +190,15 @@ class ICache(Elaboratable):
 
         # Slow path - data refilling
         m.d.comb += [
-            self.mem.tag_wr_index.eq(req_addr.index),
+            self.mem.tag_wr_index.eq(request_addr.index),
             self.mem.tag_wr_data.valid.eq(~refill_error),
-            self.mem.tag_wr_data.tag.eq(req_addr.tag),
+            self.mem.tag_wr_data.tag.eq(request_addr.tag),
             self.mem.tag_wr_en.eq(refill_finish),
         ]
 
         with Transaction().body(m, request=fsm.ongoing("LOOKUP") & needs_refill):
             # Align to the beginning of the cache line
-            aligned_addr = self.serialize_addr(req_addr) & ~((1 << self.params.offset_bits) - 1)
+            aligned_addr = self.serialize_addr(request_addr) & ~((1 << self.params.offset_bits) - 1)
             self.refiller_start(m, addr=aligned_addr)
 
         with Transaction().body(m):

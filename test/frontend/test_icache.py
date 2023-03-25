@@ -74,12 +74,12 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
         self.requests = deque()
         for i in range(10):
             # Make the address aligned to the beginning of a cache line
-            addr = random.randint(0, 2**32 - 1) & ~((1 << self.cp.offset_bits) - 1)
+            addr = random.randrange(2**self.gp.isa.xlen) & ~((1 << self.cp.offset_bits) - 1)
             self.requests.append(addr)
 
             if random.random() < 0.1:
                 # Choose an address in this cache line to be erroneous
-                bad_addr = addr + random.randint(0, (1 << self.cp.offset_bits) - 1)
+                bad_addr = addr + random.randrange(1 << self.cp.offset_bits)
 
                 # Make the address aligned to the machine word size
                 bad_addr = bad_addr & ~(0b11)
@@ -181,7 +181,9 @@ class TestICache(TestCaseWithSimulator):
         random.seed(42)
 
         self.mem = dict()
+        self.bad_addrs = set()
         self.refill_requests = deque()
+        self.issued_requests = deque()
 
     def init_module(self, ways, sets) -> None:
         self.cp = ICacheParameters(
@@ -201,7 +203,6 @@ class TestICache(TestCaseWithSimulator):
             refill_word_cnt = 0
             refill_in_fly = True
             refill_addr = arg["addr"]
-            print("refill", refill_addr)
 
         @def_method_mock(lambda: self.m.accept_refill, enable=lambda: refill_in_fly, settle=1)
         def accept_refill_mock(_):
@@ -210,61 +211,84 @@ class TestICache(TestCaseWithSimulator):
             addr = refill_addr + refill_word_cnt * self.word_bytes
             data = self.load_or_gen_mem(addr)
             refill_word_cnt += 1
-            refill_in_fly = refill_word_cnt != self.words_per_block
+
+            err = addr in self.bad_addrs
+            last = refill_word_cnt == self.words_per_block or err
+
+            if last:
+                refill_in_fly = False
 
             return {
                 "addr": addr,
                 "data": data,
-                "error": 0,
-                "last": not refill_in_fly,
+                "error": err,
+                "last": last,
             }
-        
+
         return start_refill_mock, accept_refill_mock
-    
+
     def load_or_gen_mem(self, addr: int):
-        if not addr in self.mem:
-            self.mem[addr] = random.randrange(0, 2**self.gp.isa.xlen - 1)
+        if addr not in self.mem:
+            self.mem[addr] = random.randrange(2**self.gp.isa.xlen)
         return self.mem[addr]
+
+    def send_req(self, addr: int):
+        self.issued_requests.append(addr)
+        yield from self.m.issue_req.call(addr=addr)
+
+    def expect_resp(self, wait=False, expect_error=False):
+        yield Settle()
+        if wait:
+            yield from self.m.accept_res.wait_until_done()
+
+        addr = self.issued_requests.popleft()
+        ret = yield from self.m.accept_res.get_outputs()
+        if expect_error:
+            self.assertTrue(ret["error"])
+        else:
+            self.assertFalse(ret["error"])
+            self.assertEqual(ret["instr"], self.mem[addr])
+
+    def call_cache(self, addr: int, expect_error=False):
+        yield from self.send_req(addr)
+        yield from self.m.accept_res.enable()
+        yield from self.expect_resp(wait=True, expect_error=expect_error)
+        yield
+        yield from self.m.accept_res.disable()
 
     def test_1_way(self):
         self.init_module(1, 4)
 
-        def request(addr: int):
-            yield from self.m.issue_req.call(addr=addr)
-            ret = yield from self.m.accept_res.call()
-            self.assertEqual(ret["instr"], self.mem[addr])
-
         def cache_user_process():
             # The first request should cause a cache miss
-            yield from request(0x00010004)
+            yield from self.call_cache(0x00010004)
             self.assertEqual(self.refill_requests.pop(), 0x00010000)
 
             # Accesses to the same cache line shouldn't cause a cache miss
             for i in range(self.words_per_block):
-                yield from request(0x00010000 + i * 4)
+                yield from self.call_cache(0x00010000 + i * 4)
                 self.assertEqual(len(self.refill_requests), 0)
-            
+
             # Now go beyond the first cache line
-            yield from request(0x00010000 + self.words_per_block * 4)
+            yield from self.call_cache(0x00010000 + self.words_per_block * 4)
             self.assertEqual(self.refill_requests.pop(), 0x00010000 + self.words_per_block * 4)
 
             # Trigger cache aliasing
-            yield from request(0x00020000)
-            yield from request(0x00010000)
+            yield from self.call_cache(0x00020000)
+            yield from self.call_cache(0x00010000)
             self.assertEqual(self.refill_requests.popleft(), 0x00020000)
             self.assertEqual(self.refill_requests.popleft(), 0x00010000)
 
             # Fill the whole cache
             for i in range(0, self.cp.block_size_bytes * self.cp.num_of_sets, 4):
-                yield from request(i)
+                yield from self.call_cache(i)
             for i in range(self.cp.num_of_sets):
                 self.assertEqual(self.refill_requests.popleft(), i * self.cp.block_size_bytes)
 
             # Now do some accesses within the cached memory
             for i in range(50):
-                yield from request(random.randrange(0, self.cp.block_size_bytes * self.cp.num_of_sets, 4))
+                yield from self.call_cache(random.randrange(0, self.cp.block_size_bytes * self.cp.num_of_sets, 4))
             self.assertEqual(len(self.refill_requests), 0)
-
 
         start_refill_mock, accept_refill_mock = self.refiller_processes()
 
@@ -273,71 +297,211 @@ class TestICache(TestCaseWithSimulator):
             sim.add_sync_process(accept_refill_mock)
             sim.add_sync_process(cache_user_process)
 
-    # TODO
     def test_2_way(self):
         self.init_module(2, 4)
 
-        def request(addr: int):
-            yield from self.m.issue_req.call(addr=addr)
-            ret = yield from self.m.accept_res.call()
-            self.assertEqual(ret["instr"], self.mem[addr])
+        def cache_process():
+            # Fill the first set of both ways
+            yield from self.call_cache(0x00010000)
+            yield from self.call_cache(0x00020000)
+            self.assertEqual(self.refill_requests.popleft(), 0x00010000)
+            self.assertEqual(self.refill_requests.popleft(), 0x00020000)
 
-        def cache_user_process():
-            #todo
-            pass
+            # And now both lines should be in the cache
+            yield from self.call_cache(0x00010004)
+            yield from self.call_cache(0x00020004)
+            self.assertEqual(len(self.refill_requests), 0)
 
         start_refill_mock, accept_refill_mock = self.refiller_processes()
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(start_refill_mock)
             sim.add_sync_process(accept_refill_mock)
-            sim.add_sync_process(cache_user_process)
+            sim.add_sync_process(cache_process)
 
-    # TODO
+    # Tests whether the cache is fully pipelined and the latency between requests and response is exactly one cycle.
     def test_pipeline(self):
-        self.init_module(1, 2)
-
-        def request(addr: int):
-            yield from self.m.issue_req.call(addr=addr)
-            ret = yield from self.m.accept_res.call()
-            self.assertEqual(ret["instr"], self.mem[addr])
-
-        def cache_user_process():
-            pass
-
-        start_refill_mock, accept_refill_mock = self.refiller_processes()
-
-        with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(start_refill_mock)
-            sim.add_sync_process(accept_refill_mock)
-            sim.add_sync_process(cache_user_process)
-
-    # TODO
-    def test_errors(self):
         self.init_module(2, 4)
 
-        def request(addr: int):
-            yield from self.m.issue_req.call(addr=addr)
-            ret = yield from self.m.accept_res.call()
-            self.assertEqual(ret["instr"], self.mem[addr])
+        def cache_process():
+            # Fill the cache
+            for i in range(self.cp.num_of_sets):
+                addr = 0x00010000 + i * self.cp.block_size_bytes
+                yield from self.call_cache(addr)
+                self.assertEqual(self.refill_requests.popleft(), addr)
 
-        def cache_user_process():
-            pass
+            yield from self.cycle(5)
+
+            # Enable accept method
+            yield from self.m.accept_res.enable()
+            yield from self.send_req(0x00010000)
+
+            # Response from the first request should be ready
+            yield from self.expect_resp()
+
+            # Send the second request
+            yield from self.send_req(addr=0x00010004)
+
+            # Response from the second request should be ready
+            yield from self.expect_resp()
+
+            # Try another cache line
+            yield from self.send_req(addr=0x00010000 + 2 * self.cp.block_size_bytes)
+
+            yield from self.expect_resp()
+            yield from self.send_req(addr=0x00010000 + 3 * self.cp.block_size_bytes)
+
+            # Now disable accept method
+            yield from self.m.accept_res.disable()
+            yield from self.send_req(addr=0x00010004)
+
+            # Wait a few cycles. There are two requests queued
+            yield from self.cycle(3)
+
+            yield from self.m.accept_res.enable()
+            yield from self.expect_resp()
+            yield
+            yield from self.expect_resp()
+            yield from self.send_req(addr=0x0001000C)
+            yield from self.expect_resp()
+
+            yield
+            yield from self.m.accept_res.disable()
+
+            # Schedule two requests, the first one causing a cache miss
+            yield from self.send_req(addr=0x00020000)
+            yield from self.send_req(addr=0x00010000 + self.cp.block_size_bytes)
+
+            yield from self.m.accept_res.enable()
+
+            yield from self.expect_resp(wait=True)
+            yield
+            yield from self.expect_resp()
+            yield
+            yield from self.m.accept_res.disable()
+
+            yield from self.cycle(3)
+
+            # Schedule two requests, the second one causing a cache miss
+            yield from self.send_req(addr=0x00020004)
+            yield from self.send_req(addr=0x00030000 + self.cp.block_size_bytes)
+
+            yield from self.m.accept_res.enable()
+
+            yield from self.expect_resp(wait=True)
+            yield
+            yield from self.expect_resp(wait=True)
+            yield
+            yield from self.m.accept_res.disable()
+
+            yield from self.cycle(3)
+
+            # Schedule two requests, both causing a cache miss
+            yield from self.send_req(addr=0x00040000)
+            yield from self.send_req(addr=0x00050000 + self.cp.block_size_bytes)
+
+            yield from self.m.accept_res.enable()
+
+            yield from self.expect_resp(wait=True)
+            yield
+            yield from self.expect_resp(wait=True)
+            yield
+            yield from self.m.accept_res.disable()
 
         start_refill_mock, accept_refill_mock = self.refiller_processes()
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(start_refill_mock)
             sim.add_sync_process(accept_refill_mock)
-            sim.add_sync_process(cache_user_process)
+            sim.add_sync_process(cache_process)
+
+    def test_errors(self):
+        self.init_module(1, 4)
+
+        def cache_process():
+            self.bad_addrs.add(0x00010000)  # Bad addr at the beggining of the line
+            self.bad_addrs.add(0x00020004)  # Bad addr in the middle of the line
+            self.bad_addrs.add(0x00030000 + self.cp.block_size_bytes - 4)  # Bad addr at the end of the line
+
+            yield from self.call_cache(0x00010008, expect_error=True)
+            self.assertEqual(self.refill_requests.popleft(), 0x00010000)
+
+            # Requesting a bad addr again should retrigger refill
+            yield from self.call_cache(0x00010008, expect_error=True)
+            self.assertEqual(self.refill_requests.popleft(), 0x00010000)
+
+            yield from self.call_cache(0x00020000, expect_error=True)
+            self.assertEqual(self.refill_requests.popleft(), 0x00020000)
+
+            yield from self.call_cache(0x00030008, expect_error=True)
+            self.assertEqual(self.refill_requests.popleft(), 0x00030000)
+
+            # Test how pipelining works with errors
+
+            yield from self.m.accept_res.disable()
+            yield
+
+            # Schedule two requests, the first one causing an error
+            yield from self.send_req(addr=0x00020000)
+            yield from self.send_req(addr=0x00011000)
+
+            yield from self.m.accept_res.enable()
+
+            yield from self.expect_resp(wait=True, expect_error=True)
+            yield
+            yield from self.expect_resp(wait=True)
+            yield
+            yield from self.m.accept_res.disable()
+
+            yield from self.cycle(3)
+
+            # Schedule two requests, the second one causing an error
+            yield from self.send_req(addr=0x00021004)
+            yield from self.send_req(addr=0x00030000)
+
+            yield from self.m.accept_res.enable()
+
+            yield from self.expect_resp(wait=True)
+            yield
+            yield from self.expect_resp(wait=True, expect_error=True)
+            yield
+            yield from self.m.accept_res.disable()
+
+            yield from self.cycle(3)
+
+            # Schedule two requests, both causing an error
+            yield from self.send_req(addr=0x00020000)
+            yield from self.send_req(addr=0x00010000)
+
+            yield from self.m.accept_res.enable()
+
+            yield from self.expect_resp(wait=True, expect_error=True)
+            yield
+            yield from self.expect_resp(wait=True, expect_error=True)
+            yield
+            yield from self.m.accept_res.disable()
+
+        start_refill_mock, accept_refill_mock = self.refiller_processes()
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(start_refill_mock)
+            sim.add_sync_process(accept_refill_mock)
+            sim.add_sync_process(cache_process)
 
     def test_random(self):
         self.init_module(4, 8)
 
         max_addr = 16 * self.cp.block_size_bytes * self.cp.num_of_sets
-        iterations = 250
+        iterations = 1000
 
         requests = deque()
+
+        bad_cache_lines = set()
+
+        for i in range(0, max_addr, 4):
+            if random.random() < 0.05:
+                self.bad_addrs.add(i)
+                bad_cache_lines.add(i & ~((1 << self.cp.offset_bits) - 1))
 
         def sender():
             for _ in range(iterations):
@@ -353,11 +517,15 @@ class TestICache(TestCaseWithSimulator):
                 while len(requests) == 0:
                     yield
 
-                addr = requests.pop()
                 ret = yield from self.m.accept_res.call()
-                self.assertEqual(ret["instr"], self.mem[addr])
+                addr = requests.popleft()
+                if (addr & ~((1 << self.cp.offset_bits) - 1)) in bad_cache_lines:
+                    self.assertTrue(ret["error"])
+                else:
+                    self.assertFalse(ret["error"])
+                    self.assertEqual(ret["instr"], self.mem[addr])
 
-                while random.random() < 0.5:
+                while random.random() < 0.2:
                     yield
 
         start_refill_mock, accept_refill_mock = self.refiller_processes()
