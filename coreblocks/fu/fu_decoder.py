@@ -43,7 +43,11 @@ class Decoder(Elaboratable):
         m = Module()
 
         for op in self.ops:
-            cond = (self.exec_fn.op_type == op[1]) & (self.exec_fn.funct3 == op[2])
+            #print(op[1])
+            #print(self.exec_fn.op_type)
+            #cond = (self.exec_fn.op_type == op[1]) & (self.exec_fn.funct3 == op[2])
+            cond = (self.exec_fn.funct3 == op[2])
+            
             if len(op) == 4:
                 cond = cond & (self.exec_fn.funct7 == op[3])
 

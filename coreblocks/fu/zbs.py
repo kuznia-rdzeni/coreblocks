@@ -25,7 +25,7 @@ class ZbsFunction(DecoderManager):
     """
 
     class Fn(IntFlag):
-        BCLR = auto() # Bit clear
+        BCLR = auto()  # Bit clear
         BEXT = auto()  # Bit extract
         BINV = auto()  # Bit invert
         BSET = auto()  # Bit set
