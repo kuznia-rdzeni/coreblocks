@@ -456,7 +456,7 @@ class TestMethodProduct(TestCaseWithSimulator):
             # if any of the target methods is not enabled, call does not succeed
             for i in range(2**targets - 1):
                 for k in range(targets):
-                    method_en[k] = i & (1 << k)
+                    method_en[k] = bool(i & (1 << k))
                 yield Settle()
 
                 self.assertIsNone((yield from m.method.call_try(data=0)))

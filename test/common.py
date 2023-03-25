@@ -261,7 +261,11 @@ class TestbenchIO(Elaboratable):
         yield from self.set_inputs(data)
 
     def method_handle(
-        self, function: Callable[[RecordIntDictRet], Optional[RecordIntDict]], *, settle: int = 0, enable: Optional[Callable[[], bool]] = None,
+        self,
+        function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
+        *,
+        settle: int = 0,
+        enable: Optional[Callable[[], bool]] = None,
     ) -> TestGen[None]:
         enable = enable or (lambda: True)
         yield from self.set_enable(enable())
