@@ -18,6 +18,8 @@ class DecoderManager(Signal):
     @classmethod
     def get_instructions(cls):
         raise NotImplementedError
+    
+    optype_dependant = True
 
     @classmethod
     def get_op_types(cls):
@@ -25,31 +27,30 @@ class DecoderManager(Signal):
 
     @classmethod
     def get_decoder(cls, gen_params: GenParams):
-        return Decoder(gen_params, cls.Fn, cls.get_instructions())
+        return Decoder(gen_params, cls.Fn, cls.get_instructions(), check_optype=cls.optype_dependant)
 
     def __init__(self, *args, **kwargs):
         super().__init__(self.Fn, *args, **kwargs)
 
 
 class Decoder(Elaboratable):
-    def __init__(self, gen: GenParams, decode_fn: Type[IntFlag], instructions: Array[tuple]):
+    def __init__(self, gen: GenParams, decode_fn: Type[IntFlag], instructions: Array[tuple], check_optype = True):
         layouts = gen.get(CommonLayouts)
 
         self.exec_fn = Record(layouts.exec_fn)
         self.decode_fn = Signal(decode_fn)
         self.ops = instructions
+        self.check_optype = check_optype
 
     def elaborate(self, platform):
         m = Module()
 
         for op in self.ops:
-            #print(op[1])
-            #print(self.exec_fn.op_type)
-            #cond = (self.exec_fn.op_type == op[1]) & (self.exec_fn.funct3 == op[2])
-            cond = (self.exec_fn.funct3 == op[2])
-            
-            if len(op) == 4:
-                cond = cond & (self.exec_fn.funct7 == op[3])
+            optype_match = (self.exec_fn.op_type == op[1] if self.check_optype else 1)
+            funct3_match = (self.exec_fn.funct3 == op[2] if len(op) >= 3 else 1)
+            funct7_match = (self.exec_fn.funct7 == op[3] if len(op) >= 4 else 1)
+
+            cond = optype_match & funct3_match & funct7_match
 
             signal_num = floor(log2(op[0]))
 

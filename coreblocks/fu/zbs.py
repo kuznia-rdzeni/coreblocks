@@ -38,6 +38,8 @@ class ZbsFunction(DecoderManager):
             (cls.Fn.BINV, OpType.SINGLE_BIT_MANIPULATION, Funct3.BINV, Funct7.BINV),
             (cls.Fn.BSET, OpType.SINGLE_BIT_MANIPULATION, Funct3.BSET, Funct7.BSET),
         ]
+    
+    optype_dependant = False
 
 
 class Zbs(Elaboratable):
