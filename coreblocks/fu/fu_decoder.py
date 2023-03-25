@@ -18,7 +18,7 @@ class DecoderManager(Signal):
     @classmethod
     def get_instructions(cls):
         raise NotImplementedError
-    
+
     optype_dependant = True
 
     @classmethod
@@ -34,7 +34,7 @@ class DecoderManager(Signal):
 
 
 class Decoder(Elaboratable):
-    def __init__(self, gen: GenParams, decode_fn: Type[IntFlag], instructions: Array[tuple], check_optype = True):
+    def __init__(self, gen: GenParams, decode_fn: Type[IntFlag], instructions: Array[tuple], check_optype=True):
         layouts = gen.get(CommonLayouts)
 
         self.exec_fn = Record(layouts.exec_fn)
@@ -46,9 +46,9 @@ class Decoder(Elaboratable):
         m = Module()
 
         for op in self.ops:
-            optype_match = (self.exec_fn.op_type == op[1] if self.check_optype else 1)
-            funct3_match = (self.exec_fn.funct3 == op[2] if len(op) >= 3 else 1)
-            funct7_match = (self.exec_fn.funct7 == op[3] if len(op) >= 4 else 1)
+            optype_match = self.exec_fn.op_type == op[1] if self.check_optype else 1
+            funct3_match = self.exec_fn.funct3 == op[2] if len(op) >= 3 else 1
+            funct7_match = self.exec_fn.funct7 == op[3] if len(op) >= 4 else 1
 
             cond = optype_match & funct3_match & funct7_match
 

@@ -1,15 +1,7 @@
 from enum import IntFlag
 from amaranth import *
 
-from coreblocks.params import (
-    Funct3,
-    GenParams,
-    FuncUnitLayouts,
-    OpType,
-    Funct7,
-    FunctionalComponentParams,
-    auto
-)
+from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams, auto
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import FIFO
 from coreblocks.transactions.core import def_method
@@ -38,7 +30,7 @@ class ZbsFunction(DecoderManager):
             (cls.Fn.BINV, OpType.SINGLE_BIT_MANIPULATION, Funct3.BINV, Funct7.BINV),
             (cls.Fn.BSET, OpType.SINGLE_BIT_MANIPULATION, Funct3.BSET, Funct7.BSET),
         ]
-    
+
     optype_dependant = False
 
 
