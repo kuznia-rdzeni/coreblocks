@@ -2,11 +2,12 @@ from typing import Sequence
 
 from amaranth import *
 
-from coreblocks.stages.rs_func_block import RSFuncBlock
 from coreblocks.transactions import Method, Transaction
 from coreblocks.transactions.lib import FIFO, Forwarder
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from coreblocks.utils import assign, AssignType
+from coreblocks.utils.protocols import FuncBlock
+
 
 __all__ = ["Scheduler"]
 
@@ -106,7 +107,7 @@ class Renaming(Elaboratable):
                 },
             )
 
-            m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "pc"})
+            m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "csr", "pc"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
             m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
             m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
@@ -359,7 +360,7 @@ class Scheduler(Elaboratable):
         rob_put: Method,
         rf_read1: Method,
         rf_read2: Method,
-        reservation_stations: Sequence[RSFuncBlock],
+        reservation_stations: Sequence[FuncBlock],
         gen_params: GenParams
     ):
         """
@@ -381,7 +382,7 @@ class Scheduler(Elaboratable):
         rf_read2: Method
             Method used for getting value of second source register and information if it is valid.
             Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
-        reservation_stations: Sequence[RSFuncBlock]
+        reservation_stations: Sequence[FuncBlock]
             Sequence of units with RS interfaces to which instructions should be inserted.
         gen_params: GenParams
             Core generation parameters.

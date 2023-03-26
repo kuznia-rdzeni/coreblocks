@@ -39,7 +39,7 @@ class TestFifoBase(TestCaseWithSimulator):
 
         def writer():
             for i in range(2**iosize):
-                yield from m.write.call({"data": i})
+                yield from m.write.call(data=i)
                 yield from random_wait(writer_rand)
 
         def reader():
@@ -70,7 +70,7 @@ class TestForwarder(TestFifoBase):
 
         def forward_check(x):
             yield from m.read.call_init()
-            yield from m.write.call_init({"data": x})
+            yield from m.write.call_init(data=x)
             yield Settle()
             self.assertEqual((yield from m.read.call_result()), {"data": x})
             self.assertIsNotNone((yield from m.write.call_result()))
@@ -83,20 +83,20 @@ class TestForwarder(TestFifoBase):
 
             # load the overflow buffer
             yield from m.read.disable()
-            yield from m.write.call_init({"data": 42})
+            yield from m.write.call_init(data=42)
             yield Settle()
             self.assertIsNotNone((yield from m.write.call_result()))
             yield
 
             # writes are not possible now
-            yield from m.write.call_init({"data": 84})
+            yield from m.write.call_init(data=84)
             yield Settle()
             self.assertIsNone((yield from m.write.call_result()))
             yield
 
             # read from the overflow buffer, writes still blocked
             yield from m.read.enable()
-            yield from m.write.call_init({"data": 111})
+            yield from m.write.call_init(data=111)
             yield Settle()
             self.assertEqual((yield from m.read.call_result()), {"data": 42})
             self.assertIsNone((yield from m.write.call_result()))
@@ -186,8 +186,8 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         def producer():
             inputs = self.inputs[i]
             for field1, field2 in inputs:
-                input_dict = {"field1": field1, "field2": field2}
-                yield from getattr(self.m, f"input_{i}").call_init(input_dict)
+                io: TestbenchIO = getattr(self.m, f"input_{i}")
+                yield from io.call_init(field1=field1, field2=field2)
                 yield from self.random_wait()
             self.producer_end[i] = True
 
@@ -305,7 +305,7 @@ class TestMethodTransformer(TestCaseWithSimulator):
 
     def source(self):
         for i in range(2**self.m.iosize):
-            v = yield from self.m.source.call({"data": i})
+            v = yield from self.m.source.call(data=i)
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
             self.assertEqual(v["data"], (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1))
 
@@ -376,7 +376,7 @@ class TestMethodFilter(TestCaseWithSimulator):
 
     def source(self):
         for i in range(2**self.m.iosize):
-            v = yield from self.m.source.call({"data": i})
+            v = yield from self.m.source.call(data=i)
             if i & 1:
                 self.assertEqual(v["data"], (i + 1) & ((1 << self.m.iosize) - 1))
             else:
@@ -458,13 +458,13 @@ class TestMethodProduct(TestCaseWithSimulator):
                         yield from m.target[k].enable()
                     else:
                         yield from m.target[k].disable()
-                self.assertIsNone((yield from m.method.call_try({"data": 0})))
+                self.assertIsNone((yield from m.method.call_try(data=0)))
 
             # otherwise, the call succeeds
             for k in range(targets):
                 yield from m.target[k].enable()
             data = random.randint(0, (1 << iosize) - 1)
-            val = (yield from m.method.call({"data": data}))["data"]
+            val = (yield from m.method.call(data=data))["data"]
             if add_combiner:
                 self.assertEqual(val, (targets * data + (targets - 1) * targets // 2) & ((1 << iosize) - 1))
             else:

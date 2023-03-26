@@ -12,7 +12,7 @@ from amaranth.hdl.ast import Statement
 
 from coreblocks.utils import AssignType, assign
 from ._utils import *
-from ..utils._typing import StatementLike, ValueLike, DebugSignals
+from ..utils._typing import StatementLike, ValueLike, SignalBundle
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
@@ -39,8 +39,11 @@ RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 
 
 class Priority(Enum):
+    #: Conflicting transactions/methods don't have a priority order.
     UNDEFINED = auto()
+    #: Left transaction/method is prioritized over the right one.
     LEFT = auto()
+    #: Right transaction/method is prioritized over the left one.
     RIGHT = auto()
 
 
@@ -516,7 +519,7 @@ class Transaction(TransactionBase):
     def __repr__(self) -> str:
         return "(transaction {})".format(self.name)
 
-    def debug_signals(self) -> DebugSignals:
+    def debug_signals(self) -> SignalBundle:
         return [self.request, self.grant]
 
 
@@ -751,7 +754,7 @@ class Method(TransactionBase):
     def __repr__(self) -> str:
         return "(method {})".format(self.name)
 
-    def debug_signals(self) -> DebugSignals:
+    def debug_signals(self) -> SignalBundle:
         return [self.ready, self.run, self.data_in, self.data_out]
 
 

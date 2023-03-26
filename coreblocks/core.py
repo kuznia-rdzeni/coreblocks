@@ -1,19 +1,18 @@
-from amaranth import Elaboratable, Module
+from amaranth import *
 
-from coreblocks.transactions.lib import FIFO, ConnectTrans, MethodProduct, Collector
+from coreblocks.params.fu_params import DependencyManager
+from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
+from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
+from coreblocks.params.keys import InstructionCommitKey, BranchResolvedKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.scheduler.scheduler import Scheduler
-from coreblocks.fu.alu import AluFuncUnit
-from coreblocks.fu.jumpbranch import JumpBranchFuncUnit
-from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
-from coreblocks.stages.rs_func_block import RSFuncBlock
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.utils.fifo import BasicFifo
@@ -40,19 +39,20 @@ class Core(Elaboratable):
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        alu = AluFuncUnit(gen=self.gen_params)
-        self.jb_unit = JumpBranchFuncUnit(gen=self.gen_params)
-        self.lsu_unit = LSUDummy(gen_params=self.gen_params, bus=self.wb_master_data)
-        self.rs_blocks = [RSFuncBlock(gen_params=self.gen_params, func_units=[alu, self.jb_unit]), self.lsu_unit]
+        connections = gen_params.get(DependencyManager)
+        connections.add_dependency(WishboneDataKey(), wb_master_data)
 
-        self.result_collector = Collector([block.get_result for block in self.rs_blocks])
-        self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
+        self.func_blocks_unifier = FuncBlocksUnifier(
+            gen_params=gen_params,
+            blocks=gen_params.func_units_config,
+            extra_methods_required=[InstructionCommitKey(), BranchResolvedKey()],
+        )
 
         self.announcement = ResultAnnouncement(
             gen=self.gen_params,
-            get_result=self.result_collector.method,
+            get_result=self.func_blocks_unifier.get_result,
             rob_mark_done=self.ROB.mark_done,
-            rs_write_val=self.update_combiner.method,
+            rs_write_val=self.func_blocks_unifier.update,
             rf_write_val=self.RF.write,
         )
 
@@ -80,23 +80,22 @@ class Core(Elaboratable):
             rob_put=rob.put,
             rf_read1=rf.read1,
             rf_read2=rf.read2,
-            reservation_stations=self.rs_blocks,
+            reservation_stations=self.func_blocks_unifier.rs_blocks,
             gen_params=self.gen_params,
         )
 
-        for n, block in enumerate(self.rs_blocks):
-            m.submodules[f"rs_block_{n}"] = block
+        m.submodules.verify_branch = ConnectTrans(
+            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch
+        )
 
-        m.submodules.verify_branch = ConnectTrans(self.jb_unit.branch_result, self.fetch.verify_branch)
         m.submodules.announcement = self.announcement
-        m.submodules.result_collector = self.result_collector
-        m.submodules.update_combiner = self.update_combiner
+        m.submodules.func_blocks_unifier = self.func_blocks_unifier
         m.submodules.retirement = Retirement(
             rob_retire=rob.retire,
             r_rat_commit=rrat.commit,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
-            lsu_commit=self.lsu_unit.commit,
+            lsu_commit=self.func_blocks_unifier.get_extra_method(InstructionCommitKey()),
         )
 
         return m

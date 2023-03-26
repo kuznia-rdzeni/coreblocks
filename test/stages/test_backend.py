@@ -8,7 +8,7 @@ from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter, ManyToOneCo
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.params.layouts import *
 from coreblocks.params import GenParams
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 
 class BackendTestCircuit(Elaboratable):
@@ -69,7 +69,7 @@ class BackendTestCircuit(Elaboratable):
 
 class TestBackend(TestCaseWithSimulator):
     def initialize(self):
-        gen = GenParams("rv32i")
+        gen = test_gen_params("rv32i")
         self.m = BackendTestCircuit(gen, self.fu_count)
         random.seed(14)
 
@@ -109,8 +109,8 @@ class TestBackend(TestCaseWithSimulator):
         def producer():
             inputs = self.fu_inputs[i]
             for rob_id, result, rp_dst in inputs:
-                input_dict = {"rob_id": rob_id, "result": result, "rp_dst": rp_dst}
-                yield from getattr(self.m, f"fu_fifo_{i}_in").call_init(input_dict)
+                io: TestbenchIO = getattr(self.m, f"fu_fifo_{i}_in")
+                yield from io.call_init(rob_id=rob_id, result=result, rp_dst=rp_dst)
                 yield from self.random_wait()
             self.producer_end[i] = True
 

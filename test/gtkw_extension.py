@@ -2,25 +2,14 @@ from typing import Iterable, Mapping
 from contextlib import contextmanager
 from amaranth.sim.pysim import _VCDWriter
 from amaranth import *
-
-
-def flatten(traces):
-    if isinstance(traces, Mapping):
-        for x in traces.values():
-            yield from flatten(x)
-    elif isinstance(traces, Iterable):
-        for x in traces:
-            yield from flatten(x)
-    elif isinstance(traces, Record):
-        for x in traces.fields.values():
-            yield from flatten(x)
-    else:
-        yield traces
+from coreblocks.utils.utils import flatten_signals
 
 
 class _VCDWriterExt(_VCDWriter):
     def __init__(self, fragment, *, vcd_file, gtkw_file, traces):
-        super().__init__(fragment=fragment, vcd_file=vcd_file, gtkw_file=gtkw_file, traces=list(flatten(traces)))
+        super().__init__(
+            fragment=fragment, vcd_file=vcd_file, gtkw_file=gtkw_file, traces=list(flatten_signals(traces))
+        )
         self._tree_traces = traces
 
     def close(self, timestamp):
