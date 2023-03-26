@@ -7,7 +7,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import BlockComponentParams, DependencyManager, ListKey
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3
-from coreblocks.params.keys import BranchResolvedKey
+from coreblocks.params.keys import BranchResolvedKey, ROBSingleKey
 from coreblocks.params import OpType
 from coreblocks.utils.protocols import FuncBlock
 
@@ -299,7 +299,8 @@ class CSRUnit(Elaboratable):
 class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
-        unit = CSRUnit(gen_params, Signal())
+        rob_single = connections.get_dependency(ROBSingleKey())
+        unit = CSRUnit(gen_params, rob_single)
         connections.add_dependency(BranchResolvedKey(), unit.fetch_continue)
         return unit
 

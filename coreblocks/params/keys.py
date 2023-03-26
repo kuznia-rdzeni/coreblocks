@@ -1,3 +1,4 @@
+from amaranth import *
 from dataclasses import dataclass, field
 from coreblocks.params.fu_params import SimpleKey, UnifierKey
 from coreblocks.transactions.lib import MethodProduct, Collector
@@ -14,6 +15,11 @@ __all__ = [
 
 @dataclass(frozen=True)
 class WishboneDataKey(SimpleKey[WishboneMaster]):
+    pass
+
+
+@dataclass(frozen=True)
+class ROBSingleKey(SimpleKey[Signal]):
     pass
 
 

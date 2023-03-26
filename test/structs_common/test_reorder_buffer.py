@@ -1,5 +1,5 @@
 from amaranth import Elaboratable, Module
-from amaranth.sim import Passive
+from amaranth.sim import Passive, Settle
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
@@ -79,6 +79,10 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 self.assertIn(phys_reg, self.executed_list)
                 self.executed_list.remove(phys_reg)
 
+                yield Settle()
+                self.assertEqual(
+                    (yield self.m.rb.single_entry), len(self.executed_list) + len(self.to_execute_list) == 1
+                )
                 self.assertEqual(results["rob_data"], regs)
                 self.regs_left_queue.put(phys_reg)
 

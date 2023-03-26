@@ -1,6 +1,8 @@
 from amaranth import *
 from ..transactions import Method, def_method
 from ..params import GenParams, ROBLayouts
+from ..params.fu_params import DependencyManager
+from ..params.keys import ROBSingleKey
 
 __all__ = ["ReorderBuffer"]
 
@@ -13,6 +15,9 @@ class ReorderBuffer(Elaboratable):
         self.mark_done = Method(i=layouts.id_layout)
         self.retire = Method(o=layouts.retire_layout)
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
+        self.single_entry = Signal()
+        connections = gen_params.get(DependencyManager)
+        connections.add_dependency(ROBSingleKey(), self.single_entry)
 
     def elaborate(self, platform) -> Module:
         m = Module()
@@ -21,6 +26,8 @@ class ReorderBuffer(Elaboratable):
         end_idx = Signal(self.params.rob_entries_bits)
 
         put_possible = (end_idx + 1) % (2**self.params.rob_entries_bits) != start_idx
+
+        m.d.comb += self.single_entry.eq(((start_idx + 1) % (2**self.params.rob_entries_bits)) == end_idx)
 
         @def_method(m, self.retire, ready=self.data[start_idx].done)
         def _():
