@@ -1,17 +1,30 @@
 from amaranth import *
+from dataclasses import dataclass
 
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.utils import assign
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.layouts import FuncUnitLayouts, CSRLayouts
+from coreblocks.params.fu_params import BlockComponentParams, DependencyManager, ListKey
+from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3
+from coreblocks.params.keys import BranchResolvedKey
+from coreblocks.params import OpType
+from coreblocks.utils.protocols import FuncBlock
+
+
+@dataclass(frozen=True)
+class CSRListKey(ListKey["CSRRegister"]):
+    """
+    DependencyManager key collecting CSR registers globally
+    """
+
+    pass
 
 
 class CSRRegister(Elaboratable):
     """CSR Register
     Used to define a CSR register and specify its behaviour.
-    `CSRRegister`s need to be registered to a `CSRUnit` in order to be
-    accesible by instructions.
+    `CSRRegister`s are automatically assigned to `CSRListKey` dependency key, to be accessed from `CSRUnit`s.
 
     Attributes
     ----------
@@ -72,6 +85,10 @@ class CSRRegister(Elaboratable):
         self.value = Signal(gen_params.isa.xlen)
         self.side_effects = Record({("read", 1), ("write", 1)})
 
+        # append to global CSR list
+        dm = gen_params.get(DependencyManager)
+        dm.add_dependency(CSRListKey(), self)
+
     def elaborate(self, platform):
         m = Module()
 
@@ -121,8 +138,7 @@ class CSRUnit(Elaboratable):
     Depends on stalling the `Fetch` stage on CSR instructions and holds computation
     unitl all other instructions are commited.
 
-    Each CSR register have to be specified by `CSRRegister` class and
-    registered by `register` method.
+    Each CSR register have to be specified by `CSRRegister` class.
 
     Attributes
     ----------
@@ -149,6 +165,7 @@ class CSRUnit(Elaboratable):
             Method to resume `Fetch` unit from stalled PC.
         """
         self.gen_params = gen_params
+        self.dependecy_manager = gen_params.get(DependencyManager)
 
         self.rob_empty = rob_single_instr
         self.fetch_continue = fetch_continue
@@ -163,21 +180,16 @@ class CSRUnit(Elaboratable):
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
-    def register(self, csr: CSRRegister):
-        """
-        Registers `CSRRegister` - makes it accesible by this unit.
-        Call this method from other constructors.
-
-        Parameters
-        ----------
-        csr: CSRRegister
-            `CSRRegister` to register.
-        """
-        if csr.csr_number in self.regfile:
-            raise RuntimeError(f"CSR number {csr.csr_number} already registered")
-        self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
+    def register(self):
+        # Registers `CSRRegister`s provided by `CSRListKey` depenecy.
+        for csr in self.dependecy_manager.get_dependency(CSRListKey()):
+            if csr.csr_number in self.regfile:
+                raise RuntimeError(f"CSR number {csr.csr_number} already registered")
+            self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
 
     def elaborate(self, platform):
+        self.register()
+
         m = Module()
 
         reserved = Signal()
