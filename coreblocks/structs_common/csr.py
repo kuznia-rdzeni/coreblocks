@@ -197,6 +197,7 @@ class CSRUnit(Elaboratable):
         reserved = Signal()
         ready_to_process = Signal()
         done = Signal()
+        accepted = Signal()
 
         current_result = Signal(self.gen_params.isa.xlen)
 
@@ -280,6 +281,7 @@ class CSRUnit(Elaboratable):
 
         @def_method(m, self.get_result, done)
         def _():
+            m.d.comb += accepted.eq(1)
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
@@ -289,7 +291,7 @@ class CSRUnit(Elaboratable):
                 "result": current_result,
             }
 
-        @def_method(m, self.fetch_continue, done)
+        @def_method(m, self.fetch_continue, accepted)
         def _():
             return {"next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
 
