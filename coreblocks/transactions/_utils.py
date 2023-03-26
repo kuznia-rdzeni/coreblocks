@@ -8,6 +8,7 @@ from coreblocks.utils import OneHotSwitchDynamic
 __all__ = [
     "Scheduler",
     "_graph_ccs",
+    "_graph_sccs",
     "MethodLayout",
     "ROGraph",
     "Graph",
@@ -114,6 +115,63 @@ def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
             cc = set()
 
     return ccs
+
+
+def _graph_sccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
+    """_graph_ccs
+
+    Find strongly connected components in a graph.
+
+    Parameters
+    ----------
+    gr : Mapping[T, Iterable[T]]
+        Graph in which we should find strongly connected components. Encoded
+        using adjacency lists.
+
+    Returns
+    -------
+    ccs : List[Set[T]]
+        Connected components of the graph `gr`.
+    """
+    # Tarjan's algorithm
+    sccs = list[GraphCC[T]]()
+
+    idx = 0
+    idxs = dict[T, int]()
+    lowlinks = dict[T, int]()
+    on_stack = set[T]()
+    stack = list[T]()
+
+    def sc(v):
+        nonlocal idx
+
+        idxs[v] = idx
+        lowlinks[v] = idx
+        idx = idx + 1
+        stack.append(v)
+        on_stack.add(v)
+
+        for w in gr[v]:
+            if w not in idxs:
+                sc(w)
+                lowlinks[v] = min(lowlinks[v], lowlinks[w])
+            elif w in on_stack:
+                lowlinks[v] = min(lowlinks[v], idxs[w])
+
+        if lowlinks[v] == idxs[v]:
+            w: Optional[T] = None
+            scc = set[T]()
+            while w != v:
+                w = stack.pop()
+                on_stack.remove(w)
+                scc.add(w)
+            sccs.append(scc)
+
+    for v in gr.keys():
+        if v not in idxs:
+            sc(v)
+
+    return sccs
 
 
 MethodLayout: TypeAlias = LayoutLike

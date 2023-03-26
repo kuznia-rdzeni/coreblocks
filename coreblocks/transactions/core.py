@@ -192,8 +192,6 @@ class TransactionManager(Elaboratable):
         rgr: TransactionGraph = {}  # Relation graph
 
         def add_edge(begin: Transaction, end: Transaction, priority: Priority, conflict: bool):
-            rgr[begin].add(end)
-            rgr[end].add(begin)
             if conflict:
                 cgr[begin].add(end)
                 cgr[end].add(begin)
@@ -206,7 +204,6 @@ class TransactionManager(Elaboratable):
         for transaction in self.transactions:
             cgr[transaction] = set()
             pgr[transaction] = set()
-            rgr[transaction] = set()
 
         for transaction, methods in self.methods_by_transaction.items():
             for method in methods:
@@ -220,6 +217,9 @@ class TransactionManager(Elaboratable):
             for start in end_trans(relation["start"]):
                 for end in end_trans(relation["end"]):
                     add_edge(start, end, relation["priority"], relation["conflict"])
+
+        for transaction in self.transactions:
+            rgr[transaction] = cgr[transaction] | pgr[transaction]
 
         porder: PriorityOrder = {}
 
@@ -257,7 +257,7 @@ class TransactionManager(Elaboratable):
 
         m = Module()
 
-        for cc in _graph_ccs(rgr):
+        for cc in _graph_sccs(rgr):
             self.cc_scheduler(m, cgr, cc, porder)
 
         for method, transactions in self.transactions_by_method.items():
