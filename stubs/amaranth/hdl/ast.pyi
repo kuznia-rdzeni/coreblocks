@@ -326,7 +326,10 @@ class Slice(Value):
     
     def __repr__(self) -> str:
         ...
-    
+
+    value: Value
+    start: int
+    stop: int
 
 
 @final
