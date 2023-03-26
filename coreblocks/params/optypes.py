@@ -31,6 +31,7 @@ class OpType(IntEnum):
     MUL = auto()
     DIV_REM = auto()
     SINGLE_BIT_MANIPULATION = auto()
+    ADDRESS_GENERATION = auto()
 
 
 #
@@ -70,6 +71,9 @@ optypes_by_extensions = {
     ],
     Extension.ZBS: [
         OpType.SINGLE_BIT_MANIPULATION,
+    ],
+    Extension.ZBA: [
+        OpType.ADDRESS_GENERATION,
     ],
 }
 

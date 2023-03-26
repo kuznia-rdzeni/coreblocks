@@ -58,6 +58,7 @@ class Decode(Elaboratable):
                         "rl_s2_v": instr_decoder.rs2_v,
                     },
                     "imm": instr_decoder.imm,
+                    "csr": instr_decoder.csr,
                     "pc": raw.pc,
                 },
             )

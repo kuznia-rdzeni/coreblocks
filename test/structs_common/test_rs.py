@@ -204,7 +204,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         # Update second entry first SP, instruction should be not ready
         value_sp1 = 1010
         self.assertEqual((yield self.m.rs.data[1].rec_ready), 0)
-        yield from self.m.io_update.call({"tag": 2, "value": value_sp1})
+        yield from self.m.io_update.call(tag=2, value=value_sp1)
         yield Settle()
         self.assertEqual((yield self.m.rs.data[1].rs_data.rp_s1), 0)
         self.assertEqual((yield self.m.rs.data[1].rs_data.s1_val), value_sp1)
@@ -212,7 +212,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
         # Update second entry second SP, instruction should be ready
         value_sp2 = 2020
-        yield from self.m.io_update.call({"tag": 3, "value": value_sp2})
+        yield from self.m.io_update.call(tag=3, value=value_sp2)
         yield Settle()
         self.assertEqual((yield self.m.rs.data[1].rs_data.rp_s2), 0)
         self.assertEqual((yield self.m.rs.data[1].rs_data.s2_val), value_sp2)
@@ -237,11 +237,11 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         }
 
         for index in range(2):
-            yield from self.m.io_insert.call({"rs_entry_id": index, "rs_data": data})
+            yield from self.m.io_insert.call(rs_entry_id=index, rs_data=data)
             yield Settle()
             self.assertEqual((yield self.m.rs.data[index].rec_ready), 0)
 
-        yield from self.m.io_update.call({"tag": tag, "value": value_spx})
+        yield from self.m.io_update.call(tag=tag, value=value_spx)
         yield Settle()
         for index in range(2):
             self.assertEqual((yield self.m.rs.data[index].rs_data.rp_s1), 0)
@@ -293,7 +293,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
 
         # Take first instruction
         self.assertEqual((yield self.m.rs.take.ready), 1)
-        data = yield from self.m.io_take.call({"rs_entry_id": 0})
+        data = yield from self.m.io_take.call(rs_entry_id=0)
         for key in data:
             self.assertEqual(data[key], self.check_list[0]["rs_data"][key])
         yield Settle()
@@ -302,10 +302,10 @@ class TestRSMethodTake(TestCaseWithSimulator):
         # Update second instuction and take it
         tag = 2
         value_spx = 1
-        yield from self.m.io_update.call({"tag": tag, "value": value_spx})
+        yield from self.m.io_update.call(tag=tag, value=value_spx)
         yield Settle()
         self.assertEqual((yield self.m.rs.take.ready), 1)
-        data = yield from self.m.io_take.call({"rs_entry_id": 1})
+        data = yield from self.m.io_take.call(rs_entry_id=1)
         for key in data:
             self.assertEqual(data[key], self.check_list[1]["rs_data"][key])
         yield Settle()
@@ -331,18 +331,18 @@ class TestRSMethodTake(TestCaseWithSimulator):
         }
 
         for index in range(2):
-            yield from self.m.io_insert.call({"rs_entry_id": index, "rs_data": entry_data})
+            yield from self.m.io_insert.call(rs_entry_id=index, rs_data=entry_data)
             yield Settle()
             self.assertEqual((yield self.m.rs.data[index].rec_ready), 1)
             self.assertEqual((yield self.m.rs.take.ready), 1)
 
-        data = yield from self.m.io_take.call({"rs_entry_id": 0})
+        data = yield from self.m.io_take.call(rs_entry_id=0)
         for key in data:
             self.assertEqual(data[key], entry_data[key])
         yield Settle()
         self.assertEqual((yield self.m.rs.take.ready), 1)
 
-        data = yield from self.m.io_take.call({"rs_entry_id": 1})
+        data = yield from self.m.io_take.call(rs_entry_id=1)
         for key in data:
             self.assertEqual(data[key], entry_data[key])
         yield Settle()
@@ -390,13 +390,13 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
         self.assertEqual(ready_list, 0b0011)
 
         # Take first record and check ready vector integrity
-        yield from self.m.io_take.call({"rs_entry_id": 0})
+        yield from self.m.io_take.call(rs_entry_id=0)
         yield Settle()
         ready_list = (yield from self.m.io_get_ready_list[0].call())["ready_list"]
         self.assertEqual(ready_list, 0b0010)
 
         # Take second record and check ready vector integrity
-        yield from self.m.io_take.call({"rs_entry_id": 1})
+        yield from self.m.io_take.call(rs_entry_id=1)
         yield Settle()
         option_ready_list = yield from self.m.io_get_ready_list[0].call_try()
         self.assertIsNone(option_ready_list)
@@ -451,7 +451,7 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
             # Take a record
             if i == self.gp.rs_entries:
                 break
-            yield from self.m.io_take.call({"rs_entry_id": i})
+            yield from self.m.io_take.call(rs_entry_id=i)
             yield Settle()
 
             masks = [mask & ~(1 << i) for mask in masks]

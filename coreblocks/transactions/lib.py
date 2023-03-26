@@ -1,7 +1,7 @@
 from typing import Callable, Tuple, Optional
 from amaranth import *
 from .core import *
-from .core import DebugSignals, RecordDict
+from .core import SignalBundle, RecordDict
 from ._utils import MethodLayout
 from ..utils import ValueLike, assign, AssignType
 
@@ -258,7 +258,7 @@ class AdapterBase(Elaboratable):
         self.en = Signal()
         self.done = Signal()
 
-    def debug_signals(self) -> DebugSignals:
+    def debug_signals(self) -> SignalBundle:
         return [self.en, self.done, self.data_in, self.data_out]
 
 
