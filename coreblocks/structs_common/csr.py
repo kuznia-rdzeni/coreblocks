@@ -148,12 +148,14 @@ class CSRUnit(Elaboratable):
         Method from standard RS interface. Puts instruction in reserved place.
     update: Method
         Method from standard RS interface. Receives announcements of computed register values.
-    accept: Method
-        Method from standard FU interface. Used to receive instruction result and pass it
+    get_result: Method
+        `accept` method from standard FU interface. Used to receive instruction result and pass it
         to the next pipeline stage.
     """
 
-    def __init__(self, gen_params: GenParams, rob_single_instr: Signal, fetch_continue: Method):
+    optypes = {OpType.CSR}
+
+    def __init__(self, gen_params: GenParams, rob_single_instr: Signal):
         """
         Parameters
         ----------
@@ -168,7 +170,7 @@ class CSRUnit(Elaboratable):
         self.dependecy_manager = gen_params.get(DependencyManager)
 
         self.rob_empty = rob_single_instr
-        self.fetch_continue = fetch_continue
+        self.fetch_continue = Method(o=gen_params.get(FetchLayouts).branch_verify)
 
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRLayouts)
@@ -176,7 +178,7 @@ class CSRUnit(Elaboratable):
         self.select = Method(o=self.csr_layouts.rs_select_out)
         self.insert = Method(i=self.csr_layouts.rs_insert_in)
         self.update = Method(i=self.csr_layouts.rs_update_in)
-        self.accept = Method(o=self.fu_layouts.accept)
+        self.get_result = Method(o=self.fu_layouts.accept)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
@@ -276,16 +278,30 @@ class CSRUnit(Elaboratable):
                 m.d.sync += instr.s1_val.eq(value)
                 m.d.sync += instr.rp_s1.eq(0)
 
-        @def_method(m, self.accept, done)
+        @def_method(m, self.get_result, done)
         def _():
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
-            self.fetch_continue(m)
             return {
                 "rob_id": instr.rob_id,
                 "rp_dst": instr.rp_dst,
                 "result": current_result,
             }
 
+        @def_method(m, self.fetch_continue, done)
+        def _():
+            return {"next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
+
         return m
+
+
+class CSRBlockComponent(BlockComponentParams):
+    def get_module(self, gen_params: GenParams) -> FuncBlock:
+        connections = gen_params.get(DependencyManager)
+        unit = CSRUnit(gen_params, Signal())
+        connections.add_dependency(BranchResolvedKey(), unit.fetch_continue)
+        return unit
+
+    def get_optypes(self) -> set[OpType]:
+        return CSRUnit.optypes

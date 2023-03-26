@@ -3,7 +3,6 @@ from amaranth import *
 from coreblocks.structs_common.csr import CSRUnit, CSRRegister
 from coreblocks.params.isa import Funct3
 from coreblocks.frontend.decoder import OpType
-from coreblocks.transactions.lib import Adapter
 
 from ..common import *
 
@@ -21,21 +20,20 @@ class CSRUnitTestCircuit(Elaboratable):
 
         self.rob_single_insn = Signal()
 
-        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(Adapter())
-
-        m.submodules.dut = self.dut = CSRUnit(self.gen_params, self.rob_single_insn, self.fetch_continue.adapter.iface)
+        m.submodules.dut = self.dut = CSRUnit(self.gen_params, self.rob_single_insn)
 
         m.submodules.select = self.select = TestbenchIO(AdapterTrans(self.dut.select))
         m.submodules.insert = self.insert = TestbenchIO(AdapterTrans(self.dut.insert))
         m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
-        m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.accept))
+        m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
+
+        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(AdapterTrans(self.dut.fetch_continue))
 
         self.csr = {}
 
         # simple test not using external r/w functionality of csr
         for i in range(self.csr_count):
             csr = CSRRegister(csr_number=i, gen_params=self.gen_params)
-            self.dut.register(csr)
             self.csr[i] = csr
             m.submodules += csr
 
