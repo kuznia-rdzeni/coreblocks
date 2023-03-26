@@ -1,5 +1,5 @@
 import random
-import math
+
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
@@ -13,7 +13,7 @@ from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
 from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, Opcode, OpType, Funct3, Funct7
 from coreblocks.structs_common.rob import ReorderBuffer
-from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
+from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock, test_gen_params
 
 
 class SchedulerTestCircuit(Elaboratable):
@@ -109,7 +109,7 @@ class TestScheduler(TestCaseWithSimulator):
 
     def setUp(self):
         self.rs_count = len(self.optype_sets)
-        self.gen_params = GenParams("rv32i", rs_number_bits=math.ceil(math.log2(self.rs_count)))
+        self.gen_params = self.gen_params = test_gen_params("rv32i", rs_block_number=self.rs_count)
         self.expected_rename_queue = deque()
         self.expected_phys_reg_queue = deque()
         self.free_regs_queue = deque()
@@ -275,9 +275,9 @@ class TestScheduler(TestCaseWithSimulator):
 
             # set up RF to reflect our static rf_state reference lookup table
             for i in range(2**self.gen_params.phys_regs_bits - 1):
-                yield from self.m.rf_write.call({"reg_id": i, "reg_val": self.rf_state[i].value})
+                yield from self.m.rf_write.call(reg_id=i, reg_val=self.rf_state[i].value)
                 if not self.rf_state[i].valid:
-                    yield from self.m.rf_free.call({"reg_id": i})
+                    yield from self.m.rf_free.call(reg_id=i)
 
             op_types_set = set()
             for rs in self.optype_sets:
@@ -288,10 +288,10 @@ class TestScheduler(TestCaseWithSimulator):
                 rl_s2 = random.randrange(self.gen_params.isa.reg_cnt)
                 rl_dst = random.randrange(self.gen_params.isa.reg_cnt)
 
-                opcode = random.choice(list(Opcode)).value
-                op_type = random.choice(list(op_types_set)).value
-                funct3 = random.choice(list(Funct3)).value
-                funct7 = random.choice(list(Funct7)).value
+                opcode = random.choice(list(Opcode))
+                op_type = random.choice(list(op_types_set))
+                funct3 = random.choice(list(Funct3))
+                funct7 = random.choice(list(Funct7))
                 immediate = random.randrange(2**32)
                 rp_s1 = self.current_RAT[rl_s1]
                 rp_s2 = self.current_RAT[rl_s2]

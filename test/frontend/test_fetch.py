@@ -5,7 +5,7 @@ from amaranth.sim import Passive, Settle
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, FIFO
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.params import GenParams, FetchLayouts
@@ -49,7 +49,7 @@ class TestElaboratable(Elaboratable):
 
 class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = GenParams("rv32i", start_pc=24)
+        self.gp = test_gen_params("rv32i", start_pc=24)
         self.test_module = TestElaboratable(self.gp)
         self.instr_queue = deque()
         self.iterations = 500
@@ -103,7 +103,7 @@ class TestFetch(TestCaseWithSimulator):
                 if instr["is_branch"]:
                     for _ in range(rand.randrange(10)):
                         yield
-                    yield from self.test_module.verify_branch.call({"next_pc": instr["next_pc"]})
+                    yield from self.test_module.verify_branch.call(next_pc=instr["next_pc"])
 
                 v = yield from self.test_module.io_out.call()
                 self.assertEqual((yield self.test_module.fetch.pc), instr["next_pc"])

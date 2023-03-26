@@ -3,7 +3,7 @@ from amaranth import Elaboratable, Module
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, FIFO
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.frontend.decode import Decode
 from coreblocks.params import GenParams, FetchLayouts, DecodeLayouts, OpType, Opcode, Funct3, Funct7
@@ -37,12 +37,12 @@ class TestElaboratable(Elaboratable):
 
 class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = GenParams("rv32i", start_pc=24)
+        self.gp = test_gen_params("rv32i", start_pc=24)
         self.test_module = TestElaboratable(self.gp)
 
     def decode_test_proc(self):
         # testing an OP_IMM instruction (test copied from test_decoder.py)
-        yield from self.test_module.io_in.call({"data": 0x02A28213})
+        yield from self.test_module.io_in.call(data=0x02A28213)
         decoded = yield from self.test_module.io_out.call()
 
         self.assertEqual(decoded["opcode"], Opcode.OP_IMM)
@@ -57,7 +57,7 @@ class TestFetch(TestCaseWithSimulator):
         self.assertEqual(decoded["imm"], 42)
 
         # testing an OP instruction (test copied from test_decoder.py)
-        yield from self.test_module.io_in.call({"data": 0x003100B3})
+        yield from self.test_module.io_in.call(data=0x003100B3)
         decoded = yield from self.test_module.io_out.call()
 
         self.assertEqual(decoded["opcode"], Opcode.OP)

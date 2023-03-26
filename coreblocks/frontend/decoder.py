@@ -4,8 +4,7 @@ from typing import Optional
 
 from amaranth import *
 
-from coreblocks.params import GenParams
-from coreblocks.params.isa import *
+from coreblocks.params import *
 
 __all__ = ["InstrDecoder"]
 
@@ -15,7 +14,7 @@ from coreblocks.utils import OneHotSwitchDynamic
 #
 # In order to add new instructions to be decoded by this decoder assuming they do not required additional
 # fields to be extracted you need to add them into `_instructions_by_optype` map, and register new OpType
-# into new or existing extension in `_optypes_by_extensions` map.
+# into new or existing extension in `optypes_by_extensions` map in `params.optypes` module.
 
 # Lists which fields are used by which Instruction's types
 
@@ -169,44 +168,11 @@ _instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.BINV, Funct7.BINV),  # binv
         Encoding(Opcode.OP_IMM, Funct3.BINV, Funct7.BINV),  # binvi
     ],
-}
-
-#
-# Operation types grouped by extensions
-#
-
-_optypes_by_extensions = {
-    Extension.I: [
-        OpType.ARITHMETIC,
-        OpType.COMPARE,
-        OpType.LOGIC,
-        OpType.SHIFT,
-        OpType.AUIPC,
-        OpType.JAL,
-        OpType.JALR,
-        OpType.BRANCH,
-        OpType.LOAD,
-        OpType.STORE,
-        OpType.FENCE,
-        OpType.ECALL,
-        OpType.EBREAK,
-        OpType.MRET,
-        OpType.WFI,
+    OpType.ADDRESS_GENERATION: [
+        Encoding(Opcode.OP, Funct3.SH1ADD, Funct7.SH1ADD),
+        Encoding(Opcode.OP, Funct3.SH2ADD, Funct7.SH2ADD),
+        Encoding(Opcode.OP, Funct3.SH3ADD, Funct7.SH3ADD),
     ],
-    Extension.ZIFENCEI: [
-        OpType.FENCEI,
-    ],
-    Extension.ZICSR: [
-        OpType.CSR,
-    ],
-    Extension.M: [
-        OpType.MUL,
-        OpType.DIV_REM,
-    ],
-    Extension.ZMMUL: [
-        OpType.MUL,
-    ],
-    Extension.ZBS: [OpType.SINGLE_BIT_MANIPULATION],
 }
 
 
@@ -478,7 +444,7 @@ class InstrDecoder(Elaboratable):
 
         first_valid_optype = OpType.UNKNOWN.value + 1  # value of first OpType which is not UNKNOWN
 
-        for ext, optypes in _optypes_by_extensions.items():
+        for ext, optypes in optypes_by_extensions.items():
             if extensions & ext:
                 for optype in optypes:
                     list_of_encodings = _instructions_by_optype[optype]

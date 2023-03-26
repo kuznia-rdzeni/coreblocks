@@ -10,15 +10,13 @@ from coreblocks.fu.unsigned_multiplication.common import MulBaseUnsigned
 from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
-from coreblocks.params.mul_params import MulUnitParams
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
-from test.common import TestCaseWithSimulator, TestbenchIO
+from test.common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.params import GenParams
-from test.fu.functional_common import FunctionalTestCircuit
 
 
 class UnsignedMultiplicationTestCircuit(Elaboratable):
@@ -40,22 +38,19 @@ class UnsignedMultiplicationTestCircuit(Elaboratable):
 
 
 @parameterized_class(
-    ("name", "mul_unit", "gen"),
+    ("name", "mul_unit"),
     [
         (
             "recursive_multiplier",
             RecursiveUnsignedMul,
-            GenParams("rv32im", mul_unit_params=MulUnitParams.recursive_multiplier(16)),
         ),
         (
             "sequential_multiplier",
             SequentialUnsignedMul,
-            GenParams("rv32im", mul_unit_params=MulUnitParams.sequence_multiplier(16)),
         ),
         (
             "shift_multiplier",
             ShiftUnsignedMul,
-            GenParams("rv32im", mul_unit_params=MulUnitParams.shift_multiplier()),
         ),
     ],
 )
@@ -64,7 +59,8 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
     gen: GenParams
 
     def setUp(self):
-        self.m = FunctionalTestCircuit(self.gen, self.mul_unit)
+        self.gen = test_gen_params("rv32im")
+        self.m = UnsignedMultiplicationTestCircuit(self.gen, self.mul_unit)
 
         random.seed(1050)
         self.requests = deque()

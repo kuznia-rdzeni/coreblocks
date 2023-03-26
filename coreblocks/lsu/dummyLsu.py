@@ -1,10 +1,13 @@
 from amaranth import *
+
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign
+from coreblocks.utils.protocols import FuncBlock
 
-__all__ = ["LSUDummy"]
+
+__all__ = ["LSUDummy", "LSUBlockComponent"]
 
 
 class LSUDummyInternals(Elaboratable):
@@ -281,3 +284,15 @@ class LSUDummy(Elaboratable):
             m.d.sync += reserved.eq(0)
 
         return m
+
+
+class LSUBlockComponent(BlockComponentParams):
+    def get_module(self, gen_params: GenParams) -> FuncBlock:
+        connections = gen_params.get(DependencyManager)
+        wb_master = connections.get_dependency(WishboneDataKey())
+        unit = LSUDummy(gen_params, wb_master)
+        connections.add_dependency(InstructionCommitKey(), unit.commit)
+        return unit
+
+    def get_optypes(self) -> set[OpType]:
+        return LSUDummy.optypes

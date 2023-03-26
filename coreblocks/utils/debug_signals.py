@@ -1,8 +1,8 @@
 from amaranth import *
-from ._typing import DebugSignals, HasDebugSignals
+from ._typing import SignalBundle, HasDebugSignals
 
 
-def auto_debug_signals(thing) -> DebugSignals:
+def auto_debug_signals(thing) -> SignalBundle:
     """Automatic debug signal generation.
 
     Exposes class attributes with debug signals (Amaranth `Signal`\\s,
@@ -11,8 +11,8 @@ def auto_debug_signals(thing) -> DebugSignals:
     tests, for use in ``gtkwave``.
     """
 
-    slist: list[DebugSignals] = []
-    smap: dict[str, DebugSignals] = {}
+    slist: list[SignalBundle] = []
+    smap: dict[str, SignalBundle] = {}
 
     for v in vars(thing):
         a = getattr(thing, v)

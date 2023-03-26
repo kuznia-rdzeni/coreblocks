@@ -8,7 +8,7 @@ from coreblocks.params import GenParams, RSLayouts, SchedulerLayouts, OpType, Op
 from coreblocks.scheduler.scheduler import RSSelection
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
-from test.common import TestCaseWithSimulator, TestbenchIO
+from test.common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 _rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
 _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}
@@ -48,7 +48,7 @@ class RSSelector(Elaboratable):
 
 class TestRSSelect(TestCaseWithSimulator):
     def setUp(self):
-        self.gen_params = GenParams("rv32i", rs_number_bits=1)
+        self.gen_params = test_gen_params("rv32i", rs_block_number=2)
         self.m = RSSelector(self.gen_params)
         self.expected_out = deque()
         self.instr_in = deque()
@@ -65,15 +65,16 @@ class TestRSSelect(TestCaseWithSimulator):
                 rp_s1 = random.randrange(self.gen_params.phys_regs_bits)
                 rp_s2 = random.randrange(self.gen_params.phys_regs_bits)
 
-                op_type = random.choice(list(optypes)).value
-                funct3 = random.choice(list(Funct3)).value
-                funct7 = random.choice(list(Funct7)).value
+                op_type = random.choice(list(optypes))
+                funct3 = random.choice(list(Funct3))
+                funct7 = random.choice(list(Funct7))
 
-                opcode = random.choice(list(Opcode)).value
+                opcode = random.choice(list(Opcode))
                 immediate = random.randrange(2**32)
 
                 rob_id = random.randrange(self.gen_params.rob_entries_bits)
                 pc = random.randrange(2**32)
+                csr = random.randrange(2**self.gen_params.isa.csr_alen)
 
                 instr = {
                     "opcode": opcode,
@@ -90,6 +91,7 @@ class TestRSSelect(TestCaseWithSimulator):
                     },
                     "rob_id": rob_id,
                     "imm": immediate,
+                    "csr": csr,
                     "pc": pc,
                 }
 

@@ -24,15 +24,15 @@ docker build --platform linux/amd64 -t "amaranth-synth:ecp5" -f ./docker/Amarant
 
 ### Usage
 
-Script named `synthesize` is used to perform the `Core` synthesis.
+Script named `synthesize.py` is used to perform the `Core` synthesis.
 
 Example usage:
 ```
-./scripts/synthesize --help
-./scripts/synthesize --platform ecp5 --verbose
+./scripts/synthesize.py --help
+./scripts/synthesize.py --platform ecp5 --verbose
 ```
 
-To collect synthesis information we use script named `parse_benchmark_info`.
+To collect synthesis information we use script named `parse_benchmark_info.py`.
 
 This script parses the output of the synthesis tool and extracts the
 following information:

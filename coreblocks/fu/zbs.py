@@ -1,11 +1,20 @@
 from enum import IntFlag, unique
 from amaranth import Signal, Module, Elaboratable, Record, Mux, Cat
 
-from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType, Funct7
+from coreblocks.params import (
+    Funct3,
+    CommonLayouts,
+    GenParams,
+    FuncUnitLayouts,
+    OpType,
+    Funct7,
+    FunctionalComponentParams,
+)
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import FIFO
 from coreblocks.transactions.core import def_method
 from coreblocks.utils import OneHotSwitch
+from coreblocks.utils.protocols import FuncUnit
 
 
 class ZbsFunction(Signal):
@@ -125,7 +134,7 @@ class ZbsUnit(Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    op_types = {OpType.SINGLE_BIT_MANIPULATION}
+    optypes = {OpType.SINGLE_BIT_MANIPULATION}
 
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(FuncUnitLayouts)
@@ -156,3 +165,11 @@ class ZbsUnit(Elaboratable):
             result_fifo.write(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst)
 
         return m
+
+
+class ZbsComponent(FunctionalComponentParams):
+    def get_module(self, gen_params: GenParams) -> FuncUnit:
+        return ZbsUnit(gen_params)
+
+    def get_optypes(self) -> set[OpType]:
+        return ZbsUnit.optypes

@@ -1,6 +1,6 @@
 from amaranth import *
 
-from enum import IntFlag, unique, auto
+from enum import IntFlag
 
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
@@ -8,8 +8,10 @@ from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch
+from coreblocks.utils.protocols import FuncUnit
 
-__all__ = ["JumpBranchFuncUnit"]
+
+__all__ = ["JumpBranchFuncUnit", "JumpComponent"]
 
 
 class JumpBranchFn(Signal):
@@ -170,3 +172,14 @@ class JumpBranchFuncUnit(Elaboratable):
                 fifo_branch.write(m, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res))
 
         return m
+
+
+class JumpComponent(FunctionalComponentParams):
+    def get_module(self, gen_params: GenParams) -> FuncUnit:
+        unit = JumpBranchFuncUnit(gen_params)
+        connections = gen_params.get(DependencyManager)
+        connections.add_dependency(BranchResolvedKey(), unit.branch_result)
+        return unit
+
+    def get_optypes(self) -> set[OpType]:
+        return JumpBranchFuncUnit.optypes

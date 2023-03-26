@@ -12,7 +12,7 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
 
-from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO
+from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 
 class WakeupTestCircuit(Elaboratable):
@@ -42,7 +42,7 @@ class WakeupTestCircuit(Elaboratable):
 
 class TestWakeupSelect(TestCaseWithSimulator):
     def setUp(self):
-        self.gen = GenParams("rv32i", rs_entries=16)
+        self.gen = test_gen_params("rv32i", rs_entries=16)
         self.m = WakeupTestCircuit(self.gen)
         self.cycles = 50
         self.taken = deque()
@@ -84,7 +84,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
             inserted_count += self.maybe_insert(rs)
             ready = Cat(entry is not None for entry in rs)
 
-            yield from self.m.ready_mock.call_init({"ready_list": ready})
+            yield from self.m.ready_mock.call_init(ready_list=ready)
             if any(entry is not None for entry in rs):
                 yield from self.m.ready_mock.enable()
             else:

@@ -79,7 +79,7 @@ class TestAdapterTrans(TestCaseWithSimulator):
             # this would previously timeout if the output layout was empty (as is in this case)
             yield from self.t.io_consume.call()
         for expected in [4, 1, 0]:
-            obtained = (yield from self.t.io_echo.call({"data": expected}))["data"]
+            obtained = (yield from self.t.io_echo.call(data=expected))["data"]
             self.assertEqual(expected, obtained)
 
     def test_single(self):

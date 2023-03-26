@@ -19,7 +19,7 @@ class MulBaseUnsigned(Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    def __init__(self, gen: GenParams):
+    def __init__(self, gen: GenParams, dsp_width: int = 32):
         """
         Parameters
         ----------
@@ -27,6 +27,7 @@ class MulBaseUnsigned(Elaboratable):
             Core generation parameters.
         """
         self.gen = gen
+        self.dsp_width = dsp_width
 
         layout = gen.get(UnsignedMulUnitLayouts)
 
