@@ -19,6 +19,7 @@ from coreblocks.core import Core
 from coreblocks.transactions import TransactionModule
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneMaster, WishboneParameters
 from coreblocks.params.configurations import basic_configuration
+from constants.ecp5_platforms import make_ecp5_platform
 
 
 class TestElaboratable(Elaboratable):
@@ -56,8 +57,6 @@ class TestElaboratable(Elaboratable):
 
 
 def synthesize(platform: str):
-    from constants.ecp5_platforms import make_ecp5_platform
-
     gen_params = GenParams("rv32i", basic_configuration)
     wb_params = WishboneParameters(data_width=32, addr_width=30)
 
