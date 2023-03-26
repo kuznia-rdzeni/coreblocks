@@ -8,7 +8,7 @@ from typing import Any, Iterable, Iterator, Mapping, NoReturn, Optional, Sequenc
 from enum import Enum
 from coreblocks.utils import ValueLike, ShapeLike, StatementLike
 
-__all__ = ["Shape", "signed", "unsigned", "Value", "Const", "C", "AnyConst", "AnySeq", "Operator", "Mux", "Part", "Slice", "Cat", "Repl", "Array", "ArrayProxy", "Signal", "ClockSignal", "ResetSignal", "ValueCastable", "Sample", "Past", "Stable", "Rose", "Fell", "Initial", "Statement", "Switch", "Property", "Assign", "Assert", "Assume", "Cover", "ValueKey", "ValueDict", "ValueSet", "SignalKey", "SignalDict", "SignalSet", "ValueLike", "ShapeLike", "StatementLike", "SwitchKey"]
+__all__ = ["Shape", "ShapeCastable", "signed", "unsigned", "Value", "Const", "C", "AnyConst", "AnySeq", "Operator", "Mux", "Part", "Slice", "Cat", "Repl", "Array", "ArrayProxy", "Signal", "ClockSignal", "ResetSignal", "ValueCastable", "Sample", "Past", "Stable", "Rose", "Fell", "Initial", "Statement", "Switch", "Property", "Assign", "Assert", "Assume", "Cover", "ValueKey", "ValueDict", "ValueSet", "SignalKey", "SignalDict", "SignalSet", "ValueLike", "ShapeLike", "StatementLike", "SwitchKey"]
 
 
 T = TypeVar("T")
@@ -22,6 +22,10 @@ class DUID:
     def __init__(self) -> None:
         ...
     
+
+class ShapeCastable:
+    def __new__(cls: type[T], *args, **kwargs) -> T:
+        ...
 
 
 class Shape:
@@ -255,9 +259,9 @@ class Const(Value):
     """A constant, literal integer valu"""
     src_loc = ...
     @staticmethod
-    def normalize(value, shape):
+    def cast(obj: ValueLike) -> Const:
         ...
-    
+
     def __init__(self, value: int, shape: Optional[ShapeLike] =..., *, src_loc_at=...) -> None:
         ...
     
