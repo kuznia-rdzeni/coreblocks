@@ -105,7 +105,7 @@ class ZbsUnit(Elaboratable):
 
         m.submodules.zbs = zbs = Zbs(self.gen_params)
         m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
-        m.submodules.decoder = decoder = ZbsFunction.get_decoder(self.gen_params, check_optype=False)
+        m.submodules.decoder = decoder = ZbsFunction.get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
         def _(arg):

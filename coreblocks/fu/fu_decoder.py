@@ -91,9 +91,6 @@ class DecoderManager:
     ----------
     gen_params: GenParams
         Generation parameters passed to a decoder contructor.
-    check_optype = True : bool
-        Flag telling whether to check op_types in decoder.
-        Enabled by default.
 
     Returns
     -------
@@ -102,8 +99,13 @@ class DecoderManager:
     """
 
     @classmethod
-    def get_decoder(cls, gen_params: GenParams, check_optype=True) -> Decoder:
-        return Decoder(gen_params, cls.Fn, cls.get_instructions(), check_optype=check_optype)
+    def get_decoder(cls, gen_params: GenParams) -> Decoder:
+        # check how many different op types are there
+        op_types = cls.get_op_types()
+        multiple_op_types = len(op_types) > 1
+
+        # if multiple op types detected, request op_type check in decoder
+        return Decoder(gen_params, cls.Fn, cls.get_instructions(), check_optype=multiple_op_types)
 
     """
     Method returning Signal Object for decoder, called function in FU blocks

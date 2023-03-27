@@ -120,7 +120,7 @@ class MulUnit(Elaboratable):
             ],
             2,
         )
-        m.submodules.decoder = decoder = MulFn.get_decoder(self.gen, check_optype=False)
+        m.submodules.decoder = decoder = MulFn.get_decoder(self.gen)
 
         # Selecting unsigned integer multiplication module
         match self.mul_type:
