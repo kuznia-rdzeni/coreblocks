@@ -49,7 +49,7 @@ class CSRListKey(ListKey["CSRRegister"]):
 class CSRRegister(Elaboratable):
     """CSR Register
     Used to define a CSR register and specify its behaviour.
-    `CSRRegister`s are automatically assigned to `CSRListKey` dependency key, to be accessed from `CSRUnit`s.
+    `CSRRegisters` are automatically assigned to `CSRListKey` dependency key, to be accessed from `CSRUnits`.
 
     Attributes
     ----------
