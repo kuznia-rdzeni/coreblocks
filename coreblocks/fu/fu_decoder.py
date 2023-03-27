@@ -102,7 +102,7 @@ class DecoderManager:
     """
 
     @classmethod
-    def get_decoder(cls, gen_params: GenParams, check_optype=True) -> Type[Decoder]:
+    def get_decoder(cls, gen_params: GenParams, check_optype=True) -> Decoder:
         return Decoder(gen_params, cls.Fn, cls.get_instructions(), check_optype=check_optype)
 
     """
