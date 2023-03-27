@@ -91,6 +91,7 @@ class Core(Elaboratable):
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
         m.submodules.retirement = Retirement(
+            self.gen_params,
             rob_retire=rob.retire,
             r_rat_commit=rrat.commit,
             free_rf_put=free_rf_fifo.write,

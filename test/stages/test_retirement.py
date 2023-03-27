@@ -34,6 +34,7 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_lsu_commit = self.mock_lsu_commit = TestbenchIO(Adapter(i=lsu_layouts.commit))
 
         m.submodules.retirement = self.retirement = Retirement(
+            self.gen_params,
             rob_retire=self.mock_rob_retire.adapter.iface,
             r_rat_commit=self.rat.commit,
             free_rf_put=self.free_rf.write,
