@@ -2,7 +2,7 @@ from amaranth import *
 
 from enum import IntFlag
 
-from pyparsing import Sequence
+from typing import Sequence
 
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
