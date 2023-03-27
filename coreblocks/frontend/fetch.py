@@ -1,4 +1,4 @@
-from amaranth import Record, Module, Signal, Elaboratable
+from amaranth import *
 from coreblocks.transactions.core import def_method
 from ..transactions import Method, Transaction
 from ..params import GenParams, FetchLayouts
@@ -29,7 +29,7 @@ class Fetch(Elaboratable):
         self.bus = bus
         self.cont = cont
 
-        self.pc = Signal(bus.wb_params.addr_width, reset=gen_params.start_pc)
+        self.pc = Signal(gen_params.isa.xlen, reset=gen_params.start_pc)
         self.halt_pc = Signal(bus.wb_params.addr_width, reset=2**bus.wb_params.addr_width - 1)
 
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
@@ -58,11 +58,11 @@ class Fetch(Elaboratable):
 
                 m.d.sync += self.pc.eq(self.pc + self.gp.isa.ilen_bytes)
 
-                self.cont(m, {"data": fetched.data, "pc": self.pc})
+                self.cont(m, data=fetched.data, pc=self.pc)
 
         @def_method(m, self.verify_branch, ready=stalled)
-        def _(arg):
-            m.d.sync += self.pc.eq(arg.next_pc)
+        def _(next_pc: Value):
+            m.d.sync += self.pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
 
         return m

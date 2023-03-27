@@ -1,9 +1,10 @@
 from typing import Callable
 from amaranth import *
-from amaranth.hdl.ast import ArrayProxy
+from amaranth.lib import data
+from amaranth.hdl.ast import ArrayProxy, Slice
 
 from coreblocks.utils._typing import LayoutLike
-from coreblocks.utils.utils import AssignType, AssignFields, assign
+from coreblocks.utils.utils import AssignArg, AssignType, AssignFields, assign
 
 from unittest import TestCase
 from parameterized import parameterized_class, parameterized
@@ -15,8 +16,9 @@ layout_ac = [("a", 1), ("c", 3)]
 layout_a_alt = [("a", 2)]
 
 params_fgh = [
-    ("normal", lambda l: l, lambda x: x, lambda r: r),
-    ("rec", lambda l: [("x", l)], lambda x: {"x": x}, lambda r: r.x),
+    ("normal", lambda c, l: c(l), lambda x: x, lambda r: r),
+    ("rec", lambda c, l: c([("x", l)]), lambda x: {"x": x}, lambda r: r.x),
+    ("dict", lambda c, l: {"x": c(l)}, lambda x: {"x": x}, lambda r: r["x"]),
 ]
 
 
@@ -26,53 +28,69 @@ def mkproxy(layout):
     return arr[sig]
 
 
+def reclayout2datalayout(layout):
+    if not isinstance(layout, list):
+        return layout
+    return data.StructLayout({k: reclayout2datalayout(l) for k, l in layout})
+
+
+def mkstruct(layout):
+    return data.View(reclayout2datalayout(layout))
+
+
 params_c = [
     ("rec", Record),
     ("proxy", mkproxy),
+    ("struct", mkstruct),
 ]
 
 
 @parameterized_class(["name", "f", "g", "h", "constr", "c"], [t + u for t in params_fgh for u in params_c])
 class TestAssign(TestCase):
-    f: Callable[[LayoutLike], LayoutLike]
+    # constructs `assign` arguments (records, proxies, dicts) which have an "inner" and "outer" part
+    # parameterized with a Record-like constructor and a layout of the inner part
+    f: Callable[[Callable[[LayoutLike], AssignArg], LayoutLike], AssignArg]
+    # constructs field specifications for `assign`, takes field specifications for the inner part
     g: Callable[[AssignFields], AssignFields]
-    h: Callable[[Record | ArrayProxy], Record | ArrayProxy]
-    c: Callable[[LayoutLike], Record | ArrayProxy]
+    # extracts the inner part of the structure
+    h: Callable[[AssignArg], Record | ArrayProxy]
+    # Record-like constructor, takes a record layout
+    c: Callable[[LayoutLike], AssignArg]
 
     def test_rhs_exception(self):
         f = self.__class__.f
         c = self.__class__.c
-        with self.assertRaises(ValueError):
-            list(assign(c(f(layout_a)), c(f(layout_ab)), fields=AssignType.RHS))
-        with self.assertRaises(ValueError):
-            list(assign(c(f(layout_ab)), c(f(layout_ac)), fields=AssignType.RHS))
+        with self.assertRaises(KeyError):
+            list(assign(f(c, layout_a), f(c, layout_ab), fields=AssignType.RHS))
+        with self.assertRaises(KeyError):
+            list(assign(f(c, layout_ab), f(c, layout_ac), fields=AssignType.RHS))
 
     def test_all_exception(self):
         f = self.__class__.f
         c = self.__class__.c
-        with self.assertRaises(ValueError):
-            list(assign(c(f(layout_a)), c(f(layout_ab)), fields=AssignType.ALL))
-        with self.assertRaises(ValueError):
-            list(assign(c(f(layout_ab)), c(f(layout_a)), fields=AssignType.ALL))
-        with self.assertRaises(ValueError):
-            list(assign(c(f(layout_ab)), c(f(layout_ac)), fields=AssignType.ALL))
+        with self.assertRaises(KeyError):
+            list(assign(f(c, layout_a), f(c, layout_ab), fields=AssignType.ALL))
+        with self.assertRaises(KeyError):
+            list(assign(f(c, layout_ab), f(c, layout_a), fields=AssignType.ALL))
+        with self.assertRaises(KeyError):
+            list(assign(f(c, layout_ab), f(c, layout_ac), fields=AssignType.ALL))
 
     def test_missing_exception(self):
         f = self.__class__.f
         g = self.__class__.g
         c = self.__class__.c
-        with self.assertRaises(ValueError):
-            list(assign(c(f(layout_a)), c(f(layout_ab)), fields=g({"b"})))
-        with self.assertRaises(ValueError):
-            list(assign(c(f(layout_ab)), c(f(layout_a)), fields=g({"b"})))
-        with self.assertRaises(ValueError):
-            list(assign(c(f(layout_a)), c(f(layout_a)), fields=g({"b"})))
+        with self.assertRaises(KeyError):
+            list(assign(f(c, layout_a), f(c, layout_ab), fields=g({"b"})))
+        with self.assertRaises(KeyError):
+            list(assign(f(c, layout_ab), f(c, layout_a), fields=g({"b"})))
+        with self.assertRaises(KeyError):
+            list(assign(f(c, layout_a), f(c, layout_a), fields=g({"b"})))
 
     def test_wrong_bits(self):
         f = self.__class__.f
         c = self.__class__.c
         with self.assertRaises(ValueError):
-            list(assign(c(f(layout_a)), c(f(layout_a_alt))))
+            list(assign(f(c, layout_a), f(c, layout_a_alt)))
 
     @parameterized.expand(
         [
@@ -88,8 +106,8 @@ class TestAssign(TestCase):
         g = self.__class__.g
         h = self.__class__.h
         c = self.__class__.c
-        lhs = c(f(layout1))
-        rhs = c(f(layout2))
+        lhs = f(c, layout1)
+        rhs = f(c, layout2)
         alist = list(assign(lhs, rhs, fields=g(atype)))
         self.assertEqual(len(alist), 1)
         self.assertIs_AP(alist[0].lhs, h(lhs).a)
@@ -102,5 +120,9 @@ class TestAssign(TestCase):
             self.assertEqual(len(expr1.elems), len(expr2.elems))
             for x, y in zip(expr1.elems, expr2.elems):
                 self.assertIs_AP(x, y)
+        elif isinstance(expr1, Slice) and isinstance(expr2, Slice):
+            self.assertIs_AP(expr1.value, expr2.value)
+            self.assertEqual(expr1.start, expr2.start)
+            self.assertEqual(expr1.stop, expr2.stop)
         else:
             self.assertIs(expr1, expr2)

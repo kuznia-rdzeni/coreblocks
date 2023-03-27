@@ -1,7 +1,8 @@
 import random
 from operator import and_
 from functools import reduce
-from amaranth.sim.core import Settle
+from typing import TypeAlias
+from amaranth.sim import Settle
 from parameterized import parameterized
 
 from amaranth import *
@@ -9,16 +10,26 @@ from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
 from coreblocks.utils._typing import LayoutLike
-from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_class_method_mock, def_method_mock
+from ..common import (
+    SimpleTestCircuit,
+    TestCaseWithSimulator,
+    TestbenchIO,
+    data_layout,
+    def_class_method_mock,
+    def_method_mock,
+)
+
+
+FIFO_Like: TypeAlias = FIFO | Forwarder | Connect | Buffer
 
 
 class TestFifoBase(TestCaseWithSimulator):
     def do_test_fifo(
-        self, fifo_class: type[Elaboratable], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs=dict()
+        self, fifo_class: type[FIFO_Like], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs: dict = {}
     ):
         iosize = 8
 
-        m = SimpleTestCircuit(fifo_class(iosize, **fifo_kwargs))
+        m = SimpleTestCircuit(fifo_class(data_layout(iosize), **fifo_kwargs))
 
         random.seed(1337)
 
@@ -28,7 +39,7 @@ class TestFifoBase(TestCaseWithSimulator):
 
         def writer():
             for i in range(2**iosize):
-                yield from m.write.call({"data": i})
+                yield from m.write.call(data=i)
                 yield from random_wait(writer_rand)
 
         def reader():
@@ -55,7 +66,7 @@ class TestConnect(TestFifoBase):
     def test_connect(self):
         iosize = 8
 
-        m = SimpleTestCircuit(Connect(iosize, iosize))
+        m = SimpleTestCircuit(Connect(data_layout(iosize), data_layout(iosize)))
 
         def process():
             for re, we in [(False, False), (False, True), (True, False)]:
@@ -65,8 +76,8 @@ class TestConnect(TestFifoBase):
                 self.assertFalse((yield from m.read.done()), f"re:{re} we:{we}")
                 self.assertFalse((yield from m.write.done()), f"re:{re} we:{we}")
 
-            yield from m.read.call_init({"data": 1})
-            yield from m.write.call_init({"data": 2})
+            yield from m.read.call_init(data=1)
+            yield from m.write.call_init(data=2)
             yield Settle()
             self.assertEqual((yield from m.read.call_result()), {"data": 2})
             self.assertEqual((yield from m.write.call_result()), {"data": 1})
@@ -79,6 +90,58 @@ class TestBuffer(TestFifoBase):
     @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
     def test_fifo(self, writer_rand, reader_rand):
         self.do_test_fifo(Buffer, writer_rand=writer_rand, reader_rand=reader_rand)
+
+
+class TestForwarder(TestFifoBase):
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(Forwarder, writer_rand=writer_rand, reader_rand=reader_rand)
+
+    def test_forwarding(self):
+        iosize = 8
+
+        m = SimpleTestCircuit(Forwarder(data_layout(iosize)))
+
+        def forward_check(x):
+            yield from m.read.call_init()
+            yield from m.write.call_init(data=x)
+            yield Settle()
+            self.assertEqual((yield from m.read.call_result()), {"data": x})
+            self.assertIsNotNone((yield from m.write.call_result()))
+            yield
+
+        def process():
+            # test forwarding behavior
+            for x in range(4):
+                yield from forward_check(x)
+
+            # load the overflow buffer
+            yield from m.read.disable()
+            yield from m.write.call_init(data=42)
+            yield Settle()
+            self.assertIsNotNone((yield from m.write.call_result()))
+            yield
+
+            # writes are not possible now
+            yield from m.write.call_init(data=84)
+            yield Settle()
+            self.assertIsNone((yield from m.write.call_result()))
+            yield
+
+            # read from the overflow buffer, writes still blocked
+            yield from m.read.enable()
+            yield from m.write.call_init(data=111)
+            yield Settle()
+            self.assertEqual((yield from m.read.call_result()), {"data": 42})
+            self.assertIsNone((yield from m.write.call_result()))
+            yield
+
+            # forwarding now works again
+            for x in range(4):
+                yield from forward_check(x)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(process)
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
@@ -97,7 +160,7 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
         with tm.transaction_context():
             get_results = []
             for i in range(self.count):
-                input = TestbenchIO(Adapter(i=self.lay, o=self.lay))
+                input = TestbenchIO(Adapter(o=self.lay))
                 get_results.append(input.adapter.iface)
                 setattr(m.submodules, f"input_{i}", input)
                 setattr(self, f"input_{i}", input)
@@ -157,8 +220,8 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         def producer():
             inputs = self.inputs[i]
             for field1, field2 in inputs:
-                input_dict = {"field1": field1, "field2": field2}
-                yield from getattr(self.m, f"input_{i}").call_init(input_dict)
+                io: TestbenchIO = getattr(self.m, f"input_{i}")
+                yield from io.call_init(field1=field1, field2=field2)
                 yield from self.random_wait()
             self.producer_end[i] = True
 
@@ -213,6 +276,8 @@ class MethodTransformerTestCircuit(Elaboratable):
         s = Signal()
         m.d.sync += s.eq(1)
 
+        layout = data_layout(self.iosize)
+
         def itransform_rec(m: Module, v: Record) -> Record:
             s = Record.like(v)
             m.d.comb += s.data.eq(v.data + 1)
@@ -237,29 +302,29 @@ class MethodTransformerTestCircuit(Elaboratable):
             otransform = otransform_rec
 
         with tm.transaction_context():
-            m.submodules.target = self.target = TestbenchIO(Adapter(i=self.iosize, o=self.iosize))
+            m.submodules.target = self.target = TestbenchIO(Adapter(i=layout, o=layout))
 
             if self.use_methods:
-                imeth = Method(i=self.iosize, o=self.iosize)
-                ometh = Method(i=self.iosize, o=self.iosize)
+                imeth = Method(i=layout, o=layout)
+                ometh = Method(i=layout, o=layout)
 
                 @def_method(m, imeth)
-                def _(v: Record):
-                    return itransform(m, v)
+                def _(arg: Record):
+                    return itransform(m, arg)
 
                 @def_method(m, ometh)
-                def _(v: Record):
-                    return otransform(m, v)
+                def _(arg: Record):
+                    return otransform(m, arg)
 
                 trans = MethodTransformer(
-                    self.target.adapter.iface, i_transform=(self.iosize, imeth), o_transform=(self.iosize, ometh)
+                    self.target.adapter.iface, i_transform=(layout, imeth), o_transform=(layout, ometh)
                 )
             else:
 
                 trans = MethodTransformer(
                     self.target.adapter.iface,
-                    i_transform=(self.iosize, itransform),
-                    o_transform=(self.iosize, otransform),
+                    i_transform=(layout, itransform),
+                    o_transform=(layout, otransform),
                 )
 
             m.submodules.trans = trans
@@ -274,7 +339,7 @@ class TestMethodTransformer(TestCaseWithSimulator):
 
     def source(self):
         for i in range(2**self.m.iosize):
-            v = yield from self.m.source.call({"data": i})
+            v = yield from self.m.source.call(data=i)
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
             self.assertEqual(v["data"], (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1))
 
@@ -314,18 +379,20 @@ class MethodFilterTestCircuit(Elaboratable):
         s = Signal()
         m.d.sync += s.eq(1)
 
+        layout = data_layout(self.iosize)
+
         with tm.transaction_context():
-            m.submodules.target = self.target = TestbenchIO(Adapter(i=self.iosize, o=self.iosize))
+            m.submodules.target = self.target = TestbenchIO(Adapter(i=layout, o=layout))
 
             def condition(_, v):
                 return v[0]
 
             if self.use_methods:
-                cmeth = Method(i=self.iosize, o=1)
+                cmeth = Method(i=layout, o=data_layout(1))
 
                 @def_method(m, cmeth)
-                def _(v):
-                    return condition(m, v)
+                def _(arg: Record):
+                    return condition(m, arg)
 
                 filt = MethodFilter(self.target.adapter.iface, cmeth)
             else:
@@ -343,7 +410,7 @@ class TestMethodFilter(TestCaseWithSimulator):
 
     def source(self):
         for i in range(2**self.m.iosize):
-            v = yield from self.m.source.call({"data": i})
+            v = yield from self.m.source.call(data=i)
             if i & 1:
                 self.assertEqual(v["data"], (i + 1) & ((1 << self.m.iosize) - 1))
             else:
@@ -381,17 +448,19 @@ class MethodProductTestCircuit(Elaboratable):
         s = Signal()
         m.d.sync += s.eq(1)
 
+        layout = data_layout(self.iosize)
+
         methods = []
 
         for k in range(self.targets):
-            tgt = TestbenchIO(Adapter(i=self.iosize, o=self.iosize))
+            tgt = TestbenchIO(Adapter(i=layout, o=layout))
             methods.append(tgt.adapter.iface)
             self.target.append(tgt)
             m.submodules += tgt
 
         combiner = None
         if self.add_combiner:
-            combiner = (self.iosize, lambda _, vs: sum(vs))
+            combiner = (layout, lambda _, vs: {"data": sum(vs)})
 
         m.submodules.product = product = MethodProduct(methods, combiner)
 
@@ -423,13 +492,13 @@ class TestMethodProduct(TestCaseWithSimulator):
                         yield from m.target[k].enable()
                     else:
                         yield from m.target[k].disable()
-                self.assertIsNone((yield from m.method.call_try({"data": 0})))
+                self.assertIsNone((yield from m.method.call_try(data=0)))
 
             # otherwise, the call succeeds
             for k in range(targets):
                 yield from m.target[k].enable()
             data = random.randint(0, (1 << iosize) - 1)
-            val = (yield from m.method.call({"data": data}))["data"]
+            val = (yield from m.method.call(data=data))["data"]
             if add_combiner:
                 self.assertEqual(val, (targets * data + (targets - 1) * targets // 2) & ((1 << iosize) - 1))
             else:

@@ -4,9 +4,7 @@ from typing import Optional
 
 from amaranth import *
 
-from coreblocks.params import GenParams
-from coreblocks.params.isa import *
-from coreblocks.utils import AutoDebugSignals
+from coreblocks.params import *
 
 __all__ = ["InstrDecoder"]
 
@@ -15,8 +13,8 @@ from coreblocks.utils import OneHotSwitchDynamic
 # Important
 #
 # In order to add new instructions to be decoded by this decoder assuming they do not required additional
-# fields to be extracted you need to add them into ```_instructions_by_optype``` map, and register new OpType
-# into new or existing extension in ```_optypes_by_extensions``` map.
+# fields to be extracted you need to add them into `_instructions_by_optype` map, and register new OpType
+# into new or existing extension in `optypes_by_extensions` map in `params.optypes` module.
 
 # Lists which fields are used by which Instruction's types
 
@@ -40,11 +38,11 @@ class Encoding:
     opcode: Opcode
         Opcode of instruction.
     funct3: Optional[Funct3]
-        Three bits function identifier. If not exists for instruction then ```None```.
+        Three bits function identifier. If not exists for instruction then `None`.
     funct7: Optional[Funct7]
-        Seven bits function identifier. If not exists for instruction then ```None```.
+        Seven bits function identifier. If not exists for instruction then `None`.
     funct12: Optional[Funct12]
-        Twelve bits function identifier. If not exists for instruction then ```None```.
+        Twelve bits function identifier. If not exists for instruction then `None`.
     """
 
     def __init__(
@@ -160,47 +158,25 @@ _instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.REM, Funct7.MULDIV),  # rem
         Encoding(Opcode.OP, Funct3.REMU, Funct7.MULDIV),  # remu
     ],
-}
-
-#
-# Operation types grouped by extensions
-#
-
-_optypes_by_extensions = {
-    Extension.I: [
-        OpType.ARITHMETIC,
-        OpType.COMPARE,
-        OpType.LOGIC,
-        OpType.SHIFT,
-        OpType.AUIPC,
-        OpType.JAL,
-        OpType.JALR,
-        OpType.BRANCH,
-        OpType.LOAD,
-        OpType.STORE,
-        OpType.FENCE,
-        OpType.ECALL,
-        OpType.EBREAK,
-        OpType.MRET,
-        OpType.WFI,
+    OpType.SINGLE_BIT_MANIPULATION: [
+        Encoding(Opcode.OP, Funct3.BCLR, Funct7.BCLR),  # bclr
+        Encoding(Opcode.OP_IMM, Funct3.BCLR, Funct7.BCLR),  # bclri
+        Encoding(Opcode.OP, Funct3.BEXT, Funct7.BEXT),  # bext
+        Encoding(Opcode.OP_IMM, Funct3.BEXT, Funct7.BEXT),  # bexti
+        Encoding(Opcode.OP, Funct3.BSET, Funct7.BSET),  # bset
+        Encoding(Opcode.OP_IMM, Funct3.BSET, Funct7.BSET),  # bseti
+        Encoding(Opcode.OP, Funct3.BINV, Funct7.BINV),  # binv
+        Encoding(Opcode.OP_IMM, Funct3.BINV, Funct7.BINV),  # binvi
     ],
-    Extension.ZIFENCEI: [
-        OpType.FENCEI,
-    ],
-    Extension.ZICSR: [
-        OpType.CSR,
-    ],
-    Extension.M: [
-        OpType.MUL,
-        OpType.DIV_REM,
-    ],
-    Extension.ZMMUL: [
-        OpType.MUL,
+    OpType.ADDRESS_GENERATION: [
+        Encoding(Opcode.OP, Funct3.SH1ADD, Funct7.SH1ADD),
+        Encoding(Opcode.OP, Funct3.SH2ADD, Funct7.SH2ADD),
+        Encoding(Opcode.OP, Funct3.SH3ADD, Funct7.SH3ADD),
     ],
 }
 
 
-class InstrDecoder(Elaboratable, AutoDebugSignals):
+class InstrDecoder(Elaboratable):
     """
     Class performing instruction decoding into elementary components like opcodes, funct3 etc.
     It uses combinatorial connection via its attributes.
@@ -234,13 +210,13 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
     imm: Signal(gen.isa.xlen), out
         Immediate values provided in instruction. If no immediate values were provided then value is 0.
     succ: Signal(FenceTarget), out
-        Successor for ```FENCE``` instructions.
+        Successor for `FENCE` instructions.
     pred: Signal(FenceTarget), out
-        Predecessor for ```FENCE``` instructions.
+        Predecessor for `FENCE` instructions.
     fm: Signal(FenceFm), out
-        Fence mode for ```FENCE``` instructions.
+        Fence mode for `FENCE` instructions.
     csr: Signal(gen.isa.csr_alen), out
-        Address of Control and Source Register for ```CSR``` instructions.
+        Address of Control and Source Register for `CSR` instructions.
     op: Signal(OpType), out
         Operation type of instruction, used to define functional unit to perform this kind of instructions.
     illegal: Signal(1), out
@@ -309,7 +285,7 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
 
     def _extract(self, start: int, sig):
         """
-        Method used to for extracting fragment of instruction into provided Signal starting from ```start``` bit.
+        Method used to for extracting fragment of instruction into provided Signal starting from `start` bit.
 
         Parameters
         ----------
@@ -468,7 +444,7 @@ class InstrDecoder(Elaboratable, AutoDebugSignals):
 
         first_valid_optype = OpType.UNKNOWN.value + 1  # value of first OpType which is not UNKNOWN
 
-        for ext, optypes in _optypes_by_extensions.items():
+        for ext, optypes in optypes_by_extensions.items():
             if extensions & ext:
                 for optype in optypes:
                     list_of_encodings = _instructions_by_optype[optype]

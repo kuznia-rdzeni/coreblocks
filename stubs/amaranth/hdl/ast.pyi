@@ -6,14 +6,12 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import MutableMapping, MutableSequence, MutableSet
 from typing import Any, Iterable, Iterator, Mapping, NoReturn, Optional, Sequence, Type, TypeVar, final, overload
 from enum import Enum
+from coreblocks.utils import ValueLike, ShapeLike, StatementLike
 
-__all__ = ["Shape", "signed", "unsigned", "Value", "Const", "C", "AnyConst", "AnySeq", "Operator", "Mux", "Part", "Slice", "Cat", "Repl", "Array", "ArrayProxy", "Signal", "ClockSignal", "ResetSignal", "UserValue", "ValueCastable", "Sample", "Past", "Stable", "Rose", "Fell", "Initial", "Statement", "Switch", "Property", "Assign", "Assert", "Assume", "Cover", "ValueKey", "ValueDict", "ValueSet", "SignalKey", "SignalDict", "SignalSet", "ValueLike", "ShapeLike", "StatementLike", "SwitchKey"]
+__all__ = ["Shape", "ShapeCastable", "signed", "unsigned", "Value", "Const", "C", "AnyConst", "AnySeq", "Operator", "Mux", "Part", "Slice", "Cat", "Repl", "Array", "ArrayProxy", "Signal", "ClockSignal", "ResetSignal", "ValueCastable", "Sample", "Past", "Stable", "Rose", "Fell", "Initial", "Statement", "Switch", "Property", "Assign", "Assert", "Assume", "Cover", "ValueKey", "ValueDict", "ValueSet", "SignalKey", "SignalDict", "SignalSet", "ValueLike", "ShapeLike", "StatementLike", "SwitchKey"]
 
 
 T = TypeVar("T")
-ValueLike = Value | int | Enum | ValueCastable
-ShapeLike = Shape | int | range | Type[Enum]
-StatementLike = Statement | Iterable[StatementLike]
 Flattenable = T | Iterable[Flattenable[T]]
 SwitchKey = str | int | Enum
 
@@ -24,6 +22,10 @@ class DUID:
     def __init__(self) -> None:
         ...
     
+
+class ShapeCastable:
+    def __new__(cls: type[T], *args, **kwargs) -> T:
+        ...
 
 
 class Shape:
@@ -38,7 +40,7 @@ class Shape:
         ...
     
     @staticmethod
-    def cast(obj, *, src_loc_at=...):
+    def cast(obj: ShapeLike, *, src_loc_at=...):
         ...
     
     def __repr__(self) -> str:
@@ -59,7 +61,7 @@ def signed(width) -> Shape:
 
 class Value(metaclass=ABCMeta):
     @staticmethod
-    def cast(obj) -> Value:
+    def cast(obj: ValueLike) -> Value:
         """Converts ``obj`` to an Amaranth """
         ...
     
@@ -257,9 +259,9 @@ class Const(Value):
     """A constant, literal integer valu"""
     src_loc = ...
     @staticmethod
-    def normalize(value, shape):
+    def cast(obj: ValueLike) -> Const:
         ...
-    
+
     def __init__(self, value: int, shape: Optional[ShapeLike] =..., *, src_loc_at=...) -> None:
         ...
     
@@ -324,7 +326,10 @@ class Slice(Value):
     
     def __repr__(self) -> str:
         ...
-    
+
+    value: Value
+    start: int
+    stop: int
 
 
 @final
@@ -480,24 +485,6 @@ class ArrayProxy(Value):
     
 
 
-class UserValue(Value):
-    """Value with custom lowering.
-
-   """
-    @deprecated("instead of `UserValue`, use `Val", stacklevel=3)
-    def __init__(self, *, src_loc_at=...) -> None:
-        ...
-    
-    @abstractmethod
-    def lower(self): # -> None:
-        """Conversion to a concrete represe"""
-        ...
-    
-    def shape(self) -> Shape:
-        ...
-    
-
-
 class ValueCastable:
     """Base class for classes which can"""
     def __new__(cls, *args, **kwargs): # -> Self@ValueCastable:
@@ -581,12 +568,7 @@ class Assign(Statement):
     
 
 
-class UnusedProperty(UnusedMustUse):
-    ...
-
-
-class Property(Statement, MustUse):
-    _MustUse__warning = UnusedProperty
+class Property(Statement):
     def __init__(self, test, *, _check=..., _en=..., src_loc_at=...) -> None:
         ...
     

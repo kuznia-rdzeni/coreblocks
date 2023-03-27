@@ -4,7 +4,7 @@ from coreblocks.utils.fifo import BasicFifo
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
-from test.common import TestCaseWithSimulator, TestbenchIO
+from test.common import TestCaseWithSimulator, TestbenchIO, data_layout
 from collections import deque
 from parameterized import parameterized_class
 import random
@@ -19,7 +19,7 @@ class BasicFifoTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        m.submodules.fifo = self.fifo = BasicFifo(layout=8, depth=self.depth, init=self.init)
+        m.submodules.fifo = self.fifo = BasicFifo(layout=data_layout(8), depth=self.depth, init=self.init)
 
         m.submodules.fifo_read = self.fifo_read = TestbenchIO(AdapterTrans(self.fifo.read))
         m.submodules.fifo_write = self.fifo_write = TestbenchIO(AdapterTrans(self.fifo.write))
@@ -60,7 +60,7 @@ class TestBasicFifo(TestCaseWithSimulator):
                     yield  # random delay
 
                 v = random.randint(0, (2**fifoc.fifo.width) - 1)
-                yield from fifoc.fifo_write.call({"data": v})
+                yield from fifoc.fifo_write.call(data=v)
                 expq.appendleft(v)
 
                 if random.random() < 0.005:

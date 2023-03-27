@@ -1,19 +1,23 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import Callable, ClassVar, Mapping, TypeAlias, Union, Optional, Tuple, Iterator
+from inspect import Parameter, signature
+from typing import Callable, ClassVar, Mapping, TypeAlias, TypedDict, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
-from amaranth.hdl.ast import Assign, Statement
+from amaranth.hdl.ast import Statement
+
+from coreblocks.utils import AssignType, assign
 from ._utils import *
-from ..utils._typing import StatementLike, ValueLike, DebugSignals
+from ..utils._typing import StatementLike, ValueLike, SignalBundle
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
-    "ConflictPriority",
+    "MethodLayout",
+    "Priority",
     "TransactionManager",
     "TransactionContext",
     "TransactionModule",
@@ -25,23 +29,36 @@ __all__ = [
 ]
 
 
-ConflictGraph: TypeAlias = Graph["Transaction"]
-ConflictGraphCC: TypeAlias = GraphCC["Transaction"]
+TransactionGraph: TypeAlias = Graph["Transaction"]
+TransactionGraphCC: TypeAlias = GraphCC["Transaction"]
 PriorityOrder: TypeAlias = dict["Transaction", int]
 TransactionScheduler: TypeAlias = Callable[
-    ["TransactionManager", Module, ConflictGraph, ConflictGraphCC, PriorityOrder], None
+    ["TransactionManager", Module, TransactionGraph, TransactionGraphCC, PriorityOrder], None
 ]
 RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 
 
-class ConflictPriority(Enum):
+class Priority(Enum):
+    #: Conflicting transactions/methods don't have a priority order.
     UNDEFINED = auto()
+    #: Left transaction/method is prioritized over the right one.
     LEFT = auto()
+    #: Right transaction/method is prioritized over the left one.
     RIGHT = auto()
 
 
+class RelationBase(TypedDict):
+    end: Union["Transaction", "Method"]
+    priority: Priority
+    conflict: bool
+
+
+class Relation(RelationBase):
+    start: Union["Transaction", "Method"]
+
+
 def eager_deterministic_cc_scheduler(
-    manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC, porder: PriorityOrder
+    manager: "TransactionManager", m: Module, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
 ):
     """eager_deterministic_cc_scheduler
 
@@ -60,7 +77,7 @@ def eager_deterministic_cc_scheduler(
         arbitrating which agent should get a grant signal.
     m : Module
         Module to which signals and calculations should be connected.
-    gr : ConflictGraph
+    gr : TransactionGraph
         Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : Set[Transaction]
         Connected components of the graph `gr` for which scheduler
@@ -79,7 +96,7 @@ def eager_deterministic_cc_scheduler(
 
 
 def trivial_roundrobin_cc_scheduler(
-    manager: "TransactionManager", m: Module, gr: ConflictGraph, cc: ConflictGraphCC, porder: PriorityOrder
+    manager: "TransactionManager", m: Module, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
 ):
     """trivial_roundrobin_cc_scheduler
 
@@ -96,7 +113,7 @@ def trivial_roundrobin_cc_scheduler(
         arbitrating which agent should get grant signal.
     m : Module
         Module to which signals and calculations should be connected.
-    gr : ConflictGraph
+    gr : TransactionGraph
         Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : Set[Transaction]
         Connected components of the graph `gr` for which scheduler
@@ -119,20 +136,20 @@ def trivial_roundrobin_cc_scheduler(
 class TransactionManager(Elaboratable):
     """Transaction manager
 
-    This module is responsible for granting ``Transaction``\\s and running
-    ``Method``\\s. It takes care that two conflicting ``Transaction``\\s
+    This module is responsible for granting `Transaction`\\s and running
+    `Method`\\s. It takes care that two conflicting `Transaction`\\s
     are never granted in the same clock cycle.
     """
 
     def __init__(self, cc_scheduler: TransactionScheduler = eager_deterministic_cc_scheduler):
         self.transactions: list[Transaction] = []
-        self.conflicts: list[Tuple[Transaction | Method, Transaction | Method, ConflictPriority]] = []
+        self.relations: list[Relation] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
 
     def add_transaction(self, transaction: "Transaction"):
         self.transactions.append(transaction)
 
-    def _conflict_graph(self) -> Tuple[ConflictGraph, PriorityOrder]:
+    def _conflict_graph(self) -> Tuple[TransactionGraph, TransactionGraph, PriorityOrder]:
         """_conflict_graph
 
         This function generates the graph of transaction conflicts. Conflicts
@@ -155,9 +172,11 @@ class TransactionManager(Elaboratable):
         an exception is thrown.
 
         Returns
-        ----------
-        gr : ConflictGraph
+        -------
+        cgr : TransactionGraph
             Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
+        rgr : TransactionGraph
+            Graph of relations between transactions, which includes conflicts and orderings.
         porder : PriorityOrder
             Linear ordering of transactions which is consistent with priority constraints.
         """
@@ -168,21 +187,26 @@ class TransactionManager(Elaboratable):
             else:
                 return [end]
 
-        gr: ConflictGraph = {}  # Conflict graph
-        pgr: ConflictGraph = {}  # Priority graph
+        cgr: TransactionGraph = {}  # Conflict graph
+        pgr: TransactionGraph = {}  # Priority graph
+        rgr: TransactionGraph = {}  # Relation graph
 
-        def add_edge(transaction: Transaction, transaction2: Transaction, priority: ConflictPriority):
-            gr[transaction].add(transaction2)
-            gr[transaction2].add(transaction)
+        def add_edge(begin: Transaction, end: Transaction, priority: Priority, conflict: bool):
+            rgr[begin].add(end)
+            rgr[end].add(begin)
+            if conflict:
+                cgr[begin].add(end)
+                cgr[end].add(begin)
             match priority:
-                case ConflictPriority.LEFT:
-                    pgr[transaction2].add(transaction)
-                case ConflictPriority.RIGHT:
-                    pgr[transaction].add(transaction2)
+                case Priority.LEFT:
+                    pgr[end].add(begin)
+                case Priority.RIGHT:
+                    pgr[begin].add(end)
 
         for transaction in self.transactions:
-            gr[transaction] = set()
+            cgr[transaction] = set()
             pgr[transaction] = set()
+            rgr[transaction] = set()
 
         for transaction, methods in self.methods_by_transaction.items():
             for method in methods:
@@ -190,19 +214,19 @@ class TransactionManager(Elaboratable):
                     continue
                 for transaction2 in self.transactions_by_method[method]:
                     if transaction is not transaction2:
-                        add_edge(transaction, transaction2, ConflictPriority.UNDEFINED)
+                        add_edge(transaction, transaction2, Priority.UNDEFINED, True)
 
-        for (end1, end2, priority) in self.conflicts:
-            for transaction in end_trans(end1):
-                for transaction2 in end_trans(end2):
-                    add_edge(transaction, transaction2, priority)
+        for relation in self.relations:
+            for start in end_trans(relation["start"]):
+                for end in end_trans(relation["end"]):
+                    add_edge(start, end, relation["priority"], relation["conflict"])
 
         porder: PriorityOrder = {}
 
         for (k, transaction) in enumerate(TopologicalSorter(pgr).static_order()):
             porder[transaction] = k
 
-        return gr, porder
+        return cgr, rgr, porder
 
     def _call_graph(self, transaction: "Transaction", method: "Method", arg: ValueLike, enable: ValueLike):
         if not method.defined:
@@ -212,8 +236,8 @@ class TransactionManager(Elaboratable):
         self.method_uses[transaction][method] = (arg, enable)
         self.methods_by_transaction[transaction].append(method)
         self.transactions_by_method[method].append(transaction)
-        for end in method.conflicts:
-            self.conflicts.append((method, end[0], end[1]))
+        for relation in method.relations:
+            self.relations.append(Relation(**relation, start=method))
         for method, (arg, enable) in method.method_uses.items():
             self._call_graph(transaction, method, arg, enable)
 
@@ -261,17 +285,17 @@ class TransactionManager(Elaboratable):
         self.method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
 
         for transaction in self.transactions:
-            for end in transaction.conflicts:
-                self.conflicts.append((transaction, end[0], end[1]))
+            for relation in transaction.relations:
+                self.relations.append(Relation(**relation, start=transaction))
             for method, (arg, enable) in transaction.method_uses.items():
                 self._call_graph(transaction, method, arg, enable)
 
-        gr, porder = self._conflict_graph()
+        cgr, rgr, porder = self._conflict_graph()
 
         m = Module()
 
-        for cc in _graph_ccs(gr):
-            self.cc_scheduler(m, gr, cc, porder)
+        for cc in _graph_ccs(rgr):
+            self.cc_scheduler(m, cgr, cc, porder)
 
         for transaction in self.transactions:
             m.d.comb += transaction.grant.eq(self._condition_for(transaction))
@@ -329,10 +353,10 @@ class TransactionContext:
 
 class TransactionModule(Elaboratable):
     """
-    ``TransactionModule`` is used as wrapper on ``Module`` class,
-    which add support for transaction to the ``Module``. It creates a
-    ``TransactionManager`` which will handle transaction scheduling
-    and can be used in definition of ``Method``\\s and ``Transaction``\\s.
+    `TransactionModule` is used as wrapper on `Module` class,
+    which add support for transaction to the `Module`. It creates a
+    `TransactionManager` which will handle transaction scheduling
+    and can be used in definition of `Method`\\s and `Transaction`\\s.
     """
 
     def __init__(self, module: Module, manager: Optional[TransactionManager] = None):
@@ -340,7 +364,7 @@ class TransactionModule(Elaboratable):
         Parameters
         ----------
         module: Module
-                The ``Module`` which should be wrapped to add support for
+                The `Module` which should be wrapped to add support for
                 transactions and methods.
         """
         if manager is None:
@@ -353,7 +377,7 @@ class TransactionModule(Elaboratable):
 
     def elaborate(self, platform):
         with self.transaction_context():
-            for name in self.module._named_submodules:
+            for name in self.module._named_submodules:  # type: ignore
                 self.module._named_submodules[name] = Fragment.get(self.module._named_submodules[name], platform)
             for idx in range(len(self.module._anon_submodules)):
                 self.module._anon_submodules[idx] = Fragment.get(self.module._anon_submodules[idx], platform)
@@ -387,27 +411,39 @@ class TransactionBase(Owned):
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
-        self.conflicts: list[Tuple[Transaction | Method, ConflictPriority]] = []
         self.conditions: list[Tuple[Transaction | Method | ValueLike, ...]] = []
+        self.relations: list[RelationBase] = []
 
-    def add_conflict(
-        self, end: Union["Transaction", "Method"], priority: ConflictPriority = ConflictPriority.UNDEFINED
-    ) -> None:
+    def add_conflict(self, end: Union["Transaction", "Method"], priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
 
-        Record that that the given ``Transaction`` or ``Method`` cannot execute
-        simultaneously with this ``Method``.  Typical reason is using a common
-        resource (register write or memory port).
+        Record that that the given `Transaction` or `Method` cannot execute
+        simultaneously with this `Method` or `Transaction`. Typical reason
+        is using a common resource (register write or memory port).
 
         Parameters
         ----------
         end: Transaction or Method
-            The conflicting ``Transaction`` or ``Method``
-        priority: ConflictPriority, optional
-            Is one of conflicting ``Transaction``\\s or ``Method``\\s prioritized?
+            The conflicting `Transaction` or `Method`
+        priority: Priority, optional
+            Is one of conflicting `Transaction`\\s or `Method`\\s prioritized?
             Defaults to undefined priority relation.
         """
-        self.conflicts.append((end, priority))
+        self.relations.append(RelationBase(end=end, priority=priority, conflict=True))
+
+    def schedule_before(self, end: Union["Transaction", "Method"]) -> None:
+        """Adds a priority relation.
+
+        Record that that the given `Transaction` or `Method` needs to be
+        scheduled before this `Method` or `Transaction`, without adding
+        a conflict. Typical reason is data forwarding.
+
+        Parameters
+        ----------
+        end: Transaction or Method
+            The other `Transaction` or `Method`
+        """
+        self.relations.append(RelationBase(end=end, priority=Priority.RIGHT, conflict=False))
 
     def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike, conditional_call: bool):
         assert isinstance(self, Transaction) or isinstance(self, Method)  # for typing
@@ -447,36 +483,36 @@ class TransactionBase(Owned):
 class Transaction(TransactionBase):
     """Transaction.
 
-    A ``Transaction`` represents a task which needs to be regularly done.
-    Execution of a ``Transaction`` always lasts a single clock cycle.
-    A ``Transaction`` signals readiness for execution by setting the
-    ``request`` signal. If the conditions for its execution are met, it
-    can be granted by the ``TransactionManager``.
+    A `Transaction` represents a task which needs to be regularly done.
+    Execution of a `Transaction` always lasts a single clock cycle.
+    A `Transaction` signals readiness for execution by setting the
+    `request` signal. If the conditions for its execution are met, it
+    can be granted by the `TransactionManager`.
 
-    A ``Transaction`` can, as part of its execution, call a number of
-    ``Method``\\s. A ``Transaction`` can be granted only if every ``Method``
+    A `Transaction` can, as part of its execution, call a number of
+    `Method`\\s. A `Transaction` can be granted only if every `Method`
     it runs is ready.
 
-    A ``Transaction`` cannot execute concurrently with another, conflicting
-    ``Transaction``. Conflicts between ``Transaction``\\s are either explicit
-    or implicit. An explicit conflict is added using the ``add_conflict``
-    method. Implicit conflicts arise between pairs of ``Transaction``\\s
-    which use the same ``Method``.
+    A `Transaction` cannot execute concurrently with another, conflicting
+    `Transaction`. Conflicts between `Transaction`\\s are either explicit
+    or implicit. An explicit conflict is added using the `add_conflict`
+    method. Implicit conflicts arise between pairs of `Transaction`\\s
+    which use the same `Method`.
 
-    A module which defines a ``Transaction`` should use ``body`` to
+    A module which defines a `Transaction` should use `body` to
     describe used methods and the transaction's effect on the module state.
-    The used methods should be called inside the ``body``'s
-    ``with`` block.
+    The used methods should be called inside the `body`'s
+    `with` block.
 
     Attributes
     ----------
     name: str
-        Name of this ``Transaction``.
+        Name of this `Transaction`.
     request: Signal, in
         Signals that the transaction wants to run. If omitted, the transaction
         is always ready. Defined in the constructor.
     grant: Signal, out
-        Signals that the transaction is granted by the ``TransactionManager``,
+        Signals that the transaction is granted by the `TransactionManager`,
         and all used methods are called.
     """
 
@@ -485,13 +521,13 @@ class Transaction(TransactionBase):
         Parameters
         ----------
         name: str or None
-            Name hint for this ``Transaction``. If ``None`` (default) the name is
-            inferred from the variable name this ``Transaction`` is assigned to.
-            If the ``Transaction`` was not assigned, the name is inferred from
-            the class name where the ``Transaction`` was constructed.
+            Name hint for this `Transaction`. If `None` (default) the name is
+            inferred from the variable name this `Transaction` is assigned to.
+            If the `Transaction` was not assigned, the name is inferred from
+            the class name where the `Transaction` was constructed.
         manager: TransactionManager
-            The ``TransactionManager`` controlling this ``Transaction``.
-            If omitted, the manager is received from ``TransactionContext``.
+            The `TransactionManager` controlling this `Transaction`.
+            If omitted, the manager is received from `TransactionContext`.
         """
         super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$transaction")
@@ -505,22 +541,22 @@ class Transaction(TransactionBase):
 
     @contextmanager
     def body(self, m: Module, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
-        """Defines the ``Transaction`` body.
+        """Defines the `Transaction` body.
 
         This context manager allows to conveniently define the actions
-        performed by a ``Transaction`` when it's granted. Each assignment
-        added to a domain under ``body`` is guarded by the ``grant`` signal.
+        performed by a `Transaction` when it's granted. Each assignment
+        added to a domain under `body` is guarded by the `grant` signal.
         Combinational assignments which do not need to be guarded by
-        ``grant`` can be added to ``Transaction.comb`` instead of
-        ``m.d.comb``. ``Method`` calls can be performed under ``body``.
+        `grant` can be added to `Transaction.comb` instead of
+        `m.d.comb`. `Method` calls can be performed under `body`.
 
         Parameters
         ----------
         m: Module
-            The module where the ``Transaction`` is defined.
+            The module where the `Transaction` is defined.
         request: Signal
-            Indicates that the ``Transaction`` wants to be executed. By
-            default it is ``Const(1)``, so it wants to be executed in
+            Indicates that the `Transaction` wants to be executed. By
+            default it is `Const(1)`, so it wants to be executed in
             every clock cycle.
         """
         m.d.comb += self.request.eq(request)
@@ -533,82 +569,63 @@ class Transaction(TransactionBase):
     def __repr__(self) -> str:
         return "(transaction {})".format(self.name)
 
-    def debug_signals(self) -> DebugSignals:
+    def debug_signals(self) -> SignalBundle:
         return [self.request, self.grant]
-
-
-def _connect_rec_with_possibly_dict(dst: Value | Record, src: RecordDict) -> list[Assign]:
-    if not isinstance(src, Mapping):
-        return [dst.eq(src)]
-
-    if not isinstance(dst, Record):
-        raise TypeError("Cannot connect a dict of signals to a non-record.")
-
-    exprs: list[Assign] = []
-    for k, v in src.items():
-        exprs += _connect_rec_with_possibly_dict(dst[k], v)
-
-    # Make sure all fields of the record are specified in the dict.
-    for field_name, _, _ in dst.layout:
-        if field_name not in src:
-            raise KeyError("Field {} is not specified in the dict.".format(field_name))
-
-    return exprs
 
 
 class Method(TransactionBase):
     """Transactional method.
 
-    A ``Method`` serves to interface a module with external ``Transaction``\\s
-    or ``Method``\\s. It can be called by at most once in a given clock cycle.
-    When a given ``Method`` is required by multiple ``Transaction``\\s
-    (either directly, or indirectly via another ``Method``) simultenaously,
-    at most one of them is granted by the ``TransactionManager``, and the rest
+    A `Method` serves to interface a module with external `Transaction`\\s
+    or `Method`\\s. It can be called by at most once in a given clock cycle.
+    When a given `Method` is required by multiple `Transaction`\\s
+    (either directly, or indirectly via another `Method`) simultenaously,
+    at most one of them is granted by the `TransactionManager`, and the rest
     of them must wait. (Non-exclusive methods are an exception to this
-    behavior.) Calling a ``Method`` always takes a single clock cycle.
+    behavior.) Calling a `Method` always takes a single clock cycle.
 
-    Data is combinationally transferred between to and from ``Method``\\s
-    using Amaranth ``Record``\\s. The transfer can take place in both directions
-    at the same time: from the called ``Method`` to the caller (``data_out``)
-    and from the caller to the called ``Method`` (``data_in``).
+    Data is combinationally transferred between to and from `Method`\\s
+    using Amaranth `Record`\\s. The transfer can take place in both directions
+    at the same time: from the called `Method` to the caller (`data_out`)
+    and from the caller to the called `Method` (`data_in`).
 
-    A module which defines a ``Method`` should use ``body`` or ``def_method``
+    A module which defines a `Method` should use `body` or `def_method`
     to describe the method's effect on the module state.
 
     Attributes
     ----------
     name: str
-        Name of this ``Method``.
+        Name of this `Method`.
     ready: Signal, in
         Signals that the method is ready to run in the current cycle.
-        Typically defined by calling ``body``.
+        Typically defined by calling `body`.
     run: Signal, out
         Signals that the method is called in the current cycle by some
-        ``Transaction``. Defined by the ``TransactionManager``.
+        `Transaction`. Defined by the `TransactionManager`.
     data_in: Record, out
-        Contains the data passed to the ``Method`` by the caller
-        (a ``Transaction`` or another ``Method``).
+        Contains the data passed to the `Method` by the caller
+        (a `Transaction` or another `Method`).
     data_out: Record, in
-        Contains the data passed from the ``Method`` to the caller
-        (a ``Transaction`` or another ``Method``). Typically defined by
-        calling ``body``.
+        Contains the data passed from the `Method` to the caller
+        (a `Transaction` or another `Method`). Typically defined by
+        calling `body`.
     """
 
     def __init__(
-        self, *, name: Optional[str] = None, i: MethodLayout = 0, o: MethodLayout = 0, nonexclusive: bool = False
+        self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = (), nonexclusive: bool = False
     ):
         """
         Parameters
         ----------
         name: str or None
-            Name hint for this ``Method``. If ``None`` (default) the name is
-            inferred from the variable name this ``Method`` is assigned to.
-        i: int or record layout
-            The format of ``data_in``.
-            An ``int`` corresponds to a ``Record`` with a single ``data`` field.
-        o: int or record layout
-            The format of ``data_in``.
-            An ``int`` corresponds to a ``Record`` with a single ``data`` field.
+            Name hint for this `Method`. If `None` (default) the name is
+            inferred from the variable name this `Method` is assigned to.
+        i: record layout
+            The format of `data_in`.
+            An `int` corresponds to a `Record` with a single `data` field.
+        o: record layout
+            The format of `data_in`.
+            An `int` corresponds to a `Record` with a single `data` field.
         nonexclusive: bool
             If true, the method is non-exclusive: it can be called by multiple
             transactions in the same clock cycle. If such a situation happens,
@@ -620,8 +637,8 @@ class Method(TransactionBase):
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal()
         self.run = Signal()
-        self.data_in = Record(_coerce_layout(i))
-        self.data_out = Record(_coerce_layout(o))
+        self.data_in = Record(i)
+        self.data_out = Record(o)
         self.defined = False
         self.used_by = dict[Transaction | Method, bool]()
         self.nonexclusive = nonexclusive
@@ -630,35 +647,35 @@ class Method(TransactionBase):
 
     @staticmethod
     def like(other: "Method", *, name: Optional[str] = None) -> "Method":
-        """Constructs a new ``Method`` based on another.
+        """Constructs a new `Method` based on another.
 
-        The returned ``Method`` has the same input/output data layouts as the
-        ``other`` ``Method``.
+        The returned `Method` has the same input/output data layouts as the
+        `other` `Method`.
 
         Parameters
         ----------
         other : Method
-            The ``Method`` which serves as a blueprint for the new ``Method``.
+            The `Method` which serves as a blueprint for the new `Method`.
         name : str, optional
-            Name of the new ``Method``.
+            Name of the new `Method`.
 
         Returns
         -------
         Method
-            The freshly constructed ``Method``.
+            The freshly constructed `Method`.
         """
         return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
 
     def proxy(self, m: Module, method: "Method"):
         """Define as a proxy for another method.
 
-        The calls to this method will be forwarded to ``method``.
+        The calls to this method will be forwarded to `method`.
 
         Parameters
         ----------
         m : Module
             Module in which operations on signals should be executed,
-            ``proxy`` uses the combinational domain only.
+            `proxy` uses the combinational domain only.
         method : Method
             Method for which this method is a proxy for.
         """
@@ -671,32 +688,32 @@ class Method(TransactionBase):
     def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
         """Define method body
 
-        The ``body`` context manager can be used to define the actions
-        performed by a ``Method`` when it's run. Each assignment added to
-        a domain under ``body`` is guarded by the ``run`` signal.
-        Combinational assignments which do not need to be guarded by ``run``
-        can be added to ``Method.comb`` instead of ``m.d.comb``. ``Method``
-        calls can be performed under ``body``.
+        The `body` context manager can be used to define the actions
+        performed by a `Method` when it's run. Each assignment added to
+        a domain under `body` is guarded by the `run` signal.
+        Combinational assignments which do not need to be guarded by `run`
+        can be added to `Method.comb` instead of `m.d.comb`. `Method`
+        calls can be performed under `body`.
 
         Parameters
         ----------
         m : Module
             Module in which operations on signals should be executed,
-            ``body`` uses the combinational domain only.
+            `body` uses the combinational domain only.
         ready : Signal, in
             Signal to indicate if the method is ready to be run. By
-            default it is ``Const(1)``, so the method is always ready.
-            Assigned combinationially to the ``ready`` attribute.
+            default it is `Const(1)`, so the method is always ready.
+            Assigned combinationially to the `ready` attribute.
         out : Record, in
-            Data generated by the ``Method``, which will be passed to
-            the caller (a ``Transaction`` or another ``Method``). Assigned
-            combinationally to the ``data_out`` attribute.
+            Data generated by the `Method`, which will be passed to
+            the caller (a `Transaction` or another `Method`). Assigned
+            combinationally to the `data_out` attribute.
 
         Returns
         -------
         data_in : Record, out
-            Data passed from the caller (a ``Transaction`` or another
-            ``Method``) to this ``Method``.
+            Data passed from the caller (a `Transaction` or another
+            `Method`) to this `Method`.
 
         Examples
         --------
@@ -722,21 +739,74 @@ class Method(TransactionBase):
         finally:
             self.defined = True
 
-    def __call__(self, m: Module, arg: RecordDict = C(0, 0), enable: ValueLike = C(1)) -> Record:
-        conditional_call = len(m._ctrl_stack) > 1  # hacky use of Amaranth internals
+    def __call__(
+        self, m: Module, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
+    ) -> Record:
+        """Call a method.
 
+        Methods can only be called from transaction and method bodies.
+        Calling a `Method` marks, for the purpose of transaction scheduling,
+        the dependency between the calling context and the called `Method`.
+        It also connects the method's inputs to the parameters and the
+        method's outputs to the return value.
+
+        Parameters
+        ----------
+        m : Module
+            Module in which operations on signals should be executed,
+        arg : Value or dict of Values
+            Call argument. Can be passed as a `Record` of the method's
+            input layout or as a dictionary. Alternative syntax uses
+            keyword arguments.
+        enable : Value
+            Configures the call as enabled in the current clock cycle.
+            Disabled calls still lock the called method in transaction
+            scheduling. Calls are by default enabled.
+        **kwargs : Value or dict of Values
+            Allows to pass method arguments using keyword argument
+            syntax. Equivalent to passing a dict as the argument.
+
+        Returns
+        -------
+        data_out : Record
+            The result of the method call.
+
+        Examples
+        --------
+        .. highlight:: python
+        .. code-block:: python
+
+            m = Module()
+            with Transaction.body(m):
+                ret = my_sum_method(m, arg1=2, arg2=3)
+
+        Alternative syntax:
+
+        .. highlight:: python
+        .. code-block:: python
+
+            with Transaction.body(m):
+                ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
+        """
         enable_sig = Signal()
         arg_rec = Record.like(self.data_in)
+        conditional_call = len(m._ctrl_stack) > 1  # hacky use of Amaranth internals
+
+        if arg is not None and kwargs:
+            raise ValueError("Method call with both keyword arguments and legacy record argument")
+
+        if arg is None:
+            arg = kwargs
 
         m.d.comb += enable_sig.eq(enable)
-        TransactionBase.comb += _connect_rec_with_possibly_dict(arg_rec, arg)
+        TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig, conditional_call)
         return self.data_out
 
     def __repr__(self) -> str:
         return "(method {})".format(self.name)
 
-    def debug_signals(self) -> DebugSignals:
+    def debug_signals(self) -> SignalBundle:
         return [self.ready, self.run, self.data_in, self.data_out]
 
 
@@ -744,12 +814,16 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     """Define a method.
 
     This decorator allows to define transactional methods in an
-    elegant way using Python's ``def`` syntax. Internally, ``def_method``
-    uses ``Method.body``.
+    elegant way using Python's `def` syntax. Internally, `def_method`
+    uses `Method.body`.
 
-    The decorated function should take one argument, which will be a
-    record with input signals and return output values.
-    The returned value can be either a record or a dictionary of outputs.
+    The decorated function should take keyword arguments corresponding to the
+    fields of the method's input layout. The `**kwargs` syntax is supported.
+    Alternatively, it can take one argument named `arg`, which will be a
+    record with input signals.
+
+    The returned value can be either a record with the method's output layout
+    or a dictionary of outputs.
 
     Parameters
     ----------
@@ -759,8 +833,8 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         The method whose body is going to be defined.
     ready: Signal
         Signal to indicate if the method is ready to be run. By
-        default it is ``Const(1)``, so the method is always ready.
-        Assigned combinationally to the ``ready`` attribute.
+        default it is `Const(1)`, so the method is always ready.
+        Assigned combinationally to the `ready` attribute.
 
     Examples
     --------
@@ -768,20 +842,52 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     .. code-block:: python
 
         m = Module()
-        my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=8)
+        my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=[("res",8)])
         @def_method(m, my_sum_method)
-        def _(data_in):
-            return data_in.arg1 + data_in.arg2
+        def _(arg1, arg2):
+            return arg1 + arg2
+
+    Alternative syntax (keyword args in dictionary):
+
+    .. highlight:: python
+    .. code-block:: python
+
+        @def_method(m, my_sum_method)
+        def _(**args):
+            return args["arg1"] + args["arg2"]
+
+    Alternative syntax (arg record):
+
+    .. highlight:: python
+    .. code-block:: python
+
+        @def_method(m, my_sum_method)
+        def _(arg):
+            return {"res": arg.arg1 + arg.arg2}
     """
 
-    def decorator(func: Callable[[Record], Optional[RecordDict]]):
+    def decorator(func: Callable[..., Optional[RecordDict]]):
         out = Record.like(method.data_out)
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:
-            ret_out = func(arg)
+            parameters = signature(func).parameters
+            kw_parameters = set(
+                n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
+            )
+            if kw_parameters <= arg.fields.keys():
+                ret_out = func(**arg.fields)
+            elif (
+                len(parameters) == 1
+                and "arg" in parameters
+                and parameters["arg"].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
+                and parameters["arg"].annotation in {Parameter.empty, Record}
+            ):
+                ret_out = func(arg)
+            else:
+                raise TypeError(f"Invalid def_method for {method}")
 
         if ret_out is not None:
-            m.d.comb += _connect_rec_with_possibly_dict(out, ret_out)
+            m.d.comb += assign(out, ret_out, fields=AssignType.ALL)
 
     return decorator

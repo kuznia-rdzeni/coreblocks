@@ -1,12 +1,13 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Iterable, Literal, Mapping, Optional, cast, overload
+from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
-from ._typing import ValueLike
+from amaranth.lib import data
+from ._typing import ValueLike, LayoutList, SignalBundle
 
 
-__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch"]
+__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch", "flatten_signals"]
 
 
 @contextmanager
@@ -14,7 +15,7 @@ def OneHotSwitch(m: Module, test: Value):
     """One-hot switch.
 
     This function allows one-hot matching in the style similar to the standard
-    Amaranth ``Switch``. This allows to get the performance benefit of using
+    Amaranth `Switch`. This allows to get the performance benefit of using
     the one-hot representation.
 
     Example::
@@ -102,7 +103,8 @@ class AssignType(Enum):
     ALL = 3
 
 
-AssignFields = AssignType | Iterable[str] | Mapping[str, "AssignFields"]
+AssignFields: TypeAlias = AssignType | Iterable[str] | Mapping[str, "AssignFields"]
+AssignArg: TypeAlias = ValueLike | Mapping[str, "AssignArg"]
 
 
 def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
@@ -118,42 +120,59 @@ def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
         return set.intersection(*[set(cast(Record, el).fields) for el in elems])
 
 
-def valuelike_fields(val: ValueLike) -> Optional[set[str]]:
+def assign_arg_fields(val: AssignArg) -> Optional[set[str]]:
     if isinstance(val, ArrayProxy):
         return arrayproxy_fields(val)
     elif isinstance(val, Record):
         return set(val.fields)
+    elif isinstance(val, data.View):
+        layout = data.Layout.cast(data.Layout.of(val))
+        if isinstance(layout, data.StructLayout):
+            return set(k for k, _ in layout)
+    elif isinstance(val, dict):
+        return set(val.keys())
 
 
 def assign(
-    lhs: Value | Record | ArrayProxy, rhs: ValueLike, *, fields: AssignFields = AssignType.RHS
+    lhs: AssignArg, rhs: AssignArg, *, fields: AssignFields = AssignType.RHS, lhs_strict=False, rhs_strict=False
 ) -> Iterable[Assign]:
     """Safe record assignment.
 
-    This function generates assignment statements for records and reports
-    errors in case of mismatch. If either of ``lhs`` or ``rhs`` is not
-    a Record, checks for the same bit width and generates a single
-    assignment statement.
+    This function recursively generates assignment statements for
+    field-containing structures. This includes: Amaranth `Record`\\s,
+    Amaranth `View`\\s using `StructLayout`, Python `dict`\\s. In case of
+    mismatching fields or bit widths, error is raised.
+
+    When both `lhs` and `rhs` are field-containing, `assign` generates
+    assignment statements according to the value of the `field` parameter.
+    If either of `lhs` or `rhs` is not field-containing, `assign` checks for
+    the same bit width and generates a single assignment statement.
+
+    The bit width check is performed if:
+
+    - Any of `lhs` or `rhs` is a `Record` or `View`.
+    - Both `lhs` and `rhs` have an explicitly defined shape (e.g. are a
+      `Signal`, a field of a `Record` or a `View`).
 
     Parameters
     ----------
-    lhs : Record or Signal or ArrayProxy
-        Record or signal being assigned.
-    rhs : Record or Value-castable
-        Record or signal containing assigned values.
+    lhs : Record or View or Value-castable or dict
+        Record, signal or dict being assigned.
+    rhs : Record or View or Value-castable or dict
+        Record, signal or dict containing assigned values.
     fields : AssignType or Iterable or Mapping, optional
         Determines which fields will be assigned. Possible values:
 
         AssignType.COMMON
-            Only fields common to ``lhs`` and ``rhs`` are assigned.
+            Only fields common to `lhs` and `rhs` are assigned.
         AssignType.RHS
-            All fields in ``rhs`` are assigned. If one of them is not present
-            in ``lhs``, an exception is raised.
+            All fields in `rhs` are assigned. If one of them is not present
+            in `lhs`, an exception is raised.
         AssignType.ALL
             Assume that both records have the same layouts. All fields present
-            in ``lhs`` or ``rhs`` are assigned.
+            in `lhs` or `rhs` are assigned.
         Mapping
-            Keys are field names, values follow the format for ``fields``.
+            Keys are field names, values follow the format for `fields`.
         Iterable
             Items are field names. For subrecords, AssignType.ALL is assumed.
 
@@ -167,13 +186,23 @@ def assign(
     ValueError
         If the assignment can't be safely performed.
     """
-    lhs_fields = valuelike_fields(lhs)
-    rhs_fields = valuelike_fields(rhs)
+    lhs_fields = assign_arg_fields(lhs)
+    rhs_fields = assign_arg_fields(rhs)
 
     if lhs_fields is not None and rhs_fields is not None:
         # asserts for type checking
-        assert isinstance(lhs, Record) or isinstance(lhs, ArrayProxy)
-        assert isinstance(rhs, Record) or isinstance(rhs, ArrayProxy)
+        assert (
+            isinstance(lhs, Record)
+            or isinstance(lhs, ArrayProxy)
+            or isinstance(lhs, Mapping)
+            or isinstance(lhs, data.View)
+        )
+        assert (
+            isinstance(rhs, Record)
+            or isinstance(rhs, ArrayProxy)
+            or isinstance(rhs, Mapping)
+            or isinstance(rhs, data.View)
+        )
 
         if fields is AssignType.COMMON:
             names = lhs_fields & rhs_fields
@@ -184,14 +213,14 @@ def assign(
         else:
             names = set(fields)
 
-        if len(names) == 0:
+        if not names and (lhs_fields or rhs_fields):
             raise ValueError("There are no common fields in assigment lhs: {} rhs: {}".format(lhs_fields, rhs_fields))
 
         for name in names:
             if name not in lhs_fields:
-                raise ValueError("Field {} not present in lhs".format(name))
+                raise KeyError("Field {} not present in lhs".format(name))
             if name not in rhs_fields:
-                raise ValueError("Field {} not present in rhs".format(name))
+                raise KeyError("Field {} not present in rhs".format(name))
 
             subfields = fields
             if isinstance(fields, Mapping):
@@ -199,11 +228,57 @@ def assign(
             elif isinstance(fields, Iterable):
                 subfields = AssignType.ALL
 
-            yield from assign(lhs[name], rhs[name], fields=subfields)
+            yield from assign(
+                lhs[name],
+                rhs[name],
+                fields=subfields,
+                lhs_strict=not isinstance(lhs, Mapping),
+                rhs_strict=not isinstance(rhs, Mapping),
+            )
     else:
         if not isinstance(fields, AssignType):
             raise ValueError("Fields on assigning non-records")
-        rhs = Value.cast(rhs)
-        if lhs.shape() != rhs.shape():
-            raise ValueError("Shapes not matching: {} and {}".format(lhs.shape(), rhs.shape()))
-        yield lhs.eq(rhs)
+        if not isinstance(lhs, ValueLike) or not isinstance(rhs, ValueLike):
+            raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
+
+        lhs_val = Value.cast(lhs)
+        rhs_val = Value.cast(rhs)
+
+        def has_explicit_shape(val: ValueLike):
+            return isinstance(val, Signal) or isinstance(val, ArrayProxy)
+
+        if (
+            isinstance(lhs, Record)
+            or isinstance(rhs, Record)
+            or isinstance(lhs, data.View)
+            or isinstance(rhs, data.View)
+            or (lhs_strict or has_explicit_shape(lhs))
+            and (rhs_strict or has_explicit_shape(rhs))
+        ):
+            if lhs_val.shape() != rhs_val.shape():
+                raise ValueError(
+                    "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs_val.shape(), lhs, rhs_val.shape(), rhs)
+                )
+        yield lhs_val.eq(rhs_val)
+
+
+def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
+    return [item for item in layout if item[0] in fields]
+
+
+def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
+    """
+    Flattens input data, which can be either a signal, a record, a list (or a dict) of SignalBundle items.
+
+    """
+    if isinstance(signals, Mapping):
+        for x in signals.values():
+            yield from flatten_signals(x)
+    elif isinstance(signals, Iterable):
+        for x in signals:
+            yield from flatten_signals(x)
+    elif isinstance(signals, Record):
+        for x in signals.fields.values():
+            yield from flatten_signals(x)
+    else:
+        yield signals

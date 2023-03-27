@@ -1,9 +1,10 @@
 {
   "include": [
     "coreblocks",
-    "test"
+    "test",
+    "scripts"
   ],
-  
+
   "exclude": [
     "**/node_modules",
     "**/__pycache__"

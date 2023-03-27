@@ -53,7 +53,7 @@ class RecursiveWithSingleDSPMul(Elaboratable):
 
             with m.If(~self.confirm & ~self.reset):
                 with Transaction().body(m):
-                    res = self.dsp.compute(m, {"i1": self.i1, "i2": self.i2})
+                    res = self.dsp.compute(m, i1=self.i1, i2=self.i2)
                     m.d.sync += self.result.eq(res)
                     m.d.sync += self.confirm.eq(1)
 
@@ -126,12 +126,13 @@ class SequentialUnsignedMul(MulBaseUnsigned):
     It uses classic recursive multiplication algorithm.
     """
 
-    def __init__(self, gen: GenParams):
+    def __init__(self, gen: GenParams, dsp_width: int = 8):
         super().__init__(gen)
+        self.dsp_width = dsp_width
 
     def elaborate(self, platform):
         m = Module()
-        m.submodules.dsp = dsp = DSPMulUnit(self.gen.mul_unit_params.width)
+        m.submodules.dsp = dsp = DSPMulUnit(self.dsp_width)
         m.submodules.multiplier = multiplier = RecursiveWithSingleDSPMul(dsp, self.gen.isa.xlen)
 
         accepted = Signal(1, reset=1)

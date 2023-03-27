@@ -8,12 +8,10 @@ from amaranth.sim import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit
-from coreblocks.params.isa import *
-from coreblocks.params import GenParams
-from coreblocks.utils import AutoDebugSignals
+from coreblocks.params import *
 
 
 def _cast_to_int_xlen(x, xlen):
@@ -39,7 +37,7 @@ class TestAlu(TestCaseWithSimulator):
     ]
 
     def setUp(self):
-        self.gen = GenParams("rv32i")
+        self.gen = test_gen_params("rv32i")
         self.alu = Alu(self.gen)
 
         random.seed(42)
@@ -90,6 +88,15 @@ class TestAlu(TestCaseWithSimulator):
     def test_sub(self):
         self.check_fn(AluFn.Fn.SUB, operator.sub)
 
+    def test_sh1add(self):
+        self.check_fn(AluFn.Fn.SH1ADD, lambda in1, in2: (in1 << 1) + in2)
+
+    def test_sh2add(self):
+        self.check_fn(AluFn.Fn.SH2ADD, lambda in1, in2: (in1 << 2) + in2)
+
+    def test_sh3add(self):
+        self.check_fn(AluFn.Fn.SH3ADD, lambda in1, in2: (in1 << 3) + in2)
+
     def test_sra(self):
         def sra(in1, in2):
             xlen = self.gen.isa.xlen
@@ -111,7 +118,7 @@ class TestAlu(TestCaseWithSimulator):
         self.check_fn(AluFn.Fn.SLTU, operator.lt)
 
 
-class AluFuncUnitTestCircuit(Elaboratable, AutoDebugSignals):
+class AluFuncUnitTestCircuit(Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen
 
@@ -130,7 +137,7 @@ class AluFuncUnitTestCircuit(Elaboratable, AutoDebugSignals):
 
 class TestAluFuncUnit(TestCaseWithSimulator):
     def setUp(self):
-        self.gen = GenParams("rv32i")
+        self.gen = test_gen_params("rv32i")
         self.m = AluFuncUnitTestCircuit(self.gen)
 
         random.seed(42)

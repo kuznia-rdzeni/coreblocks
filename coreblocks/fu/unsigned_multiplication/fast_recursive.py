@@ -46,7 +46,9 @@ class FastRecursiveMul(Elaboratable):
             m = Module()
             m.submodules.dsp = dsp = DSPMulUnit(self.dsp_width)
             with Transaction().body(m):
-                res = dsp.compute(m, {"i1": self.i1, "i2": self.i2})
+                # The bit width of the `i1` and `i2` parameters of `dsp` is different than of `self.i1`
+                # and `self.i2`, which triggers an error. Using `| 0` silences it.
+                res = dsp.compute(m, i1=self.i1 | 0, i2=self.i2 | 0)
                 m.d.comb += self.r.eq(res)
 
             return m
@@ -109,20 +111,21 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
     Module with @see{MulBaseUnsigned} interface performing fast recursive multiplication within 1 clock cycle.
     """
 
-    def __init__(self, gen: GenParams):
+    def __init__(self, gen: GenParams, dsp_width: int = 8):
         super().__init__(gen)
+        self.dsp_width = dsp_width
 
     def elaborate(self, platform):
         m = Module()
         m.submodules.fifo = fifo = FIFO([("o", 2 * self.gen.isa.xlen)], 2)
 
-        m.submodules.mul = mul = FastRecursiveMul(self.gen.isa.xlen, self.gen.mul_unit_params.width)
+        m.submodules.mul = mul = FastRecursiveMul(self.gen.isa.xlen, self.dsp_width)
 
         @def_method(m, self.issue)
         def _(arg):
             m.d.comb += mul.i1.eq(arg.i1)
             m.d.comb += mul.i2.eq(arg.i2)
-            fifo.write(m, {"o": mul.r})
+            fifo.write(m, o=mul.r)
 
         @def_method(m, self.accept)
         def _(arg):

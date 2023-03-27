@@ -4,17 +4,16 @@ from amaranth.sim import Passive
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.params import GenParams
-from coreblocks.utils import AutoDebugSignals
 
 from queue import Queue
 from random import Random
 
 
-class TestElaboratable(Elaboratable, AutoDebugSignals):
+class TestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gp = gen_params
 
@@ -49,7 +48,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
             rob_id = yield from self.m.io_in.call(regs)
             self.to_execute_list.append((rob_id, phys_reg))
-            self.retire_queue.put(regs)
+            self.retire_queue.put((regs, rob_id["rob_id"]))
 
     def do_updates(self):
         yield Passive()
@@ -73,13 +72,14 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 is_ready = yield self.m.io_out.adapter.done
                 self.assertEqual(is_ready, 0)  # transaction should not be ready if there is nothing to retire
             else:
-                regs = self.retire_queue.get()
+                regs, rob_id_exp = self.retire_queue.get()
                 results = yield from self.m.io_out.call()
-                phys_reg = results["rp_dst"]
+                phys_reg = results["rob_data"]["rp_dst"]
+                self.assertEqual(rob_id_exp, results["rob_id"])
                 self.assertIn(phys_reg, self.executed_list)
                 self.executed_list.remove(phys_reg)
 
-                self.assertEqual(results, regs)
+                self.assertEqual(results["rob_data"], regs)
                 self.regs_left_queue.put(phys_reg)
 
                 cnt += 1
@@ -89,7 +89,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
         self.test_steps = 2000
-        gp = GenParams("rv32i", phys_regs_bits=5, rob_entries_bits=6)  # smaller size means better coverage
+        gp = test_gen_params("rv32i", phys_regs_bits=5, rob_entries_bits=6)  # smaller size means better coverage
         m = TestElaboratable(gp)
         self.m = m
 
@@ -111,10 +111,9 @@ class TestReorderBuffer(TestCaseWithSimulator):
 class TestFullDoneCase(TestCaseWithSimulator):
     def gen_input(self):
         for _ in range(self.test_steps):
-            log_reg = self.rand.randint(0, self.log_regs - 1)
-            phys_reg = self.rand.randint(0, self.phys_regs - 1)
-            regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
-            rob_id = yield from self.m.io_in.call(regs)
+            log_reg = self.rand.randrange(self.log_regs)
+            phys_reg = self.rand.randrange(self.phys_regs)
+            rob_id = yield from self.m.io_in.call(rl_dst=log_reg, rp_dst=phys_reg)
             self.to_execute_list.append(rob_id)
 
     def do_single_update(self):
@@ -142,7 +141,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
 
-        gp = GenParams("rv32i")
+        gp = test_gen_params("rv32i")
         self.test_steps = 2**gp.rob_entries_bits
         m = TestElaboratable(gp)
         self.m = m

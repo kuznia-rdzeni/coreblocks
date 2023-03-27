@@ -4,15 +4,15 @@ from coreblocks.transactions import TransactionModule, Method, def_method
 from coreblocks.transactions.lib import AdapterTrans
 
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 
 class Echo(Elaboratable):
     def __init__(self):
         self.data_bits = 8
 
-        self.layout_in = [("data", self.data_bits)]
-        self.layout_out = [("data", self.data_bits)]
+        self.layout_in = data_layout(self.data_bits)
+        self.layout_out = data_layout(self.data_bits)
 
         self.action = Method(i=self.layout_in, o=self.layout_out)
 
@@ -34,7 +34,7 @@ class Consumer(Elaboratable):
     def __init__(self):
         self.data_bits = 8
 
-        self.layout_in = [("data", self.data_bits)]
+        self.layout_in = data_layout(self.data_bits)
         self.layout_out = []
 
         self.action = Method(i=self.layout_in, o=self.layout_out)
@@ -55,8 +55,6 @@ class Consumer(Elaboratable):
 
 class TestElaboratable(Elaboratable):
     def __init__(self):
-        self.m = Module()
-        self.tm = TransactionModule(self.m)
 
         self.echo = Echo()
         self.consumer = Consumer()
@@ -64,14 +62,15 @@ class TestElaboratable(Elaboratable):
         self.io_consume = TestbenchIO(AdapterTrans(self.consumer.action))
 
     def elaborate(self, platform):
-        m = self.m
+        m = Module()
+        tm = TransactionModule(m)
 
         m.submodules.echo = self.echo
         m.submodules.io_echo = self.io_echo
         m.submodules.consumer = self.consumer
         m.submodules.io_consume = self.io_consume
 
-        return self.tm
+        return tm
 
 
 class TestAdapterTrans(TestCaseWithSimulator):
@@ -80,7 +79,7 @@ class TestAdapterTrans(TestCaseWithSimulator):
             # this would previously timeout if the output layout was empty (as is in this case)
             yield from self.t.io_consume.call()
         for expected in [4, 1, 0]:
-            obtained = (yield from self.t.io_echo.call({"data": expected}))["data"]
+            obtained = (yield from self.t.io_echo.call(data=expected))["data"]
             self.assertEqual(expected, obtained)
 
     def test_single(self):

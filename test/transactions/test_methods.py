@@ -2,7 +2,7 @@
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
@@ -14,21 +14,19 @@ from unittest import TestCase
 
 class TestDefMethod(TestCaseWithSimulator):
     class TestModule(Elaboratable):
-        def __init__(self, method_define_fn):
+        def __init__(self, method_definition):
             self.transactionManager = TransactionManager()
             self.method = Method(
-                o=[
-                    ("foo1", 3),
-                    ("foo2", [("bar1", 4), ("bar2", 6)]),
-                ]
+                i=[("foo1", 3), ("foo2", [("bar1", 4), ("bar2", 6)])],
+                o=[("foo1", 3), ("foo2", [("bar1", 4), ("bar2", 6)])],
             )
 
-            self.method_define_fn = method_define_fn
+            self.method_definition = method_definition
 
         def elaborate(self, platform):
             m = Module()
 
-            self.method_define_fn(m, self.method)
+            def_method(m, self.method)(self.method_definition)
 
             m.submodules += self.transactionManager
 
@@ -42,49 +40,90 @@ class TestDefMethod(TestCaseWithSimulator):
             pass
 
     def test_fields_valid1(self):
-        def method_definer(m, method):
-            @def_method(m, method)
-            def _(arg):
-                return {"foo1": Signal(3), "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
+        def definition(arg):
+            return {"foo1": Signal(3), "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
-        self.do_test_definition(method_definer)
+        self.do_test_definition(definition)
 
     def test_fields_valid2(self):
-        def method_definer(m, method):
-            rec = Record([("bar1", 4), ("bar2", 6)])
+        rec = Record([("bar1", 4), ("bar2", 6)])
 
-            @def_method(m, method)
-            def _(arg):
-                return {"foo1": Signal(3), "foo2": rec}
+        def definition(arg):
+            return {"foo1": Signal(3), "foo2": rec}
 
-        self.do_test_definition(method_definer)
+        self.do_test_definition(definition)
+
+    def test_fields_valid3(self):
+        def definition(arg):
+            return arg
+
+        self.do_test_definition(definition)
+
+    def test_fields_valid4(self):
+        def definition(arg: Record):
+            return arg
+
+        self.do_test_definition(definition)
+
+    def test_fields_valid5(self):
+        def definition(**arg):
+            return arg
+
+        self.do_test_definition(definition)
+
+    def test_fields_valid6(self):
+        def definition(foo1, foo2):
+            return {"foo1": foo1, "foo2": foo2}
+
+        self.do_test_definition(definition)
+
+    def test_fields_valid7(self):
+        def definition(foo1, **arg):
+            return {"foo1": foo1, "foo2": arg["foo2"]}
+
+        self.do_test_definition(definition)
 
     def test_fields_invalid1(self):
-        def method_definer(m, method):
-            @def_method(m, method)
-            def _(arg):
-                return {"foo1": Signal(3), "baz": Signal(4)}
-
-        with self.assertRaises(AttributeError):
-            self.do_test_definition(method_definer)
-
-    def test_fields_invalid2(self):
-        def method_definer(m, method):
-            @def_method(m, method)
-            def _(arg):
-                return {"foo1": Signal(3)}
+        def definition(arg):
+            return {"foo1": Signal(3), "baz": Signal(4)}
 
         with self.assertRaises(KeyError):
-            self.do_test_definition(method_definer)
+            self.do_test_definition(definition)
+
+    def test_fields_invalid2(self):
+        def definition(arg):
+            return {"foo1": Signal(3)}
+
+        with self.assertRaises(KeyError):
+            self.do_test_definition(definition)
 
     def test_fields_invalid3(self):
-        def method_definer(m, method):
-            @def_method(m, method)
-            def _(arg):
-                return {"foo1": {"baz1": Signal(), "baz2": Signal()}, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
+        def definition(arg):
+            return {"foo1": {"baz1": Signal(), "baz2": Signal()}, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
         with self.assertRaises(TypeError):
-            self.do_test_definition(method_definer)
+            self.do_test_definition(definition)
+
+    def test_fields_invalid4(self):
+        def definition(arg: Value):
+            return arg
+
+        with self.assertRaises(TypeError):
+            self.do_test_definition(definition)
+
+    def test_fields_invalid5(self):
+        def definition(foo):
+            return foo
+
+        with self.assertRaises(TypeError):
+            self.do_test_definition(definition)
+
+    def test_fields_invalid6(self):
+        def definition(foo1):
+            return {"foo1": foo1, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
+
+        with self.assertRaises(TypeError):
+            self.do_test_definition(definition)
 
 
 class AdapterCircuit(Elaboratable):
@@ -210,7 +249,7 @@ class TestInvalidMethods(TestCase):
     def test_undefined_in_trans(self):
         class Undefined(Elaboratable):
             def __init__(self):
-                self.meth = Method(i=1)
+                self.meth = Method(i=data_layout(1))
 
             def elaborate(self, platform):
                 return Module()
@@ -233,9 +272,10 @@ WIDTH = 8
 
 class Quadruple(Elaboratable):
     def __init__(self):
-        self.id = Method(i=WIDTH, o=WIDTH)
-        self.double = Method(i=WIDTH, o=WIDTH)
-        self.quadruple = Method(i=WIDTH, o=WIDTH)
+        layout = data_layout(WIDTH)
+        self.id = Method(i=layout, o=layout)
+        self.double = Method(i=layout, o=layout)
+        self.quadruple = Method(i=layout, o=layout)
 
     def elaborate(self, platform):
         m = Module()
@@ -246,11 +286,11 @@ class Quadruple(Elaboratable):
 
         @def_method(m, self.double)
         def _(arg):
-            return self.id(m, arg) * 2
+            return {"data": self.id(m, arg).data * 2}
 
         @def_method(m, self.quadruple)
         def _(arg):
-            return self.double(m, arg) * 2
+            return {"data": self.double(m, arg).data * 2}
 
         return m
 
@@ -274,7 +314,8 @@ class QuadrupleCircuit(Elaboratable):
 
 class Quadruple2(Elaboratable):
     def __init__(self):
-        self.quadruple = Method(i=WIDTH, o=WIDTH)
+        layout = data_layout(WIDTH)
+        self.quadruple = Method(i=layout, o=layout)
 
     def elaborate(self, platform):
         m = Module()
@@ -283,7 +324,7 @@ class Quadruple2(Elaboratable):
 
         @def_method(m, self.quadruple)
         def _(arg):
-            return 2 * m.submodules.sub.double(m, arg)
+            return {"data": 2 * m.submodules.sub.double(m, arg).data}
 
         return m
 
@@ -296,7 +337,7 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
     def work(self, circ):
         def process():
             for n in range(1 << (WIDTH - 2)):
-                out = yield from circ.tb.call({"data": n})
+                out = yield from circ.tb.call(data=n)
                 self.assertEqual(out["data"], n * 4)
 
         with self.run_simulation(circ) as sim:
@@ -308,7 +349,7 @@ class ConditionalCallCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        meth = Method(i=1)
+        meth = Method(i=data_layout(1))
 
         m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
         m.submodules.out = self.out = TestbenchIO(Adapter())
@@ -410,7 +451,7 @@ class TestConditionals(TestCaseWithSimulator):
 
         def process():
             yield from circ.out.disable()
-            yield from circ.tb.call_init({"data": 0})
+            yield from circ.tb.call_init(data=0)
             yield Settle()
             self.assertFalse((yield from circ.out.done()))
             self.assertFalse((yield from circ.tb.done()))
@@ -420,7 +461,7 @@ class TestConditionals(TestCaseWithSimulator):
             self.assertFalse((yield from circ.out.done()))
             self.assertTrue((yield from circ.tb.done()))
 
-            yield from circ.tb.call_init({"data": 1})
+            yield from circ.tb.call_init(data=1)
             yield Settle()
             self.assertTrue((yield from circ.out.done()))
             self.assertTrue((yield from circ.tb.done()))
@@ -466,10 +507,10 @@ class NonexclusiveMethodCircuit(Elaboratable):
         self.running = Signal()
         self.data = Signal(WIDTH)
 
-        method = Method(o=WIDTH, nonexclusive=True)
+        method = Method(o=data_layout(WIDTH), nonexclusive=True)
 
         @def_method(m, method, self.ready)
-        def _(_):
+        def _():
             m.d.comb += self.running.eq(1)
             return {"data": self.data}
 

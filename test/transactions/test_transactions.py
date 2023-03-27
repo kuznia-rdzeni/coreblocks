@@ -9,15 +9,15 @@ from collections import deque
 from typing import Iterable, Callable
 from parameterized import parameterized, parameterized_class
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.transactions._utils import Scheduler
-from coreblocks.utils import AutoDebugSignals
+from coreblocks.utils import HasElaborate
 
 from coreblocks.transactions.core import (
-    ConflictPriority,
+    Priority,
     TransactionScheduler,
     trivial_roundrobin_cc_scheduler,
     eager_deterministic_cc_scheduler,
@@ -27,7 +27,7 @@ from coreblocks.transactions.core import (
 class TestNames(TestCase):
     def test_names(self):
         mgr = TransactionManager()
-        mgr._MustUse__silence = True
+        mgr._MustUse__silence = True  # type: ignore
 
         class T:
             def __init__(self):
@@ -104,14 +104,14 @@ class TestScheduler(TestCaseWithSimulator):
             sim.add_sync_process(process)
 
 
-class TransactionConflictTestCircuit(Elaboratable, AutoDebugSignals):
+class TransactionConflictTestCircuit(Elaboratable):
     def __init__(self, scheduler):
         self.scheduler = scheduler
 
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m, TransactionManager(self.scheduler))
-        adapter = Adapter(i=32, o=32)
+        adapter = Adapter(i=data_layout(32), o=data_layout(32))
         m.submodules.out = self.out = TestbenchIO(adapter)
         m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
         m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))
@@ -155,7 +155,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
                 while random.random() >= prob:
                     yield
                 tgt(i)
-                r = yield from io.call({"data": i})
+                r = yield from io.call(data=i)
                 chk(r["data"])
 
         return process
@@ -206,8 +206,8 @@ class TestTransactionConflict(TestCaseWithSimulator):
             sim.add_sync_process(self.make_out_process(probout))
 
 
-class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
-    def __init__(self, priority: ConflictPriority, unsatisfiable=False):
+class PriorityTestCircuit(Elaboratable):
+    def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
         self.r2 = Signal()
@@ -215,6 +215,11 @@ class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
         self.t2 = Signal()
         self.unsatisfiable = unsatisfiable
 
+    def elaborate(self, platform) -> HasElaborate:
+        raise NotImplementedError()
+
+
+class TransactionPriorityTestCircuit(PriorityTestCircuit):
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
@@ -240,8 +245,8 @@ class TransactionPriorityTestCircuit(Elaboratable, AutoDebugSignals):
         return tm
 
 
-class MethodPriorityTestCircuit(Elaboratable, AutoDebugSignals):
-    def __init__(self, priority: ConflictPriority, unsatisfiable=False):
+class MethodPriorityTestCircuit(PriorityTestCircuit):
+    def __init__(self, priority: Priority, unsatisfiable=False):
         self.priority = priority
         self.r1 = Signal()
         self.r2 = Signal()
@@ -257,11 +262,11 @@ class MethodPriorityTestCircuit(Elaboratable, AutoDebugSignals):
         method2 = Method()
 
         @def_method(m, method1, ready=self.r1)
-        def _(_):
+        def _():
             m.d.comb += self.t1.eq(1)
 
         @def_method(m, method2, ready=self.r2)
-        def _(_):
+        def _():
             m.d.comb += self.t2.eq(1)
 
         with tm.transaction_context():
@@ -286,13 +291,13 @@ class MethodPriorityTestCircuit(Elaboratable, AutoDebugSignals):
     ("name", "circuit"), [("transaction", TransactionPriorityTestCircuit), ("method", MethodPriorityTestCircuit)]
 )
 class TestTransactionPriorities(TestCaseWithSimulator):
-    circuit: type[Elaboratable]
+    circuit: type[PriorityTestCircuit]
 
     def setUp(self):
         random.seed(42)
 
-    @parameterized.expand([(ConflictPriority.UNDEFINED,), (ConflictPriority.LEFT,), (ConflictPriority.RIGHT,)])
-    def test_priorities(self, priority: ConflictPriority):
+    @parameterized.expand([(Priority.UNDEFINED,), (Priority.LEFT,), (Priority.RIGHT,)])
+    def test_priorities(self, priority: Priority):
         m = self.circuit(priority)
 
         def process():
@@ -304,21 +309,21 @@ class TestTransactionPriorities(TestCaseWithSimulator):
                 yield
                 self.assertNotEqual((yield m.t1), (yield m.t2))
                 if r1 == 1 and r2 == 1:
-                    if priority == ConflictPriority.LEFT:
+                    if priority == Priority.LEFT:
                         self.assertTrue((yield m.t1))
-                    if priority == ConflictPriority.RIGHT:
+                    if priority == Priority.RIGHT:
                         self.assertTrue((yield m.t2))
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
 
-    @parameterized.expand([(ConflictPriority.UNDEFINED,), (ConflictPriority.LEFT,), (ConflictPriority.RIGHT,)])
-    def test_unsatisfiable(self, priority: ConflictPriority):
+    @parameterized.expand([(Priority.UNDEFINED,), (Priority.LEFT,), (Priority.RIGHT,)])
+    def test_unsatisfiable(self, priority: Priority):
         m = self.circuit(priority, True)
 
         import graphlib
 
-        if priority != ConflictPriority.UNDEFINED:
+        if priority != Priority.UNDEFINED:
             cm = self.assertRaises(graphlib.CycleError)
         else:
             cm = contextlib.nullcontext()

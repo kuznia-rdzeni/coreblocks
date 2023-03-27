@@ -1,16 +1,17 @@
 from typing import Iterable, Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
-from coreblocks.params.isa import OpType
 from coreblocks.transactions import Method, def_method
-from coreblocks.params import RSLayouts, GenParams
+from coreblocks.params import RSLayouts, GenParams, OpType
 from coreblocks.transactions.core import RecordDict
 
 __all__ = ["RS"]
 
 
 class RS(Elaboratable):
-    def __init__(self, gen_params: GenParams, ready_for: Optional[Iterable[Iterable[OpType]]] = None) -> None:
+    def __init__(
+        self, gen_params: GenParams, rs_entries: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None
+    ) -> None:
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
         self.layouts = gen_params.get(RSLayouts)
@@ -29,12 +30,13 @@ class RS(Elaboratable):
         self.ready_for = [list(op_list) for op_list in ready_for]
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
-        self.data = Array(Record(self.internal_layout) for _ in range(2**self.gen_params.rs_entries_bits))
+        self.rs_entries = rs_entries
+        self.data = Array(Record(self.internal_layout) for _ in range(self.rs_entries))
 
     def elaborate(self, platform) -> Module:
         m = Module()
 
-        m.submodules.enc_select = PriorityEncoder(width=2**self.gen_params.rs_entries_bits)
+        m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
 
         for record in self.data:
             m.d.comb += record.rec_ready.eq(
@@ -55,31 +57,31 @@ class RS(Elaboratable):
         m.d.comb += m.submodules.enc_select.i.eq(select_vector)
 
         @def_method(m, self.select, ready=select_possible)
-        def _(arg) -> Signal:
+        def _() -> Signal:
             m.d.sync += self.data[m.submodules.enc_select.o].rec_reserved.eq(1)
             return m.submodules.enc_select.o
 
         @def_method(m, self.insert)
-        def _(arg) -> None:
-            m.d.sync += self.data[arg.rs_entry_id].rs_data.eq(arg.rs_data)
-            m.d.sync += self.data[arg.rs_entry_id].rec_full.eq(1)
-            m.d.sync += self.data[arg.rs_entry_id].rec_reserved.eq(1)
+        def _(rs_entry_id: Value, rs_data: Value) -> None:
+            m.d.sync += self.data[rs_entry_id].rs_data.eq(rs_data)
+            m.d.sync += self.data[rs_entry_id].rec_full.eq(1)
+            m.d.sync += self.data[rs_entry_id].rec_reserved.eq(1)
 
         @def_method(m, self.update)
-        def _(arg) -> None:
+        def _(tag: Value, value: Value) -> None:
             for record in self.data:
                 with m.If(record.rec_full.bool()):
-                    with m.If(record.rs_data.rp_s1 == arg.tag):
+                    with m.If(record.rs_data.rp_s1 == tag):
                         m.d.sync += record.rs_data.rp_s1.eq(0)
-                        m.d.sync += record.rs_data.s1_val.eq(arg.value)
+                        m.d.sync += record.rs_data.s1_val.eq(value)
 
-                    with m.If(record.rs_data.rp_s2 == arg.tag):
+                    with m.If(record.rs_data.rp_s2 == tag):
                         m.d.sync += record.rs_data.rp_s2.eq(0)
-                        m.d.sync += record.rs_data.s2_val.eq(arg.value)
+                        m.d.sync += record.rs_data.s2_val.eq(value)
 
         @def_method(m, self.take, ready=take_possible)
-        def _(arg) -> RecordDict:
-            record = self.data[arg.rs_entry_id]
+        def _(rs_entry_id: Value) -> RecordDict:
+            record = self.data[rs_entry_id]
             m.d.sync += record.rec_reserved.eq(0)
             m.d.sync += record.rec_full.eq(0)
             return {
@@ -95,7 +97,7 @@ class RS(Elaboratable):
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
 
             @def_method(m, get_ready_list, ready=ready_list.any())
-            def _(arg) -> RecordDict:
+            def _() -> RecordDict:
                 return {"ready_list": ready_list}
 
         return m
