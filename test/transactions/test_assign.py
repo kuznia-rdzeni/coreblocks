@@ -1,9 +1,10 @@
 from typing import Callable
 from amaranth import *
-from amaranth.hdl.ast import ArrayProxy
+from amaranth.lib import data
+from amaranth.hdl.ast import ArrayProxy, Slice
 
 from coreblocks.utils._typing import LayoutLike
-from coreblocks.utils.utils import AssignLHS, AssignType, AssignFields, assign
+from coreblocks.utils.utils import AssignArg, AssignType, AssignFields, assign
 
 from unittest import TestCase
 from parameterized import parameterized_class, parameterized
@@ -27,9 +28,20 @@ def mkproxy(layout):
     return arr[sig]
 
 
+def reclayout2datalayout(layout):
+    if not isinstance(layout, list):
+        return layout
+    return data.StructLayout({k: reclayout2datalayout(l) for k, l in layout})
+
+
+def mkstruct(layout):
+    return data.View(reclayout2datalayout(layout))
+
+
 params_c = [
     ("rec", Record),
     ("proxy", mkproxy),
+    ("struct", mkstruct),
 ]
 
 
@@ -37,13 +49,13 @@ params_c = [
 class TestAssign(TestCase):
     # constructs `assign` arguments (records, proxies, dicts) which have an "inner" and "outer" part
     # parameterized with a Record-like constructor and a layout of the inner part
-    f: Callable[[Callable[[LayoutLike], AssignLHS], LayoutLike], AssignLHS]
+    f: Callable[[Callable[[LayoutLike], AssignArg], LayoutLike], AssignArg]
     # constructs field specifications for `assign`, takes field specifications for the inner part
     g: Callable[[AssignFields], AssignFields]
     # extracts the inner part of the structure
-    h: Callable[[AssignLHS], Record | ArrayProxy]
+    h: Callable[[AssignArg], Record | ArrayProxy]
     # Record-like constructor, takes a record layout
-    c: Callable[[LayoutLike], AssignLHS]
+    c: Callable[[LayoutLike], AssignArg]
 
     def test_rhs_exception(self):
         f = self.__class__.f
@@ -108,5 +120,9 @@ class TestAssign(TestCase):
             self.assertEqual(len(expr1.elems), len(expr2.elems))
             for x, y in zip(expr1.elems, expr2.elems):
                 self.assertIs_AP(x, y)
+        elif isinstance(expr1, Slice) and isinstance(expr2, Slice):
+            self.assertIs_AP(expr1.value, expr2.value)
+            self.assertEqual(expr1.start, expr2.start)
+            self.assertEqual(expr1.stop, expr2.stop)
         else:
             self.assertIs(expr1, expr2)
