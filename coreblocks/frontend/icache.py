@@ -4,7 +4,7 @@ import operator
 from amaranth import *
 from amaranth.utils import log2_int
 
-from coreblocks.transactions.core import def_method
+from coreblocks.transactions.core import def_method, Priority
 from coreblocks.transactions import Method, Transaction
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.utils import assign
@@ -83,8 +83,10 @@ class ICache(Elaboratable):
     ----------
     issue_req : Method
         A method that is used to issue a cache lookup request.
-    accept_res : ICacheParameters
+    accept_res : Method
         A method that is used to accept the result of a cache lookup request.
+    flush : Method
+        A method that is used to flush the whole cache.
     """
 
     def __init__(
@@ -115,6 +117,9 @@ class ICache(Elaboratable):
         layouts = self.gp.get(ICacheLayouts)
         self.issue_req = Method(i=layouts.issue_req)
         self.accept_res = Method(o=layouts.accept_res)
+        self.flush = Method()
+
+        self.flush.add_conflict(self.issue_req, Priority.LEFT)
 
         self.addr_layout = [
             ("offset", self.params.offset_bits),
@@ -144,20 +149,30 @@ class ICache(Elaboratable):
         refill_finish = Signal()
         refill_error = Signal()
 
+        flush_start = Signal()
+        flush_finish = Signal()
+
         with m.FSM() as fsm:
+            with m.State("FLUSH"):
+                with m.If(flush_finish):
+                    m.next = "LOOKUP"
+
             with m.State("LOOKUP"):
                 with m.If(needs_refill):
                     m.next = "REFILL"
+                with m.Elif(flush_start):
+                    m.next = "FLUSH"
 
             with m.State("REFILL"):
                 with m.If(refill_finish):
                     m.next = "LOOKUP"
 
+        accepting_requests = fsm.ongoing("LOOKUP") & ~needs_refill
+
         # Replacement policy
-        way_selector = Signal(log2_int(self.params.num_of_ways))
-        m.d.comb += self.mem.way_wr_sel.eq(way_selector)
+        way_selector = Signal(self.params.num_of_ways, reset=1)
         with m.If(refill_finish):
-            m.d.sync += way_selector.eq(way_selector + 1)
+            m.d.sync += way_selector.eq((way_selector << 1) | way_selector[-1])
 
         # Fast path - read requests
         request_valid = self.req_fifo.read.ready
@@ -186,7 +201,7 @@ class ICache(Elaboratable):
         mem_read_addr = Record(self.addr_layout)
         m.d.comb += assign(mem_read_addr, request_addr)
 
-        @def_method(m, self.issue_req, ready=fsm.ongoing("LOOKUP") & ~needs_refill)
+        @def_method(m, self.issue_req, ready=accepting_requests)
         def _(addr: Value) -> None:
             deserialized = self.deserialize_addr(addr)
             # Forward read address only if the method is called
@@ -201,14 +216,19 @@ class ICache(Elaboratable):
             self.mem.data_rd_addr.offset.eq(mem_read_addr.offset),
         ]
 
-        # Slow path - data refilling
-        m.d.comb += [
-            self.mem.tag_wr_index.eq(request_addr.index),
-            self.mem.tag_wr_data.valid.eq(~refill_error),
-            self.mem.tag_wr_data.tag.eq(request_addr.tag),
-            self.mem.tag_wr_en.eq(refill_finish),
-        ]
+        # Flush logic
+        flush_index = Signal(self.params.index_bits)
+        with m.If(fsm.ongoing("FLUSH")):
+            m.d.sync += flush_index.eq(flush_index + 1)
 
+        @def_method(m, self.flush, ready=accepting_requests)
+        def _() -> None:
+            m.d.sync += flush_index.eq(0)
+            m.d.comb += flush_start.eq(1)
+
+        m.d.comb += flush_finish.eq(flush_index == self.params.num_of_sets - 1)
+
+        # Slow path - data refilling
         with Transaction().body(m, request=fsm.ongoing("LOOKUP") & needs_refill):
             # Align to the beginning of the cache line
             aligned_addr = self.serialize_addr(request_addr) & ~((1 << self.params.offset_bits) - 1)
@@ -228,6 +248,23 @@ class ICache(Elaboratable):
             m.d.comb += refill_finish.eq(ret.last)
             m.d.comb += refill_error.eq(ret.error)
 
+        with m.If(fsm.ongoing("FLUSH")):
+            m.d.comb += [
+                self.mem.way_wr_en.eq(Repl(1, self.params.num_of_ways)),
+                self.mem.tag_wr_index.eq(flush_index),
+                self.mem.tag_wr_data.valid.eq(0),
+                self.mem.tag_wr_data.tag.eq(0),
+                self.mem.tag_wr_en.eq(1),
+            ]
+        with m.Else():
+            m.d.comb += [
+                self.mem.way_wr_en.eq(way_selector),
+                self.mem.tag_wr_index.eq(request_addr.index),
+                self.mem.tag_wr_data.valid.eq(~refill_error),
+                self.mem.tag_wr_data.tag.eq(request_addr.tag),
+                self.mem.tag_wr_en.eq(refill_finish),
+            ]
+
         return m
 
 
@@ -235,7 +272,7 @@ class ICacheMemory(Elaboratable):
     """A helper module for managing memories used in the instruction cache.
 
     In case of an associative cache, all address and write data lines are shared.
-    Writes are multiplexed using the `way_wr_sel` signal. Read data lines from all
+    Writes are multiplexed using one-hot `way_wr_en` signal. Read data lines from all
     ways are separately exposed (as an array).
 
     The data memory is addressed using a machine word.
@@ -247,7 +284,7 @@ class ICacheMemory(Elaboratable):
 
         self.tag_data_layout = [("valid", 1), ("tag", self.params.tag_bits)]
 
-        self.way_wr_sel = Signal(log2_int(self.params.num_of_ways))
+        self.way_wr_en = Signal(self.params.num_of_ways)
 
         self.tag_rd_index = Signal(self.params.index_bits)
         self.tag_rd_data = Array([Record(self.tag_data_layout) for _ in range(self.params.num_of_ways)])
@@ -267,6 +304,8 @@ class ICacheMemory(Elaboratable):
         m = Module()
 
         for i in range(self.params.num_of_ways):
+            way_wr = self.way_wr_en[i]
+
             tag_mem = Memory(width=len(self.tag_wr_data), depth=self.params.num_of_sets)
             tag_mem_rp = tag_mem.read_port()
             tag_mem_wp = tag_mem.write_port()
@@ -278,7 +317,7 @@ class ICacheMemory(Elaboratable):
                 tag_mem_rp.addr.eq(self.tag_rd_index),
                 tag_mem_wp.addr.eq(self.tag_wr_index),
                 assign(tag_mem_wp.data, self.tag_wr_data),
-                tag_mem_wp.en.eq(self.tag_wr_en & (self.way_wr_sel == i)),
+                tag_mem_wp.en.eq(self.tag_wr_en & way_wr),
             ]
 
             words_in_line = self.params.block_size_bytes // (self.gp.isa.xlen // 8)
@@ -299,7 +338,7 @@ class ICacheMemory(Elaboratable):
                 data_mem_rp.addr.eq(rd_addr),
                 data_mem_wp.addr.eq(wr_addr),
                 data_mem_wp.data.eq(self.data_wr_data),
-                data_mem_wp.en.eq(self.data_wr_en & (self.way_wr_sel == i)),
+                data_mem_wp.en.eq(self.data_wr_en & way_wr),
             ]
 
         return m
