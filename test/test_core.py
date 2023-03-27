@@ -109,7 +109,7 @@ class TestCoreBase(TestCaseWithSimulator):
         return (yield self.m.core.RF.entries[reg_id].reg_val)
 
     def push_instr(self, opcode):
-        yield from self.m.io_in.call({"data": opcode})
+        yield from self.m.io_in.call(data=opcode)
 
     def compare_core_states(self, sw_core):
         for i in range(self.gp.isa.reg_cnt):
@@ -139,9 +139,9 @@ class TestCoreSimple(TestCoreBase):
         yield from self.check_RAT_alloc(self.m.core.RRAT, 31)
 
         # writing values to physical registers
-        yield from self.m.rf_write.call({"reg_id": (yield from self.get_phys_reg_rrat(1)), "reg_val": 1})
-        yield from self.m.rf_write.call({"reg_id": (yield from self.get_phys_reg_rrat(2)), "reg_val": 2})
-        yield from self.m.rf_write.call({"reg_id": (yield from self.get_phys_reg_rrat(3)), "reg_val": 3})
+        yield from self.m.rf_write.call(reg_id=(yield from self.get_phys_reg_rrat(1)), reg_val=1)
+        yield from self.m.rf_write.call(reg_id=(yield from self.get_phys_reg_rrat(2)), reg_val=2)
+        yield from self.m.rf_write.call(reg_id=(yield from self.get_phys_reg_rrat(3)), reg_val=3)
 
         # waiting for potential conflicts on rf_write
         for i in range(10):

@@ -337,7 +337,7 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
     def work(self, circ):
         def process():
             for n in range(1 << (WIDTH - 2)):
-                out = yield from circ.tb.call({"data": n})
+                out = yield from circ.tb.call(data=n)
                 self.assertEqual(out["data"], n * 4)
 
         with self.run_simulation(circ) as sim:
@@ -451,7 +451,7 @@ class TestConditionals(TestCaseWithSimulator):
 
         def process():
             yield from circ.out.disable()
-            yield from circ.tb.call_init({"data": 0})
+            yield from circ.tb.call_init(data=0)
             yield Settle()
             self.assertFalse((yield from circ.out.done()))
             self.assertFalse((yield from circ.tb.done()))
@@ -461,7 +461,7 @@ class TestConditionals(TestCaseWithSimulator):
             self.assertFalse((yield from circ.out.done()))
             self.assertTrue((yield from circ.tb.done()))
 
-            yield from circ.tb.call_init({"data": 1})
+            yield from circ.tb.call_init(data=1)
             yield Settle()
             self.assertTrue((yield from circ.out.done()))
             self.assertTrue((yield from circ.tb.done()))

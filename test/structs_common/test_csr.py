@@ -111,11 +111,11 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             yield from self.dut.select.call()
 
-            yield from self.dut.insert.call({"rs_data": op["instr"]})
+            yield from self.dut.insert.call(rs_data=op["instr"])
 
             yield from self.random_wait()
             if op["exp"]["rs1"]["rp_s1"]:
-                yield from self.dut.update.call({"tag": op["exp"]["rs1"]["rp_s1"], "value": op["exp"]["rs1"]["value"]})
+                yield from self.dut.update.call(tag=op["exp"]["rs1"]["rp_s1"], value=op["exp"]["rs1"]["value"])
 
             yield from self.random_wait()
             yield self.dut.rob_single_insn.eq(1)
@@ -157,7 +157,7 @@ class TestCSRRegister(TestCaseWithSimulator):
             if random.random() < 0.9:
                 write = True
                 exp_write_data = random.randint(0, 2**self.gp.isa.xlen - 1)
-                yield from self.dut.write.call_init({"data": exp_write_data})
+                yield from self.dut.write.call_init(data=exp_write_data)
 
             if random.random() < 0.3:
                 fu_write = True
@@ -166,7 +166,7 @@ class TestCSRRegister(TestCaseWithSimulator):
                 exp_write_data = (write_arg & ~self.ro_mask) | (
                     (exp_write_data if exp_write_data is not None else previous_data) & self.ro_mask
                 )
-                yield from self.dut._fu_write.call_init({"data": write_arg})
+                yield from self.dut._fu_write.call_init(data=write_arg)
 
             if random.random() < 0.2:
                 fu_read = True

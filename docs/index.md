@@ -15,5 +15,6 @@ shared_structs/RS.md
 Current_graph.md
 Problem-checklist.md
 synthesis/Synthesis.md
+miscellany/exceptionsSummary.md
 api.md
 ```

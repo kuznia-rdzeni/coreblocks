@@ -275,9 +275,9 @@ class TestScheduler(TestCaseWithSimulator):
 
             # set up RF to reflect our static rf_state reference lookup table
             for i in range(2**self.gen_params.phys_regs_bits - 1):
-                yield from self.m.rf_write.call({"reg_id": i, "reg_val": self.rf_state[i].value})
+                yield from self.m.rf_write.call(reg_id=i, reg_val=self.rf_state[i].value)
                 if not self.rf_state[i].valid:
-                    yield from self.m.rf_free.call({"reg_id": i})
+                    yield from self.m.rf_free.call(reg_id=i)
 
             op_types_set = set()
             for rs in self.optype_sets:
@@ -288,10 +288,10 @@ class TestScheduler(TestCaseWithSimulator):
                 rl_s2 = random.randrange(self.gen_params.isa.reg_cnt)
                 rl_dst = random.randrange(self.gen_params.isa.reg_cnt)
 
-                opcode = random.choice(list(Opcode)).value
-                op_type = random.choice(list(op_types_set)).value
-                funct3 = random.choice(list(Funct3)).value
-                funct7 = random.choice(list(Funct7)).value
+                opcode = random.choice(list(Opcode))
+                op_type = random.choice(list(op_types_set))
+                funct3 = random.choice(list(Funct3))
+                funct7 = random.choice(list(Funct7))
                 immediate = random.randrange(2**32)
                 rp_s1 = self.current_RAT[rl_s1]
                 rp_s2 = self.current_RAT[rl_s2]
