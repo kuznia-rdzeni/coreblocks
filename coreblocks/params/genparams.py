@@ -45,7 +45,9 @@ class GenParams(DependentCache):
         self.func_units_config = func_units_config
 
         bytes_in_word = self.isa.xlen // 8
-        self.wb_params = WishboneParameters(data_width=self.isa.xlen, addr_width=self.isa.xlen - log2_int(bytes_in_word))
+        self.wb_params = WishboneParameters(
+            data_width=self.isa.xlen, addr_width=self.isa.xlen - log2_int(bytes_in_word)
+        )
 
         # Verification temporally disabled
         # if not optypes_required_by_extensions(self.isa.extensions) <= optypes_supported(func_units_config):
