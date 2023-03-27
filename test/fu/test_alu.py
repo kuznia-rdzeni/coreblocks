@@ -11,8 +11,6 @@ from coreblocks.transactions.lib import *
 from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
 
 from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit
-
-# from coreblocks.fu.functional_unit import AluFn, Alu, AluFuncUnit
 from coreblocks.params import *
 
 
