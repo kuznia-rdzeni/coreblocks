@@ -1,4 +1,5 @@
 from enum import IntFlag
+from typing import Sequence
 from amaranth import *
 
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams, auto
@@ -23,15 +24,13 @@ class ZbsFunction(DecoderManager):
         BSET = auto()  # Bit set
 
     @classmethod
-    def get_instructions(cls):
+    def get_instructions(cls) -> Sequence[tuple]:
         return [
             (cls.Fn.BCLR, OpType.SINGLE_BIT_MANIPULATION, Funct3.BCLR, Funct7.BCLR),
             (cls.Fn.BEXT, OpType.SINGLE_BIT_MANIPULATION, Funct3.BEXT, Funct7.BEXT),
             (cls.Fn.BINV, OpType.SINGLE_BIT_MANIPULATION, Funct3.BINV, Funct7.BINV),
             (cls.Fn.BSET, OpType.SINGLE_BIT_MANIPULATION, Funct3.BSET, Funct7.BSET),
         ]
-
-    optype_dependant = False
 
 
 class Zbs(Elaboratable):
@@ -56,7 +55,7 @@ class Zbs(Elaboratable):
         self.gen_params = gen_params
 
         self.xlen = gen_params.isa.xlen
-        self.function = ZbsFunction()
+        self.function = ZbsFunction.get_function()
         self.in1 = Signal(self.xlen)
         self.in2 = Signal(self.xlen)
 
@@ -106,7 +105,7 @@ class ZbsUnit(Elaboratable):
 
         m.submodules.zbs = zbs = Zbs(self.gen_params)
         m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
-        m.submodules.decoder = decoder = ZbsFunction.get_decoder(self.gen_params)
+        m.submodules.decoder = decoder = ZbsFunction.get_decoder(self.gen_params, check_optype=False)
 
         @def_method(m, self.accept)
         def _(arg):

@@ -2,6 +2,8 @@ from amaranth import *
 
 from enum import IntFlag
 
+from pyparsing import Sequence
+
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -29,7 +31,7 @@ class JumpBranchFn(DecoderManager):
         BGEU = auto()
 
     @classmethod
-    def get_instructions(cls):
+    def get_instructions(cls) -> Sequence[tuple]:
         return [
             (cls.Fn.BEQ, OpType.BRANCH, Funct3.BEQ),
             (cls.Fn.BNE, OpType.BRANCH, Funct3.BNE),
@@ -48,7 +50,7 @@ class JumpBranch(Elaboratable):
         self.gen_params = gen_params
 
         xlen = gen_params.isa.xlen
-        self.fn = JumpBranchFn()
+        self.fn = JumpBranchFn.get_function()
         self.in1 = Signal(xlen)
         self.in2 = Signal(xlen)
         self.in_pc = Signal(xlen)

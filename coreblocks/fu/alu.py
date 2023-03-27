@@ -1,3 +1,4 @@
+from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import *
@@ -34,7 +35,7 @@ class AluFn(DecoderManager):
         SH3ADD = auto()  # Logic left shift by 3 and add
 
     @classmethod
-    def get_instructions(cls):
+    def get_instructions(cls) -> Sequence[tuple]:
         return [
             (cls.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
             (cls.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
@@ -56,7 +57,7 @@ class Alu(Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen
 
-        self.fn = AluFn()
+        self.fn = AluFn.get_function()
         self.in1 = Signal(gen.isa.xlen)
         self.in2 = Signal(gen.isa.xlen)
 
@@ -119,7 +120,6 @@ class AluFuncUnit(Elaboratable):
 
         m.submodules.alu = alu = Alu(self.gen)
         m.submodules.fifo = fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
-        # Generated automatically
         m.submodules.decoder = decoder = AluFn.get_decoder(self.gen)
 
         @def_method(m, self.accept)

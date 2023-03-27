@@ -6,36 +6,100 @@ from coreblocks.params import GenParams, CommonLayouts
 
 from enum import IntFlag
 
+from coreblocks.params.optypes import OpType
 
-class DecoderManager(Signal):
 
+class DecoderManager:
+    """
+    Class responsible for instruction management.
+    """
+
+    """
+    Type[IntFlag]
+
+    Enumeration of instructions implemented in given functional unit.
+    """
     Fn: Type[IntFlag]
 
+    """
+    Method providing list of valid instruction.
+
+    Returns
+    -------
+    return : Sequence[tuple]
+        List of implemented instructions, each following format:
+        (IntFlag, OpType, Funct3 (optional), Funct7 (optional))
+
+    """
+
     @classmethod
-    def get_instructions(cls):
+    def get_instructions(cls) -> Sequence[tuple]:
         raise NotImplementedError
 
-    optype_dependant = True
+    """
+    Method returning op types from listed instructions.
+
+    Returns
+    -------
+    return : set[OpType]
+        List of OpTypes.
+    """
 
     @classmethod
-    def get_op_types(cls):
+    def get_op_types(cls) -> set[OpType]:
         return {instr[1] for instr in cls.get_instructions()}
 
-    @classmethod
-    def get_decoder(cls, gen_params: GenParams):
-        return Decoder(gen_params, cls.Fn, cls.get_instructions(), check_optype=cls.optype_dependant)
+    """
+    Method returning auto generated instruction decoder.
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(self.Fn, *args, **kwargs)
+    Parameters
+    ----------
+    gen_params: GenParams
+        Generation parameters passed to a decoder contructor.
+    check_optype = True : bool
+        Flag telling whether to check op_types in decoder.
+        Enabled by default.
+
+    Returns
+    -------
+    return : set[OpType]
+        List of OpTypes.
+    """
+
+    @classmethod
+    def get_decoder(cls, gen_params: GenParams, check_optype=True) -> Type[Elaboratable]:
+        return Decoder(gen_params, cls.Fn, cls.get_instructions(), check_optype=check_optype)
+
+    """
+    Method returning Signal Object for decoder, called function in FU blocks
+
+    Returns
+    -------
+    return : Value
+        Signal object.
+    """
+
+    @classmethod
+    def get_function(cls) -> Value:
+        return Signal(cls.Fn)
 
 
 class Decoder(Elaboratable):
-    def __init__(self, gen: GenParams, decode_fn: Type[IntFlag], instructions: Sequence[tuple], check_optype: bool):
-        layouts = gen.get(CommonLayouts)
+    """
+    Module responsible for instruction decoding.
+
+    Attributes
+    ----------
+    decode_fn: Signal
+    exec_fn: Record
+    """
+
+    def __init__(self, gen_params: GenParams, decode_fn: Type[IntFlag], ops: Sequence[tuple], check_optype: bool):
+        layouts = gen_params.get(CommonLayouts)
 
         self.exec_fn = Record(layouts.exec_fn)
         self.decode_fn = Signal(decode_fn)
-        self.ops = instructions
+        self.ops = ops
         self.check_optype = check_optype
 
     def elaborate(self, platform):

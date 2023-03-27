@@ -1,5 +1,5 @@
 from enum import IntFlag, unique, IntEnum
-from typing import Tuple
+from typing import Sequence, Tuple
 
 from amaranth import *
 
@@ -37,15 +37,13 @@ class MulFn(DecoderManager):
         # MULW = auto()  # Multiplication of lower half of bits
 
     @classmethod
-    def get_instructions(cls):
+    def get_instructions(cls) -> Sequence[tuple]:
         return [
             (cls.Fn.MUL, OpType.MUL, Funct3.MUL),
             (cls.Fn.MULH, OpType.MUL, Funct3.MULH),
             (cls.Fn.MULHU, OpType.MUL, Funct3.MULHU),
             (cls.Fn.MULHSU, OpType.MUL, Funct3.MULHSU),
         ]
-
-    optype_dependant = False
 
 
 def get_input(arg: Record) -> Tuple[Value, Value]:
@@ -122,7 +120,7 @@ class MulUnit(Elaboratable):
             ],
             2,
         )
-        m.submodules.decoder = decoder = MulFn.get_decoder(self.gen)
+        m.submodules.decoder = decoder = MulFn.get_decoder(self.gen, check_optype=False)
 
         # Selecting unsigned integer multiplication module
         match self.mul_type:
