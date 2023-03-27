@@ -352,7 +352,7 @@ class _TransactionBaseStatements:
         self.statements: list[Statement] = []
 
     def __iadd__(self, assigns: StatementLike):
-        if TransactionBase.current is None:
+        if not TransactionBase.stack:
             raise RuntimeError("No current body")
         for stmt in Statement.cast(assigns):
             self.statements.append(stmt)
@@ -366,7 +366,7 @@ class _TransactionBaseStatements:
 
 
 class TransactionBase(Owned):
-    current: ClassVar[Optional["TransactionBase"]] = None
+    stack: ClassVar[list["TransactionBase"]] = []
     comb: ClassVar[_TransactionBaseStatements] = _TransactionBaseStatements()
 
     def __init__(self):
@@ -410,25 +410,25 @@ class TransactionBase(Owned):
         self.method_uses[method] = (arg, enable)
 
     @contextmanager
-    def context(self) -> Iterator[Self]:
-        if TransactionBase.current is not None:
-            raise RuntimeError("Body inside body")
-        assert not TransactionBase.comb.statements
-        TransactionBase.current = self
+    def context(self, m: Module) -> Iterator[Self]:
+        if not TransactionBase.stack:
+            assert not TransactionBase.comb.statements
+        TransactionBase.stack.append(self)
         try:
             yield self
-            assert not TransactionBase.comb.statements
         finally:
-            TransactionBase.comb.clear()
-            TransactionBase.current = None
+            TransactionBase.stack.pop()
+            if not TransactionBase.stack:
+                m.d.comb += TransactionBase.comb
+                TransactionBase.comb.clear()
 
     @classmethod
     def get(cls) -> Self:
-        if TransactionBase.current is None:
+        if not TransactionBase.stack:
             raise RuntimeError("No current body")
-        if not isinstance(TransactionBase.current, cls):
+        if not isinstance(TransactionBase.stack[-1], cls):
             raise RuntimeError(f"Current body not a {cls.__name__}")
-        return TransactionBase.current
+        return TransactionBase.stack[-1]
 
 
 class Transaction(TransactionBase):
@@ -510,11 +510,9 @@ class Transaction(TransactionBase):
             every clock cycle.
         """
         m.d.comb += self.request.eq(request)
-        with self.context():
+        with self.context(m):
             with m.If(self.grant):
                 yield self
-            m.d.comb += TransactionBase.comb
-            TransactionBase.comb.clear()
 
     def __repr__(self) -> str:
         return "(transaction {})".format(self.name)
@@ -680,11 +678,9 @@ class Method(TransactionBase):
         try:
             m.d.comb += self.ready.eq(ready)
             m.d.comb += self.data_out.eq(out)
-            with self.context():
+            with self.context(m):
                 with m.If(self.run):
                     yield self.data_in
-                m.d.comb += TransactionBase.comb
-                TransactionBase.comb.clear()
         finally:
             self.defined = True
 
