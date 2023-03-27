@@ -6,10 +6,35 @@ from coreblocks.utils import assign
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import BlockComponentParams, DependencyManager, ListKey
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
-from coreblocks.params.isa import Funct3
+from coreblocks.params.isa import BitEnum, Funct3
 from coreblocks.params.keys import BranchResolvedKey, ROBSingleKey
 from coreblocks.params import OpType
 from coreblocks.utils.protocols import FuncBlock
+
+
+class PrivilegeLevel(BitEnum, width=2):
+    USER = 0b00
+    SUPERVISOR = 0b01
+    MACHINE = 0b11
+
+
+def get_bits(v: int, upper: int, lower: int):
+    # returns [upper:lower] bits from number v
+    return (v >> lower) & ((1 << (upper - lower + 1)) - 1)
+
+
+def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
+    read_only = get_bits(csr_addr, 11, 10) == 0b11
+
+    match get_bits(csr_addr, 9, 8):
+        case 0b00:
+            return (PrivilegeLevel.USER, read_only)
+        case 0b01:
+            return (PrivilegeLevel.SUPERVISOR, read_only)
+        case 0b10:  # Hypervisior CSRs - accessible with VS mode (S with extension)
+            return (PrivilegeLevel.SUPERVISOR, read_only)
+        case _:
+            return (PrivilegeLevel.MACHINE, read_only)
 
 
 @dataclass(frozen=True)
@@ -68,6 +93,9 @@ class CSRRegister(Elaboratable):
         ro_bits: int
             Bit mask of read-only bits in register.
             Writes from _fu_write (instructions) to those bits are ignored.
+            Note that this parameter is only required if there are some read-only
+            bits in read-write register. Writes to read-only registers specified
+            by upper 2 bits of CSR address set to `0b11` are discarded by `CSRUnit`.
         """
         self.gen_params = gen_params
         self.csr_number = csr_number
@@ -226,27 +254,44 @@ class CSRUnit(Elaboratable):
             | ((instr.exec_fn.funct3 == Funct3.CSRRCI) & (instr.s1_val != 0))
         )
 
+        # Temporary, until privileged spec is implemented
+        priv_level = Signal(PrivilegeLevel, reset=PrivilegeLevel.USER)
+
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, request=(ready_to_process & ~done)):
             with m.Switch(instr.csr):
                 for csr_number, methods in self.regfile.items():
                     read, write = methods
+                    priv_level_required, read_only = csr_access_privilege(csr_number)
+
                     with m.Case(csr_number):
-                        read_val = Signal(self.gen_params.isa.xlen)
-                        with m.If(should_read_csr & ~done):
-                            m.d.comb += read_val.eq(read(m))
-                            m.d.sync += current_result.eq(read_val)
+                        priv_valid = Signal()
+                        m.d.comb += priv_valid.eq(priv_level_required <= priv_level)
 
-                        with m.If(should_write_csr & ~done):
-                            write_val = Signal(self.gen_params.isa.xlen)
-                            with m.If((instr.exec_fn.funct3 == Funct3.CSRRW) | (instr.exec_fn.funct3 == Funct3.CSRRWI)):
-                                m.d.comb += write_val.eq(instr.s1_val)
-                            with m.If((instr.exec_fn.funct3 == Funct3.CSRRS) | (instr.exec_fn.funct3 == Funct3.CSRRSI)):
-                                m.d.comb += write_val.eq(read_val | instr.s1_val)
-                            with m.If((instr.exec_fn.funct3 == Funct3.CSRRC) | (instr.exec_fn.funct3 == Funct3.CSRRCI)):
-                                m.d.comb += write_val.eq(read_val & (~instr.s1_val))
+                        # TODO: handle read-only and missing priv access (exception)
+                        with m.If(priv_valid):
+                            read_val = Signal(self.gen_params.isa.xlen)
+                            with m.If(should_read_csr & ~done):
+                                m.d.comb += read_val.eq(read(m))
+                                m.d.sync += current_result.eq(read_val)
 
-                            write(m, write_val)
+                            if not read_only:
+                                with m.If(should_write_csr & ~done):
+                                    write_val = Signal(self.gen_params.isa.xlen)
+                                    with m.If(
+                                        (instr.exec_fn.funct3 == Funct3.CSRRW) | (instr.exec_fn.funct3 == Funct3.CSRRWI)
+                                    ):
+                                        m.d.comb += write_val.eq(instr.s1_val)
+                                    with m.If(
+                                        (instr.exec_fn.funct3 == Funct3.CSRRS) | (instr.exec_fn.funct3 == Funct3.CSRRSI)
+                                    ):
+                                        m.d.comb += write_val.eq(read_val | instr.s1_val)
+                                    with m.If(
+                                        (instr.exec_fn.funct3 == Funct3.CSRRC) | (instr.exec_fn.funct3 == Funct3.CSRRCI)
+                                    ):
+                                        m.d.comb += write_val.eq(read_val & (~instr.s1_val))
+
+                                    write(m, write_val)
                 with m.Default():
                     pass  # TODO : invalid csr number handling
 

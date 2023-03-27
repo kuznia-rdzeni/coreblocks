@@ -1,6 +1,5 @@
 from amaranth import *
 
-from enum import Enum, auto
 from typing import Optional
 
 from coreblocks.params.genparams import GenParams
@@ -12,33 +11,6 @@ from coreblocks.transactions.core import Method, def_method
 class CSRAddress(BitEnum, width=12):
     INSTRET = 0xC02
     INSTRETH = 0xC82
-
-
-class PrivilegeLevel(Enum):
-    USER = 0b00
-    SUPERVISOR = 0b01
-    MACHINE = 0b11
-    ILLEGAL = auto()
-
-
-def get_bits(v: int, upper: int, lower: int):
-    return (v >> lower) & ((1 << (upper - lower + 1)) - 1)
-
-
-def get_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
-    read_only = get_bits(csr_addr, 11, 10) == 0b11
-
-    match get_bits(csr_addr, 9, 8):
-        case 0b00:
-            return (PrivilegeLevel.USER, read_only)
-        case 0b01:
-            return (PrivilegeLevel.SUPERVISOR, read_only)
-        case 0b10:  # Hypervisior CSRs - accessible with VS mode (S with extension)
-            return (PrivilegeLevel.SUPERVISOR, read_only)
-        case 0b11:
-            return (PrivilegeLevel.MACHINE, read_only)
-
-    return (PrivilegeLevel.ILLEGAL, read_only)
 
 
 class DoubleCounterCSR(Elaboratable):

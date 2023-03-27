@@ -31,11 +31,20 @@ class CSRUnitTestCircuit(Elaboratable):
 
         self.csr = {}
 
+        def make_csr(number: int):
+            csr = CSRRegister(csr_number=number, gen_params=self.gen_params)
+            self.csr[number] = csr
+            m.submodules += csr
+
         # simple test not using external r/w functionality of csr
         for i in range(self.csr_count):
-            csr = CSRRegister(csr_number=i, gen_params=self.gen_params)
-            self.csr[i] = csr
-            m.submodules += csr
+            make_csr(i)
+
+        # for future tests with exception support
+        # read-only
+        # make_csr(0xc00)
+        # missing privilege
+        # make_csr(0x100)
 
         return tm
 
@@ -75,7 +84,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         imm = random.randint(0, 2**self.gp.isa.xlen - 1)
         rs1_val = random.randint(0, 2**self.gp.isa.xlen - 1) if rs1 else 0
         operand_val = imm if imm_op else rs1_val
-        csr = random.randint(0, self.csr_count - 1)
+        csr = random.choice(list(self.dut.csr.keys()))
 
         exp = yield from self.gen_expected_out(op, rd, rs1, operand_val, csr)
 
