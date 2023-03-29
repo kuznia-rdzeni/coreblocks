@@ -124,6 +124,10 @@ class DependencyManager:
             raise KeyError(f"Dependency {key} not provided")
         return key.combine(self.dependencies[key])
 
+    def dependency_exists(self, key: DependencyKey) -> bool:
+        """Checks if dependency exists for a key."""
+        return key in self.dependencies
+
 
 class BlockComponentParams(ABC):
     @abstractmethod
