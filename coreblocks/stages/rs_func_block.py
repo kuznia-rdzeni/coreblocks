@@ -65,8 +65,8 @@ class RSFuncBlock(Elaboratable):
             wakeup_select = WakeupSelect(
                 gen_params=self.gen_params, get_ready=rs.get_ready_list[n], take_row=rs.take, issue=func_unit.issue
             )
-            setattr(m.submodules, f"func_unit_{n}", func_unit)
-            setattr(m.submodules, f"wakeup_select_{n}", wakeup_select)
+            m.submodules[f"func_unit_{n}"] = func_unit
+            m.submodules[f"wakeup_select_{n}"] = wakeup_select
 
         m.submodules.collector = collector = Collector([func_unit.accept for func_unit in self.func_units])
 
