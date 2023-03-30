@@ -6,6 +6,7 @@ from amaranth.utils import log2_int
 
 from .isa import ISA
 from .fu_params import BlockComponentParams
+from .icache_params import ICacheParameters
 from ..peripherals.wishbone import WishboneParameters
 
 __all__ = ["GenParams"]
@@ -38,6 +39,9 @@ class GenParams(DependentCache):
         phys_regs_bits: int = 6,
         rob_entries_bits: int = 7,
         start_pc: int = 0,
+        icache_ways=2,
+        icache_sets=128,
+        icache_block_bytes=32,
     ):
         super().__init__()
 
@@ -47,6 +51,14 @@ class GenParams(DependentCache):
         bytes_in_word = self.isa.xlen // 8
         self.wb_params = WishboneParameters(
             data_width=self.isa.xlen, addr_width=self.isa.xlen - log2_int(bytes_in_word)
+        )
+
+        self.icache_params = ICacheParameters(
+            addr_width=self.isa.xlen,
+            word_width=self.isa.xlen,
+            num_of_ways=icache_ways,
+            num_of_sets=icache_sets,
+            block_size_bytes=icache_block_bytes,
         )
 
         # Verification temporally disabled

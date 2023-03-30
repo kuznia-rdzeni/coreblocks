@@ -6,52 +6,13 @@ from amaranth.utils import log2_int
 
 from coreblocks.transactions.core import def_method, Priority
 from coreblocks.transactions import Method, Transaction
-from coreblocks.params import GenParams, ICacheLayouts
+from coreblocks.params import ICacheLayouts, ICacheParameters
 from coreblocks.utils import assign
 from coreblocks.transactions.lib import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 
-__all__ = ["ICacheParameters", "ICache", "SimpleWBCacheRefiller"]
-
-
-class ICacheParameters:
-    """Parameters of the Instruction Cache.
-
-    Parameters
-    ----------
-    addr_width : int
-        Length of addresses used in the cache (in bits).
-    num_of_ways : int
-        Associativity of the cache. Defaults to 2 ways.
-    num_of_sets : int
-        Number of cache sets. Defaults to 128 sets.
-    block_size_bytes : int
-        The size of a single cache block in bytes. Defaults to 32 bytes.
-    """
-
-    def __init__(self, *, addr_width, num_of_ways=2, num_of_sets=128, block_size_bytes=32):
-        self.addr_width = addr_width
-        self.num_of_ways = num_of_ways
-        self.num_of_sets = num_of_sets
-        self.block_size_bytes = block_size_bytes
-
-        def is_power_of_two(n):
-            return (n != 0) and (n & (n - 1) == 0)
-
-        if self.num_of_ways not in {1, 2, 4, 8}:
-            raise ValueError(f"num_of_ways must be 1, 2, 4 or 8, not {num_of_ways}")
-        if not is_power_of_two(num_of_sets):
-            raise ValueError(f"num_of_sets must be a power of 2, not {num_of_sets}")
-        if not is_power_of_two(block_size_bytes) or block_size_bytes < 4:
-            raise ValueError(f"block_size_bytes must be a power of 2 and not smaller than 4, not {block_size_bytes}")
-
-        self.offset_bits = log2_int(self.block_size_bytes)
-        self.index_bits = log2_int(self.num_of_sets)
-        self.tag_bits = self.addr_width - self.offset_bits - self.index_bits
-
-        self.index_start_bit = self.offset_bits
-        self.index_end_bit = self.offset_bits + self.index_bits - 1
+__all__ = ["ICache", "SimpleWBCacheRefiller"]
 
 
 class ICache(Elaboratable):
@@ -79,7 +40,7 @@ class ICache(Elaboratable):
     """
 
     def __init__(
-        self, gen_params: GenParams, cache_params: ICacheParameters, refiller_start: Method, refiller_accept: Method
+        self, layouts: ICacheLayouts, params: ICacheParameters, refiller_start: Method, refiller_accept: Method
     ) -> None:
         """
         Parameters
@@ -87,23 +48,17 @@ class ICache(Elaboratable):
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             the cache.
-        cache_params : ICacheParameters
-            Instance of ICacheParameters.
         refiller_start : Method
             A method with input layout ICacheLayouts::start_refill
         refiller_accept : Method
             A method with output layout ICacheLayouts::accept_refill
         """
-        self.gp = gen_params
-        self.params = cache_params
-
-        if self.params.block_size_bytes % (self.gp.isa.xlen // 8) != 0:
-            raise ValueError("block_size_bytes must be divisble by the machine word size")
+        self.layouts = layouts
+        self.params = params
 
         self.refiller_start = refiller_start
         self.refiller_accept = refiller_accept
 
-        layouts = self.gp.get(ICacheLayouts)
         self.issue_req = Method(i=layouts.issue_req)
         self.accept_res = Method(o=layouts.accept_res)
         self.flush = Method()
@@ -129,9 +84,9 @@ class ICache(Elaboratable):
     def elaborate(self, platform) -> Module:
         m = Module()
 
-        m.submodules.mem = self.mem = ICacheMemory(self.gp, self.params)
+        m.submodules.mem = self.mem = ICacheMemory(self.params)
         m.submodules.req_fifo = self.req_fifo = FIFO(layout=self.addr_layout, depth=2)
-        m.submodules.res_fwd = self.res_fwd = Forwarder(layout=self.gp.get(ICacheLayouts).accept_res)
+        m.submodules.res_fwd = self.res_fwd = Forwarder(layout=self.layouts.accept_res)
 
         # State machine logic
         needs_refill = Signal()
@@ -170,7 +125,7 @@ class ICache(Elaboratable):
         tag_hit = [tag_data.valid & (tag_data.tag == request_addr.tag) for tag_data in self.mem.tag_rd_data]
         tag_hit_any = reduce(operator.or_, tag_hit)
 
-        instr_out = Signal(self.gp.isa.ilen)
+        instr_out = Signal(self.params.instr_width)
         for i in range(self.params.num_of_ways):
             with m.If(tag_hit[i]):
                 m.d.comb += instr_out.eq(self.mem.data_rd_data[i])  # TODO(jurb): this won't work on rv64
@@ -267,9 +222,8 @@ class ICacheMemory(Elaboratable):
     The data memory is addressed using a machine word.
     """
 
-    def __init__(self, gen_params: GenParams, cache_params: ICacheParameters) -> None:
-        self.gp = gen_params
-        self.params = cache_params
+    def __init__(self, params: ICacheParameters) -> None:
+        self.params = params
 
         self.tag_data_layout = [("valid", 1), ("tag", self.params.tag_bits)]
 
@@ -284,10 +238,10 @@ class ICacheMemory(Elaboratable):
         self.data_addr_layout = [("index", self.params.index_bits), ("offset", self.params.offset_bits)]
 
         self.data_rd_addr = Record(self.data_addr_layout)
-        self.data_rd_data = Array([Signal(self.gp.isa.xlen) for _ in range(self.params.num_of_ways)])
+        self.data_rd_data = Array([Signal(self.params.word_width) for _ in range(self.params.num_of_ways)])
         self.data_wr_addr = Record(self.data_addr_layout)
         self.data_wr_en = Signal()
-        self.data_wr_data = Signal(self.gp.isa.xlen)
+        self.data_wr_data = Signal(self.params.word_width)
 
     def elaborate(self, platform) -> Module:
         m = Module()
@@ -309,8 +263,8 @@ class ICacheMemory(Elaboratable):
                 tag_mem_wp.en.eq(self.tag_wr_en & way_wr),
             ]
 
-            words_in_line = self.params.block_size_bytes // (self.gp.isa.xlen // 8)
-            data_mem = Memory(width=self.gp.isa.xlen, depth=self.params.num_of_sets * words_in_line)
+            words_in_line = self.params.block_size_bytes // self.params.word_width_bytes
+            data_mem = Memory(width=self.params.word_width, depth=self.params.num_of_sets * words_in_line)
             data_mem_rp = data_mem.read_port()
             data_mem_wp = data_mem.write_port()
             m.submodules[f"data_mem_{i}_rp"] = data_mem_rp
@@ -318,7 +272,7 @@ class ICacheMemory(Elaboratable):
 
             # We address the data RAM using machine words, so we have to
             # discard a few least significant bits from the address.
-            redundant_offset_bits = log2_int(self.gp.isa.xlen // 8)
+            redundant_offset_bits = log2_int(self.params.word_width_bytes)
             rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[redundant_offset_bits:]
             wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[redundant_offset_bits:]
 
@@ -334,22 +288,19 @@ class ICacheMemory(Elaboratable):
 
 
 class SimpleWBCacheRefiller(Elaboratable):
-    def __init__(self, gen_params: GenParams, cache_params: ICacheParameters, wb_master: WishboneMaster):
-        self.gp = gen_params
-        self.cache_params = cache_params
+    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, wb_master: WishboneMaster):
+        self.params = params
         self.wb_master = wb_master
 
-        layouts = self.gp.get(ICacheLayouts)
         self.start_refill = Method(i=layouts.start_refill)
         self.accept_refill = Method(o=layouts.accept_refill)
 
     def elaborate(self, platform) -> Module:
         m = Module()
 
-        bytes_in_word = self.gp.isa.xlen // 8
-        words_in_line = self.cache_params.block_size_bytes // bytes_in_word
+        words_in_line = self.params.block_size_bytes // self.params.word_width_bytes
 
-        refill_address = Signal(self.gp.isa.xlen - self.cache_params.offset_bits)
+        refill_address = Signal(self.params.word_width - self.params.offset_bits)
         refill_active = Signal()
         word_counter = Signal(log2_int(words_in_line))
 
@@ -364,7 +315,7 @@ class SimpleWBCacheRefiller(Elaboratable):
 
         @def_method(m, self.start_refill, ready=~refill_active)
         def _(addr) -> None:
-            m.d.sync += refill_address.eq(addr[self.cache_params.offset_bits :])
+            m.d.sync += refill_address.eq(addr[self.params.offset_bits :])
             m.d.sync += refill_active.eq(1)
             m.d.sync += word_counter.eq(0)
 
@@ -379,7 +330,7 @@ class SimpleWBCacheRefiller(Elaboratable):
                 m.d.sync += refill_active.eq(0)
 
             return {
-                "addr": Cat(Repl(0, log2_int(bytes_in_word)), word_counter, refill_address),
+                "addr": Cat(Repl(0, log2_int(self.params.word_width_bytes)), word_counter, refill_address),
                 "data": fetched.data,
                 "error": fetched.err,
                 "last": last,

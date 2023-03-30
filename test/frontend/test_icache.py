@@ -7,7 +7,7 @@ from amaranth.sim import Passive, Settle
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, Adapter
-from coreblocks.frontend.icache import SimpleWBCacheRefiller, ICacheParameters, ICache
+from coreblocks.frontend.icache import SimpleWBCacheRefiller, ICache
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
 
@@ -16,9 +16,9 @@ from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
 class SimpleWBCacheRefillerTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams, cache_params: ICacheParameters):
+    def __init__(self, gen_params: GenParams):
         self.gp = gen_params
-        self.cp = cache_params
+        self.cp = self.gp.icache_params
 
     def elaborate(self, platform):
         m = Module()
@@ -30,7 +30,7 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
         )
         self.wb_master = WishboneMaster(wb_params)
 
-        self.refiller = SimpleWBCacheRefiller(self.gp, self.cp, self.wb_master)
+        self.refiller = SimpleWBCacheRefiller(self.gp.get(ICacheLayouts), self.cp, self.wb_master)
 
         self.start_refill = TestbenchIO(AdapterTrans(self.refiller.start_refill))
         self.accept_refill = TestbenchIO(AdapterTrans(self.refiller.accept_refill))
@@ -57,14 +57,9 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
     block_size: int
 
     def setUp(self) -> None:
-        self.gp = test_gen_params("rv32i")
-        self.cp = ICacheParameters(
-            addr_width=self.gp.isa.xlen, num_of_ways=1, num_of_sets=1, block_size_bytes=self.block_size
-        )
-        self.test_module = SimpleWBCacheRefillerTestCircuit(self.gp, self.cp)
-
-        self.word_bytes = self.gp.isa.xlen // 8
-        self.words_per_block = self.block_size // self.word_bytes
+        self.gp = test_gen_params("rv32i", icache_block_bytes=self.block_size)
+        self.cp = self.gp.icache_params
+        self.test_module = SimpleWBCacheRefillerTestCircuit(self.gp)
 
         random.seed(42)
 
@@ -112,7 +107,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
             req_addr = self.requests.pop()
             yield from self.test_module.start_refill.call(addr=req_addr)
 
-            for i in range(self.words_per_block):
+            for i in range(self.cp.words_in_block):
                 ret = yield from self.test_module.accept_refill.call()
 
                 cur_addr = req_addr + i * 4
@@ -127,7 +122,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
                 self.assertEqual(ret["data"], self.mem[ret["addr"]])
                 self.assertEqual(ret["error"], 0)
 
-                last = 1 if i == self.words_per_block - 1 else 0
+                last = 1 if i == self.cp.words_in_block - 1 else 0
                 self.assertEqual(ret["last"], last)
 
     def test(self):
@@ -137,9 +132,9 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
 
 
 class ICacheTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams, cache_params: ICacheParameters):
+    def __init__(self, gen_params: GenParams):
         self.gp = gen_params
-        self.cp = cache_params
+        self.cp = self.gp.icache_params
 
     def elaborate(self, platform):
         m = Module()
@@ -151,7 +146,7 @@ class ICacheTestCircuit(Elaboratable):
         m.submodules.accept_refill = self.accept_refill = TestbenchIO(Adapter(o=layouts.accept_refill))
 
         m.submodules.cache = self.cache = ICache(
-            self.gp, self.cp, self.start_refill.adapter.iface, self.accept_refill.adapter.iface
+            layouts, self.cp, self.start_refill.adapter.iface, self.accept_refill.adapter.iface
         )
         m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.cache.issue_req))
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.cache.accept_res))
@@ -171,11 +166,6 @@ class TestICache(TestCaseWithSimulator):
     block_size: int
 
     def setUp(self) -> None:
-        self.gp = test_gen_params("rv32i")
-
-        self.word_bytes = self.gp.isa.xlen // 8
-        self.words_per_block = self.block_size // self.word_bytes
-
         random.seed(42)
 
         self.mem = dict()
@@ -184,10 +174,9 @@ class TestICache(TestCaseWithSimulator):
         self.issued_requests = deque()
 
     def init_module(self, ways, sets) -> None:
-        self.cp = ICacheParameters(
-            addr_width=self.gp.isa.xlen, num_of_ways=ways, num_of_sets=sets, block_size_bytes=self.block_size
-        )
-        self.m = ICacheTestCircuit(self.gp, self.cp)
+        self.gp = test_gen_params("rv32i", icache_ways=ways, icache_sets=sets, icache_block_bytes=self.block_size)
+        self.cp = self.gp.icache_params
+        self.m = ICacheTestCircuit(self.gp)
 
     def refiller_processes(self):
         refill_in_fly = False
@@ -206,12 +195,12 @@ class TestICache(TestCaseWithSimulator):
         def accept_refill_mock(_):
             nonlocal refill_in_fly, refill_word_cnt, refill_addr
 
-            addr = refill_addr + refill_word_cnt * self.word_bytes
+            addr = refill_addr + refill_word_cnt * self.cp.word_width_bytes
             data = self.load_or_gen_mem(addr)
             refill_word_cnt += 1
 
             err = addr in self.bad_addrs
-            last = refill_word_cnt == self.words_per_block or err
+            last = refill_word_cnt == self.cp.words_in_block or err
 
             if last:
                 refill_in_fly = False
@@ -268,13 +257,13 @@ class TestICache(TestCaseWithSimulator):
             self.assertEqual(self.refill_requests.pop(), 0x00010000)
 
             # Accesses to the same cache line shouldn't cause a cache miss
-            for i in range(self.words_per_block):
+            for i in range(self.cp.words_in_block):
                 yield from self.call_cache(0x00010000 + i * 4)
                 self.assertEqual(len(self.refill_requests), 0)
 
             # Now go beyond the first cache line
-            yield from self.call_cache(0x00010000 + self.words_per_block * 4)
-            self.assertEqual(self.refill_requests.pop(), 0x00010000 + self.words_per_block * 4)
+            yield from self.call_cache(0x00010000 + self.cp.words_in_block * 4)
+            self.assertEqual(self.refill_requests.pop(), 0x00010000 + self.cp.words_in_block * 4)
 
             # Trigger cache aliasing
             yield from self.call_cache(0x00020000)

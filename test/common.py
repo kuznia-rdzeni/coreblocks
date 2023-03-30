@@ -408,15 +408,13 @@ def test_gen_params(
     isa_str: str,
     *,
     phys_regs_bits: int = 7,
-    rob_entries_bits: int = 7,
-    start_pc: int = 0,
     rs_entries: int = 4,
     rs_block_number: int = 2,
+    **kwargs,
 ):
     return GenParams(
         isa_str,
         func_units_config=[RSBlockComponent([], rs_entries=rs_entries) for _ in range(rs_block_number)],
         phys_regs_bits=phys_regs_bits,
-        rob_entries_bits=rob_entries_bits,
-        start_pc=start_pc,
+        **kwargs,
     )
