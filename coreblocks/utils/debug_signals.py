@@ -31,17 +31,16 @@ def auto_debug_signals(thing) -> SignalBundle:
         elif isinstance(a, Signal) or isinstance(a, Record):
             slist.append(a)
         elif isinstance(a, list):
-            submap={}
+            submap = {}
             for i, e in enumerate(a):
                 if isinstance(e, HasDebugSignals):
-                    e.name = f"{v}[{i}]"
-                    submap[e.name] = e.debug_signals()
+                    submap[f"{v}[{i}]"] = e.debug_signals()
                 else:
                     sublist = auto_debug_signals(e)
                     if sublist:
                         submap[f"{v}[{i}]"] = sublist
             if submap:
-                smap[v]=submap
+                smap[v] = submap
 
     slist.append(smap)
     return slist
