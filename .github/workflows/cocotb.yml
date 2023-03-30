@@ -25,9 +25,16 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip3 install -r requirements-dev.txt
+          apt-get update && apt-get install -y gcc-riscv64-unknown-elf
+
+      - name: Initialize submodules
+        run: git submodule update --init --recursive
 
       - name: Generate Verilog
         run: PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose
+
+      - name: Build riscv-tests
+        run: cd test/external/riscv-tests && make
 
       - name: Run cocotb
         run: |

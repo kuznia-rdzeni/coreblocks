@@ -26,6 +26,9 @@ test/__traces__
 test/cocotb/sim_build/
 test/cocotb/results.xml
 
+# riscv-tests
+test/external/riscv-tests/test-*
+
 # Documentation build
 build/
 docs/*.rst
