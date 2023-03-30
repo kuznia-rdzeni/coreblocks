@@ -46,7 +46,7 @@ class InterruptCoordinator(Elaboratable):
                 with m.If(interrupt):
                     m.next = "clear"
             with m.State("clear"):
-                with Transaction.body():
+                with Transaction(name="IntClearAll").body(m):
                     self.f_rat_set_all(m, self.r_rat_get_all(m))
                     self.frontend_clear(m)
                     self.scheduler_clear(m)
@@ -55,19 +55,19 @@ class InterruptCoordinator(Elaboratable):
                     # ...clear other stuff
                     m.next = "flush_rob"
             with m.State("flush_rob"):
-                with Transaction.body():
+                with Transaction(name="IntFlushRob").body(m):
                     with m.If(self.rob_can_flush(m)):
                         reg = self.rob_flush(m)
                         with m.If(reg != 0):
-                            self.free_reg_put(m, reg)
+                            self.free_reg_put(m, reg.rp_dst)
                     with m.Else():
                         m.next = "unstall"
             with m.State("unstall"):
-                with Transaction.body():
+                with Transaction(name="IntUnstall").body(m):
                     m.d.sync += old_pc.eq(self.pc_verify_branch(m, next_pc=int_handler_addr))
                     m.next = "iret"
             with m.State("iret"):
-                with Transaction.body(request=~interrupt):
+                with Transaction(name="IntRet").body(m, request=~interrupt):
                     self.pc_verify_branch(m, next_pc=old_pc)
                     m.next = "idle"
 

@@ -3,7 +3,7 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
-from coreblocks.transactions.lib import FIFO, ConnectTrans, MethodProduct
+from coreblocks.transactions.lib import FIFO, ConnectTrans, MethodProduct, ConnectAndTransformTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
@@ -110,8 +110,9 @@ class Core(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.verify_branch = ConnectTrans(
-            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch
+        m.submodules.verify_branch = ConnectAndTransformTrans(
+            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch,
+            o_fun=lambda _, rec: {}  # drop old_pc
         )
 
         m.submodules.announcement = self.announcement

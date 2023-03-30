@@ -77,7 +77,7 @@ class RetirementTest(TestCaseWithSimulator):
                 self.rf_free_q.append(rat_state[rl])
                 rat_state[rl] = rp
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
-                self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id})
+                self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id, "interrupt": 0})
                 self.precommit_q.append(rob_id)
             # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
@@ -121,10 +121,19 @@ class RetirementTest(TestCaseWithSimulator):
         def precommit_process(rob_id):
             self.assertEqual(rob_id, self.precommit_q.popleft())
 
+        @def_method_mock(lambda: retc.mock_interrupt)
+        def interrupt_process():
+            pass
+
         with self.run_simulation(retc) as sim:
             sim.add_sync_process(retire_process)
             sim.add_sync_process(peek_process)
             sim.add_sync_process(free_reg_process)
             sim.add_sync_process(rat_process)
             sim.add_sync_process(rf_free_process)
+<<<<<<< HEAD
             sim.add_sync_process(precommit_process)
+=======
+            sim.add_sync_process(lsu_commit_process)
+            sim.add_sync_process(interrupt_process)
+>>>>>>> cbb41b1 (Bugfixing)
