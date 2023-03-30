@@ -57,19 +57,8 @@ class ICacheParameters:
 class ICache(Elaboratable):
     """A simple set-associative instruction cache.
 
-    There are two methods exposed by this module, which are meant to be used
-    by the cache user: `issue_req`, `accept_res`.
-
-    A few notes about the cache:
-        1) The replacement policy is a pseudo random scheme. Every time a line is trashed,
-        we select the next way we write to (we keep one global counter for selecting the next way).
-
-        2) The latency during a cache hit is exactly one cycle.
-
-        3) Information about fetch errors is not cached. That is, if an error happens during
-        line refill, next access in that line, will retrigger a refill (which most likely
-        will return an error again).
-
+    The replacement policy is a pseudo random scheme. Every time a line is trashed,
+    we select the next way we write to (we keep one global counter for selecting the next way).
 
     Refilling a cache line is abstracted away from this module. ICache module needs two methods
     from the refiller `refiller_start`, which is called whenever we need to refill a cache line.
