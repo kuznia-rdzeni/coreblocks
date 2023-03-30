@@ -1,5 +1,6 @@
 from itertools import takewhile
-from enum import unique, Enum, IntEnum, IntFlag, auto
+from enum import unique, Enum, IntFlag, auto
+from amaranth.hdl.ast import Const, ValueCastable
 
 __all__ = [
     "InstrType",
@@ -24,8 +25,29 @@ class InstrType(Enum):
     J = 5
 
 
+class ValueCastableHack(int, ValueCastable):
+    @ValueCastable.lowermethod
+    def as_value(self):
+        raise NotImplementedError("width information lost!")
+
+
+class BitEnum(ValueCastableHack, Enum):
+    """
+    A helper class that defines Amaranth enums with a width
+    """
+
+    __width: int
+
+    def __init_subclass__(cls, *, width, **kwargs):
+        cls.__width = width
+
+    @ValueCastable.lowermethod
+    def as_value(self):
+        return Const(self.value, self.__width)
+
+
 @unique
-class Opcode(IntEnum):
+class Opcode(BitEnum, width=5):
     OP_IMM = 0b00100
     LUI = 0b01101
     AUIPC = 0b00101
@@ -40,7 +62,7 @@ class Opcode(IntEnum):
     SYSTEM = 0b11100
 
 
-class Funct3(IntEnum):
+class Funct3(BitEnum, width=3):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
     BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = 0b001
     W = SLT = CSRRS = MULHSU = SH1ADD = 0b010
@@ -51,7 +73,7 @@ class Funct3(IntEnum):
     BGEU = AND = CSRRCI = REMU = REMUW = 0b111
 
 
-class Funct7(IntEnum):
+class Funct7(BitEnum, width=7):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = 0b0100000
     MULDIV = 0b0000001
@@ -61,7 +83,7 @@ class Funct7(IntEnum):
     BSET = 0b0010100
 
 
-class Funct12(IntEnum):
+class Funct12(BitEnum, width=12):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
     MRET = 0b001100000010
@@ -69,7 +91,7 @@ class Funct12(IntEnum):
 
 
 @unique
-class FenceTarget(IntFlag):
+class FenceTarget(BitEnum, width=4):
     MEM_W = 0b0001
     MEM_R = 0b0010
     DEV_O = 0b0100
@@ -77,7 +99,7 @@ class FenceTarget(IntFlag):
 
 
 @unique
-class FenceFm(IntEnum):
+class FenceFm(BitEnum, width=4):
     NONE = 0b0000
     TSO = 0b1000
 
@@ -158,9 +180,6 @@ class Extension(IntFlag):
     G = I | M | A | F | D | ZICSR | ZIFENCEI
 
 
-# Mapping of names to corresponding extension
-_extension_map = {e.name.lower(): e for e in Extension if e.name}
-
 # Extensions which are mutually exclusive
 _extension_exclusive = [
     [Extension.I, Extension.E],
@@ -240,25 +259,26 @@ class ISA:
         self.extensions = Extension(0)
 
         def parse_extension(e):
-            val = _extension_map[e]
+            val = Extension[e.upper()]
             if self.extensions & val:
                 raise RuntimeError("Duplication in ISA extensions string")
             self.extensions |= val
 
         for es in extensions_str.split("_"):
             for i, e in enumerate(es):
-                if e in _extension_map:
+                try:
                     parse_extension(e)
-                elif es[i:] in _extension_map:
-                    parse_extension(es[i:])
+                except KeyError:
+                    try:
+                        parse_extension(es[i:])
+                    except KeyError:
+                        raise RuntimeError(f"Neither {es[i]} nor {es[i:]} is a valid extension in {es}") from None
                     break
-                else:
-                    raise RuntimeError(f"Neither {es[i]} nor {es[i:]} is a valid extension in {es}")
 
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
 
-        for (ext, imply) in _extension_implications.items():
+        for ext, imply in _extension_implications.items():
             if ext in self.extensions:
                 self.extensions |= imply
 
@@ -270,7 +290,7 @@ class ISA:
                             f"ISA extensions {exclusive[i].name} and {exclusive[j].name} are mutually exclusive"
                         )
 
-        for (ext, requirements) in _extension_requirements.items():
+        for ext, requirements in _extension_requirements.items():
             if ext in self.extensions and requirements not in self.extensions:
                 for req in Extension:
                     if req in requirements and req not in self.extensions:

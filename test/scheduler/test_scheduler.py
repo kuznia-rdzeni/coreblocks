@@ -288,10 +288,10 @@ class TestScheduler(TestCaseWithSimulator):
                 rl_s2 = random.randrange(self.gen_params.isa.reg_cnt)
                 rl_dst = random.randrange(self.gen_params.isa.reg_cnt)
 
-                opcode = random.choice(list(Opcode)).value
-                op_type = random.choice(list(op_types_set)).value
-                funct3 = random.choice(list(Funct3)).value
-                funct7 = random.choice(list(Funct7)).value
+                opcode = random.choice(list(Opcode))
+                op_type = random.choice(list(op_types_set))
+                funct3 = random.choice(list(Funct3))
+                funct7 = random.choice(list(Funct7))
                 immediate = random.randrange(2**32)
                 rp_s1 = self.current_RAT[rl_s1]
                 rp_s2 = self.current_RAT[rl_s2]
