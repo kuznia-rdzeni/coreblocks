@@ -1,0 +1,35 @@
+name: cocotb tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set ownership (Github Actions workaround)
+        run: |
+          # https://github.com/actions/runner/issues/2033
+          chown -R $(id -u):$(id -g) $PWD
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -r requirements-dev.txt
+
+      - name: Generate Verilog
+        run: PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose
+
+      - name: Run cocotb
+        run: |
+          cd test/cocotb && make
+

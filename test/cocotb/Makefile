@@ -13,6 +13,9 @@ TOPLEVEL = top
 # MODULE is the basename of the Python test file
 MODULE = test
 
+# avoid error due to Verilator's warnings
+EXTRA_ARGS = -Wno-fatal
+
 # include cocotb's make rules to take care of the simulator setup
-include $(shell cocotb-config --makefiles)/Makefile.sim
+include $(shell cocotb-config --makefiles)/simulators/Makefile.verilator
 
