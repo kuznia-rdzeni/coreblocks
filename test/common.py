@@ -261,8 +261,17 @@ class TestbenchIO(Elaboratable):
     def method_return(self, data: RecordValueDict = {}) -> TestGen[None]:
         yield from self.set_inputs(data)
 
-    def method_handle(self, function: Callable[..., Optional[RecordIntDict]], *, enable: Optional[Callable[[], bool]] = None,
-        priority: int = 0,) -> TestGen[None]:
+    def method_handle(
+        self,
+        function: Callable[..., Optional[RecordIntDict]],
+        *,
+        enable: Optional[Callable[[], bool]] = None,
+        priority: int = 0,
+    ) -> TestGen[None]:
+        enable = enable or (lambda: True)
+        yield from self.set_enable(enable())
+
+        # One extra Settle() required to propagate enable signal.
         for _ in range(priority + 1):
             yield Settle()
         while (arg := (yield from self.method_argument())) is None:
@@ -322,15 +331,9 @@ def def_method_mock(
     ```
     m = TestCircuit()
     def target_process(k: int):
-<<<<<<< HEAD
-        @def_method_mock(lambda: m.target[k], enable=False)
-        def process(v):
-            return {"data": v["data"] + k}
-=======
-        @def_method_mock(lambda: m.target[k], settle=1, enable=False)
+        @def_method_mock(lambda: m.target[k])
         def process(arg):
             return {"data": arg["data"] + k}
->>>>>>> master
         return process
     ```
     """

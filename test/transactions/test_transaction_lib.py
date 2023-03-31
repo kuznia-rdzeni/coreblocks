@@ -310,15 +310,9 @@ class TestMethodTransformer(TestCaseWithSimulator):
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
             self.assertEqual(v["data"], (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1))
 
-<<<<<<< HEAD
     @def_class_method_mock(lambda self: self.m.target)
-    def target(self, v):
-        return {"data": (v["data"] << 1) | (v["data"] >> (self.m.iosize - 1))}
-=======
-    @def_class_method_mock(lambda self: self.m.target, settle=1)
     def target(self, data):
         return {"data": (data << 1) | (data >> (self.m.iosize - 1))}
->>>>>>> master
 
     def test_method_transformer(self):
         self.m = MethodTransformerTestCircuit(4, False, False)
@@ -389,15 +383,9 @@ class TestMethodFilter(TestCaseWithSimulator):
             else:
                 self.assertEqual(v["data"], 0)
 
-<<<<<<< HEAD
     @def_class_method_mock(lambda self: self.m.target)
-    def target(self, v):
-        return {"data": v["data"] + 1}
-=======
-    @def_class_method_mock(lambda self: self.m.target, settle=1)
     def target(self, data):
         return {"data": data + 1}
->>>>>>> master
 
     def test_method_filter(self):
         self.m = MethodFilterTestCircuit(4, False)
