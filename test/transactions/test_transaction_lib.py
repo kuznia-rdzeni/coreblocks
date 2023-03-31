@@ -114,6 +114,7 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
     def __init__(self, count: int, lay: LayoutLike):
         self.count = count
         self.lay = lay
+        self.inputs = []
 
     def elaborate(self, platform):
         m = Module()
@@ -128,8 +129,8 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
             for i in range(self.count):
                 input = TestbenchIO(Adapter(o=self.lay))
                 get_results.append(input.adapter.iface)
-                setattr(m.submodules, f"input_{i}", input)
-                setattr(self, f"input_{i}", input)
+                m.submodules[f"input_{i}"] = input
+                self.inputs.append(input)
 
             # Create ManyToOneConnectTrans, which will serialize results from different inputs
             output = TestbenchIO(Adapter(i=self.lay))
@@ -186,7 +187,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         def producer():
             inputs = self.inputs[i]
             for field1, field2 in inputs:
-                io: TestbenchIO = getattr(self.m, f"input_{i}")
+                io: TestbenchIO = self.m.inputs[i]
                 yield from io.call_init(field1=field1, field2=field2)
                 yield from self.random_wait()
             self.producer_end[i] = True
