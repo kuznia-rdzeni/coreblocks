@@ -11,8 +11,9 @@ from amaranth.sim.core import Command
 
 from coreblocks.params import GenParams
 from coreblocks.stages.rs_func_block import RSBlockComponent
-from coreblocks.transactions.core import SignalBundle, Method, TransactionModule, call_func_smart
+from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
+from coreblocks.transactions._utils import method_def_helper
 from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike
 from .gtkw_extension import write_vcd_ext
 
@@ -265,7 +266,7 @@ class TestbenchIO(Elaboratable):
             for _ in range(settle):
                 yield Settle()
 
-        ret_out = call_func_smart(self, function, **arg)
+        ret_out = method_def_helper(self, function, **arg)
         yield from self.method_return(ret_out or {})
         yield
 

@@ -1,7 +1,6 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
-from inspect import Parameter, signature
 from typing import Callable, ClassVar, Mapping, TypeAlias, TypeVar, TypedDict, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
@@ -29,7 +28,6 @@ __all__ = [
 ]
 
 
-T = TypeVar("T")
 TransactionGraph: TypeAlias = Graph["Transaction"]
 TransactionGraphCC: TypeAlias = GraphCC["Transaction"]
 PriorityOrder: TypeAlias = dict["Transaction", int]
@@ -224,7 +222,7 @@ class TransactionManager(Elaboratable):
 
         porder: PriorityOrder = {}
 
-        for (k, transaction) in enumerate(TopologicalSorter(pgr).static_order()):
+        for k, transaction in enumerate(TopologicalSorter(pgr).static_order()):
             porder[transaction] = k
 
         return cgr, rgr, porder
@@ -243,7 +241,6 @@ class TransactionManager(Elaboratable):
             self._call_graph(transaction, method, arg, enable)
 
     def elaborate(self, platform):
-
         self.methods_by_transaction = defaultdict[Transaction, list[Method]](list)
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
         self.method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
@@ -759,26 +756,6 @@ class Method(TransactionBase):
         return [self.ready, self.run, self.data_in, self.data_out]
 
 
-def call_func_smart(method, func: Callable[..., T], arg=None, /, **kwargs) -> T:
-    parameters = signature(func).parameters
-    kw_parameters = set(
-        n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
-    )
-    if (
-        len(parameters) == 1
-        and "arg" in parameters
-        and parameters["arg"].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
-        and parameters["arg"].annotation in {Parameter.empty, Record}
-    ):
-        if arg is None:
-            arg = kwargs
-        return func(arg)
-    elif kw_parameters <= kwargs.keys():
-        return func(**kwargs)
-    else:
-        raise TypeError(f"Invalid method definition/mock for {method}: {func}")
-
-
 def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     """Define a method.
 
@@ -840,7 +817,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:
-            ret_out = call_func_smart(method, func, arg, **arg.fields)
+            ret_out = method_def_helper(method, func, arg, **arg.fields)
 
         if ret_out is not None:
             m.d.comb += assign(out, ret_out, fields=AssignType.ALL)
