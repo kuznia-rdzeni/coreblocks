@@ -265,14 +265,19 @@ class TestbenchIO(Elaboratable):
         function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
         *,
         enable: Optional[Callable[[], bool]] = None,
+        priority: int = 0,
     ) -> TestGen[None]:
         enable = enable or (lambda: True)
         yield from self.set_enable(enable())
-        yield Settle()
+
+        # One extra Settle() required to propagate enable signal.
+        for _ in range(priority + 1):
+            yield Settle()
         while (arg := (yield from self.method_argument())) is None:
             yield
             yield from self.set_enable(enable())
-            yield Settle()
+            for _ in range(priority + 1):
+                yield Settle()
         yield from self.method_return(function(arg) or {})
         yield
 
@@ -281,13 +286,11 @@ class TestbenchIO(Elaboratable):
         function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
         *,
         enable: Optional[Callable[[], bool]] = None,
-        condition: Optional[Callable[[], bool]] = None,
+        priority: int = 0,
     ) -> TestGen[None]:
-        if condition is None:
-            yield Passive()
-        condition = condition or (lambda: True)
-        while condition():
-            yield from self.method_handle(function, enable=enable)
+        yield Passive()
+        while True:
+            yield from self.method_handle(function, enable=enable, priority=priority)
 
     # Debug signals
 
