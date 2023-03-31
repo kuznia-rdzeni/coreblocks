@@ -183,7 +183,7 @@ class TestICache(TestCaseWithSimulator):
         refill_word_cnt = 0
         refill_addr = 0
 
-        @def_method_mock(lambda: self.m.start_refill, settle=1)
+        @def_method_mock(lambda: self.m.start_refill)
         def start_refill_mock(arg):
             nonlocal refill_in_fly, refill_word_cnt, refill_addr
             self.refill_requests.append(arg["addr"])
@@ -191,7 +191,7 @@ class TestICache(TestCaseWithSimulator):
             refill_in_fly = True
             refill_addr = arg["addr"]
 
-        @def_method_mock(lambda: self.m.accept_refill, enable=lambda: refill_in_fly, settle=1)
+        @def_method_mock(lambda: self.m.accept_refill, enable=lambda: refill_in_fly)
         def accept_refill_mock(_):
             nonlocal refill_in_fly, refill_word_cnt, refill_addr
 

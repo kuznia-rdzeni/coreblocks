@@ -200,9 +200,6 @@ class TestbenchIO(Elaboratable):
     def disable(self) -> TestGen[None]:
         yield from self.set_enable(False)
 
-    def set_enable(self, en) -> TestGen[None]:
-        yield from self.enable() if en else self.disable()
-
     def done(self) -> TestGen[int]:
         return (yield self.adapter.done)
 
