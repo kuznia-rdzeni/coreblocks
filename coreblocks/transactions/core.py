@@ -1,7 +1,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import Callable, ClassVar, Mapping, TypeAlias, TypeVar, TypedDict, Union, Optional, Tuple, Iterator
+from typing import Callable, ClassVar, Mapping, TypeAlias, TypedDict, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
 from typing_extensions import Self
