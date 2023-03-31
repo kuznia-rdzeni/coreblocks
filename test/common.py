@@ -191,11 +191,14 @@ class TestbenchIO(Elaboratable):
 
     # Low-level operations
 
+    def set_enable(self, en) -> TestGen[None]:
+        yield self.adapter.en.eq(1 if en else 0)
+
     def enable(self) -> TestGen[None]:
-        yield self.adapter.en.eq(1)
+        yield from self.set_enable(True)
 
     def disable(self) -> TestGen[None]:
-        yield self.adapter.en.eq(0)
+        yield from self.set_enable(False)
 
     def set_enable(self, en) -> TestGen[None]:
         yield from self.enable() if en else self.disable()
@@ -267,17 +270,20 @@ class TestbenchIO(Elaboratable):
     def method_handle(
         self,
         function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
-        enable: Callable[[], bool],
         *,
-        settle: int = 0,
+        enable: Optional[Callable[[], bool]] = None,
+        priority: int = 0,
     ) -> TestGen[None]:
+        enable = enable or (lambda: True)
         yield from self.set_enable(enable())
-        for _ in range(settle):
+
+        # One extra Settle() required to propagate enable signal.
+        for _ in range(priority + 1):
             yield Settle()
         while (arg := (yield from self.method_argument())) is None:
             yield
             yield from self.set_enable(enable())
-            for _ in range(settle):
+            for _ in range(priority + 1):
                 yield Settle()
         yield from self.method_return(function(arg) or {})
         yield
@@ -286,16 +292,12 @@ class TestbenchIO(Elaboratable):
         self,
         function: Callable[[RecordIntDictRet], Optional[RecordIntDict]],
         *,
-        settle: int = 0,
         enable: Optional[Callable[[], bool]] = None,
-        condition: Optional[Callable[[], bool]] = None,
+        priority: int = 0,
     ) -> TestGen[None]:
-        if condition is None:
-            yield Passive()
-        condition = condition or (lambda: True)
-        enable = enable or (lambda: True)
-        while condition():
-            yield from self.method_handle(function, enable, settle=settle)
+        yield Passive()
+        while True:
+            yield from self.method_handle(function, enable=enable, priority=priority)
 
     # Debug signals
 
@@ -333,7 +335,7 @@ def def_method_mock(
     ```
     m = TestCircuit()
     def target_process(k: int):
-        @def_method_mock(lambda: m.target[k], settle=1, enable=False)
+        @def_method_mock(lambda: m.target[k], enable=False)
         def process(v):
             return {"data": v["data"] + k}
         return process
@@ -383,7 +385,7 @@ def def_class_method_mock(
     Example
     -------
     ```
-    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    @def_class_method_mock(lambda self: self.m.target)
     def target(self, v):
         return {"data": v["data"] + 1}
     ```

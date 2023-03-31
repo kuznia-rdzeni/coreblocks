@@ -114,6 +114,7 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
     def __init__(self, count: int, lay: LayoutLike):
         self.count = count
         self.lay = lay
+        self.inputs = []
 
     def elaborate(self, platform):
         m = Module()
@@ -128,8 +129,8 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
             for i in range(self.count):
                 input = TestbenchIO(Adapter(o=self.lay))
                 get_results.append(input.adapter.iface)
-                setattr(m.submodules, f"input_{i}", input)
-                setattr(self, f"input_{i}", input)
+                m.submodules[f"input_{i}"] = input
+                self.inputs.append(input)
 
             # Create ManyToOneConnectTrans, which will serialize results from different inputs
             output = TestbenchIO(Adapter(i=self.lay))
@@ -186,7 +187,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         def producer():
             inputs = self.inputs[i]
             for field1, field2 in inputs:
-                io: TestbenchIO = getattr(self.m, f"input_{i}")
+                io: TestbenchIO = self.m.inputs[i]
                 yield from io.call_init(field1=field1, field2=field2)
                 yield from self.random_wait()
             self.producer_end[i] = True
@@ -309,7 +310,7 @@ class TestMethodTransformer(TestCaseWithSimulator):
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
             self.assertEqual(v["data"], (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1))
 
-    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    @def_class_method_mock(lambda self: self.m.target)
     def target(self, v):
         return {"data": (v["data"] << 1) | (v["data"] >> (self.m.iosize - 1))}
 
@@ -382,7 +383,7 @@ class TestMethodFilter(TestCaseWithSimulator):
             else:
                 self.assertEqual(v["data"], 0)
 
-    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    @def_class_method_mock(lambda self: self.m.target)
     def target(self, v):
         return {"data": v["data"] + 1}
 
@@ -443,8 +444,10 @@ class TestMethodProduct(TestCaseWithSimulator):
         iosize = 8
         m = MethodProductTestCircuit(iosize, targets, add_combiner)
 
+        method_en = [False] * targets
+
         def target_process(k: int):
-            @def_method_mock(lambda: m.target[k], settle=1, enable=False)
+            @def_method_mock(lambda: m.target[k], enable=lambda: method_en[k])
             def process(v):
                 return {"data": v["data"] + k}
 
@@ -454,15 +457,16 @@ class TestMethodProduct(TestCaseWithSimulator):
             # if any of the target methods is not enabled, call does not succeed
             for i in range(2**targets - 1):
                 for k in range(targets):
-                    if i & (1 << k):
-                        yield from m.target[k].enable()
-                    else:
-                        yield from m.target[k].disable()
+                    method_en[k] = bool(i & (1 << k))
+
+                yield
                 self.assertIsNone((yield from m.method.call_try(data=0)))
 
             # otherwise, the call succeeds
             for k in range(targets):
-                yield from m.target[k].enable()
+                method_en[k] = True
+            yield
+
             data = random.randint(0, (1 << iosize) - 1)
             val = (yield from m.method.call(data=data))["data"]
             if add_combiner:
