@@ -80,7 +80,7 @@ class RetirementTest(TestCaseWithSimulator):
         retc = RetirementTestCircuit(self.gen_params)
 
         @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q))
-        def submit_process(_):
+        def submit_process():
             return self.submit_q.popleft()
 
         def free_reg_process():
@@ -102,12 +102,12 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertFalse(self.rf_free_q)
 
         @def_method_mock(lambda: retc.mock_rf_free, priority=1)
-        def rf_free_process(reg):
-            self.assertEqual(reg["reg_id"], self.rf_free_q.popleft())
+        def rf_free_process(reg_id):
+            self.assertEqual(reg_id, self.rf_free_q.popleft())
 
         @def_method_mock(lambda: retc.mock_lsu_commit, priority=1)
-        def lsu_commit_process(reg):
-            self.assertEqual(reg["rob_id"], self.lsu_commit_q.popleft())
+        def lsu_commit_process(rob_id):
+            self.assertEqual(rob_id, self.lsu_commit_q.popleft())
 
         with self.run_simulation(retc) as sim:
             sim.add_sync_process(submit_process)
