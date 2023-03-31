@@ -27,6 +27,11 @@ class DependencyKey(Generic[T, U], ABC):
 
     Dependency keys are used to access dependencies in the `DependencyManager`.
     Concrete instances of dependency keys should be frozen data classes.
+
+    Parameters
+    ----------
+    lock_on_get: bool, default: True
+        Specifies if no new dependencies should be added to key if it was already read by `get_dependency`.
     """
 
     @abstractmethod
@@ -49,6 +54,8 @@ class DependencyKey(Generic[T, U], ABC):
         classes.
         """
         raise NotImplementedError()
+
+    lock_on_get: bool = True
 
 
 class SimpleKey(Generic[T], DependencyKey[T, T]):
@@ -106,6 +113,7 @@ class DependencyManager:
 
     def __init__(self):
         self.dependencies = defaultdict[DependencyKey, list](list)
+        self.locked_dependencies: set[DependencyKey] = set()
 
     def add_dependency(self, key: DependencyKey[T, Any], dependency: T) -> None:
         """Adds a new dependency to a key.
@@ -113,6 +121,10 @@ class DependencyManager:
         Depending on the key type, a key can have a single dependency or
         multple dependencies added to it.
         """
+
+        if key in self.locked_dependencies:
+            raise KeyError(f"Trying to add dependency to {key} that was already read and is locked")
+
         self.dependencies[key].append(dependency)
 
     def get_dependency(self, key: DependencyKey[Any, U]) -> U:
@@ -122,6 +134,10 @@ class DependencyManager:
         """
         if key not in self.dependencies:
             raise KeyError(f"Dependency {key} not provided")
+
+        if key.lock_on_get:
+            self.locked_dependencies.add(key)
+
         return key.combine(self.dependencies[key])
 
     def dependency_exists(self, key: DependencyKey) -> bool:
