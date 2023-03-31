@@ -125,10 +125,19 @@ class ICache(Elaboratable):
         tag_hit = [tag_data.valid & (tag_data.tag == request_addr.tag) for tag_data in self.mem.tag_rd_data]
         tag_hit_any = reduce(operator.or_, tag_hit)
 
-        instr_out = Signal(self.params.instr_width)
+        mem_out = Signal(self.params.word_width)
         for i in range(self.params.num_of_ways):
             with m.If(tag_hit[i]):
-                m.d.comb += instr_out.eq(self.mem.data_rd_data[i])  # TODO(jurb): this won't work on rv64
+                m.d.comb += mem_out.eq(self.mem.data_rd_data[i])
+
+        instr_out = Signal(self.params.instr_width)
+        if self.params.word_width == 32:
+            m.d.comb += instr_out.eq(mem_out)
+        else:
+            with m.If(request_addr[2] == 0):
+                m.d.comb += instr_out.eq(mem_out[:32])  # Take lower 4 bytes
+            with m.Else():
+                m.d.comb += instr_out.eq(mem_out[32:])  # Take upper 4 bytes
 
         refill_error_d = Signal()
         m.d.sync += refill_error_d.eq(refill_error)

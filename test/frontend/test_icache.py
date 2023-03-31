@@ -4,6 +4,7 @@ import random
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
+from amaranth.utils import log2_int
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, Adapter
@@ -46,18 +47,20 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
 
 
 @parameterized_class(
-    ("name", "block_size"),
+    ("name", "isa", "block_size"),
     [
-        ("blk_size16", 16),
-        ("blk_size32", 32),
-        ("blk_size64", 64),
+        ("blk_size16_rv32i", "rv32i", 16),
+        ("blk_size32_rv32i", "rv32i", 32),
+        ("blk_size32_rv64i", "rv64i", 32),
+        ("blk_size64_rv32i", "rv32i", 64),
     ],
 )
 class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
+    isa: str
     block_size: int
 
     def setUp(self) -> None:
-        self.gp = test_gen_params("rv32i", icache_block_bytes=self.block_size)
+        self.gp = test_gen_params(self.isa, icache_block_bytes=self.block_size)
         self.cp = self.gp.icache_params
         self.test_module = SimpleWBCacheRefillerTestCircuit(self.gp)
 
@@ -67,17 +70,17 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
         self.mem = dict()
 
         self.requests = deque()
-        for i in range(10):
+        for _ in range(10):
             # Make the address aligned to the beginning of a cache line
-            addr = random.randrange(2**self.gp.isa.xlen) & ~((1 << self.cp.offset_bits) - 1)
+            addr = random.randrange(2**self.gp.isa.xlen) & ~(self.cp.block_size_bytes - 1)
             self.requests.append(addr)
 
             if random.random() < 0.1:
                 # Choose an address in this cache line to be erroneous
-                bad_addr = addr + random.randrange(1 << self.cp.offset_bits)
+                bad_addr = addr + random.randrange(self.cp.block_size_bytes)
 
                 # Make the address aligned to the machine word size
-                bad_addr = bad_addr & ~(0b11)
+                bad_addr = bad_addr & ~(self.cp.word_width_bytes - 1)
 
                 self.bad_addresses.add(bad_addr)
 
@@ -87,15 +90,15 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
         while True:
             yield from self.test_module.wb_ctrl.slave_wait()
 
-            # Wishbone is addressing words, so to get the real address we multiply it by 4
-            addr = (yield self.test_module.wb_ctrl.wb.adr) << 2
+            # Wishbone is addressing words, so we need to shit it a bit to get the real address.
+            addr = (yield self.test_module.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
 
             while random.random() < 0.5:
                 yield
 
             err = 1 if addr in self.bad_addresses else 0
 
-            data = random.randint(0, 2**32 - 1)
+            data = random.randrange(2**self.gp.isa.xlen)
             self.mem[addr] = data
 
             yield from self.test_module.wb_ctrl.slave_respond(data, err=err)
@@ -110,7 +113,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
             for i in range(self.cp.words_in_block):
                 ret = yield from self.test_module.accept_refill.call()
 
-                cur_addr = req_addr + i * 4
+                cur_addr = req_addr + i * self.cp.word_width_bytes
 
                 self.assertEqual(ret["addr"], cur_addr)
 
@@ -156,13 +159,15 @@ class ICacheTestCircuit(Elaboratable):
 
 
 @parameterized_class(
-    ("name", "block_size"),
+    ("name", "isa", "block_size"),
     [
-        ("blk_size16", 16),
-        ("blk_size64", 64),
+        ("blk_size16_rv32i", "rv32i", 16),
+        ("blk_size64_rv32i", "rv32i", 64),
+        ("blk_size32_rv64i", "rv64i", 32),
     ],
 )
 class TestICache(TestCaseWithSimulator):
+    isa: str
     block_size: int
 
     def setUp(self) -> None:
@@ -174,7 +179,7 @@ class TestICache(TestCaseWithSimulator):
         self.issued_requests = deque()
 
     def init_module(self, ways, sets) -> None:
-        self.gp = test_gen_params("rv32i", icache_ways=ways, icache_sets=sets, icache_block_bytes=self.block_size)
+        self.gp = test_gen_params(self.isa, icache_ways=ways, icache_sets=sets, icache_block_bytes=self.block_size)
         self.cp = self.gp.icache_params
         self.m = ICacheTestCircuit(self.gp)
 
@@ -197,9 +202,15 @@ class TestICache(TestCaseWithSimulator):
 
             addr = refill_addr + refill_word_cnt * self.cp.word_width_bytes
             data = self.load_or_gen_mem(addr)
+            if self.gp.isa.xlen == 64:
+                data = self.load_or_gen_mem(addr + 4) << 32 | data
+
             refill_word_cnt += 1
 
             err = addr in self.bad_addrs
+            if self.gp.isa.xlen == 64:
+                err = err or (addr + 4) in self.bad_addrs
+
             last = refill_word_cnt == self.cp.words_in_block or err
 
             if last:
@@ -216,7 +227,7 @@ class TestICache(TestCaseWithSimulator):
 
     def load_or_gen_mem(self, addr: int):
         if addr not in self.mem:
-            self.mem[addr] = random.randrange(2**self.gp.isa.xlen)
+            self.mem[addr] = random.randrange(2**self.gp.isa.ilen)
         return self.mem[addr]
 
     def send_req(self, addr: int):
@@ -262,8 +273,8 @@ class TestICache(TestCaseWithSimulator):
                 self.assertEqual(len(self.refill_requests), 0)
 
             # Now go beyond the first cache line
-            yield from self.call_cache(0x00010000 + self.cp.words_in_block * 4)
-            self.assertEqual(self.refill_requests.pop(), 0x00010000 + self.cp.words_in_block * 4)
+            yield from self.call_cache(0x00010000 + self.cp.block_size_bytes)
+            self.assertEqual(self.refill_requests.pop(), 0x00010000 + self.cp.block_size_bytes)
 
             # Trigger cache aliasing
             yield from self.call_cache(0x00020000)
@@ -466,7 +477,7 @@ class TestICache(TestCaseWithSimulator):
             yield from self.send_req(0x00000000 + self.cp.block_size_bytes)
             yield from self.send_req(0x00010000)
             yield from self.m.flush_cache.call()
-            self.mem[0x00010000] = random.randrange(2**self.gp.isa.xlen)
+            self.mem[0x00010000] = random.randrange(2**self.gp.isa.ilen)
 
             # And accept the results
             self.assert_resp((yield from self.m.accept_res.call()))
@@ -488,8 +499,8 @@ class TestICache(TestCaseWithSimulator):
 
         def cache_process():
             self.bad_addrs.add(0x00010000)  # Bad addr at the beggining of the line
-            self.bad_addrs.add(0x00020004)  # Bad addr in the middle of the line
-            self.bad_addrs.add(0x00030000 + self.cp.block_size_bytes - 4)  # Bad addr at the end of the line
+            self.bad_addrs.add(0x00020008)  # Bad addr in the middle of the line
+            self.bad_addrs.add(0x00030000 + self.cp.block_size_bytes - 8)  # Bad addr at the end of the line
 
             yield from self.call_cache(0x00010008, expect_error=True)
             self.expect_refill(0x00010000)
