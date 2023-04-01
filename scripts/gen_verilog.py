@@ -47,12 +47,11 @@ class Top(Elaboratable):
         return tm
 
 
-def gen_verilog():
-    from coreblocks.params.genparams import GenParams
-    from coreblocks.params.configurations import basic_configuration
+def gen_verilog(core_config):
     from coreblocks.utils.utils import flatten_signals
+    from coreblocks.params.configurations import gen_params_from_config
 
-    top = Top(GenParams("rv32i", basic_configuration))
+    top = Top(gen_params_from_config(core_config))
 
     with open("core.v", "w") as f:
         signals = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
@@ -64,6 +63,13 @@ def main():
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, parent)
 
+    from coreblocks.params.configurations import BasicCoreConfiguration, TinyCoreConfiguration
+
+    configurations_str = {
+        "basic": BasicCoreConfiguration,
+        "tiny": TinyCoreConfiguration,
+    }
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-v",
@@ -72,11 +78,23 @@ def main():
         help="Enables verbose output. Default: %(default)s",
     )
 
+    parser.add_argument(
+        "-c",
+        "--config",
+        action="store",
+        default="basic",
+        help="Select core configuration."
+        + f"Available configurations: {list(configurations_str.keys())}. Default: '%(default)s'",
+    )
+
     args = parser.parse_args()
 
     os.environ["AMARANTH_verbose"] = "true" if args.verbose else "false"
 
-    gen_verilog()
+    if args.config not in configurations_str:
+        raise KeyError(f"Unknown config '{args.config}'")
+
+    gen_verilog(configurations_str[args.config])
 
 
 if __name__ == "__main__":
