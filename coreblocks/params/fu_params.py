@@ -83,6 +83,8 @@ class ListKey(Generic[T], DependencyKey[T, list[T]]):
     and dependecies. Provides list of dependencies.
     """
 
+    empty_valid = True
+
     def combine(self, data: list[T]) -> list[T]:
         return data
 
