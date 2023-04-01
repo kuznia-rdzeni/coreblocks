@@ -140,8 +140,8 @@ class DependencyManager:
 
         return key.combine(self.dependencies[key])
 
-    def dependency_exists(self, key: DependencyKey) -> bool:
-        """Checks if dependency exists for a key."""
+    def key_exists(self, key: DependencyKey) -> bool:
+        """Checks if dependency key exists in manager."""
         return key in self.dependencies
 
 
