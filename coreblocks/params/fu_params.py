@@ -32,6 +32,9 @@ class DependencyKey(Generic[T, U], ABC):
     ----------
     lock_on_get: bool, default: True
         Specifies if no new dependencies should be added to key if it was already read by `get_dependency`.
+    empty_valid: bool, default : False
+        Specifies if getting key dependency without any added dependencies is valid. If set to `False`, that
+        action would cause raising `KeyError`.
     """
 
     @abstractmethod
@@ -56,6 +59,7 @@ class DependencyKey(Generic[T, U], ABC):
         raise NotImplementedError()
 
     lock_on_get: bool = True
+    empty_valid: bool = False
 
 
 class SimpleKey(Generic[T], DependencyKey[T, T]):
@@ -132,17 +136,13 @@ class DependencyManager:
 
         The way dependencies are interpreted is dependent on the key type.
         """
-        if key not in self.dependencies:
+        if not key.empty_valid and key not in self.dependencies:
             raise KeyError(f"Dependency {key} not provided")
 
         if key.lock_on_get:
             self.locked_dependencies.add(key)
 
         return key.combine(self.dependencies[key])
-
-    def key_exists(self, key: DependencyKey) -> bool:
-        """Checks if dependency key exists in manager."""
-        return key in self.dependencies
 
 
 class BlockComponentParams(ABC):
