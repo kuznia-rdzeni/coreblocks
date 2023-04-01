@@ -49,10 +49,10 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
 @parameterized_class(
     ("name", "isa", "block_size"),
     [
-        ("blk_size16_rv32i", "rv32i", 16),
-        ("blk_size32_rv32i", "rv32i", 32),
-        ("blk_size32_rv64i", "rv64i", 32),
-        ("blk_size64_rv32i", "rv32i", 64),
+        ("blk_size16B_rv32i", "rv32i", 4),
+        ("blk_size32B_rv32i", "rv32i", 5),
+        ("blk_size32B_rv64i", "rv64i", 5),
+        ("blk_size64B_rv32i", "rv32i", 6),
     ],
 )
 class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
@@ -60,7 +60,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
     block_size: int
 
     def setUp(self) -> None:
-        self.gp = test_gen_params(self.isa, icache_block_bytes=self.block_size)
+        self.gp = test_gen_params(self.isa, icache_block_size_bits=self.block_size)
         self.cp = self.gp.icache_params
         self.test_module = SimpleWBCacheRefillerTestCircuit(self.gp)
 
@@ -161,9 +161,9 @@ class ICacheTestCircuit(Elaboratable):
 @parameterized_class(
     ("name", "isa", "block_size"),
     [
-        ("blk_size16_rv32i", "rv32i", 16),
-        ("blk_size64_rv32i", "rv32i", 64),
-        ("blk_size32_rv64i", "rv64i", 32),
+        ("blk_size16B_rv32i", "rv32i", 4),
+        ("blk_size64B_rv32i", "rv32i", 6),
+        ("blk_size32B_rv64i", "rv64i", 5),
     ],
 )
 class TestICache(TestCaseWithSimulator):
@@ -179,7 +179,9 @@ class TestICache(TestCaseWithSimulator):
         self.issued_requests = deque()
 
     def init_module(self, ways, sets) -> None:
-        self.gp = test_gen_params(self.isa, icache_ways=ways, icache_sets=sets, icache_block_bytes=self.block_size)
+        self.gp = test_gen_params(
+            self.isa, icache_ways=ways, icache_sets_bits=log2_int(sets), icache_block_size_bits=self.block_size
+        )
         self.cp = self.gp.icache_params
         self.m = ICacheTestCircuit(self.gp)
 

@@ -39,9 +39,9 @@ class GenParams(DependentCache):
         phys_regs_bits: int = 6,
         rob_entries_bits: int = 7,
         start_pc: int = 0,
-        icache_ways=2,
-        icache_sets=128,
-        icache_block_bytes=32,
+        icache_ways: int = 2,
+        icache_sets_bits: int = 7,
+        icache_block_size_bits: int = 5,
     ):
         super().__init__()
 
@@ -57,8 +57,8 @@ class GenParams(DependentCache):
             addr_width=self.isa.xlen,
             word_width=self.isa.xlen,
             num_of_ways=icache_ways,
-            num_of_sets=icache_sets,
-            block_size_bytes=icache_block_bytes,
+            num_of_sets_bits=icache_sets_bits,
+            block_size_bits=icache_block_size_bits,
         )
 
         # Verification temporally disabled
