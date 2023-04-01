@@ -101,11 +101,11 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertFalse(self.submit_q)
             self.assertFalse(self.rf_free_q)
 
-        @def_method_mock(lambda: retc.mock_rf_free, priority=1)
+        @def_method_mock(lambda: retc.mock_rf_free, sched_prio=1)
         def rf_free_process(reg_id):
             self.assertEqual(reg_id, self.rf_free_q.popleft())
 
-        @def_method_mock(lambda: retc.mock_lsu_commit, priority=1)
+        @def_method_mock(lambda: retc.mock_lsu_commit, sched_prio=1)
         def lsu_commit_process(rob_id):
             self.assertEqual(rob_id, self.lsu_commit_q.popleft())
 

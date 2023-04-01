@@ -266,18 +266,18 @@ class TestbenchIO(Elaboratable):
         function: Callable[..., Optional[RecordIntDict]],
         *,
         enable: Optional[Callable[[], bool]] = None,
-        priority: int = 0,
+        extra_settle_count: int = 0,
     ) -> TestGen[None]:
         enable = enable or (lambda: True)
         yield from self.set_enable(enable())
 
         # One extra Settle() required to propagate enable signal.
-        for _ in range(priority + 1):
+        for _ in range(extra_settle_count + 1):
             yield Settle()
         while (arg := (yield from self.method_argument())) is None:
             yield
             yield from self.set_enable(enable())
-            for _ in range(priority + 1):
+            for _ in range(extra_settle_count + 1):
                 yield Settle()
 
         ret_out = method_def_helper(self, function, **arg)
@@ -289,11 +289,11 @@ class TestbenchIO(Elaboratable):
         function: Callable[..., Optional[RecordIntDict]],
         *,
         enable: Optional[Callable[[], bool]] = None,
-        priority: int = 0,
+        extra_settle_count: int = 0,
     ) -> TestGen[None]:
         yield Passive()
         while True:
-            yield from self.method_handle(function, enable=enable, priority=priority)
+            yield from self.method_handle(function, enable=enable, extra_settle_count=extra_settle_count)
 
     # Debug signals
 
@@ -302,7 +302,7 @@ class TestbenchIO(Elaboratable):
 
 
 def def_method_mock(
-    tb_getter: Callable[[], TestbenchIO], **kwargs
+    tb_getter: Callable[[], TestbenchIO], sched_prio: int = 0, **kwargs
 ) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
@@ -344,7 +344,7 @@ def def_method_mock(
             tb = tb_getter()
             f = func
             assert isinstance(tb, TestbenchIO)
-            yield from tb.method_handle_loop(f, **kwargs)
+            yield from tb.method_handle_loop(f, extra_settle_count=sched_prio, **kwargs)
 
         return mock
 
@@ -352,7 +352,7 @@ def def_method_mock(
 
 
 def def_class_method_mock(
-    tb_getter: Callable[[Any], TestbenchIO], **kwargs
+    tb_getter: Callable[[Any], TestbenchIO], sched_prio: int = 0, **kwargs
 ) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[Any], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
@@ -392,7 +392,7 @@ def def_class_method_mock(
         def mock(self) -> TestGen[None]:
             tb = tb_getter(self)
             assert isinstance(tb, TestbenchIO)
-            yield from tb.method_handle_loop(func.__get__(self), **kwargs)
+            yield from tb.method_handle_loop(func.__get__(self), extra_settle_count=sched_prio, **kwargs)
 
         return mock
 
