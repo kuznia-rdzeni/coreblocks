@@ -3,6 +3,7 @@ from amaranth import Elaboratable, Module
 from coreblocks.params.configurations import basic_configuration
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
+from coreblocks.utils import align_to_power_of_two
 
 from .common import TestCaseWithSimulator, TestbenchIO
 
@@ -48,8 +49,10 @@ class TestElaboratable(Elaboratable):
         wb_instr_bus = WishboneBus(self.gp.wb_params)
         wb_data_bus = WishboneBus(self.gp.wb_params)
 
+        # Align the size of the memory to the length of a cache line.
+        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gp.icache_params.block_size_bits)
         self.wb_mem_slave = WishboneMemorySlave(
-            wb_params=self.gp.wb_params, width=32, depth=len(self.instr_mem), init=self.instr_mem
+            wb_params=self.gp.wb_params, width=32, depth=instr_mem_depth, init=self.instr_mem
         )
         self.wb_mem_slave_data = WishboneMemorySlave(
             wb_params=self.gp.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem

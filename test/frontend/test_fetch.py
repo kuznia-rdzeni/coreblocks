@@ -3,7 +3,7 @@ from collections import deque
 import random
 
 from amaranth import Elaboratable, Module
-from amaranth.sim import Passive, Settle
+from amaranth.sim import Passive
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, FIFO, Adapter
@@ -69,17 +69,17 @@ class TestFetch(TestCaseWithSimulator):
 
                 # exclude branches and jumps
                 data = random.randrange(2**self.gp.isa.ilen) & ~0b1110000
-                
+
                 # randomize being a branch instruction
                 if is_branch:
                     data |= 0b1100000
-                    
+
                 output_q.append({"instr": data, "error": 0})
 
                 # Speculative fetch. Skip
                 if addr != next_pc:
                     continue
-                
+
                 next_pc = addr + self.gp.isa.ilen_bytes
                 if is_branch:
                     next_pc = random.randrange(2**self.gp.isa.ilen) & ~0b11
@@ -100,9 +100,8 @@ class TestFetch(TestCaseWithSimulator):
         @def_method_mock(lambda: self.m.accept_res_io, enable=lambda: len(output_q) > 0)
         def accept_res_mock(_):
             return output_q.popleft()
-        
-        return issue_req_mock, accept_res_mock, cache_process
 
+        return issue_req_mock, accept_res_mock, cache_process
 
     def fetch_out_check(self):
         for _ in range(self.iterations):

@@ -96,7 +96,7 @@ class ICache(Elaboratable):
         flush_start = Signal()
         flush_finish = Signal()
 
-        with m.FSM() as fsm:
+        with m.FSM(reset="LOOKUP") as fsm:
             with m.State("FLUSH"):
                 with m.If(flush_finish):
                     m.next = "LOOKUP"

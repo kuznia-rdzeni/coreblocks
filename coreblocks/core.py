@@ -41,7 +41,10 @@ class Core(Elaboratable):
         cache_layouts = self.gen_params.get(ICacheLayouts)
         self.cache_refiller = SimpleWBCacheRefiller(cache_layouts, self.gen_params.icache_params, self.wb_master_instr)
         self.cache = ICache(
-            cache_layouts, self.gen_params.icache_params, self.cache_refiller.start_refill, self.cache_refiller.accept_refill
+            cache_layouts,
+            self.gen_params.icache_params,
+            self.cache_refiller.start_refill,
+            self.cache_refiller.accept_refill,
         )
         self.fetch = Fetch(self.gen_params, self.cache.issue_req, self.cache.accept_res, self.fifo_fetch.write)
 

@@ -1,10 +1,8 @@
 from amaranth import *
 from coreblocks.transactions.core import def_method
 from coreblocks.utils.fifo import BasicFifo
-from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller
 from ..transactions import Method, Transaction
-from ..params import GenParams, FetchLayouts, ICacheLayouts
-from ..peripherals.wishbone import WishboneMaster
+from ..params import GenParams, FetchLayouts
 
 
 class Fetch(Elaboratable):
@@ -38,10 +36,12 @@ class Fetch(Elaboratable):
     def elaborate(self, platform) -> Module:
         m = Module()
 
-        m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(layout=[("addr", self.gp.isa.xlen)], depth=2)
+        m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(
+            layout=[("addr", self.gp.isa.xlen)], depth=2
+        )
 
         speculative_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
-        
+
         discard_next = Signal()
         stalled = Signal()
 
@@ -52,28 +52,26 @@ class Fetch(Elaboratable):
             m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
 
         with Transaction().body(m, request=(self.pc != self.halt_pc)):
-            pc = self.fetch_target_queue.read(m).addr   
+            pc = self.fetch_target_queue.read(m).addr
             res = self.cache_resp(m)
-
-            # TODO: find a better way to fail when there's a fetch error.
-            instr = Mux(res.error, 0, res.instr)
 
             # bits 4:7 currently are enough to uniquely distinguish jumps and branches,
             # but this could potentially change in the future since there's a reserved
             # (currently unused) bit pattern in the spec, see table 19.1 in RISC-V spec v2.2
-            is_branch = instr[4:7] == 0b110
+            is_branch = res.instr[4:7] == 0b110
 
             with m.If(discard_next):
                 m.d.sync += discard_next.eq(0)
-            with m.Else():
+
+            # TODO: find a better way to fail when there's a fetch error.
+            with m.Elif(res.error == 0):
                 with m.If(is_branch):
                     m.d.sync += stalled.eq(1)
                     m.d.sync += discard_next.eq(1)
 
                 m.d.sync += self.pc.eq(pc)
 
-                self.cont(m, data=instr, pc=pc)
-
+                self.cont(m, data=res.instr, pc=pc)
 
         @def_method(m, self.verify_branch, ready=stalled)
         def _(next_pc: Value):
