@@ -29,10 +29,11 @@ class Fetch(Elaboratable):
         self.cache_resp = cache_resp
         self.cont = cont
 
-        self.pc = Signal(gen_params.isa.xlen, reset=gen_params.start_pc)
-        #self.halt_pc = Signal(bus.wb_params.addr_width, reset=2**bus.wb_params.addr_width - 1)
-
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+
+        # Signals used for debugging purposes
+        self.halt_pc = Signal(self.gp.isa.xlen, reset=2**self.gp.isa.xlen - 1)
+        self.pc = Signal(self.gp.isa.xlen)
 
     def elaborate(self, platform) -> Module:
         m = Module()
@@ -50,7 +51,7 @@ class Fetch(Elaboratable):
 
             m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
 
-        with Transaction().body(m):
+        with Transaction().body(m, request=(self.pc != self.halt_pc)):
             pc = self.fetch_target_queue.read(m).addr   
             res = self.cache_resp(m)
 
@@ -68,6 +69,8 @@ class Fetch(Elaboratable):
                 with m.If(is_branch):
                     m.d.sync += stalled.eq(1)
                     m.d.sync += discard_next.eq(1)
+
+                m.d.sync += self.pc.eq(pc)
 
                 self.cont(m, data=instr, pc=pc)
 

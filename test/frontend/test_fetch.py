@@ -55,6 +55,8 @@ class TestFetch(TestCaseWithSimulator):
         def cache_process():
             yield Passive()
 
+            next_pc = self.gp.start_pc
+
             while True:
                 while len(input_q) == 0:
                     yield
@@ -67,14 +69,21 @@ class TestFetch(TestCaseWithSimulator):
 
                 # exclude branches and jumps
                 data = random.randrange(2**self.gp.isa.ilen) & ~0b1110000
-                next_pc = addr + self.gp.isa.ilen_bytes
-
+                
                 # randomize being a branch instruction
                 if is_branch:
                     data |= 0b1100000
+                    
+                output_q.append({"instr": data, "error": 0})
+
+                # Speculative fetch. Skip
+                if addr != next_pc:
+                    continue
+                
+                next_pc = addr + self.gp.isa.ilen_bytes
+                if is_branch:
                     next_pc = random.randrange(2**self.gp.isa.ilen) & ~0b11
 
-                print(f"adding to q addr={addr:x} data={data:x} branch={is_branch}")
                 self.instr_queue.append(
                     {
                         "data": data,
@@ -83,18 +92,14 @@ class TestFetch(TestCaseWithSimulator):
                         "next_pc": next_pc,
                     }
                 )
-                output_q.append({"instr": data, "error": 0})
 
-        @def_method_mock(lambda: self.m.issue_req_io, enable=lambda: len(input_q) < 2, settle=1)
+        @def_method_mock(lambda: self.m.issue_req_io, enable=lambda: len(input_q) < 2, priority=1)
         def issue_req_mock(arg):
-            print(f"requesting {arg['addr']:x}")
             input_q.append(arg["addr"])
 
-        @def_method_mock(lambda: self.m.accept_res_io, enable=lambda: len(output_q) > 0, settle=1)
+        @def_method_mock(lambda: self.m.accept_res_io, enable=lambda: len(output_q) > 0)
         def accept_res_mock(_):
-            v = output_q.popleft()
-            print(f"accepting error={v['error']:x} data={v['instr']:x}")
-            return v
+            return output_q.popleft()
         
         return issue_req_mock, accept_res_mock, cache_process
 
@@ -111,7 +116,6 @@ class TestFetch(TestCaseWithSimulator):
                 yield from self.m.verify_branch.call(next_pc=instr["next_pc"])
 
             v = yield from self.m.io_out.call()
-            print(f"check {instr['data']:x}")
             self.assertEqual(v["pc"], instr["pc"])
             self.assertEqual(v["data"], instr["data"])
 
