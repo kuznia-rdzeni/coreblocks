@@ -15,7 +15,6 @@ from ..common import (
     TestCaseWithSimulator,
     TestbenchIO,
     data_layout,
-    def_class_method_mock,
     def_method_mock,
 )
 
@@ -287,7 +286,6 @@ class MethodTransformerTestCircuit(Elaboratable):
                     self.target.adapter.iface, i_transform=(layout, imeth), o_transform=(layout, ometh)
                 )
             else:
-
                 trans = MethodTransformer(
                     self.target.adapter.iface,
                     i_transform=(layout, itransform),
@@ -310,7 +308,7 @@ class TestMethodTransformer(TestCaseWithSimulator):
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
             self.assertEqual(v["data"], (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1))
 
-    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    @def_method_mock(lambda self: self.m.target, settle=1)
     def target(self, data):
         return {"data": (data << 1) | (data >> (self.m.iosize - 1))}
 
@@ -383,7 +381,7 @@ class TestMethodFilter(TestCaseWithSimulator):
             else:
                 self.assertEqual(v["data"], 0)
 
-    @def_class_method_mock(lambda self: self.m.target, settle=1)
+    @def_method_mock(lambda self: self.m.target, settle=1)
     def target(self, data):
         return {"data": data + 1}
 
