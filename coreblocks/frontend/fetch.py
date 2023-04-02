@@ -18,6 +18,12 @@ class Fetch(Elaboratable):
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
+        cache_req : Method
+            Method that is used to issue a request to the instruction cache.
+            It has layout ICacheLayouts::issue_req.
+        cache_resp : Method
+            Method that is used to accept the response from the instruction cache.
+            It has layout ICacheLayouts::accept_resp.
         cont : Method
             Method which should be invoked to send fetched data to the next step.
             It has layout as described by `FetchLayout`.
