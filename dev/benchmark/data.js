@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1680538585858,
+  "lastUpdate": 1680542805797,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -3747,6 +3747,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9cd91072e67fa1470d37aefad842446f275837ba"
         },
         "date": 1680538584375,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 58.32,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 16774,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 546,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5419,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3b0b7f352c66b3fef1d82ddd37c18f2f0126cc99",
+          "message": "Make 'enable' parameter in the method mock a lambda (#265)",
+          "timestamp": "2023-04-03T19:19:36+02:00",
+          "tree_id": "58422764106c49c6970c026fd098f2cd649b453b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3b0b7f352c66b3fef1d82ddd37c18f2f0126cc99"
+        },
+        "date": 1680542804961,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
