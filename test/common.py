@@ -176,7 +176,11 @@ class TestCaseWithSimulator(unittest.TestCase):
             sim.run_until(clk_period * max_cycles)
             self.assertFalse(sim.advance(), "Simulation time limit exceeded")
 
-    def cycle(self, cycle_cnt=1):
+    def tick(self, cycle_cnt=1):
+        """
+        Yields for the given number of cycles.
+        """
+
         for _ in range(cycle_cnt):
             yield
 

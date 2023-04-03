@@ -191,15 +191,15 @@ class TestICache(TestCaseWithSimulator):
         refill_addr = 0
 
         @def_method_mock(lambda: self.m.start_refill)
-        def start_refill_mock(arg):
+        def start_refill_mock(addr):
             nonlocal refill_in_fly, refill_word_cnt, refill_addr
-            self.refill_requests.append(arg["addr"])
+            self.refill_requests.append(addr)
             refill_word_cnt = 0
             refill_in_fly = True
-            refill_addr = arg["addr"]
+            refill_addr = addr
 
         @def_method_mock(lambda: self.m.accept_refill, enable=lambda: refill_in_fly)
-        def accept_refill_mock(_):
+        def accept_refill_mock():
             nonlocal refill_in_fly, refill_word_cnt, refill_addr
 
             addr = refill_addr + refill_word_cnt * self.cp.word_width_bytes
@@ -335,7 +335,7 @@ class TestICache(TestCaseWithSimulator):
                 yield from self.call_cache(addr)
                 self.expect_refill(addr)
 
-            yield from self.cycle(5)
+            yield from self.tick(5)
 
             # Enable accept method
             yield from self.m.accept_res.enable()
@@ -361,7 +361,7 @@ class TestICache(TestCaseWithSimulator):
             yield from self.send_req(addr=0x00010004)
 
             # Wait a few cycles. There are two requests queued
-            yield from self.cycle(3)
+            yield from self.tick(3)
 
             yield from self.m.accept_res.enable()
             yield from self.expect_resp()
@@ -385,7 +385,7 @@ class TestICache(TestCaseWithSimulator):
             yield
             yield from self.m.accept_res.disable()
 
-            yield from self.cycle(3)
+            yield from self.tick(3)
 
             # Schedule two requests, the second one causing a cache miss
             yield from self.send_req(addr=0x00020004)
@@ -399,7 +399,7 @@ class TestICache(TestCaseWithSimulator):
             yield
             yield from self.m.accept_res.disable()
 
-            yield from self.cycle(3)
+            yield from self.tick(3)
 
             # Schedule two requests, both causing a cache miss
             yield from self.send_req(addr=0x00040000)
@@ -534,7 +534,7 @@ class TestICache(TestCaseWithSimulator):
             yield
             yield from self.m.accept_res.disable()
 
-            yield from self.cycle(3)
+            yield from self.tick(3)
 
             # Schedule two requests, the second one causing an error
             yield from self.send_req(addr=0x00021004)
@@ -548,7 +548,7 @@ class TestICache(TestCaseWithSimulator):
             yield
             yield from self.m.accept_res.disable()
 
-            yield from self.cycle(3)
+            yield from self.tick(3)
 
             # Schedule two requests, both causing an error
             yield from self.send_req(addr=0x00020000)
