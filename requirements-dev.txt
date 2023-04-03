@@ -14,4 +14,4 @@ Sphinx==5.1.1
 sphinx-rtd-theme==1.0.0
 sphinxcontrib-mermaid==0.7.1
 cocotb==1.7.2
-cocotbext-wishbone==0.2.2
+cocotb-bus==0.2.1
