@@ -3,10 +3,11 @@ from amaranth import Elaboratable, Module
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, FIFO
 
-from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
+from ..common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.frontend.decode import Decode
 from coreblocks.params import GenParams, FetchLayouts, DecodeLayouts, OpType, Opcode, Funct3, Funct7
+from coreblocks.params.configurations import TestCoreConfig
 
 
 class TestElaboratable(Elaboratable):
@@ -37,7 +38,7 @@ class TestElaboratable(Elaboratable):
 
 class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = test_gen_params("rv32i", start_pc=24)
+        self.gp = GenParams(TestCoreConfig(start_pc=24))
         self.test_module = TestElaboratable(self.gp)
 
     def decode_test_proc(self):

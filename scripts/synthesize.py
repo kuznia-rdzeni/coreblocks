@@ -65,9 +65,9 @@ class TestElaboratable(Elaboratable):
 def synthesize(platform: str):
     from coreblocks.params.genparams import GenParams
     from constants.ecp5_platforms import ECP5BG381Platform
-    from coreblocks.params.configurations import basic_configuration
+    from coreblocks.params.configurations import BasicCoreConfig
 
-    gp = GenParams("rv32i", basic_configuration)
+    gp = GenParams(BasicCoreConfig())
 
     if platform == "ecp5":
         ECP5BG381Platform().build(TestElaboratable(gen_params=gp, io_pins=6))

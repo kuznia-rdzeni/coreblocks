@@ -8,11 +8,13 @@ from inspect import isclass
 import random
 
 from coreblocks.params import GenParams, RSLayouts
+from coreblocks.params.configurations import TestCoreConfig
+from coreblocks.stages.rs_func_block import RSBlockComponent
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
 
-from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO, test_gen_params
+from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO
 
 
 class WakeupTestCircuit(Elaboratable):
@@ -42,7 +44,7 @@ class WakeupTestCircuit(Elaboratable):
 
 class TestWakeupSelect(TestCaseWithSimulator):
     def setUp(self):
-        self.gen = test_gen_params("rv32i", rs_entries=16)
+        self.gen = GenParams(TestCoreConfig(func_units_config=[RSBlockComponent([], rs_entries=4) for _ in range(16)]))
         self.m = WakeupTestCircuit(self.gen)
         self.cycles = 50
         self.taken = deque()

@@ -5,10 +5,11 @@ from amaranth.sim import Settle
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
-from ..common import TestCaseWithSimulator, TestbenchIO, get_outputs, test_gen_params
+from ..common import TestCaseWithSimulator, TestbenchIO, get_outputs
 
 from coreblocks.structs_common.rs import RS
 from coreblocks.params import *
+from coreblocks.params.configurations import TestCoreConfig
 
 
 def create_check_list(gp: GenParams, insert_list: list[dict]) -> list[dict]:
@@ -56,7 +57,7 @@ class TestElaboratable(Elaboratable):
 
 class TestRSMethodInsert(TestCaseWithSimulator):
     def test_insert(self):
-        self.gp = test_gen_params("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
+        self.gp = GenParams(TestCoreConfig())
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -100,7 +101,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
 
 class TestRSMethodSelect(TestCaseWithSimulator):
     def test_select(self):
-        self.gp = test_gen_params("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
+        self.gp = GenParams(TestCoreConfig())
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -163,7 +164,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
 
 class TestRSMethodUpdate(TestCaseWithSimulator):
     def test_update(self):
-        self.gp = test_gen_params("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
+        self.gp = GenParams(TestCoreConfig())
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -253,7 +254,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
 class TestRSMethodTake(TestCaseWithSimulator):
     def test_take(self):
-        self.gp = test_gen_params("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
+        self.gp = GenParams(TestCoreConfig())
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -351,7 +352,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
 
 class TestRSMethodGetReadyList(TestCaseWithSimulator):
     def test_get_ready_list(self):
-        self.gp = test_gen_params("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
+        self.gp = GenParams(TestCoreConfig())
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -404,7 +405,7 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
 
 class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
     def test_two_get_ready_lists(self):
-        self.gp = test_gen_params("rv32i", phys_regs_bits=7, rob_entries_bits=7, rs_entries=4)
+        self.gp = GenParams(TestCoreConfig())
         self.m = TestElaboratable(self.gp, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]])
         self.insert_list = [
             {

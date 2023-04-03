@@ -3,9 +3,10 @@ from typing import Dict
 
 from coreblocks.params import *
 from coreblocks.fu.mul_unit import MulFn, MulComponent, MulType
+from coreblocks.params.configurations import TestCoreConfig
 from coreblocks.params.fu_params import FunctionalComponentParams
 
-from test.common import signed_to_int, int_to_signed, test_gen_params
+from test.common import signed_to_int, int_to_signed
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
@@ -66,7 +67,7 @@ class MultiplierUnitTest(GenericFunctionalTestUnit):
             ops,
             self.mul_unit,
             compute_result,
-            gen=test_gen_params("rv32im"),
+            gen=GenParams(TestCoreConfig(isa_str="rv32im")),
             number_of_tests=600,
             seed=32323,
             method_name=method_name,

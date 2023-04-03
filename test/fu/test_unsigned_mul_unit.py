@@ -14,9 +14,10 @@ from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
-from test.common import TestCaseWithSimulator, TestbenchIO, test_gen_params
+from test.common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.params import GenParams
+from coreblocks.params.configurations import TestCoreConfig
 
 
 class UnsignedMultiplicationTestCircuit(Elaboratable):
@@ -59,7 +60,7 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
     gen: GenParams
 
     def setUp(self):
-        self.gen = test_gen_params("rv32im")
+        self.gen = GenParams(TestCoreConfig(isa_str="rv32im"))
         self.m = UnsignedMultiplicationTestCircuit(self.gen, self.mul_unit)
 
         random.seed(1050)

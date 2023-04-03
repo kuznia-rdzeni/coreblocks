@@ -4,10 +4,11 @@ from amaranth.sim import Passive
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
-from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
+from ..common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.params import GenParams
+from coreblocks.params.configurations import TestCoreConfig
 
 from queue import Queue
 from random import Random
@@ -89,7 +90,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
         self.test_steps = 2000
-        gp = test_gen_params("rv32i", phys_regs_bits=5, rob_entries_bits=6)  # smaller size means better coverage
+        gp = GenParams(TestCoreConfig(phys_regs_bits=5, rob_entries_bits=6))  # smaller size means better coverage
         m = TestElaboratable(gp)
         self.m = m
 
@@ -141,7 +142,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
 
-        gp = test_gen_params("rv32i")
+        gp = GenParams(TestCoreConfig())
         self.test_steps = 2**gp.rob_entries_bits
         m = TestElaboratable(gp)
         self.m = m

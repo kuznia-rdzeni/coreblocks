@@ -16,6 +16,7 @@ class CoreConfiguration:
     """
     Core configuration parameters.
     Override parameters by using keyword args in constructor or creating new subclass.
+    NOTE: @dataclass decorator and type annotations are also needed in child classes
 
     Parameters
     ----------
@@ -35,30 +36,37 @@ class CoreConfiguration:
     isa_str: str = "rv32i"
     func_units_config: list[BlockComponentParams] = field(default_factory=lambda: basic_configuration)
 
-    phys_regs_bits: int = 6
+    phys_regs_bits: int = field(default=6)
     rob_entries_bits: int = 7
     start_pc: int = 0
 
 
+@dataclass(kw_only=True)
 class BasicCoreConfig(CoreConfiguration):
     """Default core configuration."""
 
     pass
 
 
+@dataclass(kw_only=True)
 class TinyCoreConfig(CoreConfiguration):
     """Minmal core configuration."""
 
-    func_units_config = [
-        RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=2),
-        LSUBlockComponent(),
-    ]
-    rob_entries_bits = 6
+    func_units_config: list[BlockComponentParams] = field(
+        default_factory=lambda: [
+            RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=2),
+            LSUBlockComponent(),
+        ]
+    )
+    rob_entries_bits: int = 6
 
 
+@dataclass(kw_only=True)
 class TestCoreConfig(CoreConfiguration):
     """Core configuration used in internal testbenches"""
 
-    phys_regs_bits = 7
-    rob_entries_bits = 7
-    func_units_config = [RSBlockComponent([], rs_entries=4) for _ in range(2)]
+    phys_regs_bits: int = 7
+    rob_entries_bits: int = 7
+    func_units_config: list[BlockComponentParams] = field(
+        default_factory=lambda: [RSBlockComponent([], rs_entries=4) for _ in range(2)]
+    )
