@@ -669,9 +669,7 @@ class ManyToOneConnectTrans(Elaboratable):
         m = Module()
 
         for i in range(self.count):
-            setattr(
-                m.submodules, f"ManyToOneConnectTrans_input_{i}", ConnectTrans(self.m_put_result, self.get_results[i])
-            )
+            m.submodules[f"ManyToOneConnectTrans_input_{i}"] = ConnectTrans(self.m_put_result, self.get_results[i])
 
         return m
 

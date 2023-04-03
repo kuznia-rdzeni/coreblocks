@@ -38,12 +38,8 @@ def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
 
 
 @dataclass(frozen=True)
-class CSRListKey(ListKey["CSRRegister | None"]):
-    """
-    DependencyManager key collecting CSR registers globally as a list.
-
-    `None` entry states that entries are already processed by the `CSRUnit`, and no new registers should be added.
-    """
+class CSRListKey(ListKey["CSRRegister"]):
+    """DependencyManager key collecting CSR registers globally as a list."""
 
     pass
 
@@ -117,8 +113,6 @@ class CSRRegister(Elaboratable):
 
         # append to global CSR list
         dm = gen_params.get(DependencyManager)
-        if dm.dependency_exists(CSRListKey()) and not isinstance(dm.get_dependency(CSRListKey())[-1], CSRRegister):
-            raise RuntimeError("CSRRegisters have to be declared before CSRUnit elaboration.")
         dm.add_dependency(CSRListKey(), self)
 
     def elaborate(self, platform):
@@ -216,14 +210,11 @@ class CSRUnit(Elaboratable):
 
     def register(self):
         # Registers `CSRRegister`s provided by `CSRListKey` depenecy.
-        if self.dependecy_manager.dependency_exists(CSRListKey()):
-            for csr in self.dependecy_manager.get_dependency(CSRListKey()):
-                if csr is not None:
-                    if csr.csr_number in self.regfile:
-                        raise RuntimeError(f"CSR number {csr.csr_number} already registered")
-                    self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
-        # signal that no other registers should be added to dependency
-        self.dependecy_manager.add_dependency(CSRListKey(), None)
+        for csr in self.dependecy_manager.get_dependency(CSRListKey()):
+            if csr is not None:
+                if csr.csr_number in self.regfile:
+                    raise RuntimeError(f"CSR number {csr.csr_number} already registered")
+                self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
 
     def elaborate(self, platform):
         self.register()

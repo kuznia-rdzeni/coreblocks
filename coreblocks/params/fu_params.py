@@ -27,6 +27,14 @@ class DependencyKey(Generic[T, U], ABC):
 
     Dependency keys are used to access dependencies in the `DependencyManager`.
     Concrete instances of dependency keys should be frozen data classes.
+
+    Parameters
+    ----------
+    lock_on_get: bool, default: True
+        Specifies if no new dependencies should be added to key if it was already read by `get_dependency`.
+    empty_valid: bool, default : False
+        Specifies if getting key dependency without any added dependencies is valid. If set to `False`, that
+        action would cause raising `KeyError`.
     """
 
     @abstractmethod
@@ -50,6 +58,9 @@ class DependencyKey(Generic[T, U], ABC):
         """
         raise NotImplementedError()
 
+    lock_on_get: bool = True
+    empty_valid: bool = False
+
 
 class SimpleKey(Generic[T], DependencyKey[T, T]):
     """Base class for simple dependency keys.
@@ -71,6 +82,8 @@ class ListKey(Generic[T], DependencyKey[T, list[T]]):
     List keys are used when there is an one-to-many relation between keys
     and dependecies. Provides list of dependencies.
     """
+
+    empty_valid = True
 
     def combine(self, data: list[T]) -> list[T]:
         return data
@@ -106,6 +119,7 @@ class DependencyManager:
 
     def __init__(self):
         self.dependencies = defaultdict[DependencyKey, list](list)
+        self.locked_dependencies: set[DependencyKey] = set()
 
     def add_dependency(self, key: DependencyKey[T, Any], dependency: T) -> None:
         """Adds a new dependency to a key.
@@ -113,6 +127,10 @@ class DependencyManager:
         Depending on the key type, a key can have a single dependency or
         multple dependencies added to it.
         """
+
+        if key in self.locked_dependencies:
+            raise KeyError(f"Trying to add dependency to {key} that was already read and is locked")
+
         self.dependencies[key].append(dependency)
 
     def get_dependency(self, key: DependencyKey[Any, U]) -> U:
@@ -120,13 +138,13 @@ class DependencyManager:
 
         The way dependencies are interpreted is dependent on the key type.
         """
-        if key not in self.dependencies:
+        if not key.empty_valid and key not in self.dependencies:
             raise KeyError(f"Dependency {key} not provided")
-        return key.combine(self.dependencies[key])
 
-    def dependency_exists(self, key: DependencyKey) -> bool:
-        """Checks if dependency exists for a key."""
-        return key in self.dependencies
+        if key.lock_on_get:
+            self.locked_dependencies.add(key)
+
+        return key.combine(self.dependencies[key])
 
 
 class BlockComponentParams(ABC):
