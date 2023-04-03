@@ -37,8 +37,8 @@ class CoreConfiguration:
     func_units_config: list[BlockComponentParams] = field(default_factory=lambda: basic_configuration)
 
     phys_regs_bits: int = field(default=6)
-    rob_entries_bits: int = 7
-    start_pc: int = 0
+    rob_entries_bits: int = field(default=7)
+    start_pc: int = field(default=0)
 
 
 @dataclass(kw_only=True)
@@ -58,15 +58,15 @@ class TinyCoreConfig(CoreConfiguration):
             LSUBlockComponent(),
         ]
     )
-    rob_entries_bits: int = 6
+    rob_entries_bits: int = field(default=6)
 
 
 @dataclass(kw_only=True)
 class TestCoreConfig(CoreConfiguration):
     """Core configuration used in internal testbenches"""
 
-    phys_regs_bits: int = 7
-    rob_entries_bits: int = 7
+    phys_regs_bits: int = field(default=7)
+    rob_entries_bits: int = field(default=7)
     func_units_config: list[BlockComponentParams] = field(
         default_factory=lambda: [RSBlockComponent([], rs_entries=4) for _ in range(2)]
     )
