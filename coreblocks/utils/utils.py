@@ -7,7 +7,15 @@ from amaranth.lib import data
 from ._typing import ValueLike, LayoutList, SignalBundle
 
 
-__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch", "flatten_signals", "align_to_power_of_two"]
+__all__ = [
+    "align_to_power_of_two",
+    "AssignType",
+    "assign",
+    "OneHotSwitchDynamic",
+    "OneHotSwitch",
+    "flatten_signals",
+    "rotate_left",
+]
 
 
 @contextmanager
@@ -95,6 +103,10 @@ def OneHotSwitchDynamic(m: Module, test: Value, *, default: bool = False) -> Ite
             with OneHotCase():
                 yield None
     return
+
+
+def rotate_left(sig: Value, shift: int = 1) -> Value:
+    return (sig << shift) | sig[-shift:]
 
 
 class AssignType(Enum):

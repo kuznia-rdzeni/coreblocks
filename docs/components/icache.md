@@ -15,10 +15,10 @@ The instruction cache operates under the following assumptions:
 5. Information regarding fetch errors is not cached. This means that if an error occurs during line refill, the subsequent access to that line will trigger another refill, which will most likely result in another error.
 
 ## Address mapping example
-For `addr_width=32`, `num_of_sets=128`, `block_size_bytes=32`.
+For 32 bit address line, 128 sets and the cache line size equal to 32 bytes.
 ```
  31          16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00
 |--------------|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-+--------------------+--------------------------+--------------+
-| Tag                | Index                    | Offset       |
++--------------------------+--------------------+--------------+
+| Tag                      | Index              | Offset       |
 ```
