@@ -116,7 +116,7 @@ class TestRSSelect(TestCaseWithSimulator):
             yield Passive()
             while True:
                 yield from io.enable()
-                yield from io.method_handle(mock, settle=1)
+                yield from io.method_handle(mock)
                 yield from io.disable()
                 yield from self.random_wait(random_wait)
 

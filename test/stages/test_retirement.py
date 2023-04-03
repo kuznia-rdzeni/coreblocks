@@ -58,12 +58,12 @@ class RetirementTest(TestCaseWithSimulator):
         random.seed(8)
         self.cycles = 256
 
-        rat_state = [0 for _ in range(self.gen_params.isa.reg_cnt)]
+        rat_state = [0] * self.gen_params.isa.reg_cnt
 
         for _ in range(self.cycles):
-            rl = random.randint(0, self.gen_params.isa.reg_cnt - 1)
-            rp = random.randint(1, 2**self.gen_params.phys_regs_bits - 1) if rl != 0 else 0
-            rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits - 1)
+            rl = random.randrange(self.gen_params.isa.reg_cnt)
+            rp = random.randrange(1, 2**self.gen_params.phys_regs_bits) if rl != 0 else 0
+            rob_id = random.randrange(2**self.gen_params.rob_entries_bits)
             if rl != 0:
                 if rat_state[rl] != 0:  # phys reg 0 shouldn't be marked as free
                     self.rf_exp_q.append(rat_state[rl])
@@ -79,7 +79,7 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
-        @def_method_mock(lambda: retc.mock_rob_retire, settle=1, condition=lambda: bool(self.submit_q))
+        @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q))
         def submit_process():
             return self.submit_q.popleft()
 
@@ -101,11 +101,11 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertFalse(self.submit_q)
             self.assertFalse(self.rf_free_q)
 
-        @def_method_mock(lambda: retc.mock_rf_free, condition=lambda: bool(self.rf_free_q))
+        @def_method_mock(lambda: retc.mock_rf_free, sched_prio=1)
         def rf_free_process(reg_id):
             self.assertEqual(reg_id, self.rf_free_q.popleft())
 
-        @def_method_mock(lambda: retc.mock_lsu_commit, condition=lambda: bool(self.lsu_commit_q))
+        @def_method_mock(lambda: retc.mock_lsu_commit, sched_prio=1)
         def lsu_commit_process(rob_id):
             self.assertEqual(rob_id, self.lsu_commit_q.popleft())
 
