@@ -41,6 +41,7 @@ def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
 class CSRListKey(ListKey["CSRRegister"]):
     """DependencyManager key collecting CSR registers globally as a list."""
 
+    # This key is defined here, because it is only used internally by CSRRegister and CSRUnit
     pass
 
 

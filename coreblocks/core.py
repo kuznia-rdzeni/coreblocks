@@ -10,6 +10,7 @@ from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.structs_common.rf import RegisterFile
+from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
@@ -108,5 +109,7 @@ class Core(Elaboratable):
             rf_free=rf.free,
             lsu_commit=self.func_blocks_unifier.get_extra_method(InstructionCommitKey()),
         )
+
+        m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)
 
         return m

@@ -5,11 +5,15 @@ from typing import Optional
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import BitEnum
 from coreblocks.structs_common.csr import CSRRegister
-from coreblocks.transactions.core import Method, def_method
+from coreblocks.transactions.core import Method, Transaction, def_method
 
 
 class CSRAddress(BitEnum, width=12):
+    CYCLE = 0xC00
+    TIME = 0xC01
     INSTRET = 0xC02
+    CYCLEH = 0xC80
+    TIMEH = 0xC81
     INSTRETH = 0xC82
 
 
@@ -60,5 +64,24 @@ class DoubleCounterCSR(Elaboratable):
             if self.register_high is not None:
                 with m.If(register_read == (1 << self.gen_params.isa.xlen) - 1):
                     self.register_high.write(m, data=self.register_high.read(m).data + 1)
+
+        return m
+
+
+class GenericCSRRegisters(Elaboratable):
+    def __init__(self, gp: GenParams):
+        self.csr_cycle = DoubleCounterCSR(gp, CSRAddress.CYCLE, CSRAddress.CYCLEH)
+        # TODO: CYCLE should be alias to TIME
+        self.csr_time = DoubleCounterCSR(gp, CSRAddress.TIME, CSRAddress.TIMEH)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.csr_cycle = self.csr_cycle
+        m.submodules.csr_time = self.csr_time
+
+        with Transaction().body(m):
+            self.csr_cycle.increment(m)
+            self.csr_time.increment(m)
 
         return m
