@@ -20,10 +20,10 @@ class Fetch(Elaboratable):
             fetch unit.
         cache_req : Method
             Method that is used to issue a request to the instruction cache.
-            It has layout ICacheLayouts::issue_req.
+            It has layout ICacheLayouts.issue_req.
         cache_resp : Method
             Method that is used to accept the response from the instruction cache.
-            It has layout ICacheLayouts::accept_resp.
+            It has layout ICacheLayouts.accept_resp.
         cont : Method
             Method which should be invoked to send fetched data to the next step.
             It has layout as described by `FetchLayout`.
@@ -35,8 +35,7 @@ class Fetch(Elaboratable):
 
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
 
-        # Signals used for debugging purposes
-        self.halt_pc = Signal(self.gp.isa.xlen, reset=2**self.gp.isa.xlen - 1)
+        # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
 
     def elaborate(self, platform) -> Module:
@@ -57,7 +56,7 @@ class Fetch(Elaboratable):
 
             m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
 
-        with Transaction().body(m, request=(self.pc != self.halt_pc)):
+        with Transaction().body(m):
             pc = self.fetch_target_queue.read(m).addr
             res = self.cache_resp(m)
 

@@ -27,6 +27,7 @@ from riscvmodel.insn import (
     InstructionSRLI,
     InstructionSRAI,
     InstructionLUI,
+    InstructionJAL,
 )
 from riscvmodel.model import Model
 from riscvmodel.isa import InstructionRType, get_insns
@@ -181,13 +182,9 @@ class TestCoreSimple(TestCoreBase):
 
 class TestCoreRandomized(TestCoreBase):
     def randomized_input(self):
-        halt_pc = len(self.instr_mem) * self.gp.isa.ilen_bytes
-
-        # set PC to halt at specific instruction (numbered from 0)
-        yield self.m.core.fetch.halt_pc.eq(halt_pc)
-
+        infloop_addr = (len(self.instr_mem) - 1) * 4
         # wait for PC to go past all instruction
-        while (yield self.m.core.fetch.pc) < halt_pc:
+        while (yield self.m.core.fetch.pc) != infloop_addr:
             yield
 
         # finish calculations
@@ -230,7 +227,10 @@ class TestCoreRandomized(TestCoreBase):
         self.software_core.execute(init_instr_list)
         self.software_core.execute(instr_list)
 
-        self.instr_mem = list(map(lambda x: x.encode(), init_instr_list + instr_list))
+        # We add JAL instruction at the end to effictively create a infinite loop at the end of the program.
+        all_instr = init_instr_list + instr_list + [InstructionJAL(rd=0, imm=0)]
+
+        self.instr_mem = list(map(lambda x: x.encode(), all_instr))
 
         m = TestElaboratable(self.gp, instr_mem=self.instr_mem)
         self.m = m

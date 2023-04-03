@@ -93,12 +93,12 @@ class TestFetch(TestCaseWithSimulator):
                     }
                 )
 
-        @def_method_mock(lambda: self.m.issue_req_io, enable=lambda: len(input_q) < 2, priority=1)
-        def issue_req_mock(arg):
-            input_q.append(arg["addr"])
+        @def_method_mock(lambda: self.m.issue_req_io, enable=lambda: len(input_q) < 2, sched_prio=1)
+        def issue_req_mock(addr):
+            input_q.append(addr)
 
         @def_method_mock(lambda: self.m.accept_res_io, enable=lambda: len(output_q) > 0)
-        def accept_res_mock(_):
+        def accept_res_mock():
             return output_q.popleft()
 
         return issue_req_mock, accept_res_mock, cache_process
