@@ -56,11 +56,9 @@ class TinyCoreConfig(CoreConfiguration):
     rob_entries_bits = 6
 
 
-def gen_params_from_config(cfg: CoreConfiguration) -> GenParams:
-    return GenParams(
-        cfg.isa_str,
-        cfg.func_units_config,
-        phys_regs_bits=cfg.phys_reg_bits,
-        rob_entries_bits=cfg.rob_entries_bits,
-        start_pc=cfg.start_pc,
-    )
+class TestCoreConfig(CoreConfiguration):
+    """Core configuration used in internal testbenches"""
+
+    phys_regs_bits = 7
+    rob_entries_bits = 7
+    func_units_config = [RSBlockComponent([], rs_entries=4) for _ in range(2)]

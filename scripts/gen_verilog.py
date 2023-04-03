@@ -48,10 +48,10 @@ class Top(Elaboratable):
 
 
 def gen_verilog(core_config):
+    from coreblocks.params import GenParams
     from coreblocks.utils.utils import flatten_signals
-    from coreblocks.params.configurations import gen_params_from_config
 
-    top = Top(gen_params_from_config(core_config))
+    top = Top(GenParams(core_config))
 
     with open("core.v", "w") as f:
         signals = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
@@ -63,11 +63,11 @@ def main():
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, parent)
 
-    from coreblocks.params.configurations import BasicCoreConfiguration, TinyCoreConfiguration
+    from coreblocks.params.configurations import BasicCoreConfig, TinyCoreConfig
 
     configurations_str = {
-        "basic": BasicCoreConfiguration,
-        "tiny": TinyCoreConfiguration,
+        "basic": BasicCoreConfig(),
+        "tiny": TinyCoreConfig(),
     }
 
     parser = argparse.ArgumentParser()
