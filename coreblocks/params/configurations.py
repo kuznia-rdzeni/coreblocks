@@ -1,4 +1,4 @@
-from coreblocks.params.genparams import GenParams
+from dataclasses import dataclass, field
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.jumpbranch import JumpComponent
@@ -11,20 +11,44 @@ basic_configuration: list[BlockComponentParams] = [
 ]
 
 
+@dataclass(kw_only=True)
 class CoreConfiguration:
-    isa_str: str = "rv32i"
-    func_units_config: list[BlockComponentParams] = basic_configuration
+    """
+    Core configuration parameters.
+    Override parameters by using keyword args in constructor or creating new subclass.
 
-    phys_reg_bits: int = 6
+    Parameters
+    ----------
+    isa_str: str
+        RISCV ISA string. Examples: "rv32i", "rv32izicsr". Used for instruction decoding.
+    func_units_config: list[BlockComponentParams]
+        Configuration of Functional Units and Reservation Stations.
+        Example: [ RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
+    phys_regs_bits: int
+        Size of the Physical Register File is 2**phys_regs_bits.
+    rob_entries_bits: int
+        Size of the Reorder Buffer is 2**rob_entries_bits.
+    start_pc: int
+        Initial Program Counter value.
+    """
+
+    isa_str: str = "rv32i"
+    func_units_config: list[BlockComponentParams] = field(default_factory=lambda: basic_configuration)
+
+    phys_regs_bits: int = 6
     rob_entries_bits: int = 7
     start_pc: int = 0
 
 
-class BasicCoreConfiguration(CoreConfiguration):
+class BasicCoreConfig(CoreConfiguration):
+    """Default core configuration."""
+
     pass
 
 
-class TinyCoreConfiguration(CoreConfiguration):
+class TinyCoreConfig(CoreConfiguration):
+    """Minmal core configuration."""
+
     func_units_config = [
         RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=2),
         LSUBlockComponent(),
