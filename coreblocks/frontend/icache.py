@@ -7,7 +7,7 @@ from amaranth.utils import log2_int
 from coreblocks.transactions.core import def_method, Priority
 from coreblocks.transactions import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
-from coreblocks.utils import assign
+from coreblocks.utils import assign, OneHotSwitchDynamic, rotate_left
 from coreblocks.transactions.lib import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 
@@ -45,13 +45,15 @@ class ICache(Elaboratable):
         """
         Parameters
         ----------
-        gen_params : GenParams
-            Instance of GenParams with parameters which should be used to generate
+        layouts : ICacheLayouts
+            Instance of ICacheLayouts used to create cache methods.
+        params : ICacheParameters
+            Instance of ICacheParameters with parameters which should be used to generate
             the cache.
         refiller_start : Method
-            A method with input layout ICacheLayouts::start_refill
+            A method with input layout ICacheLayouts.start_refill
         refiller_accept : Method
-            A method with output layout ICacheLayouts::accept_refill
+            A method with output layout ICacheLayouts.accept_refill
         """
         self.layouts = layouts
         self.params = params
@@ -96,7 +98,7 @@ class ICache(Elaboratable):
         flush_start = Signal()
         flush_finish = Signal()
 
-        with m.FSM() as fsm:
+        with m.FSM(reset="LOOKUP") as fsm:
             with m.State("FLUSH"):
                 with m.If(flush_finish):
                     m.next = "LOOKUP"
@@ -116,7 +118,7 @@ class ICache(Elaboratable):
         # Replacement policy
         way_selector = Signal(self.params.num_of_ways, reset=1)
         with m.If(refill_finish):
-            m.d.sync += way_selector.eq((way_selector << 1) | way_selector[-1])
+            m.d.sync += way_selector.eq(rotate_left(way_selector))
 
         # Fast path - read requests
         request_valid = self.req_fifo.read.ready
@@ -126,9 +128,8 @@ class ICache(Elaboratable):
         tag_hit_any = reduce(operator.or_, tag_hit)
 
         mem_out = Signal(self.params.word_width)
-        for i in range(self.params.num_of_ways):
-            with m.If(tag_hit[i]):
-                m.d.comb += mem_out.eq(self.mem.data_rd_data[i])
+        for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
+            m.d.comb += mem_out.eq(self.mem.data_rd_data[i])
 
         instr_out = Signal(self.params.instr_width)
         if self.params.word_width == 32:
@@ -139,12 +140,12 @@ class ICache(Elaboratable):
             with m.Else():
                 m.d.comb += instr_out.eq(mem_out[32:])  # Take upper 4 bytes
 
-        refill_error_d = Signal()
-        m.d.sync += refill_error_d.eq(refill_error)
-        m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_d)
+        refill_error_saved = Signal()
+        m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_saved)
 
-        with Transaction().body(m, request=request_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_d)):
-            self.res_fwd.write(m, instr=instr_out, error=refill_error_d)
+        with Transaction().body(m, request=request_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_saved)):
+            self.res_fwd.write(m, instr=instr_out, error=refill_error_saved)
+            m.d.sync += refill_error_saved.eq(0)
 
         @def_method(m, self.accept_res)
         def _():
@@ -200,6 +201,7 @@ class ICache(Elaboratable):
             m.d.comb += self.mem.data_wr_en.eq(1)
             m.d.comb += refill_finish.eq(ret.last)
             m.d.comb += refill_error.eq(ret.error)
+            m.d.sync += refill_error_saved.eq(ret.error)
 
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += [
@@ -272,8 +274,7 @@ class ICacheMemory(Elaboratable):
                 tag_mem_wp.en.eq(self.tag_wr_en & way_wr),
             ]
 
-            words_in_line = self.params.block_size_bytes // self.params.word_width_bytes
-            data_mem = Memory(width=self.params.word_width, depth=self.params.num_of_sets * words_in_line)
+            data_mem = Memory(width=self.params.word_width, depth=self.params.num_of_sets * self.params.words_in_block)
             data_mem_rp = data_mem.read_port()
             data_mem_wp = data_mem.write_port()
             m.submodules[f"data_mem_{i}_rp"] = data_mem_rp
@@ -307,11 +308,9 @@ class SimpleWBCacheRefiller(Elaboratable):
     def elaborate(self, platform) -> Module:
         m = Module()
 
-        words_in_line = self.params.block_size_bytes // self.params.word_width_bytes
-
         refill_address = Signal(self.params.word_width - self.params.offset_bits)
         refill_active = Signal()
-        word_counter = Signal(log2_int(words_in_line))
+        word_counter = Signal(range(self.params.words_in_block))
 
         with Transaction().body(m, request=refill_active):
             self.wb_master.request(
@@ -332,7 +331,7 @@ class SimpleWBCacheRefiller(Elaboratable):
         def _():
             fetched = self.wb_master.result(m)
 
-            last = (word_counter == (words_in_line - 1)) | fetched.err
+            last = (word_counter == (self.params.words_in_block - 1)) | fetched.err
 
             m.d.sync += word_counter.eq(word_counter + 1)
             with m.If(last):

@@ -70,12 +70,12 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
         self.mem = dict()
 
         self.requests = deque()
-        for _ in range(10):
+        for _ in range(100):
             # Make the address aligned to the beginning of a cache line
             addr = random.randrange(2**self.gp.isa.xlen) & ~(self.cp.block_size_bytes - 1)
             self.requests.append(addr)
 
-            if random.random() < 0.1:
+            if random.random() < 0.21:
                 # Choose an address in this cache line to be erroneous
                 bad_addr = addr + random.randrange(self.cp.block_size_bytes)
 
@@ -175,6 +175,7 @@ class TestICache(TestCaseWithSimulator):
 
         self.mem = dict()
         self.bad_addrs = set()
+        self.bad_cache_lines = set()
         self.refill_requests = deque()
         self.issued_requests = deque()
 
@@ -232,20 +233,25 @@ class TestICache(TestCaseWithSimulator):
             self.mem[addr] = random.randrange(2**self.gp.isa.ilen)
         return self.mem[addr]
 
+    def add_bad_addr(self, addr: int):
+        self.bad_addrs.add(addr)
+        self.bad_cache_lines.add(addr & ~((1 << self.cp.offset_bits) - 1))
+
     def send_req(self, addr: int):
         self.issued_requests.append(addr)
         yield from self.m.issue_req.call(addr=addr)
 
-    def expect_resp(self, wait=False, expect_error=False):
+    def expect_resp(self, wait=False):
         yield Settle()
         if wait:
             yield from self.m.accept_res.wait_until_done()
 
-        self.assert_resp((yield from self.m.accept_res.get_outputs()), expect_error=expect_error)
+        self.assert_resp((yield from self.m.accept_res.get_outputs()))
 
-    def assert_resp(self, resp: RecordIntDictRet, expect_error=False):
+    def assert_resp(self, resp: RecordIntDictRet):
         addr = self.issued_requests.popleft()
-        if expect_error:
+
+        if (addr & ~((1 << self.cp.offset_bits) - 1)) in self.bad_cache_lines:
             self.assertTrue(resp["error"])
         else:
             self.assertFalse(resp["error"])
@@ -254,10 +260,10 @@ class TestICache(TestCaseWithSimulator):
     def expect_refill(self, addr: int):
         self.assertEqual(self.refill_requests.popleft(), addr)
 
-    def call_cache(self, addr: int, expect_error=False):
+    def call_cache(self, addr: int):
         yield from self.send_req(addr)
         yield from self.m.accept_res.enable()
-        yield from self.expect_resp(wait=True, expect_error=expect_error)
+        yield from self.expect_resp(wait=True)
         yield
         yield from self.m.accept_res.disable()
 
@@ -267,7 +273,7 @@ class TestICache(TestCaseWithSimulator):
         def cache_user_process():
             # The first request should cause a cache miss
             yield from self.call_cache(0x00010004)
-            self.assertEqual(self.refill_requests.pop(), 0x00010000)
+            self.expect_refill(0x00010000)
 
             # Accesses to the same cache line shouldn't cause a cache miss
             for i in range(self.cp.words_in_block):
@@ -276,7 +282,7 @@ class TestICache(TestCaseWithSimulator):
 
             # Now go beyond the first cache line
             yield from self.call_cache(0x00010000 + self.cp.block_size_bytes)
-            self.assertEqual(self.refill_requests.pop(), 0x00010000 + self.cp.block_size_bytes)
+            self.expect_refill(0x00010000 + self.cp.block_size_bytes)
 
             # Trigger cache aliasing
             yield from self.call_cache(0x00020000)
@@ -337,31 +343,33 @@ class TestICache(TestCaseWithSimulator):
 
             yield from self.tick(5)
 
-            # Enable accept method
+            # Create a stream of requests to ensure the pipeline is working
             yield from self.m.accept_res.enable()
-            yield from self.send_req(0x00010000)
+            for i in range(0, self.cp.num_of_sets * self.cp.block_size_bytes, 4):
+                addr = 0x00010000 + i
+                self.issued_requests.append(addr)
 
-            # Response from the first request should be ready
-            yield from self.expect_resp()
+                # Send the request
+                yield from self.m.issue_req.call_init(addr=addr)
+                yield Settle()
+                self.assertTrue((yield from self.m.issue_req.done()))
 
-            # Send the second request
-            yield from self.send_req(addr=0x00010004)
+                # After a cycle the response should be ready
+                yield
+                yield from self.expect_resp()
+                yield from self.m.issue_req.disable()
 
-            # Response from the second request should be ready
-            yield from self.expect_resp()
-
-            # Try another cache line
-            yield from self.send_req(addr=0x00010000 + 2 * self.cp.block_size_bytes)
-
-            yield from self.expect_resp()
-            yield from self.send_req(addr=0x00010000 + 3 * self.cp.block_size_bytes)
-
-            # Now disable accept method
+            yield
             yield from self.m.accept_res.disable()
+
+            yield from self.tick(5)
+
+            # Check how the cache handles queuing the requests
+            yield from self.send_req(addr=0x00010000 + 3 * self.cp.block_size_bytes)
             yield from self.send_req(addr=0x00010004)
 
             # Wait a few cycles. There are two requests queued
-            yield from self.tick(3)
+            yield from self.tick(5)
 
             yield from self.m.accept_res.enable()
             yield from self.expect_resp()
@@ -372,6 +380,8 @@ class TestICache(TestCaseWithSimulator):
 
             yield
             yield from self.m.accept_res.disable()
+
+            yield from self.tick(5)
 
             # Schedule two requests, the first one causing a cache miss
             yield from self.send_req(addr=0x00020000)
@@ -393,7 +403,7 @@ class TestICache(TestCaseWithSimulator):
 
             yield from self.m.accept_res.enable()
 
-            yield from self.expect_resp(wait=True)
+            yield from self.expect_resp()
             yield
             yield from self.expect_resp(wait=True)
             yield
@@ -488,6 +498,7 @@ class TestICache(TestCaseWithSimulator):
 
             # Just make sure that the line is truly flushed
             yield from self.call_cache(0x00010000)
+            self.expect_refill(0x00010000)
 
         start_refill_mock, accept_refill_mock = self.refiller_processes()
 
@@ -500,21 +511,23 @@ class TestICache(TestCaseWithSimulator):
         self.init_module(1, 4)
 
         def cache_process():
-            self.bad_addrs.add(0x00010000)  # Bad addr at the beggining of the line
-            self.bad_addrs.add(0x00020008)  # Bad addr in the middle of the line
-            self.bad_addrs.add(0x00030000 + self.cp.block_size_bytes - 8)  # Bad addr at the end of the line
+            self.add_bad_addr(0x00010000)  # Bad addr at the beggining of the line
+            self.add_bad_addr(0x00020008)  # Bad addr in the middle of the line
+            self.add_bad_addr(
+                0x00030000 + self.cp.block_size_bytes - self.cp.word_width_bytes
+            )  # Bad addr at the end of the line
 
-            yield from self.call_cache(0x00010008, expect_error=True)
+            yield from self.call_cache(0x00010008)
             self.expect_refill(0x00010000)
 
             # Requesting a bad addr again should retrigger refill
-            yield from self.call_cache(0x00010008, expect_error=True)
+            yield from self.call_cache(0x00010008)
             self.expect_refill(0x00010000)
 
-            yield from self.call_cache(0x00020000, expect_error=True)
+            yield from self.call_cache(0x00020000)
             self.expect_refill(0x00020000)
 
-            yield from self.call_cache(0x00030008, expect_error=True)
+            yield from self.call_cache(0x00030008)
             self.expect_refill(0x00030000)
 
             # Test how pipelining works with errors
@@ -528,7 +541,7 @@ class TestICache(TestCaseWithSimulator):
 
             yield from self.m.accept_res.enable()
 
-            yield from self.expect_resp(wait=True, expect_error=True)
+            yield from self.expect_resp(wait=True)
             yield
             yield from self.expect_resp(wait=True)
             yield
@@ -540,11 +553,13 @@ class TestICache(TestCaseWithSimulator):
             yield from self.send_req(addr=0x00021004)
             yield from self.send_req(addr=0x00030000)
 
+            yield from self.tick(10)
+
             yield from self.m.accept_res.enable()
 
             yield from self.expect_resp(wait=True)
             yield
-            yield from self.expect_resp(wait=True, expect_error=True)
+            yield from self.expect_resp(wait=True)
             yield
             yield from self.m.accept_res.disable()
 
@@ -556,9 +571,9 @@ class TestICache(TestCaseWithSimulator):
 
             yield from self.m.accept_res.enable()
 
-            yield from self.expect_resp(wait=True, expect_error=True)
+            yield from self.expect_resp(wait=True)
             yield
-            yield from self.expect_resp(wait=True, expect_error=True)
+            yield from self.expect_resp(wait=True)
             yield
             yield from self.m.accept_res.disable()
 
@@ -575,36 +590,23 @@ class TestICache(TestCaseWithSimulator):
         max_addr = 16 * self.cp.block_size_bytes * self.cp.num_of_sets
         iterations = 1000
 
-        requests = deque()
-
-        bad_cache_lines = set()
-
         for i in range(0, max_addr, 4):
             if random.random() < 0.05:
-                self.bad_addrs.add(i)
-                bad_cache_lines.add(i & ~((1 << self.cp.offset_bits) - 1))
+                self.add_bad_addr(i)
 
         def sender():
             for _ in range(iterations):
-                addr = random.randrange(0, max_addr, 4)
-                yield from self.m.issue_req.call(addr=addr)
-                requests.append(addr)
+                yield from self.send_req(random.randrange(0, max_addr, 4))
 
                 while random.random() < 0.5:
                     yield
 
         def receiver():
             for _ in range(iterations):
-                while len(requests) == 0:
+                while len(self.issued_requests) == 0:
                     yield
 
-                ret = yield from self.m.accept_res.call()
-                addr = requests.popleft()
-                if (addr & ~((1 << self.cp.offset_bits) - 1)) in bad_cache_lines:
-                    self.assertTrue(ret["error"])
-                else:
-                    self.assertFalse(ret["error"])
-                    self.assertEqual(ret["instr"], self.mem[addr])
+                self.assert_resp((yield from self.m.accept_res.call()))
 
                 while random.random() < 0.2:
                     yield
