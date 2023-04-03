@@ -340,7 +340,7 @@ class TestScheduler(TestCaseWithSimulator):
 
         def rs_alloc_process(io: TestbenchIO, rs_id: int):
             @def_method_mock(lambda: io)
-            def process(_):
+            def process():
                 random_entry = random.randrange(self.gen_params.rs_entries)
                 expected = self.expected_rename_queue.popleft()
                 expected["rs_entry_id"] = random_entry
