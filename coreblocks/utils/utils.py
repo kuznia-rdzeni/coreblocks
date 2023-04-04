@@ -7,7 +7,7 @@ from amaranth.lib import data
 from ._typing import ValueLike, LayoutList, SignalBundle
 
 
-__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch", "flatten_signals"]
+__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch", "flatten_signals", "align_to_power_of_two"]
 
 
 @contextmanager
@@ -282,3 +282,18 @@ def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
             yield from flatten_signals(x)
     else:
         yield signals
+
+
+def align_to_power_of_two(num: int, power: int) -> int:
+    """
+    Rounds up a number to the given power of two.
+    Parameters:
+        num (int): The number to align.
+        power (int): The power of two to align to.
+    Returns:
+        int: The aligned number.
+    """
+    mask = 2**power - 1
+    if num & mask == 0:
+        return num
+    return (num & ~mask) + 2**power
