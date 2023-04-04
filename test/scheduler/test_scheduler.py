@@ -112,7 +112,7 @@ class TestScheduler(TestCaseWithSimulator):
     def setUp(self):
         self.rs_count = len(self.optype_sets)
         self.gen_params = GenParams(
-            TestCoreConfig(func_units_config=[RSBlockComponent([], rs_entries=4) for _ in range(self.rs_count)])
+            TestCoreConfig(func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(self.rs_count)))
         )
         self.expected_rename_queue = deque()
         self.expected_phys_reg_queue = deque()

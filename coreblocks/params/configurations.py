@@ -5,10 +5,10 @@ from coreblocks.fu.jumpbranch import JumpComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
 from coreblocks.stages.rs_func_block import RSBlockComponent
 
-basic_configuration: list[BlockComponentParams] = [
+basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4),
     LSUBlockComponent(),
-]
+)
 
 
 @dataclass(kw_only=True)
@@ -34,11 +34,11 @@ class CoreConfiguration:
     """
 
     isa_str: str = "rv32i"
-    func_units_config: list[BlockComponentParams] = field(default_factory=lambda: basic_configuration)
+    func_units_config: tuple[BlockComponentParams, ...] = basic_configuration
 
-    phys_regs_bits: int = field(default=6)
-    rob_entries_bits: int = field(default=7)
-    start_pc: int = field(default=0)
+    phys_regs_bits: int = 6
+    rob_entries_bits: int = 7
+    start_pc: int = 0
 
 
 @dataclass(kw_only=True)
@@ -52,12 +52,11 @@ class BasicCoreConfig(CoreConfiguration):
 class TinyCoreConfig(CoreConfiguration):
     """Minmal core configuration."""
 
-    func_units_config: list[BlockComponentParams] = field(
-        default_factory=lambda: [
-            RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=2),
-            LSUBlockComponent(),
-        ]
+    func_units_config: tuple[BlockComponentParams, ...] = (
+        RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=2),
+        LSUBlockComponent(),
     )
+
     rob_entries_bits: int = field(default=6)
 
 
@@ -67,6 +66,4 @@ class TestCoreConfig(CoreConfiguration):
 
     phys_regs_bits: int = field(default=7)
     rob_entries_bits: int = field(default=7)
-    func_units_config: list[BlockComponentParams] = field(
-        default_factory=lambda: [RSBlockComponent([], rs_entries=4) for _ in range(2)]
-    )
+    func_units_config: tuple[BlockComponentParams, ...] = tuple(RSBlockComponent([], rs_entries=4) for _ in range(2))

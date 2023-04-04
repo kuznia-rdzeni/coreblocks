@@ -44,7 +44,9 @@ class WakeupTestCircuit(Elaboratable):
 
 class TestWakeupSelect(TestCaseWithSimulator):
     def setUp(self):
-        self.gen = GenParams(TestCoreConfig(func_units_config=[RSBlockComponent([], rs_entries=4) for _ in range(16)]))
+        self.gen = GenParams(
+            TestCoreConfig(func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(16)))
+        )
         self.m = WakeupTestCircuit(self.gen)
         self.cycles = 50
         self.taken = deque()
