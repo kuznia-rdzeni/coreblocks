@@ -17,6 +17,7 @@ class BackendTestCircuit(Elaboratable):
         self.gen = gen
 
         self.fu_count = fu_count
+        self.fu_fifo_ins = []
 
     def elaborate(self, platform):
         m = Module()
@@ -35,11 +36,11 @@ class BackendTestCircuit(Elaboratable):
                 fifo = FIFO(self.lay_result, 16)
                 fu_fifos.append(fifo)
                 get_results.append(fifo.read)
-                setattr(m.submodules, f"fu_fifo_{i}", fifo)
+                m.submodules[f"fu_fifo_{i}"] = fifo
 
                 fifo_in = TestbenchIO(AdapterTrans(fifo.write))
-                setattr(m.submodules, f"fu_fifo_{i}_in", fifo_in)
-                setattr(self, f"fu_fifo_{i}_in", fifo_in)
+                m.submodules[f"fu_fifo_{i}_in"] = fifo_in
+                self.fu_fifo_ins.append(fifo_in)
 
             # Create FUArbiter, which will serialize results from different FU's
             serialized_results_fifo = FIFO(self.lay_result, 16)
@@ -110,7 +111,7 @@ class TestBackend(TestCaseWithSimulator):
         def producer():
             inputs = self.fu_inputs[i]
             for rob_id, result, rp_dst in inputs:
-                io: TestbenchIO = getattr(self.m, f"fu_fifo_{i}_in")
+                io: TestbenchIO = self.m.fu_fifo_ins[i]
                 yield from io.call_init(rob_id=rob_id, result=result, rp_dst=rp_dst)
                 yield from self.random_wait()
             self.producer_end[i] = True

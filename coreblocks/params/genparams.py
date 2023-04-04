@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from inspect import signature
 from typing import TypeVar, Type, Protocol, runtime_checkable
+from amaranth.utils import log2_int
 
 from .isa import ISA
+from ..peripherals.wishbone import WishboneParameters
 
 from typing import TYPE_CHECKING
 
@@ -37,6 +39,11 @@ class GenParams(DependentCache):
 
         self.isa = ISA(cfg.isa_str)
         self.func_units_config = cfg.func_units_config
+
+        bytes_in_word = self.isa.xlen // 8
+        self.wb_params = WishboneParameters(
+            data_width=self.isa.xlen, addr_width=self.isa.xlen - log2_int(bytes_in_word)
+        )
 
         # Verification temporally disabled
         # if not optypes_required_by_extensions(self.isa.extensions) <= optypes_supported(func_units_config):

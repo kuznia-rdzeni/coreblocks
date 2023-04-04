@@ -50,7 +50,7 @@ class TestElaboratable(Elaboratable):
         m.submodules.io_update = self.io_update
         m.submodules.io_take = self.io_take
         for n, io_get_ready_list in enumerate(self.io_get_ready_list):
-            setattr(m.submodules, f"io_get_ready_list_{n}", io_get_ready_list)
+            m.submodules[f"io_get_ready_list_{n}"] = io_get_ready_list
 
         return tm
 

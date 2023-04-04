@@ -5,78 +5,59 @@ import sys
 import argparse
 
 from amaranth.build import Platform
-from amaranth import Module, Elaboratable, Cat
+from amaranth import Module, Elaboratable
 
-from typing import Optional
+
+if __name__ == "__main__":
+    parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, parent)
+
+
+from coreblocks.params.genparams import GenParams
+from coreblocks.core import Core
+from coreblocks.transactions import TransactionModule
+from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneBus
+from coreblocks.params.configurations import basic_core_config
+from constants.ecp5_platforms import make_ecp5_platform
 
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params, io_pins: int, instr_mem: list[int] = [], data_mem: Optional[list[int]] = None):
-        from coreblocks.params.genparams import GenParams
-
-        self.gp: GenParams = gen_params
-        self.io_pins: int = io_pins
-        self.instr_mem = instr_mem
-        if data_mem is None:
-            self.data_mem = [0] * (2**10)
-        else:
-            self.data_mem = data_mem
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
 
     def elaborate(self, platform: Platform):
-        from coreblocks.core import Core
-        from coreblocks.transactions import TransactionModule
-        from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
-
         m = Module()
         tm = TransactionModule(m)
-        wb_params = WishboneParameters(data_width=32, addr_width=30)
 
-        self.wb_master = WishboneMaster(wb_params=wb_params)
-        self.wb_mem_slave = WishboneMemorySlave(wb_params=wb_params, width=32, depth=32, init=self.instr_mem)
+        self.wb_instr = WishboneBus(self.gen_params.wb_params)
+        self.wb_data = WishboneBus(self.gen_params.wb_params)
 
-        self.wb_master_data = WishboneMaster(wb_params=wb_params)
-        self.wb_mem_slave_data = WishboneMemorySlave(
-            wb_params=wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
-        )
+        self.core = Core(gen_params=self.gen_params, wb_instr_bus=self.wb_instr, wb_data_bus=self.wb_data)
 
-        self.core = Core(gen_params=self.gp, wb_master_instr=self.wb_master, wb_master_data=self.wb_master_data)
-
-        m.d.comb += self.wb_master.wbMaster.connect(self.wb_mem_slave.bus)
-        m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_mem_slave_data.bus)
+        # Combine Wishbone buses with an arbiter
+        wb = WishboneBus(self.gen_params.wb_params)
+        self.wb_arbiter = WishboneArbiter(wb, [self.wb_instr, self.wb_data])
 
         # Request platform pins
-        data_out_pins = Cat(platform.request("data_out", 0).o)
-
-        # Make sure the number of pins matches the number of inputs/outputs
-        assert len(data_out_pins) == len(Cat(self.core.announcement.debug_signals()))
+        wb_pins = platform.request("wishbone", 0)
 
         # Connect pins to the core
-        m.d.comb += Cat(data_out_pins).eq(Cat(self.core.announcement.debug_signals()))
+        m.d.comb += wb.connect(wb_pins)
 
-        m.submodules.wb_master = self.wb_master
-        m.submodules.wb_master_data = self.wb_master_data
-        m.submodules.wb_mem_slave = self.wb_mem_slave
-        m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
+        m.submodules.wb_arbiter = self.wb_arbiter
         m.submodules.c = self.core
 
         return tm
 
 
 def synthesize(platform: str):
-    from coreblocks.params.genparams import GenParams
-    from constants.ecp5_platforms import ECP5BG381Platform
-    from coreblocks.params.configurations import basic_core_config
-
-    gp = GenParams(basic_core_config)
+    gen_params = GenParams(basic_core_config)
 
     if platform == "ecp5":
-        ECP5BG381Platform().build(TestElaboratable(gen_params=gp, io_pins=6))
+        make_ecp5_platform(gen_params.wb_params)().build(TestElaboratable(gen_params))
 
 
 def main():
-    parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, parent)
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-p",
