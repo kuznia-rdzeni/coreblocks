@@ -17,7 +17,7 @@ from coreblocks.transactions.lib import *
 from test.common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import TestCoreConfig
+from coreblocks.params.configurations import test_core_config
 
 
 class UnsignedMultiplicationTestCircuit(Elaboratable):
@@ -60,7 +60,7 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
     gen: GenParams
 
     def setUp(self):
-        self.gen = GenParams(TestCoreConfig(isa_str="rv32im"))
+        self.gen = GenParams(test_core_config.replace(isa_str="rv32im"))
         self.m = UnsignedMultiplicationTestCircuit(self.gen, self.mul_unit)
 
         random.seed(1050)

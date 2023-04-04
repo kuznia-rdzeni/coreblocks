@@ -5,7 +5,7 @@ from amaranth import *
 from amaranth.sim import Settle, Passive
 
 from coreblocks.params import GenParams, RSLayouts, SchedulerLayouts, OpType, Opcode, Funct3, Funct7
-from coreblocks.params.configurations import TestCoreConfig
+from coreblocks.params.configurations import test_core_config
 from coreblocks.scheduler.scheduler import RSSelection
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
@@ -49,7 +49,7 @@ class RSSelector(Elaboratable):
 
 class TestRSSelect(TestCaseWithSimulator):
     def setUp(self):
-        self.gen_params = GenParams(TestCoreConfig())
+        self.gen_params = GenParams(test_core_config)
         self.m = RSSelector(self.gen_params)
         self.expected_out = deque()
         self.instr_in = deque()

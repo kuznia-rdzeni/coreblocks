@@ -7,7 +7,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.frontend.decode import Decode
 from coreblocks.params import GenParams, FetchLayouts, DecodeLayouts, OpType, Opcode, Funct3, Funct7
-from coreblocks.params.configurations import TestCoreConfig
+from coreblocks.params.configurations import test_core_config
 
 
 class TestElaboratable(Elaboratable):
@@ -38,7 +38,7 @@ class TestElaboratable(Elaboratable):
 
 class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = GenParams(TestCoreConfig(start_pc=24))
+        self.gp = GenParams(test_core_config.replace(start_pc=24))
         self.test_module = TestElaboratable(self.gp)
 
     def decode_test_proc(self):

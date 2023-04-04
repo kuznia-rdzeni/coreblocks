@@ -63,11 +63,11 @@ def main():
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, parent)
 
-    from coreblocks.params.configurations import BasicCoreConfig, TinyCoreConfig
+    from coreblocks.params.configurations import basic_core_config, tiny_core_config
 
     configurations_str = {
-        "basic": BasicCoreConfig(),
-        "tiny": TinyCoreConfig(),
+        "basic": basic_core_config,
+        "tiny": tiny_core_config,
     }
 
     parser = argparse.ArgumentParser()

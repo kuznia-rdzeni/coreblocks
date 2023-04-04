@@ -5,7 +5,7 @@ from typing import Dict, Callable, Any
 from amaranth import Elaboratable, Module
 
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import TestCoreConfig
+from coreblocks.params.configurations import test_core_config
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
@@ -75,7 +75,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         number_of_tests: int = 2000,
         seed: int = 40,
         zero_imm: bool = True,
-        gen: GenParams = GenParams(TestCoreConfig()),
+        gen: GenParams = GenParams(test_core_config),
         method_name: str = "runTest",
     ):
         super().__init__(method_name)

@@ -1,3 +1,4 @@
+import dataclasses
 from typing import Optional, cast
 from amaranth import *
 from amaranth.sim import Settle
@@ -8,7 +9,7 @@ from inspect import isclass
 import random
 
 from coreblocks.params import GenParams, RSLayouts
-from coreblocks.params.configurations import TestCoreConfig
+from coreblocks.params.configurations import test_core_config
 from coreblocks.stages.rs_func_block import RSBlockComponent
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter
@@ -44,8 +45,9 @@ class WakeupTestCircuit(Elaboratable):
 
 class TestWakeupSelect(TestCaseWithSimulator):
     def setUp(self):
+        dataclasses.replace(test_core_config, rob_entries_bits=3)
         self.gen = GenParams(
-            TestCoreConfig(func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(16)))
+            test_core_config.replace(func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(16)))
         )
         self.m = WakeupTestCircuit(self.gen)
         self.cycles = 50

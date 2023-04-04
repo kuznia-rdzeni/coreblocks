@@ -9,7 +9,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO, get_outputs
 
 from coreblocks.structs_common.rs import RS
 from coreblocks.params import *
-from coreblocks.params.configurations import TestCoreConfig
+from coreblocks.params.configurations import test_core_config
 
 
 def create_check_list(gp: GenParams, insert_list: list[dict]) -> list[dict]:
@@ -57,7 +57,7 @@ class TestElaboratable(Elaboratable):
 
 class TestRSMethodInsert(TestCaseWithSimulator):
     def test_insert(self):
-        self.gp = GenParams(TestCoreConfig())
+        self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -101,7 +101,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
 
 class TestRSMethodSelect(TestCaseWithSimulator):
     def test_select(self):
-        self.gp = GenParams(TestCoreConfig())
+        self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -164,7 +164,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
 
 class TestRSMethodUpdate(TestCaseWithSimulator):
     def test_update(self):
-        self.gp = GenParams(TestCoreConfig())
+        self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -254,7 +254,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
 class TestRSMethodTake(TestCaseWithSimulator):
     def test_take(self):
-        self.gp = GenParams(TestCoreConfig())
+        self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -352,7 +352,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
 
 class TestRSMethodGetReadyList(TestCaseWithSimulator):
     def test_get_ready_list(self):
-        self.gp = GenParams(TestCoreConfig())
+        self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp)
         self.insert_list = [
             {
@@ -405,7 +405,7 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
 
 class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
     def test_two_get_ready_lists(self):
-        self.gp = GenParams(TestCoreConfig())
+        self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]])
         self.insert_list = [
             {

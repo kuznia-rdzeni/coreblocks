@@ -16,9 +16,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 from coreblocks.params.genparams import GenParams  # noqa: E402
 from coreblocks.transactions.graph import TracingFragment  # noqa: E402
 from test.test_core import TestElaboratable  # noqa: E402
-from coreblocks.params.configurations import BasicCoreConfig  # noqa: E402
+from coreblocks.params.configurations import basic_core_config  # noqa: E402
 
-gp = GenParams(BasicCoreConfig())
+gp = GenParams(basic_core_config)
 elaboratable = TestElaboratable(gp)
 fragment = TracingFragment.get(elaboratable, platform=None).prepare()
 

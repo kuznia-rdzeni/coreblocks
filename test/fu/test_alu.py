@@ -12,7 +12,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit
 from coreblocks.params import *
-from coreblocks.params.configurations import TestCoreConfig
+from coreblocks.params.configurations import test_core_config
 
 
 def _cast_to_int_xlen(x, xlen):
@@ -38,7 +38,7 @@ class TestAlu(TestCaseWithSimulator):
     ]
 
     def setUp(self):
-        self.gen = GenParams(TestCoreConfig())
+        self.gen = GenParams(test_core_config)
         self.alu = Alu(self.gen)
 
         random.seed(42)
@@ -138,7 +138,7 @@ class AluFuncUnitTestCircuit(Elaboratable):
 
 class TestAluFuncUnit(TestCaseWithSimulator):
     def setUp(self):
-        self.gen = GenParams(TestCoreConfig())
+        self.gen = GenParams(test_core_config)
         self.m = AluFuncUnitTestCircuit(self.gen)
 
         random.seed(42)

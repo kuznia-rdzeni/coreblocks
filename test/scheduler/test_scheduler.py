@@ -13,7 +13,7 @@ from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
 from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, Opcode, OpType, Funct3, Funct7
-from coreblocks.params.configurations import TestCoreConfig
+from coreblocks.params.configurations import test_core_config
 from coreblocks.structs_common.rob import ReorderBuffer
 from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
 
@@ -112,7 +112,9 @@ class TestScheduler(TestCaseWithSimulator):
     def setUp(self):
         self.rs_count = len(self.optype_sets)
         self.gen_params = GenParams(
-            TestCoreConfig(func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(self.rs_count)))
+            test_core_config.replace(
+                func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(self.rs_count))
+            )
         )
         self.expected_rename_queue = deque()
         self.expected_phys_reg_queue = deque()

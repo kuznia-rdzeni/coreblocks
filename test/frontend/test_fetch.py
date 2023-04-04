@@ -9,7 +9,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.params import GenParams, FetchLayouts
-from coreblocks.params.configurations import TestCoreConfig
+from coreblocks.params.configurations import test_core_config
 
 from random import Random
 
@@ -50,7 +50,7 @@ class TestElaboratable(Elaboratable):
 
 class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = GenParams(TestCoreConfig(start_pc=24))
+        self.gp = GenParams(test_core_config.replace(start_pc=24))
         self.test_module = TestElaboratable(self.gp)
         self.instr_queue = deque()
         self.iterations = 500

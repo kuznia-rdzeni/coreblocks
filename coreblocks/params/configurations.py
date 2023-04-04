@@ -1,4 +1,5 @@
-from dataclasses import dataclass, field
+import dataclasses
+from dataclasses import dataclass
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.jumpbranch import JumpComponent
@@ -15,8 +16,6 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
 class CoreConfiguration:
     """
     Core configuration parameters.
-    Override parameters by using keyword args in constructor or creating new subclass.
-    NOTE: @dataclass decorator and type annotations are also needed in child classes
 
     Parameters
     ----------
@@ -40,30 +39,25 @@ class CoreConfiguration:
     rob_entries_bits: int = 7
     start_pc: int = 0
 
-
-@dataclass(kw_only=True)
-class BasicCoreConfig(CoreConfiguration):
-    """Default core configuration."""
-
-    pass
+    def replace(self, **kwargs):
+        return dataclasses.replace(self, **kwargs)
 
 
-@dataclass(kw_only=True)
-class TinyCoreConfig(CoreConfiguration):
-    """Minmal core configuration."""
+# Default core configuration
+basic_core_config = CoreConfiguration()
 
-    func_units_config: tuple[BlockComponentParams, ...] = (
+# Minimal core configuration
+tiny_core_config = CoreConfiguration(
+    func_units_config=(
         RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=2),
         LSUBlockComponent(),
-    )
+    ),
+    rob_entries_bits=6,
+)
 
-    rob_entries_bits: int = field(default=6)
-
-
-@dataclass(kw_only=True)
-class TestCoreConfig(CoreConfiguration):
-    """Core configuration used in internal testbenches"""
-
-    phys_regs_bits: int = field(default=7)
-    rob_entries_bits: int = field(default=7)
-    func_units_config: tuple[BlockComponentParams, ...] = tuple(RSBlockComponent([], rs_entries=4) for _ in range(2))
+# Core configuration used in internal testbenches
+test_core_config = CoreConfiguration(
+    func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(2)),
+    rob_entries_bits=7,
+    phys_regs_bits=7,
+)
