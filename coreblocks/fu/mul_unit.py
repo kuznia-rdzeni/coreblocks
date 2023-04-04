@@ -1,5 +1,6 @@
 from enum import IntFlag, unique, IntEnum
 from typing import Tuple
+from dataclasses import dataclass
 
 from amaranth import *
 
@@ -244,10 +245,10 @@ class MulUnit(Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class MulComponent(FunctionalComponentParams):
-    def __init__(self, mul_unit_type: MulType, *, dsp_width: int = 32):
-        self.mul_unit_type = mul_unit_type
-        self.dsp_width = dsp_width
+    mul_unit_type: MulType
+    dsp_width: int = 32
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return MulUnit(gen_params, self.mul_unit_type, self.dsp_width)
