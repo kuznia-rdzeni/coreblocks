@@ -1,9 +1,12 @@
-from collections.abc import Callable, Coroutine
-from typing import Any, TypeAlias
+from abc import ABC, abstractmethod
+from enum import Enum, auto
+from typing import Any
 import cocotb
+from cocotb.clock import Clock, Timer
 from cocotb.regression import TestFactory
 from cocotb.handle import ModifiableObject
 from cocotb.triggers import RisingEdge
+from cocotb.queue import Queue
 from cocotb_bus.bus import Bus
 from dataclasses import dataclass
 
@@ -43,18 +46,103 @@ class WishboneBus(Bus):
         super().__init__(entity, name, self._signals, self._optional_signals, bus_separator="__")
 
 
-WishboneHandler: TypeAlias = Callable[[WishboneMasterSignals], Coroutine[Any, Any, WishboneSlaveSignals]]
+class ReplyStatus(Enum):
+    OK = auto()
+    ERROR = auto()
+    RETRY = auto()
+
+
+@dataclass
+class ReadRequest:
+    addr: int
+    byte_sel: int
+
+
+@dataclass
+class ReadReply:
+    data: int = 0
+    status: ReplyStatus = ReplyStatus.OK
+
+
+@dataclass
+class WriteRequest:
+    addr: int
+    data: int
+    byte_sel: int
+
+
+@dataclass
+class WriteReply:
+    status: ReplyStatus = ReplyStatus.OK
+
+
+class MemoryModel(ABC):
+    @abstractmethod
+    async def read(self, req: ReadRequest) -> ReadReply:
+        raise NotImplementedError
+    
+    @abstractmethod
+    async def write(self, req: WriteRequest) -> WriteReply:
+        raise NotImplementedError
+
+
+class RAMModel(MemoryModel):
+    def __init__(self, clock, delay=1):
+        self.clock = clock
+        self.delay = delay
+
+    async def read(self, req: ReadRequest) -> ReadReply:
+        raise NotImplementedError
+    
+    async def write(self, req: WriteRequest) -> WriteReply:
+        raise NotImplementedError
+
+
+class PutQueueModel(MemoryModel):
+    def __init__(self, queue: Queue):
+        self.queue = queue
+
+    async def read(self, req: ReadRequest) -> ReadReply:
+        raise RuntimeError("PutQueueModel read")
+    
+    async def write(self, req: WriteRequest) -> WriteReply:
+        await self.queue.put(req)
+        return WriteReply()
+
+
+class CombinedModel(MemoryModel):
+    def __init__(self, memory_ranges: list[tuple[range, MemoryModel]], fail_on_undefined=True):
+        self.memory_ranges = memory_ranges
+        self.fail_on_undefined = fail_on_undefined
+
+    async def read(self, req: ReadRequest) -> ReadReply:
+        for (address_range, model) in self.memory_ranges:
+            if req.addr in address_range:
+                return await model.read(req)
+        if self.fail_on_undefined:
+            raise RuntimeError("Undefined read: %x" % req.addr)
+        else:
+            return ReadReply(status=ReplyStatus.ERROR)
+    
+    async def write(self, req: WriteRequest) -> WriteReply:
+        for (address_range, model) in self.memory_ranges:
+            if req.addr in address_range:
+                return await model.write(req)
+        if self.fail_on_undefined:
+            raise RuntimeError("Undefined write: %x <= %x" % (req.addr, req.data))
+        else:
+            return WriteReply(status=ReplyStatus.ERROR)
 
 
 class WishboneSlave:
-    def __init__(self, entity, name, clock, handler: WishboneHandler):
+    def __init__(self, entity, name, clock, model: MemoryModel):
         self.entity = entity
         self.name = name
         self.clock = clock
-        self.handler = handler
+        self.model = model
         self.bus = WishboneBus(entity, name)
 
-    async def _run(self):
+    async def start(self):
         clock_edge_event = RisingEdge(self.clock)
 
         while True:
@@ -65,46 +153,53 @@ class WishboneSlave:
             self.bus.sample(sig_m)
 
             sig_s = WishboneSlaveSignals()
-            while not (sig_s.ack or sig_s.err or sig_s.rty):
-                await self.handler(sig_m)
+            if sig_m.we:
+                resp = await self.model.write(WriteRequest(addr=sig_m.adr, data=sig_m.dat_w, byte_sel=sig_m.sel))
+            else:
+                resp = await self.model.read(ReadRequest(addr=sig_m.adr, byte_sel=sig_m.sel))
+                sig_s.dat_r = resp.data
             
-            if sig_s.rty and not self.bus.rty:
-                raise ValueError("Bus doesn't support rty")
-            if sig_s.err and not self.bus.err:
-                raise ValueError("Bus doesn't support err")
+            match resp.status:
+                case ReplyStatus.OK:
+                    sig_s.ack = 1
+                case ReplyStatus.ERROR:
+                    if not self.bus.err:
+                        raise ValueError("Bus doesn't support err")
+                    sig_s.err = 1
+                case ReplyStatus.RETRY:
+                    if not self.bus.rty:
+                        raise ValueError("Bus doesn't support rty")
+                    sig_s.rty = 1
 
             self.bus.drive(sig_s)
 
 
-class MemoryModel:
-    def __init__(self, clock, delay=1):
-        self.clock = clock
-        self.delay = delay
-
-    async def handler(self, sig: WishboneMasterSignals) -> WishboneSlaveSignals:
-        pass
-
-
 async def test(dut, test_name):
-    instr_mem = MemoryModel(dut.clk)
+    cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
 
-    wb_instr = WishboneSlave(
-        dut,
-        "wb_instr",
-        dut.clk,
-        instr_mem.handler
-    )
+    dut.rst.value = 1
+    await Timer(10, 'ns')
 
-    data_mem = MemoryModel(dut.clk)
+    clk = Clock(dut.clk, 10, 'ns')
+    await cocotb.start_soon(clk.start())
 
-    wb_data = WishboneSlave(
-        dut,
-        "wb_data",
-        dut.clk,
-        data_mem.handler
-    )
+    instr_mem = CombinedModel([])
+    wb_instr = WishboneSlave(dut, "wb_instr", dut.clk, instr_mem)
+    await cocotb.start_soon(wb_instr.start())
+
+    result_queue = Queue()
+    data_mem = CombinedModel([(range(0xfffffff0, 0x100000000), PutQueueModel(result_queue))])
+    wb_data = WishboneSlave(dut, "wb_data", dut.clk, data_mem)
+    await cocotb.start_soon(wb_data.start())
+
+    req = await result_queue.get()
+    if req.data:
+        raise RuntimeError("Failing test: %d" % req.data)
+
+    # TODO: count cycles
+    cocotb.logging.info(f"{test_name}")
+
 
 tf = TestFactory(test)
-tf.add_option('test_name', ['add', 'addi'])
+tf.add_option("test_name", ["add", "addi"])
 tf.generate_tests()
-
