@@ -16,10 +16,11 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.peripherals.wishbone import WishboneBus
 from coreblocks.core import Core
 from coreblocks.transactions import TransactionModule
-from coreblocks.params.configurations import basic_core_config, tiny_core_config
 from coreblocks.utils.utils import flatten_signals
 
-configurations_str = {
+from coreblocks.params.configurations import CoreConfiguration, basic_core_config, tiny_core_config
+
+str_to_coreconfig: dict[str, CoreConfiguration] = {
     "basic": basic_core_config,
     "tiny": tiny_core_config,
 }
@@ -41,10 +42,10 @@ class Top(Elaboratable):
         return tm
 
 
-def gen_verilog(core_config):
+def gen_verilog(core_config: CoreConfiguration, output_path):
     top = Top(GenParams(core_config))
 
-    with open("core.v", "w") as f:
+    with open(output_path, "w") as f:
         signals = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
 
         f.write(verilog.convert(top, ports=signals, strip_internal_attrs=True))
@@ -64,18 +65,22 @@ def main():
         "--config",
         action="store",
         default="basic",
-        help="Select core configuration."
-        + f"Available configurations: {list(configurations_str.keys())}. Default: '%(default)s'",
+        help="Select core configuration. "
+        + f"Available configurations: {', '.join(list(str_to_coreconfig.keys()))}. Default: %(default)s",
+    )
+
+    parser.add_argument(
+        "-o", "--output", action="store", default="core.v", help="Output file path. Default: %(default)s"
     )
 
     args = parser.parse_args()
 
     os.environ["AMARANTH_verbose"] = "true" if args.verbose else "false"
 
-    if args.config not in configurations_str:
+    if args.config not in str_to_coreconfig:
         raise KeyError(f"Unknown config '{args.config}'")
 
-    gen_verilog(configurations_str[args.config])
+    gen_verilog(str_to_coreconfig[args.config], args.output)
 
 
 if __name__ == "__main__":
