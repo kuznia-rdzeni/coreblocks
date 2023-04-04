@@ -2,10 +2,11 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import Any
 import cocotb
+from cocotb.utils import get_sim_time
 from cocotb.clock import Clock, Timer
 from cocotb.regression import TestFactory
 from cocotb.handle import ModifiableObject
-from cocotb.triggers import RisingEdge
+from cocotb.triggers import RisingEdge, with_timeout
 from cocotb.queue import Queue
 from cocotb_bus.bus import Bus
 from dataclasses import dataclass
@@ -178,26 +179,26 @@ async def test(dut, test_name):
     cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
 
     dut.rst.value = 1
-    await Timer(10, 'ns')
+    await Timer(1, 'ns')
 
-    clk = Clock(dut.clk, 10, 'ns')
-    await cocotb.start_soon(clk.start())
+    clk = Clock(dut.clk, 1, 'ns')
+    await cocotb.start(clk.start())
 
     instr_mem = CombinedModel([])
-    wb_instr = WishboneSlave(dut, "wb_instr", dut.clk, instr_mem)
-    await cocotb.start_soon(wb_instr.start())
+    instr_wb = WishboneSlave(dut, "wb_instr", dut.clk, instr_mem)
+    instr_task = await cocotb.start(instr_wb.start())
 
     result_queue = Queue()
     data_mem = CombinedModel([(range(0xfffffff0, 0x100000000), PutQueueModel(result_queue))])
-    wb_data = WishboneSlave(dut, "wb_data", dut.clk, data_mem)
-    await cocotb.start_soon(wb_data.start())
+    data_wb = WishboneSlave(dut, "wb_data", dut.clk, data_mem)
+    data_task = await cocotb.start(data_wb.start())
 
-    req = await result_queue.get()
+    req = await with_timeout(result_queue.get(), 5, 'us')
     if req.data:
         raise RuntimeError("Failing test: %d" % req.data)
 
-    # TODO: count cycles
-    cocotb.logging.info(f"{test_name}")
+    sim_time = get_sim_time('ns')
+    cocotb.logging.info(f"{test_name}: {sim_time}")
 
 
 tf = TestFactory(test)
