@@ -285,13 +285,19 @@ def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
 
 
 def align_to_power_of_two(num: int, power: int) -> int:
-    """
-    Rounds up a number to the given power of two.
-    Parameters:
-        num (int): The number to align.
-        power (int): The power of two to align to.
-    Returns:
-        int: The aligned number.
+    """Rounds up a number to the given power of two.
+
+    Parameters
+    ----------
+    num : int
+        The number to align.
+    power : int
+        The power of two to align to.
+
+    Returns
+    -------
+    int
+        The aligned number.
     """
     mask = 2**power - 1
     if num & mask == 0:
