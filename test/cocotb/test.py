@@ -228,12 +228,12 @@ async def test(dut, test_name):
             elif segment.header["p_flags"] == P_FLAGS.PF_R | P_FLAGS.PF_W:
                 data_segments.append(segment_data)
 
+    clk = Clock(dut.clk, 1, "ns")
+    cocotb.start_soon(clk.start())
+
     dut.rst.value = 1
     await Timer(1, "ns")
     dut.rst.value = 0
-
-    clk = Clock(dut.clk, 1, "ns")
-    cocotb.start_soon(clk.start())
 
     instr_mem = CombinedModel([(r, RAMModel(dut.clk, d)) for (r, d) in instr_segments])
     instr_wb = WishboneSlave(dut, "wb_instr", dut.clk, instr_mem)
