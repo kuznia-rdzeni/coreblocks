@@ -40,3 +40,9 @@ jobs:
         run: |
           cd test/cocotb && make
 
+      - name: Test Report
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: test/cocotb/results.xml
+          check_name: cocotb tests
+          comment_mode: off

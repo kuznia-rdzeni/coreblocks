@@ -81,7 +81,7 @@ class MemoryModel(ABC):
     @abstractmethod
     async def read(self, req: ReadRequest) -> ReadReply:
         raise NotImplementedError
-    
+
     @abstractmethod
     async def write(self, req: WriteRequest) -> WriteReply:
         raise NotImplementedError
@@ -94,7 +94,7 @@ class RAMModel(MemoryModel):
 
     async def read(self, req: ReadRequest) -> ReadReply:
         raise NotImplementedError
-    
+
     async def write(self, req: WriteRequest) -> WriteReply:
         raise NotImplementedError
 
@@ -105,7 +105,7 @@ class PutQueueModel(MemoryModel):
 
     async def read(self, req: ReadRequest) -> ReadReply:
         raise RuntimeError("PutQueueModel read")
-    
+
     async def write(self, req: WriteRequest) -> WriteReply:
         await self.queue.put(req)
         return WriteReply()
@@ -124,7 +124,7 @@ class CombinedModel(MemoryModel):
             raise RuntimeError("Undefined read: %x" % req.addr)
         else:
             return ReadReply(status=ReplyStatus.ERROR)
-    
+
     async def write(self, req: WriteRequest) -> WriteReply:
         for (address_range, model) in self.memory_ranges:
             if req.addr in address_range:
@@ -159,7 +159,7 @@ class WishboneSlave:
             else:
                 resp = await self.model.read(ReadRequest(addr=sig_m.adr, byte_sel=sig_m.sel))
                 sig_s.dat_r = resp.data
-            
+
             match resp.status:
                 case ReplyStatus.OK:
                     sig_s.ack = 1
@@ -179,25 +179,25 @@ async def test(dut, test_name):
     cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
 
     dut.rst.value = 1
-    await Timer(1, 'ns')
+    await Timer(1, "ns")
 
-    clk = Clock(dut.clk, 1, 'ns')
+    clk = Clock(dut.clk, 1, "ns")
     await cocotb.start(clk.start())
 
     instr_mem = CombinedModel([])
     instr_wb = WishboneSlave(dut, "wb_instr", dut.clk, instr_mem)
-    instr_task = await cocotb.start(instr_wb.start())
+    await cocotb.start(instr_wb.start())
 
     result_queue = Queue()
-    data_mem = CombinedModel([(range(0xfffffff0, 0x100000000), PutQueueModel(result_queue))])
+    data_mem = CombinedModel([(range(0xFFFFFFF0, 0x100000000), PutQueueModel(result_queue))])
     data_wb = WishboneSlave(dut, "wb_data", dut.clk, data_mem)
-    data_task = await cocotb.start(data_wb.start())
+    await cocotb.start(data_wb.start())
 
-    req = await with_timeout(result_queue.get(), 5, 'us')
+    req = await with_timeout(result_queue.get(), 5, "us")
     if req.data:
         raise RuntimeError("Failing test: %d" % req.data)
 
-    sim_time = get_sim_time('ns')
+    sim_time = get_sim_time("ns")
     cocotb.logging.info(f"{test_name}: {sim_time}")
 
 
