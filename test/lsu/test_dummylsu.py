@@ -122,7 +122,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
             # calculate aligned address
             rest = addr % 4
-            addr = addr - rest
+            addr = addr >> 2
 
             rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
             rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
@@ -229,7 +229,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
             "imm": imm,
         }
 
-        wish_data = {"addr": s1_val + imm, "mask": 0xF, "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}")}
+        wish_data = {"addr": (s1_val + imm) >> 2, "mask": 0xF, "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}")}
         return instr, wish_data
 
     def setUp(self) -> None:
@@ -293,7 +293,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
 
             # calculate aligned address
             rest = addr % 4
-            addr = addr - rest
+            addr = addr >> 2
 
             rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
             instr = {
