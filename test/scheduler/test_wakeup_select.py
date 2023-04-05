@@ -1,4 +1,3 @@
-import dataclasses
 from typing import Optional, cast
 from amaranth import *
 from amaranth.sim import Settle
@@ -45,9 +44,8 @@ class WakeupTestCircuit(Elaboratable):
 
 class TestWakeupSelect(TestCaseWithSimulator):
     def setUp(self):
-        dataclasses.replace(test_core_config, rob_entries_bits=3)
         self.gen = GenParams(
-            test_core_config.replace(func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(16)))
+            test_core_config.replace(func_units_config=tuple(RSBlockComponent([], rs_entries=16) for _ in range(2)))
         )
         self.m = WakeupTestCircuit(self.gen)
         self.cycles = 50
