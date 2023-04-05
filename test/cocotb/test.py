@@ -220,7 +220,7 @@ async def test(dut, test_name):
             paddr = segment.header["p_paddr"]
             memsz = segment.header["p_memsz"]
             data = segment.data()
-            data += bytes(memsz - len(data))
+            data += b"\x00" * max(0, memsz - len(data))
             segment_data = (range(paddr, paddr + memsz), segment.data())
             if segment.header["p_flags"] == P_FLAGS.PF_R | P_FLAGS.PF_X:
                 instr_segments.append(segment_data)
