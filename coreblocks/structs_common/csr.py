@@ -255,7 +255,7 @@ class CSRUnit(Elaboratable):
         )
 
         # Temporary, until privileged spec is implemented
-        priv_level = Signal(PrivilegeLevel, reset=PrivilegeLevel.USER)
+        priv_level = Signal(PrivilegeLevel, reset=PrivilegeLevel.MACHINE)
 
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, request=(ready_to_process & ~done)):

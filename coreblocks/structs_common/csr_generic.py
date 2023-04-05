@@ -45,9 +45,7 @@ class DoubleCounterCSR(Elaboratable):
         self.increment = Method()
 
         self.register_low = CSRRegister(low_addr, gen_params)
-        self.register_high = (
-            CSRRegister(high_addr, gen_params) if gen_params.isa.xlen == 32 and high_addr is not None else None
-        )
+        self.register_high = CSRRegister(high_addr, gen_params) if high_addr is not None else None
 
     def elaborate(self, platform):
         m = Module()
