@@ -14,8 +14,9 @@ TOPLEVEL = top
 MODULE = test
 
 # avoid error due to Verilator's warnings
-EXTRA_ARGS = -Wno-fatal
+#EXTRA_ARGS += -Wno-fatal
 
 # include cocotb's make rules to take care of the simulator setup
-include $(shell cocotb-config --makefiles)/simulators/Makefile.verilator
+#include $(shell cocotb-config --makefiles)/simulators/Makefile.verilator
+include $(shell cocotb-config --makefiles)/simulators/Makefile.icarus
 
