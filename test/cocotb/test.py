@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import Any
 import cocotb
+import os
+from glob import glob
 from cocotb.utils import get_sim_time
 from cocotb.clock import Clock, Timer
 from cocotb.regression import TestFactory
@@ -10,6 +12,8 @@ from cocotb.triggers import RisingEdge, with_timeout
 from cocotb.queue import Queue
 from cocotb_bus.bus import Bus
 from dataclasses import dataclass
+from elftools.elf.constants import P_FLAGS
+from elftools.elf.elffile import ELFFile
 
 
 @dataclass
@@ -136,11 +140,12 @@ class CombinedModel(MemoryModel):
 
 
 class WishboneSlave:
-    def __init__(self, entity, name, clock, model: MemoryModel):
+    def __init__(self, entity, name: str, clock, model: MemoryModel, word_bits: int = 2):
         self.entity = entity
         self.name = name
         self.clock = clock
         self.model = model
+        self.word_bits = word_bits
         self.bus = WishboneBus(entity, name)
 
     async def start(self):
@@ -155,9 +160,11 @@ class WishboneSlave:
 
             sig_s = WishboneSlaveSignals()
             if sig_m.we:
-                resp = await self.model.write(WriteRequest(addr=sig_m.adr, data=sig_m.dat_w, byte_sel=sig_m.sel))
+                resp = await self.model.write(
+                    WriteRequest(addr=sig_m.adr << self.word_bits, data=sig_m.dat_w, byte_sel=sig_m.sel)
+                )
             else:
-                resp = await self.model.read(ReadRequest(addr=sig_m.adr, byte_sel=sig_m.sel))
+                resp = await self.model.read(ReadRequest(addr=sig_m.adr << self.word_bits, byte_sel=sig_m.sel))
                 sig_s.dat_r = resp.data
 
             match resp.status:
@@ -175,8 +182,27 @@ class WishboneSlave:
             self.bus.drive(sig_s)
 
 
+test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+riscv_tests_dir = os.path.join(test_dir, "external", "riscv-tests")
+
+
 async def test(dut, test_name):
     cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
+
+    instr_segments = []
+    data_segments = []
+
+    file_name = os.path.join(riscv_tests_dir, "test-" + test_name)
+    with open(file_name, "rb") as f:
+        elffile = ELFFile(f)
+        for segment in elffile.iter_segments():
+            paddr = segment.header["p_paddr"]
+            memsz = segment.header["p_memsz"]
+            segment_data = (range(paddr, paddr + memsz), segment.data())
+            if segment.header["p_flags"] == P_FLAGS.PF_R | P_FLAGS.PF_X:
+                instr_segments.append(segment_data)
+            elif segment.header["p_flags"] == P_FLAGS.PF_R | P_FLAGS.PF_W:
+                data_segments.append(segment_data)
 
     dut.rst.value = 1
     await Timer(1, "ns")
@@ -202,5 +228,5 @@ async def test(dut, test_name):
 
 
 tf = TestFactory(test)
-tf.add_option("test_name", ["add", "addi"])
+tf.add_option("test_name", [name[5:] for name in glob("test-*", root_dir=riscv_tests_dir)])
 tf.generate_tests()

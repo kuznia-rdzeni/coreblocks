@@ -16,3 +16,4 @@ sphinxcontrib-mermaid==0.7.1
 cocotb==1.7.2
 cocotb-bus==0.2.1
 pytest==7.2.2
+pyelftools==0.29
