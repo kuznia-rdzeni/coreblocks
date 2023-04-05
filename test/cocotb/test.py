@@ -174,7 +174,7 @@ class WishboneSlave:
 
             sig_m = WishboneMasterSignals()
             self.bus.sample(sig_m)
-            print(sig_m)
+            cocotb.logging.debug("%s: %s", self.name, sig_m)
 
             sig_s = WishboneSlaveSignals()
             if sig_m.we:
@@ -197,7 +197,7 @@ class WishboneSlave:
                         raise ValueError("Bus doesn't support rty")
                     sig_s.rty = 1
 
-            print(sig_s)
+            cocotb.logging.debug("%s: %s", self.name, sig_s)
             self.bus.drive(sig_s)
             await clock_edge_event
             self.bus.drive(WishboneSlaveSignals())
@@ -208,7 +208,6 @@ riscv_tests_dir = os.path.join(test_dir, "external", "riscv-tests")
 
 
 async def test(dut, test_name):
-    dut._log.setLevel(cocotb.logging.DEBUG)
     cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
 
     instr_segments: list[tuple[range, bytes]] = []
@@ -238,11 +237,6 @@ async def test(dut, test_name):
     instr_mem = CombinedModel([(r, RAMModel(dut.clk, d)) for (r, d) in instr_segments])
     instr_wb = WishboneSlave(dut, "wb_instr", dut.clk, instr_mem)
     cocotb.start_soon(instr_wb.start())
-#    print(dut.wb_instr__ack.value)
-#    instr_wb.bus.drive(WishboneSlaveSignals(ack=1))
-#    print(dut.wb_instr__ack.value)
-#    await RisingEdge(dut.clk)
-#    print(dut.wb_instr__ack.value)
 
     result_queue = Queue()
     data_models: list[tuple[range, MemoryModel]] = [(r, RAMModel(dut.clk, d)) for (r, d) in data_segments]
