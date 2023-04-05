@@ -1,6 +1,6 @@
 from amaranth import *
 from ._typing import SignalBundle, HasDebugSignals
-
+from collections.abc import Collection
 
 def auto_debug_signals(thing) -> SignalBundle:
     """Automatic debug signal generation.
@@ -30,7 +30,7 @@ def auto_debug_signals(thing) -> SignalBundle:
             smap[v] = a
         elif isinstance(a, Signal) or isinstance(a, Record):
             slist.append(a)
-        elif isinstance(a, list):
+        elif isinstance(a, Collection):
             submap = {}
             for i, e in enumerate(a):
                 if isinstance(e, HasDebugSignals):
