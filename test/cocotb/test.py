@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Coroutine
 from enum import Enum, auto
-from typing import Any
+from typing import Any, Optional, TypeVar
 import cocotb
 import os
 from glob import glob
@@ -8,10 +9,10 @@ from cocotb.utils import get_sim_time
 from cocotb.clock import Clock, Timer
 from cocotb.regression import TestFactory
 from cocotb.handle import ModifiableObject
-from cocotb.triggers import RisingEdge, with_timeout
+from cocotb.triggers import FallingEdge, RisingEdge, with_timeout
 from cocotb.queue import Queue
 from cocotb_bus.bus import Bus
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from elftools.elf.constants import P_FLAGS
 from elftools.elf.elffile import ELFFile
 
@@ -60,6 +61,7 @@ class ReplyStatus(Enum):
 @dataclass
 class ReadRequest:
     addr: int
+    byte_count: int
     byte_sel: int
 
 
@@ -73,6 +75,7 @@ class ReadReply:
 class WriteRequest:
     addr: int
     data: int
+    byte_count: int
     byte_sel: int
 
 
@@ -92,12 +95,15 @@ class MemoryModel(ABC):
 
 
 class RAMModel(MemoryModel):
-    def __init__(self, clock, delay=1):
+    def __init__(self, clock, data: bytes, delay: int = 1):
         self.clock = clock
         self.delay = delay
+        self.data = data
 
     async def read(self, req: ReadRequest) -> ReadReply:
-        raise NotImplementedError
+        for _ in range(self.delay):
+            await FallingEdge(self.clock)
+        return ReadReply(data = int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little"))
 
     async def write(self, req: WriteRequest) -> WriteReply:
         raise NotImplementedError
@@ -115,24 +121,33 @@ class PutQueueModel(MemoryModel):
         return WriteReply()
 
 
+TReq = TypeVar("TReq", bound=ReadRequest | WriteRequest)
+TRep = TypeVar("TRep", bound=ReadReply | WriteReply)
+
+
 class CombinedModel(MemoryModel):
     def __init__(self, memory_ranges: list[tuple[range, MemoryModel]], fail_on_undefined=True):
         self.memory_ranges = memory_ranges
         self.fail_on_undefined = fail_on_undefined
 
-    async def read(self, req: ReadRequest) -> ReadReply:
+    async def _run_on_range(self, f: Callable[[MemoryModel], Callable[[TReq], Coroutine[Any, Any, TRep]]], req: TReq) -> Optional[TRep]:
         for (address_range, model) in self.memory_ranges:
             if req.addr in address_range:
-                return await model.read(req)
+                return await f(model)(replace(req, addr=req.addr - address_range.start))
+
+    async def read(self, req: ReadRequest) -> ReadReply:
+        rep = await self._run_on_range(lambda m: m.read, req)
+        if rep is not None:
+            return rep
         if self.fail_on_undefined:
             raise RuntimeError("Undefined read: %x" % req.addr)
         else:
             return ReadReply(status=ReplyStatus.ERROR)
 
     async def write(self, req: WriteRequest) -> WriteReply:
-        for (address_range, model) in self.memory_ranges:
-            if req.addr in address_range:
-                return await model.write(req)
+        rep = await self._run_on_range(lambda m: m.write, req)
+        if rep is not None:
+            return rep
         if self.fail_on_undefined:
             raise RuntimeError("Undefined write: %x <= %x" % (req.addr, req.data))
         else:
@@ -145,11 +160,13 @@ class WishboneSlave:
         self.name = name
         self.clock = clock
         self.model = model
+        self.word_size = 2**word_bits
         self.word_bits = word_bits
         self.bus = WishboneBus(entity, name)
+        self.bus.drive(WishboneSlaveSignals())
 
     async def start(self):
-        clock_edge_event = RisingEdge(self.clock)
+        clock_edge_event = FallingEdge(self.clock)
 
         while True:
             while not (self.bus.stb.value and self.bus.cyc.value):
@@ -157,14 +174,15 @@ class WishboneSlave:
 
             sig_m = WishboneMasterSignals()
             self.bus.sample(sig_m)
+            print(sig_m)
 
             sig_s = WishboneSlaveSignals()
             if sig_m.we:
                 resp = await self.model.write(
-                    WriteRequest(addr=sig_m.adr << self.word_bits, data=sig_m.dat_w, byte_sel=sig_m.sel)
+                    WriteRequest(addr=sig_m.adr << self.word_bits, data=sig_m.dat_w, byte_count=self.word_size, byte_sel=sig_m.sel)
                 )
             else:
-                resp = await self.model.read(ReadRequest(addr=sig_m.adr << self.word_bits, byte_sel=sig_m.sel))
+                resp = await self.model.read(ReadRequest(addr=sig_m.adr << self.word_bits, byte_count=self.word_size, byte_sel=sig_m.sel))
                 sig_s.dat_r = resp.data
 
             match resp.status:
@@ -179,7 +197,10 @@ class WishboneSlave:
                         raise ValueError("Bus doesn't support rty")
                     sig_s.rty = 1
 
+            print(sig_s)
             self.bus.drive(sig_s)
+            await clock_edge_event
+            self.bus.drive(WishboneSlaveSignals())
 
 
 test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -187,10 +208,11 @@ riscv_tests_dir = os.path.join(test_dir, "external", "riscv-tests")
 
 
 async def test(dut, test_name):
+    dut._log.setLevel(cocotb.logging.DEBUG)
     cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
 
-    instr_segments = []
-    data_segments = []
+    instr_segments: list[tuple[range, bytes]] = []
+    data_segments: list[tuple[range, bytes]] = []
 
     file_name = os.path.join(riscv_tests_dir, "test-" + test_name)
     with open(file_name, "rb") as f:
@@ -198,6 +220,8 @@ async def test(dut, test_name):
         for segment in elffile.iter_segments():
             paddr = segment.header["p_paddr"]
             memsz = segment.header["p_memsz"]
+            data = segment.data()
+            data += bytes(memsz - len(data))
             segment_data = (range(paddr, paddr + memsz), segment.data())
             if segment.header["p_flags"] == P_FLAGS.PF_R | P_FLAGS.PF_X:
                 instr_segments.append(segment_data)
@@ -206,18 +230,26 @@ async def test(dut, test_name):
 
     dut.rst.value = 1
     await Timer(1, "ns")
+    dut.rst.value = 0
 
     clk = Clock(dut.clk, 1, "ns")
-    await cocotb.start(clk.start())
+    cocotb.start_soon(clk.start())
 
-    instr_mem = CombinedModel([])
+    instr_mem = CombinedModel([(r, RAMModel(dut.clk, d)) for (r, d) in instr_segments])
     instr_wb = WishboneSlave(dut, "wb_instr", dut.clk, instr_mem)
-    await cocotb.start(instr_wb.start())
+    cocotb.start_soon(instr_wb.start())
+#    print(dut.wb_instr__ack.value)
+#    instr_wb.bus.drive(WishboneSlaveSignals(ack=1))
+#    print(dut.wb_instr__ack.value)
+#    await RisingEdge(dut.clk)
+#    print(dut.wb_instr__ack.value)
 
     result_queue = Queue()
-    data_mem = CombinedModel([(range(0xFFFFFFF0, 0x100000000), PutQueueModel(result_queue))])
+    data_models: list[tuple[range, MemoryModel]] = [(r, RAMModel(dut.clk, d)) for (r, d) in data_segments]
+    data_models.append((range(0xFFFFFFF0, 0x100000000), PutQueueModel(result_queue)))
+    data_mem = CombinedModel(data_models)
     data_wb = WishboneSlave(dut, "wb_data", dut.clk, data_mem)
-    await cocotb.start(data_wb.start())
+    cocotb.start_soon(data_wb.start())
 
     req = await with_timeout(result_queue.get(), 5, "us")
     if req.data:
