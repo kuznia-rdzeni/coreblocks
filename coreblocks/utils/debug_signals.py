@@ -2,6 +2,7 @@ from amaranth import *
 from ._typing import SignalBundle, HasDebugSignals
 from collections.abc import Collection
 
+
 def auto_debug_signals(thing) -> SignalBundle:
     """Automatic debug signal generation.
 
