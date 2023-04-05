@@ -3,7 +3,7 @@ ENTRY(_start)
 
 MEMORY
 {
-    text (rxai!w) : ORIGIN = 0x00400000, LENGTH = 64K
+    text (rxai!w) : ORIGIN = 0x00000000, LENGTH = 64K
     data (wxa!ri) : ORIGIN = 0x80000000, LENGTH = 128K
 }
 
