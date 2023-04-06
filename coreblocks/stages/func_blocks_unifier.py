@@ -3,7 +3,7 @@ from typing import Iterable
 from amaranth import *
 
 from coreblocks.params import GenParams, BlockComponentParams, DependencyManager
-from coreblocks.params.fu_params import UnifierKey
+from coreblocks.params.dependencies import UnifierKey
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import MethodProduct, Collector
 

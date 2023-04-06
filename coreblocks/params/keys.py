@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from coreblocks.params.fu_params import SimpleKey, UnifierKey
+from coreblocks.params.dependencies import SimpleKey, UnifierKey
 from coreblocks.transactions.lib import MethodProduct, Collector
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils.protocols import Unifier
