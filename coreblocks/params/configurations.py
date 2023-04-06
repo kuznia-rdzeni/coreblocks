@@ -1,3 +1,4 @@
+from collections.abc import Collection
 import dataclasses
 from dataclasses import dataclass
 from coreblocks.params.fu_params import BlockComponentParams
@@ -21,9 +22,9 @@ class CoreConfiguration:
     ----------
     isa_str: str
         RISCV ISA string. Examples: "rv32i", "rv32izicsr". Used for instruction decoding.
-    func_units_config: list[BlockComponentParams]
+    func_units_config: Collection[BlockComponentParams]
         Configuration of Functional Units and Reservation Stations.
-        Example: [ RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
+        Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
     phys_regs_bits: int
         Size of the Physical Register File is 2**phys_regs_bits.
     rob_entries_bits: int
@@ -33,7 +34,7 @@ class CoreConfiguration:
     """
 
     isa_str: str = "rv32i"
-    func_units_config: tuple[BlockComponentParams, ...] = basic_configuration
+    func_units_config: Collection[BlockComponentParams] = basic_configuration
 
     phys_regs_bits: int = 6
     rob_entries_bits: int = 7
