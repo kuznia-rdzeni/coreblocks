@@ -5,17 +5,18 @@ from parameterized import parameterized_class
 from coreblocks.params import *
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
 from coreblocks.transactions.lib import Method, def_method
+from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
 from coreblocks.utils.protocols import FuncUnit
 
-from test.common import signed_to_int, test_gen_params
+from test.common import signed_to_int
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
 
 class JumpBranchWrapper(Elaboratable):
     def __init__(self, gen_params: GenParams):
-        self.jb = JumpBranchFuncUnit(test_gen_params("rv32i"))
+        self.jb = JumpBranchFuncUnit(GenParams(test_core_config))
         self.issue = self.jb.issue
         self.accept = Method(o=gen_params.get(FuncUnitLayouts).accept + gen_params.get(FetchLayouts).branch_verify)
         self.optypes = set()
@@ -130,7 +131,7 @@ class JumpBranchUnitTest(GenericFunctionalTestUnit):
             self.ops,
             self.func_unit,
             self.compute_result,
-            gen=test_gen_params("rv32i"),
+            gen=GenParams(test_core_config),
             number_of_tests=300,
             seed=32323,
             zero_imm=False,

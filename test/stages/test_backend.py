@@ -8,7 +8,8 @@ from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter, ManyToOneCo
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.params.layouts import *
 from coreblocks.params import GenParams
-from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
+from coreblocks.params.configurations import test_core_config
+from ..common import TestCaseWithSimulator, TestbenchIO
 
 
 class BackendTestCircuit(Elaboratable):
@@ -70,7 +71,7 @@ class BackendTestCircuit(Elaboratable):
 
 class TestBackend(TestCaseWithSimulator):
     def initialize(self):
-        gen = test_gen_params("rv32i")
+        gen = GenParams(test_core_config)
         self.m = BackendTestCircuit(gen, self.fu_count)
         random.seed(14)
 
