@@ -2,6 +2,7 @@ from amaranth import *
 
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
+from coreblocks.transactions.core import Transaction
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import InstructionCommitKey, BranchResolvedKey, WishboneDataKey
@@ -33,9 +34,7 @@ class Core(Elaboratable):
         # make fifo_fetch visible outside the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
         self.free_rf_fifo = BasicFifo(
-            self.gen_params.get(SchedulerLayouts).free_rf_layout,
-            2**self.gen_params.phys_regs_bits,
-            init=[i for i in range(1, 2**self.gen_params.phys_regs_bits)],
+            self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
         self.fetch = Fetch(self.gen_params, self.wb_master_instr, self.fifo_fetch.write)
         self.FRAT = FRAT(gen_params=self.gen_params)
@@ -107,5 +106,11 @@ class Core(Elaboratable):
             rf_free=rf.free,
             lsu_commit=self.func_blocks_unifier.get_extra_method(InstructionCommitKey()),
         )
+
+        # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
+        free_rf_reg = Signal(self.gen_params.phys_regs_bits, reset=1)
+        with Transaction(name="InitFreeRFFifo").body(m, request=(free_rf_reg.bool())):
+            free_rf_fifo.write(m, free_rf_reg)
+            m.d.sync += free_rf_reg.eq(free_rf_reg + 1)
 
         return m
