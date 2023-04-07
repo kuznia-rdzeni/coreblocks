@@ -1,8 +1,9 @@
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator, test_gen_params
+from ..common import TestCaseWithSimulator
 
 from coreblocks.params import *
+from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder import InstrDecoder
 
 
@@ -137,7 +138,7 @@ class TestDecoder(TestCaseWithSimulator):
     ]
 
     def setUp(self):
-        gen = test_gen_params("rv32gc")
+        gen = GenParams(test_core_config.replace(isa_str="rv32gc"))
         self.decoder = InstrDecoder(gen)
         self.cnt = 1
 

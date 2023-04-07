@@ -38,7 +38,7 @@ class Retirement(Elaboratable):
             self.rf_free(m, rat_out.old_rp_dst)
             self.lsu_commit(m, rob_id=rob_entry.rob_id)
 
-            # put old rl_dst to free RF list
+            # put old rp_dst to free RF list
             with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
                 self.free_rf_put(m, rat_out.old_rp_dst)
 

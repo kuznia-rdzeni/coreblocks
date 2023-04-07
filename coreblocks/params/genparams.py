@@ -5,8 +5,12 @@ from typing import TypeVar, Type, Protocol, runtime_checkable
 from amaranth.utils import log2_int
 
 from .isa import ISA
-from .fu_params import BlockComponentParams
 from ..peripherals.wishbone import WishboneParameters
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .configurations import CoreConfiguration
 
 __all__ = ["GenParams"]
 
@@ -30,19 +34,11 @@ class DependentCache:
 
 
 class GenParams(DependentCache):
-    def __init__(
-        self,
-        isa_str: str,
-        func_units_config: list[BlockComponentParams],
-        *,
-        phys_regs_bits: int = 6,
-        rob_entries_bits: int = 7,
-        start_pc: int = 0,
-    ):
+    def __init__(self, cfg: CoreConfiguration):
         super().__init__()
 
-        self.isa = ISA(isa_str)
-        self.func_units_config = func_units_config
+        self.isa = ISA(cfg.isa_str)
+        self.func_units_config = cfg.func_units_config
 
         bytes_in_word = self.isa.xlen // 8
         self.wb_params = WishboneParameters(
@@ -65,7 +61,7 @@ class GenParams(DependentCache):
 
         self.rs_number_bits = (len(self.func_units_config) - 1).bit_length()
 
-        self.phys_regs_bits = phys_regs_bits
-        self.rob_entries_bits = rob_entries_bits
+        self.phys_regs_bits = cfg.phys_regs_bits
+        self.rob_entries_bits = cfg.rob_entries_bits
         self.rs_entries_bits = (self.rs_entries - 1).bit_length()
-        self.start_pc = start_pc
+        self.start_pc = cfg.start_pc
