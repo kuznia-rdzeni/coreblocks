@@ -1,7 +1,7 @@
 from amaranth import *
 from ..transactions import Method, def_method
 from ..params import GenParams, ROBLayouts
-from ..params.fu_params import DependencyManager
+from ..params.dependencies import DependencyManager
 from ..params.keys import ROBSingleKey
 
 __all__ = ["ReorderBuffer"]

@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.utils import assign
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.fu_params import BlockComponentParams, DependencyManager, ListKey
+from coreblocks.params.dependencies import DependencyManager, ListKey
+from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import BitEnum, Funct3
 from coreblocks.params.keys import BranchResolvedKey, ROBSingleKey
