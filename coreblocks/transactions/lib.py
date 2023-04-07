@@ -665,7 +665,7 @@ class ManyToOneConnectTrans(Elaboratable):
 
         self.count = len(self.get_results)
 
-    def elaborate(self, platfrom):
+    def elaborate(self, platform):
         m = Module()
 
         for i in range(self.count):
