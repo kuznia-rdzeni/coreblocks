@@ -30,8 +30,8 @@ class BasicFifoTestCircuit(Elaboratable):
 @parameterized_class(
     ("name", "depth"),
     [
-        ("notpower", 5, 0),
-        ("power", 4, 0),
+        ("notpower", 5),
+        ("power", 4),
     ],
 )
 class TestBasicFifo(TestCaseWithSimulator):
@@ -39,7 +39,7 @@ class TestBasicFifo(TestCaseWithSimulator):
 
     def test_randomized(self):
         fifoc = BasicFifoTestCircuit(depth=self.depth)
-        expq = deque()  # first expected element is at the start of init_list
+        expq = deque()
 
         cycles = 256
         random.seed(42)
