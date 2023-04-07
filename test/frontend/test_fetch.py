@@ -22,7 +22,6 @@ class TestElaboratable(Elaboratable):
         self.gp = gen_params
 
     def elaborate(self, platform):
-
         m = Module()
         tm = TransactionModule(m)
 
@@ -113,7 +112,6 @@ class TestFetch(TestCaseWithSimulator):
                 yield
 
     def test(self):
-
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.fetch_out_check)

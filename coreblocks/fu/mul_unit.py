@@ -180,7 +180,6 @@ class MulUnit(Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 

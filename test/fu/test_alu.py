@@ -59,7 +59,7 @@ class TestAlu(TestCaseWithSimulator):
 
     def check_fn(self, fn, out_fn):
         def process():
-            for (in1, in2) in self.test_inputs:
+            for in1, in2 in self.test_inputs:
                 returned_out = yield from self.yield_signals(fn, C(in1, self.gen.isa.xlen), C(in2, self.gen.isa.xlen))
                 mask = 2**self.gen.isa.xlen - 1
                 correct_out = out_fn(in1 & mask, in2 & mask) & mask

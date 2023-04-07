@@ -105,7 +105,6 @@ class TestCSRUnit(TestCaseWithSimulator):
     def process_test(self):
         yield from self.dut.fetch_continue.enable()
         for _ in range(self.cycles):
-
             yield from self.random_wait()
             yield self.dut.rob_single_insn.eq(0)
 
