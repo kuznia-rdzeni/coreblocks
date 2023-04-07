@@ -8,6 +8,7 @@ from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Statement
+from itertools import count
 
 from coreblocks.utils import AssignType, assign
 from ._utils import *
@@ -216,9 +217,15 @@ class TransactionManager(Elaboratable):
                         add_edge(transaction, transaction2, Priority.UNDEFINED, True)
 
         for relation in self.relations:
-            for start in end_trans(relation["start"]):
-                for end in end_trans(relation["end"]):
-                    add_edge(start, end, relation["priority"], relation["conflict"])
+            start = relation["start"]
+            end = relation["end"]
+            if not relation["conflict"]:  # relation added with schedule_before
+                if end.def_order < start.def_order:
+                    raise RuntimeError(f"{start.name!r} scheduled before {end.name!r}, but defined afterwards")
+
+            for trans_start in end_trans(start):
+                for trans_end in end_trans(end):
+                    add_edge(trans_start, trans_end, relation["priority"], relation["conflict"])
 
         porder: PriorityOrder = {}
 
@@ -366,6 +373,9 @@ class _TransactionBaseStatements:
 class TransactionBase(Owned):
     current: ClassVar[Optional["TransactionBase"]] = None
     comb: ClassVar[_TransactionBaseStatements] = _TransactionBaseStatements()
+    def_counter: ClassVar[count] = count()
+    def_order: int
+    defined: bool = False
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
@@ -507,12 +517,16 @@ class Transaction(TransactionBase):
             default it is `Const(1)`, so it wants to be executed in
             every clock cycle.
         """
+        if self.defined:
+            raise RuntimeError("Transaction already defined")
+        self.def_order = next(TransactionBase.def_counter)
         m.d.comb += self.request.eq(request)
         with self.context():
             with m.If(self.grant):
                 yield self
             m.d.comb += TransactionBase.comb
             TransactionBase.comb.clear()
+        self.defined = True
 
     def __repr__(self) -> str:
         return "(transaction {})".format(self.name)
@@ -587,7 +601,6 @@ class Method(TransactionBase):
         self.run = Signal()
         self.data_in = Record(i)
         self.data_out = Record(o)
-        self.defined = False
         self.nonexclusive = nonexclusive
         if nonexclusive:
             assert len(self.data_in) == 0
@@ -675,6 +688,7 @@ class Method(TransactionBase):
         """
         if self.defined:
             raise RuntimeError("Method already defined")
+        self.def_order = next(TransactionBase.def_counter)
         try:
             m.d.comb += self.ready.eq(ready)
             m.d.comb += self.data_out.eq(out)
