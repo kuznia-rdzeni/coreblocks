@@ -1,15 +1,15 @@
 -r requirements.txt
-black==22.3.0
+black==23.3.0
 docutils==0.15.2
-flake8==4.0.1
-pep8-naming==0.13.2
+flake8==6.0.0
+pep8-naming==0.13.3
 git+https://github.com/kristopher38/riscv-python-model@b5d0737#riscv-model
 markupsafe==2.0.1
 myst-parser==0.18.0
 numpydoc==1.5.0
 parameterized==0.8.1
 pre-commit==2.16.0
-pyright==1.1.251
+pyright==1.1.302
 Sphinx==5.1.1
 sphinx-rtd-theme==1.0.0
 sphinxcontrib-mermaid==0.7.1
