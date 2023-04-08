@@ -138,10 +138,12 @@ _instructions_by_optype = {
     OpType.FENCEI: [
         Encoding(Opcode.MISC_MEM, Funct3.FENCEI),  # fence.i
     ],
-    OpType.CSR: [
+    OpType.CSR_REG: [
         Encoding(Opcode.SYSTEM, Funct3.CSRRW),  # csrrw
         Encoding(Opcode.SYSTEM, Funct3.CSRRS),  # csrrs
         Encoding(Opcode.SYSTEM, Funct3.CSRRC),  # csrrc
+    ],
+    OpType.CSR_IMM: [
         Encoding(Opcode.SYSTEM, Funct3.CSRRWI),  # csrrwi
         Encoding(Opcode.SYSTEM, Funct3.CSRRSI),  # csrrsi
         Encoding(Opcode.SYSTEM, Funct3.CSRRCI),  # csrrci
@@ -473,10 +475,13 @@ class InstrDecoder(Elaboratable):
         with m.Else():
             m.d.comb += self.opcode.eq(opcode)
 
-        # Immediate correction
+        # CSR with immediate correction
 
-        with m.If(self.op == OpType.CSR):
-            m.d.comb += self.imm.eq(uimm5)
+        with m.If(self.op == OpType.CSR_IMM):
+            m.d.comb += [
+                self.imm.eq(uimm5),
+                self.rs1_v.eq(0),
+            ]
 
         # Illegal instruction detection
 

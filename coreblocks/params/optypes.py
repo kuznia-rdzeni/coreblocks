@@ -27,7 +27,8 @@ class OpType(IntEnum):
     MRET = auto()
     WFI = auto()
     FENCEI = auto()
-    CSR = auto()
+    CSR_REG = auto()
+    CSR_IMM = auto()
     MUL = auto()
     DIV_REM = auto()
     SINGLE_BIT_MANIPULATION = auto()
@@ -60,7 +61,8 @@ optypes_by_extensions = {
         OpType.FENCEI,
     ],
     Extension.ZICSR: [
-        OpType.CSR,
+        OpType.CSR_REG,
+        OpType.CSR_IMM,
     ],
     Extension.M: [
         OpType.MUL,
