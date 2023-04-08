@@ -28,11 +28,8 @@ class CommonLayouts:
 
         self.regs_l = [
             ("rl_s1", gen_params.isa.reg_cnt_log),
-            ("rl_s1_v", 1),
             ("rl_s2", gen_params.isa.reg_cnt_log),
-            ("rl_s2_v", 1),
             ("rl_dst", gen_params.isa.reg_cnt_log),
-            ("rl_dst_v", 1),
         ]
 
         self.regs_p = [
