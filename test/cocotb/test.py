@@ -98,7 +98,7 @@ class RAMModel(MemoryModel):
     def __init__(self, clock, data: bytes, delay: int = 1):
         self.clock = clock
         self.delay = delay
-        self.data = data
+        self.data = bytearray(data)
 
     async def read(self, req: ReadRequest) -> ReadReply:
         for _ in range(self.delay):
@@ -106,7 +106,11 @@ class RAMModel(MemoryModel):
         return ReadReply(data = int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little"))
 
     async def write(self, req: WriteRequest) -> WriteReply:
-        raise NotImplementedError
+        mask_bytes = [b"\x00", b"\xff"]
+        mask = int.from_bytes(b''.join(mask_bytes[1 & (req.byte_sel >> i)] for i in range(4)), "little")
+        old = int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little")
+        self.data[req.addr : req.addr + req.byte_count] = (old & ~mask | req.data & mask).to_bytes(4, "little")
+        return WriteReply()
 
 
 class PutQueueModel(MemoryModel):
