@@ -9,7 +9,7 @@ from cocotb.utils import get_sim_time
 from cocotb.clock import Clock, Timer
 from cocotb.regression import TestFactory
 from cocotb.handle import ModifiableObject
-from cocotb.triggers import FallingEdge, RisingEdge, with_timeout
+from cocotb.triggers import FallingEdge, First, with_timeout
 from cocotb.queue import Queue
 from cocotb_bus.bus import Bus
 from dataclasses import dataclass, replace
@@ -103,11 +103,11 @@ class RAMModel(MemoryModel):
     async def read(self, req: ReadRequest) -> ReadReply:
         for _ in range(self.delay):
             await FallingEdge(self.clock)
-        return ReadReply(data = int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little"))
+        return ReadReply(data=int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little"))
 
     async def write(self, req: WriteRequest) -> WriteReply:
         mask_bytes = [b"\x00", b"\xff"]
-        mask = int.from_bytes(b''.join(mask_bytes[1 & (req.byte_sel >> i)] for i in range(4)), "little")
+        mask = int.from_bytes(b"".join(mask_bytes[1 & (req.byte_sel >> i)] for i in range(4)), "little")
         old = int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little")
         self.data[req.addr : req.addr + req.byte_count] = (old & ~mask | req.data & mask).to_bytes(4, "little")
         return WriteReply()
@@ -134,7 +134,9 @@ class CombinedModel(MemoryModel):
         self.memory_ranges = memory_ranges
         self.fail_on_undefined = fail_on_undefined
 
-    async def _run_on_range(self, f: Callable[[MemoryModel], Callable[[TReq], Coroutine[Any, Any, TRep]]], req: TReq) -> Optional[TRep]:
+    async def _run_on_range(
+        self, f: Callable[[MemoryModel], Callable[[TReq], Coroutine[Any, Any, TRep]]], req: TReq
+    ) -> Optional[TRep]:
         for (address_range, model) in self.memory_ranges:
             if req.addr in address_range:
                 return await f(model)(replace(req, addr=req.addr - address_range.start))
@@ -183,10 +185,17 @@ class WishboneSlave:
             sig_s = WishboneSlaveSignals()
             if sig_m.we:
                 resp = await self.model.write(
-                    WriteRequest(addr=sig_m.adr << self.word_bits, data=sig_m.dat_w, byte_count=self.word_size, byte_sel=sig_m.sel)
+                    WriteRequest(
+                        addr=sig_m.adr << self.word_bits,
+                        data=sig_m.dat_w,
+                        byte_count=self.word_size,
+                        byte_sel=sig_m.sel,
+                    )
                 )
             else:
-                resp = await self.model.read(ReadRequest(addr=sig_m.adr << self.word_bits, byte_count=self.word_size, byte_sel=sig_m.sel))
+                resp = await self.model.read(
+                    ReadRequest(addr=sig_m.adr << self.word_bits, byte_count=self.word_size, byte_sel=sig_m.sel)
+                )
                 sig_s.dat_r = resp.data
 
             match resp.status:
@@ -240,18 +249,23 @@ async def test(dut, test_name):
 
     instr_mem = CombinedModel([(r, RAMModel(dut.clk, d)) for (r, d) in instr_segments])
     instr_wb = WishboneSlave(dut, "wb_instr", dut.clk, instr_mem)
-    cocotb.start_soon(instr_wb.start())
+    instr_task = cocotb.start_soon(instr_wb.start())
 
     result_queue = Queue()
     data_models: list[tuple[range, MemoryModel]] = [(r, RAMModel(dut.clk, d)) for (r, d) in data_segments]
     data_models.append((range(0xFFFFFFF0, 0x100000000), PutQueueModel(result_queue)))
     data_mem = CombinedModel(data_models)
     data_wb = WishboneSlave(dut, "wb_data", dut.clk, data_mem)
-    cocotb.start_soon(data_wb.start())
+    data_task = cocotb.start_soon(data_wb.start())
 
-    req = await with_timeout(result_queue.get(), 5, "us")
-    if req.data:
-        raise RuntimeError("Failing test: %d" % req.data)
+    async def waiter():
+        req = await with_timeout(result_queue.get(), 5, "us")
+        if req.data:
+            raise RuntimeError("Failing test: %d" % req.data)
+
+    waiter_task = cocotb.start_soon(waiter())
+
+    await First(waiter_task.join(), instr_task.join(), data_task.join())
 
     sim_time = get_sim_time("ns")
     cocotb.logging.info(f"{test_name}: {sim_time}")
