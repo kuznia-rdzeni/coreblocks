@@ -199,6 +199,10 @@ class InstrDecoder(Elaboratable):
         Twelve bits function identifier.
     funct12_v: Signal(1), out
         Signals if decoded instruction has funct12 identifier.
+    rd: Signal(gen.isa.reg_cnt_log), out
+        Address of register to write instruction result.
+    rd_v: Signal(1), out
+        Signal if instruction writes to register.
     rs1: Signal(gen.isa.reg_cnt_log), out
         Address of register holding first input value.
     rs1_v: Signal(1), out
