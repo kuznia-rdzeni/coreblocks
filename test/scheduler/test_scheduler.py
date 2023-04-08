@@ -330,11 +330,8 @@ class TestScheduler(TestCaseWithSimulator):
                         },
                         "regs_l": {
                             "rl_s1": rl_s1,
-                            "rl_s1_v": 1,
                             "rl_s2": rl_s2,
-                            "rl_s2_v": 1,
                             "rl_dst": rl_dst,
-                            "rl_dst_v": 1,
                         },
                         "imm": immediate,
                     }
