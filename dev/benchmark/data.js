@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1680873688719,
+  "lastUpdate": 1681034022822,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -3943,6 +3943,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/af7af4e3d93c4c2d90d80400366e2a1e61e67f57"
         },
         "date": 1680873687906,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.55,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17299,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 546,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5419,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b5fadd3b15834016c2fe303f2aee5d3d53a08bbc",
+          "message": "Add a function aligning numbers and a function for yielding for many cycles (#278)",
+          "timestamp": "2023-04-09T11:47:29+02:00",
+          "tree_id": "379784fe878b92712aefa9042896cf671aa195d2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b5fadd3b15834016c2fe303f2aee5d3d53a08bbc"
+        },
+        "date": 1681034021603,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
