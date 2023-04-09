@@ -17,7 +17,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.core import Core
 from coreblocks.transactions import TransactionModule
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneBus
-from coreblocks.params.configurations import basic_configuration
+from coreblocks.params.configurations import basic_core_config
 from constants.ecp5_platforms import make_ecp5_platform
 
 
@@ -51,7 +51,7 @@ class TestElaboratable(Elaboratable):
 
 
 def synthesize(platform: str):
-    gen_params = GenParams("rv32i", basic_configuration)
+    gen_params = GenParams(basic_core_config)
 
     if platform == "ecp5":
         make_ecp5_platform(gen_params.wb_params)().build(TestElaboratable(gen_params))

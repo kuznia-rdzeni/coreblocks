@@ -3,7 +3,7 @@ from typing import Iterable
 from amaranth import *
 
 from coreblocks.params import GenParams, BlockComponentParams, DependencyManager
-from coreblocks.params.fu_params import UnifierKey
+from coreblocks.params.dependencies import UnifierKey
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import MethodProduct, Collector
 
@@ -54,7 +54,7 @@ class FuncBlocksUnifier(Elaboratable):
         m.submodules["result_collector"] = self.result_collector
         m.submodules["update_combiner"] = self.update_combiner
 
-        for (name, unifier) in self.unifiers.items():
+        for name, unifier in self.unifiers.items():
             m.submodules[name] = unifier
 
         return m

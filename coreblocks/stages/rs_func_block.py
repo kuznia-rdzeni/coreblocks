@@ -1,4 +1,6 @@
+from collections.abc import Collection
 from amaranth import *
+from dataclasses import dataclass
 from coreblocks.params import *
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
@@ -78,10 +80,10 @@ class RSFuncBlock(Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class RSBlockComponent(BlockComponentParams):
-    def __init__(self, func_units: Iterable[FunctionalComponentParams], rs_entries: int):
-        self.func_units = func_units
-        self.rs_entries = rs_entries
+    func_units: Collection[FunctionalComponentParams]
+    rs_entries: int
 
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         modules = list(u.get_module(gen_params) for u in self.func_units)
