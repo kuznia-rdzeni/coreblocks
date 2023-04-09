@@ -7,7 +7,7 @@ from amaranth.utils import log2_int
 from coreblocks.transactions.core import def_method, Priority
 from coreblocks.transactions import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
-from coreblocks.utils import assign, OneHotSwitchDynamic, rotate_left
+from coreblocks.utils import assign, OneHotSwitchDynamic
 from coreblocks.transactions.lib import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 
@@ -118,7 +118,7 @@ class ICache(Elaboratable):
         # Replacement policy
         way_selector = Signal(self.params.num_of_ways, reset=1)
         with m.If(refill_finish):
-            m.d.sync += way_selector.eq(rotate_left(way_selector))
+            m.d.sync += way_selector.eq(way_selector.rotate_left(1))
 
         # Fast path - read requests
         request_valid = self.req_fifo.read.ready
