@@ -11,8 +11,9 @@ from coreblocks.transactions.lib import AdapterTrans, Adapter
 from coreblocks.frontend.icache import SimpleWBCacheRefiller, ICache
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
+from coreblocks.params.configurations import test_core_config
 
-from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params, def_method_mock, RecordIntDictRet
+from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
@@ -60,7 +61,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
     block_size: int
 
     def setUp(self) -> None:
-        self.gp = test_gen_params(self.isa, icache_block_size_bits=self.block_size)
+        self.gp = GenParams(test_core_config.replace(isa_str=self.isa, icache_block_size_bits=self.block_size))
         self.cp = self.gp.icache_params
         self.test_module = SimpleWBCacheRefillerTestCircuit(self.gp)
 
@@ -180,8 +181,13 @@ class TestICache(TestCaseWithSimulator):
         self.issued_requests = deque()
 
     def init_module(self, ways, sets) -> None:
-        self.gp = test_gen_params(
-            self.isa, icache_ways=ways, icache_sets_bits=log2_int(sets), icache_block_size_bits=self.block_size
+        self.gp = GenParams(
+            test_core_config.replace(
+                isa_str=self.isa,
+                icache_ways=ways,
+                icache_sets_bits=log2_int(sets),
+                icache_block_size_bits=self.block_size,
+            )
         )
         self.cp = self.gp.icache_params
         self.m = ICacheTestCircuit(self.gp)
