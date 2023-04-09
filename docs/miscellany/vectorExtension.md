@@ -116,3 +116,17 @@ VEGAS: Soft Vector Processor with Scratchpad Memory
 - chaining pozwala nie alokować rejestru pośredniego (?)
 
 - rozszerzenie V pozwala powiedzieć procesorowi ile aktualnie chcemy mieć logicznych rejestrów wektorowych (?)
+
+- jak zrobić dobre ALU/ jednostkę mnożącą, by na raz wspierała operacje na wielu długościach?
+- jak zrobić dobrze sieć przełączników?
+
+
+Sieci przełączników:
+- Sieci banyan - sieci w których istnieje dokładnie jedna droga z dowolnego źródła do dowolnego celu
+- Sieć delta - sieć banyan w której pakiety są samo-routowalne
+- Sieć omega - łatwe adresowanie i routowanie pakietów (pierwsza sieć banyan demonstrująca samo-routowalnośc)
+- Sieć butterfly - jest ładnie rekurencyjna, więc relatywnie łatwo da radę udowodnić load-balancing
+
+Rozważmy jeden przełącznik w sieci przełączników. Czy to, że może on przesłać maksymalnie jedno wejście na jedno wyjście
+ma istotny wpływ na złożoność takiego przełącznika w porównaniu do sytuacji w której jeśli oba wejścia są włączone, to
+wysyła je na oba wyjścia?
