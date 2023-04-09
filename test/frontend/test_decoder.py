@@ -86,7 +86,7 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x00D59503, Opcode.LOAD, Funct3.H, rd=10, rs1=11, imm=13, op=OpType.LOAD),
         InstrTest(0x00E65583, Opcode.LOAD, Funct3.HU, rd=11, rs1=12, imm=14, op=OpType.LOAD),
         InstrTest(0x00F6A603, Opcode.LOAD, Funct3.W, rd=12, rs1=13, imm=15, op=OpType.LOAD),
-        InstrTest(0xffA09703, Opcode.LOAD, Funct3.H, rd=14, rs1=1, imm=-6, op=OpType.LOAD),
+        InstrTest(0xFFA09703, Opcode.LOAD, Funct3.H, rd=14, rs1=1, imm=-6, op=OpType.LOAD),
         # Store
         InstrTest(0x00D70823, Opcode.STORE, Funct3.B, rs1=14, rs2=13, imm=16, op=OpType.STORE),
         InstrTest(0x00E798A3, Opcode.STORE, Funct3.H, rs1=15, rs2=14, imm=17, op=OpType.STORE),
