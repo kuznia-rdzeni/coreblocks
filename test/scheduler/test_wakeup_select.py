@@ -55,7 +55,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
 
     def random_entry(self, layout) -> RecordIntDict:
         result = {}
-        for (key, width_or_layout) in layout:
+        for key, width_or_layout in layout:
             if isinstance(width_or_layout, int):
                 result[key] = random.randrange(width_or_layout)
             elif isclass(width_or_layout) and issubclass(width_or_layout, Enum):
