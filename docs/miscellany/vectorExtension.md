@@ -44,6 +44,63 @@ A “New Ara” for Vector Computing: An Open Source Highly Efficient RISC-V V 1
   znajdowały się w rejestrze poprzednio miały taką samą długość pojedyńczego elementu
 
 
+Ara: A 1 GHz+ Scalable and Energy-Efficient RISC-V Vector Processor with Multi-Precision Floating Point Support in 22 nm FD-SOI:
+- procesor in-order, rozszerzenie V in-order
+- na podstawie wersji 0.5 specyfikacji rozszerzenia V
+- brak forwardingu
+- w rozszerzeniu V jest instrukcja, która czyta 4 rejestry i zapisuje w wyniku jeden rejestr
+- każdy fragment VRF jest złożony z 8 banków o jednym porcie do odczytu i jednym do zapisu
+- ciekawy pomysł: dostępy do banków mają piorytety - wyższy z jednostek wykonujących częste/regularne dostępy, niższy z
+  pozostały (bowiem skoro rzadziej potrzebują rejestrów, to nic im się nie stanie jeśli trochę poczekają)
+- wartości skalarne w rejestrach wektorowych są przechowywane tylko w jednej kopii, a następnie wirtualnie kopiowane do
+  wszystkich pól wektora
+- zauważają, że dostępy do MUL i FPU raczej nie będą się odbywać w tym samym czasie, więc można zrobić trochę
+  optymalizacji
+- ważne: wbrew pozorom wydajność dla krótkich wektorów też ma znaczenie, bowiem macierz może być duża, ale pod względem
+  wymiarowości, a pojedyncze wektory mogą być krótkie np. 3 x 112 x 112 (sieć neuronowa LeNet)
+- problemy ze skalowalnością wraz ze wzrostem liczby lane (rdzeń o 16 lane miał o 1/5 gorsze zegary 1,25GHz vs 1GHz)
+
+
+Hawacha:
+- niezgodna ze standardem RISC-V V (choć dosyć zbliżona)
+- całkowicie oddzielny rdzeń, który ma własny fetch unit
+- każdy lane ma osobny port do dostępu do pamięci
+- vector runachead unit (?)
+- ~90 MHz na FPGA
+- Chisel3
+
+
+VEGAS: Soft Vector Processor with Scratchpad Memory
+- procesor wektorowy na FPGA
+- architektura niezgodna z RISC-V V (nawet tego rozszerzenia nie było wtedy w planach)
+- nie ma load-ów/stor-ów więc nie ma problemu z opóźnieniami związanymi z pamięcią
+- całe dane przechowywane w scratchpadzie FPGA, który robi za dynamiczny VRF
+- rejestr, to wskaźnik z adresem na początek wektora w pamięci scratchpad
+- programista ręcznie zarządza pobieraniem danych z RAM, poprzez ręczne zarządzanie DMA
+- używa makr w C aby wygenerować kod asemblerowy na ten procesor wektorowy - kompilator nie ma wsparcia
+- Obserwacja: SIMD - zdefiniowany stały rozmiar bloku/wektora, procesory wektorowe mają długoś wektora ustalaną w
+  runtimie
+- wspiera przetwarzanie 32 bitów w jednym cyklu przez jedno ALU, bity te to może być jedno słowo, dwa półsłowa, lub
+  cztery bajty
+- działa na FPGA z maksymalnym zegarem 130 MHz (sama część wektorowa)
+- ich procesor działa szybko bo nie ma load/store -> znane ograniczenie, procesor działa wolno jak dane nie mieszczą się
+  w scratchpadzie
+- dzięki temu, że rejestry to wskaźniki, poza 8 rejestrami architektonicznymi mogą mieć wiele więcej rejestrów
+  przechowywanych w pamięci NIOS-II jako wartości skalarne
+- jeden rejestr zarezerwowany na kopie w celu wyrównania dostępów do pamięci
+- Ważne: używają sieci Benes-a jako crossbarów by zejść z O(N^2) do O(N log N) ze złożonością sieci przełączników
+- Twierdzą, że są lepsi od procesorów Intela - ale swój kod mają ręcznie optymalizowany w asemblerze, a kod na procesor
+  Intela nie używa nawet SSE :D
+
+
+
+
+
+
+
+
+
+
 
 - porównanie dwóch typów chainowania instrukcji (coś w stylu starych vs nowych łącz telefonicznych)
     - z rezerwacją sprzętu
