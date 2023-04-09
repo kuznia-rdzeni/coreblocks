@@ -188,8 +188,7 @@ class TestCoreRandomized(TestCoreBase):
             yield
 
         # finish calculations
-        for _ in range(50):
-            yield
+        yield from self.tick(50)
 
         yield from self.compare_core_states(self.software_core)
 

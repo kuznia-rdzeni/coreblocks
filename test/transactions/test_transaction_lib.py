@@ -33,8 +33,7 @@ class TestFifoBase(TestCaseWithSimulator):
         random.seed(1337)
 
         def random_wait(rand: int):
-            for _ in range(random.randint(0, rand)):
-                yield
+            yield from self.tick(random.randint(0, rand))
 
         def writer():
             for i in range(2**iosize):
