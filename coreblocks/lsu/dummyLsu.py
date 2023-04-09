@@ -101,8 +101,7 @@ class LSUDummyInternals(Elaboratable):
 
         bytes_mask = self.prepare_bytes_mask(m, addr)
         req = Record(self.bus.requestLayout)
-        # make address aligned to 4
-        m.d.comb += req.addr.eq(addr >> 2)
+        m.d.comb += req.addr.eq(addr >> 2)  # calculate word address
         m.d.comb += req.we.eq(is_store)
         m.d.comb += req.sel.eq(bytes_mask)
         m.d.comb += req.data.eq(self.prepare_data_to_save(m, self.current_instr.s2_val, addr))
