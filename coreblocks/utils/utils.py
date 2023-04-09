@@ -14,7 +14,6 @@ __all__ = [
     "OneHotSwitchDynamic",
     "OneHotSwitch",
     "flatten_signals",
-    "rotate_left",
 ]
 
 
@@ -103,10 +102,6 @@ def OneHotSwitchDynamic(m: Module, test: Value, *, default: bool = False) -> Ite
             with OneHotCase():
                 yield None
     return
-
-
-def rotate_left(sig: Value, shift: int = 1) -> Value:
-    return (sig << shift) | sig[-shift:]
 
 
 class AssignType(Enum):

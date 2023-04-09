@@ -5,6 +5,7 @@ from typing import Callable, Optional, Iterable
 from amaranth import *
 from amaranth.sim import Settle
 from parameterized import parameterized_class
+from coreblocks.stages.rs_func_block import RSBlockComponent
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
@@ -12,8 +13,9 @@ from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
 from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, Opcode, OpType, Funct3, Funct7
+from coreblocks.params.configurations import test_core_config
 from coreblocks.structs_common.rob import ReorderBuffer
-from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock, test_gen_params
+from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
 
 
 class SchedulerTestCircuit(Elaboratable):
@@ -109,7 +111,11 @@ class TestScheduler(TestCaseWithSimulator):
 
     def setUp(self):
         self.rs_count = len(self.optype_sets)
-        self.gen_params = self.gen_params = test_gen_params("rv32i", rs_block_number=self.rs_count)
+        self.gen_params = GenParams(
+            test_core_config.replace(
+                func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(self.rs_count))
+            )
+        )
         self.expected_rename_queue = deque()
         self.expected_phys_reg_queue = deque()
         self.free_regs_queue = deque()

@@ -6,10 +6,12 @@ from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
 
 from coreblocks.transactions import TransactionModule
+
 from coreblocks.transactions.lib import AdapterTrans, FIFO, Adapter
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.params import GenParams, FetchLayouts, ICacheLayouts
-from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params, def_method_mock
+from coreblocks.params.configurations import test_core_config
+from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock
 
 
 class TestElaboratable(Elaboratable):
@@ -41,7 +43,7 @@ class TestElaboratable(Elaboratable):
 
 class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = test_gen_params("rv32i", start_pc=0x18)
+        self.gp = GenParams(test_core_config.replace(start_pc=0x18))
         self.m = TestElaboratable(self.gp)
         self.instr_queue = deque()
         self.iterations = 500

@@ -1,5 +1,6 @@
 from enum import IntFlag, unique, IntEnum
 from typing import Tuple
+from dataclasses import KW_ONLY, dataclass
 
 from amaranth import *
 
@@ -179,7 +180,6 @@ class MulUnit(Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
@@ -244,10 +244,11 @@ class MulUnit(Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class MulComponent(FunctionalComponentParams):
-    def __init__(self, mul_unit_type: MulType, *, dsp_width: int = 32):
-        self.mul_unit_type = mul_unit_type
-        self.dsp_width = dsp_width
+    mul_unit_type: MulType
+    _: KW_ONLY
+    dsp_width: int = 32
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return MulUnit(gen_params, self.mul_unit_type, self.dsp_width)

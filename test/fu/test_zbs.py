@@ -1,6 +1,6 @@
-from coreblocks.params import Funct3, Funct7
+from coreblocks.params import Funct3, Funct7, GenParams
+from coreblocks.params.configurations import test_core_config
 from coreblocks.fu.zbs import ZbsFunction, ZbsComponent
-from test.common import test_gen_params
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
@@ -51,7 +51,7 @@ class ZbsUnitTest(GenericFunctionalTestUnit):
             ops,
             ZbsComponent(),
             compute_result,
-            gen=test_gen_params("rv32i"),
+            gen=GenParams(test_core_config),
             number_of_tests=600,
             seed=32323,
             method_name=method_name,

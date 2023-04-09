@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.params.fu_params import DependencyManager
+from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
