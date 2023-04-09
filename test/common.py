@@ -9,8 +9,6 @@ from amaranth.hdl.ast import Statement
 from amaranth.sim import *
 from amaranth.sim.core import Command
 
-from coreblocks.params import GenParams
-from coreblocks.stages.rs_func_block import RSBlockComponent
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.transactions._utils import method_def_helper
@@ -384,21 +382,3 @@ def def_method_mock(
         return mock
 
     return decorator
-
-
-def test_gen_params(
-    isa_str: str,
-    *,
-    phys_regs_bits: int = 7,
-    rob_entries_bits: int = 7,
-    start_pc: int = 0,
-    rs_entries: int = 4,
-    rs_block_number: int = 2,
-):
-    return GenParams(
-        isa_str,
-        func_units_config=[RSBlockComponent([], rs_entries=rs_entries) for _ in range(rs_block_number)],
-        phys_regs_bits=phys_regs_bits,
-        rob_entries_bits=rob_entries_bits,
-        start_pc=start_pc,
-    )

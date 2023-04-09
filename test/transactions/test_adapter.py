@@ -55,7 +55,6 @@ class Consumer(Elaboratable):
 
 class TestElaboratable(Elaboratable):
     def __init__(self):
-
         self.echo = Echo()
         self.consumer = Consumer()
         self.io_echo = TestbenchIO(AdapterTrans(self.echo.action))

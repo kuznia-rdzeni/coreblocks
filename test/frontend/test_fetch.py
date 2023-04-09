@@ -5,10 +5,11 @@ from amaranth.sim import Passive, Settle
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, FIFO
 
-from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
+from ..common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.params import GenParams, FetchLayouts
+from coreblocks.params.configurations import test_core_config
 
 from random import Random
 
@@ -21,7 +22,6 @@ class TestElaboratable(Elaboratable):
         self.gp = gen_params
 
     def elaborate(self, platform):
-
         m = Module()
         tm = TransactionModule(m)
 
@@ -49,7 +49,7 @@ class TestElaboratable(Elaboratable):
 
 class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = test_gen_params("rv32i", start_pc=24)
+        self.gp = GenParams(test_core_config.replace(start_pc=24))
         self.test_module = TestElaboratable(self.gp)
         self.instr_queue = deque()
         self.iterations = 500
@@ -111,7 +111,6 @@ class TestFetch(TestCaseWithSimulator):
                 yield
 
     def test(self):
-
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.fetch_out_check)
