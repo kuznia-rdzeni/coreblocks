@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  run-tests:
     runs-on: ubuntu-latest
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008
     steps:
@@ -44,5 +44,5 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: test/cocotb/results.xml
-          check_name: cocotb tests
+          check_name: cocotb test results
           comment_mode: off
