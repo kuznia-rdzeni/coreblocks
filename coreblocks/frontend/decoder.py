@@ -138,10 +138,12 @@ _instructions_by_optype = {
     OpType.FENCEI: [
         Encoding(Opcode.MISC_MEM, Funct3.FENCEI),  # fence.i
     ],
-    OpType.CSR: [
+    OpType.CSR_REG: [
         Encoding(Opcode.SYSTEM, Funct3.CSRRW),  # csrrw
         Encoding(Opcode.SYSTEM, Funct3.CSRRS),  # csrrs
         Encoding(Opcode.SYSTEM, Funct3.CSRRC),  # csrrc
+    ],
+    OpType.CSR_IMM: [
         Encoding(Opcode.SYSTEM, Funct3.CSRRWI),  # csrrwi
         Encoding(Opcode.SYSTEM, Funct3.CSRRSI),  # csrrsi
         Encoding(Opcode.SYSTEM, Funct3.CSRRCI),  # csrrci
@@ -199,6 +201,10 @@ class InstrDecoder(Elaboratable):
         Twelve bits function identifier.
     funct12_v: Signal(1), out
         Signals if decoded instruction has funct12 identifier.
+    rd: Signal(gen.isa.reg_cnt_log), out
+        Address of register to write instruction result.
+    rd_v: Signal(1), out
+        Signal if instruction writes to register.
     rs1: Signal(gen.isa.reg_cnt_log), out
         Address of register holding first input value.
     rs1_v: Signal(1), out
@@ -469,10 +475,13 @@ class InstrDecoder(Elaboratable):
         with m.Else():
             m.d.comb += self.opcode.eq(opcode)
 
-        # Immediate correction
+        # CSR with immediate correction
 
-        with m.If(self.op == OpType.CSR):
-            m.d.comb += self.imm.eq(uimm5)
+        with m.If(self.op == OpType.CSR_IMM):
+            m.d.comb += [
+                self.imm.eq(uimm5),
+                self.rs1_v.eq(0),
+            ]
 
         # Illegal instruction detection
 
