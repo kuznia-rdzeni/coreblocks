@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681117673254,
+  "lastUpdate": 1681130788783,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4100,6 +4100,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 16823,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 520,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5425,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f05680d1844270bc494129b17ac0839f129950b6",
+          "message": "Decoder fix for shift immediate handling (#284)\n\n* Decoder fix\n\n* Handle imm sign in decoder test, add regression check\n\n* Lint fix",
+          "timestamp": "2023-04-10T14:40:00+02:00",
+          "tree_id": "0273f30ec1c79ec78ea0806a167f284cae845448",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f05680d1844270bc494129b17ac0839f129950b6"
+        },
+        "date": 1681130787161,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.18,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 18634,
             "unit": "LUT4"
           },
           {
