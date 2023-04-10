@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681131111919,
+  "lastUpdate": 1681131536715,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4203,6 +4203,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 554,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5433,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6e47c87fde4aa247d8d862c36ffbaea817ca0da2",
+          "message": "Decoder: set invalid registers to 0 and fix CSR decoding (#282)\n\n* Mux reg_l to 0 if not valid and remove reg_v from layouts\n\n* Add missing docs\n\n* Fix tests\n\n* Always check r*_v field in decoder tests\n\n* Fix CSR decoding: split to CSR_REG and CSR_IMM\n\n* CSR unit optimization and test fix\n\n---------\n\nCo-authored-by: Marek Materzok <tilk@tilk.eu>",
+          "timestamp": "2023-04-10T14:53:05+02:00",
+          "tree_id": "126d4e62ed4d9ce36293634f3b2cad34f0322e9c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6e47c87fde4aa247d8d862c36ffbaea817ca0da2"
+        },
+        "date": 1681131535938,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 58.46,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17769,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 522,
             "unit": "LUT"
           },
           {
