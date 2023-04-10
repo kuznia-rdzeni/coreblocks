@@ -92,8 +92,16 @@ VEGAS: Soft Vector Processor with Scratchpad Memory
 - Twierdzą, że są lepsi od procesorów Intela - ale swój kod mają ręcznie optymalizowany w asemblerze, a kod na procesor
   Intela nie używa nawet SSE :D
 
-
-
+Memory Controller for Vector Processor
+- prezentują kontroler Advanced Programmable Vector Memory Controller (PVMC)
+- dokładają kilka pamięci podręcznych, które zastępują cache dla danych dla procesora wektorowego
+- pamięci podręczne wspierają czytanie elementów w określonych krokach 
+- wymagają użycia makr w C/C++ aby pobrać dane do pamięci podręcznych
+- omawiają swoją architekturę wysoko poziomowo "Kontroler pobiera dane", "Bufor wyrównuje dane" pomijając szczegóły
+- Ważne: Proponują by scatter/gatter nie robić za pomocą sieci przełączników, tylko za pomocą bufora w pamięci
+- Wspominają o kilku innych kontolerach pamięci:
+    - Stream Memory Controller
+    - Impulse Memory Controller
 
 
 
@@ -116,6 +124,20 @@ VEGAS: Soft Vector Processor with Scratchpad Memory
 - chaining pozwala nie alokować rejestru pośredniego (?)
 
 - rozszerzenie V pozwala powiedzieć procesorowi ile aktualnie chcemy mieć logicznych rejestrów wektorowych (?)
+
+- wykorzystanie nadmiarowych fizycznych rejestrów jako cache danych w VLSU?
+- wykorzystać to, że program nie dba o koniec/zamaskowane dane i sprawdzać ile elementów zostało wysłanych, a ile
+  przyszło - resztę ustawiać na 1
+- obsługa przerwań:
+    - gdzie można sprawdzamy przed rozpoczęciem wykonania i następnie nie przejmujemy się RRAT-em
+    - w przypadku jak instrukcja może rzucić wyjątek (Load/Store) przed rozpoczęciem wykonania robimy checkpoint, a po
+      zakończeniu wykonania zwalniamy checkpoint
+    - dzięki checkpointom tylko na żądanie możemy utrzymywać mniej nadmiarowych rejestrów do renamingu bowiem w
+      pesymistycznym przypadku:
+        - 32 rejestry w RRAT, 32 rejestry w FRAT, 1 rejestr dodatkowy były by potrzebne by ciągle być w stanie
+          przetwarzać instrukcje
+        - z checkpointami na żądanie potrzebujemy 32 rejestry na checkpoint + 1 rejestr na dalsze przetwarzanie
+        - powinno to pozwolić ukrywać wszystkie zabawy z chainingiem i nie zapisywaniem do pliku rejestrów
 
 - jak zrobić dobre ALU/ jednostkę mnożącą, by na raz wspierała operacje na wielu długościach?
 - jak zrobić dobrze sieć przełączników?
