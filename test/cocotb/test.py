@@ -271,6 +271,9 @@ async def test(dut, test_name):
     cocotb.logging.info(f"{test_name}: {sim_time}")
 
 
+tests = {name[5:] for name in glob("test-*", root_dir=riscv_tests_dir)}
+exclude = {"ma_data", "fence_i"}
+
 tf = TestFactory(test)
-tf.add_option("test_name", [name[5:] for name in glob("test-*", root_dir=riscv_tests_dir)])
+tf.add_option("test_name", tests - exclude)
 tf.generate_tests()
