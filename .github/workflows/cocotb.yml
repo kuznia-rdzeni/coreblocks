@@ -12,7 +12,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008
     steps:
       - uses: actions/checkout@v3
 
