@@ -101,8 +101,7 @@ class TestFetch(TestCaseWithSimulator):
             try:
                 instr = self.instr_queue.popleft()
                 if instr["is_branch"]:
-                    for _ in range(rand.randrange(10)):
-                        yield
+                    yield from self.tick(rand.randrange(10))
                     yield from self.test_module.verify_branch.call(next_pc=instr["next_pc"])
 
                 v = yield from self.test_module.io_out.call()

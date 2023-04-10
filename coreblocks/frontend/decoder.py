@@ -416,8 +416,8 @@ class InstrDecoder(Elaboratable):
             self._extract(15, uimm5),
         ]
 
-        with m.If((self.funct3 == Funct3.SLL) | (self.funct3 == Funct3.SR)):
-            m.d.comb += iimm12[5:11].eq(0)
+        with m.If((opcode == Opcode.OP_IMM) & ((self.funct3 == Funct3.SLL) | (self.funct3 == Funct3.SR))):
+            m.d.comb += iimm12.eq(instr[20:25])
 
         with m.Switch(instruction_type):
             with m.Case(InstrType.I):
