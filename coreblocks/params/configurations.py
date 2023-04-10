@@ -31,6 +31,12 @@ class CoreConfiguration:
         Size of the Reorder Buffer is 2**rob_entries_bits.
     start_pc: int
         Initial Program Counter value.
+    icache_ways: int
+        Associativity of the instruction cache.
+    icache_sets_bits: int
+        Log of the number of sets of the instruction cache.
+    icache_block_size_bits: int
+        Log of the cache line size (in bytes).5r4hl; lur4hk
     """
 
     isa_str: str = "rv32i"
@@ -39,6 +45,10 @@ class CoreConfiguration:
     phys_regs_bits: int = 6
     rob_entries_bits: int = 7
     start_pc: int = 0
+
+    icache_ways: int = 2
+    icache_sets_bits: int = 7
+    icache_block_size_bits: int = 5
 
     def replace(self, **kwargs):
         return dataclasses.replace(self, **kwargs)
