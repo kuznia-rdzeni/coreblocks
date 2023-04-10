@@ -27,7 +27,7 @@ sub_check_format_flake8() {
 sub_check_format_black() {
     python3 -m black \
       --line-length $MAX_LINE_LENGTH \
-      --extend-exclude "stubs|ci" $@ \
+      --extend-exclude "stubs|ci|external" $@ \
       --check $@
 }
 
