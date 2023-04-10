@@ -95,7 +95,7 @@ class MemoryModel(ABC):
 
 
 class RAMModel(MemoryModel):
-    def __init__(self, clock, data: bytes, delay: int = 1):
+    def __init__(self, clock, data: bytes, delay: int = 0):
         self.clock = clock
         self.delay = delay
         self.data = bytearray(data)
