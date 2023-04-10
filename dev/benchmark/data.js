@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681130788783,
+  "lastUpdate": 1681131111919,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4164,6 +4164,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 5425,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "db4ea83a8c2bfbd591eb839f0d0e4c9ad9f21277",
+          "message": "LSU addressing fix (#283)\n\n* Fix LSU address breakage\n\n* LSU test fix\n\n* Fix lint and comment",
+          "timestamp": "2023-04-10T14:43:16+02:00",
+          "tree_id": "02c033337047be0738974ecb90085b2b234e03f9",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/db4ea83a8c2bfbd591eb839f0d0e4c9ad9f21277"
+        },
+        "date": 1681131110451,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 57.83,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 19112,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 554,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5433,
             "unit": "LUT"
           }
         ]
