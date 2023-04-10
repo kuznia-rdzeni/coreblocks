@@ -5,6 +5,7 @@ from typing import TypeVar, Type, Protocol, runtime_checkable
 from amaranth.utils import log2_int
 
 from .isa import ISA
+from .icache_params import ICacheParameters
 from ..peripherals.wishbone import WishboneParameters
 
 from typing import TYPE_CHECKING
@@ -43,6 +44,14 @@ class GenParams(DependentCache):
         bytes_in_word = self.isa.xlen // 8
         self.wb_params = WishboneParameters(
             data_width=self.isa.xlen, addr_width=self.isa.xlen - log2_int(bytes_in_word)
+        )
+
+        self.icache_params = ICacheParameters(
+            addr_width=self.isa.xlen,
+            word_width=self.isa.xlen,
+            num_of_ways=cfg.icache_ways,
+            num_of_sets_bits=cfg.icache_sets_bits,
+            block_size_bits=cfg.icache_block_size_bits,
         )
 
         # Verification temporally disabled
