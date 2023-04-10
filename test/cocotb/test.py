@@ -137,7 +137,7 @@ class CombinedModel(MemoryModel):
     async def _run_on_range(
         self, f: Callable[[MemoryModel], Callable[[TReq], Coroutine[Any, Any, TRep]]], req: TReq
     ) -> Optional[TRep]:
-        for (address_range, model) in self.memory_ranges:
+        for address_range, model in self.memory_ranges:
             if req.addr in address_range:
                 return await f(model)(replace(req, addr=req.addr - address_range.start))
 
