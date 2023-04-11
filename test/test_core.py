@@ -188,8 +188,7 @@ class TestCoreRandomized(TestCoreBase):
             yield
 
         # finish calculations
-        for _ in range(50):
-            yield
+        yield from self.tick(50)
 
         yield from self.compare_core_states(self.software_core)
 
@@ -240,7 +239,7 @@ class TestCoreRandomized(TestCoreBase):
     ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
     [
         ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
-        ("fibonacci_mem", "fibonacci_mem.asm", 500, {3: 55}, basic_core_config),
+        ("fibonacci_mem", "fibonacci_mem.asm", 510, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 40, {1: 1, 2: 4}, full_core_config),
     ],
 )

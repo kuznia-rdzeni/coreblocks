@@ -54,7 +54,7 @@ class FuncBlocksUnifier(Elaboratable):
         m.submodules["result_collector"] = self.result_collector
         m.submodules["update_combiner"] = self.update_combiner
 
-        for (name, unifier) in self.unifiers.items():
+        for name, unifier in self.unifiers.items():
             m.submodules[name] = unifier
 
         return m

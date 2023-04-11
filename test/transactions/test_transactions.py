@@ -303,7 +303,7 @@ class TestTransactionPriorities(TestCaseWithSimulator):
         def process():
             to_do = 5 * [(0, 1), (1, 0), (1, 1)]
             random.shuffle(to_do)
-            for (r1, r2) in to_do:
+            for r1, r2 in to_do:
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
                 yield

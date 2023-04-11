@@ -9,7 +9,7 @@ from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import BitEnum, Funct3
 from coreblocks.params.keys import BranchResolvedKey, ROBSingleKey
-from coreblocks.params import OpType
+from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
 
 
@@ -161,7 +161,7 @@ class CSRUnit(Elaboratable):
     """
     Unit for performing Control and Status Regitsters computations.
 
-    Accepts instructions with `OpType.CSR`.
+    Accepts instructions with `OpType.CSR_REG` and `OpType.CSR_IMM`.
     Uses `RS` interface for input and `FU` interface for output.
     Depends on stalling the `Fetch` stage on CSR instructions and holds computation
     unitl all other instructions are commited.
@@ -181,7 +181,7 @@ class CSRUnit(Elaboratable):
         to the next pipeline stage.
     """
 
-    optypes = {OpType.CSR}
+    optypes = {OpType.CSR_REG, OpType.CSR_IMM}
 
     def __init__(self, gen_params: GenParams, rob_single_instr: Signal):
         """
@@ -307,14 +307,7 @@ class CSRUnit(Elaboratable):
         def _(rs_entry_id, rs_data):
             m.d.sync += assign(instr, rs_data)
 
-            immediate_op = Signal()
-            m.d.comb += immediate_op.eq(
-                (rs_data.exec_fn.funct3 == Funct3.CSRRWI)
-                | (rs_data.exec_fn.funct3 == Funct3.CSRRSI)
-                | (rs_data.exec_fn.funct3 == Funct3.CSRRCI)
-            )
-
-            with m.If(immediate_op):  # Pass immediate as first operand
+            with m.If(rs_data.exec_fn.op_type == OpType.CSR_IMM):  # Pass immediate as first operand
                 m.d.sync += instr.s1_val.eq(rs_data.imm)
 
             m.d.sync += instr.valid.eq(1)

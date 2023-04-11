@@ -15,7 +15,6 @@ class TestElaboratable(Elaboratable):
         self.gp = gen_params
 
     def elaborate(self, platform):
-
         m = Module()
         tm = TransactionModule(m)
 
@@ -51,10 +50,8 @@ class TestFetch(TestCaseWithSimulator):
         self.assertEqual(decoded["exec_fn"]["op_type"], OpType.ARITHMETIC)
         self.assertEqual(decoded["exec_fn"]["funct3"], Funct3.ADD)
         self.assertEqual(decoded["regs_l"]["rl_dst"], 4)
-        self.assertEqual(decoded["regs_l"]["rl_dst_v"], 1)
         self.assertEqual(decoded["regs_l"]["rl_s1"], 5)
-        self.assertEqual(decoded["regs_l"]["rl_s1_v"], 1)
-        self.assertEqual(decoded["regs_l"]["rl_s2_v"], 0)
+        self.assertEqual(decoded["regs_l"]["rl_s2"], 0)
         self.assertEqual(decoded["imm"], 42)
 
         # testing an OP instruction (test copied from test_decoder.py)
@@ -67,13 +64,9 @@ class TestFetch(TestCaseWithSimulator):
         self.assertEqual(decoded["exec_fn"]["funct3"], Funct3.ADD)
         self.assertEqual(decoded["exec_fn"]["funct7"], Funct7.ADD)
         self.assertEqual(decoded["regs_l"]["rl_dst"], 1)
-        self.assertEqual(decoded["regs_l"]["rl_dst_v"], 1)
         self.assertEqual(decoded["regs_l"]["rl_s1"], 2)
-        self.assertEqual(decoded["regs_l"]["rl_s1_v"], 1)
         self.assertEqual(decoded["regs_l"]["rl_s2"], 3)
-        self.assertEqual(decoded["regs_l"]["rl_s1_v"], 1)
 
     def test(self):
-
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.decode_test_proc)

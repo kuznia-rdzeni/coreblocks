@@ -22,7 +22,6 @@ class TestElaboratable(Elaboratable):
         self.gp = gen_params
 
     def elaborate(self, platform):
-
         m = Module()
         tm = TransactionModule(m)
 
@@ -102,8 +101,7 @@ class TestFetch(TestCaseWithSimulator):
             try:
                 instr = self.instr_queue.popleft()
                 if instr["is_branch"]:
-                    for _ in range(rand.randrange(10)):
-                        yield
+                    yield from self.tick(rand.randrange(10))
                     yield from self.test_module.verify_branch.call(next_pc=instr["next_pc"])
 
                 v = yield from self.test_module.io_out.call()
@@ -113,7 +111,6 @@ class TestFetch(TestCaseWithSimulator):
                 yield
 
     def test(self):
-
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.fetch_out_check)

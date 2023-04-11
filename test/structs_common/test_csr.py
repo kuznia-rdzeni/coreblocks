@@ -94,7 +94,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
         return {
             "instr": {
-                "exec_fn": {"op_type": OpType.CSR, "funct3": op, "funct7": 0},
+                "exec_fn": {"op_type": OpType.CSR_IMM if imm_op else OpType.CSR_REG, "funct3": op, "funct7": 0},
                 "rp_s1": 0 if value_available or imm_op else rs1,
                 "rp_s1_reg": rs1,
                 "s1_val": exp["rs1"]["value"] if value_available and not imm_op else 0,
@@ -112,7 +112,6 @@ class TestCSRUnit(TestCaseWithSimulator):
     def process_test(self):
         yield from self.dut.fetch_continue.enable()
         for _ in range(self.cycles):
-
             yield from self.random_wait()
             yield self.dut.rob_single_insn.eq(0)
 
