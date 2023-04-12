@@ -5,7 +5,6 @@ from typing import Any, Optional, TypeVar
 import cocotb
 import os
 from glob import glob
-from cocotb.utils import get_sim_time
 from cocotb.clock import Clock, Timer
 from cocotb.regression import TestFactory
 from cocotb.handle import ModifiableObject
@@ -266,9 +265,6 @@ async def test(dut, test_name):
     waiter_task = cocotb.start_soon(waiter())
 
     await First(waiter_task.join(), instr_task.join(), data_task.join())
-
-    sim_time = get_sim_time("ns")
-    cocotb.logging.info(f"{test_name}: {sim_time}")
 
 
 tests = {name[5:] for name in glob("test-*", root_dir=riscv_tests_dir)}
