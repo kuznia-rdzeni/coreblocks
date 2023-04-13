@@ -1,4 +1,4 @@
-from enum import IntFlag, unique, IntEnum
+from enum import IntFlag, unique, IntEnum, auto
 from typing import Sequence, Tuple
 
 from amaranth import *
@@ -7,7 +7,7 @@ from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsign
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params.fu_params import FunctionalComponentParams
-from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, auto
+from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *

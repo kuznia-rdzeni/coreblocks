@@ -1,8 +1,8 @@
-from enum import IntFlag
+from enum import IntFlag, auto
 from typing import Sequence
 from amaranth import *
 
-from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams, auto
+from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import FIFO
 from coreblocks.transactions.core import def_method

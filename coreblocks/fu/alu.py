@@ -9,7 +9,7 @@ from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch
 
 from coreblocks.fu.fu_decoder import DecoderManager
-from enum import IntFlag
+from enum import IntFlag, auto
 
 __all__ = ["AluFuncUnit", "ALUComponent"]
 

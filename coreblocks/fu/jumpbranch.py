@@ -1,6 +1,6 @@
 from amaranth import *
 
-from enum import IntFlag
+from enum import IntFlag, auto
 
 from typing import Sequence
 

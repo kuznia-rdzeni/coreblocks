@@ -41,6 +41,10 @@ class Decoder(Elaboratable):
 
             m.d.comb += self.decode_fn[signal_num].eq(cond)
 
+        # dummy signal to enable time domain while testing
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
         return m
 
 
