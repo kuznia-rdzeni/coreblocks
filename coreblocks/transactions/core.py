@@ -1,7 +1,6 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
-from inspect import Parameter, signature
 from typing import Callable, ClassVar, Mapping, TypeAlias, TypedDict, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
@@ -223,7 +222,7 @@ class TransactionManager(Elaboratable):
 
         porder: PriorityOrder = {}
 
-        for (k, transaction) in enumerate(TopologicalSorter(pgr).static_order()):
+        for k, transaction in enumerate(TopologicalSorter(pgr).static_order()):
             porder[transaction] = k
 
         return cgr, rgr, porder
@@ -242,7 +241,6 @@ class TransactionManager(Elaboratable):
             self._call_graph(transaction, method, arg, enable)
 
     def elaborate(self, platform):
-
         self.methods_by_transaction = defaultdict[Transaction, list[Method]](list)
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
         self.method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
@@ -819,21 +817,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:
-            parameters = signature(func).parameters
-            kw_parameters = set(
-                n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
-            )
-            if kw_parameters <= arg.fields.keys():
-                ret_out = func(**arg.fields)
-            elif (
-                len(parameters) == 1
-                and "arg" in parameters
-                and parameters["arg"].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
-                and parameters["arg"].annotation in {Parameter.empty, Record}
-            ):
-                ret_out = func(arg)
-            else:
-                raise TypeError(f"Invalid def_method for {method}")
+            ret_out = method_def_helper(method, func, arg, **arg.fields)
 
         if ret_out is not None:
             m.d.comb += assign(out, ret_out, fields=AssignType.ALL)

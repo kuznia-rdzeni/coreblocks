@@ -50,12 +50,10 @@ class Decode(Elaboratable):
                         "funct7": instr_decoder.funct7,
                     },
                     "regs_l": {
-                        "rl_dst": instr_decoder.rd,
-                        "rl_dst_v": instr_decoder.rd_v,
-                        "rl_s1": instr_decoder.rs1,
-                        "rl_s1_v": instr_decoder.rs1_v,
-                        "rl_s2": instr_decoder.rs2,
-                        "rl_s2_v": instr_decoder.rs2_v,
+                        # read/writes to phys reg 0 make no effect
+                        "rl_dst": Mux(instr_decoder.rd_v, instr_decoder.rd, 0),
+                        "rl_s1": Mux(instr_decoder.rs1_v, instr_decoder.rs1, 0),
+                        "rl_s2": Mux(instr_decoder.rs2_v, instr_decoder.rs2, 0),
                     },
                     "imm": instr_decoder.imm,
                     "csr": instr_decoder.csr,

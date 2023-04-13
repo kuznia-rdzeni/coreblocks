@@ -6,7 +6,6 @@ import argparse
 
 from amaranth.build import Platform
 from amaranth import Module, Elaboratable
-from amaranth.hdl.rec import Record
 
 
 if __name__ == "__main__":
@@ -17,30 +16,27 @@ if __name__ == "__main__":
 from coreblocks.params.genparams import GenParams
 from coreblocks.core import Core
 from coreblocks.transactions import TransactionModule
-from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneMaster, WishboneParameters
-from coreblocks.params.configurations import basic_configuration
+from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneBus
+from coreblocks.params.configurations import basic_core_config
 from constants.ecp5_platforms import make_ecp5_platform
 
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams, wb_params: WishboneParameters):
+    def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
-        self.wb_params = wb_params
 
     def elaborate(self, platform: Platform):
         m = Module()
         tm = TransactionModule(m)
 
-        self.wb_master_instr = WishboneMaster(wb_params=self.wb_params)
-        self.wb_master_data = WishboneMaster(wb_params=self.wb_params)
+        self.wb_instr = WishboneBus(self.gen_params.wb_params)
+        self.wb_data = WishboneBus(self.gen_params.wb_params)
 
-        self.core = Core(
-            gen_params=self.gen_params, wb_master_instr=self.wb_master_instr, wb_master_data=self.wb_master_data
-        )
+        self.core = Core(gen_params=self.gen_params, wb_instr_bus=self.wb_instr, wb_data_bus=self.wb_data)
 
         # Combine Wishbone buses with an arbiter
-        wb = Record.like(self.wb_master_instr.wbMaster)
-        self.wb_arbiter = WishboneArbiter(wb, [self.wb_master_instr.wbMaster, self.wb_master_data.wbMaster])
+        wb = WishboneBus(self.gen_params.wb_params)
+        self.wb_arbiter = WishboneArbiter(wb, [self.wb_instr, self.wb_data])
 
         # Request platform pins
         wb_pins = platform.request("wishbone", 0)
@@ -48,8 +44,6 @@ class TestElaboratable(Elaboratable):
         # Connect pins to the core
         m.d.comb += wb.connect(wb_pins)
 
-        m.submodules.wb_master_instr = self.wb_master_instr
-        m.submodules.wb_master_data = self.wb_master_data
         m.submodules.wb_arbiter = self.wb_arbiter
         m.submodules.c = self.core
 
@@ -57,11 +51,10 @@ class TestElaboratable(Elaboratable):
 
 
 def synthesize(platform: str):
-    gen_params = GenParams("rv32i", basic_configuration)
-    wb_params = WishboneParameters(data_width=32, addr_width=30)
+    gen_params = GenParams(basic_core_config)
 
     if platform == "ecp5":
-        make_ecp5_platform(wb_params)().build(TestElaboratable(gen_params, wb_params))
+        make_ecp5_platform(gen_params.wb_params)().build(TestElaboratable(gen_params))
 
 
 def main():

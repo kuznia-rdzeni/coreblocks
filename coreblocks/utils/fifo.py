@@ -2,7 +2,6 @@ from amaranth import *
 from coreblocks.transactions import Method, def_method, Priority
 from coreblocks.transactions._utils import MethodLayout
 from coreblocks.utils._typing import ValueLike
-from typing import List, Optional
 
 
 class BasicFifo(Elaboratable):
@@ -22,7 +21,7 @@ class BasicFifo(Elaboratable):
 
     """
 
-    def __init__(self, layout: MethodLayout, depth: int, *, init: Optional[List[int]] = None) -> None:
+    def __init__(self, layout: MethodLayout, depth: int) -> None:
         """
         Parameters
         ----------
@@ -31,9 +30,7 @@ class BasicFifo(Elaboratable):
             If integer is given, Record with field `data` and width of this paramter is used as internal layout.
         depth: int
             Size of the FIFO.
-        init: List of int, optional
-            List of memory elements to initialize FIFO at reset. List may be smaller than `depth`.
-            If `Record` is used as `layout`, it has to be flattened to `int` first.
+
         """
         self.layout = layout
         self.width = len(Record(self.layout))
@@ -43,21 +40,15 @@ class BasicFifo(Elaboratable):
         self.write = Method(i=self.layout)
         self.clear = Method()
 
-        if init is None:
-            init = []
-
-        if len(init) > depth:
-            raise RuntimeError("Init list is longer than FIFO depth")
-
-        self.buff = Memory(width=self.width, depth=self.depth, init=init)
+        self.buff = Memory(width=self.width, depth=self.depth)
 
         self.write_ready = Signal()
         self.read_ready = Signal()
 
         self.read_idx = Signal((self.depth - 1).bit_length())
-        self.write_idx = Signal((self.depth - 1).bit_length(), reset=(len(init) % self.depth))
+        self.write_idx = Signal((self.depth - 1).bit_length())
         # current fifo depth
-        self.level = Signal((self.depth).bit_length(), reset=len(init))
+        self.level = Signal((self.depth).bit_length())
 
         self.clear.add_conflict(self.read, Priority.LEFT)
         self.clear.add_conflict(self.write, Priority.LEFT)

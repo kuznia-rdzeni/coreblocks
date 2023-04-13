@@ -15,10 +15,10 @@ layout_ab = [("a", 1), ("b", 2)]
 layout_ac = [("a", 1), ("c", 3)]
 layout_a_alt = [("a", 2)]
 
-params_fgh = [
-    ("normal", lambda c, l: c(l), lambda x: x, lambda r: r),
-    ("rec", lambda c, l: c([("x", l)]), lambda x: {"x": x}, lambda r: r.x),
-    ("dict", lambda c, l: {"x": c(l)}, lambda x: {"x": x}, lambda r: r["x"]),
+params_build_wrap_extr = [
+    ("normal", lambda mk, lay: mk(lay), lambda x: x, lambda r: r),
+    ("rec", lambda mk, lay: mk([("x", lay)]), lambda x: {"x": x}, lambda r: r.x),
+    ("dict", lambda mk, lay: {"x": mk(lay)}, lambda x: {"x": x}, lambda r: r["x"]),
 ]
 
 
@@ -31,66 +31,64 @@ def mkproxy(layout):
 def reclayout2datalayout(layout):
     if not isinstance(layout, list):
         return layout
-    return data.StructLayout({k: reclayout2datalayout(l) for k, l in layout})
+    return data.StructLayout({k: reclayout2datalayout(lay) for k, lay in layout})
 
 
 def mkstruct(layout):
     return data.View(reclayout2datalayout(layout))
 
 
-params_c = [
+params_mk = [
     ("rec", Record),
     ("proxy", mkproxy),
     ("struct", mkstruct),
 ]
 
 
-@parameterized_class(["name", "f", "g", "h", "constr", "c"], [t + u for t in params_fgh for u in params_c])
+@parameterized_class(
+    ["name", "build", "wrap", "extr", "constr", "mk"],
+    [
+        (n, *map(staticmethod, (b, w, e)), c, staticmethod(m))
+        for n, b, w, e in params_build_wrap_extr
+        for c, m in params_mk
+    ],
+)
 class TestAssign(TestCase):
     # constructs `assign` arguments (records, proxies, dicts) which have an "inner" and "outer" part
     # parameterized with a Record-like constructor and a layout of the inner part
-    f: Callable[[Callable[[LayoutLike], AssignArg], LayoutLike], AssignArg]
+    build: Callable[[Callable[[LayoutLike], AssignArg], LayoutLike], AssignArg]
     # constructs field specifications for `assign`, takes field specifications for the inner part
-    g: Callable[[AssignFields], AssignFields]
+    wrap: Callable[[AssignFields], AssignFields]
     # extracts the inner part of the structure
-    h: Callable[[AssignArg], Record | ArrayProxy]
+    extr: Callable[[AssignArg], Record | ArrayProxy]
     # Record-like constructor, takes a record layout
-    c: Callable[[LayoutLike], AssignArg]
+    mk: Callable[[LayoutLike], AssignArg]
 
     def test_rhs_exception(self):
-        f = self.__class__.f
-        c = self.__class__.c
         with self.assertRaises(KeyError):
-            list(assign(f(c, layout_a), f(c, layout_ab), fields=AssignType.RHS))
+            list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_ab), fields=AssignType.RHS))
         with self.assertRaises(KeyError):
-            list(assign(f(c, layout_ab), f(c, layout_ac), fields=AssignType.RHS))
+            list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_ac), fields=AssignType.RHS))
 
     def test_all_exception(self):
-        f = self.__class__.f
-        c = self.__class__.c
         with self.assertRaises(KeyError):
-            list(assign(f(c, layout_a), f(c, layout_ab), fields=AssignType.ALL))
+            list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_ab), fields=AssignType.ALL))
         with self.assertRaises(KeyError):
-            list(assign(f(c, layout_ab), f(c, layout_a), fields=AssignType.ALL))
+            list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_a), fields=AssignType.ALL))
         with self.assertRaises(KeyError):
-            list(assign(f(c, layout_ab), f(c, layout_ac), fields=AssignType.ALL))
+            list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_ac), fields=AssignType.ALL))
 
     def test_missing_exception(self):
-        f = self.__class__.f
-        g = self.__class__.g
-        c = self.__class__.c
         with self.assertRaises(KeyError):
-            list(assign(f(c, layout_a), f(c, layout_ab), fields=g({"b"})))
+            list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_ab), fields=self.wrap({"b"})))
         with self.assertRaises(KeyError):
-            list(assign(f(c, layout_ab), f(c, layout_a), fields=g({"b"})))
+            list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_a), fields=self.wrap({"b"})))
         with self.assertRaises(KeyError):
-            list(assign(f(c, layout_a), f(c, layout_a), fields=g({"b"})))
+            list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_a), fields=self.wrap({"b"})))
 
     def test_wrong_bits(self):
-        f = self.__class__.f
-        c = self.__class__.c
         with self.assertRaises(ValueError):
-            list(assign(f(c, layout_a), f(c, layout_a_alt)))
+            list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_a_alt)))
 
     @parameterized.expand(
         [
@@ -102,16 +100,12 @@ class TestAssign(TestCase):
         ]
     )
     def test_assign_a(self, name, layout1: LayoutLike, layout2: LayoutLike, atype: AssignType):
-        f = self.__class__.f
-        g = self.__class__.g
-        h = self.__class__.h
-        c = self.__class__.c
-        lhs = f(c, layout1)
-        rhs = f(c, layout2)
-        alist = list(assign(lhs, rhs, fields=g(atype)))
+        lhs = self.build(self.mk, layout1)
+        rhs = self.build(self.mk, layout2)
+        alist = list(assign(lhs, rhs, fields=self.wrap(atype)))
         self.assertEqual(len(alist), 1)
-        self.assertIs_AP(alist[0].lhs, h(lhs).a)
-        self.assertIs_AP(alist[0].rhs, h(rhs).a)
+        self.assertIs_AP(alist[0].lhs, self.extr(lhs).a)
+        self.assertIs_AP(alist[0].rhs, self.extr(rhs).a)
 
     def assertIs_AP(self, expr1, expr2):  # noqa: N802
         if isinstance(expr1, ArrayProxy) and isinstance(expr2, ArrayProxy):

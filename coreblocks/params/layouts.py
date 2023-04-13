@@ -15,6 +15,7 @@ __all__ = [
     "RATLayouts",
     "LSULayouts",
     "CSRLayouts",
+    "ICacheLayouts",
 ]
 
 
@@ -28,11 +29,8 @@ class CommonLayouts:
 
         self.regs_l = [
             ("rl_s1", gen_params.isa.reg_cnt_log),
-            ("rl_s1_v", 1),
             ("rl_s2", gen_params.isa.reg_cnt_log),
-            ("rl_s2_v", 1),
             ("rl_dst", gen_params.isa.reg_cnt_log),
-            ("rl_dst_v", 1),
         ]
 
         self.regs_p = [
@@ -211,6 +209,29 @@ class RSLayouts:
         )
 
         self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
+
+
+class ICacheLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.issue_req = [
+            ("addr", gen_params.isa.xlen),
+        ]
+
+        self.accept_res = [
+            ("instr", gen_params.isa.ilen),
+            ("error", 1),
+        ]
+
+        self.start_refill = [
+            ("addr", gen_params.isa.xlen),
+        ]
+
+        self.accept_refill = [
+            ("addr", gen_params.isa.xlen),
+            ("data", gen_params.isa.xlen),
+            ("error", 1),
+            ("last", 1),
+        ]
 
 
 class FetchLayouts:

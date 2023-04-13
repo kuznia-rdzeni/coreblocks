@@ -1,7 +1,9 @@
 from amaranth import *
 
 from coreblocks.structs_common.csr import CSRUnit, CSRRegister
+from coreblocks.params import GenParams
 from coreblocks.params.isa import Funct3
+from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder import OpType
 from coreblocks.transactions.lib import Adapter
 
@@ -85,7 +87,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
         return {
             "instr": {
-                "exec_fn": {"op_type": OpType.CSR, "funct3": op, "funct7": 0},
+                "exec_fn": {"op_type": OpType.CSR_IMM if imm_op else OpType.CSR_REG, "funct3": op, "funct7": 0},
                 "rp_s1": 0 if value_available or imm_op else rs1,
                 "rp_s1_reg": rs1,
                 "s1_val": exp["rs1"]["value"] if value_available and not imm_op else 0,
@@ -103,7 +105,6 @@ class TestCSRUnit(TestCaseWithSimulator):
     def process_test(self):
         yield from self.dut.fetch_continue.enable()
         for _ in range(self.cycles):
-
             yield from self.random_wait()
             yield self.dut.rob_single_insn.eq(0)
 
@@ -130,7 +131,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             self.assertEqual((yield self.dut.csr[op["exp"]["exp_write"]["csr"]].value), op["exp"]["exp_write"]["value"])
 
     def test_randomized(self):
-        self.gp = test_gen_params("rv32i")
+        self.gp = GenParams(test_core_config)
         random.seed(8)
 
         self.cycles = 256
@@ -198,7 +199,7 @@ class TestCSRRegister(TestCaseWithSimulator):
             yield from self.dut.write.disable()
 
     def test_randomized(self):
-        self.gp = test_gen_params("rv32i")
+        self.gp = GenParams(test_core_config)
         random.seed(42)
 
         self.cycles = 200

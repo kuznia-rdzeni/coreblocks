@@ -5,6 +5,7 @@ from coreblocks.utils import assign
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.layouts import FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3
+from coreblocks.params.optypes import OpType
 
 
 class CSRRegister(Elaboratable):
@@ -116,7 +117,7 @@ class CSRUnit(Elaboratable):
     """
     Unit for performing Control and Status Regitsters computations.
 
-    Accepts instructions with `OpType.CSR`.
+    Accepts instructions with `OpType.CSR_REG` and `OpType.CSR_IMM`.
     Uses `RS` interface for input and `FU` interface for output.
     Depends on stalling the `Fetch` stage on CSR instructions and holds computation
     unitl all other instructions are commited.
@@ -246,14 +247,7 @@ class CSRUnit(Elaboratable):
         def _(rs_entry_id, rs_data):
             m.d.sync += assign(instr, rs_data)
 
-            immediate_op = Signal()
-            m.d.comb += immediate_op.eq(
-                (rs_data.exec_fn.funct3 == Funct3.CSRRWI)
-                | (rs_data.exec_fn.funct3 == Funct3.CSRRSI)
-                | (rs_data.exec_fn.funct3 == Funct3.CSRRCI)
-            )
-
-            with m.If(immediate_op):  # Pass immediate as first operand
+            with m.If(rs_data.exec_fn.op_type == OpType.CSR_IMM):  # Pass immediate as first operand
                 m.d.sync += instr.s1_val.eq(rs_data.imm)
 
             m.d.sync += instr.valid.eq(1)
