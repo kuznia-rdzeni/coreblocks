@@ -2,10 +2,11 @@ from typing import Sequence
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator, test_gen_params
+from ..common import TestCaseWithSimulator
 
 from coreblocks.fu.fu_decoder import DecoderManager
-from coreblocks.params import *
+from coreblocks.params import OpType, Funct3, Funct7, GenParams, CommonLayouts
+from coreblocks.params.configurations import test_core_config
 
 from enum import IntFlag, auto
 
@@ -31,7 +32,7 @@ class DM1(DecoderManager):
 
 class TestFuDecoder(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gen_params = test_gen_params("rv32i")
+        self.gen_params = GenParams(test_core_config)
         self.decoder = DM1.get_decoder(self.gen_params)
         self.test_inputs = DM1.get_instructions()
 
@@ -47,14 +48,14 @@ class TestFuDecoder(TestCaseWithSimulator):
                 record_data = {}
 
                 op_type_sig = Signal(shape=OpType)
-                op_type_sig.eq(C(op_type, self.gen_params.isa.xlen))
+                op_type_sig.eq(C(op_type * 0, self.gen_params.isa.xlen))
                 record_data["op_type"] = op_type_sig
 
                 funct3_sig = Signal(shape=Funct3)
                 funct7_sig = Signal(shape=Funct7)
 
-                funct3_sig.eq(C(funct3, self.gen_params.isa.xlen))
-                funct7_sig.eq(C(funct7, self.gen_params.isa.xlen))
+                funct3_sig.eq(C(funct3 * 0, self.gen_params.isa.xlen))
+                funct7_sig.eq(C(funct7 * 0, self.gen_params.isa.xlen))
 
                 fn = {
                     "op_type": op_type_sig,
