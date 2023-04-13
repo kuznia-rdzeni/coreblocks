@@ -23,9 +23,9 @@ class DM1(DecoderManager):
         return [
             (cls.Fn.INST1, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
             (cls.Fn.INST2, OpType.ARITHMETIC, Funct3.AND, Funct7.SUB),
-            (cls.Fn.INST3, OpType.ARITHMETIC, Funct3.AND, Funct7.ADD),
-            (cls.Fn.INST4, OpType.ARITHMETIC, Funct3.AND, Funct7.ADD),
-            (cls.Fn.INST5, OpType.ARITHMETIC, Funct3.AND, Funct7.ADD),
+            (cls.Fn.INST3, OpType.ARITHMETIC, Funct3.OR, Funct7.ADD),
+            (cls.Fn.INST4, OpType.ARITHMETIC, Funct3.XOR, Funct7.ADD),
+            (cls.Fn.INST5, OpType.ARITHMETIC, Funct3.BGEU, Funct7.ADD),
         ]
 
 
@@ -33,9 +33,7 @@ class TestFuDecoder(TestCaseWithSimulator):
     def setUp(self) -> None:
         self.gen_params = test_gen_params("rv32i")
         self.decoder = DM1.get_decoder(self.gen_params)
-        self.test_inputs = [
-            (DM1.Fn.INST1, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
-        ]
+        self.test_inputs = DM1.get_instructions()
 
     def yield_signals(self, exec_fn):
         # print(exec_fn)
