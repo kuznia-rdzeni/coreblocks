@@ -18,7 +18,6 @@ from coreblocks.utils.protocols import FuncUnit
 
 class AluFn(DecoderManager):
     class Fn(IntFlag):
-
         ADD = auto()  # Addition
         SLL = auto()  # Logic left shift
         XOR = auto()  # Bitwise xor
