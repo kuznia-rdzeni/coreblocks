@@ -11,15 +11,14 @@ import random
 
 
 class BasicFifoTestCircuit(Elaboratable):
-    def __init__(self, depth, init):
+    def __init__(self, depth):
         self.depth = depth
-        self.init = init
 
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
 
-        m.submodules.fifo = self.fifo = BasicFifo(layout=data_layout(8), depth=self.depth, init=self.init)
+        m.submodules.fifo = self.fifo = BasicFifo(layout=data_layout(8), depth=self.depth)
 
         m.submodules.fifo_read = self.fifo_read = TestbenchIO(AdapterTrans(self.fifo.read))
         m.submodules.fifo_write = self.fifo_write = TestbenchIO(AdapterTrans(self.fifo.write))
@@ -29,25 +28,18 @@ class BasicFifoTestCircuit(Elaboratable):
 
 
 @parameterized_class(
-    ("name", "depth", "init_len"),
+    ("name", "depth"),
     [
-        ("notpower_notfull", 5, 3),
-        ("notpower_full", 5, 5),
-        ("notpower_empty", 5, 0),
-        ("power_notfull", 4, 3),
-        ("power_full", 4, 4),
-        ("power_empty", 4, 0),
+        ("notpower", 5),
+        ("power", 4),
     ],
 )
 class TestBasicFifo(TestCaseWithSimulator):
     depth: int
-    init_len: int
 
     def test_randomized(self):
-        init_values = [x for x in range(self.init_len)]
-
-        fifoc = BasicFifoTestCircuit(depth=self.depth, init=init_values)
-        expq = deque(reversed(init_values))  # first expected element is at the start of init_list
+        fifoc = BasicFifoTestCircuit(depth=self.depth)
+        expq = deque()
 
         cycles = 256
         random.seed(42)

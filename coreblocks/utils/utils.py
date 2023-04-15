@@ -14,6 +14,7 @@ __all__ = [
     "OneHotSwitchDynamic",
     "OneHotSwitch",
     "flatten_signals",
+    "bits_from_int",
 ]
 
 
@@ -292,17 +293,26 @@ def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
 
 
 def align_to_power_of_two(num: int, power: int) -> int:
-    """
-    Rounds up a number to the given power of two.
+    """Rounds up a number to the given power of two.
 
-    Parameters:
-        num (int): The number to align.
-        power (int): The power of two to align to.
+    Parameters
+    ----------
+    num : int
+        The number to align.
+    power : int
+        The power of two to align to.
 
-    Returns:
-        int: The aligned number.
+    Returns
+    -------
+    int
+        The aligned number.
     """
     mask = 2**power - 1
     if num & mask == 0:
         return num
     return (num & ~mask) + 2**power
+
+
+def bits_from_int(num: int, lower: int, length: int):
+    """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
+    return (num >> lower) & (1 << (length) - 1)

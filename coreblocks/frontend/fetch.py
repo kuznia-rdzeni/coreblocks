@@ -64,13 +64,14 @@ class Fetch(Elaboratable):
             # but this could potentially change in the future since there's a reserved
             # (currently unused) bit pattern in the spec, see table 19.1 in RISC-V spec v2.2
             is_branch = res.instr[4:7] == 0b110
+            is_system = res.instr[2:7] == 0b11100
 
             with m.If(discard_next):
                 m.d.sync += discard_next.eq(0)
 
             # TODO: find a better way to fail when there's a fetch error.
             with m.Elif(res.error == 0):
-                with m.If(is_branch):
+                with m.If(is_branch | is_system):
                     m.d.sync += stalled.eq(1)
                     m.d.sync += discard_next.eq(1)
 

@@ -2,6 +2,7 @@ from amaranth import *
 
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
+from coreblocks.transactions.core import Transaction
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import InstructionCommitKey, BranchResolvedKey, WishboneDataKey
@@ -10,6 +11,7 @@ from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.structs_common.rf import RegisterFile
+from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
@@ -34,9 +36,7 @@ class Core(Elaboratable):
         # make fifo_fetch visible outside the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
         self.free_rf_fifo = BasicFifo(
-            self.gen_params.get(SchedulerLayouts).free_rf_layout,
-            2**self.gen_params.phys_regs_bits,
-            init=[i for i in range(1, 2**self.gen_params.phys_regs_bits)],
+            self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
         cache_layouts = self.gen_params.get(ICacheLayouts)
         self.cache_refiller = SimpleWBCacheRefiller(cache_layouts, self.gen_params.icache_params, self.wb_master_instr)
@@ -113,11 +113,20 @@ class Core(Elaboratable):
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
         m.submodules.retirement = Retirement(
+            self.gen_params,
             rob_retire=rob.retire,
             r_rat_commit=rrat.commit,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
             lsu_commit=self.func_blocks_unifier.get_extra_method(InstructionCommitKey()),
         )
+
+        m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)
+
+        # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
+        free_rf_reg = Signal(self.gen_params.phys_regs_bits, reset=1)
+        with Transaction(name="InitFreeRFFifo").body(m, request=(free_rf_reg.bool())):
+            free_rf_fifo.write(m, free_rf_reg)
+            m.d.sync += free_rf_reg.eq(free_rf_reg + 1)
 
         return m

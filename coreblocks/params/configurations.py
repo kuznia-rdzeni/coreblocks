@@ -2,10 +2,14 @@ from collections.abc import Collection
 import dataclasses
 from dataclasses import dataclass
 from coreblocks.params.fu_params import BlockComponentParams
+from coreblocks.stages.rs_func_block import RSBlockComponent
 from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.jumpbranch import JumpComponent
+from coreblocks.fu.mul_unit import MulComponent, MulType
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
-from coreblocks.stages.rs_func_block import RSBlockComponent
+from coreblocks.structs_common.csr import CSRBlockComponent
+
+__all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4),
@@ -64,6 +68,17 @@ tiny_core_config = CoreConfiguration(
         LSUBlockComponent(),
     ),
     rob_entries_bits=6,
+)
+
+# Core configuration with all supported components
+full_core_config = CoreConfiguration(
+    isa_str="rv32imzicsr",
+    func_units_config=(
+        RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4),
+        RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=4),
+        LSUBlockComponent(),
+        CSRBlockComponent(),
+    ),
 )
 
 # Core configuration used in internal testbenches

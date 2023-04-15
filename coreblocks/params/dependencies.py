@@ -73,7 +73,7 @@ class SimpleKey(Generic[T], DependencyKey[T, T]):
 class ListKey(Generic[T], DependencyKey[T, list[T]]):
     """Base class for list key.
 
-    List keys are useed when there is an one-to-many relation between keys
+    List keys are used when there is an one-to-many relation between keys
     and dependecies. Provides list of dependencies.
     """
 
