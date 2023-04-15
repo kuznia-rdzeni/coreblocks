@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681131536715,
+  "lastUpdate": 1681562494567,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4237,6 +4237,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6e47c87fde4aa247d8d862c36ffbaea817ca0da2"
         },
         "date": 1681131535938,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 58.46,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17769,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 522,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5433,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "186cd181bfbbb4951b31635caf9a72c70853eaf7",
+          "message": "Cocotb support (#268)\n\n* cocotb initial commit\n\n* Cocotb action\n\nLint\n\n* Fix requirements file\n\n* Add libpython3.10 to dockerfile\n\n* Build riscv-tests\n\n* Towards running tests\n\n* Wishbone handling\n\n* Add timeouts\n\n* Report test results\n\nLinting, exclude test from typechecking\n\n* Towards ELF support\n\n* Towards running tests\n\n* WiP: switch to icarus\n\n* Link instructions at address 0\n\n* Install iverilog in CI\n\n* Handle synchronous resetting\n\n* Replace prints with debug messages\n\n* Fix weird cases when memsz=0 but there is data\n\nFix\n\n* Support memory writes\n\n* Fix deprecation warning\n\n* Exclude external from tests\n\n* Remove Verilator stuff (for now)\n\n* Keep the container (for simplicity)\n\nWrong workflow changed\n\n* Exclude tests which will not pass currently\n\n* Fix lint after merge\n\n* Change memory delay to 0\n\n* Fix typo\n\n* Rename stuff in workflow\n\n* Remove sim time printing (it's done at the end anyway)",
+          "timestamp": "2023-04-15T14:35:26+02:00",
+          "tree_id": "68f489d230d767275e3706941d010ba8f48f1313",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/186cd181bfbbb4951b31635caf9a72c70853eaf7"
+        },
+        "date": 1681562493419,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
