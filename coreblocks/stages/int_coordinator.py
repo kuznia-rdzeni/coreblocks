@@ -11,9 +11,6 @@ class InterruptCoordinator(Elaboratable):
         gen_params: GenParams,
         r_rat_get_all: Method,
         f_rat_set_all: Method,
-        scheduler_clear: Method,
-        frontend_clear: Method,
-        fu_clear: Method,
         pc_stall: Method,
         pc_verify_branch: Method,
         rob_can_flush: Method,
@@ -23,15 +20,11 @@ class InterruptCoordinator(Elaboratable):
         self.gen_params = gen_params
         self.r_rat_get_all = r_rat_get_all
         self.f_rat_set_all = f_rat_set_all
-        self.scheduler_clear = scheduler_clear
-        self.frontend_clear = frontend_clear
-        self.fu_clear = fu_clear
         self.pc_stall = pc_stall
         self.pc_verify_branch = pc_verify_branch
         self.rob_can_flush = rob_can_flush
         self.rob_flush = rob_flush
         self.free_reg_put = free_reg_put
-
         self.trigger = Method()
         self.iret = Method()
 
@@ -41,6 +34,11 @@ class InterruptCoordinator(Elaboratable):
         old_pc = Signal(self.gen_params.isa.xlen)
         int_handler_addr = C(0xFE)
 
+        connections = self.gen_params.get(DependencyManager)
+        clear_blocks, unifiers = connections.get_dependency(keys.ClearKey())
+        for name, unifier in unifiers.items():
+            m.submodules[name] = unifier
+
         with m.FSM("idle"):
             with m.State("idle"):
                 with m.If(interrupt):
@@ -48,11 +46,8 @@ class InterruptCoordinator(Elaboratable):
             with m.State("clear"):
                 with Transaction(name="IntClearAll").body(m):
                     self.f_rat_set_all(m, self.r_rat_get_all(m))
-                    self.frontend_clear(m)
-                    self.scheduler_clear(m)
-                    self.fu_clear(m)
                     self.pc_stall(m)
-                    # ...clear other stuff
+                    clear_blocks(m)
                     m.next = "flush_rob"
             with m.State("flush_rob"):
                 with Transaction(name="IntFlushRob").body(m):

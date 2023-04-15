@@ -5,7 +5,7 @@ from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.transactions.lib import FIFO, ConnectTrans, MethodProduct, ConnectAndTransformTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import InstructionPrecommitKey, BranchResolvedKey, WishboneDataKey, ClearKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
@@ -33,9 +33,12 @@ class Core(Elaboratable):
 
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
+        self.connections = gen_params.get(DependencyManager)
 
         # make fifo_fetch visible outside the core for injecting instructions
         self.fifo_fetch = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, 2)
+        self.connections.add_dependency(ClearKey(), self.fifo_fetch.clear)
+
         self.free_rf_fifo = BasicFifo(
             self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
@@ -56,14 +59,14 @@ class Core(Elaboratable):
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        connections = gen_params.get(DependencyManager)
-        connections.add_dependency(WishboneDataKey(), self.wb_master_data)
+        self.connections.add_dependency(WishboneDataKey(), self.wb_master_data)
 
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
             extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
         )
+        self.connections.add_dependency(ClearKey(), self.func_blocks_unifier.clear)
 
         self.announcement = ResultAnnouncement(
             gen=self.gen_params,
@@ -95,6 +98,8 @@ class Core(Elaboratable):
         m.submodules.fetch = self.fetch
 
         m.submodules.fifo_decode = fifo_decode = BasicFifo(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
+        self.connections.add_dependency(ClearKey(), fifo_decode.clear)
+
         m.submodules.decode = Decode(
             gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=fifo_decode.write
         )
@@ -109,24 +114,21 @@ class Core(Elaboratable):
             reservation_stations=self.func_blocks_unifier.rs_blocks,
             gen_params=self.gen_params,
         )
+        self.connections.add_dependency(ClearKey(), scheduler.clear)
 
         m.submodules.verify_branch = ConnectAndTransformTrans(
-            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch,
-            o_fun=lambda _, rec: {}  # drop old_pc
+            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()),
+            self.fetch.verify_branch,
+            o_fun=lambda _, rec: {},  # drop old_pc
         )
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
 
-        m.submodules.frontend_clear = frontend_clear = MethodProduct([fifo_decode.clear, self.fifo_fetch.clear])
-
         m.submodules.int_coordinator = int_coordinator = InterruptCoordinator(
             gen_params=self.gen_params,
             r_rat_get_all=self.RRAT.get_all,
             f_rat_set_all=self.FRAT.set_all,
-            scheduler_clear=scheduler.clear,
-            frontend_clear=frontend_clear.method,
-            fu_clear=self.func_blocks_unifier.clear,
             pc_stall=self.fetch.stall,
             pc_verify_branch=self.fetch.verify_branch,
             rob_can_flush=self.ROB.can_flush,

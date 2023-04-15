@@ -8,6 +8,7 @@ __all__ = [
     "WishboneDataKey",
     "InstructionPrecommitKey",
     "BranchResolvedKey",
+    "ClearKey",
 ]
 
 
@@ -24,3 +25,9 @@ class InstructionPrecommitKey(UnifierKey, unifier=MethodProduct):
 @dataclass(frozen=True)
 class BranchResolvedKey(UnifierKey, unifier=Collector):
     pass
+
+
+@dataclass(frozen=True)
+class ClearKey(UnifierKey, unifier=MethodProduct):
+    pass
+
