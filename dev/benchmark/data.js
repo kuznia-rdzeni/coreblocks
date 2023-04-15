@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681562494567,
+  "lastUpdate": 1681567477472,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4301,6 +4301,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 522,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5433,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6e9cad87045017a44a1eca5eb26356d9e94ec6af",
+          "message": "CSR integration and improvements (#267)\n\n* params: add list dependency key\n\n* csr: Use CSRListKey dependency for registering CSRs\n\n* csr: apply FU BlockComponent to CSR unit + fetch\n\n* rob: add single_entry signal\n\n* csr: bind fetch_continue method to get_result execution\n\n* csr: add csr_generic file: csr addresses, priv and combined csrs spec\n\n* retirement: implement insret csr\n\n* csr: Check privilege level and read-only bits from csr address in unit\n\n* docs: fix docstrings\n\n* Fetch: stall fetch on SYSTEM opcode\n\n* scheduler: fix missing `csr` field\n\n* csr: doublecounter docstrings + regs rename\n\n* core-test: generalize asm test runner and add simple csr asm test\n\n* csr+key: detect if registers are added after unit elaboration\n\n* params: add list dependency key\n\n* params: add dependency_exists\n\n* params: add key locking\n\n* params: rename dependency_exists to key_exists\n\n* params: add empty_valid parameter to key\n\n* params: set empty_valid=True in ListKey\n\n* Implement cycle and time, add comment\n\n* Address review comments\n\n* Fixes after merge\n\n* Add full core config to gen_verilog\n\nNote: Zmmul extension is not yet ratifed(?) and not available in compilers\n\n* Increase test time due to free_rf init\n\n* Address CR comments\n\n* Use Switch to match opcodes\n\n---------\n\nCo-authored-by: Marek Materzok <tilk@tilk.eu>",
+          "timestamp": "2023-04-15T15:59:43+02:00",
+          "tree_id": "4cf185ca9a6afdfa8e25db3b61915957e3c4f17a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6e9cad87045017a44a1eca5eb26356d9e94ec6af"
+        },
+        "date": 1681567476181,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 57.04,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17617,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 554,
             "unit": "LUT"
           },
           {
