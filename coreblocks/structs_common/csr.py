@@ -273,20 +273,15 @@ class CSRUnit(Elaboratable):
                             if not read_only:
                                 with m.If(should_write_csr & ~done):
                                     write_val = Signal(self.gen_params.isa.xlen)
-                                    with m.If(
-                                        (instr.exec_fn.funct3 == Funct3.CSRRW) | (instr.exec_fn.funct3 == Funct3.CSRRWI)
-                                    ):
-                                        m.d.comb += write_val.eq(instr.s1_val)
-                                    with m.If(
-                                        (instr.exec_fn.funct3 == Funct3.CSRRS) | (instr.exec_fn.funct3 == Funct3.CSRRSI)
-                                    ):
-                                        m.d.comb += write_val.eq(read_val | instr.s1_val)
-                                    with m.If(
-                                        (instr.exec_fn.funct3 == Funct3.CSRRC) | (instr.exec_fn.funct3 == Funct3.CSRRCI)
-                                    ):
-                                        m.d.comb += write_val.eq(read_val & (~instr.s1_val))
-
+                                    with m.Switch(instr.exec_fn.funct3):
+                                        with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
+                                            m.d.comb += write_val.eq(instr.s1_val)
+                                        with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
+                                            m.d.comb += write_val.eq(read_val | instr.s1_val)
+                                        with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
+                                            m.d.comb += write_val.eq(read_val & (~instr.s1_val))
                                     write(m, write_val)
+
                 with m.Default():
                     pass  # TODO : invalid csr number handling
 
