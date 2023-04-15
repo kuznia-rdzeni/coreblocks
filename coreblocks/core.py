@@ -11,6 +11,7 @@ from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.structs_common.rf import RegisterFile
+from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
@@ -100,12 +101,15 @@ class Core(Elaboratable):
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
         m.submodules.retirement = Retirement(
+            self.gen_params,
             rob_retire=rob.retire,
             r_rat_commit=rrat.commit,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
             lsu_commit=self.func_blocks_unifier.get_extra_method(InstructionCommitKey()),
         )
+
+        m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)
 
         # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
         free_rf_reg = Signal(self.gen_params.phys_regs_bits, reset=1)

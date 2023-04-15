@@ -22,6 +22,13 @@ venv.bak/
 # Tests outputs
 test/__traces__
 
+# cocotb build
+test/cocotb/sim_build/
+test/cocotb/results.xml
+
+# riscv-tests
+test/external/riscv-tests/test-*
+
 # Documentation build
 build/
 docs/*.rst
