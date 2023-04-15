@@ -135,7 +135,7 @@ class TestCoreSimple(TestCoreBase):
             yield from self.push_instr(gen_riscv_add_instr(i + 1, 0, 0))
 
         # waiting for the retirement rat to be set
-        for i in range(50):
+        for i in range(100):
             yield
 
         # checking if all registers have been allocated

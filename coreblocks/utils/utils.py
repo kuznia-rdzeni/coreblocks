@@ -8,12 +8,12 @@ from ._typing import ValueLike, LayoutList, SignalBundle
 
 
 __all__ = [
-    "align_to_power_of_two",
     "AssignType",
     "assign",
     "OneHotSwitchDynamic",
     "OneHotSwitch",
     "flatten_signals",
+    "align_to_power_of_two",
     "bits_from_int",
 ]
 

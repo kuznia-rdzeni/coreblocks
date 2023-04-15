@@ -19,6 +19,8 @@ class ICacheParameters:
         self.addr_width = addr_width
         self.word_width = word_width
         self.num_of_ways = num_of_ways
+        self.num_of_sets_bits = num_of_sets_bits
+        self.block_size_bits = block_size_bits
         self.num_of_sets = 2**num_of_sets_bits
         self.block_size_bytes = 2**block_size_bits
 
