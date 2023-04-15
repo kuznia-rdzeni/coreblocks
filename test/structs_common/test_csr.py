@@ -5,7 +5,6 @@ from coreblocks.params import GenParams
 from coreblocks.params.isa import Funct3
 from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder import OpType
-from coreblocks.transactions.lib import Adapter
 
 from ..common import *
 
@@ -23,23 +22,31 @@ class CSRUnitTestCircuit(Elaboratable):
 
         self.rob_single_insn = Signal()
 
-        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(Adapter())
-
-        m.submodules.dut = self.dut = CSRUnit(self.gen_params, self.rob_single_insn, self.fetch_continue.adapter.iface)
+        m.submodules.dut = self.dut = CSRUnit(self.gen_params, self.rob_single_insn)
 
         m.submodules.select = self.select = TestbenchIO(AdapterTrans(self.dut.select))
         m.submodules.insert = self.insert = TestbenchIO(AdapterTrans(self.dut.insert))
         m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
-        m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.accept))
+        m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
+
+        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(AdapterTrans(self.dut.fetch_continue))
 
         self.csr = {}
 
+        def make_csr(number: int):
+            csr = CSRRegister(csr_number=number, gen_params=self.gen_params)
+            self.csr[number] = csr
+            m.submodules += csr
+
         # simple test not using external r/w functionality of csr
         for i in range(self.csr_count):
-            csr = CSRRegister(csr_number=i, gen_params=self.gen_params)
-            self.dut.register(csr)
-            self.csr[i] = csr
-            m.submodules += csr
+            make_csr(i)
+
+        # for future tests with exception support
+        # read-only
+        # make_csr(0xc00)
+        # missing privilege
+        # make_csr(0x100)
 
         return tm
 
@@ -79,7 +86,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         imm = random.randint(0, 2**self.gp.isa.xlen - 1)
         rs1_val = random.randint(0, 2**self.gp.isa.xlen - 1) if rs1 else 0
         operand_val = imm if imm_op else rs1_val
-        csr = random.randint(0, self.csr_count - 1)
+        csr = random.choice(list(self.dut.csr.keys()))
 
         exp = yield from self.gen_expected_out(op, rd, rs1, operand_val, csr)
 

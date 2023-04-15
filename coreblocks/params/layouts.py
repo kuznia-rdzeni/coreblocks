@@ -346,6 +346,7 @@ class CSRLayouts:
                 "s1_val",
                 "imm",
                 "csr",
+                "pc",
             },
         )
 

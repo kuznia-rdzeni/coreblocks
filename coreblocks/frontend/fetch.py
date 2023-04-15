@@ -53,7 +53,8 @@ class Fetch(Elaboratable):
                 # but this could potentially change in the future since there's a reserved
                 # (currently unused) bit pattern in the spec, see table 19.1 in RISC-V spec v2.2
                 is_branch = fetched.data[4:7] == 0b110
-                with m.If(is_branch):
+                is_system = fetched.data[2:7] == 0b11100
+                with m.If(is_branch | is_system):
                     m.d.sync += stalled.eq(1)
 
                 m.d.sync += self.pc.eq(self.pc + self.gp.isa.ilen_bytes)

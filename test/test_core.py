@@ -7,7 +7,7 @@ from .common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import basic_core_config
+from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
 from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
 
 from typing import Optional
@@ -236,23 +236,28 @@ class TestCoreRandomized(TestCoreBase):
 
 
 @parameterized_class(
-    ("name", "source_file", "instr_count", "expected_regvals"),
-    [("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}), ("fibonacci_mem", "fibonacci_mem.asm", 510, {3: 55})],
+    ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
+    [
+        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
+        ("fibonacci_mem", "fibonacci_mem.asm", 510, {3: 55}, basic_core_config),
+        ("csr", "csr.asm", 100, {1: 1, 2: 4}, full_core_config),
+    ],
 )
 class TestCoreAsmSource(TestCoreBase):
     source_file: str
-    instr_count: int
+    cycle_count: int
     expected_regvals: dict[int, int]
+    configuration: CoreConfiguration
 
     def run_and_check(self):
-        for i in range(self.instr_count):
+        for i in range(self.cycle_count):
             yield
 
         for reg_id, val in self.expected_regvals.items():
             self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
 
     def test_asm_source(self):
-        self.gp = GenParams(basic_core_config)
+        self.gp = GenParams(self.configuration)
         self.base_dir = "test/asm/"
         self.bin_src = []
 
@@ -261,7 +266,7 @@ class TestCoreAsmSource(TestCoreBase):
                 [
                     "riscv64-unknown-elf-as",
                     "-mabi=ilp32",
-                    "-march=rv32i",
+                    "-march=" + self.configuration.isa_str,
                     "-o",
                     asm_tmp.name,
                     self.base_dir + self.source_file,
