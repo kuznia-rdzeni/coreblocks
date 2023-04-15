@@ -25,9 +25,9 @@ class ReorderBuffer(Elaboratable):
         start_idx = Signal(self.params.rob_entries_bits)
         end_idx = Signal(self.params.rob_entries_bits)
 
-        put_possible = (end_idx + 1) & ((1 << self.params.rob_entries_bits) - 1) != start_idx
+        put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
 
-        m.d.comb += self.single_entry.eq(((start_idx + 1) & ((1 << self.params.rob_entries_bits) - 1)) == end_idx)
+        m.d.comb += self.single_entry.eq((start_idx + 1)[0 : len(start_idx)] == end_idx)
 
         @def_method(m, self.retire, ready=self.data[start_idx].done)
         def _():

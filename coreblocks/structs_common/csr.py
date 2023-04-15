@@ -2,7 +2,7 @@ from amaranth import *
 from dataclasses import dataclass
 
 from coreblocks.transactions import Method, def_method, Transaction
-from coreblocks.utils import assign
+from coreblocks.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
@@ -19,15 +19,10 @@ class PrivilegeLevel(BitEnum, width=2):
     MACHINE = 0b11
 
 
-def get_bits(v: int, upper: int, lower: int):
-    # returns [upper:lower] bits from number v
-    return (v >> lower) & ((1 << (upper - lower + 1)) - 1)
-
-
 def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
-    read_only = get_bits(csr_addr, 11, 10) == 0b11
+    read_only = bits_from_int(csr_addr, 10, 2) == 0b11
 
-    match get_bits(csr_addr, 9, 8):
+    match bits_from_int(csr_addr, 8, 2):
         case 0b00:
             return (PrivilegeLevel.USER, read_only)
         case 0b01:
@@ -195,7 +190,7 @@ class CSRUnit(Elaboratable):
             Method to resume `Fetch` unit from stalled PC.
         """
         self.gen_params = gen_params
-        self.dependecy_manager = gen_params.get(DependencyManager)
+        self.dependency_manager = gen_params.get(DependencyManager)
 
         self.rob_empty = rob_single_instr
         self.fetch_continue = Method(o=gen_params.get(FetchLayouts).branch_verify)
@@ -210,16 +205,15 @@ class CSRUnit(Elaboratable):
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
-    def register(self):
-        # Registers `CSRRegister`s provided by `CSRListKey` depenecy.
-        for csr in self.dependecy_manager.get_dependency(CSRListKey()):
-            if csr is not None:
-                if csr.csr_number in self.regfile:
-                    raise RuntimeError(f"CSR number {csr.csr_number} already registered")
-                self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
+    def _create_regfile(self):
+        # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` depenecy.
+        for csr in self.dependency_manager.get_dependency(CSRListKey()):
+            if csr.csr_number in self.regfile:
+                raise RuntimeError(f"CSR number {csr.csr_number} already registered")
+            self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
 
     def elaborate(self, platform):
-        self.register()
+        self._create_regfile()
 
         m = Module()
 
