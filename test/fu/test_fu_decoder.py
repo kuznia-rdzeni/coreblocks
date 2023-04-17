@@ -3,7 +3,7 @@ from typing import Sequence, Generator, Type
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator
+from ..common import SimpleTestCircuit, TestCaseWithSimulator
 
 from coreblocks.fu.fu_decoder import DecoderManager, Decoder
 from coreblocks.params import OpType, Funct3, Funct7, GenParams
@@ -17,11 +17,11 @@ class TestFuDecoder(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config)
 
     # calculates expected decoder output
-    def expected_results(self, instructions: Sequence[tuple], op_type_dependant: bool, inp: dict) -> int:
+    def expected_results(self, instructions: Sequence[tuple], op_type_dependent: bool, inp: dict[str, int]) -> int:
         acc = 0
 
         for inst in instructions:
-            op_type_match = inp["op_type"] == inst[1] if op_type_dependant else True
+            op_type_match = inp["op_type"] == inst[1] if op_type_dependent else True
             funct3_match = inp["funct3"] == inst[2] if len(inst) >= 3 else True
             funct7_match = inp["funct7"] == inst[3] if len(inst) >= 4 else True
 
@@ -30,7 +30,7 @@ class TestFuDecoder(TestCaseWithSimulator):
 
         return acc
 
-    def handle_signals(self, decoder: Decoder, exec_fn: dict) -> Generator:
+    def handle_signals(self, decoder: Decoder, exec_fn: dict[str, int]) -> Generator:
         yield decoder.exec_fn.op_type.eq(exec_fn["op_type"])
         yield decoder.exec_fn.funct3.eq(exec_fn["funct3"])
         yield decoder.exec_fn.funct7.eq(exec_fn["funct7"])
@@ -42,7 +42,7 @@ class TestFuDecoder(TestCaseWithSimulator):
     def run_test_case(self, decoder_manager: Type[DecoderManager], test_inputs: Sequence[tuple]) -> None:
         instructions = decoder_manager.get_instructions()
         decoder = decoder_manager.get_decoder(self.gen_params)
-        op_type_dependant = len(decoder_manager.get_op_types()) != 1
+        op_type_dependent = len(decoder_manager.get_op_types()) != 1
 
         def process():
             for test_input in test_inputs:
@@ -53,11 +53,13 @@ class TestFuDecoder(TestCaseWithSimulator):
                 }
 
                 returned = yield from self.handle_signals(decoder, exec_fn)
-                expected = self.expected_results(instructions, op_type_dependant, exec_fn)
+                expected = self.expected_results(instructions, op_type_dependent, exec_fn)
 
                 yield self.assertEqual(returned, expected)
 
-        with self.run_simulation(decoder) as sim:
+        test_circuit = SimpleTestCircuit(decoder)
+
+        with self.run_simulation(test_circuit) as sim:
             sim.add_sync_process(process)
 
     def generate_random_instructions(self) -> Sequence[tuple]:
