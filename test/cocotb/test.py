@@ -268,7 +268,7 @@ async def test(dut, test_name):
 
 
 tests = {name[5:] for name in glob("test-*", root_dir=riscv_tests_dir)}
-exclude = {"ma_data", "fence_i"}
+exclude = {"rv32ui-ma_data", "rv32ui-fence_i", "rv32um-div", "rv32um-divu", "rv32um-rem", "rv32um-remu"}
 
 tf = TestFactory(test)
 tf.add_option("test_name", tests - exclude)

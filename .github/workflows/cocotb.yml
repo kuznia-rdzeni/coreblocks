@@ -31,7 +31,7 @@ jobs:
         run: git submodule update --init --recursive
 
       - name: Generate Verilog
-        run: PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose
+        run: PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 
       - name: Build riscv-tests
         run: cd test/external/riscv-tests && make
