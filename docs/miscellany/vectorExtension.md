@@ -5,7 +5,7 @@ RISC-V2: A Scalable RISC-V Vector Processor
     - dynamiczna redukcja drzew
     - decoupled execution scheme
 2 way out-of-order superscalar processor
-- scorboarding (dopóki wszystkie argumenty nie są gotowe, doputy instrukcja wektorowa jest stallowana -> możliwe
+- scorboarding (dopóki wszystkie argumenty nie są gotowe, dopóty instrukcja wektorowa jest stallowana -> możliwe
   problemy z niepotrzebnym oczekiwaniem w momencie jak można już zacząć przetwarzać początek wektora
 - instrukcja wektorowa rozbijana na uops i każda uops jest przetwarzana niezależnie
 - każda uops operuje na przydzielonym zakresie rejestrów -> czy to oznacza, że rejestr jednego wektora składa się z
@@ -14,7 +14,7 @@ RISC-V2: A Scalable RISC-V Vector Processor
 - część wektorowa jest in-order
 - co z przerwaniami?
 - mówią dużo o loop unrolling ale to nie ma sensu... Nie wskazują żadnych pętli, tylko to, że można łączyć rejestry
-- rozdzielili wektorowe operacje na pamięci od operacji erytmetycznych - operacja na pamięci idzie do bloku zarządzania
+- rozdzielili wektorowe operacje na pamięci od operacji arytmetycznych - operacja na pamięci idzie do bloku zarządzania
   pamięcią, gdzie jest następnie przetwarzana, natomiast operacja duch blokuje scorboard w części arytmetycznej
 - rozważają redukcje w sensie arytmetycznym - wiele argumentów -> jeden wynik
 - SystemVerilog na Githubie - projekt martwy w dniu publikacji :D
@@ -28,20 +28,20 @@ A “New Ara” for Vector Computing: An Open Source Highly Efficient RISC-V V 1
 - historia zmian w specyfikacji V
 - dobre wprowadzenie do rozszerzenia V
 - objaśnia czemu banki rejestrów są powiązane z lane - by sieć połączeń skalowała się liniowo a nie kwadratowo
-- aby dobrze wykorzysać data pararelism - kolejne elementy rejestru wektorowego powinny być zmapowane na kolejne lane
+- aby dobrze wykorzystać data pararelism - kolejne elementy rejestru wektorowego powinny być zmapowane na kolejne lane
   (tak przynajmniej twierdzą, nie wiem czy ma to zastosowanie do coreblocksa)
     - w zależności od tego jakiego dane trzymamy w takim podejściu, to jeden bajt może być zmapowany na różne lane
 - Issue rate 1 instrukcja na 4 cykle
 - procesor in-order z rozszerzeniem V in-order
-- wołają jednostkę vektorową, po issue stage (instrukcja wktorowa przechodzi przez renaming skalarny itp)
+- wołają jednostkę wektorową, po issue stage (instrukcja wektorowa przechodzi przez renaming skalarny itp)
 - zwracają uwagę na to, że trzeba utrzymywać memory-cocherency - zapis z wektora musi unieważniać cache skalarny, zapis
   skalarny musi być widoczny podczas odczytu wektorowego
 - brak spekulacji
 - tail undisturbed policy - niezmieniane elementy na końcu wektora w rejestrze do którego zapisujemy, powinny pozostać
   poprawne po zapisaniu do tego rejestru nowych danych, jeśli nowe dane mają inny rozmiar pojedynczego elementu powoduje
-  to koniecznosc przepisania starych elementów
+  to konieczność przepisania starych elementów
 - bardzo dobry pomysł: w przypadku jeśli robić się renaming rejestrów wektorowych, to dobierać je tak, by dane, które
-  znajdowały się w rejestrze poprzednio miały taką samą długość pojedyńczego elementu
+  znajdowały się w rejestrze poprzednio miały taką samą długość pojedynczego elementu
 
 
 Ara: A 1 GHz+ Scalable and Energy-Efficient RISC-V Vector Processor with Multi-Precision Floating Point Support in 22 nm FD-SOI:
@@ -78,7 +78,7 @@ VEGAS: Soft Vector Processor with Scratchpad Memory
 - rejestr, to wskaźnik z adresem na początek wektora w pamięci scratchpad
 - programista ręcznie zarządza pobieraniem danych z RAM, poprzez ręczne zarządzanie DMA
 - używa makr w C aby wygenerować kod asemblerowy na ten procesor wektorowy - kompilator nie ma wsparcia
-- Obserwacja: SIMD - zdefiniowany stały rozmiar bloku/wektora, procesory wektorowe mają długoś wektora ustalaną w
+- Obserwacja: SIMD - zdefiniowany stały rozmiar bloku/wektora, procesory wektorowe mają długość wektora ustalaną w
   runtimie
 - wspiera przetwarzanie 32 bitów w jednym cyklu przez jedno ALU, bity te to może być jedno słowo, dwa półsłowa, lub
   cztery bajty
@@ -97,9 +97,9 @@ Memory Controller for Vector Processor
 - dokładają kilka pamięci podręcznych, które zastępują cache dla danych dla procesora wektorowego
 - pamięci podręczne wspierają czytanie elementów w określonych krokach 
 - wymagają użycia makr w C/C++ aby pobrać dane do pamięci podręcznych
-- omawiają swoją architekturę wysoko poziomowo "Kontroler pobiera dane", "Bufor wyrównuje dane" pomijając szczegóły
+- omawiają swoją architekturę wysoko-poziomowo "Kontroler pobiera dane", "Bufor wyrównuje dane" pomijając szczegóły
 - Ważne: Proponują by scatter/gatter nie robić za pomocą sieci przełączników, tylko za pomocą bufora w pamięci
-- Wspominają o kilku innych kontolerach pamięci:
+- Wspominają o kilku innych kontrolerach pamięci:
     - Stream Memory Controller
     - Impulse Memory Controller
 

@@ -9,6 +9,11 @@ Najważniejsze elementy:
   rozszerzeniem V to trzeba mieć precyzyjne wyjątki
 - rozszerzenie V wymaga rozszerzeń F i D
 - VL może być rozbijany na różne sposoby, by zapewnić optymalne wykorzystanie lane-ów
+- możliwość łączenia rejestrów w większe
+- możliwość zmniejszania rozmiaru rejestru
+- instrukcje redukujące - część wymaga porządku (zmiennopozycyjne)
+- SEW, EEW, EMUL, LMUL
+- może się okazać, że z powodu renaimingu trzeba kopiować vd (gdy elementy zamaskowane mają pozostać bez zmian)
 
 
 Calling convention (draft):
