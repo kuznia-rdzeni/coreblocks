@@ -11,6 +11,9 @@ class RegisterLayouts:
             ("data", v_params.elen),
             ("mask", v_params.bytes_in_elen)
                 ]
+        self.write_scalar = [
+            ("value", v_params.elen)
+        ]
 
 class VRFFragmentLayouts:
     def __init__(self, gen_params: GenParams, v_params : VectorParameters):
@@ -22,3 +25,10 @@ class VRFFragmentLayouts:
         self.read_resp = [
             ("data", v_params.elen)
         ]
+
+        self.write= [
+            ("vrp_id", v_params.vrp_count_bits),
+            ("addr", range(v_params.elems_in_bank)),
+            ("data", v_params.elen),
+            ("mask", v_params.bytes_in_elen)
+                ]
