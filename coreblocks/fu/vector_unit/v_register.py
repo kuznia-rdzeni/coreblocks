@@ -52,6 +52,7 @@ class VectorRegisterFragment(Elaboratable):
 
         mask_forward = Forwarder({"data": self.v_params.bytes_in_elen})
         m.submodules.mask_forward = mask_forward
+        m.submodules.bank = self.bank
 
         @def_method(m, self.read_req, ready = read_ready)
         def _(arg):
