@@ -166,6 +166,7 @@ class Forwarder(Elaboratable):
         """
         self.read = Method(o=layout)
         self.write = Method(i=layout)
+        self.head = Record.like(self.read.data_out)
 
     def elaborate(self, platform):
         m = Module()
@@ -173,6 +174,7 @@ class Forwarder(Elaboratable):
         reg = Record.like(self.read.data_out)
         reg_valid = Signal()
         read_value = Record.like(self.read.data_out)
+        m.d.comb += self.head.eq(read_value)
 
         self.write.schedule_before(self.read)  # to avoid combinational loops
 

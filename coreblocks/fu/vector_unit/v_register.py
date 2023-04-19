@@ -40,7 +40,7 @@ class VectorRegisterFragment(Elaboratable):
         signals = [Signal(self.v_params.elen)]
         for i in reverse(range(self.v_params.bytes_in_elen)):
             s = Signal(self.v_params.elen)
-            m.d.comb += s.eq(signals[-1]<<8 | Mux(mask[i], 0xFF, 0x00))
+            Method.comb += s.eq(signals[-1]<<8 | Mux(mask[i], 0xFF, 0x00))
             signals.append(s)
         return s
 
@@ -60,12 +60,12 @@ class VectorRegisterFragment(Elaboratable):
             mask_forward.write(m, data = self.byte_mask.word_select(arg.addr, self.v_params.bytes_in_elen))
 
         @def_method(m, self.read_resp)
-        @def _():
+        def _():
             out = self.bank.read_resp(m)
             out_masked = Signal.like(out)
             mask = mask_forward.read(m)
             expanded_mask = self.expand_mask(m, mask)
-            m.d.comb += out_masked.eq(out | expanded_mask)
+            Method.comb += out_masked.eq(out | expanded_mask)
             return {"data" : out_masked}
 
         @def_method(m, self.write, ready = write_ready)

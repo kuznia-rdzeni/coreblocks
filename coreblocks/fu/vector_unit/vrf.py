@@ -31,11 +31,14 @@ class VRFFragment(Elaboratable):
         for i in range(self.read_ports_count):
             for j in range(i+1, self.read_ports_count):
                 self.read_req_list[i].schedule_before(self.read_req_list[j])
+                self.read_resp_list[i].schedule_before(self.read_resp_list[j])
 
     def elaborate(self, platform):
         m = Module()
 
         req_forwarders = [ Forwarder({"port_id", log2_int(self.read_ports_count)}) for _ in range(self.read_ports_count) ]
+
+        
 
         for i in range(self.read_ports_count):
             m.submodules.forwarder[i]=req_forwarders[i]
@@ -47,7 +50,24 @@ class VRFFragment(Elaboratable):
                     with m.If(self.read_req_list[j].run & (self.read_req_list[j].data_in.vrp_id == vrp_id) & (self.read_req_list[j].data_in.elen_id == elen_id)):
                         m.d.comb += port_id.eq(j)
 
-                req_forwarders.write(m,port_id=port_id)
+                req_forwarders[i].write(m,port_id=port_id)
 
                 with m.If(port_id==i):
+                    with m.Switch(vrp_id):
+                        for j in range(self.v_params.vrp_count):
+                            with m.Case(j):
+                                self.regs[j].read_req(m, addr=elen_id)
 
+            resp_ready = (req_forwarders[i].head==i) | Cat([ (req_forwarders[i].head==j).implies(self.read_resp_list[j].run) for j in range(i) ]).all()
+            @def_method(m, self.read_resp_list[i], ready=resp_ready)
+            def _():
+                port_id = req_forwarders[i].read(m).port_id
+
+                with m.If(port_id==i):
+                    with m.Switch(vrp_id):
+                        for j in range(self.v_params.vrp_count):
+                            with m.Case(j):
+                                return self.regs[j].read_resp(m)
+                with m.Else():
+                    #TODO
+                    
