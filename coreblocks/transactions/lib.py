@@ -85,14 +85,18 @@ class FIFO(Elaboratable):
         return m
 
 class MemoryBank(Elaboratable):
-    def __init__(self, *, data_layout : MethodLayout, elem_count : int):
+    def __init__(self, *, data_layout : MethodLayout, elem_count : int, granularity : Optional[int] = None):
         self.data_layout = data_layout
         self.elem_count = elem_count
+        self.granularity = granularity
         self.width=len(Record(self.data_layout))
         self.addr_width = bits_for(self.elem_count-1)
 
         self.read_req_layout = {"addr", self.addr_width}
-        self.write_layout = {"addr", self.addr_width, "data" : self.data_layout}
+        if self.granularity is None:
+            self.write_layout = {"addr", self.addr_width, "data" : self.data_layout}
+        else:
+            self.write_layout = {"addr", self.addr_width, "data" : self.data_layout, "mask" : self.width // self.granularity}
 
         self.read_req= Method(i=self.read_req_layout)
         self.read_resp= Method(o=self.data_layout)
@@ -120,10 +124,13 @@ class MemoryBank(Elaboratable):
             m.d.comb+=read_port.addr.eq(addr)
 
         @def_method(m, self.write)
-        def _(addr, data):
-            m.d.comb+=write_port.addr.eq(addr)
-            m.d.comb+=write_port.data.eq(data)
-            m.d.comb+=write_port.en.eq(1)
+        def _(arg):
+            m.d.comb+=write_port.addr.eq(arg.addr)
+            m.d.comb+=write_port.data.eq(arg.data)
+            if self.granularity is None:
+                m.d.comb+=write_port.en.eq(1)
+            else:
+                m.d.comb+=write_port.en.eq(arg.mask)
 
 
 

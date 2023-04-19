@@ -3,6 +3,9 @@ class VectorParameters:
         self.elen = elen
         self.vlen = vlen
 
+        self.bytes_in_vlen = self.vlen // 8
+        self.bytes_in_elen = elen // 8
+
         self.register_bank_count = 4
 
         accepted_elens = {8,16,32,64}
@@ -12,8 +15,9 @@ class VectorParameters:
         if self.vlen % self.elen !=0:
             raise ValueError(f"Wrong vectors parameters. VLEN should be divisable by ELEN")
 
+        self.elems_in_vlen = self.vlen // self.elen
+
         if self.elems_in_vlen%self.v_params.register_bank_count != 0:
             raise ValueError("Number of elements in vector register not divisable by number of banks.")
 
-        self.elems_in_vlen = self.vlen // self.elen
         self.elems_in_bank = self.elems_in_vlen // self.v_params.register_bank_count
