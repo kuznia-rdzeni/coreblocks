@@ -16,8 +16,7 @@ class FRAT(Elaboratable):
 
         self.rename = Method(i=self.rename_input_layout, o=self.rename_output_layout)
         self.set_all = Method(i=layouts.rat_regs)
-        # TODO: is this priority right?
-        self.set_all.add_conflict(self.rename, Priority.RIGHT)
+        self.set_all.add_conflict(self.rename, Priority.LEFT)
 
     def elaborate(self, platform):
         m = TModule()

@@ -3,7 +3,7 @@ from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
 from coreblocks.transactions import Method, def_method, TModule
 from coreblocks.params import RSLayouts, GenParams, OpType
-from coreblocks.transactions.core import RecordDict
+from coreblocks.transactions.core import RecordDict, Priority
 
 __all__ = ["RS"]
 
@@ -95,6 +95,11 @@ class RS(Elaboratable):
                 "imm": record.rs_data.imm,
                 "pc": record.rs_data.pc,
             }
+
+        self.clear.add_conflict(self.select, priority=Priority.LEFT)
+        self.clear.add_conflict(self.insert, priority=Priority.LEFT)
+        self.clear.add_conflict(self.update, priority=Priority.LEFT)
+        self.clear.add_conflict(self.take, priority=Priority.LEFT)
 
         @def_method(m, self.clear)
         def _() -> None:

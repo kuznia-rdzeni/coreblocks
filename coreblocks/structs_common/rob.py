@@ -1,5 +1,5 @@
 from amaranth import *
-from ..transactions import Method, def_method, TModule
+from ..transactions import Method, def_method, Priority, TModule
 from ..params import GenParams, ROBLayouts
 
 __all__ = ["ReorderBuffer"]
@@ -49,6 +49,9 @@ class ReorderBuffer(Elaboratable):
         @def_method(m, self.can_flush)
         def _():
             return start_idx != end_idx
+
+        self.flush.add_conflict(self.put, priority=Priority.LEFT)
+        self.flush.add_conflict(self.retire, priority=Priority.LEFT)
 
         @def_method(m, self.flush)
         def _():

@@ -1,6 +1,7 @@
 from amaranth import *
 
 from coreblocks.transactions import Method, def_method, Transaction, TModule
+from coreblocks.transactions.core import Priority
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign, ModuleLike
@@ -276,6 +277,11 @@ class LSUDummy(FuncBlock, Elaboratable):
             # TODO: I/O reads
             with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
                 m.d.sync += internal.execute_store.eq(1)
+
+        self.clear.add_conflict(self.select, priority=Priority.LEFT)
+        self.clear.add_conflict(self.insert, priority=Priority.LEFT)
+        self.clear.add_conflict(self.update, priority=Priority.LEFT)
+        self.clear.add_conflict(self.get_result, priority=Priority.LEFT)
 
         @def_method(m, self.clear)
         def _():
