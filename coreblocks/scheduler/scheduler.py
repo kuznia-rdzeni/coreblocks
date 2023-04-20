@@ -31,7 +31,9 @@ class RegAllocation(Elaboratable):
         push_instr: Method
             Method used for pushing the serviced instruction to the next step. Uses `SchedulerLayouts.reg_alloc_out`.
         get_free_reg: Method
-             Method providing the ID of a currently free physical register.
+            Method providing the ID of a currently free physical register.
+        rob_put: Method
+            Method to put the instruction in a free slot in the ROB and get its ID back
         gen_params: GenParams
             Core generation parameters.
         """
@@ -356,9 +358,8 @@ class Scheduler(Elaboratable):
     available RS which supports this kind of instructions.
 
     In order to prepare instruction it performs following steps:
-    - physical register allocation
+    - physical register allocation + ROB entry allocation
     - register renaming
-    - ROB entry allocation
     - RS selection
     - RS insertion
 
