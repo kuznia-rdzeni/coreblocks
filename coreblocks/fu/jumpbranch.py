@@ -132,7 +132,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
         m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
         m.submodules.fifo_res = fifo_res = BasicFifo(self.gen.get(FuncUnitLayouts).accept, 2)
-        m.submodules.fifo_branch = fifo_branch = BasicFifo(self.gen.get(FetchLayouts).branch_verify, 2)
+        m.submodules.fifo_branch = fifo_branch = BasicFifo(self.gen.get(FetchLayouts).branch_verify_in, 2)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
 
         @def_method(m, self.accept)

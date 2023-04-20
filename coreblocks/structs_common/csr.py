@@ -192,7 +192,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.gen_params = gen_params
         self.dependency_manager = gen_params.get(DependencyManager)
 
-        self.fetch_continue = Method(o=gen_params.get(FetchLayouts).branch_verify)
+        self.fetch_continue = Method(o=gen_params.get(FetchLayouts).branch_verify_in)
 
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRLayouts)
@@ -343,6 +343,10 @@ class CSRUnit(FuncBlock, Elaboratable):
         @def_method(m, self.precommit)
         def _(rob_id):
             m.d.comb += rob_sfx_empty.eq(instr.rob_id == rob_id)
+
+        @def_method(m, self.clear)
+        def _():
+            pass
 
         return m
 
