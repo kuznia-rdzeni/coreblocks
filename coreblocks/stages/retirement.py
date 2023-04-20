@@ -1,11 +1,20 @@
 from amaranth import *
 
 from coreblocks.transactions.core import Method, Transaction
+from coreblocks.params.genparams import GenParams
+from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
 
 
 class Retirement(Elaboratable):
     def __init__(
-        self, *, rob_retire: Method, r_rat_commit: Method, free_rf_put: Method, rf_free: Method, lsu_commit: Method
+        self,
+        gen_params: GenParams,
+        *,
+        rob_retire: Method,
+        r_rat_commit: Method,
+        free_rf_put: Method,
+        rf_free: Method,
+        lsu_commit: Method
     ):
         self.rob_retire = rob_retire
         self.r_rat_commit = r_rat_commit
@@ -13,8 +22,12 @@ class Retirement(Elaboratable):
         self.rf_free = rf_free
         self.lsu_commit = lsu_commit
 
+        self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
+
     def elaborate(self, platform):
         m = Module()
+
+        m.submodules.instret_csr = self.instret_csr
 
         with Transaction().body(m):
             rob_entry = self.rob_retire(m)
@@ -28,5 +41,7 @@ class Retirement(Elaboratable):
             # put old rp_dst to free RF list
             with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
                 self.free_rf_put(m, rat_out.old_rp_dst)
+
+            self.instret_csr.increment(m)
 
         return m

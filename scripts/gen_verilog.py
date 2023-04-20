@@ -18,11 +18,12 @@ from coreblocks.core import Core
 from coreblocks.transactions import TransactionModule
 from coreblocks.utils.utils import flatten_signals
 
-from coreblocks.params.configurations import CoreConfiguration, basic_core_config, tiny_core_config
+from coreblocks.params.configurations import *
 
 str_to_coreconfig: dict[str, CoreConfiguration] = {
     "basic": basic_core_config,
     "tiny": tiny_core_config,
+    "full": full_core_config,
 }
 
 

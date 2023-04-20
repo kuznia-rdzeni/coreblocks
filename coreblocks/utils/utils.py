@@ -7,7 +7,15 @@ from amaranth.lib import data
 from ._typing import ValueLike, LayoutList, SignalBundle
 
 
-__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch", "flatten_signals", "align_to_power_of_two"]
+__all__ = [
+    "AssignType",
+    "assign",
+    "OneHotSwitchDynamic",
+    "OneHotSwitch",
+    "flatten_signals",
+    "align_to_power_of_two",
+    "bits_from_int",
+]
 
 
 @contextmanager
@@ -303,3 +311,8 @@ def align_to_power_of_two(num: int, power: int) -> int:
     if num & mask == 0:
         return num
     return (num & ~mask) + 2**power
+
+
+def bits_from_int(num: int, lower: int, length: int):
+    """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
+    return (num >> lower) & (1 << (length) - 1)
