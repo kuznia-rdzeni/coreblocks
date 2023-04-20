@@ -67,6 +67,7 @@ class RegAllocation(Elaboratable):
 
             m.d.comb += assign(data_out, instr)
             m.d.comb += data_out.regs_p.rp_dst.eq(free_reg)
+            m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
             self.push_instr(m, data_out)
 
         return m
@@ -119,7 +120,7 @@ class Renaming(Elaboratable):
                 },
             )
 
-            m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "csr", "pc"})
+            m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "csr", "pc", "rob_id"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
             m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
             m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
