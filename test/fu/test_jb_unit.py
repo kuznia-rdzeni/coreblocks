@@ -19,6 +19,7 @@ class JumpBranchWrapper(Elaboratable):
         self.jb = JumpBranchFuncUnit(GenParams(test_core_config))
         self.issue = self.jb.issue
         self.accept = Method(o=gen_params.get(FuncUnitLayouts).accept + gen_params.get(FetchLayouts).branch_verify_in)
+        self.clear = Method()
         self.optypes = set()
 
     def elaborate(self, platform):

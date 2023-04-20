@@ -6,6 +6,7 @@ from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7
 from coreblocks.transactions import Method, TModule, def_method
 from coreblocks.transactions.lib import FIFO
 from coreblocks.utils import OneHotSwitch
+from coreblocks.utils.fifo import BasicFifo
 from coreblocks.utils.protocols import FuncUnit
 
 from coreblocks.fu.fu_decoder import DecoderManager
@@ -95,15 +96,22 @@ class ZbsUnit(FuncUnit, Elaboratable):
         self.gen_params = gen_params
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
+        self.clear = Method()
 
         self.zbs_fn = zbs_fn
 
+<<<<<<< HEAD
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.zbs = zbs = Zbs(self.gen_params, function=self.zbs_fn)
         m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.zbs_fn.get_decoder(self.gen_params)
+=======
+        m.submodules.zbs = zbs = Zbs(self.gen_params)
+        m.submodules.result_fifo = result_fifo = BasicFifo(self.gen_params.get(FuncUnitLayouts).accept, 2)
+        m.submodules.decoder = decoder = ZbsFunction.get_decoder(self.gen_params)
+>>>>>>> 5b2430b (Make the typechecker happy)
 
         @def_method(m, self.accept)
         def _(arg):
@@ -118,6 +126,8 @@ class ZbsUnit(FuncUnit, Elaboratable):
             m.d.comb += zbs.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
             result_fifo.write(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst)
+
+        self.clear.proxy(m, result_fifo.clear)
 
         return m
 

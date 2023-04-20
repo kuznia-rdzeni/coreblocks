@@ -20,6 +20,7 @@ __all__ = ["MulUnit", "MulFn", "MulComponent", "MulType"]
 
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
+from coreblocks.utils.fifo import BasicFifo
 
 
 class MulFn(DecoderManager):
@@ -103,14 +104,15 @@ class MulUnit(FuncUnit, Elaboratable):
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
+        self.clear = Method()
 
         self.mul_fn = mul_fn
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.result_fifo = result_fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
-        m.submodules.params_fifo = params_fifo = FIFO(
+        m.submodules.result_fifo = result_fifo = BasicFifo(self.gen.get(FuncUnitLayouts).accept, 2)
+        m.submodules.params_fifo = params_fifo = BasicFifo(
             [
                 ("rob_id", self.gen.rob_entries_bits),
                 ("rp_dst", self.gen.phys_regs_bits),
@@ -202,6 +204,11 @@ class MulUnit(FuncUnit, Elaboratable):
             result = Mux(params.high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 
             result_fifo.write(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst)
+
+        @def_method(m, self.clear)
+        def _():
+            params_fifo.clear(m)
+            result_fifo.clear(m)
 
         return m
 

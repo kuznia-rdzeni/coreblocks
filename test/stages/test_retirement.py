@@ -122,7 +122,7 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertEqual(rob_id, self.precommit_q.popleft())
 
         @def_method_mock(lambda: retc.mock_interrupt)
-        def interrupt_process():
+        def interrupt_process(arg):
             pass
 
         with self.run_simulation(retc) as sim:
