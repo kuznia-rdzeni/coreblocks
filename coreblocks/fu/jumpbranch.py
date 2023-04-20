@@ -1,6 +1,8 @@
 from amaranth import *
 
-from enum import IntFlag
+from enum import IntFlag, auto
+
+from typing import Sequence
 
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
@@ -10,11 +12,12 @@ from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
+from coreblocks.fu.fu_decoder import DecoderManager
 
 __all__ = ["JumpBranchFuncUnit", "JumpComponent"]
 
 
-class JumpBranchFn(Signal):
+class JumpBranchFn(DecoderManager):
     @unique
     class Fn(IntFlag):
         JAL = auto()
@@ -27,8 +30,19 @@ class JumpBranchFn(Signal):
         BGE = auto()
         BGEU = auto()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(JumpBranchFn.Fn, *args, **kwargs)
+    @classmethod
+    def get_instructions(cls) -> Sequence[tuple]:
+        return [
+            (cls.Fn.BEQ, OpType.BRANCH, Funct3.BEQ),
+            (cls.Fn.BNE, OpType.BRANCH, Funct3.BNE),
+            (cls.Fn.BLT, OpType.BRANCH, Funct3.BLT),
+            (cls.Fn.BLTU, OpType.BRANCH, Funct3.BLTU),
+            (cls.Fn.BGE, OpType.BRANCH, Funct3.BGE),
+            (cls.Fn.BGEU, OpType.BRANCH, Funct3.BGEU),
+            (cls.Fn.JAL, OpType.JAL),
+            (cls.Fn.JALR, OpType.JALR, Funct3.JALR),
+            (cls.Fn.AUIPC, OpType.AUIPC),
+        ]
 
 
 class JumpBranch(Elaboratable):
@@ -36,7 +50,7 @@ class JumpBranch(Elaboratable):
         self.gen_params = gen_params
 
         xlen = gen_params.isa.xlen
-        self.fn = JumpBranchFn()
+        self.fn = JumpBranchFn.get_function()
         self.in1 = Signal(xlen)
         self.in2 = Signal(xlen)
         self.in_pc = Signal(xlen)
@@ -96,39 +110,8 @@ class JumpBranch(Elaboratable):
         return m
 
 
-class JumpBranchFnDecoder(Elaboratable):
-    def __init__(self, gen: GenParams):
-        layouts = gen.get(CommonLayouts)
-
-        self.exec_fn = Record(layouts.exec_fn)
-        self.jb_fn = Signal(JumpBranchFn.Fn)
-
-    def elaborate(self, platform):
-        m = Module()
-
-        ops = [
-            (JumpBranchFn.Fn.BEQ, OpType.BRANCH, Funct3.BEQ),
-            (JumpBranchFn.Fn.BNE, OpType.BRANCH, Funct3.BNE),
-            (JumpBranchFn.Fn.BLT, OpType.BRANCH, Funct3.BLT),
-            (JumpBranchFn.Fn.BLTU, OpType.BRANCH, Funct3.BLTU),
-            (JumpBranchFn.Fn.BGE, OpType.BRANCH, Funct3.BGE),
-            (JumpBranchFn.Fn.BGEU, OpType.BRANCH, Funct3.BGEU),
-            (JumpBranchFn.Fn.JAL, OpType.JAL),
-            (JumpBranchFn.Fn.JALR, OpType.JALR, Funct3.JALR),
-            (JumpBranchFn.Fn.AUIPC, OpType.AUIPC),
-        ]
-
-        for op in ops:
-            cond = (self.exec_fn.op_type == op[1]) & (self.exec_fn.funct3 == op[2] if len(op) > 2 else 1)
-
-            with m.If(cond):
-                m.d.comb += self.jb_fn.eq(op[0])
-
-        return m
-
-
 class JumpBranchFuncUnit(Elaboratable):
-    optypes = {OpType.BRANCH, OpType.JAL, OpType.JALR, OpType.AUIPC}
+    optypes = JumpBranchFn.get_op_types()
 
     def __init__(self, gen: GenParams):
         self.gen = gen
@@ -145,7 +128,7 @@ class JumpBranchFuncUnit(Elaboratable):
         m.submodules.jb = jb = JumpBranch(self.gen)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
-        m.submodules.decoder = decoder = JumpBranchFnDecoder(self.gen)
+        m.submodules.decoder = decoder = JumpBranchFn.get_decoder(self.gen)
 
         @def_method(m, self.accept)
         def _():
@@ -158,7 +141,7 @@ class JumpBranchFuncUnit(Elaboratable):
         @def_method(m, self.issue)
         def _(arg):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
-            m.d.comb += jb.fn.eq(decoder.jb_fn)
+            m.d.comb += jb.fn.eq(decoder.decode_fn)
 
             m.d.comb += jb.in1.eq(arg.s1_val)
             m.d.comb += jb.in2.eq(arg.s2_val)
@@ -168,7 +151,7 @@ class JumpBranchFuncUnit(Elaboratable):
             fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst)
 
             # skip writing next branch target for auipc
-            with m.If(decoder.jb_fn != JumpBranchFn.Fn.AUIPC):
+            with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):
                 fifo_branch.write(m, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res))
 
         return m
