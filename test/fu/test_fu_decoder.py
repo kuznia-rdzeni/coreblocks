@@ -1,78 +1,140 @@
-from typing import Sequence
+import random
+from typing import Sequence, Generator, Type
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator
+from ..common import SimpleTestCircuit, TestCaseWithSimulator
 
-from coreblocks.fu.fu_decoder import DecoderManager
-from coreblocks.params import OpType, Funct3, Funct7, GenParams, CommonLayouts
+from coreblocks.fu.fu_decoder import DecoderManager, Decoder
+from coreblocks.params import OpType, Funct3, Funct7, GenParams
 from coreblocks.params.configurations import test_core_config
 
 from enum import IntFlag, auto
 
 
-class DM1(DecoderManager):
-    class Fn(IntFlag):
-        INST1 = auto()
-        INST2 = auto()
-        INST3 = auto()
-        INST4 = auto()
-        INST5 = auto()
-
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
-        return [
-            (cls.Fn.INST1, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
-            (cls.Fn.INST2, OpType.ARITHMETIC, Funct3.AND, Funct7.SUB),
-            (cls.Fn.INST3, OpType.ARITHMETIC, Funct3.OR, Funct7.ADD),
-            (cls.Fn.INST4, OpType.ARITHMETIC, Funct3.XOR, Funct7.ADD),
-            (cls.Fn.INST5, OpType.ARITHMETIC, Funct3.BGEU, Funct7.ADD),
-        ]
-
-
 class TestFuDecoder(TestCaseWithSimulator):
     def setUp(self) -> None:
         self.gen_params = GenParams(test_core_config)
-        self.decoder = DM1.get_decoder(self.gen_params)
-        self.test_inputs = DM1.get_instructions()
 
-    def yield_signals(self, exec_fn):
-        # print(exec_fn)
-        yield self.decoder.exec_fn.eq(exec_fn)
+    # calculates expected decoder output
+    def expected_results(self, instructions: Sequence[tuple], op_type_dependent: bool, inp: dict[str, int]) -> int:
+        acc = 0
+
+        for inst in instructions:
+            op_type_match = inp["op_type"] == inst[1] if op_type_dependent else True
+            funct3_match = inp["funct3"] == inst[2] if len(inst) >= 3 else True
+            funct7_match = inp["funct7"] == inst[3] if len(inst) >= 4 else True
+
+            if op_type_match and funct3_match and funct7_match:
+                acc |= inst[0]
+
+        return acc
+
+    def handle_signals(self, decoder: Decoder, exec_fn: dict[str, int]) -> Generator:
+        yield decoder.exec_fn.op_type.eq(exec_fn["op_type"])
+        yield decoder.exec_fn.funct3.eq(exec_fn["funct3"])
+        yield decoder.exec_fn.funct7.eq(exec_fn["funct7"])
+
         yield Settle()
-        return (yield self.decoder.decode_fn)
 
-    def test_positive(self):
+        return (yield decoder.decode_fn)
+
+    def run_test_case(self, decoder_manager: Type[DecoderManager], test_inputs: Sequence[tuple]) -> None:
+        instructions = decoder_manager.get_instructions()
+        decoder = decoder_manager.get_decoder(self.gen_params)
+        op_type_dependent = len(decoder_manager.get_op_types()) != 1
+
         def process():
-            for (inst, op_type, funct3, funct7) in self.test_inputs:
-                record_data = {}
-
-                op_type_sig = Signal(shape=OpType)
-                op_type_sig.eq(C(op_type * 0, self.gen_params.isa.xlen))
-                record_data["op_type"] = op_type_sig
-
-                funct3_sig = Signal(shape=Funct3)
-                funct7_sig = Signal(shape=Funct7)
-
-                funct3_sig.eq(C(funct3 * 0, self.gen_params.isa.xlen))
-                funct7_sig.eq(C(funct7 * 0, self.gen_params.isa.xlen))
-
-                fn = {
-                    "op_type": op_type_sig,
-                    "funct3": funct3_sig,
-                    "funct7": funct7_sig,
+            for test_input in test_inputs:
+                exec_fn = {
+                    "op_type": test_input[1],
+                    "funct3": test_input[2] if len(test_input) >= 3 else 0,
+                    "funct7": test_input[3] if len(test_input) >= 4 else 0,
                 }
 
-                yield Settle()
+                returned = yield from self.handle_signals(decoder, exec_fn)
+                expected = self.expected_results(instructions, op_type_dependent, exec_fn)
 
-                # print(fn["op_type"].shape())
+                yield self.assertEqual(returned, expected)
 
-                layouts = self.gen_params.get(CommonLayouts)
-                inp = Record(layouts.exec_fn, fields=fn)
+        test_circuit = SimpleTestCircuit(decoder)
 
-                returned_out = yield from self.yield_signals(inp)
-
-                yield self.assertEqual(inst, returned_out)
-
-        with self.run_simulation(self.decoder) as sim:
+        with self.run_simulation(test_circuit) as sim:
             sim.add_sync_process(process)
+
+    def generate_random_instructions(self) -> Sequence[tuple]:
+        random.seed(42)
+
+        return [(0, random.randint(0, 10), random.randint(0, 10), random.randint(0, 10)) for i in range(50)]
+
+    def test_1(self) -> None:
+        # same op type
+        class DM(DecoderManager):
+            class Fn(IntFlag):
+                INST1 = auto()
+                INST2 = auto()
+                INST3 = auto()
+                INST4 = auto()
+                INST5 = auto()
+
+            @classmethod
+            def get_instructions(cls) -> Sequence[tuple]:
+                return [
+                    (cls.Fn.INST1, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
+                    (cls.Fn.INST2, OpType.ARITHMETIC, Funct3.AND, Funct7.SUB),
+                    (cls.Fn.INST3, OpType.ARITHMETIC, Funct3.OR, Funct7.ADD),
+                    (cls.Fn.INST4, OpType.ARITHMETIC, Funct3.XOR, Funct7.ADD),
+                    (cls.Fn.INST5, OpType.ARITHMETIC, Funct3.BGEU, Funct7.ADD),
+                ]
+
+        test_inputs = list(DM.get_instructions()) + list(self.generate_random_instructions())
+
+        self.run_test_case(DM, test_inputs)
+
+    def test_2(self) -> None:
+        # same op type, different instruction length
+        class DM(DecoderManager):
+            class Fn(IntFlag):
+                INST1 = auto()
+                INST2 = auto()
+                INST3 = auto()
+                INST4 = auto()
+                INST5 = auto()
+
+            @classmethod
+            def get_instructions(cls) -> Sequence[tuple]:
+                return [
+                    (cls.Fn.INST1, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
+                    (cls.Fn.INST2, OpType.ARITHMETIC, Funct3.AND),
+                    (cls.Fn.INST3, OpType.ARITHMETIC, Funct3.OR, Funct7.BEXT),
+                    (cls.Fn.INST4, OpType.ARITHMETIC, Funct3.XOR),
+                    (cls.Fn.INST5, OpType.ARITHMETIC, Funct3.BGEU, Funct7.BSET),
+                ]
+
+        test_inputs = list(DM.get_instructions()) + list(self.generate_random_instructions())
+
+        self.run_test_case(DM, test_inputs)
+
+    def test_3(self) -> None:
+        # diffecrent op types, different instruction length
+        class DM(DecoderManager):
+            class Fn(IntFlag):
+                INST1 = auto()
+                INST2 = auto()
+                INST3 = auto()
+                INST4 = auto()
+                INST5 = auto()
+
+            @classmethod
+            def get_instructions(cls) -> Sequence[tuple]:
+                return [
+                    (cls.Fn.INST1, OpType.AUIPC, Funct3.ADD, Funct7.ADD),
+                    (cls.Fn.INST2, OpType.MUL, Funct3.AND),
+                    (cls.Fn.INST3, OpType.ARITHMETIC, Funct3.OR, Funct7.BEXT),
+                    (cls.Fn.INST4, OpType.COMPARE),
+                    (cls.Fn.INST5, OpType.ARITHMETIC, Funct3.BGEU, Funct7.BSET),
+                ]
+
+        test_inputs = list(DM.get_instructions()) + list(self.generate_random_instructions())
+
+        self.run_test_case(DM, test_inputs)

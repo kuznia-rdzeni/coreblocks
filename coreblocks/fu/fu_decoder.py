@@ -1,4 +1,3 @@
-from math import floor, log2
 from typing import Sequence, Type
 from amaranth import *
 
@@ -37,13 +36,9 @@ class Decoder(Elaboratable):
 
             cond = optype_match & funct3_match & funct7_match
 
-            signal_num = floor(log2(op[0]))
+            signal_num = op[0].bit_length() - 1
 
             m.d.comb += self.decode_fn[signal_num].eq(cond)
-
-        # dummy signal to enable time domain while testing
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
 
         return m
 
