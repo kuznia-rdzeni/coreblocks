@@ -9,7 +9,7 @@ from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Statement
 
-from coreblocks.utils import AssignType, assign
+from coreblocks.utils import AssignType, assign, MismatchedLayoutError
 from ._utils import *
 from ..utils._typing import StatementLike, ValueLike, SignalBundle
 from .graph import Owned, OwnershipGraph, Direction
@@ -819,7 +819,18 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         with method.body(m, ready=ready, out=out) as arg:
             ret_out = method_def_helper(method, func, arg, **arg.fields)
 
-        if ret_out is not None:
+        if ret_out is None:
+            ret_out = Record([])
+
+        try:
             m.d.comb += assign(out, ret_out, fields=AssignType.ALL)
+        except MismatchedLayoutError as e:
+            owner = type(method.owner)
+            lhs = e.lhs_fields if e.lhs_fields else "empty"
+            rhs = e.rhs_fields if e.rhs_fields else "empty"
+            msg = "Method {} (defined in {} in module {}) has output layout defined as {} but returned layout is {}"
+            raise MismatchedLayoutError(
+                msg.format(method.name, owner.__name__, owner.__module__, lhs, rhs), e.lhs_fields, e.rhs_fields
+            ) from e
 
     return decorator

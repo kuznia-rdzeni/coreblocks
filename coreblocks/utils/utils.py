@@ -8,6 +8,7 @@ from ._typing import ValueLike, LayoutList, SignalBundle
 
 
 __all__ = [
+    "MismatchedLayoutError",
     "AssignType",
     "assign",
     "OneHotSwitchDynamic",
@@ -113,6 +114,13 @@ class AssignType(Enum):
 
 AssignFields: TypeAlias = AssignType | Iterable[str] | Mapping[str, "AssignFields"]
 AssignArg: TypeAlias = ValueLike | Mapping[str, "AssignArg"]
+
+
+class MismatchedLayoutError(KeyError):
+    def __init__(self, msg: str, lhs_fields: Optional[set[str]], rhs_fields: Optional[set[str]]):
+        super().__init__(msg)
+        self.lhs_fields = lhs_fields
+        self.rhs_fields = rhs_fields
 
 
 def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
@@ -226,9 +234,9 @@ def assign(
 
         for name in names:
             if name not in lhs_fields:
-                raise KeyError("Field {} not present in lhs".format(name))
+                raise MismatchedLayoutError("Field {} not present in lhs".format(name), lhs_fields, rhs_fields)
             if name not in rhs_fields:
-                raise KeyError("Field {} not present in rhs".format(name))
+                raise MismatchedLayoutError("Field {} not present in rhs".format(name), lhs_fields, rhs_fields)
 
             subfields = fields
             if isinstance(fields, Mapping):
