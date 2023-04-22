@@ -120,8 +120,6 @@ class Alu(Elaboratable):
 
 
 class AluFuncUnit(Elaboratable):
-    optypes = []
-
     def __init__(self, gen: GenParams, zba_enable: bool = False):
         self.gen = gen
 
@@ -130,6 +128,8 @@ class AluFuncUnit(Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
         self.zba_enable = zba_enable
+
+        self.optypes = get_alu_fn(zba_enable=zba_enable).get_op_types()
 
     def elaborate(self, platform):
         m = Module()
