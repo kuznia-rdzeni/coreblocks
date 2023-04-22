@@ -120,6 +120,8 @@ class Alu(Elaboratable):
 
 
 class AluFuncUnit(Elaboratable):
+    optypes = []
+
     def __init__(self, gen: GenParams, zba_enable: bool = False):
         self.gen = gen
 
@@ -161,4 +163,4 @@ class ALUComponent(FunctionalComponentParams):
         return AluFuncUnit(gen_params, zba_enable=zba_enable)
 
     def get_optypes(self) -> set[OpType]:
-        return get_alu_fn().get_op_types()
+        return get_alu_fn(zba_enable=self.zba_enable).get_op_types()
