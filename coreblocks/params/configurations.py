@@ -74,7 +74,7 @@ tiny_core_config = CoreConfiguration(
 full_core_config = CoreConfiguration(
     isa_str="rv32imzicsr",
     func_units_config=(
-        RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4),
+        RSBlockComponent([ALUComponent(zba_enable=True), JumpComponent()], rs_entries=4),
         RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=4),
         LSUBlockComponent(),
         CSRBlockComponent(),
