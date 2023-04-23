@@ -12,7 +12,7 @@ on:
 jobs:
   push_gh-pages:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_MAIL: ${{github.event.pusher.email}}
