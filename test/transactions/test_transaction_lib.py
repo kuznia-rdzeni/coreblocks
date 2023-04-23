@@ -4,6 +4,7 @@ from functools import reduce
 from typing import TypeAlias
 from amaranth.sim import Settle
 from parameterized import parameterized
+from collections import deque
 
 from amaranth import *
 from coreblocks.transactions import *
@@ -106,6 +107,58 @@ class TestForwarder(TestFifoBase):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
+
+
+class TestMemoryBank(TestCaseWithSimulator):
+    @parameterized.expand([(9, 3, 3, 3, 14), (16, 3, 3, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)])
+    def test_mem(self, max_addr, writer_rand, reader_req_rand, reader_resp_rand, seed):
+        test_count = 200
+
+        data_width = 6
+        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr))
+
+        data_dict: dict[int, int] = dict((i, 0) for i in range(max_addr))
+        read_req_queue = deque()
+
+        random.seed(seed)
+
+        def random_wait(rand: int):
+            yield from self.tick(random.randrange(1, rand + 1))
+
+        def writer():
+            for i in range(test_count):
+                d = random.randrange(2**data_width)
+                a = random.randrange(max_addr)
+                yield from m.write.call(data=d, addr=a)
+                yield Settle()
+                # print("w", a, d)
+                data_dict[a] = d
+                yield from random_wait(writer_rand)
+
+        def reader_req():
+            for i in range(test_count):
+                a = random.randrange(max_addr)
+                # print(data_dict)
+                yield from m.read_req.call(addr=a)
+                for i in range(2):
+                    yield Settle()
+                # print("rq", a)
+                read_req_queue.append((a, data_dict[a]))
+                yield from random_wait(reader_req_rand)
+
+        def reader_resp():
+            for i in range(test_count):
+                while not read_req_queue:
+                    yield from random_wait(reader_resp_rand)
+                a, d = read_req_queue.popleft()
+                # print("rp", a)
+                self.assertEqual((yield from m.read_resp.call()), {"data": data_dict[a]})
+                yield from random_wait(reader_resp_rand)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(reader_req)
+            sim.add_sync_process(reader_resp)
+            sim.add_sync_process(writer)
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
@@ -475,3 +528,75 @@ class TestMethodProduct(TestCaseWithSimulator):
             sim.add_sync_process(method_process)
             for k in range(targets):
                 sim.add_sync_process(target_process(k))
+
+
+class TestSerializer(TestCaseWithSimulator):
+    def test_serial(self):
+        test_count = 100
+
+        port_count = 2
+        data_width = 5
+
+        requestor_rand = 4
+
+        layout = [("field", data_width)]
+
+        self.req_method = TestbenchIO(Adapter(i=layout))
+        self.resp_method = TestbenchIO(Adapter(o=layout))
+
+        m = SimpleTestCircuit(
+            Serializer(
+                port_count=port_count,
+                serialized_req_method=self.req_method.adapter.iface,
+                serialized_resp_method=self.resp_method.adapter.iface,
+            ),
+            external_submodules=[self.req_method, self.resp_method],
+        )
+
+        random.seed(14)
+
+        serialized_data = deque()
+        port_data = [deque() for _ in range(port_count)]
+
+        got_request = False
+
+        def random_wait(rand: int):
+            yield from self.tick(random.randrange(rand) + 1)
+
+        @def_method_mock(lambda: self.req_method, enable=lambda: not got_request)
+        def serial_req_mock(field):
+            nonlocal got_request
+            serialized_data.append(field)
+            got_request = True
+
+        @def_method_mock(lambda: self.resp_method, enable=lambda: got_request)
+        def serial_resp_mock():
+            nonlocal got_request
+            got_request = False
+            return {"field": serialized_data[-1]}
+
+        def requestor(i: int):
+            def f():
+                for _ in range(test_count):
+                    d = random.randrange(2**data_width)
+                    yield from m._io["serialize_in" + str(i)].call(field=d)
+                    port_data[i].append(d)
+                    yield from random_wait(requestor_rand)
+
+            return f
+
+        def responser(i: int):
+            def f():
+                for _ in range(test_count):
+                    data_out = yield from m._io["serialize_out" + str(i)].call()
+                    self.assertEqual(port_data[i].popleft(), data_out["field"])
+                    yield from random_wait(requestor_rand)
+
+            return f
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(serial_req_mock)
+            sim.add_sync_process(serial_resp_mock)
+            for i in range(port_count):
+                sim.add_sync_process(requestor(i))
+                sim.add_sync_process(responser(i))

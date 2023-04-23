@@ -1,12 +1,15 @@
 from typing import Callable, Tuple, Optional
 from amaranth import *
+from amaranth.utils import *
 from .core import *
 from .core import SignalBundle, RecordDict
 from ._utils import MethodLayout
 from ..utils import ValueLike, assign, AssignType
+from ..utils.fifo import BasicFifo
 
 __all__ = [
     "FIFO",
+    "MemoryBank",
     "Forwarder",
     "Collector",
     "ClickIn",
@@ -20,6 +23,7 @@ __all__ = [
     "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
+    "Serializer",
 ]
 
 # FIFOs
@@ -83,6 +87,64 @@ class FIFO(Elaboratable):
         return m
 
 
+class MemoryBank(Elaboratable):
+    def __init__(self, *, data_layout: MethodLayout, elem_count: int, granularity: Optional[int] = None):
+        self.data_layout = data_layout
+        self.elem_count = elem_count
+        self.granularity = granularity
+        self.width = len(Record(self.data_layout))
+        self.addr_width = bits_for(self.elem_count - 1)
+
+        self.read_req_layout = [("addr", self.addr_width)]
+        if self.granularity is None:
+            self.write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
+        else:
+            self.write_layout = [
+                ("addr", self.addr_width),
+                ("data", self.data_layout),
+                ("mask", self.width // self.granularity),
+            ]
+
+        self.read_req = Method(i=self.read_req_layout)
+        self.read_resp = Method(o=self.data_layout)
+        self.write = Method(i=self.write_layout)
+
+        self.read_resp.schedule_before(self.read_req)
+
+    def elaborate(self, platform) -> Module:
+        m = Module()
+
+        mem = Memory(width=self.width, depth=self.elem_count)
+        m.submodules.read_port = read_port = mem.read_port()
+        m.submodules.write_port = write_port = mem.write_port()
+        read_output_valid = Signal()
+        prev_read_addr = Signal(self.addr_width)
+        m.d.comb += read_port.addr.eq(prev_read_addr)
+
+        # read_resp has to be defined before read_req, to handle read_output_valid signal correctly
+        @def_method(m, self.read_resp, ready=read_output_valid)
+        def _():
+            m.d.sync += read_output_valid.eq(0)
+            return read_port.data
+
+        @def_method(m, self.read_req, ready=~read_output_valid | self.read_resp.run)
+        def _(addr):
+            m.d.sync += read_output_valid.eq(1)
+            m.d.comb += read_port.addr.eq(addr)
+            m.d.sync += prev_read_addr.eq(addr)
+
+        @def_method(m, self.write)
+        def _(arg):
+            m.d.comb += write_port.addr.eq(arg.addr)
+            m.d.comb += write_port.data.eq(arg.data)
+            if self.granularity is None:
+                m.d.comb += write_port.en.eq(1)
+            else:
+                m.d.comb += write_port.en.eq(arg.mask)
+
+        return m
+
+
 # Forwarding with overflow buffering
 
 
@@ -115,6 +177,11 @@ class Forwarder(Elaboratable):
         """
         self.read = Method(o=layout)
         self.write = Method(i=layout)
+        self.clear = Method()
+        self.head = Record.like(self.read.data_out)
+
+        self.clear.add_conflict(self.read, Priority.LEFT)
+        self.clear.add_conflict(self.write, Priority.LEFT)
 
     def elaborate(self, platform):
         m = Module()
@@ -122,6 +189,7 @@ class Forwarder(Elaboratable):
         reg = Record.like(self.read.data_out)
         reg_valid = Signal()
         read_value = Record.like(self.read.data_out)
+        m.d.comb += self.head.eq(read_value)
 
         self.write.schedule_before(self.read)  # to avoid combinational loops
 
@@ -138,6 +206,10 @@ class Forwarder(Elaboratable):
         def _():
             m.d.sync += reg_valid.eq(0)
             return read_value
+
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += reg_valid.eq(0)
 
         return m
 
@@ -707,5 +779,49 @@ class CatTrans(Elaboratable):
             self.dst(m, ddata)
 
             m.d.comb += ddata.eq(Cat(sdata1, sdata2))
+
+        return m
+
+
+class Serializer(Elaboratable):
+    def __init__(
+        self,
+        *,
+        port_count: int,
+        serialized_req_method: Method,
+        serialized_resp_method: Method,
+        depth: int = 4,
+    ):
+        self.port_count = port_count
+        self.serialized_req_method = serialized_req_method
+        self.serialized_resp_method = serialized_resp_method
+
+        self.depth = depth
+
+        self.id_layout = [("id", log2_int(self.port_count))]
+
+        self.clear = Method()
+        self.serialize_in = [Method.like(self.serialized_req_method) for _ in range(self.port_count)]
+        self.serialize_out = [Method.like(self.serialized_resp_method) for _ in range(self.port_count)]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        pending_requests = BasicFifo(self.id_layout, self.depth)
+        m.submodules.pending_requests = pending_requests
+
+        for i in range(self.port_count):
+
+            @def_method(m, self.serialize_in[i])
+            def _(arg):
+                pending_requests.write(m, {"id": i})
+                self.serialized_req_method(m, arg)
+
+            @def_method(m, self.serialize_out[i], ready=(pending_requests.head.id == i))
+            def _():
+                pending_requests.read(m)
+                return self.serialized_resp_method(m)
+
+        self.clear.proxy(m, pending_requests.clear)
 
         return m

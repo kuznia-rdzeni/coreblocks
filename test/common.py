@@ -109,9 +109,10 @@ _T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
 
 
 class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
-    def __init__(self, dut: _T_HasElaborate):
+    def __init__(self, dut: _T_HasElaborate, *, external_submodules: Optional[list[_T_HasElaborate]] = None):
         self._dut = dut
         self._io = dict[str, TestbenchIO]()
+        self.external_submodules = external_submodules
 
     def __getattr__(self, name: str):
         return self._io[name]
@@ -128,7 +129,17 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
             if isinstance(attr, Method):
                 self._io[name] = TestbenchIO(AdapterTrans(attr))
-                m.submodules += self._io[name]
+                m.submodules[name] = self._io[name]
+            if isinstance(attr, list):
+                for i, elem in enumerate(attr):
+                    if isinstance(elem, Method):
+                        self._io[name + str(i)] = TestbenchIO(AdapterTrans(elem))
+                        m.submodules[name + str(i)] = self._io[name + str(i)]
+
+        if self.external_submodules is not None:
+            name = "external_submodule"
+            for i, elem in enumerate(self.external_submodules):
+                m.submodules[name + str(i)] = elem
 
         return tm
 
@@ -189,7 +200,7 @@ class TestbenchIO(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        m.submodules += self.adapter
+        m.submodules.adapter = self.adapter
         return m
 
     # Low-level operations

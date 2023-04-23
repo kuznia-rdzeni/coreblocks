@@ -10,7 +10,7 @@ from amaranth import tracer
 from amaranth.hdl.ast import Statement
 from itertools import count
 
-from coreblocks.utils import AssignType, assign
+from coreblocks.utils import AssignType, assign, add_next_submodule
 from ._utils import *
 from ..utils._typing import StatementLike, ValueLike, SignalBundle
 from .graph import Owned, OwnershipGraph, Direction
@@ -122,7 +122,7 @@ def trivial_roundrobin_cc_scheduler(
         Linear ordering of transactions which is consistent with priority constraints.
     """
     sched = Scheduler(len(cc))
-    m.submodules += sched
+    add_next_submodule(m, sched, "_transactron_sheduler")
     for k, transaction in enumerate(cc):
         methods = manager.methods_by_transaction[transaction]
         ready = Signal(len(methods))
@@ -236,7 +236,7 @@ class TransactionManager(Elaboratable):
 
     def _call_graph(self, transaction: "Transaction", method: "Method", arg: ValueLike, enable: ValueLike):
         if not method.defined:
-            raise RuntimeError("Trying to use method which is not defined yet")
+            raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
         if method in self.method_uses[transaction]:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[transaction][method] = (arg, enable)
@@ -347,7 +347,7 @@ class TransactionModule(Elaboratable):
             for idx in range(len(self.module._anon_submodules)):
                 self.module._anon_submodules[idx] = Fragment.get(self.module._anon_submodules[idx], platform)
 
-        self.module.submodules += self.transactionManager
+        self.module.submodules._transactron_transactionManager = self.transactionManager
 
         return self.module
 

@@ -4,7 +4,7 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
 
 
 __all__ = [
@@ -15,6 +15,7 @@ __all__ = [
     "flatten_signals",
     "align_to_power_of_two",
     "bits_from_int",
+    "add_next_submodule",
 ]
 
 
@@ -316,3 +317,29 @@ def align_to_power_of_two(num: int, power: int) -> int:
 def bits_from_int(num: int, lower: int, length: int):
     """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
     return (num >> lower) & (1 << (length) - 1)
+
+
+def add_next_submodule(m: Module, sub: HasElaborate, name: str):
+    """
+    Add an elaboratable to module using a name created from given string
+    with appended a natural number in such way that every elaboratable have
+    distinct submodule name in module.
+
+    Parameters
+    ----------
+    m : Module
+        The module to which eleboratable should be added.
+    sub : HasElaborate
+        Elaboratable to add to module
+    name : str
+        String used to create submodule name. An integer will be appended to it.
+
+    """
+    i = 0
+    while True:
+        try:
+            getattr(m.submodules, name + str(i))
+            i += 1
+        except AttributeError:
+            break
+    m.submodules[name + str(i)] = sub
