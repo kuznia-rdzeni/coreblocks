@@ -1,7 +1,7 @@
 # Makefile
 
 # defaults
-SIM ?= icarus
+SIM ?= verilator
 TOPLEVEL_LANG ?= verilog
 
 VERILOG_SOURCES += $(PWD)/../../core.v
@@ -12,6 +12,11 @@ TOPLEVEL = top
 
 # MODULE is the basename of the Python test file
 MODULE = test
+
+# Yosys/Amaranth borkedness workaround
+ifeq ($(SIM),verilator)
+  EXTRA_ARGS += -Wno-CASEINCOMPLETE -Wno-CASEOVERLAP -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC
+endif
 
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim
