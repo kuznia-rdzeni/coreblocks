@@ -140,7 +140,7 @@ class TransactionManager(Elaboratable):
     are never granted in the same clock cycle.
     """
 
-    def __init__(self, cc_scheduler: TransactionScheduler = trivial_roundrobin_cc_scheduler):
+    def __init__(self, cc_scheduler: TransactionScheduler = eager_deterministic_cc_scheduler):
         self.transactions: list[Transaction] = []
         self.relations: list[Relation] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
@@ -229,7 +229,7 @@ class TransactionManager(Elaboratable):
 
     def _call_graph(self, transaction: "Transaction", method: "Method", arg: ValueLike, enable: ValueLike):
         if not method.defined:
-            raise RuntimeError("Trying to use method which is not defined yet")
+            raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
         if method in self.method_uses[transaction]:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[transaction][method] = (arg, enable)

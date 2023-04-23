@@ -23,6 +23,7 @@ __all__ = [
     "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
+    "Serializer",
 ]
 
 # FIFOs
@@ -785,27 +786,23 @@ class CatTrans(Elaboratable):
 class Serializer(Elaboratable):
     def __init__(
         self,
-        req_methods: list[Method],
-        resp_methods: list[Method],
+        *,
+        port_count : int ,
         serialized_req_method: Method,
         serialized_resp_method: Method,
         depth: int = 4,
     ):
-        self.req_methods = req_methods
-        self.resp_methods = resp_methods
+        self.port_count = port_count
         self.serialized_req_method = serialized_req_method
         self.serialized_resp_method = serialized_resp_method
 
         self.depth = depth
 
-        self.id_layout = [("id", log2_int(len(req_methods)))]
-
-        if len(self.req_methods) != len(self.resp_methods):
-            raise ValueError("Serializer got different number of request and response methods.")
+        self.id_layout = [("id", log2_int(self.port_count))]
 
         self.clear = Method()
-        self.serialize_in = [Method.like(met) for met in req_methods]
-        self.serialize_out = [Method.like(met) for met in resp_methods]
+        self.serialize_in = [Method.like(self.serialized_req_method) for _ in range(self.port_count)]
+        self.serialize_out = [Method.like(self.serialized_resp_method) for _ in range(self.port_count)]
 
     def elaborate(self, platform):
         m = Module()
@@ -813,7 +810,7 @@ class Serializer(Elaboratable):
         pending_requests = BasicFifo(self.id_layout, self.depth)
         m.submodules.pending_requests = pending_requests
 
-        for i in range(len(self.req_methods)):
+        for i in range(self.port_count):
 
             @def_method(m, self.serialize_in[i])
             def _(arg):
