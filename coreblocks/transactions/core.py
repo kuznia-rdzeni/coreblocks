@@ -9,7 +9,7 @@ from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Statement
 
-from coreblocks.utils import AssignType, assign
+from coreblocks.utils import AssignType, assign, add_next_submodule
 from ._utils import *
 from ..utils._typing import StatementLike, ValueLike, SignalBundle
 from .graph import Owned, OwnershipGraph, Direction
@@ -121,7 +121,7 @@ def trivial_roundrobin_cc_scheduler(
         Linear ordering of transactions which is consistent with priority constraints.
     """
     sched = Scheduler(len(cc))
-    m.submodules += sched
+    add_next_submodule(m, sched, "_transactron_sheduler")
     for k, transaction in enumerate(cc):
         methods = manager.methods_by_transaction[transaction]
         ready = Signal(len(methods))
@@ -140,7 +140,7 @@ class TransactionManager(Elaboratable):
     are never granted in the same clock cycle.
     """
 
-    def __init__(self, cc_scheduler: TransactionScheduler = eager_deterministic_cc_scheduler):
+    def __init__(self, cc_scheduler: TransactionScheduler = trivial_roundrobin_cc_scheduler):
         self.transactions: list[Transaction] = []
         self.relations: list[Relation] = []
         self.cc_scheduler = MethodType(cc_scheduler, self)
@@ -340,7 +340,7 @@ class TransactionModule(Elaboratable):
             for idx in range(len(self.module._anon_submodules)):
                 self.module._anon_submodules[idx] = Fragment.get(self.module._anon_submodules[idx], platform)
 
-        self.module.submodules += self.transactionManager
+        self.module.submodules._transactronTransactionManager = self.transactionManager
 
         return self.module
 

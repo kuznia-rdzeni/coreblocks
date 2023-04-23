@@ -4,7 +4,7 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
 
 
 __all__ = [
@@ -15,6 +15,7 @@ __all__ = [
     "flatten_signals",
     "align_to_power_of_two",
     "bits_from_int",
+    "add_next_submodule",
 ]
 
 
@@ -316,3 +317,13 @@ def align_to_power_of_two(num: int, power: int) -> int:
 def bits_from_int(num: int, lower: int, length: int):
     """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
     return (num >> lower) & (1 << (length) - 1)
+
+def add_next_submodule(m : Module, sub : HasElaborate, name : str):
+    i=0
+    while True:
+        try:
+            getattr(m.submodules, name+str(i))
+            i+=1
+        except AttributeError:
+            break
+    m.submodules[name+str(i)] = sub

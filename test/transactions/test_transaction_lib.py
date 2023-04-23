@@ -4,6 +4,7 @@ from functools import reduce
 from typing import TypeAlias
 from amaranth.sim import Settle
 from parameterized import parameterized
+from collections import deque
 
 from amaranth import *
 from coreblocks.transactions import *
@@ -106,6 +107,56 @@ class TestForwarder(TestFifoBase):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
+
+class TestMemoryBank(TestCaseWithSimulator):
+    def test_mem(self):
+        writer_rand = 3
+        reader_req_rand = 3
+        reader_resp_rand = 3
+        test_count = 100
+
+        data_width=7
+        max_addr = 16
+        m = SimpleTestCircuit(MemoryBank(data_layout= [("data", data_width)], elem_count = max_addr))
+
+        data_dict : dict[int,int] =dict((i,0) for i in range(max_addr))
+        read_req_queue = deque()
+
+        random.seed(14)
+
+        def random_wait(rand: int):
+            yield from self.tick(random.randint(0, rand))
+
+        def writer():
+            for i in range(test_count):
+                d = random.randrange(2**data_width)
+                a = random.randrange(max_addr)
+                print("w", a, d)
+                yield from m.write.call(data=d, addr=a)
+                data_dict[a]=d
+                yield from random_wait(writer_rand)
+
+        def reader_req():
+            for i in range(test_count):
+                a = random.randrange(max_addr)
+                read_req_queue.append(a)
+                print("rq", a)
+                yield from m.read_req.call(addr=a)
+                yield from random_wait(reader_req_rand)
+
+        def reader_resp():
+            for i in range(test_count):
+                while not read_req_queue:
+                    yield from random_wait(reader_resp_rand)
+                a = read_req_queue.popleft()
+                print("rp", a)
+                self.assertEqual((yield from m.read_resp.call()), {"data": data_dict[a]})
+                yield from random_wait(reader_resp_rand)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(reader_req)
+            sim.add_sync_process(reader_resp)
+            sim.add_sync_process(writer)
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
