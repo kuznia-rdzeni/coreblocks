@@ -88,9 +88,11 @@ def optypes_required_by_extensions(
     optypes = set()
 
     if resolve_implications:
+        implied_extensions = set()
         for ext in extensions:
-            if ext in extension_implications:
-                extensions |= extension_implications[ext]
+            if ext in extension_implications and ext in optypes_by_extensions:
+                implied_extensions |= extension_implications[ext]
+        extensions |= implied_extensions
 
     for ext in extensions:
         if ext in optypes_by_extensions:
