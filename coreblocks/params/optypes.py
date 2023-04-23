@@ -1,7 +1,7 @@
 from enum import IntEnum, auto, unique
-from typing import Iterable
 
 from coreblocks.params import Extension
+from coreblocks.params.isa import extension_implications
 
 
 @unique
@@ -37,6 +37,7 @@ class OpType(IntEnum):
 
 #
 # Operation types grouped by extensions
+# Note that this list provides 1:1 mappings and extension implications (like M->Zmmul) need to be resolved externally.
 #
 
 optypes_by_extensions = {
@@ -66,12 +67,11 @@ optypes_by_extensions = {
         OpType.CSR_REG,
         OpType.CSR_IMM,
     ],
-    Extension.M: [
-        OpType.MUL,
-        OpType.DIV_REM,
-    ],
     Extension.ZMMUL: [
         OpType.MUL,
+    ],
+    Extension.M: [
+        OpType.DIV_REM,
     ],
     Extension.ZBS: [
         OpType.SINGLE_BIT_MANIPULATION,
@@ -82,11 +82,20 @@ optypes_by_extensions = {
 }
 
 
-def optypes_required_by_extensions(extensions: Iterable[Extension]) -> set[OpType]:
+def optypes_required_by_extensions(
+    extensions: set[Extension], resolve_implications=True, ignore_unsupported=False
+) -> set[OpType]:
     optypes = set()
+
+    if resolve_implications:
+        for ext in extensions:
+            if ext in extension_implications:
+                extensions |= extension_implications[ext]
+
     for ext in extensions:
         if ext in optypes_by_extensions:
             optypes = optypes.union(optypes_by_extensions[ext])
-        else:
-            raise Exception(f"Core do not support {ext} extension")
+        elif not ignore_unsupported:
+            raise Exception(f"Core do not support {ext!r} extension")
+
     return optypes
