@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681983613202,
+  "lastUpdate": 1682236171377,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4492,6 +4492,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 18000,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 522,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5433,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5511f8871a22a4910af5ccfb3c0213b9ff96e8f5",
+          "message": "Add a sanity check for ordered method definitions (#281)",
+          "timestamp": "2023-04-23T09:42:04+02:00",
+          "tree_id": "c94752603b47a3313eb7fec3b7a4063e1c9a070e",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5511f8871a22a4910af5ccfb3c0213b9ff96e8f5"
+        },
+        "date": 1682236170602,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.58,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17999,
             "unit": "LUT4"
           },
           {
