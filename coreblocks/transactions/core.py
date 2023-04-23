@@ -628,7 +628,7 @@ class Method(TransactionBase):
         """
         m.d.comb += self.ready.eq(1)
         m.d.comb += self.data_out.eq(method.data_out)
-        self.use_method(method, arg=self.data_in, enable=C(1))
+        self.use_method(method, arg=self.data_in, enable=self.run)
         self.defined = True
 
     @contextmanager

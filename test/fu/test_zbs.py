@@ -5,37 +5,37 @@ from coreblocks.fu.zbs import ZbsFunction, ZbsComponent
 from test.fu.functional_common import GenericFunctionalTestUnit
 
 
-def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbsFunction.Function, xlen: int) -> dict[str, int]:
+def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbsFunction.Fn, xlen: int) -> dict[str, int]:
     val2 = i_imm if i_imm else i2
 
-    if fn == ZbsFunction.Function.BCLR:
+    if fn == ZbsFunction.Fn.BCLR:
         index = val2 & (xlen - 1)
         return {"result": i1 & ~(1 << index)}
-    if fn == ZbsFunction.Function.BEXT:
+    if fn == ZbsFunction.Fn.BEXT:
         index = val2 & (xlen - 1)
         return {"result": (i1 >> index) & 1}
-    if fn == ZbsFunction.Function.BINV:
+    if fn == ZbsFunction.Fn.BINV:
         index = val2 & (xlen - 1)
         return {"result": i1 ^ (1 << index)}
-    if fn == ZbsFunction.Function.BSET:
+    if fn == ZbsFunction.Fn.BSET:
         index = val2 & (xlen - 1)
         return {"result": i1 | (1 << index)}
 
 
 ops = {
-    ZbsFunction.Function.BCLR: {
+    ZbsFunction.Fn.BCLR: {
         "funct3": Funct3.BCLR,
         "funct7": Funct7.BCLR,
     },
-    ZbsFunction.Function.BEXT: {
+    ZbsFunction.Fn.BEXT: {
         "funct3": Funct3.BEXT,
         "funct7": Funct7.BEXT,
     },
-    ZbsFunction.Function.BINV: {
+    ZbsFunction.Fn.BINV: {
         "funct3": Funct3.BINV,
         "funct7": Funct7.BINV,
     },
-    ZbsFunction.Function.BSET: {
+    ZbsFunction.Fn.BSET: {
         "funct3": Funct3.BSET,
         "funct7": Funct7.BSET,
     },

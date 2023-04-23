@@ -1,5 +1,5 @@
-from enum import IntFlag, unique, IntEnum
-from typing import Tuple
+from enum import IntFlag, unique, IntEnum, auto
+from typing import Sequence, Tuple
 from dataclasses import KW_ONLY, dataclass
 
 from amaranth import *
@@ -8,10 +8,12 @@ from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsign
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params.fu_params import FunctionalComponentParams
-from coreblocks.params import Funct3, CommonLayouts, GenParams, FuncUnitLayouts, OpType
+from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
+
+from coreblocks.fu.fu_decoder import DecoderManager
 
 
 __all__ = ["MulUnit", "MulFn", "MulComponent", "MulType"]
@@ -20,67 +22,29 @@ from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
 
-class MulFn(Signal):
+class MulFn(DecoderManager):
     """
     Hot wire enum of 5 different multiplication operations.
     """
 
     @unique
     class Fn(IntFlag):
-        MUL = 1 << 0  # Lower part multiplication
-        MULH = 1 << 1  # Upper part multiplication signed×signed
-        MULHU = 1 << 2  # Upper part multiplication unsigned×unsigned
-        MULHSU = 1 << 3  # Upper part multiplication signed×unsigned
+        MUL = auto()  # Lower part multiplication
+        MULH = auto()  # Upper part multiplication signed×signed
+        MULHU = auto()  # Upper part multiplication unsigned×unsigned
+        MULHSU = auto()  # Upper part multiplication signed×unsigned
         # Prepared for RV64
         #
-        # MULW = 1 << 4  # Multiplication of lower half of bits
+        # MULW = auto()  # Multiplication of lower half of bits
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(MulFn.Fn, *args, **kwargs)
-
-
-class MulFnDecoder(Elaboratable):
-    """
-    Module decoding function into hot wired MulFn.
-
-    Attributes
-    ----------
-    exec_fn: Record(gen.get(CommonLayouts).exec_fn), in
-        Function to be decoded.
-    mul_fn: MulFn, out
-        Function decoded into OneHotWire output.
-    """
-
-    def __init__(self, gen: GenParams):
-        """
-        Parameters
-        ----------
-        gen: GenParams
-            Core generation parameters.
-        """
-        layouts = gen.get(CommonLayouts)
-
-        self.exec_fn = Record(layouts.exec_fn)
-        self.mul_fn = MulFn()
-
-    def elaborate(self, platform):
-        m = Module()
-
-        with m.Switch(self.exec_fn.funct3):
-            with m.Case(Funct3.MUL):
-                m.d.comb += self.mul_fn.eq(MulFn.Fn.MUL)
-            with m.Case(Funct3.MULH):
-                m.d.comb += self.mul_fn.eq(MulFn.Fn.MULH)
-            with m.Case(Funct3.MULHU):
-                m.d.comb += self.mul_fn.eq(MulFn.Fn.MULHU)
-            with m.Case(Funct3.MULHSU):
-                m.d.comb += self.mul_fn.eq(MulFn.Fn.MULHSU)
-        # Prepared for RV64
-        #
-        # with m.If(self.exec_fn.op_type == OpType.ARITHMETIC_W):
-        #     m.d.comb += self.mul_fn.eq(MulFn.Fn.MULW)
-
-        return m
+    @classmethod
+    def get_instructions(cls) -> Sequence[tuple]:
+        return [
+            (cls.Fn.MUL, OpType.MUL, Funct3.MUL),
+            (cls.Fn.MULH, OpType.MUL, Funct3.MULH),
+            (cls.Fn.MULHU, OpType.MUL, Funct3.MULHU),
+            (cls.Fn.MULHSU, OpType.MUL, Funct3.MULHSU),
+        ]
 
 
 def get_input(arg: Record) -> Tuple[Value, Value]:
@@ -126,7 +90,7 @@ class MulUnit(Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    optypes = {OpType.MUL}
+    optypes = MulFn.get_op_types()
 
     def __init__(self, gen: GenParams, mul_type: MulType, dsp_width: int = 32):
         """
@@ -157,7 +121,7 @@ class MulUnit(Elaboratable):
             ],
             2,
         )
-        m.submodules.decoder = decoder = MulFnDecoder(self.gen)
+        m.submodules.decoder = decoder = MulFn.get_decoder(self.gen)
 
         # Selecting unsigned integer multiplication module
         match self.mul_type:
@@ -193,7 +157,7 @@ class MulUnit(Elaboratable):
             # which part of result we want upper or lower part. In the future, it would be a great improvement
             # to save result for chain multiplication of this same numbers, but with different parts as
             # results
-            with OneHotSwitch(m, decoder.mul_fn) as OneHotCase:
+            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(MulFn.Fn.MUL):  # MUL
                     # In this case we care only about lower part of number, so it does not matter if it is
                     # interpreted as binary number or U2 encoded number, so we set result to be interpreted as
