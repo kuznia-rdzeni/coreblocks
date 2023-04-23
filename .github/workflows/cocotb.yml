@@ -12,6 +12,7 @@ on:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 4
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008
     steps:
       - uses: actions/checkout@v3
