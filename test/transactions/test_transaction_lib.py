@@ -528,3 +528,53 @@ class TestMethodProduct(TestCaseWithSimulator):
             sim.add_sync_process(method_process)
             for k in range(targets):
                 sim.add_sync_process(target_process(k))
+
+class TestSerializer(TestCaseWithSimulator):
+    def test_mem(self):
+        test_count = 200
+
+        data_width = 6
+        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr))
+
+        data_dict: dict[int, int] = dict((i, 0) for i in range(max_addr))
+        read_req_queue = deque()
+
+        random.seed(seed)
+
+        def random_wait(rand: int):
+            yield from self.tick(random.randrange(1, rand + 1))
+
+        def writer():
+            for i in range(test_count):
+                d = random.randrange(2**data_width)
+                a = random.randrange(max_addr)
+                yield from m.write.call(data=d, addr=a)
+                yield Settle()
+                # print("w", a, d)
+                data_dict[a] = d
+                yield from random_wait(writer_rand)
+
+        def reader_req():
+            for i in range(test_count):
+                a = random.randrange(max_addr)
+                # print(data_dict)
+                yield from m.read_req.call(addr=a)
+                for i in range(2):
+                    yield Settle()
+                # print("rq", a)
+                read_req_queue.append((a, data_dict[a]))
+                yield from random_wait(reader_req_rand)
+
+        def reader_resp():
+            for i in range(test_count):
+                while not read_req_queue:
+                    yield from random_wait(reader_resp_rand)
+                a, d = read_req_queue.popleft()
+                # print("rp", a)
+                self.assertEqual((yield from m.read_resp.call()), {"data": data_dict[a]})
+                yield from random_wait(reader_resp_rand)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(reader_req)
+            sim.add_sync_process(reader_resp)
+            sim.add_sync_process(writer)
