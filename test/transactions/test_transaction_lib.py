@@ -529,25 +529,6 @@ class TestMethodProduct(TestCaseWithSimulator):
             for k in range(targets):
                 sim.add_sync_process(target_process(k))
 
-class SerializerTestCircuit(Elaboratable):
-    def __init__(self, port_count : int, layout : LayoutLike):
-        self.layout = layout
-        self.port_count = port_count
-
-    def elaborate(self, platform):
-        m = Module()
-        tm = TransactionModule(m)
-
-        # dummy signal
-        s = Signal()
-        m.d.sync += s.eq(1)
-
-        m.submodules.req_method = self.req_method = TestbenchIO(Adapter(i=self.layout))
-        m.submodules.resp_method = self.resp_method = TestbenchIO(Adapter(o=self.layout))
-
-        m.submodules.dut = self.dut = SimpleTestCircuit(Serializer(port_count=self.port_count, serialized_req_method=self.req_method.adapter.iface, serialized_resp_method=self.resp_method.adapter.iface))
-
-        return tm
 
 class TestSerializer(TestCaseWithSimulator):
     def test_serial(self):
@@ -558,9 +539,19 @@ class TestSerializer(TestCaseWithSimulator):
 
         requestor_rand = 4
 
-        layout= [("field", data_width)]
+        layout = [("field", data_width)]
 
-        m = SerializerTestCircuit(port_count, layout)
+        self.req_method = TestbenchIO(Adapter(i=layout))
+        self.resp_method = TestbenchIO(Adapter(o=layout))
+
+        m = SimpleTestCircuit(
+            Serializer(
+                port_count=port_count,
+                serialized_req_method=self.req_method.adapter.iface,
+                serialized_resp_method=self.resp_method.adapter.iface,
+            ),
+            external_submodules=[self.req_method, self.resp_method],
+        )
 
         random.seed(14)
 
@@ -572,34 +563,35 @@ class TestSerializer(TestCaseWithSimulator):
         def random_wait(rand: int):
             yield from self.tick(random.randrange(rand) + 1)
 
-        @def_method_mock(lambda: m.req_method, enable=lambda: not got_request)
+        @def_method_mock(lambda: self.req_method, enable=lambda: not got_request)
         def serial_req_mock(field):
             nonlocal got_request
             serialized_data.append(field)
             got_request = True
 
-        @def_method_mock(lambda: m.resp_method, enable = lambda: got_request)
+        @def_method_mock(lambda: self.resp_method, enable=lambda: got_request)
         def serial_resp_mock():
             nonlocal got_request
             got_request = False
             return {"field": serialized_data[-1]}
 
-        def requestor(i : int):
+        def requestor(i: int):
             def f():
                 for _ in range(test_count):
                     d = random.randrange(2**data_width)
-                    yield from m.dut._io["serialize_in"+str(i)].call(field=d)
+                    yield from m._io["serialize_in" + str(i)].call(field=d)
                     port_data[i].append(d)
                     yield from random_wait(requestor_rand)
+
             return f
 
-        def responser(i : int):
+        def responser(i: int):
             def f():
                 for _ in range(test_count):
-                    d = random.randrange(2**data_width)
-                    data_out = yield from m.dut._io["serialize_out"+str(i)].call()
+                    data_out = yield from m._io["serialize_out" + str(i)].call()
                     self.assertEqual(port_data[i].popleft(), data_out["field"])
                     yield from random_wait(requestor_rand)
+
             return f
 
         with self.run_simulation(m) as sim:

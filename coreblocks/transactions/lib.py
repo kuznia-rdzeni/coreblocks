@@ -787,7 +787,7 @@ class Serializer(Elaboratable):
     def __init__(
         self,
         *,
-        port_count : int ,
+        port_count: int,
         serialized_req_method: Method,
         serialized_resp_method: Method,
         depth: int = 4,

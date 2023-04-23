@@ -109,7 +109,7 @@ _T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
 
 
 class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
-    def __init__(self, dut: _T_HasElaborate, *, external_submodules : Optional[list[_T_HasElaborate]] = None):
+    def __init__(self, dut: _T_HasElaborate, *, external_submodules: Optional[list[_T_HasElaborate]] = None):
         self._dut = dut
         self._io = dict[str, TestbenchIO]()
         self.external_submodules = external_submodules
@@ -133,13 +133,13 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
             if isinstance(attr, list):
                 for i, elem in enumerate(attr):
                     if isinstance(elem, Method):
-                        self._io[name+str(i)] = TestbenchIO(AdapterTrans(elem))
-                        m.submodules[name+str(i)] = self._io[name+str(i)]
+                        self._io[name + str(i)] = TestbenchIO(AdapterTrans(elem))
+                        m.submodules[name + str(i)] = self._io[name + str(i)]
 
         if self.external_submodules is not None:
-            name="external_submodule"
+            name = "external_submodule"
             for i, elem in enumerate(self.external_submodules):
-                m.submodules[name+str(i)] = elem
+                m.submodules[name + str(i)] = elem
 
         return tm
 
