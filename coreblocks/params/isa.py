@@ -201,11 +201,11 @@ _extension_requirements = {
     Extension.ZHINX: Extension.ZFH,
 }
 
-# Extensions which implicitly imply another extensions (can be joined using | operator)
-_extension_implications = {
-    Extension.F: Extension.ZICSR,
-    Extension.M: Extension.ZMMUL,
-    Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
+# Extensions which implicitly imply another extensions
+extension_implications = {
+    Extension.F: {Extension.ZICSR},
+    Extension.M: {Extension.ZMMUL},
+    Extension.B: {Extension.ZBA, Extension.ZBB, Extension.ZBC, Extension.ZBS},
 }
 
 
@@ -282,9 +282,10 @@ class ISA:
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
 
-        for ext, imply in _extension_implications.items():
+        for ext, imply_set in extension_implications.items():
             if ext in self.extensions:
-                self.extensions |= imply
+                for imply in imply_set:
+                    self.extensions |= imply
 
         for exclusive in _extension_exclusive:
             for i in range(len(exclusive)):
