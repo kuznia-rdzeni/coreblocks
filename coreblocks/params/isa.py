@@ -140,6 +140,10 @@ class Extension(IntFlag):
     V = auto()
     #: User-level interruptions
     N = auto()
+    #: Machine-Mode Privileged Instructions
+    MACHINE_MODE = auto()
+    #: Supervisor Instructions
+    SUPERVISOR = auto()
     #: Control and Status Register access
     ZICSR = auto()
     #: Instruction-Fetch fence operations

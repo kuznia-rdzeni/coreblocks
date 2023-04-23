@@ -52,6 +52,8 @@ optypes_by_extensions = {
         OpType.LOAD,
         OpType.STORE,
         OpType.FENCE,
+    ],
+    Extension.MACHINE_MODE: [
         OpType.ECALL,
         OpType.EBREAK,
         OpType.MRET,
