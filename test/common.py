@@ -189,7 +189,7 @@ class TestbenchIO(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        m.submodules += self.adapter
+        m.submodules.adapter = self.adapter
         return m
 
     # Low-level operations

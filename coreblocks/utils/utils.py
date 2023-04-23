@@ -318,12 +318,28 @@ def bits_from_int(num: int, lower: int, length: int):
     """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
     return (num >> lower) & (1 << (length) - 1)
 
-def add_next_submodule(m : Module, sub : HasElaborate, name : str):
-    i=0
+
+def add_next_submodule(m: Module, sub: HasElaborate, name: str):
+    """
+    Add an elaboratable to module using a name created from given string
+    with appended a natural number in such way that every elaboratable have
+    distinct submodule name in module.
+
+    Parameters
+    ----------
+    m : Module
+        The module to which eleboratable should be added.
+    sub : HasElaborate
+        Elaboratable to add to module
+    name : str
+        String used to create submodule name. An integer will be appended to it.
+
+    """
+    i = 0
     while True:
         try:
-            getattr(m.submodules, name+str(i))
-            i+=1
+            getattr(m.submodules, name + str(i))
+            i += 1
         except AttributeError:
             break
-    m.submodules[name+str(i)] = sub
+    m.submodules[name + str(i)] = sub

@@ -340,7 +340,7 @@ class TransactionModule(Elaboratable):
             for idx in range(len(self.module._anon_submodules)):
                 self.module._anon_submodules[idx] = Fragment.get(self.module._anon_submodules[idx], platform)
 
-        self.module.submodules._transactronTransactionManager = self.transactionManager
+        self.module.submodules._transactron_transactionManager = self.transactionManager
 
         return self.module
 

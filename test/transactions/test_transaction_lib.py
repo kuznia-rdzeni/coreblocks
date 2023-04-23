@@ -108,48 +108,50 @@ class TestForwarder(TestFifoBase):
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
 
+
 class TestMemoryBank(TestCaseWithSimulator):
-    def test_mem(self):
-        writer_rand = 3
-        reader_req_rand = 3
-        reader_resp_rand = 3
-        test_count = 100
+    @parameterized.expand([(9, 3, 3, 3, 14), (16, 3, 3, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)])
+    def test_mem(self, max_addr, writer_rand, reader_req_rand, reader_resp_rand, seed):
+        test_count = 200
 
-        data_width=7
-        max_addr = 16
-        m = SimpleTestCircuit(MemoryBank(data_layout= [("data", data_width)], elem_count = max_addr))
+        data_width = 6
+        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr))
 
-        data_dict : dict[int,int] =dict((i,0) for i in range(max_addr))
+        data_dict: dict[int, int] = dict((i, 0) for i in range(max_addr))
         read_req_queue = deque()
 
-        random.seed(14)
+        random.seed(seed)
 
         def random_wait(rand: int):
-            yield from self.tick(random.randint(0, rand))
+            yield from self.tick(random.randrange(1, rand + 1))
 
         def writer():
             for i in range(test_count):
                 d = random.randrange(2**data_width)
                 a = random.randrange(max_addr)
-                print("w", a, d)
                 yield from m.write.call(data=d, addr=a)
-                data_dict[a]=d
+                yield Settle()
+                # print("w", a, d)
+                data_dict[a] = d
                 yield from random_wait(writer_rand)
 
         def reader_req():
             for i in range(test_count):
                 a = random.randrange(max_addr)
-                read_req_queue.append(a)
-                print("rq", a)
+                # print(data_dict)
                 yield from m.read_req.call(addr=a)
+                for i in range(2):
+                    yield Settle()
+                # print("rq", a)
+                read_req_queue.append((a, data_dict[a]))
                 yield from random_wait(reader_req_rand)
 
         def reader_resp():
             for i in range(test_count):
                 while not read_req_queue:
                     yield from random_wait(reader_resp_rand)
-                a = read_req_queue.popleft()
-                print("rp", a)
+                a, d = read_req_queue.popleft()
+                # print("rp", a)
                 self.assertEqual((yield from m.read_resp.call()), {"data": data_dict[a]})
                 yield from random_wait(reader_resp_rand)
 

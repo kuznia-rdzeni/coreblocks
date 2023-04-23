@@ -117,6 +117,8 @@ class MemoryBank(Elaboratable):
         m.submodules.read_port = read_port = mem.read_port()
         m.submodules.write_port = write_port = mem.write_port()
         read_output_valid = Signal()
+        prev_read_addr = Signal(self.addr_width)
+        m.d.comb += read_port.addr.eq(prev_read_addr)
 
         # read_resp has to be defined before read_req, to handle read_output_valid signal correctly
         @def_method(m, self.read_resp, ready=read_output_valid)
@@ -128,6 +130,7 @@ class MemoryBank(Elaboratable):
         def _(addr):
             m.d.sync += read_output_valid.eq(1)
             m.d.comb += read_port.addr.eq(addr)
+            m.d.sync += prev_read_addr.eq(addr)
 
         @def_method(m, self.write)
         def _(arg):
