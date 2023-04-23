@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682236171377,
+  "lastUpdate": 1682270508940,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4531,6 +4531,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5511f8871a22a4910af5ccfb3c0213b9ff96e8f5"
         },
         "date": 1682236170602,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.58,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17999,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 522,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5433,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ec6abd09f25b4af8e69fe1cdf4fe74894b650306",
+          "message": "Added timeouts for workflows. (#302)",
+          "timestamp": "2023-04-23T19:11:46+02:00",
+          "tree_id": "863ebc73ae415a0fcc068e36e3954d634b94d9a9",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ec6abd09f25b4af8e69fe1cdf4fe74894b650306"
+        },
+        "date": 1682270507540,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
