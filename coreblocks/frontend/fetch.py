@@ -68,7 +68,6 @@ class Fetch(Elaboratable):
 
             with m.If(discard_next):
                 m.d.sync += discard_next.eq(0)
-
             # TODO: find a better way to fail when there's a fetch error.
             with m.Elif(res.error == 0):
                 with m.If(is_branch | is_system):

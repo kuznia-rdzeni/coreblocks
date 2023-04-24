@@ -78,7 +78,7 @@ class TestFetch(TestCaseWithSimulator):
 
                 output_q.append({"instr": data, "error": 0})
 
-                # Speculative fetch. Skip
+                # Speculative fetch. Skip, because this instruction shouldn't be executed.
                 if addr != next_pc:
                     continue
 

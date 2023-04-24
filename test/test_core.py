@@ -226,7 +226,7 @@ class TestCoreRandomized(TestCoreBase):
         self.software_core.execute(init_instr_list)
         self.software_core.execute(instr_list)
 
-        # We add JAL instruction at the end to effictively create a infinite loop at the end of the program.
+        # We add JAL instruction at the end to effectively create a infinite loop at the end of the program.
         all_instr = init_instr_list + instr_list + [InstructionJAL(rd=0, imm=0)]
 
         self.instr_mem = list(map(lambda x: x.encode(), all_instr))
