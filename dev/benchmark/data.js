@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682270508940,
+  "lastUpdate": 1682416149604,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4580,6 +4580,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ec6abd09f25b4af8e69fe1cdf4fe74894b650306"
         },
         "date": 1682270507540,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.58,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17999,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 522,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5433,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "180dd538d0cc3f4043fb7c4a64c7ce3902289852",
+          "message": "Fix Verilator on cocotb (#305)",
+          "timestamp": "2023-04-25T11:40:08+02:00",
+          "tree_id": "da0997bd895a56052e882aba4dd8899468476041",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/180dd538d0cc3f4043fb7c4a64c7ce3902289852"
+        },
+        "date": 1682416148222,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
