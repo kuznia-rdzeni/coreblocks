@@ -15,7 +15,7 @@ from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
-from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller
+from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.utils.fifo import BasicFifo
@@ -38,15 +38,17 @@ class Core(Elaboratable):
         self.free_rf_fifo = BasicFifo(
             self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
+
         cache_layouts = self.gen_params.get(ICacheLayouts)
-        self.cache_refiller = SimpleWBCacheRefiller(cache_layouts, self.gen_params.icache_params, self.wb_master_instr)
-        self.cache = ICache(
-            cache_layouts,
-            self.gen_params.icache_params,
-            self.cache_refiller.start_refill,
-            self.cache_refiller.accept_refill,
-        )
-        self.fetch = Fetch(self.gen_params, self.cache.issue_req, self.cache.accept_res, self.fifo_fetch.write)
+        if gen_params.icache_params.enable:
+            self.icache_refiller = SimpleWBCacheRefiller(
+                cache_layouts, self.gen_params.icache_params, self.wb_master_instr
+            )
+            self.icache = ICache(cache_layouts, self.gen_params.icache_params, self.icache_refiller)
+        else:
+            self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
+
+        self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -86,8 +88,9 @@ class Core(Elaboratable):
         m.submodules.ROB = rob = self.ROB
 
         m.submodules.fifo_fetch = self.fifo_fetch
-        m.submodules.cache_refiller = self.cache_refiller
-        m.submodules.cache = self.cache
+        if self.icache_refiller:
+            m.submodules.icache_refiller = self.icache_refiller
+        m.submodules.icache = self.icache
         m.submodules.fetch = self.fetch
 
         m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)

@@ -1,6 +1,7 @@
 from amaranth import *
 from coreblocks.transactions.core import def_method
 from coreblocks.utils.fifo import BasicFifo
+from coreblocks.frontend.icache import ICacheInterface
 from ..transactions import Method, Transaction
 from ..params import GenParams, FetchLayouts
 
@@ -11,26 +12,21 @@ class Fetch(Elaboratable):
     after each fetch.
     """
 
-    def __init__(self, gen_params: GenParams, cache_req: Method, cache_resp: Method, cont: Method) -> None:
+    def __init__(self, gen_params: GenParams, icache: ICacheInterface, cont: Method) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
-        cache_req : Method
-            Method that is used to issue a request to the instruction cache.
-            It has layout ICacheLayouts.issue_req.
-        cache_resp : Method
-            Method that is used to accept the response from the instruction cache.
-            It has layout ICacheLayouts.accept_resp.
+        icache : ICacheInterface
+            Instruction Cache
         cont : Method
             Method which should be invoked to send fetched data to the next step.
             It has layout as described by `FetchLayout`.
         """
         self.gp = gen_params
-        self.cache_req = cache_req
-        self.cache_resp = cache_resp
+        self.icache = icache
         self.cont = cont
 
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
@@ -51,14 +47,14 @@ class Fetch(Elaboratable):
         stalled = Signal()
 
         with Transaction().body(m, request=~stalled):
-            self.cache_req(m, addr=speculative_pc)
+            self.icache.issue_req(m, addr=speculative_pc)
             self.fetch_target_queue.write(m, addr=speculative_pc)
 
             m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
 
         with Transaction().body(m):
             pc = self.fetch_target_queue.read(m).addr
-            res = self.cache_resp(m)
+            res = self.icache.accept_res(m)
 
             # bits 4:7 currently are enough to uniquely distinguish jumps and branches,
             # but this could potentially change in the future since there's a reserved

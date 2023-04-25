@@ -13,14 +13,17 @@ class ICacheParameters:
         Log of the number of cache sets.
     block_size_bits : int
         Log of the size of a single cache block in bytes.
+    enable : bool
+        Enable the instruction cache. If disabled, requestes are bypassed to the bus.
     """
 
-    def __init__(self, *, addr_width, word_width, num_of_ways, num_of_sets_bits, block_size_bits):
+    def __init__(self, *, addr_width, word_width, num_of_ways, num_of_sets_bits, block_size_bits, enable=True):
         self.addr_width = addr_width
         self.word_width = word_width
         self.num_of_ways = num_of_ways
         self.num_of_sets_bits = num_of_sets_bits
         self.block_size_bits = block_size_bits
+        self.enable = enable
         self.num_of_sets = 2**num_of_sets_bits
         self.block_size_bytes = 2**block_size_bits
 

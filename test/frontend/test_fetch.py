@@ -7,8 +7,10 @@ from amaranth.sim import Passive
 
 from coreblocks.transactions import TransactionModule
 
+from coreblocks.transactions.core import Method
 from coreblocks.transactions.lib import AdapterTrans, FIFO, Adapter
 from coreblocks.frontend.fetch import Fetch
+from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.params import GenParams, FetchLayouts, ICacheLayouts
 from coreblocks.params.configurations import test_core_config
 from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock
@@ -26,9 +28,11 @@ class TestElaboratable(Elaboratable):
         self.issue_req_io = TestbenchIO(Adapter(i=cache_layouts.issue_req))
         self.accept_res_io = TestbenchIO(Adapter(o=cache_layouts.accept_res))
 
+        icache = ICacheInterface(self.issue_req_io.adapter.iface, self.accept_res_io.adapter.iface, Method())
+
         fifo = FIFO(self.gp.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-        self.fetch = Fetch(self.gp, self.issue_req_io.adapter.iface, self.accept_res_io.adapter.iface, fifo.write)
+        self.fetch = Fetch(self.gp, icache, fifo.write)
         self.verify_branch = TestbenchIO(AdapterTrans(self.fetch.verify_branch))
 
         m.submodules.issue_req_io = self.issue_req_io
