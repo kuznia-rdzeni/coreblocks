@@ -48,7 +48,11 @@ class WishboneBus(Bus):
     rty: ModifiableObject
 
     def __init__(self, entity, name):
-        super().__init__(entity, name, self._signals, self._optional_signals, bus_separator="__")
+        # case_insensitive is a workaround for cocotb_bus/verilator problem
+        # see https://github.com/cocotb/cocotb/issues/3259
+        super().__init__(
+            entity, name, self._signals, self._optional_signals, bus_separator="__", case_insensitive=False
+        )
 
 
 class ReplyStatus(Enum):
