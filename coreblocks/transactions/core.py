@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Iterable, Sequence, Callable, Mapping, Iterator
+from collections.abc import Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
 from typing import ClassVar, TypeAlias, TypedDict, Union, Optional, Tuple
