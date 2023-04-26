@@ -21,6 +21,7 @@ RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
+_T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
 
 
 def data_layout(val: int) -> LayoutLike:
@@ -105,13 +106,11 @@ def signed_to_int(x: int, xlen: int) -> int:
     return x | -(x & (2 ** (xlen - 1)))
 
 
-_T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
-
-
 class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
-    def __init__(self, dut: _T_HasElaborate):
+    def __init__(self, dut: _T_HasElaborate, extra: Optional[list[_T_HasElaborate]] = None):
         self._dut = dut
         self._io = dict[str, TestbenchIO]()
+        self.extra = extra
 
     def __getattr__(self, name: str):
         return self._io[name]
@@ -127,8 +126,14 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
             if isinstance(attr, Method):
+                if name in ["target", "condition"]:
+                    continue
                 self._io[name] = TestbenchIO(AdapterTrans(attr))
-                m.submodules += self._io[name]
+                m.submodules[name] = self._io[name]
+
+        if self.extra is not None:
+            for n, i in enumerate(self.extra):
+                m.submodules["extra" + str(n)] = i
 
         return tm
 
@@ -382,3 +387,25 @@ def def_method_mock(
         return mock
 
     return decorator
+
+
+def postprocess_add_submodules(m_org: _T_HasElaborate, sub_to_add: list[HasElaborate]) -> _T_HasElaborate:
+    elaborate_old = m_org.elaborate
+
+    def elaborate_new(self, platform) -> Module | TransactionModule:
+        def add_submodules(m: Module):
+            for i, sub in enumerate(sub_to_add):
+                m.submodules["extra_submodule" + str(i)] = sub
+
+        m = elaborate_old(platform)
+        if isinstance(m, TransactionModule):
+            add_submodules(m.module)
+            return m
+        if isinstance(m, Module):
+            add_submodules(m)
+            return m
+        raise RuntimeError("postprocess_add_submodules haven't found Module instance")
+
+    t = type(m_org.elaborate)
+    m_org.elaborate = t(elaborate_new, m_org)  # type: ignore
+    return m_org
