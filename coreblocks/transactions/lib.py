@@ -105,6 +105,7 @@ class MemoryBank(Elaboratable):
         The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
         and optionaly `mask` if `granularity` is not None. `1` in mask means that apropriate part should be written.
     """
+
     def __init__(self, *, data_layout: MethodLayout, elem_count: int, granularity: Optional[int] = None):
         """
         Parameters
@@ -830,6 +831,7 @@ class Serializer(Elaboratable):
         List of response methods. Data layouts are the same as for `serialized_resp_method`.
         `i`-th response method provides responses for requests from `i`-th `serialize_in` method.
     """
+
     def __init__(
         self,
         *,
@@ -847,7 +849,7 @@ class Serializer(Elaboratable):
             Request method provided by server `Module`.
         serialized_resp_method: Method
             Response method provided by server `Module`.
-        depth: Optional[int]
+        depth: int
             Number of requests which can be forwarded to server, before server provides first response. Describe
             the resistance of `Serializer` to latency of server in case when server is fully pipelined.
         """
