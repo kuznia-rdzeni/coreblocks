@@ -17,6 +17,7 @@ from ..common import (
     data_layout,
     def_method_mock,
     postprocess_add_submodules,
+    AddSubmodulesWrapper,
 )
 
 
@@ -369,8 +370,8 @@ class TestMethodFilter(TestCaseWithSimulator):
         def condition(_, v):
             return v[0]
 
-        self.m = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition))
-        self.m = postprocess_add_submodules(self.m, [self.target, self.cmeth])
+        mmm = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition))
+        self.m = AddSubmodulesWrapper(mmm, [self.target, self.cmeth])
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target_mock)

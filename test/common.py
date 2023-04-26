@@ -107,10 +107,9 @@ def signed_to_int(x: int, xlen: int) -> int:
 
 
 class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
-    def __init__(self, dut: _T_HasElaborate, extra: Optional[list[_T_HasElaborate]] = None):
+    def __init__(self, dut: _T_HasElaborate):
         self._dut = dut
         self._io = dict[str, TestbenchIO]()
-        self.extra = extra
 
     def __getattr__(self, name: str):
         return self._io[name]
@@ -126,14 +125,8 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
             if isinstance(attr, Method):
-                if name in ["target", "condition"]:
-                    continue
                 self._io[name] = TestbenchIO(AdapterTrans(attr))
                 m.submodules[name] = self._io[name]
-
-        if self.extra is not None:
-            for n, i in enumerate(self.extra):
-                m.submodules["extra" + str(n)] = i
 
         return tm
 
@@ -395,7 +388,7 @@ def postprocess_add_submodules(m_org: _T_HasElaborate, sub_to_add: list[HasElabo
     def elaborate_new(self, platform) -> Module | TransactionModule:
         def add_submodules(m: Module):
             for i, sub in enumerate(sub_to_add):
-                m.submodules["extra_submodule" + str(i)] = sub
+                m.submodules += sub
 
         m = elaborate_old(platform)
         if isinstance(m, TransactionModule):
@@ -409,3 +402,24 @@ def postprocess_add_submodules(m_org: _T_HasElaborate, sub_to_add: list[HasElabo
     t = type(m_org.elaborate)
     m_org.elaborate = t(elaborate_new, m_org)  # type: ignore
     return m_org
+
+
+class AddSubmodulesWrapper(Elaboratable, Generic[_T_HasElaborate]):
+    def __init__(self, dut: _T_HasElaborate, extra_submodules: list[HasElaborate]):
+        self._dut = dut
+        self.extra_submodules = extra_submodules
+
+    def __getattr__(self, name: str):
+        return getattr(self._dut, name)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        for sub in self.extra_submodules:
+            m.submodules += sub
+
+        # This has to be on the end, because _dut in normal use case will be TransactionModule
+        # and extra_submodules will be some mock method, which has to be defined before TransactionModule
+        # will be eleborated.
+        m.submodules += self._dut
+        return m

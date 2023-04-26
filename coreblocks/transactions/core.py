@@ -236,7 +236,7 @@ class TransactionManager(Elaboratable):
 
     def _call_graph(self, transaction: "Transaction", method: "Method", arg: ValueLike, enable: ValueLike):
         if not method.defined:
-            raise RuntimeError("Trying to use method which is not defined yet")
+            raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
         if method in self.method_uses[transaction]:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[transaction][method] = (arg, enable)
