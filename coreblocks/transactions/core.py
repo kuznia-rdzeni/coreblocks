@@ -1,5 +1,5 @@
-from collections import defaultdict
-from collections.abc import Iterable, Callable, Mapping, Iterator
+from collections import defaultdict, deque
+from collections.abc import Iterable, Callable, Mapping, Iterator, Sequence
 from contextlib import contextmanager
 from enum import Enum, auto
 from typing import ClassVar, TypeAlias, TypedDict, Union, Optional, Tuple
@@ -280,7 +280,95 @@ class TransactionManager(Elaboratable):
 
         return method_uses
 
+    def _simultaneous(self):
+        method_map = MethodMap(self.transactions)
+
+        # step 1: conflict set generation
+        conflicts = list[set[frozenset[Transaction]]]()
+
+        def conflict_for(elems: Iterable[TransactionOrMethod]):
+            elem_list = list(elems)
+            sim_list = list[Transaction]()
+
+            def rec(idx: int) -> Iterable[frozenset[Transaction]]:
+                if idx == len(elem_list):
+                    yield frozenset(sim_list)
+                else:
+                    for transaction in method_map.transactions_for(elem_list[idx]):
+                        sim_list.append(transaction)
+                        yield from rec(idx + 1)
+                        sim_list.pop()
+
+            return set(rec(0))
+
+        for elem in method_map.methods_and_transactions:
+            for sim in elem.simultaneous:
+                conflict = conflict_for(chain([elem], sim))
+                conflicts.append(conflict)
+
+        # step 2: transitivity computation
+        simultaneous = set[frozenset[Transaction]]().union(*conflicts)
+
+        def conflicting(group1: frozenset[Transaction], group2: frozenset[Transaction]):
+            for conflict in conflicts:
+                if group1 in conflict and group2 in conflict:
+                    return True
+            return False
+
+        def mergable_pairs(group1: frozenset[Transaction]):
+            for group2 in simultaneous:
+                if group1 & group2 and not conflicting(group1, group2):
+                    yield (group1, group2)
+
+        q = deque[Tuple[frozenset[Transaction], frozenset[Transaction]]]()
+        for group in simultaneous:
+            q.extend(mergable_pairs(group))
+
+        while q:
+            (group1, group2) = q.popleft()
+            new_group = group1 | group2
+            if new_group in simultaneous:
+                continue
+            q.extend(mergable_pairs(new_group))
+            simultaneous.add(new_group)
+            for conflict in conflicts:
+                if group1 in conflict or group2 in conflict:
+                    conflict.add(new_group)
+
+        # step 3: maximal group selection
+        def maximal(group: frozenset[Transaction]):
+            return all(not group.issubset(group2) for group2 in simultaneous)
+
+        final_simultaneous = filter(maximal, simultaneous)
+
+        # step 4: convert transactions to methods
+        joined_transactions = set[Transaction]().union(*final_simultaneous)
+
+        self.transactions = list(filter(lambda t: t not in joined_transactions, self.transactions))
+        methods = dict[Transaction, Method]()
+
+        for transaction in joined_transactions:
+            # TODO: some simpler way?
+            method = Method(name=transaction.name)
+            method.owner = transaction.owner
+            method.ready = transaction.request
+            method.run = transaction.grant
+            methods[transaction] = method
+
+        # step 5: construct merged transactions
+        m = Module()
+        m._MustUse__silence = True  # type: ignore
+
+        for group in final_simultaneous:
+            with Transaction(manager=self).body(m):
+                for transaction in group:
+                    methods[transaction](m)
+
+        return m
+
     def elaborate(self, platform):
+        merge_manager = self._simultaneous()
+
         method_map = MethodMap(self.transactions)
         relations = [
             Relation(**relation, start=elem)
@@ -290,6 +378,7 @@ class TransactionManager(Elaboratable):
         cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
 
         m = Module()
+        m.submodules.merge_manager = merge_manager
 
         for cc in _graph_ccs(rgr):
             self.cc_scheduler(method_map, m, cgr, cc, porder)
@@ -412,6 +501,7 @@ class TransactionBase(Owned):
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
+        self.simultaneous: list[Sequence[TransactionOrMethod]] = []
 
     def add_conflict(self, end: TransactionOrMethod, priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
@@ -448,6 +538,9 @@ class TransactionBase(Owned):
         if method in self.method_uses:
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[method] = (arg, enable)
+
+    def simultaneous_with(self, *others: TransactionOrMethod) -> None:
+        self.simultaneous.append(others)
 
     @contextmanager
     def context(self) -> Iterator[Self]:
