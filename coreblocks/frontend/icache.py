@@ -21,11 +21,13 @@ def extract_instr_from_word(m: Module, params: ICacheParameters, word: Signal, a
     instr_out = Signal(params.instr_width)
     if len(word) == 32:
         m.d.comb += instr_out.eq(word)
-    else:
+    elif len(word) == 64:
         with m.If(addr[2] == 0):
             m.d.comb += instr_out.eq(word[:32])  # Take lower 4 bytes
         with m.Else():
             m.d.comb += instr_out.eq(word[32:])  # Take upper 4 bytes
+    else:
+        raise RuntimeError("Word size different than 32 and 64 is not supported")
     return instr_out
 
 
