@@ -11,9 +11,10 @@ from coreblocks.transactions.lib import *
 
 from ..common import TestCaseWithSimulator, TestbenchIO
 
-from coreblocks.fu.alu import ALUComponent, Fn, Alu, AluFuncUnit
+from coreblocks.fu.alu import AluFuncUnit
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
+from coreblocks.fu.alu_builder import AluBuilder, InstTag, InstExt
 
 
 def _cast_to_int_xlen(x, xlen):
@@ -39,8 +40,10 @@ class TestAlu(TestCaseWithSimulator):
     ]
 
     def setUp(self):
+        builder = AluBuilder(InstExt.ANY, InstTag.ANY)
         self.gen = GenParams(test_core_config)
-        self.alu = Alu(self.gen, zba_enable=True)
+        self.alu = builder.build_alu(self.gen)
+        self.enum = builder.get_decoder_manger().Fn
 
         random.seed(42)
 
@@ -70,34 +73,34 @@ class TestAlu(TestCaseWithSimulator):
             sim.add_process(process)
 
     def test_add(self):
-        self.check_fn(Fn.ADD, operator.add)
+        self.check_fn(self.enum["ADD"], operator.add)
 
     def test_sll(self):
-        self.check_fn(Fn.SLL, lambda in1, in2: in1 << (in2 & (self.gen.isa.xlen - 1)))
+        self.check_fn(self.enum["SLL"], lambda in1, in2: in1 << (in2 & (self.gen.isa.xlen - 1)))
 
     def test_xor(self):
-        self.check_fn(Fn.XOR, operator.xor)
+        self.check_fn(self.enum["XOR"], operator.xor)
 
     def test_srl(self):
-        self.check_fn(Fn.SRL, lambda in1, in2: in1 >> (in2 & (self.gen.isa.xlen - 1)))
+        self.check_fn(self.enum["SRL"], lambda in1, in2: in1 >> (in2 & (self.gen.isa.xlen - 1)))
 
     def test_or(self):
-        self.check_fn(Fn.OR, operator.or_)
+        self.check_fn(self.enum["OR"], operator.or_)
 
     def test_and(self):
-        self.check_fn(Fn.AND, operator.and_)
+        self.check_fn(self.enum["AND"], operator.and_)
 
     def test_sub(self):
-        self.check_fn(Fn.SUB, operator.sub)
+        self.check_fn(self.enum["SUB"], operator.sub)
 
     def test_sh1add(self):
-        self.check_fn(Fn.SH1ADD, lambda in1, in2: (in1 << 1) + in2)
+        self.check_fn(self.enum["SH1ADD"], lambda in1, in2: (in1 << 1) + in2)
 
     def test_sh2add(self):
-        self.check_fn(Fn.SH2ADD, lambda in1, in2: (in1 << 2) + in2)
+        self.check_fn(self.enum["SH2ADD"], lambda in1, in2: (in1 << 2) + in2)
 
     def test_sh3add(self):
-        self.check_fn(Fn.SH3ADD, lambda in1, in2: (in1 << 3) + in2)
+        self.check_fn(self.enum["SH3ADD"], lambda in1, in2: (in1 << 3) + in2)
 
     def test_sra(self):
         def sra(in1, in2):
@@ -108,16 +111,16 @@ class TestAlu(TestCaseWithSimulator):
             else:
                 return in1 >> in2
 
-        self.check_fn(Fn.SRA, sra)
+        self.check_fn(self.enum["SRA"], sra)
 
     def test_slt(self):
         self.check_fn(
-            Fn.SLT,
+            self.enum["SLT"],
             lambda in1, in2: _cast_to_int_xlen(in1, self.gen.isa.xlen) < _cast_to_int_xlen(in2, self.gen.isa.xlen),
         )
 
     def test_sltu(self):
-        self.check_fn(Fn.SLTU, operator.lt)
+        self.check_fn(self.enum["SLTU"], operator.lt)
 
 
 class AluFuncUnitTestCircuit(Elaboratable):
@@ -128,7 +131,7 @@ class AluFuncUnitTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        m.submodules.func_unit = func_unit = AluFuncUnit(self.gen)
+        m.submodules.func_unit = func_unit = AluFuncUnit(self.gen, AluBuilder().get_decoder_manger())
 
         # mocked input and output
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
@@ -207,13 +210,10 @@ class TestAluFuncUnit(TestCaseWithSimulator):
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
 
+    """
+    def test_builder(self):
+        builder = AluBuilder(InstExt.ANY, InstTag.ANY)
 
-class ZbaEnableTest(TestCaseWithSimulator):
-    def test_op_type_count(self) -> Generator:
-        alu1 = ALUComponent(zba_enable=True)
-        alu2 = ALUComponent(zba_enable=False)
-
-        len1 = len(alu1.get_optypes())
-        len2 = len(alu2.get_optypes())
-
-        yield self.assertEqual(len1, len2 + 1)
+        print(builder.build_decoder_manger().Fn.__members__.values())
+        print(builder.build_decoder_manger().get_instructions())
+    """
