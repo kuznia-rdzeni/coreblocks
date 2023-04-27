@@ -12,6 +12,7 @@ on:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008
     steps:
       - uses: actions/checkout@v3
@@ -25,7 +26,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip3 install -r requirements-dev.txt
-          apt-get update && apt-get install -y gcc-riscv64-unknown-elf iverilog
+          apt-get update && apt-get install -y gcc-riscv64-unknown-elf
 
       - name: Initialize submodules
         run: git submodule update --init --recursive
