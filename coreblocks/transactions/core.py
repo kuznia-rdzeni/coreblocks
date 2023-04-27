@@ -1,13 +1,14 @@
 from collections import defaultdict
+from collections.abc import Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import Callable, ClassVar, Mapping, TypeAlias, TypedDict, Union, Optional, Tuple, Iterator
-from types import MethodType
+from typing import ClassVar, TypeAlias, TypedDict, Union, Optional, Tuple
 from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Statement
+from itertools import count, chain
 
 from coreblocks.utils import AssignType, assign
 from ._utils import *
@@ -32,9 +33,10 @@ TransactionGraph: TypeAlias = Graph["Transaction"]
 TransactionGraphCC: TypeAlias = GraphCC["Transaction"]
 PriorityOrder: TypeAlias = dict["Transaction", int]
 TransactionScheduler: TypeAlias = Callable[
-    ["TransactionManager", Module, TransactionGraph, TransactionGraphCC, PriorityOrder], None
+    ["MethodMap", Module, TransactionGraph, TransactionGraphCC, PriorityOrder], None
 ]
 RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
+TransactionOrMethod: TypeAlias = Union["Transaction", "Method"]
 
 
 class Priority(Enum):
@@ -47,17 +49,55 @@ class Priority(Enum):
 
 
 class RelationBase(TypedDict):
-    end: Union["Transaction", "Method"]
+    end: TransactionOrMethod
     priority: Priority
     conflict: bool
 
 
 class Relation(RelationBase):
-    start: Union["Transaction", "Method"]
+    start: TransactionOrMethod
+
+
+class MethodMap:
+    def __init__(self, transactions: Iterable["Transaction"]):
+        self.methods_by_transaction = dict[Transaction, list[Method]]()
+        self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
+
+        def rec(transaction: Transaction, source: TransactionBase):
+            for method in source.method_uses.keys():
+                if not method.defined:
+                    raise RuntimeError("Trying to use method which is not defined yet")
+                if method in self.methods_by_transaction[transaction]:
+                    raise RuntimeError("Method can't be called twice from the same transaction")
+                self.methods_by_transaction[transaction].append(method)
+                self.transactions_by_method[method].append(transaction)
+                rec(transaction, method)
+
+        for transaction in transactions:
+            self.methods_by_transaction[transaction] = []
+            rec(transaction, transaction)
+
+    def transactions_for(self, elem: TransactionOrMethod) -> Iterable["Transaction"]:
+        if isinstance(elem, Transaction):
+            return [elem]
+        else:
+            return self.transactions_by_method[elem]
+
+    @property
+    def methods(self) -> Iterable["Method"]:
+        return self.transactions_by_method.keys()
+
+    @property
+    def transactions(self) -> Iterable["Transaction"]:
+        return self.methods_by_transaction.keys()
+
+    @property
+    def methods_and_transactions(self) -> Iterable[TransactionOrMethod]:
+        return chain(self.methods, self.transactions)
 
 
 def eager_deterministic_cc_scheduler(
-    manager: "TransactionManager", m: Module, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
+    method_map: MethodMap, m: Module, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
 ):
     """eager_deterministic_cc_scheduler
 
@@ -87,7 +127,7 @@ def eager_deterministic_cc_scheduler(
     ccl = list(cc)
     ccl.sort(key=lambda transaction: porder[transaction])
     for k, transaction in enumerate(ccl):
-        ready = [method.ready for method in manager.methods_by_transaction[transaction]]
+        ready = [method.ready for method in method_map.methods_by_transaction[transaction]]
         runnable = Cat(ready).all()
         conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
         noconflict = ~Cat(conflicts).any()
@@ -95,7 +135,7 @@ def eager_deterministic_cc_scheduler(
 
 
 def trivial_roundrobin_cc_scheduler(
-    manager: "TransactionManager", m: Module, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
+    method_map: MethodMap, m: Module, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
 ):
     """trivial_roundrobin_cc_scheduler
 
@@ -123,7 +163,7 @@ def trivial_roundrobin_cc_scheduler(
     sched = Scheduler(len(cc))
     m.submodules += sched
     for k, transaction in enumerate(cc):
-        methods = manager.methods_by_transaction[transaction]
+        methods = method_map.methods_by_transaction[transaction]
         ready = Signal(len(methods))
         for n, method in enumerate(methods):
             m.d.comb += ready[n].eq(method.ready)
@@ -142,13 +182,15 @@ class TransactionManager(Elaboratable):
 
     def __init__(self, cc_scheduler: TransactionScheduler = eager_deterministic_cc_scheduler):
         self.transactions: list[Transaction] = []
-        self.relations: list[Relation] = []
-        self.cc_scheduler = MethodType(cc_scheduler, self)
+        self.cc_scheduler = cc_scheduler
 
     def add_transaction(self, transaction: "Transaction"):
         self.transactions.append(transaction)
 
-    def _conflict_graph(self) -> Tuple[TransactionGraph, TransactionGraph, PriorityOrder]:
+    @staticmethod
+    def _conflict_graph(
+        method_map: MethodMap, relations: list[Relation]
+    ) -> Tuple[TransactionGraph, TransactionGraph, PriorityOrder]:
         """_conflict_graph
 
         This function generates the graph of transaction conflicts. Conflicts
@@ -180,12 +222,6 @@ class TransactionManager(Elaboratable):
             Linear ordering of transactions which is consistent with priority constraints.
         """
 
-        def end_trans(end: Transaction | Method) -> list[Transaction]:
-            if isinstance(end, Method):
-                return self.transactions_by_method[end]
-            else:
-                return [end]
-
         cgr: TransactionGraph = {}  # Conflict graph
         pgr: TransactionGraph = {}  # Priority graph
         rgr: TransactionGraph = {}  # Relation graph
@@ -202,23 +238,29 @@ class TransactionManager(Elaboratable):
                 case Priority.RIGHT:
                     pgr[begin].add(end)
 
-        for transaction in self.transactions:
+        for transaction in method_map.transactions:
             cgr[transaction] = set()
             pgr[transaction] = set()
             rgr[transaction] = set()
 
-        for transaction, methods in self.methods_by_transaction.items():
-            for method in methods:
-                if method.nonexclusive:
-                    continue
-                for transaction2 in self.transactions_by_method[method]:
-                    if transaction is not transaction2:
-                        add_edge(transaction, transaction2, Priority.UNDEFINED, True)
+        for method in method_map.methods:
+            if method.nonexclusive:
+                continue
+            for transaction1 in method_map.transactions_for(method):
+                for transaction2 in method_map.transactions_for(method):
+                    if transaction1 is not transaction2:
+                        add_edge(transaction1, transaction2, Priority.UNDEFINED, True)
 
-        for relation in self.relations:
-            for start in end_trans(relation["start"]):
-                for end in end_trans(relation["end"]):
-                    add_edge(start, end, relation["priority"], relation["conflict"])
+        for relation in relations:
+            start = relation["start"]
+            end = relation["end"]
+            if not relation["conflict"]:  # relation added with schedule_before
+                if end.def_order < start.def_order:
+                    raise RuntimeError(f"{start.name!r} scheduled before {end.name!r}, but defined afterwards")
+
+            for trans_start in method_map.transactions_for(start):
+                for trans_end in method_map.transactions_for(end):
+                    add_edge(trans_start, trans_end, relation["priority"], relation["conflict"])
 
         porder: PriorityOrder = {}
 
@@ -227,41 +269,37 @@ class TransactionManager(Elaboratable):
 
         return cgr, rgr, porder
 
-    def _call_graph(self, transaction: "Transaction", method: "Method", arg: ValueLike, enable: ValueLike):
-        if not method.defined:
-            raise RuntimeError("Trying to use method which is not defined yet")
-        if method in self.method_uses[transaction]:
-            raise RuntimeError("Method can't be called twice from the same transaction")
-        self.method_uses[transaction][method] = (arg, enable)
-        self.methods_by_transaction[transaction].append(method)
-        self.transactions_by_method[method].append(transaction)
-        for relation in method.relations:
-            self.relations.append(Relation(**relation, start=method))
-        for method, (arg, enable) in method.method_uses.items():
-            self._call_graph(transaction, method, arg, enable)
+    @staticmethod
+    def _method_uses(method_map: MethodMap) -> Mapping["Transaction", Mapping["Method", Tuple[ValueLike, ValueLike]]]:
+        method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
+
+        for source in method_map.methods_and_transactions:
+            for transaction in method_map.transactions_for(source):
+                for method, use_data in source.method_uses.items():
+                    method_uses[transaction][method] = use_data
+
+        return method_uses
 
     def elaborate(self, platform):
-        self.methods_by_transaction = defaultdict[Transaction, list[Method]](list)
-        self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
-        self.method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
-
-        for transaction in self.transactions:
-            for relation in transaction.relations:
-                self.relations.append(Relation(**relation, start=transaction))
-            for method, (arg, enable) in transaction.method_uses.items():
-                self._call_graph(transaction, method, arg, enable)
-
-        cgr, rgr, porder = self._conflict_graph()
+        method_map = MethodMap(self.transactions)
+        relations = [
+            Relation(**relation, start=elem)
+            for elem in method_map.methods_and_transactions
+            for relation in elem.relations
+        ]
+        cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
 
         m = Module()
 
         for cc in _graph_ccs(rgr):
-            self.cc_scheduler(m, cgr, cc, porder)
+            self.cc_scheduler(method_map, m, cgr, cc, porder)
 
-        for method, transactions in self.transactions_by_method.items():
+        method_uses = self._method_uses(method_map)
+
+        for method, transactions in method_map.transactions_by_method.items():
             granted = Signal(len(transactions))
             for n, transaction in enumerate(transactions):
-                (tdata, enable) = self.method_uses[transaction][method]
+                (tdata, enable) = method_uses[transaction][method]
                 m.d.comb += granted[n].eq(transaction.grant & enable)
 
                 with m.If(transaction.grant):
@@ -273,7 +311,8 @@ class TransactionManager(Elaboratable):
 
     def visual_graph(self, fragment):
         graph = OwnershipGraph(fragment)
-        for method, transactions in self.transactions_by_method.items():
+        method_map = MethodMap(self.transactions)
+        for method, transactions in method_map.transactions_by_method.items():
             if len(method.data_in) > len(method.data_out):
                 direction = Direction.IN
             elif len(method.data_in) < len(method.data_out):
@@ -366,12 +405,15 @@ class _TransactionBaseStatements:
 class TransactionBase(Owned):
     current: ClassVar[Optional["TransactionBase"]] = None
     comb: ClassVar[_TransactionBaseStatements] = _TransactionBaseStatements()
+    def_counter: ClassVar[count] = count()
+    def_order: int
+    defined: bool = False
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
 
-    def add_conflict(self, end: Union["Transaction", "Method"], priority: Priority = Priority.UNDEFINED) -> None:
+    def add_conflict(self, end: TransactionOrMethod, priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
 
         Record that that the given `Transaction` or `Method` cannot execute
@@ -388,7 +430,7 @@ class TransactionBase(Owned):
         """
         self.relations.append(RelationBase(end=end, priority=priority, conflict=True))
 
-    def schedule_before(self, end: Union["Transaction", "Method"]) -> None:
+    def schedule_before(self, end: TransactionOrMethod) -> None:
         """Adds a priority relation.
 
         Record that that the given `Transaction` or `Method` needs to be
@@ -507,12 +549,16 @@ class Transaction(TransactionBase):
             default it is `Const(1)`, so it wants to be executed in
             every clock cycle.
         """
+        if self.defined:
+            raise RuntimeError("Transaction already defined")
+        self.def_order = next(TransactionBase.def_counter)
         m.d.comb += self.request.eq(request)
         with self.context():
             with m.If(self.grant):
                 yield self
             m.d.comb += TransactionBase.comb
             TransactionBase.comb.clear()
+        self.defined = True
 
     def __repr__(self) -> str:
         return "(transaction {})".format(self.name)
@@ -587,7 +633,6 @@ class Method(TransactionBase):
         self.run = Signal()
         self.data_in = Record(i)
         self.data_out = Record(o)
-        self.defined = False
         self.nonexclusive = nonexclusive
         if nonexclusive:
             assert len(self.data_in) == 0
@@ -675,6 +720,7 @@ class Method(TransactionBase):
         """
         if self.defined:
             raise RuntimeError("Method already defined")
+        self.def_order = next(TransactionBase.def_counter)
         try:
             m.d.comb += self.ready.eq(ready)
             m.d.comb += self.data_out.eq(out)
