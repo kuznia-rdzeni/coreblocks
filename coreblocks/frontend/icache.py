@@ -1,6 +1,6 @@
 from functools import reduce
 import operator
-from dataclasses import dataclass
+from typing import Protocol
 
 from amaranth import *
 from amaranth.utils import log2_int
@@ -9,6 +9,7 @@ from coreblocks.transactions.core import def_method, Priority
 from coreblocks.transactions import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
 from coreblocks.utils import assign, OneHotSwitchDynamic
+from coreblocks.utils._typing import HasElaborate
 from coreblocks.transactions.lib import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 
@@ -20,16 +21,17 @@ def extract_instr_from_word(m: Module, params: ICacheParameters, word: Signal, a
     instr_out = Signal(params.instr_width)
     if len(word) == 32:
         m.d.comb += instr_out.eq(word)
-    else:
+    elif len(word) == 64:
         with m.If(addr[2] == 0):
             m.d.comb += instr_out.eq(word[:32])  # Take lower 4 bytes
         with m.Else():
             m.d.comb += instr_out.eq(word[32:])  # Take upper 4 bytes
+    else:
+        raise RuntimeError("Word size different than 32 and 64 is not supported")
     return instr_out
 
 
-@dataclass
-class ICacheInterface:
+class ICacheInterface(HasElaborate, Protocol):
     """
     Instruction Cache Interface.
 
@@ -48,8 +50,7 @@ class ICacheInterface:
     flush: Method
 
 
-@dataclass
-class CacheRefillerInterface:
+class CacheRefillerInterface(HasElaborate, Protocol):
     """
     Instruction Cache Refiller Interface.
 

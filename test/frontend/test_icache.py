@@ -244,6 +244,25 @@ class TestICacheBypass(TestCaseWithSimulator):
             sim.add_sync_process(self.user_process)
 
 
+class MockedCacheRefiller(Elaboratable, CacheRefillerInterface):
+    def __init__(self, gen_params: GenParams):
+        layouts = gen_params.get(ICacheLayouts)
+
+        self.start_refill_mock = TestbenchIO(Adapter(i=layouts.start_refill))
+        self.accept_refill_mock = TestbenchIO(Adapter(o=layouts.accept_refill))
+
+        self.start_refill = self.start_refill_mock.adapter.iface
+        self.accept_refill = self.accept_refill_mock.adapter.iface
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.start_refill = self.start_refill_mock
+        m.submodules.accept_refill = self.accept_refill_mock
+
+        return m
+
+
 class ICacheTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gp = gen_params
@@ -253,14 +272,8 @@ class ICacheTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        # mocked cache refiller
-        layouts = self.gp.get(ICacheLayouts)
-        m.submodules.start_refill = self.start_refill = TestbenchIO(Adapter(i=layouts.start_refill))
-        m.submodules.accept_refill = self.accept_refill = TestbenchIO(Adapter(o=layouts.accept_refill))
-
-        refiller = CacheRefillerInterface(self.start_refill.adapter.iface, self.accept_refill.adapter.iface)
-
-        m.submodules.cache = self.cache = ICache(layouts, self.cp, refiller)
+        m.submodules.refiller = self.refiller = MockedCacheRefiller(self.gp)
+        m.submodules.cache = self.cache = ICache(self.gp.get(ICacheLayouts), self.cp, self.refiller)
         m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.cache.issue_req))
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.cache.accept_res))
         m.submodules.flush_cache = self.flush_cache = TestbenchIO(AdapterTrans(self.cache.flush))
@@ -306,7 +319,7 @@ class TestICache(TestCaseWithSimulator):
         refill_word_cnt = 0
         refill_addr = 0
 
-        @def_method_mock(lambda: self.m.start_refill)
+        @def_method_mock(lambda: self.m.refiller.start_refill_mock)
         def start_refill_mock(addr):
             nonlocal refill_in_fly, refill_word_cnt, refill_addr
             self.refill_requests.append(addr)
@@ -314,7 +327,7 @@ class TestICache(TestCaseWithSimulator):
             refill_in_fly = True
             refill_addr = addr
 
-        @def_method_mock(lambda: self.m.accept_refill, enable=lambda: refill_in_fly)
+        @def_method_mock(lambda: self.m.refiller.accept_refill_mock, enable=lambda: refill_in_fly)
         def accept_refill_mock():
             nonlocal refill_in_fly, refill_word_cnt, refill_addr
 
