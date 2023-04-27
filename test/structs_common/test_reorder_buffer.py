@@ -1,13 +1,14 @@
 from amaranth import Elaboratable, Module
-from amaranth.sim import Passive
+from amaranth.sim import Passive, Settle
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
-from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
+from ..common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.params import GenParams
+from coreblocks.params.configurations import test_core_config
 
 from queue import Queue
 from random import Random
@@ -79,6 +80,10 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 self.assertIn(phys_reg, self.executed_list)
                 self.executed_list.remove(phys_reg)
 
+                yield Settle()
+                self.assertEqual(
+                    (yield self.m.rb.single_entry), len(self.executed_list) + len(self.to_execute_list) == 1
+                )
                 self.assertEqual(results["rob_data"], regs)
                 self.regs_left_queue.put(phys_reg)
 
@@ -89,7 +94,9 @@ class TestReorderBuffer(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
         self.test_steps = 2000
-        gp = test_gen_params("rv32i", phys_regs_bits=5, rob_entries_bits=6)  # smaller size means better coverage
+        gp = GenParams(
+            test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6)
+        )  # smaller size means better coverage
         m = TestElaboratable(gp)
         self.m = m
 
@@ -141,7 +148,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
 
-        gp = test_gen_params("rv32i")
+        gp = GenParams(test_core_config)
         self.test_steps = 2**gp.rob_entries_bits
         m = TestElaboratable(gp)
         self.m = m

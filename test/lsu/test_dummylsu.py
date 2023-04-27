@@ -7,9 +7,10 @@ from amaranth.sim import Settle, Passive
 from coreblocks.params import OpType, GenParams
 from coreblocks.transactions import TransactionModule
 from coreblocks.lsu.dummyLsu import LSUDummy
+from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import *
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator, int_to_signed, signed_to_int, test_gen_params
+from test.common import TestbenchIO, TestCaseWithSimulator, int_to_signed, signed_to_int
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
@@ -117,11 +118,10 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
             self.announce_queue.append(ann_data)
             exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
-            mask = shift_mask_based_on_addr(mask, addr)
 
-            # calculate aligned address
-            rest = addr % 4
-            addr = addr - rest
+            # calculate word address and mask
+            mask = shift_mask_based_on_addr(mask, addr)
+            addr = addr >> 2
 
             rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
             rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
@@ -148,7 +148,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     def setUp(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gp = test_gen_params("rv32i", phys_regs_bits=3, rob_entries_bits=3)
+        self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gp)
         self.instr_queue = deque()
         self.announce_queue = deque()
@@ -228,12 +228,16 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
             "imm": imm,
         }
 
-        wish_data = {"addr": s1_val + imm, "mask": 0xF, "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}")}
+        wish_data = {
+            "addr": (s1_val + imm) >> 2,
+            "mask": 0xF,
+            "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+        }
         return instr, wish_data
 
     def setUp(self) -> None:
         random.seed(14)
-        self.gp = test_gen_params("rv32i", phys_regs_bits=3, rob_entries_bits=3)
+        self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gp)
 
     def one_instr_test(self):
@@ -288,11 +292,10 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 self.announce_queue.append((ann_data2, ann_data1))
 
             exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
-            mask = shift_mask_based_on_addr(mask, addr)
 
-            # calculate aligned address
-            rest = addr % 4
-            addr = addr - rest
+            # calculate word address and mask
+            mask = shift_mask_based_on_addr(mask, addr)
+            addr = addr >> 2
 
             rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
             instr = {
@@ -311,7 +314,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
     def setUp(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gp = test_gen_params("rv32i", phys_regs_bits=3, rob_entries_bits=3)
+        self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gp)
         self.instr_queue = deque()
         self.announce_queue = deque()

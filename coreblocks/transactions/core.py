@@ -1,7 +1,6 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
-from inspect import Parameter, signature
 from typing import Callable, ClassVar, Mapping, TypeAlias, TypedDict, Union, Optional, Tuple, Iterator
 from types import MethodType
 from graphlib import TopologicalSorter
@@ -9,6 +8,7 @@ from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Statement
+from itertools import count
 
 from coreblocks.utils import AssignType, assign
 from ._utils import *
@@ -217,13 +217,19 @@ class TransactionManager(Elaboratable):
                         add_edge(transaction, transaction2, Priority.UNDEFINED, True)
 
         for relation in self.relations:
-            for start in end_trans(relation["start"]):
-                for end in end_trans(relation["end"]):
-                    add_edge(start, end, relation["priority"], relation["conflict"])
+            start = relation["start"]
+            end = relation["end"]
+            if not relation["conflict"]:  # relation added with schedule_before
+                if end.def_order < start.def_order:
+                    raise RuntimeError(f"{start.name!r} scheduled before {end.name!r}, but defined afterwards")
+
+            for trans_start in end_trans(start):
+                for trans_end in end_trans(end):
+                    add_edge(trans_start, trans_end, relation["priority"], relation["conflict"])
 
         porder: PriorityOrder = {}
 
-        for (k, transaction) in enumerate(TopologicalSorter(pgr).static_order()):
+        for k, transaction in enumerate(TopologicalSorter(pgr).static_order()):
             porder[transaction] = k
 
         return cgr, rgr, porder
@@ -242,7 +248,6 @@ class TransactionManager(Elaboratable):
             self._call_graph(transaction, method, arg, enable)
 
     def elaborate(self, platform):
-
         self.methods_by_transaction = defaultdict[Transaction, list[Method]](list)
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
         self.method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
@@ -368,6 +373,9 @@ class _TransactionBaseStatements:
 class TransactionBase(Owned):
     current: ClassVar[Optional["TransactionBase"]] = None
     comb: ClassVar[_TransactionBaseStatements] = _TransactionBaseStatements()
+    def_counter: ClassVar[count] = count()
+    def_order: int
+    defined: bool = False
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
@@ -509,12 +517,16 @@ class Transaction(TransactionBase):
             default it is `Const(1)`, so it wants to be executed in
             every clock cycle.
         """
+        if self.defined:
+            raise RuntimeError("Transaction already defined")
+        self.def_order = next(TransactionBase.def_counter)
         m.d.comb += self.request.eq(request)
         with self.context():
             with m.If(self.grant):
                 yield self
             m.d.comb += TransactionBase.comb
             TransactionBase.comb.clear()
+        self.defined = True
 
     def __repr__(self) -> str:
         return "(transaction {})".format(self.name)
@@ -589,7 +601,6 @@ class Method(TransactionBase):
         self.run = Signal()
         self.data_in = Record(i)
         self.data_out = Record(o)
-        self.defined = False
         self.nonexclusive = nonexclusive
         if nonexclusive:
             assert len(self.data_in) == 0
@@ -630,7 +641,7 @@ class Method(TransactionBase):
         """
         m.d.comb += self.ready.eq(1)
         m.d.comb += self.data_out.eq(method.data_out)
-        self.use_method(method, arg=self.data_in, enable=C(1))
+        self.use_method(method, arg=self.data_in, enable=self.run)
         self.defined = True
 
     @contextmanager
@@ -677,6 +688,7 @@ class Method(TransactionBase):
         """
         if self.defined:
             raise RuntimeError("Method already defined")
+        self.def_order = next(TransactionBase.def_counter)
         try:
             m.d.comb += self.ready.eq(ready)
             m.d.comb += self.data_out.eq(out)
@@ -819,21 +831,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:
-            parameters = signature(func).parameters
-            kw_parameters = set(
-                n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
-            )
-            if kw_parameters <= arg.fields.keys():
-                ret_out = func(**arg.fields)
-            elif (
-                len(parameters) == 1
-                and "arg" in parameters
-                and parameters["arg"].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
-                and parameters["arg"].annotation in {Parameter.empty, Record}
-            ):
-                ret_out = func(arg)
-            else:
-                raise TypeError(f"Invalid def_method for {method}")
+            ret_out = method_def_helper(method, func, arg, **arg.fields)
 
         if ret_out is not None:
             m.d.comb += assign(out, ret_out, fields=AssignType.ALL)

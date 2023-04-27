@@ -1,3 +1,4 @@
+from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import *
@@ -7,38 +8,55 @@ from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils import OneHotSwitch
 
+from coreblocks.fu.fu_decoder import DecoderManager
+from enum import IntFlag, auto
+
 __all__ = ["AluFuncUnit", "ALUComponent"]
 
 from coreblocks.utils.protocols import FuncUnit
 
 
-class AluFn(Signal):
-    @unique
-    class Fn(IntEnum):
-        ADD = 1 << 0  # Addition
-        SLL = 1 << 1  # Logic left shift
-        XOR = 1 << 2  # Bitwise xor
-        SRL = 1 << 3  # Logic right shift
-        OR = 1 << 4  # Bitwise or
-        AND = 1 << 5  # Bitwise and
-        SUB = 1 << 6  # Subtraction
-        SRA = 1 << 7  # Arithmetic right shift
-        SLT = 1 << 8  # Set if less than (signed)
-        SLTU = 1 << 9  # Set if less than (unsigned)
+class AluFn(DecoderManager):
+    class Fn(IntFlag):
+        ADD = auto()  # Addition
+        SLL = auto()  # Logic left shift
+        XOR = auto()  # Bitwise xor
+        SRL = auto()  # Logic right shift
+        OR = auto()  # Bitwise or
+        AND = auto()  # Bitwise and
+        SUB = auto()  # Subtraction
+        SRA = auto()  # Arithmetic right shift
+        SLT = auto()  # Set if less than (signed)
+        SLTU = auto()  # Set if less than (unsigned)
         # ZBA extension
-        SH1ADD = 1 << 10  # Logic left shift by 1 and add
-        SH2ADD = 1 << 11  # Logic left shift by 2 and add
-        SH3ADD = 1 << 12  # Logic left shift by 3 and add
+        SH1ADD = auto()  # Logic left shift by 1 and add
+        SH2ADD = auto()  # Logic left shift by 2 and add
+        SH3ADD = auto()  # Logic left shift by 3 and add
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(AluFn.Fn, *args, **kwargs)
+    @classmethod
+    def get_instructions(cls) -> Sequence[tuple]:
+        return [
+            (cls.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
+            (cls.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
+            (cls.Fn.SLT, OpType.COMPARE, Funct3.SLT),
+            (cls.Fn.SLTU, OpType.COMPARE, Funct3.SLTU),
+            (cls.Fn.XOR, OpType.LOGIC, Funct3.XOR),
+            (cls.Fn.OR, OpType.LOGIC, Funct3.OR),
+            (cls.Fn.AND, OpType.LOGIC, Funct3.AND),
+            (cls.Fn.SLL, OpType.SHIFT, Funct3.SLL),
+            (cls.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
+            (cls.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
+            (cls.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SH1ADD),
+            (cls.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SH2ADD),
+            (cls.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SH3ADD),
+        ]
 
 
 class Alu(Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen
 
-        self.fn = AluFn()
+        self.fn = AluFn.get_function()
         self.in1 = Signal(gen.isa.xlen)
         self.in2 = Signal(gen.isa.xlen)
 
@@ -85,45 +103,8 @@ class Alu(Elaboratable):
         return m
 
 
-class AluFnDecoder(Elaboratable):
-    def __init__(self, gen: GenParams):
-        layouts = gen.get(CommonLayouts)
-
-        self.exec_fn = Record(layouts.exec_fn)
-        self.alu_fn = Signal(AluFn.Fn)
-
-    def elaborate(self, platform):
-        m = Module()
-
-        ops = [
-            (AluFn.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
-            (AluFn.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
-            (AluFn.Fn.SLT, OpType.COMPARE, Funct3.SLT),
-            (AluFn.Fn.SLTU, OpType.COMPARE, Funct3.SLTU),
-            (AluFn.Fn.XOR, OpType.LOGIC, Funct3.XOR),
-            (AluFn.Fn.OR, OpType.LOGIC, Funct3.OR),
-            (AluFn.Fn.AND, OpType.LOGIC, Funct3.AND),
-            (AluFn.Fn.SLL, OpType.SHIFT, Funct3.SLL),
-            (AluFn.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
-            (AluFn.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
-            (AluFn.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SH1ADD),
-            (AluFn.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SH2ADD),
-            (AluFn.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SH3ADD),
-        ]
-
-        for op in ops:
-            cond = (self.exec_fn.op_type == op[1]) & (self.exec_fn.funct3 == op[2])
-            if len(op) == 4:
-                cond = cond & (self.exec_fn.funct7 == op[3])
-
-            with m.If(cond):
-                m.d.comb += self.alu_fn.eq(op[0])
-
-        return m
-
-
 class AluFuncUnit(Elaboratable):
-    optypes = {OpType.ARITHMETIC, OpType.COMPARE, OpType.LOGIC, OpType.SHIFT, OpType.ADDRESS_GENERATION}
+    optypes = AluFn.get_op_types()
 
     def __init__(self, gen: GenParams):
         self.gen = gen
@@ -138,7 +119,7 @@ class AluFuncUnit(Elaboratable):
 
         m.submodules.alu = alu = Alu(self.gen)
         m.submodules.fifo = fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
-        m.submodules.decoder = decoder = AluFnDecoder(self.gen)
+        m.submodules.decoder = decoder = AluFn.get_decoder(self.gen)
 
         @def_method(m, self.accept)
         def _():
@@ -147,7 +128,7 @@ class AluFuncUnit(Elaboratable):
         @def_method(m, self.issue)
         def _(arg):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
-            m.d.comb += alu.fn.eq(decoder.alu_fn)
+            m.d.comb += alu.fn.eq(decoder.decode_fn)
 
             m.d.comb += alu.in1.eq(arg.s1_val)
             m.d.comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
