@@ -1,6 +1,7 @@
 from amaranth import *
 from ._typing import SignalBundle, HasDebugSignals
 from collections.abc import Collection
+import coreblocks.transactions.core
 
 
 def auto_debug_signals(thing) -> SignalBundle:
@@ -15,14 +16,15 @@ def auto_debug_signals(thing) -> SignalBundle:
     slist: list[SignalBundle] = []
     smap: dict[str, SignalBundle] = {}
 
+    if isinstance(thing, HasDebugSignals):
+        return thing.debug_signals()
+
     if "__dict__" not in dir(thing):
         return []
 
     for v in vars(thing):
         a = getattr(thing, v)
-        if isinstance(a, HasDebugSignals):
-            smap[v] = a.debug_signals()
-        elif isinstance(a, Elaboratable):
+        if isinstance(a, Elaboratable) or isinstance(a, coreblocks.transactions.core.TransactionBase):
             smap[v] = auto_debug_signals(a)
         elif isinstance(a, Array):
             for i, e in enumerate(a):
@@ -34,12 +36,9 @@ def auto_debug_signals(thing) -> SignalBundle:
         elif isinstance(a, Collection):
             submap = {}
             for i, e in enumerate(a):
-                if isinstance(e, HasDebugSignals):
-                    submap[f"{v}[{i}]"] = e.debug_signals()
-                else:
-                    sublist = auto_debug_signals(e)
-                    if sublist:
-                        submap[f"{v}[{i}]"] = sublist
+                sublist = auto_debug_signals(e)
+                if sublist:
+                    submap[f"{v}[{i}]"] = sublist
             if submap:
                 smap[v] = submap
 
