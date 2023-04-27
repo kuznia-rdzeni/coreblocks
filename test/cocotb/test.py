@@ -223,6 +223,13 @@ test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 riscv_tests_dir = os.path.join(test_dir, "external", "riscv-tests")
 
 
+def align_to_power_of_two(num: int, power: int) -> int:
+    mask = 2**power - 1
+    if num & mask == 0:
+        return num
+    return (num & ~mask) + 2**power
+
+
 async def test(dut, test_name):
     cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
 
@@ -234,7 +241,10 @@ async def test(dut, test_name):
         elffile = ELFFile(f)
         for segment in elffile.iter_segments():
             paddr = segment.header["p_paddr"]
-            memsz = segment.header["p_memsz"]
+
+            # Make sure that the segment is cache-line-aligned. Assumes that
+            # the cache line is not bigger than 128 bytes.
+            memsz = align_to_power_of_two(segment.header["p_memsz"], 7)
             data = segment.data()
             data += b"\x00" * max(0, memsz - len(data))
             segment_data = (range(paddr, paddr + memsz), segment.data())
