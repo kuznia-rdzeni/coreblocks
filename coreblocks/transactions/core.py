@@ -60,7 +60,7 @@ class Relation(RelationBase):
 
 class MethodMap:
     def __init__(self, transactions: Iterable["Transaction"]):
-        self.methods_by_transaction = defaultdict[Transaction, list[Method]](list)
+        self.methods_by_transaction = dict[Transaction, list[Method]]()
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
 
         def rec(transaction: Transaction, source: TransactionBase):
