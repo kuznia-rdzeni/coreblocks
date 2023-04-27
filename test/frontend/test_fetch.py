@@ -16,6 +16,26 @@ from coreblocks.params.configurations import test_core_config
 from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock
 
 
+class MockedICache(Elaboratable, ICacheInterface):
+    def __init__(self, gen_params: GenParams):
+        layouts = gen_params.get(ICacheLayouts)
+
+        self.issue_req_io = TestbenchIO(Adapter(i=layouts.issue_req))
+        self.accept_res_io = TestbenchIO(Adapter(o=layouts.accept_res))
+
+        self.issue_req = self.issue_req_io.adapter.iface
+        self.accept_res = self.accept_res_io.adapter.iface
+        self.flush = Method()
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.issue_req_io = self.issue_req_io
+        m.submodules.accept_res_io = self.accept_res_io
+
+        return m
+
+
 class TestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gp = gen_params
@@ -24,19 +44,14 @@ class TestElaboratable(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        cache_layouts = self.gp.get(ICacheLayouts)
-        self.issue_req_io = TestbenchIO(Adapter(i=cache_layouts.issue_req))
-        self.accept_res_io = TestbenchIO(Adapter(o=cache_layouts.accept_res))
-
-        icache = ICacheInterface(self.issue_req_io.adapter.iface, self.accept_res_io.adapter.iface, Method())
+        self.icache = MockedICache(self.gp)
 
         fifo = FIFO(self.gp.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-        self.fetch = Fetch(self.gp, icache, fifo.write)
+        self.fetch = Fetch(self.gp, self.icache, fifo.write)
         self.verify_branch = TestbenchIO(AdapterTrans(self.fetch.verify_branch))
 
-        m.submodules.issue_req_io = self.issue_req_io
-        m.submodules.accept_res_io = self.accept_res_io
+        m.submodules.icache = self.icache
         m.submodules.fetch = self.fetch
         m.submodules.io_out = self.io_out
         m.submodules.verify_branch = self.verify_branch
@@ -99,11 +114,11 @@ class TestFetch(TestCaseWithSimulator):
                     }
                 )
 
-        @def_method_mock(lambda: self.m.issue_req_io, enable=lambda: len(input_q) < 2, sched_prio=1)
+        @def_method_mock(lambda: self.m.icache.issue_req_io, enable=lambda: len(input_q) < 2, sched_prio=1)
         def issue_req_mock(addr):
             input_q.append(addr)
 
-        @def_method_mock(lambda: self.m.accept_res_io, enable=lambda: len(output_q) > 0)
+        @def_method_mock(lambda: self.m.icache.accept_res_io, enable=lambda: len(output_q) > 0)
         def accept_res_mock():
             return output_q.popleft()
 
