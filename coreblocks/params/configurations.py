@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.stages.rs_func_block import RSBlockComponent
 from coreblocks.fu.alu_builder import AluBuilder, InstExt, InstTag
-from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.jumpbranch import JumpComponent
 from coreblocks.fu.mul_unit import MulComponent, MulType
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
@@ -65,7 +64,7 @@ basic_core_config = CoreConfiguration()
 # Minimal core configuration
 tiny_core_config = CoreConfiguration(
     func_units_config=(
-        RSBlockComponent([AluBuilder().build_component(), JumpComponent()], rs_entries=2),
+        RSBlockComponent([AluBuilder(ext_set=InstExt.DEFI).build_component(), JumpComponent()], rs_entries=2),
         LSUBlockComponent(),
     ),
     rob_entries_bits=6,
@@ -75,7 +74,15 @@ tiny_core_config = CoreConfiguration(
 full_core_config = CoreConfiguration(
     isa_str="rv32imzicsr",
     func_units_config=(
-        RSBlockComponent([AluBuilder().build_component(), JumpComponent()], rs_entries=4),
+        RSBlockComponent(
+            [
+                # Separate ALU for shifting
+                AluBuilder(tag_set=InstTag.ANY ^ InstTag.SHIFT).build_component(),
+                AluBuilder(tag_set=InstTag.SHIFT).build_component(),
+                JumpComponent(),
+            ],
+            rs_entries=4,
+        ),
         RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=4),
         LSUBlockComponent(),
         CSRBlockComponent(),

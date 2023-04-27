@@ -1,4 +1,4 @@
-from typing import Sequence, Type
+from typing import Type
 from amaranth import *
 
 from coreblocks.transactions import *
@@ -13,6 +13,7 @@ from coreblocks.fu.fu_decoder import DecoderManager
 __all__ = ["AluFuncUnit", "ALUComponent"]
 
 from coreblocks.utils.protocols import FuncUnit
+
 
 class Alu(Elaboratable):
     def __init__(self, gen: GenParams, fn):
@@ -44,7 +45,7 @@ class Alu(Elaboratable):
             if hasattr(self.enum, "SRL"):
                 with OneHotCase(self.enum["SRL"]):
                     m.d.comb += self.out.eq(self.in1 >> self.in2[0:xlen_log])
-            if hasattr(self.enum, "OR"):    
+            if hasattr(self.enum, "OR"):
                 with OneHotCase(self.enum["OR"]):
                     m.d.comb += self.out.eq(self.in1 | self.in2)
             if hasattr(self.enum, "AND"):
@@ -71,7 +72,6 @@ class Alu(Elaboratable):
             if hasattr(self.enum, "SH3ADD"):
                 with OneHotCase(self.enum["SH3ADD"]):
                     m.d.comb += self.out.eq((self.in1 << 3) + self.in2)
-                    
 
         # so that Amaranth allows us to use add_clock
         dummy = Signal()

@@ -1,7 +1,6 @@
 import random
 from collections import deque
 import operator
-from typing import Generator
 
 from amaranth import *
 from amaranth.sim import *
