@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682590680359,
+  "lastUpdate": 1682591046777,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4678,6 +4678,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4b7200b2442af76245c77ab906232163c7c3307f"
         },
         "date": 1682590678575,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.58,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17999,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 522,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 780,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5433,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a7956318b8eff02c130b33842be49d5e3af76452",
+          "message": "Add instruction cache bypass (#307)",
+          "timestamp": "2023-04-27T12:16:15+02:00",
+          "tree_id": "282795b3c8edbf5bf9a4db8e97c55f5a07335c3a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a7956318b8eff02c130b33842be49d5e3af76452"
+        },
+        "date": 1682591046036,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
