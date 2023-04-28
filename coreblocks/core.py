@@ -76,6 +76,17 @@ class Core(Elaboratable):
             rf_write_val=self.RF.write,
         )
 
+        self.int_coordinator = InterruptCoordinator(
+            gen_params=self.gen_params,
+            r_rat_get_all=self.RRAT.get_all,
+            f_rat_set_all=self.FRAT.set_all,
+            pc_stall=self.fetch.stall,
+            pc_verify_branch=self.fetch.verify_branch,
+            rob_can_flush=self.ROB.can_flush,
+            rob_flush=self.ROB.flush,
+            free_reg_put=self.free_rf_fifo.write,
+        )
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -125,16 +136,7 @@ class Core(Elaboratable):
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
 
-        m.submodules.int_coordinator = int_coordinator = InterruptCoordinator(
-            gen_params=self.gen_params,
-            r_rat_get_all=self.RRAT.get_all,
-            f_rat_set_all=self.FRAT.set_all,
-            pc_stall=self.fetch.stall,
-            pc_verify_branch=self.fetch.verify_branch,
-            rob_can_flush=self.ROB.can_flush,
-            rob_flush=self.ROB.flush,
-            free_reg_put=self.free_rf_fifo.write,
-        )
+        m.submodules.int_coordinator = self.int_coordinator
 
         m.submodules.retirement = Retirement(
             self.gen_params,
@@ -144,7 +146,7 @@ class Core(Elaboratable):
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
-            trigger_int=int_coordinator.trigger,
+            trigger_int=self.int_coordinator.trigger,
         )
 
         m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)

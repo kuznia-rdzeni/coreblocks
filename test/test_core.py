@@ -59,12 +59,14 @@ class TestElaboratable(Elaboratable):
         self.core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
         self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
+        self.interrupt = TestbenchIO(AdapterTrans(self.core.int_coordinator.trigger))
 
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
+        m.submodules.interrupt = self.interrupt
 
         m.d.comb += wb_instr_bus.connect(self.wb_mem_slave.bus)
         m.d.comb += wb_data_bus.connect(self.wb_mem_slave_data.bus)
@@ -237,31 +239,11 @@ class TestCoreRandomized(TestCoreBase):
             sim.add_sync_process(self.randomized_input)
 
 
-@parameterized_class(
-    ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
-    [
-        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
-        ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
-        ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
-    ],
-)
-class TestCoreAsmSource(TestCoreBase):
-    source_file: str
-    cycle_count: int
-    expected_regvals: dict[int, int]
-    configuration: CoreConfiguration
+class TestCoreAsmSourceBase(TestCoreBase):
+    base_dir: str = "test/asm/"
 
-    def run_and_check(self):
-        for i in range(self.cycle_count):
-            yield
-
-        for reg_id, val in self.expected_regvals.items():
-            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
-
-    def test_asm_source(self):
-        self.gp = GenParams(self.configuration)
-        self.base_dir = "test/asm/"
-        self.bin_src = []
+    def prepare_source(self, filename, isa_str):
+        bin_src = []
 
         with tempfile.NamedTemporaryFile() as asm_tmp:
             subprocess.check_call(
@@ -273,7 +255,7 @@ class TestCoreAsmSource(TestCoreBase):
                     "-march=rv32im_zicsr",
                     "-o",
                     asm_tmp.name,
-                    self.base_dir + self.source_file,
+                    TestCoreAsmSourceBase.base_dir + filename,
                 ]
             )
             code = subprocess.check_output(
@@ -282,8 +264,54 @@ class TestCoreAsmSource(TestCoreBase):
             for word_idx in range(0, len(code), 4):
                 word = code[word_idx : word_idx + 4]
                 bin_instr = int.from_bytes(word, "little")
-                self.bin_src.append(bin_instr)
+                bin_src.append(bin_instr)
+        return bin_src
 
-        self.m = TestElaboratable(self.gp, instr_mem=self.bin_src)
+
+@parameterized_class(
+    ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
+    [
+        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
+        ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
+        ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
+    ],
+)
+class TestCoreBasicAsmSource(TestCoreAsmSourceBase):
+    source_file: str
+    cycle_count: int
+    expected_regvals: dict[int, int]
+    configuration: CoreConfiguration
+
+    def setUp(self):
+        self.gp = GenParams(self.configuration)
+
+    def run_and_check(self):
+        yield from self.tick(self.cycle_count)
+        for reg_id, val in self.expected_regvals.items():
+            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
+
+    def test_asm_source(self):
+        bin_src = self.prepare_source(self.source_file, self.configuration.isa_str)
+        self.m = TestElaboratable(self.gp, instr_mem=bin_src)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_and_check)
+
+
+class TestCoreInterrupt(TestCoreAsmSourceBase):
+    def setUp(self):
+        self.source_file = "interrupt.asm"
+        self.cycle_count = 100
+        self.configuration = basic_core_config
+        self.gp = GenParams(self.configuration)
+
+    def run_with_interrupt(self):
+        yield from self.tick(30)
+        yield from self.m.interrupt.call()
+        yield from self.tick(500)
+        self.assertEqual((yield from self.get_arch_reg_val(8)), 38)
+
+    def test_interrupted_prog(self):
+        bin_src = self.prepare_source(self.source_file, self.configuration.isa_str)
+        self.m = TestElaboratable(self.gp, instr_mem=bin_src)
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.run_with_interrupt)
