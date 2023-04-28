@@ -59,7 +59,7 @@ class TestElaboratable(Elaboratable):
         self.core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
         self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
-        self.interrupt = TestbenchIO(AdapterTrans(self.core.int_coordinator.trigger))
+        self.interrupt = TestbenchIO(AdapterTrans(self.core.ROB.interrupt))
 
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data

@@ -3,7 +3,7 @@ from amaranth import *
 from coreblocks.transactions.core import Method, Transaction, TModule
 from coreblocks.params.genparams import GenParams
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
-
+from coreblocks.stages.int_coordinator import InterruptCoordinator
 
 class Retirement(Elaboratable):
     def __init__(
@@ -16,7 +16,7 @@ class Retirement(Elaboratable):
         free_rf_put: Method,
         rf_free: Method,
         precommit: Method,
-        trigger_int: Method
+        int_coordinator: InterruptCoordinator
     ):
         self.gen_params = gen_params
         self.rob_peek = rob_peek
@@ -25,7 +25,7 @@ class Retirement(Elaboratable):
         self.free_rf_put = free_rf_put
         self.rf_free = rf_free
         self.precommit = precommit
-        self.trigger_int = trigger_int
+        self.int_coordinator = int_coordinator
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
@@ -41,11 +41,11 @@ class Retirement(Elaboratable):
             rob_entry = self.rob_peek(m)
             self.precommit(m, rob_id=rob_entry.rob_id)
 
-        with Transaction().body(m):
+        with Transaction().body(m, request=self.int_coordinator.allow_retirement):
             rob_entry = self.rob_retire(m)
 
             with m.If(rob_entry.interrupt):
-                self.trigger_int(m)
+                self.int_coordinator.trigger(m)
 
             # set rl_dst -> rp_dst in R-RAT
             rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)

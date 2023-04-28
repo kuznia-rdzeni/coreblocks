@@ -27,6 +27,7 @@ class InterruptCoordinator(Elaboratable):
         self.free_reg_put = free_reg_put
         self.trigger = Method()
         self.iret = Method()
+        self.allow_retirement = Signal(reset=1)
         self.interrupt = Signal()
 
     def elaborate(self, platform):
@@ -42,6 +43,7 @@ class InterruptCoordinator(Elaboratable):
         with m.FSM("idle"):
             with m.State("idle"):
                 with m.If(self.interrupt):
+                    m.d.sync += self.allow_retirement.eq(0)
                     m.next = "clear"
             with m.State("clear"):
                 with Transaction(name="IntClearAll").body(m):
@@ -60,16 +62,18 @@ class InterruptCoordinator(Elaboratable):
             with m.State("unstall"):
                 with Transaction(name="IntUnstall").body(m):
                     m.d.sync += old_pc.eq(self.pc_verify_branch(m, next_pc=int_handler_addr))
+                    m.d.sync += self.allow_retirement.eq(1)
                     m.next = "iret"
             with m.State("iret"):
-                with Transaction(name="IntRet").body(m, request=~self.interrupt):
-                    self.pc_verify_branch(m, next_pc=old_pc)
+                with m.If(~self.interrupt):
                     m.next = "idle"
 
+        # should be called by interrupt controller (CLIC?)
         @def_method(m, self.trigger)
         def _():
             m.d.sync += self.interrupt.eq(1)
 
+        # should be called by block responsible for handling mret (FU?)
         @def_method(m, self.iret)
         def _():
             m.d.sync += self.interrupt.eq(0)
