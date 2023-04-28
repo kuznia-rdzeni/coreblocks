@@ -10,6 +10,17 @@ from collections import deque
 import random
 
 
+class IntCoordinatorMock(Elaboratable):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        m.submodules.trigger_mock = self.trigger_mock = TestbenchIO(Adapter())
+        self.allow_retirement = C(1)
+        self.trigger = self.trigger_mock.adapter.iface
+        return tm
+
+
 class RetirementTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
@@ -35,7 +46,7 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
-        m.submodules.mock_interrupt = self.mock_interrupt = TestbenchIO(Adapter())
+        m.submodules.mock_interrupt = self.mock_interrupt = IntCoordinatorMock()
 
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
@@ -45,7 +56,7 @@ class RetirementTestCircuit(Elaboratable):
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
             precommit=self.mock_precommit.adapter.iface,
-            trigger_int=self.mock_interrupt.adapter.iface,
+            int_coordinator=self.mock_interrupt,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -121,7 +132,7 @@ class RetirementTest(TestCaseWithSimulator):
         def precommit_process(rob_id):
             self.assertEqual(rob_id, self.precommit_q.popleft())
 
-        @def_method_mock(lambda: retc.mock_interrupt)
+        @def_method_mock(lambda: retc.mock_interrupt.trigger_mock)
         def interrupt_process(arg):
             pass
 
@@ -131,9 +142,5 @@ class RetirementTest(TestCaseWithSimulator):
             sim.add_sync_process(free_reg_process)
             sim.add_sync_process(rat_process)
             sim.add_sync_process(rf_free_process)
-<<<<<<< HEAD
             sim.add_sync_process(precommit_process)
-=======
-            sim.add_sync_process(lsu_commit_process)
             sim.add_sync_process(interrupt_process)
->>>>>>> cbb41b1 (Bugfixing)

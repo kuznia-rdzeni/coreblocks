@@ -5,6 +5,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
 from coreblocks.stages.int_coordinator import InterruptCoordinator
 
+
 class Retirement(Elaboratable):
     def __init__(
         self,
