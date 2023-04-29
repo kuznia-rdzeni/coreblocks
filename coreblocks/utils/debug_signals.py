@@ -11,6 +11,11 @@ def auto_debug_signals(thing, *, visited: set = set()) -> SignalBundle:
     `Record`\\s, `Array`\\s and `Elaboratable`\\s, `Method`\\s, classes
     which define `debug_signals`). Used for generating ``gtkw`` files in
     tests, for use in ``gtkwave``.
+
+    Please note, that the set `visited` is used to memorise visited elements to break
+    reference cycles. There is only one instance of this set, for whole
+    `auto_debug_signals` recursion stack. It is being mutated by adding to it more
+    elements id, so that caller know what was visited by callee.
     """
 
     slist: list[SignalBundle] = []
