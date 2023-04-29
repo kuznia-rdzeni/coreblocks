@@ -140,10 +140,10 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def run_simulation(self, circuit : HasElaborate, max_cycles: float = 10e4):
+    def run_simulation(self, circuit: HasElaborate, max_cycles: float = 10e4):
         if isinstance(circuit, TransactionModule):
             raise TypeError("run_simulation should get ")
-        tm = ModuleConnector(wrap_with_tm = True, circuit = circuit)
+        tm = ModuleConnector(wrap_with_tm=True, circuit=circuit)
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
@@ -389,7 +389,8 @@ def def_method_mock(
 
     return decorator
 
-def silence_must_use_warnings(f : Callable[[], T]) -> T:
+
+def silence_must_use_warnings(f: Callable[[], T]) -> T:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UnusedMustUse)
         ret = f()

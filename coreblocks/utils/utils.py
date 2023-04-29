@@ -326,7 +326,7 @@ class ModuleConnector(Elaboratable):
     added as its submodules.
     """
 
-    def __init__(self, *args, wrap_with_tm : bool = False, **kwargs):
+    def __init__(self, *args, wrap_with_tm: bool = False, **kwargs):
         """
         Parameters
         ----------

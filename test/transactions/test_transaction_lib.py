@@ -132,9 +132,7 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
         output = TestbenchIO(Adapter(i=self.lay))
         m.submodules.output = output
         self.output = output
-        m.submodules.fu_arbitration = ManyToOneConnectTrans(
-            get_results=get_results, put_result=output.adapter.iface
-        )
+        m.submodules.fu_arbitration = ManyToOneConnectTrans(get_results=get_results, put_result=output.adapter.iface)
 
         return m
 

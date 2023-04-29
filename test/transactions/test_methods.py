@@ -1,7 +1,6 @@
 # amaranth: UnusedElaboratable=no
 from amaranth import *
 from amaranth.sim import *
-from amaranth._unused import UnusedMustUse
 
 from ..common import TestCaseWithSimulator, TestbenchIO, data_layout, silence_must_use_warnings
 
@@ -41,8 +40,8 @@ class TestDefMethod(TestCaseWithSimulator):
         def f():
             with self.assertRaises(error_type):
                 self.do_test_definition(definer)
+
         silence_must_use_warnings(f)
-        
 
     def test_fields_valid1(self):
         def definition(arg):

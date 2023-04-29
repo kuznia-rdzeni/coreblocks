@@ -328,4 +328,5 @@ class TestTransactionPriorities(TestCaseWithSimulator):
             with cm:
                 with self.run_simulation(m):
                     pass
+
         silence_must_use_warnings(f)

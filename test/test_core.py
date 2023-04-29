@@ -1,6 +1,5 @@
 from amaranth import Elaboratable, Module
 
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.utils import align_to_power_of_two
 
