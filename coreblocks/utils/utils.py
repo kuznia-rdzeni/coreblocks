@@ -4,7 +4,7 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
 
 
 __all__ = [
@@ -15,6 +15,7 @@ __all__ = [
     "flatten_signals",
     "align_to_power_of_two",
     "bits_from_int",
+    "ModuleConnector",
 ]
 
 
@@ -324,7 +325,7 @@ class ModuleConnector(Elaboratable):
     added as its submodules.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: HasElaborate, **kwargs: HasElaborate):
         """
         Parameters
         ----------
