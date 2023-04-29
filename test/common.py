@@ -121,6 +121,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
     def elaborate(self, platform):
         m = Module()
+        tm = TransactionModule(m)
 
         dummy = Signal()
         m.d.sync += dummy.eq(1)
@@ -132,7 +133,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
                 self._io[name] = TestbenchIO(AdapterTrans(attr))
                 m.submodules += self._io[name]
 
-        return m
+        return tm
 
     def debug_signals(self):
         return [io.debug_signals() for io in self._io.values()]
