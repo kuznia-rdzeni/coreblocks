@@ -330,7 +330,7 @@ class ModuleConnector(Elaboratable):
         Parameters
         ----------
         *args
-            Modules which should be named as anonymous submodules.
+            Modules which should be added as anonymous submodules.
         **kwargs
             Modules which will be added as named submodules.
         """
