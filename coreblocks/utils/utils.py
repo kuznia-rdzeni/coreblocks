@@ -316,3 +316,31 @@ def align_to_power_of_two(num: int, power: int) -> int:
 def bits_from_int(num: int, lower: int, length: int):
     """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
     return (num >> lower) & (1 << (length) - 1)
+
+class ModuleConnector(Elaboratable):
+    """
+    An Elaboratable to create a new module, which will have all arguments
+    added as its submodules.
+    """
+    def __init__(self, *args, **kwargs):
+        """
+        Parameters
+        ----------
+        *args 
+            Modules which should be named as anonymous submodules.
+        **kwargs
+            Modules which will be added as named submodules.
+        """
+        self.args = args
+        self.kwargs = kwargs
+
+    def elaborate(self, platform):
+        m = Module()
+
+        for elem in self.args:
+            m.submodules += elem
+
+        for name, elem in self.kwargs.items():
+            m.submodules[name] = elem
+
+        return m
