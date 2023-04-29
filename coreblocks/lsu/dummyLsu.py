@@ -43,6 +43,7 @@ class LSUDummyInternals(Elaboratable):
 
         self.loadedData = Signal(self.gen_params.isa.xlen)
         self.get_result_ack = Signal()
+        self.start_state = Signal()
         self.result_ready = Signal()
         self.execute_store = Signal()
         self.store_ready = Signal()
@@ -151,6 +152,7 @@ class LSUDummyInternals(Elaboratable):
 
         with m.FSM("Start"):
             with m.State("Start"):
+                m.d.comb += self.start_state.eq(1)
                 with m.If(~self.clear & instr_ready & instr_is_load):
                     self.op_init(m, op_initiated, False)
                     m.next = "LoadInit"
@@ -179,8 +181,8 @@ class LSUDummyInternals(Elaboratable):
                     m.next = "LoadEndClear"
             with m.State("LoadEndClear"):
                 self.op_end(m, op_initiated, False)
+                m.d.sync += self.result_ready.eq(0)
                 with m.If(~op_initiated):
-                    m.d.sync += self.result_ready.eq(0)
                     m.d.sync += self.loadedData.eq(0)
                     m.next = "Start"
             with m.State("StoreWaitForExec"):
@@ -273,7 +275,7 @@ class LSUDummy(Elaboratable):
 
         result_ready = internal.result_ready
 
-        @def_method(m, self.select, ~reserved)
+        @def_method(m, self.select, ~reserved & internal.start_state)
         def _():
             # We always return 0, because we have only one place in instruction storage.
             m.d.sync += reserved.eq(1)
@@ -293,6 +295,7 @@ class LSUDummy(Elaboratable):
                 m.d.sync += current_instr.s2_val.eq(value)
                 m.d.sync += current_instr.rp_s2.eq(0)
 
+        #TODO fix, nie powinno się uruchamiać
         @def_method(m, self.get_result, result_ready)
         def _():
             m.d.comb += internal.get_result_ack.eq(1)
@@ -305,6 +308,12 @@ class LSUDummy(Elaboratable):
         def _(rob_id: Value):
             with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
                 m.d.sync += internal.execute_store.eq(1)
+
+        @def_method(m, self.clear)
+        def _():
+            m.d.comb += internal.clear.eq(1)
+            m.d.sync += current_instr.eq(0)
+            m.d.sync += reserved.eq(0)
 
         with m.If(internal.store_ready):
             m.d.sync += internal.execute_store.eq(0)

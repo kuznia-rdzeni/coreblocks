@@ -1,6 +1,7 @@
 import random
 from collections import deque
 from typing import Optional
+from parameterized import parameterized_class
 
 from amaranth.sim import Settle, Passive
 
@@ -90,12 +91,21 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.update_mock = self.update = TestbenchIO(AdapterTrans(func_unit.update))
         m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
         m.submodules.commit_mock = self.commit = TestbenchIO(AdapterTrans(func_unit.commit))
+        m.submodules.clear = self.clear = TestbenchIO(AdapterTrans(func_unit.clear))
         self.io_in = WishboneInterfaceWrapper(self.bus.wbMaster)
         m.submodules.bus = self.bus
         return tm
 
 
+@parameterized_class(
+    ("name", "max_wait"),
+    [
+        ("fast", 1),
+        ("big_waits", 10),
+    ],
+)
 class TestDummyLSULoads(TestCaseWithSimulator):
+    max_wait : int
     def generate_instr(self, max_reg_val, max_imm_val):
         ops = {
             "LB": (OpType.LOAD, Funct3.B),
@@ -147,24 +157,41 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
     def setUp(self) -> None:
         random.seed(14)
-        self.tests_number = 100
+        self.tests_number = 1000
         self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gp)
         self.instr_queue = deque()
         self.announce_queue = deque()
         self.mem_data_queue = deque()
         self.returned_data = deque()
+        self.cleared_queue_consumer = deque()
+        self.cleared_queue_wb = deque()
         self.generate_instr(2**7, 2**7)
 
     def random_wait(self):
-        for i in range(random.randint(0, 10)):
+        for i in range(random.randrange(self.max_wait)):
             yield
 
     def wishbone_slave(self):
         yield Passive()
 
+        i=-1
         while True:
+            i+=1
             yield from self.test_module.io_in.slave_wait()
+            while self.cleared_queue_wb and self.cleared_queue_wb[0]<i:
+                self.cleared_queue_wb.popleft()
+                print("wishbone pominięto pominięcie", i, self.returned_data)
+
+            while self.cleared_queue_wb and self.cleared_queue_wb[0]==i:
+                self.cleared_queue_wb.popleft()
+                next_expected=self.mem_data_queue[-1]
+                received_addr = yield self.test_module.io_in.wb.adr
+                if next_expected["addr"] != received_addr:
+                    self.returned_data.append(-1)
+                    self.mem_data_queue.pop()
+                    print("wishbone pominięto", i, next_expected, self.returned_data)
+                    i+=1
             generated_data = self.mem_data_queue.pop()
 
             mask = generated_data["mask"]
@@ -181,6 +208,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             data = (resp_data >> (data_shift * 8)) & data_mask
             if sign:
                 data = int_to_signed(signed_to_int(data, size), 32)
+            print("wishbone", i, data)
             self.returned_data.append(data)
             yield from self.test_module.io_in.slave_respond(resp_data)
             yield Settle()
@@ -194,12 +222,39 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             announc = self.announce_queue.pop()
             if announc is not None:
                 yield from self.test_module.update.call(announc)
+            print("inserter", i)
             yield from self.random_wait()
+            if random.random()<0.1:
+                yield from self.test_module.clear.call()
+                print("Cleared", i)
+                self.cleared_queue_consumer.append(i)
+                self.cleared_queue_wb.append(i)
+                yield from self.random_wait()
 
     def consumer(self):
-        for i in range(self.tests_number):
-            v = yield from self.test_module.get_result.call()
-            self.assertEqual(v["result"], self.returned_data.pop())
+        i =-1
+        while i < self.tests_number:
+            i+=1
+            v = None
+            while i<self.tests_number:
+                v = yield from self.test_module.get_result.call_try()
+                print("consumer cleared_queue", self.cleared_queue_consumer)
+                while self.cleared_queue_consumer and self.cleared_queue_consumer[0]<i:
+                    self.cleared_queue_consumer.popleft()
+                if self.cleared_queue_consumer and self.cleared_queue_consumer[0]==i and self.returned_data:
+                    print("consumer", self.returned_data)
+                    self.cleared_queue_consumer.popleft()
+                    xxx=self.returned_data.popleft()
+                    print("consumer pominięto", i, xxx)
+                    i+=1
+                if v is not None:
+                    print("consumer", i, v)
+                    break
+            if i>=self.tests_number:
+                break
+            assert(v is not None)
+            print("consumer sprawdzenie", i, self.returned_data)
+            self.assertEqual(v["result"], self.returned_data.popleft())
             yield from self.random_wait()
 
     def test(self):
