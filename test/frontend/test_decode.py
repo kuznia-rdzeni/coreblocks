@@ -16,7 +16,6 @@ class TestElaboratable(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         fifo_in = FIFO(self.gp.get(FetchLayouts).raw_instr, depth=2)
         fifo_out = FIFO(self.gp.get(DecodeLayouts).decoded_instr, depth=2)
@@ -32,7 +31,7 @@ class TestElaboratable(Elaboratable):
         m.submodules.fifo_in = fifo_in
         m.submodules.fifo_out = fifo_out
 
-        return tm
+        return m
 
 
 class TestFetch(TestCaseWithSimulator):

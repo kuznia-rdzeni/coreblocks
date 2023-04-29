@@ -222,17 +222,15 @@ class PriorityTestCircuit(Elaboratable):
 class TransactionPriorityTestCircuit(PriorityTestCircuit):
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
-        with tm.transaction_context():
-            transaction1 = Transaction()
-            transaction2 = Transaction()
+        transaction1 = Transaction()
+        transaction2 = Transaction()
 
-            with transaction1.body(m, request=self.r1):
-                m.d.comb += self.t1.eq(1)
+        with transaction1.body(m, request=self.r1):
+            m.d.comb += self.t1.eq(1)
 
-            with transaction2.body(m, request=self.r2):
-                m.d.comb += self.t2.eq(1)
+        with transaction2.body(m, request=self.r2):
+            m.d.comb += self.t2.eq(1)
 
         transaction1.add_conflict(transaction2, self.priority)
         if self.unsatisfiable:
@@ -242,7 +240,7 @@ class TransactionPriorityTestCircuit(PriorityTestCircuit):
         dummy = Signal()
         m.d.sync += dummy.eq(1)
 
-        return tm
+        return m
 
 
 class MethodPriorityTestCircuit(PriorityTestCircuit):
@@ -256,7 +254,6 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         method1 = Method()
         method2 = Method()
@@ -269,12 +266,11 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
         def _():
             m.d.comb += self.t2.eq(1)
 
-        with tm.transaction_context():
-            with Transaction().body(m):
-                method1(m)
+        with Transaction().body(m):
+            method1(m)
 
-            with Transaction().body(m):
-                method2(m)
+        with Transaction().body(m):
+            method2(m)
 
         method1.add_conflict(method2, self.priority)
         if self.unsatisfiable:
@@ -284,7 +280,7 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
         dummy = Signal()
         m.d.sync += dummy.eq(1)
 
-        return tm
+        return m
 
 
 @parameterized_class(

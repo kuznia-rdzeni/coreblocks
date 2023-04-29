@@ -1,7 +1,6 @@
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
 
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
 from ..common import TestCaseWithSimulator, TestbenchIO
@@ -20,7 +19,6 @@ class TestElaboratable(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
         rb = ReorderBuffer(self.gp)
 
         self.rb = rb
@@ -33,7 +31,7 @@ class TestElaboratable(Elaboratable):
         m.submodules.io_update = self.io_update
         m.submodules.io_out = self.io_out
 
-        return tm
+        return m
 
 
 class TestReorderBuffer(TestCaseWithSimulator):

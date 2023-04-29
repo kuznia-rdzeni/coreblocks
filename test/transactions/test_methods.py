@@ -300,7 +300,6 @@ class QuadrupleCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         m.submodules.quadruple = self.quadruple
         m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(self.quadruple.quadruple))
@@ -308,7 +307,7 @@ class QuadrupleCircuit(Elaboratable):
         dummy = Signal()
         m.d.sync += dummy.eq(1)
 
-        return tm
+        return m
 
 
 class Quadruple2(Elaboratable):
@@ -346,7 +345,6 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
 class ConditionalCallCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         meth = Method(i=data_layout(1))
 
@@ -362,13 +360,12 @@ class ConditionalCallCircuit(Elaboratable):
         dummy = Signal()
         m.d.sync += dummy.eq(1)
 
-        return tm
+        return m
 
 
 class ConditionalMethodCircuit1(Elaboratable):
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         meth = Method()
 
@@ -382,13 +379,12 @@ class ConditionalMethodCircuit1(Elaboratable):
         # so that Amaranth allows us to use add_clock
         dummy = Signal()
         m.d.sync += dummy.eq(1)
-        return tm
+        return m
 
 
 class ConditionalMethodCircuit2(Elaboratable):
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         meth = Method()
 
@@ -404,44 +400,40 @@ class ConditionalMethodCircuit2(Elaboratable):
         # so that Amaranth allows us to use add_clock
         dummy = Signal()
         m.d.sync += dummy.eq(1)
-        return tm
+        return m
 
 
 class ConditionalTransactionCircuit1(Elaboratable):
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         self.ready = Signal()
         m.submodules.tb = self.tb = TestbenchIO(Adapter())
 
-        with tm.transaction_context():
-            with Transaction().body(m, request=self.ready):
-                self.tb.adapter.iface(m)
+        with Transaction().body(m, request=self.ready):
+            self.tb.adapter.iface(m)
 
         # so that Amaranth allows us to use add_clock
         dummy = Signal()
         m.d.sync += dummy.eq(1)
-        return tm
+        return m
 
 
 class ConditionalTransactionCircuit2(Elaboratable):
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         self.ready = Signal()
         m.submodules.tb = self.tb = TestbenchIO(Adapter())
 
-        with tm.transaction_context():
-            with m.If(self.ready):
-                with Transaction().body(m):
-                    self.tb.adapter.iface(m)
+        with m.If(self.ready):
+            with Transaction().body(m):
+                self.tb.adapter.iface(m)
 
         # so that Amaranth allows us to use add_clock
         dummy = Signal()
         m.d.sync += dummy.eq(1)
-        return tm
+        return m
 
 
 class TestConditionals(TestCaseWithSimulator):
@@ -500,7 +492,6 @@ class TestConditionals(TestCaseWithSimulator):
 class NonexclusiveMethodCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         self.ready = Signal()
         self.running = Signal()
@@ -519,7 +510,7 @@ class NonexclusiveMethodCircuit(Elaboratable):
         # so that Amaranth allows us to use add_clock
         dummy = Signal()
         m.d.sync += dummy.eq(1)
-        return tm
+        return m
 
 
 class TestNonexclusiveMethod(TestCaseWithSimulator):

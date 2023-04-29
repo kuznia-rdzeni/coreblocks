@@ -16,7 +16,6 @@ class RetirementTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         rob_layouts = self.gen_params.get(ROBLayouts)
         rf_layouts = self.gen_params.get(RFLayouts)
@@ -45,7 +44,7 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
 
-        return tm
+        return m
 
 
 class RetirementTest(TestCaseWithSimulator):

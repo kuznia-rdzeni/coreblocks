@@ -6,7 +6,6 @@ from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
 from amaranth.utils import log2_int
 
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, Adapter
 from coreblocks.frontend.icache import SimpleWBCacheRefiller, ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams, ICacheLayouts
@@ -24,7 +23,6 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         wb_params = WishboneParameters(
             data_width=self.gp.isa.xlen,
@@ -44,7 +42,7 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
 
         self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wbMaster)
 
-        return tm
+        return m
 
 
 @parameterized_class(
@@ -142,7 +140,6 @@ class ICacheBypassTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         wb_params = WishboneParameters(
             data_width=self.gp.isa.xlen,
@@ -156,7 +153,7 @@ class ICacheBypassTestCircuit(Elaboratable):
 
         self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wbMaster)
 
-        return tm
+        return m
 
 
 @parameterized_class(
@@ -270,7 +267,6 @@ class ICacheTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         m.submodules.refiller = self.refiller = MockedCacheRefiller(self.gp)
         m.submodules.cache = self.cache = ICache(self.gp.get(ICacheLayouts), self.cp, self.refiller)
@@ -278,7 +274,7 @@ class ICacheTestCircuit(Elaboratable):
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.cache.accept_res))
         m.submodules.flush_cache = self.flush_cache = TestbenchIO(AdapterTrans(self.cache.flush))
 
-        return tm
+        return m
 
 
 @parameterized_class(
