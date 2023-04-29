@@ -9,7 +9,7 @@ from collections import deque
 from typing import Iterable, Callable
 from parameterized import parameterized, parameterized_class
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout, silence_must_use_warnings
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
@@ -328,6 +328,8 @@ class TestTransactionPriorities(TestCaseWithSimulator):
         else:
             cm = contextlib.nullcontext()
 
-        with cm:
-            with self.run_simulation(m):
-                pass
+        def f():
+            with cm:
+                with self.run_simulation(m):
+                    pass
+        silence_must_use_warnings(f)

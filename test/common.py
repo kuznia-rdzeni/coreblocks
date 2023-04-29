@@ -1,6 +1,8 @@
 import unittest
 import os
 import functools
+import warnings
+import gc
 from contextlib import contextmanager, nullcontext
 from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
 
@@ -8,6 +10,7 @@ from amaranth import *
 from amaranth.hdl.ast import Statement
 from amaranth.sim import *
 from amaranth.sim.core import Command
+from amaranth._unused import UnusedMustUse
 
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
@@ -118,7 +121,6 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         dummy = Signal()
         m.d.sync += dummy.eq(1)
@@ -130,7 +132,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
                 self._io[name] = TestbenchIO(AdapterTrans(attr))
                 m.submodules += self._io[name]
 
-        return tm
+        return m
 
     def debug_signals(self):
         return [io.debug_signals() for io in self._io.values()]
@@ -138,16 +140,22 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
+    def run_simulation(self, circuit : HasElaborate, max_cycles: float = 10e4):
+        if isinstance(circuit, TransactionModule):
+            raise TypeError("run_simulation should get ")
+        m = Module()
+        tm = TransactionModule(m)
+        m.submodules.circuit = circuit
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
-        if isinstance(module, HasDebugSignals):
-            extra_signals = module.debug_signals
+        if isinstance(tm, HasDebugSignals):
+            extra_signals = tm.debug_signals
         else:
-            extra_signals = functools.partial(auto_debug_signals, module)
+            extra_signals = functools.partial(auto_debug_signals, tm)
 
-        sim = Simulator(module)
+        # up to this place we use plain python test functionality, no `elaborate` is called
+        sim = Simulator(tm)
         sim.add_clock(clk_period)
         yield sim
 
@@ -382,3 +390,12 @@ def def_method_mock(
         return mock
 
     return decorator
+
+def silence_must_use_warnings(f : Callable[[], T]) -> T:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UnusedMustUse)
+        ret = f()
+        # Unused warnings are raised in __del__ methods, so to be sure, that they will
+        # be reported, before we go out from catch_warnings contex we have to call garbage collection manualy
+        gc.collect()
+    return ret

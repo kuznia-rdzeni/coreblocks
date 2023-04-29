@@ -1,8 +1,9 @@
 # amaranth: UnusedElaboratable=no
 from amaranth import *
 from amaranth.sim import *
+from amaranth._unused import UnusedMustUse
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout, silence_must_use_warnings
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
@@ -15,7 +16,6 @@ from unittest import TestCase
 class TestDefMethod(TestCaseWithSimulator):
     class TestModule(Elaboratable):
         def __init__(self, method_definition):
-            self.transactionManager = TransactionManager()
             self.method = Method(
                 i=[("foo1", 3), ("foo2", [("bar1", 4), ("bar2", 6)])],
                 o=[("foo1", 3), ("foo2", [("bar1", 4), ("bar2", 6)])],
@@ -28,8 +28,6 @@ class TestDefMethod(TestCaseWithSimulator):
 
             def_method(m, self.method)(self.method_definition)
 
-            m.submodules += self.transactionManager
-
             # so that Amaranth allows us to use add_clock
             dummy = Signal()
             m.d.sync += dummy.eq(1)
@@ -38,6 +36,13 @@ class TestDefMethod(TestCaseWithSimulator):
     def do_test_definition(self, definer):
         with self.run_simulation(TestDefMethod.TestModule(definer)):
             pass
+
+    def assert_with_silence(self, definer, error_type):
+        def f():
+            with self.assertRaises(error_type):
+                self.do_test_definition(definer)
+        silence_must_use_warnings(f)
+        
 
     def test_fields_valid1(self):
         def definition(arg):
@@ -87,43 +92,37 @@ class TestDefMethod(TestCaseWithSimulator):
         def definition(arg):
             return {"foo1": Signal(3), "baz": Signal(4)}
 
-        with self.assertRaises(KeyError):
-            self.do_test_definition(definition)
+        self.assert_with_silence(definition, KeyError)
 
     def test_fields_invalid2(self):
         def definition(arg):
             return {"foo1": Signal(3)}
 
-        with self.assertRaises(KeyError):
-            self.do_test_definition(definition)
+        self.assert_with_silence(definition, KeyError)
 
     def test_fields_invalid3(self):
         def definition(arg):
             return {"foo1": {"baz1": Signal(), "baz2": Signal()}, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
-        with self.assertRaises(TypeError):
-            self.do_test_definition(definition)
+        self.assert_with_silence(definition, TypeError)
 
     def test_fields_invalid4(self):
         def definition(arg: Value):
             return arg
 
-        with self.assertRaises(TypeError):
-            self.do_test_definition(definition)
+        self.assert_with_silence(definition, TypeError)
 
     def test_fields_invalid5(self):
         def definition(foo):
             return foo
 
-        with self.assertRaises(TypeError):
-            self.do_test_definition(definition)
+        self.assert_with_silence(definition, TypeError)
 
     def test_fields_invalid6(self):
         def definition(foo1):
             return {"foo1": foo1, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
-        with self.assertRaises(TypeError):
-            self.do_test_definition(definition)
+        self.assert_with_silence(definition, TypeError)
 
 
 class AdapterCircuit(Elaboratable):
