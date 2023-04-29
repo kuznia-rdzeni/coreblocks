@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682603935741,
+  "lastUpdate": 1682768309113,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4825,6 +4825,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ffde79fcdc6305e5562d8c1d9e908bb7fede2dea"
         },
         "date": 1682603933985,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 57.56,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 18252,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 562,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5604,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "Kristopher38@wp.pl",
+            "name": "Krzysztof Obłonczek",
+            "username": "Kristopher38"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "98fd23ad5ba70013180be1228a3d61848fcafd19",
+          "message": "Run workflows of feature branches (#315)",
+          "timestamp": "2023-04-29T13:30:50+02:00",
+          "tree_id": "c809802bba20eb0e204c7de4a0683a0ea801e6cf",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/98fd23ad5ba70013180be1228a3d61848fcafd19"
+        },
+        "date": 1682768308314,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
