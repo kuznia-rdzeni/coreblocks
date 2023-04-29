@@ -10,7 +10,7 @@ from amaranth import tracer
 from amaranth.hdl.ast import Statement
 from itertools import count, chain
 
-from coreblocks.utils import AssignType, assign
+from coreblocks.utils import AssignType, assign, ModuleConnector
 from ._utils import *
 from ..utils._typing import StatementLike, ValueLike, SignalBundle
 from .graph import Owned, OwnershipGraph, Direction
@@ -293,8 +293,9 @@ class TransactionManager(Elaboratable):
 
         m = Module()
 
-        for cc in _graph_ccs(rgr):
-            m.submodules += self.cc_scheduler(method_map, cgr, cc, porder)
+        m.submodules._transactron_schedulers = ModuleConnector(
+            *[self.cc_scheduler(method_map, cgr, cc, porder) for cc in _graph_ccs(rgr)]
+        )
 
         method_uses = self._method_uses(method_map)
 
@@ -381,7 +382,7 @@ class TransactionModule(Elaboratable):
             for idx in range(len(self.module._anon_submodules)):
                 self.module._anon_submodules[idx] = Fragment.get(self.module._anon_submodules[idx], platform)
 
-        self.module.submodules += self.transactionManager
+        self.module.submodules._transactron_transManager = self.transactionManager
 
         return self.module
 
