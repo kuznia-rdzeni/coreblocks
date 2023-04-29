@@ -317,16 +317,18 @@ def bits_from_int(num: int, lower: int, length: int):
     """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
     return (num >> lower) & (1 << (length) - 1)
 
+
 class ModuleConnector(Elaboratable):
     """
     An Elaboratable to create a new module, which will have all arguments
     added as its submodules.
     """
+
     def __init__(self, *args, **kwargs):
         """
         Parameters
         ----------
-        *args 
+        *args
             Modules which should be named as anonymous submodules.
         **kwargs
             Modules which will be added as named submodules.
