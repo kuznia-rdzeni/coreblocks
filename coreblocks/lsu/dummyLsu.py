@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.transactions import Method, def_method, Transaction
+from coreblocks.transactions import Method, def_method, Transaction, Priority
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign
@@ -46,6 +46,7 @@ class LSUDummyInternals(Elaboratable):
         self.result_ready = Signal()
         self.execute_store = Signal()
         self.store_ready = Signal()
+        self.clear = Signal()
 
     def calculate_addr(self):
         """Calculate Load/Store address as defined by RiscV spec"""
@@ -150,20 +151,35 @@ class LSUDummyInternals(Elaboratable):
 
         with m.FSM("Start"):
             with m.State("Start"):
-                with m.If(instr_ready & instr_is_load):
+                with m.If(~self.clear & instr_ready & instr_is_load):
                     self.op_init(m, op_initiated, False)
                     m.next = "LoadInit"
-                with m.If(instr_ready & ~instr_is_load):
+                with m.If(~self.clear & instr_ready & ~instr_is_load):
                     m.d.sync += self.result_ready.eq(1)
                     m.next = "StoreWaitForExec"
             with m.State("LoadInit"):
                 with m.If(~op_initiated):
-                    self.op_init(m, op_initiated, False)
+                    with m.If(self.clear):
+                        m.next = "Start"
+                    with m.Else():
+                        self.op_init(m, op_initiated, False)
                 with m.Else():
-                    m.next = "LoadEnd"
+                    with m.If(self.clear):
+                        m.next = "LoadEndClear"
+                    with m.Else():
+                        m.next = "LoadEnd"
             with m.State("LoadEnd"):
                 self.op_end(m, op_initiated, False)
-                with m.If(self.get_result_ack):
+                with m.If(self.get_result_ack | (self.clear & ~op_initiated)):
+                    m.d.sync += self.result_ready.eq(0)
+                    m.d.sync += self.loadedData.eq(0)
+                    m.next = "Start"
+                with m.If(self.clear & op_initiated):
+                    m.d.sync += self.result_ready.eq(0)
+                    m.next = "LoadEndClear"
+            with m.State("LoadEndClear"):
+                self.op_end(m, op_initiated, False)
+                with m.If(~op_initiated):
                     m.d.sync += self.result_ready.eq(0)
                     m.d.sync += self.loadedData.eq(0)
                     m.next = "Start"
@@ -173,6 +189,11 @@ class LSUDummyInternals(Elaboratable):
                 with m.If(self.execute_store):
                     self.op_init(m, op_initiated, True)
                     m.next = "StoreInit"
+                with m.If(self.clear):
+                    m.d.sync += self.result_ready.eq(0)
+                    m.next = "Start"
+            # don't handle clear in 'StoreInit' and 'StoreEnd' because in DummyLSU this states
+            # are only reachable, when store is being commited. And commited instructions can not be cleared.
             with m.State("StoreInit"):
                 with m.If(~op_initiated):
                     self.op_init(m, op_initiated, True)
@@ -209,6 +230,8 @@ class LSUDummy(Elaboratable):
         To put load/store results to the next stage of pipeline.
     commit : Method
         Used to inform LSU that new instruction have been retired.
+    clear : Method
+        Used to clear LSU on interrupt.
     """
 
     optypes = {OpType.LOAD, OpType.STORE}
@@ -232,7 +255,13 @@ class LSUDummy(Elaboratable):
         self.update = Method(i=self.lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
         self.commit = Method(i=self.lsu_layouts.commit)
+        self.clear = Method()
 
+        self.clear.add_conflict(self.insert, Priority.LEFT)
+        self.clear.add_conflict(self.select, Priority.LEFT)
+        self.clear.add_conflict(self.update, Priority.LEFT)
+        self.clear.add_conflict(self.get_result, Priority.LEFT)
+        self.clear.add_conflict(self.commit, Priority.LEFT)
         self.bus = bus
 
     def elaborate(self, platform):
