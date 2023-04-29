@@ -295,7 +295,7 @@ class LSUDummy(Elaboratable):
                 m.d.sync += current_instr.s2_val.eq(value)
                 m.d.sync += current_instr.rp_s2.eq(0)
 
-        #TODO fix, nie powinno się uruchamiać
+        # TODO fix, nie powinno się uruchamiać
         @def_method(m, self.get_result, result_ready)
         def _():
             m.d.comb += internal.get_result_ack.eq(1)
