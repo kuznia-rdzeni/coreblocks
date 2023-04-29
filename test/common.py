@@ -15,7 +15,7 @@ from amaranth._unused import UnusedMustUse
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike
+from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike, ModuleConnector
 from .gtkw_extension import write_vcd_ext
 
 
@@ -144,9 +144,7 @@ class TestCaseWithSimulator(unittest.TestCase):
     def run_simulation(self, circuit : HasElaborate, max_cycles: float = 10e4):
         if isinstance(circuit, TransactionModule):
             raise TypeError("run_simulation should get ")
-        m = Module()
-        tm = TransactionModule(m)
-        m.submodules.circuit = circuit
+        tm = ModuleConnector(wrap_with_tm = True, circuit = circuit)
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
