@@ -32,7 +32,7 @@ def auto_debug_signals(thing, *, visited: set = set()) -> SignalBundle:
             continue
         visited.add(id(a))
 
-        # ignore private fields (mostly to ignore _MustUse_context to get preaty print)
+        # ignore private fields (mostly to ignore _MustUse_context to get pretty print)
         if v[0] == "_":
             continue
 
