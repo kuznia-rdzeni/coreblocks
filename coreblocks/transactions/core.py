@@ -294,8 +294,7 @@ class TransactionManager(Elaboratable):
         m = Module()
 
         for cc in _graph_ccs(rgr):
-            mm = self.cc_scheduler(method_map, cgr, cc, porder)
-            m.submodules += mm
+            m.submodules += self.cc_scheduler(method_map, cgr, cc, porder)
 
         method_uses = self._method_uses(method_map)
 
