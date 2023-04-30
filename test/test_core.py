@@ -2,6 +2,7 @@ from amaranth import Elaboratable, Module
 
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
+from coreblocks.utils import align_to_power_of_two
 
 from .common import TestCaseWithSimulator, TestbenchIO
 
@@ -26,6 +27,7 @@ from riscvmodel.insn import (
     InstructionSRLI,
     InstructionSRAI,
     InstructionLUI,
+    InstructionJAL,
 )
 from riscvmodel.model import Model
 from riscvmodel.isa import InstructionRType, get_insns
@@ -48,8 +50,10 @@ class TestElaboratable(Elaboratable):
         wb_instr_bus = WishboneBus(self.gp.wb_params)
         wb_data_bus = WishboneBus(self.gp.wb_params)
 
+        # Align the size of the memory to the length of a cache line.
+        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gp.icache_params.block_size_bits)
         self.wb_mem_slave = WishboneMemorySlave(
-            wb_params=self.gp.wb_params, width=32, depth=len(self.instr_mem), init=self.instr_mem
+            wb_params=self.gp.wb_params, width=32, depth=instr_mem_depth, init=self.instr_mem
         )
         self.wb_mem_slave_data = WishboneMemorySlave(
             wb_params=self.gp.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
@@ -131,7 +135,7 @@ class TestCoreSimple(TestCoreBase):
             yield from self.push_instr(gen_riscv_add_instr(i + 1, 0, 0))
 
         # waiting for the retirement rat to be set
-        for i in range(50):
+        for i in range(100):
             yield
 
         # checking if all registers have been allocated
@@ -178,13 +182,9 @@ class TestCoreSimple(TestCoreBase):
 
 class TestCoreRandomized(TestCoreBase):
     def randomized_input(self):
-        halt_pc = len(self.instr_mem) * self.gp.isa.ilen_bytes
-
-        # set PC to halt at specific instruction (numbered from 0)
-        yield self.m.core.fetch.halt_pc.eq(halt_pc)
-
+        infloop_addr = (len(self.instr_mem) - 1) * 4
         # wait for PC to go past all instruction
-        while (yield self.m.core.fetch.pc) < halt_pc:
+        while (yield self.m.core.fetch.pc) != infloop_addr:
             yield
 
         # finish calculations
@@ -226,7 +226,10 @@ class TestCoreRandomized(TestCoreBase):
         self.software_core.execute(init_instr_list)
         self.software_core.execute(instr_list)
 
-        self.instr_mem = list(map(lambda x: x.encode(), init_instr_list + instr_list))
+        # We add JAL instruction at the end to effectively create a infinite loop at the end of the program.
+        all_instr = init_instr_list + instr_list + [InstructionJAL(rd=0, imm=0)]
+
+        self.instr_mem = list(map(lambda x: x.encode(), all_instr))
 
         m = TestElaboratable(self.gp, instr_mem=self.instr_mem)
         self.m = m
@@ -239,8 +242,8 @@ class TestCoreRandomized(TestCoreBase):
     ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
     [
         ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
-        ("fibonacci_mem", "fibonacci_mem.asm", 510, {3: 55}, basic_core_config),
-        ("csr", "csr.asm", 100, {1: 1, 2: 4}, full_core_config),
+        ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
+        ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
     ],
 )
 class TestCoreAsmSource(TestCoreBase):

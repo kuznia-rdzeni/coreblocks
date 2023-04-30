@@ -35,6 +35,8 @@ class CoreConfiguration:
         Size of the Reorder Buffer is 2**rob_entries_bits.
     start_pc: int
         Initial Program Counter value.
+    icache_enable: bool
+        Enable instruction cache. If disabled, requestes are bypassed directly to the bus.
     icache_ways: int
         Associativity of the instruction cache.
     icache_sets_bits: int
@@ -50,6 +52,7 @@ class CoreConfiguration:
     rob_entries_bits: int = 7
     start_pc: int = 0
 
+    icache_enable: bool = True
     icache_ways: int = 2
     icache_sets_bits: int = 7
     icache_block_size_bits: int = 5
