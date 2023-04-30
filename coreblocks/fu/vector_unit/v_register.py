@@ -4,15 +4,9 @@ from coreblocks.transactions.lib import MemoryBank, Forwarder
 from coreblocks.params import *
 from coreblocks.params.vector_params import VectorParameters
 from coreblocks.fu.vector_unit.v_layouts import RegisterLayouts
+from coreblocks.fu.vector_unit.utils import EEW
 
 __all__ = ["VectorRegisterFragment"]
-
-
-class EEW(IntEnum):
-    w8 = auto()
-    w16 = auto()
-    w32 = auto()
-    w64 = auto()
 
 
 class VectorRegisterFragment(Elaboratable):
