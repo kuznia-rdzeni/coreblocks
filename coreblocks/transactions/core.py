@@ -181,6 +181,11 @@ class TransactionManager(Elaboratable):
     """
 
     def __init__(self, cc_scheduler: TransactionScheduler = eager_deterministic_cc_scheduler):
+        # TransactionManager is created early, and in case of an exception,
+        # this triggers the unused Elaboratable warning. This silencing is
+        # removed in the elaborate method.
+        self._MustUse__silence = True  # type: ignore
+
         self.transactions: list[Transaction] = []
         self.cc_scheduler = cc_scheduler
 
@@ -289,6 +294,9 @@ class TransactionManager(Elaboratable):
         ]
         cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
 
+        # From this point on, any exception should mean a bug.
+        self._MustUse__silence = False  # type: ignore
+
         m = Module()
 
         for cc in _graph_ccs(rgr):
@@ -350,8 +358,8 @@ class TransactionContext:
 
 class TransactionModule(Elaboratable):
     """
-    `TransactionModule` is used as wrapper on `Module` class,
-    which add support for transaction to the `Module`. It creates a
+    `TransactionModule` is used as wrapper on `Elaboratable` classes,
+    which adds support for transactions. It creates a
     `TransactionManager` which will handle transaction scheduling
     and can be used in definition of `Method`\\s and `Transaction`\\s.
     """
@@ -361,7 +369,7 @@ class TransactionModule(Elaboratable):
         Parameters
         ----------
         elaboratable: HasElaborate
-                The `Module` which should be wrapped to add support for
+                The `Elaboratable` which should be wrapped to add support for
                 transactions and methods.
         """
         if manager is None:
@@ -373,11 +381,14 @@ class TransactionModule(Elaboratable):
         return TransactionContext(self.transactionManager)
 
     def elaborate(self, platform):
-        m = Module()
         with self.transaction_context():
-            m.submodules += Fragment.get(self.elaboratable, platform)
+            elaboratable = Fragment.get(self.elaboratable, platform)
 
-        m.submodules += self.transactionManager
+        m = Module()
+
+        m.submodules.main_module = elaboratable
+        m.submodules.transactionManager = self.transactionManager
+
         return m
 
 

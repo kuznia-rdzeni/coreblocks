@@ -1,8 +1,6 @@
 import unittest
 import os
 import functools
-import warnings
-import gc
 from contextlib import contextmanager, nullcontext
 from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
 
@@ -10,7 +8,6 @@ from amaranth import *
 from amaranth.hdl.ast import Statement
 from amaranth.sim import *
 from amaranth.sim.core import Command
-from amaranth._unused import UnusedMustUse
 
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
@@ -140,20 +137,20 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def run_simulation(self, circuit: HasElaborate, max_cycles: float = 10e4):
-        if isinstance(circuit, TransactionModule):
-            raise TypeError("run_simulation should get ")
-        tm = TransactionModule(circuit)
+    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
+        if add_transaction_module:
+            module = TransactionModule(module)
+
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
-        if isinstance(tm, HasDebugSignals):
-            extra_signals = tm.debug_signals
+        if isinstance(module, HasDebugSignals):
+            extra_signals = module.debug_signals
         else:
-            extra_signals = functools.partial(auto_debug_signals, tm)
+            extra_signals = functools.partial(auto_debug_signals, module)
 
         # up to this place we use plain python test functionality, no `elaborate` is called
-        sim = Simulator(tm)
+        sim = Simulator(module)
         sim.add_clock(clk_period)
         yield sim
 
@@ -388,13 +385,3 @@ def def_method_mock(
         return mock
 
     return decorator
-
-
-def silence_must_use_warnings(f: Callable[[], T]) -> T:
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", UnusedMustUse)
-        ret = f()
-        # Unused warnings are raised in __del__ methods, so to be sure, that they will
-        # be reported, before we go out from catch_warnings contex we have to call garbage collection manualy
-        gc.collect()
-    return ret
