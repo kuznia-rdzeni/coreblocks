@@ -12,7 +12,7 @@ from itertools import count, chain
 
 from coreblocks.utils import AssignType, assign
 from ._utils import *
-from ..utils._typing import StatementLike, ValueLike, SignalBundle
+from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
@@ -356,32 +356,29 @@ class TransactionModule(Elaboratable):
     and can be used in definition of `Method`\\s and `Transaction`\\s.
     """
 
-    def __init__(self, module: Module, manager: Optional[TransactionManager] = None):
+    def __init__(self, elaboratable: HasElaborate, manager: Optional[TransactionManager] = None):
         """
         Parameters
         ----------
-        module: Module
+        elaboratable: HasElaborate
                 The `Module` which should be wrapped to add support for
                 transactions and methods.
         """
         if manager is None:
             manager = TransactionManager()
         self.transactionManager = manager
-        self.module = module
+        self.elaboratable = elaboratable
 
     def transaction_context(self) -> TransactionContext:
         return TransactionContext(self.transactionManager)
 
     def elaborate(self, platform):
+        m = Module()
         with self.transaction_context():
-            for name in self.module._named_submodules:  # type: ignore
-                self.module._named_submodules[name] = Fragment.get(self.module._named_submodules[name], platform)
-            for idx in range(len(self.module._anon_submodules)):
-                self.module._anon_submodules[idx] = Fragment.get(self.module._anon_submodules[idx], platform)
+            m.submodules += Fragment.get(self.elaboratable, platform)
 
-        self.module.submodules += self.transactionManager
-
-        return self.module
+        m.submodules += self.transactionManager
+        return m
 
 
 class _TransactionBaseStatements:

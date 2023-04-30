@@ -5,7 +5,6 @@ from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
 from ._typing import ValueLike, LayoutList, SignalBundle
-import coreblocks.transactions.core
 
 
 __all__ = [
@@ -326,20 +325,17 @@ class ModuleConnector(Elaboratable):
     added as its submodules.
     """
 
-    def __init__(self, *args, wrap_with_tm: bool = False, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         Parameters
         ----------
         *args
             Modules which should be named as anonymous submodules.
-        wrap_with_tm : bool
-            If True generated Module is wrapped using TransactionModule
         **kwargs
             Modules which will be added as named submodules.
         """
         self.args = args
         self.kwargs = kwargs
-        self.wrap_with_tm = wrap_with_tm
 
     def elaborate(self, platform):
         m = Module()
@@ -350,6 +346,4 @@ class ModuleConnector(Elaboratable):
         for name, elem in self.kwargs.items():
             m.submodules[name] = elem
 
-        if self.wrap_with_tm:
-            return coreblocks.transactions.core.TransactionModule(m)
         return m
