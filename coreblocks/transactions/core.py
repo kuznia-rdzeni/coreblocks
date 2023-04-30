@@ -339,9 +339,9 @@ class TransactionManager(Elaboratable):
 
         # step 3: maximal group selection
         def maximal(group: frozenset[Transaction]):
-            return all(not group.issubset(group2) for group2 in simultaneous)
+            return not any(group.issubset(group2) and group != group2 for group2 in simultaneous)
 
-        final_simultaneous = filter(maximal, simultaneous)
+        final_simultaneous = set(filter(maximal, simultaneous))
 
         # step 4: convert transactions to methods
         joined_transactions = set[Transaction]().union(*final_simultaneous)
@@ -355,6 +355,7 @@ class TransactionManager(Elaboratable):
             method.owner = transaction.owner
             method.ready = transaction.request
             method.run = transaction.grant
+            method.defined = transaction.defined
             methods[transaction] = method
 
         # step 5: construct merged transactions
@@ -378,6 +379,9 @@ class TransactionManager(Elaboratable):
             for relation in elem.relations
         ]
         cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
+
+        print(method_map.transactions_by_method)
+        print(method_map.methods_by_transaction)
 
         m = Module()
         m.submodules.merge_manager = merge_manager

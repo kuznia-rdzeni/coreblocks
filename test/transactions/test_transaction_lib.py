@@ -9,6 +9,7 @@ from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
+from coreblocks.transactions.lib import MergingForwarder
 from coreblocks.utils._typing import LayoutLike
 from ..common import (
     SimpleTestCircuit,
@@ -19,7 +20,7 @@ from ..common import (
 )
 
 
-FIFO_Like: TypeAlias = FIFO | Forwarder
+FIFO_Like: TypeAlias = FIFO | Forwarder | MergingForwarder
 
 
 class TestFifoBase(TestCaseWithSimulator):
@@ -54,6 +55,12 @@ class TestFIFO(TestFifoBase):
     @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
     def test_fifo(self, writer_rand, reader_rand):
         self.do_test_fifo(FIFO, writer_rand=writer_rand, reader_rand=reader_rand, fifo_kwargs=dict(depth=4))
+
+
+class TestMergingForwarder(TestFifoBase):
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(MergingForwarder, writer_rand=writer_rand, reader_rand=reader_rand)
 
 
 class TestForwarder(TestFifoBase):

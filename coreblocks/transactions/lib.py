@@ -142,6 +142,29 @@ class Forwarder(Elaboratable):
         return m
 
 
+class MergingForwarder(Elaboratable):
+    def __init__(self, layout: MethodLayout):
+        self.read = Method(o=layout)
+        self.write = Method(i=layout)
+
+    def elaborate(self, platform):
+        m = Module()
+        
+        read_value = Record.like(self.read.data_out)
+
+        self.write.simultaneous_with(self.read)
+        
+        @def_method(m, self.write)
+        def _(arg):
+            Method.comb += read_value.eq(arg)
+
+        @def_method(m, self.read)
+        def _():
+            return read_value
+
+        return m
+
+
 # "Clicked" input
 
 
