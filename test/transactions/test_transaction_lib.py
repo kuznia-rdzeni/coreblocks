@@ -10,6 +10,7 @@ from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
 from coreblocks.utils._typing import LayoutLike
+from coreblocks.utils import ModuleConnector
 from ..common import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
@@ -327,13 +328,12 @@ class TestMethodTransformer(TestCaseWithSimulator):
 class TestMethodFilter(TestCaseWithSimulator):
     def initialize(self):
         self.iosize = 4
-        layout = data_layout(self.iosize)
-        self.target = TestbenchIO(Adapter(i=layout, o=layout))
-        self.cmeth = TestbenchIO(Adapter(i=layout, o=data_layout(1)))
+        self.layout = data_layout(self.iosize)
+        self.target = TestbenchIO(Adapter(i=self.layout, o=self.layout))
 
     def source(self):
         for i in range(2**self.iosize):
-            v = yield from self.m.method.call(data=i)
+            v = yield from self.tc.method.call(data=i)
             if i & 1:
                 self.assertEqual(v["data"], (i + 1) & ((1 << self.iosize) - 1))
             else:
@@ -349,8 +349,13 @@ class TestMethodFilter(TestCaseWithSimulator):
 
     def test_method_filter_with_methods(self):
         self.initialize()
-        self.m = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface))
-        self.m = postprocess_add_submodules(self.m, [self.target, self.cmeth])
+        self.cmeth = TestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface))
+        self.m = ModuleConnector(
+                test_circuit = self.tc,
+                target = self.target,
+                cmeth = self.cmeth
+                )
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target_mock)
@@ -362,8 +367,11 @@ class TestMethodFilter(TestCaseWithSimulator):
         def condition(_, v):
             return v[0]
 
-        mmm = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition))
-        self.m = AddSubmodulesWrapper(mmm, [self.target, self.cmeth])
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition))
+        self.m = ModuleConnector(
+                test_circuit = self.tc,
+                target = self.target
+                )
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target_mock)
