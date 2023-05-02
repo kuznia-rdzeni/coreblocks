@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import IntFlag, auto, unique
 from typing import Sequence
 
@@ -9,10 +10,9 @@ from coreblocks.params import (
     OpType,
     GenParams,
     FuncUnitLayouts,
-    UnsignedMulUnitLayouts,
     FunctionalComponentParams,
 )
-from coreblocks.transactions import Method, def_method, Transaction
+from coreblocks.transactions import Method, def_method
 from coreblocks.transactions.lib import FIFO
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
@@ -34,47 +34,126 @@ class ZbcFn(DecoderManager):
         ]
 
 
-class Zbc(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gen_params = gen_params
+class ClMultiplier(Elaboratable):
+    """
+    Module for computing carry-less product
 
-        layout = gen_params.get(UnsignedMulUnitLayouts)
+    Attributes
+    ----------
+    i1: Signal(unsigned(n)), in
+        First factor.
+    i2: Signal(unsigned(n)), in
+        Second factor.
+    result: Signal(unsigned(n * 2)), out
+        Result.
+    reset: Signal(1), in
+        Setting this signal to 1 will start a new computation with provided inputs
+    busy: Signal(1), out
+        Set to 1 while a computation is in progress
+    """
 
-        self.issue = Method(i=layout.issue)
-        self.accept = Method(o=layout.accept)
+    def __init__(self, bit_width: int, recursion_depth: int):
+        """
+        Parameters
+        ----------
+        bit_width: int
+            Bit width of inputs
+        recursion_depth: int
+            Depth of recursive submodules for parallel computation (assumes bit_width to be a power of 2)
+        """
+        if bit_width == 1 and recursion_depth != 0:
+            raise ValueError("Too large recursion depth")
+
+        self.recursion_depth = recursion_depth
+        self.bit_width = bit_width
+
+        self.i1 = Signal(unsigned(bit_width))
+        self.i2 = Signal(unsigned(bit_width))
+        self.result = Signal(unsigned(bit_width * 2))
+        self.reset = Signal()
+        self.busy = Signal()
 
     def elaborate(self, platform):
+        if self.recursion_depth == 0:
+            return self.iterative_module()
+        else:
+            return self.recursive_module()
+
+    def iterative_module(self):
         m = Module()
-        output = Signal(unsigned(self.gen_params.isa.xlen * 2))
 
-        i1 = Signal(unsigned(self.gen_params.isa.xlen * 2))
-        i2 = Signal(unsigned(self.gen_params.isa.xlen))
-        busy = Signal()
+        m.d.sync += self.busy.eq(0)
 
-        @def_method(m, self.issue, ready=~busy)
-        def _(arg):
-            m.d.sync += output.eq(0)
-            m.d.sync += i1.eq(arg.i1)
-            m.d.sync += i2.eq(arg.i2)
-            m.d.sync += busy.eq(1)
+        v1 = Signal(unsigned(self.bit_width * 2))
+        v2 = Signal(unsigned(self.bit_width))
+        with m.If(self.reset):
+            m.d.sync += self.result.eq(0)
+            m.d.sync += [
+                v1.eq(self.i1),
+                v2.eq(self.i2),
+            ]
+            m.d.sync += self.busy.eq(1)
 
-        @def_method(m, self.accept, ready=~i2.bool() & busy)
-        def _():
-            m.d.sync += busy.eq(0)
-            return {"o": output}
+        with m.Elif(v2.bool()):
+            with m.If(v2[0]):
+                m.d.sync += self.result.eq(self.result ^ v1)
+            m.d.sync += [
+                v1.eq(v1 << 1),
+                v2.eq(v2 >> 1),
+            ]
+            m.d.sync += self.busy.eq(1)
 
-        with m.If(busy):
-            with m.If(i2[0]):
-                m.d.sync += output.eq(output ^ i1)
-            m.d.sync += i1.eq(i1 << 1)
-            m.d.sync += i2.eq(i2 >> 1)
+        return m
+
+    def recursive_module(self):
+        m = Module()
+
+        half_width = self.bit_width // 2
+
+        m.submodules.mul_ll = mul_ll = ClMultiplier(half_width, self.recursion_depth - 1)
+        m.submodules.mul_lu = mul_lu = ClMultiplier(half_width, self.recursion_depth - 1)
+        m.submodules.mul_ul = mul_ul = ClMultiplier(half_width, self.recursion_depth - 1)
+        m.submodules.mul_uu = mul_uu = ClMultiplier(half_width, self.recursion_depth - 1)
+
+        m.d.comb += [
+            mul_ll.reset.eq(self.reset),
+            mul_ul.reset.eq(self.reset),
+            mul_lu.reset.eq(self.reset),
+            mul_uu.reset.eq(self.reset),
+        ]
+
+        m.d.comb += self.busy.eq(mul_ll.busy | mul_lu.busy | mul_ul.busy | mul_uu.busy)
+
+        m.d.comb += [
+            mul_ll.i1.eq(self.i1[:half_width]),
+            mul_ll.i2.eq(self.i2[:half_width]),
+        ]
+        m.d.comb += [
+            mul_lu.i1.eq(self.i1[half_width:]),
+            mul_lu.i2.eq(self.i2[:half_width]),
+        ]
+        m.d.comb += [
+            mul_ul.i1.eq(self.i1[:half_width]),
+            mul_ul.i2.eq(self.i2[half_width:]),
+        ]
+        m.d.comb += [
+            mul_uu.i1.eq(self.i1[half_width:]),
+            mul_uu.i2.eq(self.i2[half_width:]),
+        ]
+
+        m.d.comb += self.result.eq(
+            (mul_uu.result << self.bit_width)
+            ^ (mul_ul.result << half_width)
+            ^ (mul_lu.result << half_width)
+            ^ mul_ll.result
+        )
 
         return m
 
 
 class ZbcUnit(Elaboratable):
     """
-    Module responsible for executing carry-less multiplication (Zbc extension)
+    Module responsible for executing Zbc instructions (carry-less multiplication)
 
     Attributes
     ----------
@@ -86,9 +165,10 @@ class ZbcUnit(Elaboratable):
 
     optypes = ZbcFn.get_op_types()
 
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, recursion_depth: int):
         layouts = gen_params.get(FuncUnitLayouts)
 
+        self.recursion_depth = recursion_depth
         self.gen_params = gen_params
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
@@ -105,15 +185,27 @@ class ZbcUnit(Elaboratable):
             ],
             2,
         )
-        m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = ZbcFn.get_decoder(self.gen_params)
-        m.submodules.zbc = zbc = Zbc(self.gen_params)
+        m.submodules.zbc = clmul = ClMultiplier(self.gen_params.isa.xlen, self.recursion_depth)
 
-        @def_method(m, self.accept)
+        m.d.sync += clmul.reset.eq(0)
+        in_progress = Signal()
+
+        @def_method(m, self.accept, ready=~clmul.busy & ~clmul.reset & in_progress)
         def _():
-            return result_fifo.read(m)
+            xlen = self.gen_params.isa.xlen
 
-        @def_method(m, self.issue)
+            output = clmul.result
+            params = params_fifo.read(m)
+
+            result = Mux(params.high_res, output[xlen:], output[:xlen])
+            reversed_result = Mux(params.rev_res, result[::-1], result)
+
+            m.d.sync += in_progress.eq(0)
+
+            return {"rob_id": params.rob_id, "rp_dst": params.rp_dst, "result": reversed_result}
+
+        @def_method(m, self.issue, ready=~clmul.busy & ~in_progress)
         def _(arg):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
 
@@ -124,6 +216,8 @@ class ZbcUnit(Elaboratable):
             value2 = Signal(self.gen_params.isa.xlen)
             high_res = Signal(1)
             rev_res = Signal(1)
+
+            m.d.sync += in_progress.eq(1)
 
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ZbcFn.Fn.CLMUL):
@@ -137,7 +231,7 @@ class ZbcUnit(Elaboratable):
                     m.d.comb += value1.eq(i1)
                     m.d.comb += value2.eq(i2)
                 with OneHotCase(ZbcFn.Fn.CLMULR):
-                    # CLMULR is equivalent to bit-reversing the inputs,
+                    # clmulr is equivalent to bit-reversing the inputs,
                     # performing a clmul,
                     # then bit-reversing the output.
                     m.d.comb += high_res.eq(0)
@@ -147,24 +241,19 @@ class ZbcUnit(Elaboratable):
 
             params_fifo.write(m, rob_id=arg.rob_id, rp_dst=arg.rp_dst, high_res=high_res, rev_res=rev_res)
 
-            zbc.issue(m, i1=value1, i2=value2)
-
-        xlen = self.gen_params.isa.xlen
-        with Transaction().body(m):
-            output = zbc.accept(m)
-            params = params_fifo.read(m)
-
-            result = Mux(params.high_res, output[xlen:], output[:xlen])
-            reversed_result = Mux(params.rev_res, result[::-1], result)
-
-            result_fifo.write(m, result=reversed_result, rob_id=params.rob_id, rp_dst=params.rp_dst)
+            m.d.sync += clmul.i1.eq(value1)
+            m.d.sync += clmul.i2.eq(value2)
+            m.d.sync += clmul.reset.eq(1)
 
         return m
 
 
+@dataclass(frozen=True)
 class ZbcComponent(FunctionalComponentParams):
+    recursion_depth: int = 3
+
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return ZbcUnit(gen_params)
+        return ZbcUnit(gen_params, self.recursion_depth)
 
     def get_optypes(self) -> set[OpType]:
         return ZbcUnit.optypes

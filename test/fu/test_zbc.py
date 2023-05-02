@@ -7,6 +7,8 @@ from coreblocks.params.configurations import test_core_config
 from test.fu.functional_common import GenericFunctionalTestUnit
 
 
+# Instruction semantics are based on pseudocode from the spec
+# https://github.com/riscv/riscv-bitmanip/releases/download/1.0.0/bitmanip-1.0.0-38-g865e7a7.pdf
 def clmul(i1: int, i2: int, xlen: int) -> int:
     output = 0
     for i in range(xlen + 1):
