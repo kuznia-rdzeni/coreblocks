@@ -5,7 +5,7 @@ from coreblocks.params import *
 from coreblocks.params.vector_params import VectorParameters
 from coreblocks.fu.vector_unit.v_layouts import RegisterLayouts
 
-__all__ = ["EEW", "eew_to_bits"]
+__all__ = ["EEW", "eew_to_bits", "bits_to_eew"]
 
 class EEW(IntEnum):
     w8 = auto()
@@ -24,3 +24,15 @@ def eew_to_bits(eew : EEW) -> int:
         return 64
     else:
         raise ValueError(f"Not known EEW: {eew}")
+
+def bits_to_eew(bits : int) -> EEW:
+    if bits == 8:
+        return EEW.w8
+    elif bits == 16:
+        return EEW.w16
+    elif bits == 32:
+        return EEW.w32
+    elif bits == 64:
+        return EEW.w64
+    else:
+        raise ValueError(f"Not known EEW: {bits}")
