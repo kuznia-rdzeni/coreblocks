@@ -16,6 +16,7 @@ __all__ = [
     "align_to_power_of_two",
     "bits_from_int",
     "ModuleConnector",
+    "silence_mustuse"
 ]
 
 
@@ -347,3 +348,10 @@ class ModuleConnector(Elaboratable):
             m.submodules[name] = elem
 
         return m
+
+@contextmanager
+def silence_mustuse(elaboratable: Elaboratable):
+    elaboratable._MustUse__silence = True  # type: ignore
+    yield
+    # if exception happens, this is unreachable
+    elaboratable._MustUse__silence = False  # type: ignore

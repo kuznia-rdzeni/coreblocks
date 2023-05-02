@@ -12,6 +12,7 @@ from itertools import count, chain
 
 from coreblocks.utils import AssignType, assign
 from ._utils import *
+from ..utils import silence_mustuse
 from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate
 from .graph import Owned, OwnershipGraph, Direction
 
@@ -181,11 +182,6 @@ class TransactionManager(Elaboratable):
     """
 
     def __init__(self, cc_scheduler: TransactionScheduler = eager_deterministic_cc_scheduler):
-        # TransactionManager is created early, and in case of an exception,
-        # this triggers the unused Elaboratable warning. This silencing is
-        # removed in the elaborate method.
-        self._MustUse__silence = True  # type: ignore
-
         self.transactions: list[Transaction] = []
         self.cc_scheduler = cc_scheduler
 
@@ -286,16 +282,16 @@ class TransactionManager(Elaboratable):
         return method_uses
 
     def elaborate(self, platform):
-        method_map = MethodMap(self.transactions)
-        relations = [
-            Relation(**relation, start=elem)
-            for elem in method_map.methods_and_transactions
-            for relation in elem.relations
-        ]
-        cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
-
-        # From this point on, any exception should mean a bug.
-        self._MustUse__silence = False  # type: ignore
+        # In the following, various problems in the transaction set-up are detected.
+        # The exception triggers an unused Elaboratable warning.
+        with silence_mustuse(self):
+            method_map = MethodMap(self.transactions)
+            relations = [
+                Relation(**relation, start=elem)
+                for elem in method_map.methods_and_transactions
+                for relation in elem.relations
+            ]
+            cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
 
         m = Module()
 
@@ -381,8 +377,9 @@ class TransactionModule(Elaboratable):
         return TransactionContext(self.transactionManager)
 
     def elaborate(self, platform):
-        with self.transaction_context():
-            elaboratable = Fragment.get(self.elaboratable, platform)
+        with silence_mustuse(self.transactionManager):
+            with self.transaction_context():
+                elaboratable = Fragment.get(self.elaboratable, platform)
 
         m = Module()
 
