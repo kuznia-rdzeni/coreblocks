@@ -16,7 +16,7 @@ __all__ = [
     "align_to_power_of_two",
     "bits_from_int",
     "ModuleConnector",
-    "silence_mustuse"
+    "silence_mustuse",
 ]
 
 
@@ -348,6 +348,7 @@ class ModuleConnector(Elaboratable):
             m.submodules[name] = elem
 
         return m
+
 
 @contextmanager
 def silence_mustuse(elaboratable: Elaboratable):
