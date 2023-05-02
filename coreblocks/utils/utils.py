@@ -352,7 +352,8 @@ class ModuleConnector(Elaboratable):
 
 @contextmanager
 def silence_mustuse(elaboratable: Elaboratable):
-    elaboratable._MustUse__silence = True  # type: ignore
-    yield
-    # if exception happens, this is unreachable
-    elaboratable._MustUse__silence = False  # type: ignore
+    try:
+        yield
+    except:
+        elaboratable._MustUse__silence = True  # type: ignore
+        raise
