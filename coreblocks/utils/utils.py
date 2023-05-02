@@ -4,7 +4,7 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
 
 
 __all__ = [
@@ -15,6 +15,7 @@ __all__ = [
     "flatten_signals",
     "align_to_power_of_two",
     "bits_from_int",
+    "ModuleConnector",
 ]
 
 
@@ -316,3 +317,33 @@ def align_to_power_of_two(num: int, power: int) -> int:
 def bits_from_int(num: int, lower: int, length: int):
     """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
     return (num >> lower) & (1 << (length) - 1)
+
+
+class ModuleConnector(Elaboratable):
+    """
+    An Elaboratable to create a new module, which will have all arguments
+    added as its submodules.
+    """
+
+    def __init__(self, *args: HasElaborate, **kwargs: HasElaborate):
+        """
+        Parameters
+        ----------
+        *args
+            Modules which should be added as anonymous submodules.
+        **kwargs
+            Modules which will be added as named submodules.
+        """
+        self.args = args
+        self.kwargs = kwargs
+
+    def elaborate(self, platform):
+        m = Module()
+
+        for elem in self.args:
+            m.submodules += elem
+
+        for name, elem in self.kwargs.items():
+            m.submodules[name] = elem
+
+        return m
