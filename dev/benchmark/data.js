@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683029144544,
+  "lastUpdate": 1683040384847,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -4972,6 +4972,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/96cbc4a3068953dec3caf4669efff16bcf8a0036"
         },
         "date": 1683029142795,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 57.56,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 18252,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 562,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5604,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pazeraf@gmail.com",
+            "name": "Filip Pazera",
+            "username": "pa000"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9a23b060811d6c272ac20ca58878681a98966432",
+          "message": "Fix graph (update requirements-dev.txt) (#323)",
+          "timestamp": "2023-05-02T17:06:07+02:00",
+          "tree_id": "500072381ab25bed8577f23d5bc6544b45c3672c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9a23b060811d6c272ac20ca58878681a98966432"
+        },
+        "date": 1683040381976,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
