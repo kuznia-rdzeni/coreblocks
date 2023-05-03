@@ -4,6 +4,7 @@ from contextlib import contextmanager, nullcontext
 from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
 from enum import Enum, auto
 from collections import deque
+import logging
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -77,7 +78,10 @@ class SyncProcessWrapper():
 
     def wait_read_only(self):
         self.change_state(SyncProcessState.WaitReadOnly)
+        logging.debug(f"enter wait_read_only {self.org_proc}")
+        yield Settle()
         while self.simulator.state != SimulationState.ReadOnly:
+            logging.debug(f"wait_read_only {self.org_proc}")
             yield Settle()
         self.change_state(SyncProcessState.Running)
 
@@ -141,12 +145,21 @@ class SimulatorWrapper():
         proc = SyncProcessWrapper(self, org_proc)
         self.process_list.append(proc)
         self.sim.add_sync_process(proc._wrapping_function)
+    
+    def _change_state(self, new_state):
+        logging.debug(f"Old state: {self.state} New state: {new_state}")
+        self._print_process_states()
+        self.state = new_state
+
+    def _print_process_states(self):
+        for p in self.process_list:
+            logging.debug(f"\t{p.org_proc}\t{p.state}")
 
     def _process_state_changed_in_read_only(self):
         all_next_cycle = all(self._transform_proces_list(lambda p: (p.state == SyncProcessState.WaitNextCycle) or (p.state == SyncProcessState.WaitFor)))
         if all_next_cycle:
             if any(self._transform_proces_list(lambda p: (p.state == SyncProcessState.WaitFor))):
-                self.state = SimulationState.NextCycle
+                self._change_state(SimulationState.NextCycle)
             else:
                 self._start_new_cycle()
 
@@ -158,9 +171,11 @@ class SimulatorWrapper():
         return [f(p) for p in self.process_list]
 
     def _start_new_cycle(self):
-        self.state = SimulationState.Normal
+        self._change_state(SimulationState.Normal)
         for p in self.process_list:
             p.state = SyncProcessState.BeginingOfNewCycle
+        self._print_process_states()
+        logging.debug("---------------- NEW CYCLE ----------------") 
 
     def _process_state_changed_in_normal(self):
         any_wait_read_only = any([ (p.state == SyncProcessState.WaitReadOnly) for p in self.process_list ])
@@ -168,9 +183,9 @@ class SimulatorWrapper():
         all_wait = all(self._transform_proces_list(self._process_waiting))
         if all_wait:
             if any_wait_read_only:
-                self.state = SimulationState.ReadOnly
+                self._change_state(SimulationState.ReadOnly)
             elif any_wait_for:
-                self.state = SimulationState.NextCycle
+                self._change_state(SimulationState.NextCycle)
             else:
                 self._start_new_cycle()
 

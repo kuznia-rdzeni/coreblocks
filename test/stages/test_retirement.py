@@ -81,9 +81,11 @@ class RetirementTest(TestCaseWithExtendedSimulator):
 
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
+        print()
 
         @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q))
         def submit_process():
+            print("submit")
             return self.submit_q.popleft()
 
         def free_reg_process():
@@ -106,10 +108,12 @@ class RetirementTest(TestCaseWithExtendedSimulator):
 
         @def_method_mock(lambda: retc.mock_rf_free, read_only_phase=True)
         def rf_free_process(reg_id):
+            print("rf free")
             self.assertEqual(reg_id, self.rf_free_q.popleft())
 
-        @def_method_mock(lambda: retc.mock_lsu_commit, read_only_phase=True)
+        @def_method_mock(lambda: retc.mock_lsu_commit, read_only_phase=True, sched_prio=0)
         def lsu_commit_process(rob_id):
+            print("lsu commit")
             self.assertEqual(rob_id, self.lsu_commit_q.popleft())
 
         with self.run_simulation(retc) as sim:
