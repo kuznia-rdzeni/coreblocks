@@ -401,13 +401,7 @@ class TestNested(TestCaseWithSimulator):
             sim.add_sync_process(process)
 
 
-class ScheduleBeforeTestCircuit(Elaboratable):
-    def __init__(self):
-        self.r1 = Signal()
-        self.r2 = Signal()
-        self.t1 = Signal()
-        self.t2 = Signal()
-
+class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
