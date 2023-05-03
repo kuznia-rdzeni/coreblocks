@@ -9,7 +9,7 @@ from collections import deque
 from typing import Iterable, Callable
 from parameterized import parameterized, parameterized_class
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout, silence_must_use_warnings
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
@@ -132,20 +132,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
     scheduler: TransactionScheduler
 
     def setUp(self):
-        self.in1_stream = range(0, 100)
-        self.in2_stream = range(100, 200)
-        self.out_stream = range(200, 400)
-        self.in_expected = deque()
-        self.out1_expected = deque()
-        self.out2_expected = deque()
-        self.m = TransactionConflictTestCircuit(self.__class__.scheduler)
-
         random.seed(42)
-
-    def tearDown(self):
-        assert not self.in_expected
-        assert not self.out1_expected
-        assert not self.out2_expected
 
     def make_process(
         self, io: TestbenchIO, prob: float, src: Iterable[int], tgt: Callable[[int], None], chk: Callable[[int], None]
@@ -200,10 +187,22 @@ class TestTransactionConflict(TestCaseWithSimulator):
         ]
     )
     def test_calls(self, name, prob1, prob2, probout):
-        with self.run_simulation(self.m) as sim:
+        self.in1_stream = range(0, 100)
+        self.in2_stream = range(100, 200)
+        self.out_stream = range(200, 400)
+        self.in_expected = deque()
+        self.out1_expected = deque()
+        self.out2_expected = deque()
+        self.m = TransactionConflictTestCircuit(self.__class__.scheduler)
+
+        with self.run_simulation(self.m, add_transaction_module=False) as sim:
             sim.add_sync_process(self.make_in1_process(prob1))
             sim.add_sync_process(self.make_in2_process(prob2))
             sim.add_sync_process(self.make_out_process(probout))
+
+        self.assertFalse(self.in_expected)
+        self.assertFalse(self.out1_expected)
+        self.assertFalse(self.out2_expected)
 
 
 class PriorityTestCircuit(Elaboratable):
@@ -324,9 +323,6 @@ class TestTransactionPriorities(TestCaseWithSimulator):
         else:
             cm = contextlib.nullcontext()
 
-        def f():
-            with cm:
-                with self.run_simulation(m):
-                    pass
-
-        silence_must_use_warnings(f)
+        with cm:
+            with self.run_simulation(m):
+                pass

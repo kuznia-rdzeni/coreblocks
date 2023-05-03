@@ -1,8 +1,7 @@
-# amaranth: UnusedElaboratable=no
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout, silence_must_use_warnings
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
@@ -24,6 +23,7 @@ class TestDefMethod(TestCaseWithSimulator):
 
         def elaborate(self, platform):
             m = Module()
+            m._MustUse__silence = True  # type: ignore
 
             def_method(m, self.method)(self.method_definition)
 
@@ -35,13 +35,6 @@ class TestDefMethod(TestCaseWithSimulator):
     def do_test_definition(self, definer):
         with self.run_simulation(TestDefMethod.TestModule(definer)):
             pass
-
-    def assert_with_silence(self, definer, error_type):
-        def f():
-            with self.assertRaises(error_type):
-                self.do_test_definition(definer)
-
-        silence_must_use_warnings(f)
 
     def test_fields_valid1(self):
         def definition(arg):
@@ -91,37 +84,43 @@ class TestDefMethod(TestCaseWithSimulator):
         def definition(arg):
             return {"foo1": Signal(3), "baz": Signal(4)}
 
-        self.assert_with_silence(definition, KeyError)
+        with self.assertRaises(KeyError):
+            self.do_test_definition(definition)
 
     def test_fields_invalid2(self):
         def definition(arg):
             return {"foo1": Signal(3)}
 
-        self.assert_with_silence(definition, KeyError)
+        with self.assertRaises(KeyError):
+            self.do_test_definition(definition)
 
     def test_fields_invalid3(self):
         def definition(arg):
             return {"foo1": {"baz1": Signal(), "baz2": Signal()}, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
-        self.assert_with_silence(definition, TypeError)
+        with self.assertRaises(TypeError):
+            self.do_test_definition(definition)
 
     def test_fields_invalid4(self):
         def definition(arg: Value):
             return arg
 
-        self.assert_with_silence(definition, TypeError)
+        with self.assertRaises(TypeError):
+            self.do_test_definition(definition)
 
     def test_fields_invalid5(self):
         def definition(foo):
             return foo
 
-        self.assert_with_silence(definition, TypeError)
+        with self.assertRaises(TypeError):
+            self.do_test_definition(definition)
 
     def test_fields_invalid6(self):
         def definition(foo1):
             return {"foo1": foo1, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
-        self.assert_with_silence(definition, TypeError)
+        with self.assertRaises(TypeError):
+            self.do_test_definition(definition)
 
 
 class AdapterCircuit(Elaboratable):
@@ -131,19 +130,18 @@ class AdapterCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         m.submodules += self.module
         for method in self.methods:
             m.submodules += AdapterTrans(method)
 
-        return tm
+        return m
 
 
 class TestInvalidMethods(TestCase):
     def assert_re(self, msg, m):
         with self.assertRaisesRegex(RuntimeError, msg):
-            Fragment.get(m, platform=None)
+            Fragment.get(TransactionModule(m), platform=None)
 
     def test_twice(self):
         class Twice(Elaboratable):
@@ -153,6 +151,7 @@ class TestInvalidMethods(TestCase):
 
             def elaborate(self, platform):
                 m = Module()
+                m._MustUse__silence = True  # type: ignore
 
                 with self.meth1.body(m):
                     pass
@@ -234,6 +233,8 @@ class TestInvalidMethods(TestCase):
         class Redefine(Elaboratable):
             def elaborate(self, platform):
                 m = Module()
+                m._MustUse__silence = True  # type: ignore
+
                 meth = Method()
 
                 with meth.body(m):
@@ -255,12 +256,11 @@ class TestInvalidMethods(TestCase):
         class Circuit(Elaboratable):
             def elaborate(self, platform):
                 m = Module()
-                tm = TransactionModule(m)
 
                 m.submodules.undefined = undefined = Undefined()
                 m.submodules.adapter = AdapterTrans(undefined.meth)
 
-                return tm
+                return m
 
         self.assert_re("not defined", Circuit())
 
@@ -467,13 +467,15 @@ class TestConditionals(TestCaseWithSimulator):
 
     @parameterized.expand(
         [
-            (ConditionalMethodCircuit1(),),
-            (ConditionalMethodCircuit2(),),
-            (ConditionalTransactionCircuit1(),),
-            (ConditionalTransactionCircuit2(),),
+            (ConditionalMethodCircuit1,),
+            (ConditionalMethodCircuit2,),
+            (ConditionalTransactionCircuit1,),
+            (ConditionalTransactionCircuit2,),
         ]
     )
-    def test_conditional(self, circ):
+    def test_conditional(self, elaboratable):
+        circ = elaboratable()
+
         def process():
             yield from circ.tb.enable()
             yield circ.ready.eq(0)
