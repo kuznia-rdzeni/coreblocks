@@ -127,7 +127,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
             if isinstance(attr, Method):
                 self._io[name] = TestbenchIO(AdapterTrans(attr))
-                m.submodules += self._io[name]
+                m.submodules[name] = self._io[name]
 
         return m
 
