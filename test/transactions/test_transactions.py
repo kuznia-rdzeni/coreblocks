@@ -334,6 +334,12 @@ class TestTransactionPriorities(TestCaseWithSimulator):
 
 
 class ScheduleBeforeTestCircuit(Elaboratable):
+    def __init__(self):
+        self.r1 = Signal()
+        self.r2 = Signal()
+        self.t1 = Signal()
+        self.t2 = Signal()
+
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
@@ -345,11 +351,13 @@ class ScheduleBeforeTestCircuit(Elaboratable):
             pass
 
         with tm.transaction_context():
-            with (t1 := Transaction()).body(m):
+            with (t1 := Transaction()).body(m, request=self.r1):
                 method(m)
+                m.d.comb += self.t1.eq(1)
 
-            with (t2 := Transaction()).body(m, request=t1.grant):
+            with (t2 := Transaction()).body(m, request=self.r2 & t1.grant):
                 method(m)
+                m.d.comb += self.t2.eq(1)
 
             t1.schedule_before(t2)
 
@@ -361,12 +369,21 @@ class ScheduleBeforeTestCircuit(Elaboratable):
 
 
 class TestScheduleBefore(TestCaseWithSimulator):
+    def setUp(self):
+        random.seed(42)
+
     def test_schedule_before(self):
         m = ScheduleBeforeTestCircuit()
 
         def process():
-            for _ in range(10):
+            to_do = 5 * [(0, 1), (1, 0), (1, 1)]
+            random.shuffle(to_do)
+            for r1, r2 in to_do:
+                yield m.r1.eq(r1)
+                yield m.r2.eq(r2)
                 yield
+                self.assertEqual((yield m.t1), r1)
+                self.assertFalse((yield m.t2))
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
