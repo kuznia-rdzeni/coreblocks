@@ -4,7 +4,7 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
 
 
 __all__ = [
@@ -326,12 +326,12 @@ class ModuleConnector(Elaboratable):
     added as its submodules.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: HasElaborate, **kwargs: HasElaborate):
         """
         Parameters
         ----------
         *args
-            Modules which should be named as anonymous submodules.
+            Modules which should be added as anonymous submodules.
         **kwargs
             Modules which will be added as named submodules.
         """
