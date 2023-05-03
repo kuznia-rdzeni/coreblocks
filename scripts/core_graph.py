@@ -3,6 +3,7 @@
 import pathlib
 import sys
 from argparse import ArgumentParser, FileType
+from amaranth import *
 
 par = ArgumentParser()
 par.add_argument("-p", "--prune", action="store_true", help="ignore disconnected nodes")
@@ -17,10 +18,13 @@ from coreblocks.params.genparams import GenParams  # noqa: E402
 from coreblocks.transactions.graph import TracingFragment  # noqa: E402
 from test.test_core import TestElaboratable  # noqa: E402
 from coreblocks.params.configurations import basic_core_config  # noqa: E402
+from coreblocks.transactions.core import TransactionModule  # noqa: E402
 
 gp = GenParams(basic_core_config)
-elaboratable = TestElaboratable(gp)
-fragment = TracingFragment.get(elaboratable, platform=None).prepare()
+m = Module()
+tm = TransactionModule(m)
+m.submodules.elaboratable = TestElaboratable(gp)
+fragment = TracingFragment.get(tm, platform=None).prepare()
 
 core = fragment
 while not hasattr(core, "transactionManager"):
