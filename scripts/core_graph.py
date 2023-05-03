@@ -3,7 +3,6 @@
 import pathlib
 import sys
 from argparse import ArgumentParser, FileType
-from amaranth import *
 
 par = ArgumentParser()
 par.add_argument("-p", "--prune", action="store_true", help="ignore disconnected nodes")
