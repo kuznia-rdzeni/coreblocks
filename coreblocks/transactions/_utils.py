@@ -1,9 +1,10 @@
 import itertools
 import sys
-from typing import Iterable, Optional, TypeAlias, TypeVar, Mapping
+from inspect import Parameter, signature
+from typing import Callable, Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
 from ..utils._typing import LayoutLike
-from coreblocks.utils import OneHotSwitchDynamic
+from ..utils import OneHotSwitchDynamic
 
 __all__ = [
     "Scheduler",
@@ -13,6 +14,7 @@ __all__ = [
     "Graph",
     "GraphCC",
     "get_caller_class_name",
+    "method_def_helper",
 ]
 
 
@@ -117,6 +119,26 @@ def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
 
 
 MethodLayout: TypeAlias = LayoutLike
+
+
+def method_def_helper(method, func: Callable[..., T], arg=None, /, **kwargs) -> T:
+    parameters = signature(func).parameters
+    kw_parameters = set(
+        n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
+    )
+    if (
+        len(parameters) == 1
+        and "arg" in parameters
+        and parameters["arg"].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
+        and parameters["arg"].annotation in {Parameter.empty, Record}
+    ):
+        if arg is None:
+            arg = kwargs
+        return func(arg)
+    elif kw_parameters <= kwargs.keys():
+        return func(**kwargs)
+    else:
+        raise TypeError(f"Invalid method definition/mock for {method}: {func}")
 
 
 def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:

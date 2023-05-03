@@ -1,17 +1,50 @@
 from amaranth import *
+from dataclasses import dataclass
 
 from coreblocks.transactions import Method, def_method, Transaction
-from coreblocks.utils import assign
+from coreblocks.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.layouts import FuncUnitLayouts, CSRLayouts
-from coreblocks.params.isa import Funct3
+from coreblocks.params.dependencies import DependencyManager, ListKey
+from coreblocks.params.fu_params import BlockComponentParams
+from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
+from coreblocks.params.isa import BitEnum, Funct3
+from coreblocks.params.keys import BranchResolvedKey, ROBSingleKey
+from coreblocks.params.optypes import OpType
+from coreblocks.utils.protocols import FuncBlock
+
+
+class PrivilegeLevel(BitEnum, width=2):
+    USER = 0b00
+    SUPERVISOR = 0b01
+    MACHINE = 0b11
+
+
+def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
+    read_only = bits_from_int(csr_addr, 10, 2) == 0b11
+
+    match bits_from_int(csr_addr, 8, 2):
+        case 0b00:
+            return (PrivilegeLevel.USER, read_only)
+        case 0b01:
+            return (PrivilegeLevel.SUPERVISOR, read_only)
+        case 0b10:  # Hypervisior CSRs - accessible with VS mode (S with extension)
+            return (PrivilegeLevel.SUPERVISOR, read_only)
+        case _:
+            return (PrivilegeLevel.MACHINE, read_only)
+
+
+@dataclass(frozen=True)
+class CSRListKey(ListKey["CSRRegister"]):
+    """DependencyManager key collecting CSR registers globally as a list."""
+
+    # This key is defined here, because it is only used internally by CSRRegister and CSRUnit
+    pass
 
 
 class CSRRegister(Elaboratable):
     """CSR Register
     Used to define a CSR register and specify its behaviour.
-    `CSRRegister`s need to be registered to a `CSRUnit` in order to be
-    accesible by instructions.
+    `CSRRegisters` are automatically assigned to `CSRListKey` dependency key, to be accessed from `CSRUnits`.
 
     Attributes
     ----------
@@ -55,6 +88,9 @@ class CSRRegister(Elaboratable):
         ro_bits: int
             Bit mask of read-only bits in register.
             Writes from _fu_write (instructions) to those bits are ignored.
+            Note that this parameter is only required if there are some read-only
+            bits in read-write register. Writes to read-only registers specified
+            by upper 2 bits of CSR address set to `0b11` are discarded by `CSRUnit`.
         """
         self.gen_params = gen_params
         self.csr_number = csr_number
@@ -71,6 +107,10 @@ class CSRRegister(Elaboratable):
 
         self.value = Signal(gen_params.isa.xlen)
         self.side_effects = Record({("read", 1), ("write", 1)})
+
+        # append to global CSR list
+        dm = gen_params.get(DependencyManager)
+        dm.add_dependency(CSRListKey(), self)
 
     def elaborate(self, platform):
         m = Module()
@@ -116,13 +156,12 @@ class CSRUnit(Elaboratable):
     """
     Unit for performing Control and Status Regitsters computations.
 
-    Accepts instructions with `OpType.CSR`.
+    Accepts instructions with `OpType.CSR_REG` and `OpType.CSR_IMM`.
     Uses `RS` interface for input and `FU` interface for output.
     Depends on stalling the `Fetch` stage on CSR instructions and holds computation
     unitl all other instructions are commited.
 
-    Each CSR register have to be specified by `CSRRegister` class and
-    registered by `register` method.
+    Each CSR register have to be specified by `CSRRegister` class.
 
     Attributes
     ----------
@@ -132,12 +171,14 @@ class CSRUnit(Elaboratable):
         Method from standard RS interface. Puts instruction in reserved place.
     update: Method
         Method from standard RS interface. Receives announcements of computed register values.
-    accept: Method
-        Method from standard FU interface. Used to receive instruction result and pass it
+    get_result: Method
+        `accept` method from standard FU interface. Used to receive instruction result and pass it
         to the next pipeline stage.
     """
 
-    def __init__(self, gen_params: GenParams, rob_single_instr: Signal, fetch_continue: Method):
+    optypes = {OpType.CSR_REG, OpType.CSR_IMM}
+
+    def __init__(self, gen_params: GenParams, rob_single_instr: Signal):
         """
         Parameters
         ----------
@@ -149,9 +190,10 @@ class CSRUnit(Elaboratable):
             Method to resume `Fetch` unit from stalled PC.
         """
         self.gen_params = gen_params
+        self.dependency_manager = gen_params.get(DependencyManager)
 
         self.rob_empty = rob_single_instr
-        self.fetch_continue = fetch_continue
+        self.fetch_continue = Method(o=gen_params.get(FetchLayouts).branch_verify)
 
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRLayouts)
@@ -159,30 +201,26 @@ class CSRUnit(Elaboratable):
         self.select = Method(o=self.csr_layouts.rs_select_out)
         self.insert = Method(i=self.csr_layouts.rs_insert_in)
         self.update = Method(i=self.csr_layouts.rs_update_in)
-        self.accept = Method(o=self.fu_layouts.accept)
+        self.get_result = Method(o=self.fu_layouts.accept)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
-    def register(self, csr: CSRRegister):
-        """
-        Registers `CSRRegister` - makes it accesible by this unit.
-        Call this method from other constructors.
-
-        Parameters
-        ----------
-        csr: CSRRegister
-            `CSRRegister` to register.
-        """
-        if csr.csr_number in self.regfile:
-            raise RuntimeError(f"CSR number {csr.csr_number} already registered")
-        self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
+    def _create_regfile(self):
+        # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` depenecy.
+        for csr in self.dependency_manager.get_dependency(CSRListKey()):
+            if csr.csr_number in self.regfile:
+                raise RuntimeError(f"CSR number {csr.csr_number} already registered")
+            self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
 
     def elaborate(self, platform):
+        self._create_regfile()
+
         m = Module()
 
         reserved = Signal()
         ready_to_process = Signal()
         done = Signal()
+        accepted = Signal()
 
         current_result = Signal(self.gen_params.isa.xlen)
 
@@ -211,27 +249,39 @@ class CSRUnit(Elaboratable):
             | ((instr.exec_fn.funct3 == Funct3.CSRRCI) & (instr.s1_val != 0))
         )
 
+        # Temporary, until privileged spec is implemented
+        priv_level = Signal(PrivilegeLevel, reset=PrivilegeLevel.MACHINE)
+
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, request=(ready_to_process & ~done)):
             with m.Switch(instr.csr):
                 for csr_number, methods in self.regfile.items():
                     read, write = methods
+                    priv_level_required, read_only = csr_access_privilege(csr_number)
+
                     with m.Case(csr_number):
-                        read_val = Signal(self.gen_params.isa.xlen)
-                        with m.If(should_read_csr & ~done):
-                            m.d.comb += read_val.eq(read(m))
-                            m.d.sync += current_result.eq(read_val)
+                        priv_valid = Signal()
+                        m.d.comb += priv_valid.eq(priv_level_required <= priv_level)
 
-                        with m.If(should_write_csr & ~done):
-                            write_val = Signal(self.gen_params.isa.xlen)
-                            with m.If((instr.exec_fn.funct3 == Funct3.CSRRW) | (instr.exec_fn.funct3 == Funct3.CSRRWI)):
-                                m.d.comb += write_val.eq(instr.s1_val)
-                            with m.If((instr.exec_fn.funct3 == Funct3.CSRRS) | (instr.exec_fn.funct3 == Funct3.CSRRSI)):
-                                m.d.comb += write_val.eq(read_val | instr.s1_val)
-                            with m.If((instr.exec_fn.funct3 == Funct3.CSRRC) | (instr.exec_fn.funct3 == Funct3.CSRRCI)):
-                                m.d.comb += write_val.eq(read_val & (~instr.s1_val))
+                        # TODO: handle read-only and missing priv access (exception)
+                        with m.If(priv_valid):
+                            read_val = Signal(self.gen_params.isa.xlen)
+                            with m.If(should_read_csr & ~done):
+                                m.d.comb += read_val.eq(read(m))
+                                m.d.sync += current_result.eq(read_val)
 
-                            write(m, write_val)
+                            if not read_only:
+                                with m.If(should_write_csr & ~done):
+                                    write_val = Signal(self.gen_params.isa.xlen)
+                                    with m.Switch(instr.exec_fn.funct3):
+                                        with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
+                                            m.d.comb += write_val.eq(instr.s1_val)
+                                        with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
+                                            m.d.comb += write_val.eq(read_val | instr.s1_val)
+                                        with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
+                                            m.d.comb += write_val.eq(read_val & (~instr.s1_val))
+                                    write(m, write_val)
+
                 with m.Default():
                     pass  # TODO : invalid csr number handling
 
@@ -246,14 +296,7 @@ class CSRUnit(Elaboratable):
         def _(rs_entry_id, rs_data):
             m.d.sync += assign(instr, rs_data)
 
-            immediate_op = Signal()
-            m.d.comb += immediate_op.eq(
-                (rs_data.exec_fn.funct3 == Funct3.CSRRWI)
-                | (rs_data.exec_fn.funct3 == Funct3.CSRRSI)
-                | (rs_data.exec_fn.funct3 == Funct3.CSRRCI)
-            )
-
-            with m.If(immediate_op):  # Pass immediate as first operand
+            with m.If(rs_data.exec_fn.op_type == OpType.CSR_IMM):  # Pass immediate as first operand
                 m.d.sync += instr.s1_val.eq(rs_data.imm)
 
             m.d.sync += instr.valid.eq(1)
@@ -264,16 +307,32 @@ class CSRUnit(Elaboratable):
                 m.d.sync += instr.s1_val.eq(value)
                 m.d.sync += instr.rp_s1.eq(0)
 
-        @def_method(m, self.accept, done)
+        @def_method(m, self.get_result, done)
         def _():
+            m.d.comb += accepted.eq(1)
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
-            self.fetch_continue(m)
             return {
                 "rob_id": instr.rob_id,
                 "rp_dst": instr.rp_dst,
                 "result": current_result,
             }
 
+        @def_method(m, self.fetch_continue, accepted)
+        def _():
+            return {"next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
+
         return m
+
+
+class CSRBlockComponent(BlockComponentParams):
+    def get_module(self, gen_params: GenParams) -> FuncBlock:
+        connections = gen_params.get(DependencyManager)
+        rob_single = connections.get_dependency(ROBSingleKey())
+        unit = CSRUnit(gen_params, rob_single)
+        connections.add_dependency(BranchResolvedKey(), unit.fetch_continue)
+        return unit
+
+    def get_optypes(self) -> set[OpType]:
+        return CSRUnit.optypes

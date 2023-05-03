@@ -8,7 +8,8 @@ from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter, ManyToOneCo
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.params.layouts import *
 from coreblocks.params import GenParams
-from ..common import TestCaseWithSimulator, TestbenchIO, test_gen_params
+from coreblocks.params.configurations import test_core_config
+from ..common import TestCaseWithSimulator, TestbenchIO
 
 
 class BackendTestCircuit(Elaboratable):
@@ -16,6 +17,7 @@ class BackendTestCircuit(Elaboratable):
         self.gen = gen
 
         self.fu_count = fu_count
+        self.fu_fifo_ins = []
 
     def elaborate(self, platform):
         m = Module()
@@ -34,11 +36,11 @@ class BackendTestCircuit(Elaboratable):
                 fifo = FIFO(self.lay_result, 16)
                 fu_fifos.append(fifo)
                 get_results.append(fifo.read)
-                setattr(m.submodules, f"fu_fifo_{i}", fifo)
+                m.submodules[f"fu_fifo_{i}"] = fifo
 
                 fifo_in = TestbenchIO(AdapterTrans(fifo.write))
-                setattr(m.submodules, f"fu_fifo_{i}_in", fifo_in)
-                setattr(self, f"fu_fifo_{i}_in", fifo_in)
+                m.submodules[f"fu_fifo_{i}_in"] = fifo_in
+                self.fu_fifo_ins.append(fifo_in)
 
             # Create FUArbiter, which will serialize results from different FU's
             serialized_results_fifo = FIFO(self.lay_result, 16)
@@ -69,7 +71,7 @@ class BackendTestCircuit(Elaboratable):
 
 class TestBackend(TestCaseWithSimulator):
     def initialize(self):
-        gen = test_gen_params("rv32i")
+        gen = GenParams(test_core_config)
         self.m = BackendTestCircuit(gen, self.fu_count)
         random.seed(14)
 
@@ -109,7 +111,7 @@ class TestBackend(TestCaseWithSimulator):
         def producer():
             inputs = self.fu_inputs[i]
             for rob_id, result, rp_dst in inputs:
-                io: TestbenchIO = getattr(self.m, f"fu_fifo_{i}_in")
+                io: TestbenchIO = self.m.fu_fifo_ins[i]
                 yield from io.call_init(rob_id=rob_id, result=result, rp_dst=rp_dst)
                 yield from self.random_wait()
             self.producer_end[i] = True

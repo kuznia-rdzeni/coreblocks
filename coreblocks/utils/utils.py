@@ -4,10 +4,19 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
 
 
-__all__ = ["AssignType", "assign", "OneHotSwitchDynamic", "OneHotSwitch", "flatten_signals"]
+__all__ = [
+    "AssignType",
+    "assign",
+    "OneHotSwitchDynamic",
+    "OneHotSwitch",
+    "flatten_signals",
+    "align_to_power_of_two",
+    "bits_from_int",
+    "ModuleConnector",
+]
 
 
 @contextmanager
@@ -282,3 +291,59 @@ def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
             yield from flatten_signals(x)
     else:
         yield signals
+
+
+def align_to_power_of_two(num: int, power: int) -> int:
+    """Rounds up a number to the given power of two.
+
+    Parameters
+    ----------
+    num : int
+        The number to align.
+    power : int
+        The power of two to align to.
+
+    Returns
+    -------
+    int
+        The aligned number.
+    """
+    mask = 2**power - 1
+    if num & mask == 0:
+        return num
+    return (num & ~mask) + 2**power
+
+
+def bits_from_int(num: int, lower: int, length: int):
+    """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
+    return (num >> lower) & (1 << (length) - 1)
+
+
+class ModuleConnector(Elaboratable):
+    """
+    An Elaboratable to create a new module, which will have all arguments
+    added as its submodules.
+    """
+
+    def __init__(self, *args: HasElaborate, **kwargs: HasElaborate):
+        """
+        Parameters
+        ----------
+        *args
+            Modules which should be added as anonymous submodules.
+        **kwargs
+            Modules which will be added as named submodules.
+        """
+        self.args = args
+        self.kwargs = kwargs
+
+    def elaborate(self, platform):
+        m = Module()
+
+        for elem in self.args:
+            m.submodules += elem
+
+        for name, elem in self.kwargs.items():
+            m.submodules[name] = elem
+
+        return m

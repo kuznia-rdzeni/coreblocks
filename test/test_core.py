@@ -1,14 +1,15 @@
 from amaranth import Elaboratable, Module
 
-from coreblocks.params.configurations import basic_configuration
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
+from coreblocks.utils import align_to_power_of_two
 
 from .common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
-from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMemorySlave, WishboneParameters
+from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
+from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
 
 from typing import Optional
 import random
@@ -26,6 +27,7 @@ from riscvmodel.insn import (
     InstructionSRLI,
     InstructionSRAI,
     InstructionLUI,
+    InstructionJAL,
 )
 from riscvmodel.model import Model
 from riscvmodel.isa import InstructionRType, get_insns
@@ -45,29 +47,29 @@ class TestElaboratable(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        wb_params = WishboneParameters(data_width=32, addr_width=30)
-        self.wb_master_instr = WishboneMaster(wb_params=wb_params)
-        self.wb_master_data = WishboneMaster(wb_params=wb_params)
+        wb_instr_bus = WishboneBus(self.gp.wb_params)
+        wb_data_bus = WishboneBus(self.gp.wb_params)
+
+        # Align the size of the memory to the length of a cache line.
+        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gp.icache_params.block_size_bits)
         self.wb_mem_slave = WishboneMemorySlave(
-            wb_params=wb_params, width=32, depth=len(self.instr_mem), init=self.instr_mem
+            wb_params=self.gp.wb_params, width=32, depth=instr_mem_depth, init=self.instr_mem
         )
         self.wb_mem_slave_data = WishboneMemorySlave(
-            wb_params=wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
+            wb_params=self.gp.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
         )
-        self.core = Core(gen_params=self.gp, wb_master_instr=self.wb_master_instr, wb_master_data=self.wb_master_data)
+        self.core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
         self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
 
-        m.submodules.wb_master_instr = self.wb_master_instr
-        m.submodules.wb_master_data = self.wb_master_data
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
 
-        m.d.comb += self.wb_master_instr.wbMaster.connect(self.wb_mem_slave.bus)
-        m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_mem_slave_data.bus)
+        m.d.comb += wb_instr_bus.connect(self.wb_mem_slave.bus)
+        m.d.comb += wb_data_bus.connect(self.wb_mem_slave_data.bus)
 
         return tm
 
@@ -133,7 +135,7 @@ class TestCoreSimple(TestCoreBase):
             yield from self.push_instr(gen_riscv_add_instr(i + 1, 0, 0))
 
         # waiting for the retirement rat to be set
-        for i in range(50):
+        for i in range(100):
             yield
 
         # checking if all registers have been allocated
@@ -170,7 +172,7 @@ class TestCoreSimple(TestCoreBase):
         self.assertEqual((yield from self.get_arch_reg_val(5)), 1 << 12)
 
     def test_simple(self):
-        gp = GenParams("rv32i", basic_configuration)
+        gp = GenParams(basic_core_config)
         m = TestElaboratable(gp)
         self.m = m
 
@@ -180,23 +182,18 @@ class TestCoreSimple(TestCoreBase):
 
 class TestCoreRandomized(TestCoreBase):
     def randomized_input(self):
-        halt_pc = len(self.instr_mem) * self.gp.isa.ilen_bytes
-
-        # set PC to halt at specific instruction (numbered from 0)
-        yield self.m.core.fetch.halt_pc.eq(halt_pc)
-
+        infloop_addr = (len(self.instr_mem) - 1) * 4
         # wait for PC to go past all instruction
-        while (yield self.m.core.fetch.pc) < halt_pc:
+        while (yield self.m.core.fetch.pc) != infloop_addr:
             yield
 
         # finish calculations
-        for _ in range(50):
-            yield
+        yield from self.tick(50)
 
         yield from self.compare_core_states(self.software_core)
 
     def test_randomized(self):
-        self.gp = GenParams("rv32i", basic_configuration)
+        self.gp = GenParams(basic_core_config)
         self.instr_count = 300
         random.seed(42)
 
@@ -229,7 +226,10 @@ class TestCoreRandomized(TestCoreBase):
         self.software_core.execute(init_instr_list)
         self.software_core.execute(instr_list)
 
-        self.instr_mem = list(map(lambda x: x.encode(), init_instr_list + instr_list))
+        # We add JAL instruction at the end to effectively create a infinite loop at the end of the program.
+        all_instr = init_instr_list + instr_list + [InstructionJAL(rd=0, imm=0)]
+
+        self.instr_mem = list(map(lambda x: x.encode(), all_instr))
 
         m = TestElaboratable(self.gp, instr_mem=self.instr_mem)
         self.m = m
@@ -239,23 +239,28 @@ class TestCoreRandomized(TestCoreBase):
 
 
 @parameterized_class(
-    ("name", "source_file", "instr_count", "expected_regvals"),
-    [("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}), ("fibonacci_mem", "fibonacci_mem.asm", 500, {3: 55})],
+    ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
+    [
+        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
+        ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
+        ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
+    ],
 )
 class TestCoreAsmSource(TestCoreBase):
     source_file: str
-    instr_count: int
+    cycle_count: int
     expected_regvals: dict[int, int]
+    configuration: CoreConfiguration
 
     def run_and_check(self):
-        for i in range(self.instr_count):
+        for i in range(self.cycle_count):
             yield
 
         for reg_id, val in self.expected_regvals.items():
             self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
 
     def test_asm_source(self):
-        self.gp = GenParams("rv32i", basic_configuration)
+        self.gp = GenParams(self.configuration)
         self.base_dir = "test/asm/"
         self.bin_src = []
 
@@ -264,7 +269,7 @@ class TestCoreAsmSource(TestCoreBase):
                 [
                     "riscv64-unknown-elf-as",
                     "-mabi=ilp32",
-                    "-march=rv32i",
+                    "-march=" + self.configuration.isa_str,
                     "-o",
                     asm_tmp.name,
                     self.base_dir + self.source_file,

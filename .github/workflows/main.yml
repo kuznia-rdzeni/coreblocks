@@ -4,13 +4,16 @@ on:
   push:
     branches:
       - master
+      - 'feature/**'
   pull_request:
     branches:
       - master
+      - 'feature/**'
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -35,6 +38,7 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v3

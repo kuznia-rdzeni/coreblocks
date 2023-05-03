@@ -3,13 +3,13 @@ from typing import Iterable
 from amaranth import *
 
 from coreblocks.params import GenParams, BlockComponentParams, DependencyManager
-from coreblocks.params.fu_params import UnifierKey
+from coreblocks.params.dependencies import UnifierKey
 from coreblocks.transactions import Method
 from coreblocks.transactions.lib import MethodProduct, Collector
+from coreblocks.utils.debug_signals import auto_debug_signals, SignalBundle
+from coreblocks.utils.protocols import Unifier
 
 __all__ = ["FuncBlocksUnifier"]
-
-from coreblocks.utils.protocols import Unifier
 
 
 class FuncBlocksUnifier(Elaboratable):
@@ -54,7 +54,15 @@ class FuncBlocksUnifier(Elaboratable):
         m.submodules["result_collector"] = self.result_collector
         m.submodules["update_combiner"] = self.update_combiner
 
-        for (name, unifier) in self.unifiers.items():
+        for name, unifier in self.unifiers.items():
             m.submodules[name] = unifier
 
         return m
+
+    def debug_signals(self) -> SignalBundle:
+        # TODO: enhanced auto_debug_signals would allow to remove this method
+        return {
+            "get_result": self.get_result.debug_signals(),
+            "update": self.update.debug_signals(),
+            "rs_blocks": {i: auto_debug_signals(b) for i, b in enumerate(self.rs_blocks)},
+        }
