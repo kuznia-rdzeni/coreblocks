@@ -21,9 +21,8 @@ from coreblocks.params.configurations import basic_core_config  # noqa: E402
 from coreblocks.transactions.core import TransactionModule  # noqa: E402
 
 gp = GenParams(basic_core_config)
-m = Module()
-tm = TransactionModule(m)
-m.submodules.elaboratable = TestElaboratable(gp)
+elaboratable = TestElaboratable(gp)
+tm = TransactionModule(elaboratable)
 fragment = TracingFragment.get(tm, platform=None).prepare()
 
 core = fragment
