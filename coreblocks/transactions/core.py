@@ -10,7 +10,7 @@ from amaranth import tracer
 from amaranth.hdl.ast import Statement
 from itertools import count, chain
 
-from coreblocks.utils import AssignType, assign
+from coreblocks.utils import AssignType, assign, ModuleConnector
 from ._utils import *
 from ..utils._typing import StatementLike, ValueLike, SignalBundle
 from .graph import Owned, OwnershipGraph, Direction
@@ -32,9 +32,7 @@ __all__ = [
 TransactionGraph: TypeAlias = Graph["Transaction"]
 TransactionGraphCC: TypeAlias = GraphCC["Transaction"]
 PriorityOrder: TypeAlias = dict["Transaction", int]
-TransactionScheduler: TypeAlias = Callable[
-    ["MethodMap", Module, TransactionGraph, TransactionGraphCC, PriorityOrder], None
-]
+TransactionScheduler: TypeAlias = Callable[["MethodMap", TransactionGraph, TransactionGraphCC, PriorityOrder], Module]
 RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 TransactionOrMethod: TypeAlias = Union["Transaction", "Method"]
 
@@ -97,8 +95,8 @@ class MethodMap:
 
 
 def eager_deterministic_cc_scheduler(
-    method_map: MethodMap, m: Module, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
-):
+    method_map: MethodMap, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
+) -> Module:
     """eager_deterministic_cc_scheduler
 
     This function generates an eager scheduler for the transaction
@@ -124,6 +122,7 @@ def eager_deterministic_cc_scheduler(
     porder : PriorityOrder
         Linear ordering of transactions which is consistent with priority constraints.
     """
+    m = Module()
     ccl = list(cc)
     ccl.sort(key=lambda transaction: porder[transaction])
     for k, transaction in enumerate(ccl):
@@ -132,11 +131,12 @@ def eager_deterministic_cc_scheduler(
         conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
         noconflict = ~Cat(conflicts).any()
         m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
+    return m
 
 
 def trivial_roundrobin_cc_scheduler(
-    method_map: MethodMap, m: Module, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
-):
+    method_map: MethodMap, gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
+) -> Module:
     """trivial_roundrobin_cc_scheduler
 
     This function generates a simple round-robin scheduler for the transaction
@@ -160,8 +160,9 @@ def trivial_roundrobin_cc_scheduler(
     porder : PriorityOrder
         Linear ordering of transactions which is consistent with priority constraints.
     """
+    m = Module()
     sched = Scheduler(len(cc))
-    m.submodules += sched
+    m.submodules.scheduler = sched
     for k, transaction in enumerate(cc):
         methods = method_map.methods_by_transaction[transaction]
         ready = Signal(len(methods))
@@ -170,6 +171,7 @@ def trivial_roundrobin_cc_scheduler(
         runnable = ready.all()
         m.d.comb += sched.requests[k].eq(transaction.request & runnable)
         m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
+    return m
 
 
 class TransactionManager(Elaboratable):
@@ -291,8 +293,9 @@ class TransactionManager(Elaboratable):
 
         m = Module()
 
-        for cc in _graph_ccs(rgr):
-            self.cc_scheduler(method_map, m, cgr, cc, porder)
+        m.submodules._transactron_schedulers = ModuleConnector(
+            *[self.cc_scheduler(method_map, cgr, cc, porder) for cc in _graph_ccs(rgr)]
+        )
 
         method_uses = self._method_uses(method_map)
 
@@ -379,7 +382,7 @@ class TransactionModule(Elaboratable):
             for idx in range(len(self.module._anon_submodules)):
                 self.module._anon_submodules[idx] = Fragment.get(self.module._anon_submodules[idx], platform)
 
-        self.module.submodules += self.transactionManager
+        self.module.submodules._transactron_transManager = self.transactionManager
 
         return self.module
 
