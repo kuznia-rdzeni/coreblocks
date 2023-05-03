@@ -442,7 +442,7 @@ class TransactionBase(Owned):
         end: Transaction or Method
             The other `Transaction` or `Method`
         """
-        self.relations.append(RelationBase(end=end, priority=Priority.RIGHT, conflict=False))
+        self.relations.append(RelationBase(end=end, priority=Priority.LEFT, conflict=False))
 
     def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
         if method in self.method_uses:

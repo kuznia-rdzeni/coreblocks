@@ -331,3 +331,42 @@ class TestTransactionPriorities(TestCaseWithSimulator):
         with cm:
             with self.run_simulation(m):
                 pass
+
+
+class ScheduleBeforeTestCircuit(Elaboratable):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        method = Method()
+
+        @def_method(m, method)
+        def _():
+            pass
+
+        with tm.transaction_context():
+            with (t1 := Transaction()).body(m):
+                method(m)
+
+            with (t2 := Transaction()).body(m, request=t1.grant):
+                method(m)
+
+            t1.schedule_before(t2)
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
+        return tm
+
+
+class TestScheduleBefore(TestCaseWithSimulator):
+    def test_schedule_before(self):
+        m = ScheduleBeforeTestCircuit()
+
+        def process():
+            for _ in range(10):
+                yield
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(process)
