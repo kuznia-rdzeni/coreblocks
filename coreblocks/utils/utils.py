@@ -354,6 +354,6 @@ class ModuleConnector(Elaboratable):
 def silence_mustuse(elaboratable: Elaboratable):
     try:
         yield
-    except:
+    except Exception:
         elaboratable._MustUse__silence = True  # type: ignore
         raise
