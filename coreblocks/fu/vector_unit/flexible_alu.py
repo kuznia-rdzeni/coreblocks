@@ -2,19 +2,16 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
-from coreblocks.utils import OneHotSwitch
 
 from coreblocks.fu.fu_decoder import DecoderManager
 from enum import IntFlag, auto
 
-from coreblocks.utils.protocols import FuncUnit
 from coreblocks.fu.vector_unit.utils import *
 
-__all__ = ["EEW"]
+__all__ = ["FlexibleAdder"]
 
 
 class FlexibleAluFn(DecoderManager):
@@ -28,7 +25,7 @@ class FlexibleAluFn(DecoderManager):
         SLETU = auto()  # Set if less or equal than (unsigned)
         SLT = auto()  # Set if less than (signed)
         SLTU = auto()  # Set if less than (unsigned)
-        SEQ = auto() # Set if equal
+        SEQ = auto()  # Set if equal
         XOR = auto()  # Bitwise xor
         OR = auto()  # Bitwise or
         AND = auto()  # Bitwise and
@@ -36,14 +33,14 @@ class FlexibleAluFn(DecoderManager):
     @classmethod
     def get_instructions(cls) -> Sequence[tuple]:
         return [
-                #TODO fill after extending instruction decoder
+            # TODO fill after extending instruction decoder
         ]
 
+
 class FlexibleAdder(Elaboratable):
-    def __init__(self, v_params : VectorParameters, out_width : EEW):
-        self.v_params = v_params
+    def __init__(self, out_width: EEW):
         self.out_width = out_width
-        self.out_width_bits : int = eew_to_bits(out_width)
+        self.out_width_bits: int = eew_to_bits(out_width)
         self.eew = Signal(EEW)
         self.in1 = Signal(self.out_width_bits)
         self.in2 = Signal(self.out_width_bits)
@@ -62,14 +59,14 @@ class FlexibleAdder(Elaboratable):
 
         if self.out_width == EEW.w8:
             result = self.in1 + self.in2_trans
-            assert result.shape().width == self.out_width_bits+1
+            assert result.shape().width == self.out_width_bits + 1
             m.d.comb += self.out_data.eq(result[:-1])
             m.d.comb += self.out_carry.eq(result[-1])
         else:
             smaller_out_width_bits = self.out_width_bits // 2
             smaller_out_width_eew = bits_to_eew(smaller_out_width_bits)
-            m.submodules.adder_down = adder_down = FlexibleAdder(self.v_params, smaller_out_width_eew)
-            m.submodules.adder_high = adder_high = FlexibleAdder(self.v_params, smaller_out_width_eew)
+            m.submodules.adder_down = adder_down = FlexibleAdder(smaller_out_width_eew)
+            m.submodules.adder_high = adder_high = FlexibleAdder(smaller_out_width_eew)
 
             for adder in {adder_down, adder_high}:
                 m.d.comb += adder.eew.eq(self.eew)
@@ -84,19 +81,25 @@ class FlexibleAdder(Elaboratable):
                 whole_high = Cat(adder_high.out_carry, adder_high.out_data)
                 high_with_down_carry = whole_high + adder_down.out_carry
                 result = (high_with_down_carry << smaller_out_width_bits) | adder_down.out_data
-                m.d.comb += self.out_data.eq(result[:self.out_width_bits])
+                m.d.comb += self.out_data.eq(result[: self.out_width_bits])
                 m.d.comb += self.out_carry.eq(result[self.out_width_bits])
             with m.Else():
                 result = Cat(adder_high.out_data, adder_down.out_data)
                 m.d.comb += self.out_data.eq(result)
 
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
         return m
+
 
 class BasicFlexibleAlu(Elaboratable):
     """
     FlexibleAlu without any hand-made optimisations.
     """
-    def __init__(self, gen_params: GenParams, v_params : VectorParameters):
+
+    def __init__(self, gen_params: GenParams, v_params: VectorParameters):
         self.gen_params = gen_params
         self.v_params = v_params
 

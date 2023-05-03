@@ -1,11 +1,7 @@
-from amaranth import *
-from coreblocks.transactions import Method, def_method
-from coreblocks.transactions.lib import MemoryBank, Forwarder
-from coreblocks.params import *
-from coreblocks.params.vector_params import VectorParameters
-from coreblocks.fu.vector_unit.v_layouts import RegisterLayouts
+from enum import IntEnum, auto
 
 __all__ = ["EEW", "eew_to_bits", "bits_to_eew"]
+
 
 class EEW(IntEnum):
     w8 = auto()
@@ -13,7 +9,8 @@ class EEW(IntEnum):
     w32 = auto()
     w64 = auto()
 
-def eew_to_bits(eew : EEW) -> int:
+
+def eew_to_bits(eew: EEW) -> int:
     if eew == EEW.w8:
         return 8
     elif eew == EEW.w16:
@@ -25,7 +22,8 @@ def eew_to_bits(eew : EEW) -> int:
     else:
         raise ValueError(f"Not known EEW: {eew}")
 
-def bits_to_eew(bits : int) -> EEW:
+
+def bits_to_eew(bits: int) -> EEW:
     if bits == 8:
         return EEW.w8
     elif bits == 16:

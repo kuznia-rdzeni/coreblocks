@@ -2,6 +2,7 @@ from amaranth.utils import *
 
 __all__ = ["VectorParameters"]
 
+
 class VectorParameters:
     def __init__(self, *, vlen: int, elen: int, vrp_count=40):
         self.elen = elen
