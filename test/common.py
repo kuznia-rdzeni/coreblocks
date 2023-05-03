@@ -3,7 +3,6 @@ import os
 import functools
 from contextlib import contextmanager, nullcontext
 from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
-from enum import Enum, auto
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -137,6 +136,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def debug_signals(self):
         return [io.debug_signals() for io in self._io.values()]
 
+
 class SimulatorTestCaseBase(unittest.TestCase):
     def prepare_context(self, module, sim):
         test_name = unittest.TestCase.id(self)
@@ -173,6 +173,7 @@ class SimulatorTestCaseBase(unittest.TestCase):
         for _ in range(cycle_cnt):
             yield
 
+
 class TestCaseWithSimulator(SimulatorTestCaseBase):
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
@@ -187,6 +188,7 @@ class TestCaseWithSimulator(SimulatorTestCaseBase):
             sim.run_until(clk_period * max_cycles)
             self.assertFalse(sim.advance(), "Simulation time limit exceeded")
 
+
 class TestCaseWithExtendedSimulator(SimulatorTestCaseBase):
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
@@ -199,6 +201,7 @@ class TestCaseWithExtendedSimulator(SimulatorTestCaseBase):
         ctx = self.prepare_context(module, sim)
 
         sim.run_until(ctx)
+
 
 class TestbenchIO(Elaboratable):
     def __init__(self, adapter: AdapterBase):
@@ -290,7 +293,7 @@ class TestbenchIO(Elaboratable):
         *,
         enable: Optional[Callable[[], bool]] = None,
         extra_settle_count: int = 0,
-        read_only_phase=False
+        read_only_phase=False,
     ) -> TestGen[None]:
         enable = enable or (lambda: True)
         yield from self.set_enable(enable())
@@ -318,11 +321,13 @@ class TestbenchIO(Elaboratable):
         *,
         enable: Optional[Callable[[], bool]] = None,
         extra_settle_count: int = 0,
-        read_only_phase = False
+        read_only_phase=False,
     ) -> TestGen[None]:
         yield Passive()
         while True:
-            yield from self.method_handle(function, enable=enable, extra_settle_count=extra_settle_count, read_only_phase=read_only_phase)
+            yield from self.method_handle(
+                function, enable=enable, extra_settle_count=extra_settle_count, read_only_phase=read_only_phase
+            )
 
     # Debug signals
 
