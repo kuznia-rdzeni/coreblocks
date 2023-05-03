@@ -17,7 +17,7 @@ LayoutList = list[Tuple[str, ShapeLike | "LayoutList"]]
 
 
 class HasElaborate(Protocol):
-    def elaborate(self, platform) -> Union["HasElaborate", Fragment]:
+    def elaborate(self, platform) -> "HasElaborate":
         ...
 
 
