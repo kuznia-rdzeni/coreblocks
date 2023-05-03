@@ -4,7 +4,7 @@ from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.utils import align_to_power_of_two
 
-from .common import TestCaseWithSimulator, TestbenchIO
+from .common import TestCaseWithSimulator, TestbenchIO, TestCaseWithExtendedSimulator
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
@@ -82,7 +82,7 @@ def gen_riscv_lui_instr(dst, imm):
     return 0b0110111 | dst << 7 | imm << 12
 
 
-class TestCoreBase(TestCaseWithSimulator):
+class TestCoreBase(TestCaseWithExtendedSimulator):
     gp: GenParams
     m: TestElaboratable
 

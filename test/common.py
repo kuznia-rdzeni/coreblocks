@@ -3,6 +3,7 @@ import os
 import functools
 from contextlib import contextmanager, nullcontext
 from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
+from enum import Enum, auto
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -14,13 +15,14 @@ from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.transactions._utils import method_def_helper
 from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike
 from .gtkw_extension import write_vcd_ext
+from . import simulation
 
 
 T = TypeVar("T")
 RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
-TestGen = Generator[Command | Value | Statement | None, Any, T]
+TestGen = Generator[Command | Value | Statement | None | simulation.CoreblockCommand, Any, T]
 
 
 def data_layout(val: int) -> LayoutLike:
@@ -135,22 +137,14 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def debug_signals(self):
         return [io.debug_signals() for io in self._io.values()]
 
-
-class TestCaseWithSimulator(unittest.TestCase):
-    @contextmanager
-    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
+class SimulatorTestCaseBase(unittest.TestCase):
+    def prepare_context(self, module, sim):
         test_name = unittest.TestCase.id(self)
-        clk_period = 1e-6
 
         if isinstance(module, HasDebugSignals):
             extra_signals = module.debug_signals
         else:
             extra_signals = functools.partial(auto_debug_signals, module)
-
-        sim = Simulator(module)
-        sim.add_clock(clk_period)
-        yield sim
-
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
@@ -169,10 +163,7 @@ class TestCaseWithSimulator(unittest.TestCase):
             )
         else:
             ctx = nullcontext()
-
-        with ctx:
-            sim.run_until(clk_period * max_cycles)
-            self.assertFalse(sim.advance(), "Simulation time limit exceeded")
+        return ctx
 
     def tick(self, cycle_cnt=1):
         """
@@ -182,6 +173,32 @@ class TestCaseWithSimulator(unittest.TestCase):
         for _ in range(cycle_cnt):
             yield
 
+class TestCaseWithSimulator(SimulatorTestCaseBase):
+    @contextmanager
+    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
+        clk_period = 1e-6
+
+        sim = Simulator(module)
+        sim.add_clock(clk_period)
+        yield sim
+
+        ctx = self.prepare_context(module, sim)
+        with ctx:
+            sim.run_until(clk_period * max_cycles)
+            self.assertFalse(sim.advance(), "Simulation time limit exceeded")
+
+class TestCaseWithExtendedSimulator(SimulatorTestCaseBase):
+    @contextmanager
+    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
+        clk_period = 1e-6
+
+        sim = simulation.SimulatorWrapper(module, clk_period, max_cycles)
+        yield sim
+
+        # TODO fix traces
+        ctx = self.prepare_context(module, sim)
+
+        sim.run_until(ctx)
 
 class TestbenchIO(Elaboratable):
     def __init__(self, adapter: AdapterBase):
@@ -273,6 +290,7 @@ class TestbenchIO(Elaboratable):
         *,
         enable: Optional[Callable[[], bool]] = None,
         extra_settle_count: int = 0,
+        read_only_phase=False
     ) -> TestGen[None]:
         enable = enable or (lambda: True)
         yield from self.set_enable(enable())
@@ -280,9 +298,13 @@ class TestbenchIO(Elaboratable):
         # One extra Settle() required to propagate enable signal.
         for _ in range(extra_settle_count + 1):
             yield Settle()
+        if read_only_phase:
+            yield simulation.WaitReadOnly()
         while (arg := (yield from self.method_argument())) is None:
             yield
             yield from self.set_enable(enable())
+            if read_only_phase:
+                yield simulation.WaitReadOnly()
             for _ in range(extra_settle_count + 1):
                 yield Settle()
 
@@ -296,10 +318,11 @@ class TestbenchIO(Elaboratable):
         *,
         enable: Optional[Callable[[], bool]] = None,
         extra_settle_count: int = 0,
+        read_only_phase = False
     ) -> TestGen[None]:
         yield Passive()
         while True:
-            yield from self.method_handle(function, enable=enable, extra_settle_count=extra_settle_count)
+            yield from self.method_handle(function, enable=enable, extra_settle_count=extra_settle_count, read_only_phase=read_only_phase)
 
     # Debug signals
 

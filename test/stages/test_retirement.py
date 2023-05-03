@@ -6,6 +6,7 @@ from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, Sche
 from coreblocks.params.configurations import test_core_config
 
 from ..common import *
+from ..simulation import *
 from collections import deque
 import random
 
@@ -48,7 +49,7 @@ class RetirementTestCircuit(Elaboratable):
         return tm
 
 
-class RetirementTest(TestCaseWithSimulator):
+class RetirementTest(TestCaseWithExtendedSimulator):
     def setUp(self):
         self.gen_params = GenParams(test_core_config)
         self.rf_exp_q = deque()
@@ -103,11 +104,11 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertFalse(self.submit_q)
             self.assertFalse(self.rf_free_q)
 
-        @def_method_mock(lambda: retc.mock_rf_free, sched_prio=1)
+        @def_method_mock(lambda: retc.mock_rf_free, read_only_phase=True)
         def rf_free_process(reg_id):
             self.assertEqual(reg_id, self.rf_free_q.popleft())
 
-        @def_method_mock(lambda: retc.mock_lsu_commit, sched_prio=1)
+        @def_method_mock(lambda: retc.mock_lsu_commit, read_only_phase=True)
         def lsu_commit_process(rob_id):
             self.assertEqual(rob_id, self.lsu_commit_q.popleft())
 
