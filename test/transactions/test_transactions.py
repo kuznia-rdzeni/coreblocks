@@ -14,7 +14,6 @@ from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
 from coreblocks.transactions._utils import Scheduler
-from coreblocks.utils import HasElaborate
 
 from coreblocks.transactions.core import (
     Priority,
@@ -206,17 +205,24 @@ class TestTransactionConflict(TestCaseWithSimulator):
             sim.add_sync_process(self.make_out_process(probout))
 
 
-class PriorityTestCircuit(Elaboratable):
-    def __init__(self, priority: Priority, unsatisfiable=False):
-        self.priority = priority
+class SchedulingTestCircuit(Elaboratable):
+    def __init__(self):
         self.r1 = Signal()
         self.r2 = Signal()
         self.t1 = Signal()
         self.t2 = Signal()
+
+
+class PriorityTestCircuit(SchedulingTestCircuit):
+    def __init__(self, priority: Priority, unsatisfiable=False):
+        super().__init__()
+        self.priority = priority
         self.unsatisfiable = unsatisfiable
 
-    def elaborate(self, platform) -> HasElaborate:
-        raise NotImplementedError()
+    def make_relations(self, t1: Transaction | Method, t2: Transaction | Method):
+        t1.add_conflict(t2, self.priority)
+        if self.unsatisfiable:
+            t2.add_conflict(t1, self.priority)
 
 
 class TransactionPriorityTestCircuit(PriorityTestCircuit):
@@ -234,9 +240,7 @@ class TransactionPriorityTestCircuit(PriorityTestCircuit):
             with transaction2.body(m, request=self.r2):
                 m.d.comb += self.t2.eq(1)
 
-        transaction1.add_conflict(transaction2, self.priority)
-        if self.unsatisfiable:
-            transaction2.add_conflict(transaction1, self.priority)
+        self.make_relations(transaction1, transaction2)
 
         # so that Amaranth allows us to use add_clock
         dummy = Signal()
@@ -246,14 +250,6 @@ class TransactionPriorityTestCircuit(PriorityTestCircuit):
 
 
 class MethodPriorityTestCircuit(PriorityTestCircuit):
-    def __init__(self, priority: Priority, unsatisfiable=False):
-        self.priority = priority
-        self.r1 = Signal()
-        self.r2 = Signal()
-        self.t1 = Signal()
-        self.t2 = Signal()
-        self.unsatisfiable = unsatisfiable
-
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
@@ -276,9 +272,7 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
             with Transaction().body(m):
                 method2(m)
 
-        method1.add_conflict(method2, self.priority)
-        if self.unsatisfiable:
-            method2.add_conflict(method1, self.priority)
+        self.make_relations(method1, method2)
 
         # so that Amaranth allows us to use add_clock
         dummy = Signal()
@@ -331,3 +325,127 @@ class TestTransactionPriorities(TestCaseWithSimulator):
         with cm:
             with self.run_simulation(m):
                 pass
+
+
+class NestedTransactionsTestCircuit(SchedulingTestCircuit):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        with tm.transaction_context():
+            with Transaction().body(m, request=self.r1):
+                m.d.comb += self.t1.eq(1)
+                with Transaction().body(m, request=self.r2):
+                    m.d.comb += self.t2.eq(1)
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
+        return tm
+
+
+class NestedMethodsTestCircuit(SchedulingTestCircuit):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        method1 = Method()
+        method2 = Method()
+
+        @def_method(m, method1, ready=self.r1)
+        def _():
+            m.d.comb += self.t1.eq(1)
+
+            @def_method(m, method2, ready=self.r2)
+            def _():
+                m.d.comb += self.t2.eq(1)
+
+        with tm.transaction_context():
+            with Transaction().body(m):
+                method1(m)
+
+            with Transaction().body(m):
+                method2(m)
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
+        return tm
+
+
+@parameterized_class(
+    ("name", "circuit"), [("transaction", NestedTransactionsTestCircuit), ("method", NestedMethodsTestCircuit)]
+)
+class TestNested(TestCaseWithSimulator):
+    circuit: type[SchedulingTestCircuit]
+
+    def setUp(self):
+        random.seed(42)
+
+    def test_scheduling(self):
+        m = self.circuit()
+
+        def process():
+            to_do = 5 * [(0, 1), (1, 0), (1, 1)]
+            random.shuffle(to_do)
+            for r1, r2 in to_do:
+                yield m.r1.eq(r1)
+                yield m.r2.eq(r2)
+                yield
+                self.assertEqual((yield m.t1), r1)
+                self.assertEqual((yield m.t2), r1 * r2)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(process)
+
+
+class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
+    def elaborate(self, platform):
+        m = Module()
+        tm = TransactionModule(m)
+
+        method = Method()
+
+        @def_method(m, method)
+        def _():
+            pass
+
+        with tm.transaction_context():
+            with (t1 := Transaction()).body(m, request=self.r1):
+                method(m)
+                m.d.comb += self.t1.eq(1)
+
+            with (t2 := Transaction()).body(m, request=self.r2 & t1.grant):
+                method(m)
+                m.d.comb += self.t2.eq(1)
+
+            t1.schedule_before(t2)
+
+        # so that Amaranth allows us to use add_clock
+        dummy = Signal()
+        m.d.sync += dummy.eq(1)
+
+        return tm
+
+
+class TestScheduleBefore(TestCaseWithSimulator):
+    def setUp(self):
+        random.seed(42)
+
+    def test_schedule_before(self):
+        m = ScheduleBeforeTestCircuit()
+
+        def process():
+            to_do = 5 * [(0, 1), (1, 0), (1, 1)]
+            random.shuffle(to_do)
+            for r1, r2 in to_do:
+                yield m.r1.eq(r1)
+                yield m.r2.eq(r2)
+                yield
+                self.assertEqual((yield m.t1), r1)
+                self.assertFalse((yield m.t2))
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(process)
