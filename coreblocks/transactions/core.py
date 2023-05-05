@@ -17,6 +17,7 @@ from .graph import Owned, OwnershipGraph, Direction
 __all__ = [
     "MethodLayout",
     "Priority",
+    "MethodLayoutError",
     "TransactionManager",
     "TransactionContext",
     "TransactionModule",
@@ -54,6 +55,22 @@ class RelationBase(TypedDict):
 
 class Relation(RelationBase):
     start: Union["Transaction", "Method"]
+
+
+class MethodLayoutError(Exception):
+    def __init__(self, msg: str, method, lhs: Optional[set[str]], rhs: Optional[set[str]]):
+        super().__init__(msg)
+        self.msg = msg
+        self.method = method
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __str__(self):
+        name = self.method.name
+        owner = type(self.method.owner)
+        lhs = self.lhs if self.lhs else "empty"
+        rhs = self.rhs if self.rhs else "empty"
+        return self.msg.format(name=name, owner_name=owner.__name__, owner_module=owner.__module__, lhs=lhs, rhs=rhs)
 
 
 def eager_deterministic_cc_scheduler(
@@ -745,7 +762,15 @@ class Method(TransactionBase):
             arg = kwargs
 
         m.d.comb += enable_sig.eq(enable)
-        TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
+        try:
+            TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
+        except MismatchedLayoutError as e:
+            raise MethodLayoutError(
+                "Method {name} (defined in {owner_name} in module {owner_module}) has argument layout defined as {lhs} but supplied argument's layout is {rhs}",
+                self,
+                e.lhs_fields,
+                e.rhs_fields,
+            )
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
         return self.data_out
 
@@ -825,12 +850,11 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
         try:
             m.d.comb += assign(out, ret_out, fields=AssignType.ALL)
         except MismatchedLayoutError as e:
-            owner = type(method.owner)
-            lhs = e.lhs_fields if e.lhs_fields else "empty"
-            rhs = e.rhs_fields if e.rhs_fields else "empty"
-            msg = "Method {} (defined in {} in module {}) has output layout defined as {} but returned layout is {}"
-            raise MismatchedLayoutError(
-                msg.format(method.name, owner.__name__, owner.__module__, lhs, rhs), e.lhs_fields, e.rhs_fields
-            ) from e
+            raise MethodLayoutError(
+                "Method {name} (defined in {owner_name} in module {owner_module}) has output layout defined as {lhs} but returned layout is {rhs}",
+                method,
+                e.lhs_fields,
+                e.rhs_fields,
+            )
 
     return decorator

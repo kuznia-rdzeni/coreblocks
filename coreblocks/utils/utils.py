@@ -119,8 +119,12 @@ AssignArg: TypeAlias = ValueLike | Mapping[str, "AssignArg"]
 class MismatchedLayoutError(KeyError):
     def __init__(self, msg: str, lhs_fields: Optional[set[str]], rhs_fields: Optional[set[str]]):
         super().__init__(msg)
+        self.msg = msg
         self.lhs_fields = lhs_fields
         self.rhs_fields = rhs_fields
+
+    def __str__(self):
+        return f"{self.msg} (LHS: {self.lhs_fields}, RHS: {self.rhs_fields})"
 
 
 def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
@@ -230,13 +234,13 @@ def assign(
             names = set(fields)
 
         if not names and (lhs_fields or rhs_fields):
-            raise ValueError("There are no common fields in assigment lhs: {} rhs: {}".format(lhs_fields, rhs_fields))
+            raise MismatchedLayoutError("There are no common fields in assigment", lhs_fields, rhs_fields)
 
         for name in names:
             if name not in lhs_fields:
-                raise MismatchedLayoutError("Field {} not present in lhs".format(name), lhs_fields, rhs_fields)
+                raise MismatchedLayoutError("Field {} not present in LHS".format(name), lhs_fields, rhs_fields)
             if name not in rhs_fields:
-                raise MismatchedLayoutError("Field {} not present in rhs".format(name), lhs_fields, rhs_fields)
+                raise MismatchedLayoutError("Field {} not present in RHS".format(name), lhs_fields, rhs_fields)
 
             subfields = fields
             if isinstance(fields, Mapping):
