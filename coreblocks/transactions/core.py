@@ -357,6 +357,8 @@ class TransactionManager(Elaboratable):
             method.ready = transaction.request
             method.run = transaction.grant
             method.defined = transaction.defined
+            method.method_uses = transaction.method_uses
+            method.relations = transaction.relations
             methods[transaction] = method
 
         # step 5: construct merged transactions
@@ -383,9 +385,6 @@ class TransactionManager(Elaboratable):
                 for relation in elem.relations
             ]
             cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
-
-        print(method_map.transactions_by_method)
-        print(method_map.methods_by_transaction)
 
         m = Module()
         m.submodules.merge_manager = merge_manager
