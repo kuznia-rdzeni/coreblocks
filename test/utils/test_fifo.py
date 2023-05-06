@@ -1,7 +1,6 @@
 from amaranth import *
 
 from coreblocks.utils.fifo import BasicFifo
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
 from test.common import TestCaseWithSimulator, TestbenchIO, data_layout
@@ -16,7 +15,6 @@ class BasicFifoTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         m.submodules.fifo = self.fifo = BasicFifo(layout=data_layout(8), depth=self.depth)
 
@@ -24,7 +22,7 @@ class BasicFifoTestCircuit(Elaboratable):
         m.submodules.fifo_write = self.fifo_write = TestbenchIO(AdapterTrans(self.fifo.write))
         m.submodules.fifo_clear = self.fifo_clear = TestbenchIO(AdapterTrans(self.fifo.clear))
 
-        return tm
+        return m
 
 
 @parameterized_class(

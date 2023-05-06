@@ -1,6 +1,5 @@
 from amaranth.sim import Passive, Settle
 
-
 from ..common import TestCaseWithSimulator, SimpleTestCircuit
 
 from coreblocks.structs_common.rob import ReorderBuffer

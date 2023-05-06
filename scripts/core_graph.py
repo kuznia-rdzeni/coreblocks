@@ -17,10 +17,12 @@ from coreblocks.params.genparams import GenParams  # noqa: E402
 from coreblocks.transactions.graph import TracingFragment  # noqa: E402
 from test.test_core import TestElaboratable  # noqa: E402
 from coreblocks.params.configurations import basic_core_config  # noqa: E402
+from coreblocks.transactions.core import TransactionModule  # noqa: E402
 
 gp = GenParams(basic_core_config)
 elaboratable = TestElaboratable(gp)
-fragment = TracingFragment.get(elaboratable, platform=None).prepare()
+tm = TransactionModule(elaboratable)
+fragment = TracingFragment.get(tm, platform=None).prepare()
 
 core = fragment
 while not hasattr(core, "transactionManager"):

@@ -3,7 +3,6 @@ from collections import deque
 
 from coreblocks.peripherals.wishbone import *
 
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
 from ..common import *
@@ -62,11 +61,10 @@ class TestWishboneMaster(TestCaseWithSimulator):
 
         def elaborate(self, platform):
             m = Module()
-            tm = TransactionModule(m)
             m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
             m.submodules.rqa = self.requestAdapter = TestbenchIO(AdapterTrans(wbm.request))
             m.submodules.rsa = self.resultAdapter = TestbenchIO(AdapterTrans(wbm.result))
-            return tm
+            return m
 
     def test_manual(self):
         twbm = TestWishboneMaster.WishboneMasterTestModule()
@@ -284,7 +282,6 @@ class WishboneMemorySlaveCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         m.submodules.mem_slave = self.mem_slave = WishboneMemorySlave(self.wb_params, **self.mem_args)
         m.submodules.mem_master = self.mem_master = WishboneMaster(self.wb_params)
@@ -293,7 +290,7 @@ class WishboneMemorySlaveCircuit(Elaboratable):
 
         m.d.comb += self.mem_master.wbMaster.connect(self.mem_slave.bus)
 
-        return tm
+        return m
 
 
 class TestWishboneMemorySlave(TestCaseWithSimulator):
