@@ -24,7 +24,6 @@ class WakeupTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         ready_mock = Adapter(o=self.layouts.get_ready_list_out)
         take_row_mock = Adapter(i=self.layouts.take_in, o=self.layouts.take_out)
@@ -39,7 +38,7 @@ class WakeupTestCircuit(Elaboratable):
         dummy = Signal()
         m.d.sync += dummy.eq(1)
 
-        return tm
+        return m
 
 
 class TestWakeupSelect(TestCaseWithSimulator):

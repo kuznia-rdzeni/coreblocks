@@ -5,6 +5,7 @@ from coreblocks.params import *
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
+from coreblocks.utils.debug_signals import auto_debug_signals, SignalBundle
 from coreblocks.utils.protocols import FuncUnit, FuncBlock
 from coreblocks.transactions.lib import Collector
 
@@ -57,7 +58,7 @@ class RSFuncBlock(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.rs = rs = RS(
+        m.submodules.rs = self.rs = RS(
             gen_params=self.gen_params,
             rs_entries=self.rs_entries,
             ready_for=(func_unit.optypes for func_unit in self.func_units),
@@ -65,19 +66,33 @@ class RSFuncBlock(Elaboratable):
 
         for n, func_unit in enumerate(self.func_units):
             wakeup_select = WakeupSelect(
-                gen_params=self.gen_params, get_ready=rs.get_ready_list[n], take_row=rs.take, issue=func_unit.issue
+                gen_params=self.gen_params,
+                get_ready=self.rs.get_ready_list[n],
+                take_row=self.rs.take,
+                issue=func_unit.issue,
             )
             m.submodules[f"func_unit_{n}"] = func_unit
             m.submodules[f"wakeup_select_{n}"] = wakeup_select
 
         m.submodules.collector = collector = Collector([func_unit.accept for func_unit in self.func_units])
 
-        self.insert.proxy(m, rs.insert)
-        self.select.proxy(m, rs.select)
-        self.update.proxy(m, rs.update)
+        self.insert.proxy(m, self.rs.insert)
+        self.select.proxy(m, self.rs.select)
+        self.update.proxy(m, self.rs.update)
         self.get_result.proxy(m, collector.method)
 
         return m
+
+    def debug_signals(self) -> SignalBundle:
+        # TODO: enhanced auto_debug_signals would allow to remove this method
+        return {
+            "insert": self.insert.debug_signals(),
+            "select": self.select.debug_signals(),
+            "update": self.update.debug_signals(),
+            "get_result": self.get_result.debug_signals(),
+            "rs": self.rs,
+            "func_units": {i: auto_debug_signals(b) for i, b in enumerate(self.func_units)},
+        }
 
 
 @dataclass(frozen=True)

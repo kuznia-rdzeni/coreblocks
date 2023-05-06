@@ -2,7 +2,6 @@ from typing import Iterable, Optional
 from amaranth import Elaboratable, Module
 from amaranth.sim import Settle
 
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 
 from ..common import TestCaseWithSimulator, TestbenchIO, get_outputs
@@ -32,9 +31,8 @@ class TestElaboratable(Elaboratable):
         self.gp = gen_params
         self.ready_for = ready_for
 
-    def elaborate(self, platform) -> TransactionModule:
+    def elaborate(self, platform) -> Module:
         m = Module()
-        tm = TransactionModule(m)
         rs = RS(self.gp, 2**self.gp.rs_entries_bits, self.ready_for)
 
         self.rs = rs
@@ -52,7 +50,7 @@ class TestElaboratable(Elaboratable):
         for n, io_get_ready_list in enumerate(self.io_get_ready_list):
             m.submodules[f"io_get_ready_list_{n}"] = io_get_ready_list
 
-        return tm
+        return m
 
 
 class TestRSMethodInsert(TestCaseWithSimulator):

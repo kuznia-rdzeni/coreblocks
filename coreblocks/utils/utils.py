@@ -15,7 +15,8 @@ __all__ = [
     "flatten_signals",
     "align_to_power_of_two",
     "bits_from_int",
-    "add_next_submodule",
+    "ModuleConnector",
+    "silence_mustuse",
 ]
 
 
@@ -319,27 +320,40 @@ def bits_from_int(num: int, lower: int, length: int):
     return (num >> lower) & (1 << (length) - 1)
 
 
-def add_next_submodule(m: Module, sub: HasElaborate, name: str):
+class ModuleConnector(Elaboratable):
     """
-    Add an elaboratable to module using a name created from given string
-    with appended a natural number in such way that every elaboratable have
-    distinct submodule name in module.
-
-    Parameters
-    ----------
-    m : Module
-        The module to which eleboratable should be added.
-    sub : HasElaborate
-        Elaboratable to add to module
-    name : str
-        String used to create submodule name. An integer will be appended to it.
-
+    An Elaboratable to create a new module, which will have all arguments
+    added as its submodules.
     """
-    i = 0
-    while True:
-        try:
-            getattr(m.submodules, name + str(i))
-            i += 1
-        except AttributeError:
-            break
-    m.submodules[name + str(i)] = sub
+
+    def __init__(self, *args: HasElaborate, **kwargs: HasElaborate):
+        """
+        Parameters
+        ----------
+        *args
+            Modules which should be added as anonymous submodules.
+        **kwargs
+            Modules which will be added as named submodules.
+        """
+        self.args = args
+        self.kwargs = kwargs
+
+    def elaborate(self, platform):
+        m = Module()
+
+        for elem in self.args:
+            m.submodules += elem
+
+        for name, elem in self.kwargs.items():
+            m.submodules[name] = elem
+
+        return m
+
+
+@contextmanager
+def silence_mustuse(elaboratable: Elaboratable):
+    try:
+        yield
+    except Exception:
+        elaboratable._MustUse__silence = True  # type: ignore
+        raise
