@@ -351,8 +351,8 @@ class TestMethodFilter(TestCaseWithSimulator):
         self.initialize()
         self.cmeth = TestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
         self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface))
-        self.m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
-        with self.run_simulation(self.m) as sim:
+        m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
+        with self.run_simulation(m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target_mock)
             sim.add_sync_process(self.cmeth_mock)
@@ -364,8 +364,8 @@ class TestMethodFilter(TestCaseWithSimulator):
             return v[0]
 
         self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition))
-        self.m = ModuleConnector(test_circuit=self.tc, target=self.target)
-        with self.run_simulation(self.m) as sim:
+        m = ModuleConnector(test_circuit=self.tc, target=self.target)
+        with self.run_simulation(m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target_mock)
 
