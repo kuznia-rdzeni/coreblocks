@@ -1,7 +1,8 @@
+from contextlib import contextmanager
 from typing import Callable, Tuple, Optional
 from amaranth import *
 from .core import *
-from .core import SignalBundle, RecordDict
+from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
 from ..utils import ValueLike, assign, AssignType
 
@@ -732,3 +733,41 @@ class CatTrans(Elaboratable):
             m.d.comb += ddata.eq(Cat(sdata1, sdata2))
 
         return m
+
+
+# Conditions using simultaneous transactions
+
+
+@contextmanager
+def condition(m: Module, *, full: bool = False, unique: bool = False):
+    this = TransactionBase.get()
+    transactions = list[Transaction]()
+    last = False
+    
+    @contextmanager
+    def next(cond: Optional[ValueLike] = None):
+        nonlocal full, last
+        if last:
+            raise RuntimeError("Condition clause added after catch-all")
+        req = cond if cond is not None else 1
+        with (transaction := Transaction()).body(m, request=req):
+            yield
+        if transactions and not unique:
+            transactions[-1].schedule_before(transaction)
+        if cond is None:
+            full = True
+            last = True
+            if unique:
+                for transaction0 in transactions:
+                    transaction0.schedule_before(transaction)
+        transactions.append(transaction)
+
+    yield next
+
+    if not full:
+        with next():
+            pass
+
+    groups = [[transaction] for transaction in transactions]
+    this.simultaneous_groups(*groups)
+
