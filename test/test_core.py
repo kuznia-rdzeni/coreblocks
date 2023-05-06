@@ -1,6 +1,5 @@
 from amaranth import Elaboratable, Module
 
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.utils import align_to_power_of_two
 
@@ -45,7 +44,6 @@ class TestElaboratable(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         wb_instr_bus = WishboneBus(self.gp.wb_params)
         wb_data_bus = WishboneBus(self.gp.wb_params)
@@ -71,7 +69,7 @@ class TestElaboratable(Elaboratable):
         m.d.comb += wb_instr_bus.connect(self.wb_mem_slave.bus)
         m.d.comb += wb_data_bus.connect(self.wb_mem_slave_data.bus)
 
-        return tm
+        return m
 
 
 def gen_riscv_add_instr(dst, src1, src2):

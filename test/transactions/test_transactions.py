@@ -131,20 +131,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
     scheduler: TransactionScheduler
 
     def setUp(self):
-        self.in1_stream = range(0, 100)
-        self.in2_stream = range(100, 200)
-        self.out_stream = range(200, 400)
-        self.in_expected = deque()
-        self.out1_expected = deque()
-        self.out2_expected = deque()
-        self.m = TransactionConflictTestCircuit(self.__class__.scheduler)
-
         random.seed(42)
-
-    def tearDown(self):
-        assert not self.in_expected
-        assert not self.out1_expected
-        assert not self.out2_expected
 
     def make_process(
         self, io: TestbenchIO, prob: float, src: Iterable[int], tgt: Callable[[int], None], chk: Callable[[int], None]
@@ -199,10 +186,22 @@ class TestTransactionConflict(TestCaseWithSimulator):
         ]
     )
     def test_calls(self, name, prob1, prob2, probout):
-        with self.run_simulation(self.m) as sim:
+        self.in1_stream = range(0, 100)
+        self.in2_stream = range(100, 200)
+        self.out_stream = range(200, 400)
+        self.in_expected = deque()
+        self.out1_expected = deque()
+        self.out2_expected = deque()
+        self.m = TransactionConflictTestCircuit(self.__class__.scheduler)
+
+        with self.run_simulation(self.m, add_transaction_module=False) as sim:
             sim.add_sync_process(self.make_in1_process(prob1))
             sim.add_sync_process(self.make_in2_process(prob2))
             sim.add_sync_process(self.make_out_process(probout))
+
+        self.assertFalse(self.in_expected)
+        self.assertFalse(self.out1_expected)
+        self.assertFalse(self.out2_expected)
 
 
 class SchedulingTestCircuit(Elaboratable):
@@ -228,17 +227,15 @@ class PriorityTestCircuit(SchedulingTestCircuit):
 class TransactionPriorityTestCircuit(PriorityTestCircuit):
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
-        with tm.transaction_context():
-            transaction1 = Transaction()
-            transaction2 = Transaction()
+        transaction1 = Transaction()
+        transaction2 = Transaction()
 
-            with transaction1.body(m, request=self.r1):
-                m.d.comb += self.t1.eq(1)
+        with transaction1.body(m, request=self.r1):
+            m.d.comb += self.t1.eq(1)
 
-            with transaction2.body(m, request=self.r2):
-                m.d.comb += self.t2.eq(1)
+        with transaction2.body(m, request=self.r2):
+            m.d.comb += self.t2.eq(1)
 
         self.make_relations(transaction1, transaction2)
 
@@ -246,13 +243,12 @@ class TransactionPriorityTestCircuit(PriorityTestCircuit):
         dummy = Signal()
         m.d.sync += dummy.eq(1)
 
-        return tm
+        return m
 
 
 class MethodPriorityTestCircuit(PriorityTestCircuit):
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         method1 = Method()
         method2 = Method()
@@ -265,12 +261,11 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
         def _():
             m.d.comb += self.t2.eq(1)
 
-        with tm.transaction_context():
-            with Transaction().body(m):
-                method1(m)
+        with Transaction().body(m):
+            method1(m)
 
-            with Transaction().body(m):
-                method2(m)
+        with Transaction().body(m):
+            method2(m)
 
         self.make_relations(method1, method2)
 
@@ -278,7 +273,7 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
         dummy = Signal()
         m.d.sync += dummy.eq(1)
 
-        return tm
+        return m
 
 
 @parameterized_class(
