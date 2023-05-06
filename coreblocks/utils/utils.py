@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload, TypeVar, Any
+from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload, Any
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
@@ -320,7 +320,6 @@ def bits_from_int(num: int, lower: int, length: int):
     return (num >> lower) & (1 << (length) - 1)
 
 
-
 class ModuleConnector(Elaboratable):
     """
     An Elaboratable to create a new module, which will have all arguments
@@ -336,11 +335,11 @@ class ModuleConnector(Elaboratable):
         **kwargs
             Modules which will be added as named submodules.
         """
-        self.args  = args
+        self.args = args
         self.kwargs = kwargs
 
     def __getattr__(self, name: str) -> Any:
-        if name == "debug_signals":
+        if name not in self.kwargs:
             raise AttributeError
         return self.kwargs[name]
 
