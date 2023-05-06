@@ -194,7 +194,7 @@ class LSUDummyInternals(Elaboratable):
                 with m.If(self.clear):
                     m.d.sync += self.result_ready.eq(0)
                     m.next = "Start"
-            # don't handle clear in 'StoreInit' and 'StoreEnd' because in DummyLSU this states
+            # don't handle clear in 'StoreInit' and 'StoreEnd' because in DummyLSU these states
             # are only reachable, when store is being commited. And commited instructions can not be cleared.
             with m.State("StoreInit"):
                 with m.If(~op_initiated):
