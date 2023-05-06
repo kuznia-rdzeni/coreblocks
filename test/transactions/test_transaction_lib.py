@@ -10,6 +10,7 @@ from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
 from coreblocks.utils._typing import LayoutLike
+from coreblocks.utils import ModuleConnector
 from ..common import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
@@ -116,29 +117,25 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         # dummy signal
         s = Signal()
         m.d.sync += s.eq(1)
 
-        with tm.transaction_context():
-            get_results = []
-            for i in range(self.count):
-                input = TestbenchIO(Adapter(o=self.lay))
-                get_results.append(input.adapter.iface)
-                m.submodules[f"input_{i}"] = input
-                self.inputs.append(input)
+        get_results = []
+        for i in range(self.count):
+            input = TestbenchIO(Adapter(o=self.lay))
+            get_results.append(input.adapter.iface)
+            m.submodules[f"input_{i}"] = input
+            self.inputs.append(input)
 
-            # Create ManyToOneConnectTrans, which will serialize results from different inputs
-            output = TestbenchIO(Adapter(i=self.lay))
-            m.submodules.output = output
-            self.output = output
-            m.submodules.fu_arbitration = ManyToOneConnectTrans(
-                get_results=get_results, put_result=output.adapter.iface
-            )
+        # Create ManyToOneConnectTrans, which will serialize results from different inputs
+        output = TestbenchIO(Adapter(i=self.lay))
+        m.submodules.output = output
+        self.output = output
+        m.submodules.fu_arbitration = ManyToOneConnectTrans(get_results=get_results, put_result=output.adapter.iface)
 
-        return tm
+        return m
 
 
 class TestManyToOneConnectTrans(TestCaseWithSimulator):
@@ -235,7 +232,6 @@ class MethodTransformerTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         # dummy signal
         s = Signal()
@@ -266,36 +262,35 @@ class MethodTransformerTestCircuit(Elaboratable):
             itransform = itransform_rec
             otransform = otransform_rec
 
-        with tm.transaction_context():
-            m.submodules.target = self.target = TestbenchIO(Adapter(i=layout, o=layout))
+        m.submodules.target = self.target = TestbenchIO(Adapter(i=layout, o=layout))
 
-            if self.use_methods:
-                imeth = Method(i=layout, o=layout)
-                ometh = Method(i=layout, o=layout)
+        if self.use_methods:
+            imeth = Method(i=layout, o=layout)
+            ometh = Method(i=layout, o=layout)
 
-                @def_method(m, imeth)
-                def _(arg: Record):
-                    return itransform(m, arg)
+            @def_method(m, imeth)
+            def _(arg: Record):
+                return itransform(m, arg)
 
-                @def_method(m, ometh)
-                def _(arg: Record):
-                    return otransform(m, arg)
+            @def_method(m, ometh)
+            def _(arg: Record):
+                return otransform(m, arg)
 
-                trans = MethodTransformer(
-                    self.target.adapter.iface, i_transform=(layout, imeth), o_transform=(layout, ometh)
-                )
-            else:
-                trans = MethodTransformer(
-                    self.target.adapter.iface,
-                    i_transform=(layout, itransform),
-                    o_transform=(layout, otransform),
-                )
+            trans = MethodTransformer(
+                self.target.adapter.iface, i_transform=(layout, imeth), o_transform=(layout, ometh)
+            )
+        else:
+            trans = MethodTransformer(
+                self.target.adapter.iface,
+                i_transform=(layout, itransform),
+                o_transform=(layout, otransform),
+            )
 
-            m.submodules.trans = trans
+        m.submodules.trans = trans
 
-            m.submodules.source = self.source = TestbenchIO(AdapterTrans(trans.method))
+        m.submodules.source = self.source = TestbenchIO(AdapterTrans(trans.method))
 
-        return tm
+        return m
 
 
 class TestMethodTransformer(TestCaseWithSimulator):
@@ -330,71 +325,49 @@ class TestMethodTransformer(TestCaseWithSimulator):
             sim.add_sync_process(self.target)
 
 
-class MethodFilterTestCircuit(Elaboratable):
-    def __init__(self, iosize: int, use_methods: bool):
-        self.iosize = iosize
-        self.use_methods = use_methods
-
-    def elaborate(self, platform):
-        m = Module()
-        tm = TransactionModule(m)
-
-        # dummy signal
-        s = Signal()
-        m.d.sync += s.eq(1)
-
-        layout = data_layout(self.iosize)
-
-        with tm.transaction_context():
-            m.submodules.target = self.target = TestbenchIO(Adapter(i=layout, o=layout))
-
-            def condition(_, v):
-                return v[0]
-
-            if self.use_methods:
-                cmeth = Method(i=layout, o=data_layout(1))
-
-                @def_method(m, cmeth)
-                def _(arg: Record):
-                    return condition(m, arg)
-
-                filt = MethodFilter(self.target.adapter.iface, cmeth)
-            else:
-                filt = MethodFilter(self.target.adapter.iface, condition)
-
-            m.submodules.filt = filt
-
-            m.submodules.source = self.source = TestbenchIO(AdapterTrans(filt.method))
-
-        return tm
-
-
 class TestMethodFilter(TestCaseWithSimulator):
-    m: MethodFilterTestCircuit
+    def initialize(self):
+        self.iosize = 4
+        self.layout = data_layout(self.iosize)
+        self.target = TestbenchIO(Adapter(i=self.layout, o=self.layout))
 
     def source(self):
-        for i in range(2**self.m.iosize):
-            v = yield from self.m.source.call(data=i)
+        for i in range(2**self.iosize):
+            v = yield from self.tc.method.call(data=i)
             if i & 1:
-                self.assertEqual(v["data"], (i + 1) & ((1 << self.m.iosize) - 1))
+                self.assertEqual(v["data"], (i + 1) & ((1 << self.iosize) - 1))
             else:
                 self.assertEqual(v["data"], 0)
 
-    @def_method_mock(lambda self: self.m.target)
-    def target(self, data):
+    @def_method_mock(lambda self: self.target, sched_prio=2)
+    def target_mock(self, data):
         return {"data": data + 1}
 
-    def test_method_filter(self):
-        self.m = MethodFilterTestCircuit(4, False)
-        with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.source)
-            sim.add_sync_process(self.target)
+    @def_method_mock(lambda self: self.cmeth, sched_prio=1)
+    def cmeth_mock(self, data):
+        return {"data": data % 2}
 
     def test_method_filter_with_methods(self):
-        self.m = MethodFilterTestCircuit(4, True)
-        with self.run_simulation(self.m) as sim:
+        self.initialize()
+        self.cmeth = TestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface))
+        m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
+        with self.run_simulation(m) as sim:
             sim.add_sync_process(self.source)
-            sim.add_sync_process(self.target)
+            sim.add_sync_process(self.target_mock)
+            sim.add_sync_process(self.cmeth_mock)
+
+    def test_method_filter(self):
+        self.initialize()
+
+        def condition(_, v):
+            return v[0]
+
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition))
+        m = ModuleConnector(test_circuit=self.tc, target=self.target)
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(self.source)
+            sim.add_sync_process(self.target_mock)
 
 
 class MethodProductTestCircuit(Elaboratable):
@@ -406,7 +379,6 @@ class MethodProductTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         # dummy signal
         s = Signal()
@@ -430,7 +402,7 @@ class MethodProductTestCircuit(Elaboratable):
 
         m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.method))
 
-        return tm
+        return m
 
 
 class TestMethodProduct(TestCaseWithSimulator):
