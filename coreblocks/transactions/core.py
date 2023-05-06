@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from collections.abc import Iterable, Callable, Mapping, Iterator, Sequence
+from collections.abc import Collection, Iterable, Callable, Mapping, Iterator, Sequence
 from contextlib import contextmanager
 from enum import Enum, auto
 from typing import ClassVar, TypeAlias, TypedDict, Union, Optional, Tuple
@@ -302,11 +302,13 @@ class TransactionManager(Elaboratable):
                         yield from rec(idx + 1)
                         sim_list.pop()
 
-            return set(rec(0))
+            return rec(0)
 
         for elem in method_map.methods_and_transactions:
-            for sim in elem.simultaneous:
-                conflict = conflict_for(chain([elem], sim))
+            conflict = set[frozenset[Transaction]]()
+            for sims in elem.simultaneous:
+                for sim in sims:
+                    conflict.update(conflict_for(chain([elem], sim)))
                 conflicts.append(conflict)
 
         # step 2: transitivity computation
@@ -512,7 +514,7 @@ class TransactionBase(Owned):
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
-        self.simultaneous: list[Sequence[TransactionOrMethod]] = []
+        self.simultaneous: list[frozenset[frozenset[TransactionOrMethod]]] = []
 
     def add_conflict(self, end: TransactionOrMethod, priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
@@ -551,7 +553,10 @@ class TransactionBase(Owned):
         self.method_uses[method] = (arg, enable)
 
     def simultaneous_with(self, *others: TransactionOrMethod) -> None:
-        self.simultaneous.append(others)
+        self.simultaneous.append(frozenset({frozenset(others)}))
+
+    def simultaneous_groups(self, *groups: Collection[TransactionOrMethod]):
+        self.simultaneous.append(frozenset(map(frozenset, groups)))
 
     @contextmanager
     def context(self, m: Module) -> Iterator[Self]:
