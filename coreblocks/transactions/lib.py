@@ -138,8 +138,6 @@ class MemoryBank(Elaboratable):
         self.read_resp = Method(o=self.data_layout)
         self.write = Method(i=self.write_layout)
 
-        self.read_resp.schedule_before(self.read_req)
-
     def elaborate(self, platform) -> Module:
         m = Module()
 
@@ -155,6 +153,8 @@ class MemoryBank(Elaboratable):
         def _():
             m.d.sync += read_output_valid.eq(0)
             return read_port.data
+
+        self.read_resp.schedule_before(self.read_req)
 
         @def_method(m, self.read_req, ready=~read_output_valid | self.read_resp.run)
         def _(addr):
