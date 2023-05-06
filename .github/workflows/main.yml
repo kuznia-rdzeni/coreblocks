@@ -35,7 +35,7 @@ jobs:
         run: ./scripts/run_tests.py --verbose
 
       - name: Check traces
-        run: ./scripts/run_tests.py -t test.test_core.TestCoreAsmSource_1_fibonacci_mem.test_asm_source
+        run: ./scripts/run_tests.py -t -c 1 TestCore 
 
   lint:
     runs-on: ubuntu-latest
