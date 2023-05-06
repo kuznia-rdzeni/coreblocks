@@ -320,8 +320,6 @@ def bits_from_int(num: int, lower: int, length: int):
     return (num >> lower) & (1 << (length) - 1)
 
 
-_T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
-
 
 class ModuleConnector(Elaboratable):
     """
@@ -329,7 +327,7 @@ class ModuleConnector(Elaboratable):
     added as its submodules.
     """
 
-    def __init__(self, *args: _T_HasElaborate, **kwargs: _T_HasElaborate):
+    def __init__(self, *args: HasElaborate, **kwargs: HasElaborate):
         """
         Parameters
         ----------
@@ -338,10 +336,12 @@ class ModuleConnector(Elaboratable):
         **kwargs
             Modules which will be added as named submodules.
         """
-        self.args: list[_T_HasElaborate] = list(args)
-        self.kwargs: dict[str, _T_HasElaborate] = kwargs
+        self.args  = args
+        self.kwargs = kwargs
 
     def __getattr__(self, name: str) -> Any:
+        if name == "debug_signals":
+            raise AttributeError
         return self.kwargs[name]
 
     def __getitem__(self, name: str | int) -> Any:
