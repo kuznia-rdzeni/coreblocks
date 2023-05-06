@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683364318729,
+  "lastUpdate": 1683387637393,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -5217,6 +5217,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c09faa0442d36e69f9e8122d8fb2ac7f03c45203"
         },
         "date": 1683364317386,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 58.1,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 18754,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 562,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5604,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0a6b0f310c0739f86cd2da58d5d145a3e1c016ab",
+          "message": "Refactor method filter test (#321)",
+          "timestamp": "2023-05-06T17:32:45+02:00",
+          "tree_id": "7c86f1fad57ee7dbae6de91482c6a68510a3c9d9",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0a6b0f310c0739f86cd2da58d5d145a3e1c016ab"
+        },
+        "date": 1683387636186,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
