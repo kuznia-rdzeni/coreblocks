@@ -1,4 +1,4 @@
-from typing import Protocol, Sequence, Tuple, Type, TypeAlias, Iterable, Mapping, runtime_checkable, Union
+from typing import Protocol, Sequence, Tuple, Type, TypeAlias, Iterable, Mapping, runtime_checkable
 from enum import Enum
 from amaranth import *
 from amaranth.hdl.ast import ShapeCastable, Statement, ValueCastable
@@ -17,7 +17,7 @@ LayoutList = list[Tuple[str, ShapeLike | "LayoutList"]]
 
 
 class HasElaborate(Protocol):
-    def elaborate(self, platform) -> Union["HasElaborate", Fragment]:
+    def elaborate(self, platform) -> "HasElaborate":
         ...
 
 

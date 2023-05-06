@@ -9,7 +9,7 @@ from collections import deque
 from typing import Iterable, Callable
 from parameterized import parameterized, parameterized_class
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout, silence_must_use_warnings
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, AdapterTrans
