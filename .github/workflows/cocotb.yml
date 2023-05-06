@@ -39,11 +39,11 @@ jobs:
 
       - name: Run cocotb
         run: |
-          cd test/cocotb && make
+          scripts/run_tests.py -a regression
 
       - name: Test Report
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: test/cocotb/results.xml
+          files: test/regression/cocotb/results.xml
           check_name: cocotb test results
           comment_mode: off
