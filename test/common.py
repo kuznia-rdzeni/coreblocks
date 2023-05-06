@@ -12,7 +12,7 @@ from amaranth.sim.core import Command
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike
+from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike, ModuleConnector
 from .gtkw_extension import write_vcd_ext
 
 
@@ -21,6 +21,7 @@ RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
+_T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 
 
 def data_layout(val: int) -> LayoutLike:
@@ -111,10 +112,34 @@ _T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
 class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def __init__(self, dut: _T_HasElaborate):
         self._dut = dut
-        self._io = dict[str, TestbenchIO]()
+        self._io = dict[str, TestbenchIO | ModuleConnector]()
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         return self._io[name]
+
+    class NotMethodException(TypeError):
+        pass
+
+    @staticmethod
+    def transform_methods_to_testbenchios(
+        container: _T_nested_collection[Method],
+    ) -> Union[ModuleConnector, "TestbenchIO"]:
+        if isinstance(container, list):
+            return ModuleConnector(*[SimpleTestCircuit.transform_methods_to_testbenchios(elem) for elem in container])
+        elif isinstance(container, dict):
+            return ModuleConnector(
+                **dict(
+                    [
+                        (name, SimpleTestCircuit.transform_methods_to_testbenchios(elem))
+                        for name, elem in container.items()
+                    ]
+                )
+            )
+        else:
+            if isinstance(container, Method):
+                return TestbenchIO(AdapterTrans(container))
+            else:
+                raise SimpleTestCircuit.NotMethodException()
 
     def elaborate(self, platform):
         m = Module()
@@ -125,14 +150,17 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         m.submodules.dut = self._dut
 
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
-            if isinstance(attr, Method):
-                self._io[name] = TestbenchIO(AdapterTrans(attr))
-                m.submodules[name] = self._io[name]
+            try:
+                if isinstance(attr, Method | list | dict):
+                    self._io[name] = self.transform_methods_to_testbenchios(attr)
+                    m.submodules[name] = self._io[name]
+            except SimpleTestCircuit.NotMethodException:
+                pass
 
         return m
 
     def debug_signals(self):
-        return [io.debug_signals() for io in self._io.values()]
+        return [auto_debug_signals(io) for io in self._io.values()]
 
 
 class TestCaseWithSimulator(unittest.TestCase):

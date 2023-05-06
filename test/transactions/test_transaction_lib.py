@@ -10,6 +10,7 @@ from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
+from coreblocks.utils import *
 from coreblocks.utils._typing import LayoutLike
 from ..common import (
     SimpleTestCircuit,
@@ -535,14 +536,14 @@ class TestSerializer(TestCaseWithSimulator):
         self.req_method = TestbenchIO(Adapter(i=layout))
         self.resp_method = TestbenchIO(Adapter(o=layout))
 
-        m = SimpleTestCircuit(
+        test_circuit = SimpleTestCircuit(
             Serializer(
                 port_count=port_count,
                 serialized_req_method=self.req_method.adapter.iface,
                 serialized_resp_method=self.resp_method.adapter.iface,
-            ),
-            external_submodules=[self.req_method, self.resp_method],
+            )
         )
+        m = ModuleConnector(test_circuit=test_circuit, req_method=self.req_method, resp_method=self.resp_method)
 
         random.seed(14)
 
@@ -570,7 +571,7 @@ class TestSerializer(TestCaseWithSimulator):
             def f():
                 for _ in range(test_count):
                     d = random.randrange(2**data_width)
-                    yield from m._io["serialize_in" + str(i)].call(field=d)
+                    yield from m.test_circuit.serialize_in[i].call(field=d)
                     port_data[i].append(d)
                     yield from random_wait(requestor_rand)
 
@@ -579,7 +580,7 @@ class TestSerializer(TestCaseWithSimulator):
         def responser(i: int):
             def f():
                 for _ in range(test_count):
-                    data_out = yield from m._io["serialize_out" + str(i)].call()
+                    data_out = yield from m.test_circuit.serialize_out[i].call()
                     self.assertEqual(port_data[i].popleft(), data_out["field"])
                     yield from random_wait(requestor_rand)
 

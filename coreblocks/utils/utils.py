@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload
+from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload, TypeVar, Any
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
@@ -320,13 +320,16 @@ def bits_from_int(num: int, lower: int, length: int):
     return (num >> lower) & (1 << (length) - 1)
 
 
+_T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
+
+
 class ModuleConnector(Elaboratable):
     """
     An Elaboratable to create a new module, which will have all arguments
     added as its submodules.
     """
 
-    def __init__(self, *args: HasElaborate, **kwargs: HasElaborate):
+    def __init__(self, *args: _T_HasElaborate, **kwargs: _T_HasElaborate):
         """
         Parameters
         ----------
@@ -335,8 +338,17 @@ class ModuleConnector(Elaboratable):
         **kwargs
             Modules which will be added as named submodules.
         """
-        self.args = args
-        self.kwargs = kwargs
+        self.args: list[_T_HasElaborate] = list(args)
+        self.kwargs: dict[str, _T_HasElaborate] = kwargs
+
+    def __getattr__(self, name: str) -> Any:
+        return self.kwargs[name]
+
+    def __getitem__(self, name: str | int) -> Any:
+        if isinstance(name, int):
+            return self.args[name]
+        else:
+            return self.kwargs[name]
 
     def elaborate(self, platform):
         m = Module()
