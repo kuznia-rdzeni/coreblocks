@@ -5,8 +5,6 @@ import random
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
 
-from coreblocks.transactions import TransactionModule
-
 from coreblocks.transactions.core import Method
 from coreblocks.transactions.lib import AdapterTrans, FIFO, Adapter
 from coreblocks.frontend.fetch import Fetch
@@ -42,7 +40,6 @@ class TestElaboratable(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         self.icache = MockedICache(self.gp)
 
@@ -57,7 +54,7 @@ class TestElaboratable(Elaboratable):
         m.submodules.verify_branch = self.verify_branch
         m.submodules.fifo = fifo
 
-        return tm
+        return m
 
 
 class TestFetch(TestCaseWithSimulator):

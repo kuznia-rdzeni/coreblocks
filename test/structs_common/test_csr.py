@@ -18,7 +18,6 @@ class CSRUnitTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         self.rob_single_insn = Signal()
 
@@ -48,7 +47,7 @@ class CSRUnitTestCircuit(Elaboratable):
         # missing privilege
         # make_csr(0x100)
 
-        return tm
+        return m
 
 
 class TestCSRUnit(TestCaseWithSimulator):
