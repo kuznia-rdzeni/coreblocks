@@ -1,6 +1,6 @@
 from collections import deque
 from abc import abstractmethod, ABC
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Callable, Any, Optional
 
 __all__ =[
         "MessageQueueInterface",
@@ -13,6 +13,10 @@ T = TypeVar('T')
 
 class MessageQueueInterface(ABC, Generic[T]):
     @abstractmethod
+    def __bool__(self) -> bool:
+        pass
+
+    @abstractmethod
     def append(self, val : T):
         pass
 
@@ -23,6 +27,9 @@ class MessageQueueInterface(ABC, Generic[T]):
 class MessageQueueCombiner(MessageQueueInterface):
     def __init__(self):
         self.sources : list[MessageQueueInterface] = []
+
+    def __bool__(self):
+        return all([bool(src) for src in self.sources])
 
     def add_source(self, src : MessageQueueInterface):
         self.sources.append(src)
@@ -37,6 +44,9 @@ class MessageQueueBroadcaster(MessageQueueInterface):
     def __init__(self):
         self.destinations : list[MessageQueueInterface] = []
 
+    def __bool__(self):
+        return False
+
     def add_destination(self, dst : MessageQueueInterface):
         self.destinations.append(dst)
 
@@ -48,11 +58,27 @@ class MessageQueueBroadcaster(MessageQueueInterface):
         raise NotImplementedError("MessageQueueBroadcaster doesn't support pop")
 
 class MessageQueue(MessageQueueInterface):
-    def __init__(self):
+    def __init__(self, filter: Optional[Callable[..., bool]]):
         self.q : deque = deque()
+        self.filter = filter
+
+    def _discard_not_ok(self) -> None:
+        if self.filter is None:
+            return
+        while self.q and (not self.filter(self.q[0])):
+            self.q.popleft()
+
+    def __bool__(self):
+        self._discard_not_ok()
+        return bool(self.q)
 
     def append(self, val):
-        self.q.append(val)
+        if self.filter is not None:
+            if self.filter(val):
+                self.q.append(val)
+        else:
+            self.q.append(val)
 
     def pop(self):
+        self._discard_not_ok()
         return self.q.popleft()

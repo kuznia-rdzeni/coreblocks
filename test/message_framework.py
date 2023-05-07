@@ -119,7 +119,7 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         self.processes[name] = TestCaseWithMessageFramework.ProcessEntry(proc, combiner, broadcaster)
         return proc
 
-    def add_data_flow(self, from_name : str, to_name : str):
+    def add_data_flow(self, from_name : str, to_name : str, *, filter : Optional[Callable[..., Any]] = None):
         msg_q = MessageQueue()
 
         proc_from = self.processes[from_name]
