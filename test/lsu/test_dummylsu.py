@@ -10,7 +10,8 @@ from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import *
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator, int_to_signed, signed_to_int
+from coreblocks.utils import ModuleConnector
+from test.common import *
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
@@ -82,30 +83,14 @@ def check_instr(addr: int, op: tuple[OpType, Funct3]) -> bool:
     return False
 
 
-class DummyLSUTestCircuit(Elaboratable):
-    def __init__(self, gen: GenParams):
-        self.gen = gen
+def construct_test_module(gp):
+    wb_params = WishboneParameters(data_width=gp.isa.ilen, addr_width=32)
 
-    def elaborate(self, platform):
-        m = Module()
+    bus = WishboneMaster(wb_params)
+    test_circuit = SimpleTestCircuit(LSUDummy(gp, bus))
 
-        wb_params = WishboneParameters(
-            data_width=self.gen.isa.ilen,
-            addr_width=32,
-        )
-
-        self.bus = WishboneMaster(wb_params)
-        m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus)
-
-        m.submodules.select_mock = self.select = TestbenchIO(AdapterTrans(func_unit.select))
-        m.submodules.insert_mock = self.insert = TestbenchIO(AdapterTrans(func_unit.insert))
-        m.submodules.update_mock = self.update = TestbenchIO(AdapterTrans(func_unit.update))
-        m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
-        m.submodules.commit_mock = self.commit = TestbenchIO(AdapterTrans(func_unit.commit))
-        m.submodules.clear = self.clear = TestbenchIO(AdapterTrans(func_unit.clear))
-        self.io_in = WishboneInterfaceWrapper(self.bus.wbMaster)
-        m.submodules.bus = self.bus
-        return m
+    io_in = WishboneInterfaceWrapper(bus.wbMaster)
+    return ModuleConnector(test_circuit=test_circuit, bus=bus), io_in
 
 
 @parameterized_class(
@@ -175,7 +160,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         random.seed(14)
         self.tests_number = 100
         self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
-        self.test_module = DummyLSUTestCircuit(self.gp)
+        self.test_module, self.io_in = construct_test_module(self.gp)
         self.instr_queue = deque()
         self.announce_queue = deque()
         self.mem_data_queue = deque()
@@ -194,15 +179,15 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         i = -1
         while True:
             i += 1
-            yield from self.test_module.io_in.slave_wait()
+            yield from self.io_in.slave_wait()
             while self.cleared_queue_wb and self.cleared_queue_wb[0] < i:
                 self.cleared_queue_wb.popleft()
 
             while self.cleared_queue_wb and self.cleared_queue_wb[0] == i:
                 self.cleared_queue_wb.popleft()
                 next_expected = self.mem_data_queue[-1]
-                received_addr = yield self.test_module.io_in.wb.adr
-                received_mask = yield self.test_module.io_in.wb.sel
+                received_addr = yield self.io_in.wb.adr
+                received_mask = yield self.io_in.wb.sel
                 # check if clear was before request to wishbone, if yes omit this instruction
                 if (next_expected["addr"] != received_addr) | (next_expected["mask"] != received_mask):
                     self.returned_data.append(-1)
@@ -212,7 +197,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
             mask = generated_data["mask"]
             sign = generated_data["sign"]
-            yield from self.test_module.io_in.slave_verify(generated_data["addr"], 0, 0, mask)
+            yield from self.io_in.slave_verify(generated_data["addr"], 0, 0, mask)
             yield from self.random_wait()
 
             resp_data = int((generated_data["rnd_bytes"][:4]).hex(), 16)
@@ -225,25 +210,25 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             if sign:
                 data = int_to_signed(signed_to_int(data, size), 32)
             self.returned_data.append(data)
-            yield from self.test_module.io_in.slave_respond(resp_data)
+            yield from self.io_in.slave_respond(resp_data)
             yield Settle()
 
     def inserter(self):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
-            ret = yield from self.test_module.select.call()
+            ret = yield from self.test_module.test_circuit.select.call()
             self.assertEqual(ret["rs_entry_id"], 0)
-            yield from self.test_module.insert.call(rs_data=req, rs_entry_id=1)
+            yield from self.test_module.test_circuit.insert.call(rs_data=req, rs_entry_id=1)
             announc = self.announce_queue.pop()
             if announc is not None:
-                yield from self.test_module.update.call(announc)
+                yield from self.test_module.test_circuit.update.call(announc)
             yield from self.random_wait()
             if random.random() < 0.1:
                 # to keep in sync inserter and wishbone slave mock i need to distinguish individual access
                 # in clear conditions the only data which are available in wishobe is addr and sel.
                 if (len(self.mem_data_queue) < 3) or compare_data_records_loop(self.mem_data_queue, n=4):
                     continue
-                yield from self.test_module.clear.call()
+                yield from self.test_module.test_circuit.clear.call()
                 self.cleared_queue_consumer.append(i)
                 self.cleared_queue_wb.append(i)
                 yield from self.random_wait()
@@ -254,7 +239,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             i += 1
             v = None
             while i < self.tests_number:
-                v = yield from self.test_module.get_result.call_try()
+                v = yield from self.test_module.test_circuit.get_result.call_try()
                 while self.cleared_queue_consumer and self.cleared_queue_consumer[0] < i:
                     self.cleared_queue_consumer.popleft()
                 if self.cleared_queue_consumer and self.cleared_queue_consumer[0] == i and self.returned_data:
@@ -305,24 +290,24 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
     def setUp(self) -> None:
         random.seed(14)
         self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
-        self.test_module = DummyLSUTestCircuit(self.gp)
+        self.test_module, self.io_in = construct_test_module(self.gp)
 
     def one_instr_test(self):
         instr, wish_data = self.generate_instr(2**7, 2**7)
 
-        ret = yield from self.test_module.select.call()
+        ret = yield from self.test_module.test_circuit.select.call()
         self.assertEqual(ret["rs_entry_id"], 0)
-        yield from self.test_module.insert.call(rs_data=instr, rs_entry_id=1)
-        yield from self.test_module.io_in.slave_wait()
+        yield from self.test_module.test_circuit.insert.call(rs_data=instr, rs_entry_id=1)
+        yield from self.io_in.slave_wait()
 
         mask = wish_data["mask"]
-        yield from self.test_module.io_in.slave_verify(wish_data["addr"], 0, 0, mask)
+        yield from self.io_in.slave_verify(wish_data["addr"], 0, 0, mask)
         data = wish_data["rnd_bytes"][:4]
         data = int(data.hex(), 16)
-        yield from self.test_module.io_in.slave_respond(data)
+        yield from self.io_in.slave_respond(data)
         yield Settle()
 
-        v = yield from self.test_module.get_result.call()
+        v = yield from self.test_module.test_circuit.get_result.call()
         self.assertEqual(v["result"], data)
 
     def test(self):
@@ -382,7 +367,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         random.seed(14)
         self.tests_number = 100
         self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
-        self.test_module = DummyLSUTestCircuit(self.gp)
+        self.test_module, self.io_in = construct_test_module(self.gp)
         self.instr_queue = deque()
         self.announce_queue = deque()
         self.mem_data_queue = deque()
@@ -396,7 +381,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
 
     def wishbone_slave(self):
         for i in range(self.tests_number):
-            yield from self.test_module.io_in.slave_wait()
+            yield from self.io_in.slave_wait()
             generated_data = self.mem_data_queue.pop()
 
             mask = generated_data["mask"]
@@ -408,29 +393,29 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 data = (int(generated_data["data"][-2:].hex(), 16) & 0xFFFF) << h_dict[mask]
             else:
                 data = int(generated_data["data"][-4:].hex(), 16)
-            yield from self.test_module.io_in.slave_verify(generated_data["addr"], data, 1, mask)
+            yield from self.io_in.slave_verify(generated_data["addr"], data, 1, mask)
             yield from self.random_wait()
 
-            yield from self.test_module.io_in.slave_respond(0)
+            yield from self.io_in.slave_respond(0)
             yield Settle()
 
     def inserter(self):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
             self.get_result_data.appendleft(req["rob_id"])
-            ret = yield from self.test_module.select.call()
+            ret = yield from self.test_module.test_circuit.select.call()
             self.assertEqual(ret["rs_entry_id"], 0)
-            yield from self.test_module.insert.call(rs_data=req, rs_entry_id=0)
+            yield from self.test_module.test_circuit.insert.call(rs_data=req, rs_entry_id=0)
             announc = self.announce_queue.pop()
             for j in range(2):
                 if announc[j] is not None:
                     yield from self.random_wait()
-                    yield from self.test_module.update.call(announc[j])
+                    yield from self.test_module.test_circuit.update.call(announc[j])
             yield from self.random_wait()
 
     def get_resulter(self):
         for i in range(self.tests_number):
-            v = yield from self.test_module.get_result.call()
+            v = yield from self.test_module.test_circuit.get_result.call()
             rob_id = self.get_result_data.pop()
             self.commit_data.appendleft(rob_id)
             self.assertEqual(v["rob_id"], rob_id)
@@ -442,7 +427,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             while len(self.commit_data) == 0:
                 yield
             rob_id = self.commit_data.pop()
-            yield from self.test_module.commit.call(rob_id=rob_id)
+            yield from self.test_module.test_circuit.commit.call(rob_id=rob_id)
 
     def test(self):
         with self.run_simulation(self.test_module) as sim:

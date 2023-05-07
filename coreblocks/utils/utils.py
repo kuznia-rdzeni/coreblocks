@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload
+from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload, Any
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
@@ -337,6 +337,17 @@ class ModuleConnector(Elaboratable):
         """
         self.args = args
         self.kwargs = kwargs
+
+    def __getattr__(self, name: str) -> Any:
+        if name not in self.kwargs:
+            raise AttributeError
+        return self.kwargs[name]
+
+    def __getitem__(self, name: str | int) -> Any:
+        if isinstance(name, int):
+            return self.args[name]
+        else:
+            return self.kwargs[name]
 
     def elaborate(self, platform):
         m = Module()
