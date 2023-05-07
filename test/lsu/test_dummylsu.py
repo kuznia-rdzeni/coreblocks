@@ -6,7 +6,6 @@ from parameterized import parameterized_class
 from amaranth.sim import Settle, Passive
 
 from coreblocks.params import OpType, GenParams
-from coreblocks.transactions import TransactionModule
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import *
@@ -89,7 +88,6 @@ class DummyLSUTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         wb_params = WishboneParameters(
             data_width=self.gen.isa.ilen,
@@ -107,7 +105,7 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.clear = self.clear = TestbenchIO(AdapterTrans(func_unit.clear))
         self.io_in = WishboneInterfaceWrapper(self.bus.wbMaster)
         m.submodules.bus = self.bus
-        return tm
+        return m
 
 
 @parameterized_class(
