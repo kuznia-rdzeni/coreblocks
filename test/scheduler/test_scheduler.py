@@ -7,7 +7,6 @@ from amaranth.sim import Settle
 from parameterized import parameterized_class
 from coreblocks.stages.rs_func_block import RSBlockComponent
 
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.structs_common.rf import RegisterFile
@@ -25,7 +24,6 @@ class SchedulerTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         rs_layouts = self.gen_params.get(RSLayouts)
         decode_layouts = self.gen_params.get(DecodeLayouts)
@@ -90,7 +88,7 @@ class SchedulerTestCircuit(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        return tm
+        return m
 
 
 @parameterized_class(

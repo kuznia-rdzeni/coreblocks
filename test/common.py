@@ -119,7 +119,6 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         dummy = Signal()
         m.d.sync += dummy.eq(1)
@@ -129,12 +128,13 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
             if isinstance(attr, Method):
                 self._io[name] = TestbenchIO(AdapterTrans(attr))
-                m.submodules += self._io[name]
+                m.submodules[name] = self._io[name]
 
-        return tm
+        return m
 
     def debug_signals(self):
         return [io.debug_signals() for io in self._io.values()]
+
 
 
 class SimulatorTestCaseBase(unittest.TestCase):
@@ -145,6 +145,7 @@ class SimulatorTestCaseBase(unittest.TestCase):
             extra_signals = module.debug_signals
         else:
             extra_signals = functools.partial(auto_debug_signals, module)
+
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
@@ -178,7 +179,10 @@ class TestCaseWithSimulator(SimulatorTestCaseBase):
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
         clk_period = 1e-6
-
+        
+        if add_transaction_module:
+            module = TransactionModule(module)
+            
         sim = Simulator(module)
         sim.add_clock(clk_period)
         yield sim
@@ -193,7 +197,10 @@ class TestCaseWithExtendedSimulator(SimulatorTestCaseBase):
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
         clk_period = 1e-6
-
+        
+        if add_transaction_module:
+            module = TransactionModule(module)
+            
         sim = simulation.SimulatorWrapper(module, clk_period, max_cycles)
         yield sim
 
