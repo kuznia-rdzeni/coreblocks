@@ -19,7 +19,7 @@ class EndOfInput(MessageFrameworkCommand):
     pass
 
 
-_T_userdata = TypeVar("_T_userdata", bound=RecordIntDict)
+_T_userdata = TypeVar("_T_userdata")
 @dataclass
 class InternalMessage(Generic[_T_userdata]):
     clk: int
@@ -40,34 +40,10 @@ class ClockProcess:
             self.now += 1
 
 
-_T_userdata_in = TypeVar("_T_userdata_in", bound=RecordIntDict)
-_T_userdata_test = TypeVar("_T_userdata_test", bound=RecordIntDict)
-_T_userdata_out = TypeVar("_T_userdata_out", bound=RecordIntDict)
-_T_userdata_transformed = TypeVar("_T_userdata_transformed", bound=RecordIntDict)
-
-class HasInputTransformation(Protocol[_T_userdata_in, _T_userdata_transformed]):
-    transformation_in : Callable[[_T_userdata_in], _T_userdata_transformed]
-
-class HasNotInputTransformation(Protocol):
-    transformation_in : None
-
-class HasOutputTransformation(Protocol[_T_userdata_test,_T_userdata_out, _T_userdata_transformed]):
-    transformation_out : Callable[[_T_userdata_transformed, _T_userdata_test], _T_userdata_out]
-
-class HasNotOutputTransformation(Protocol):
-    transformation_out : None
-
-class HasNoInOutTransformation(HasNotOutputTransformation, HasNotInputTransformation, Protocol):
-    ...
-class HasInAndNoOutTransformation(HasNotOutputTransformation, HasInputTransformation, Protocol):
-    ...
-class HasOutAndNoInTransformation(HasOutputTransformation, HasNotInputTransformation, Protocol):
-    ...
-class HasOutAndInTransformation(HasOutputTransformation, HasInputTransformation, Protocol):
-    ...
-
-
-class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_test, _T_userdata_out, _T_userdata_transformed]):
+_T_userdata_in = TypeVar("_T_userdata_in")
+_T_userdata_out = TypeVar("_T_userdata_out")
+_T_userdata_transformed = TypeVar("_T_userdata_transformed")
+class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_out, _T_userdata_transformed]):
     """
     tb : TestbenchIO
         Method under test
@@ -95,20 +71,20 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_test, _T_userd
         self.out_verif_data = out_verif_data
 
         self.passive = False
-        self.transformation_in: Optional[Callable[[_T_userdata_in], _T_userdata_transformed]] = None
-        self.transformation_out: Optional[Callable[[_T_userdata_transformed, _T_userdata_test], _T_userdata_out]] = None
-        self.prepare_send_data: Optional[Callable[[_T_userdata_transformed], RecordIntDictRet]] = None
-        self.checker: Optional[Callable[[_T_userdata_transformed, _T_userdata_test], None]] = None
+        self.transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = lambda x : cast(_T_userdata_transformed, x)
+        self.transformation_out: Callable[[_T_userdata_transformed, RecordIntDict], _T_userdata_out] = lambda x,y : cast(_T_userdata_out, {})
+        self.prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = lambda x: {}
+        self.checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = lambda x,y: None
         self.iteration_count: Optional[int] = None
 
     @staticmethod
-    def _guard_no_transformation_in(instance : 'MessageFrameworkProcess') -> TypeGuard['MessageFrameworkProcess'[_T_userdata_in, _T_userdata_test, _T_userdata_out, _T_userdata_in]]:
+    def _guard_no_transformation_in(instance : 'MessageFrameworkProcess') -> TypeGuard['MessageFrameworkProcess'[_T_userdata_in, _T_userdata_out, _T_userdata_in]]:
         if instance.transformation_in is None:
             return True
         return False
 
     @staticmethod
-    def _guard_no_transformation_out(instance : 'MessageFrameworkProcess') -> TypeGuard['MessageFrameworkProcess'[_T_userdata_in, _T_userdata_test, _T_userdata_transformed, _T_userdata_transformed]]:
+    def _guard_no_transformation_out(instance : 'MessageFrameworkProcess') -> TypeGuard['MessageFrameworkProcess'[_T_userdata_in, _T_userdata_transformed, _T_userdata_transformed]]:
         if instance.transformation_out is None:
             return True
         return False
@@ -124,41 +100,6 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_test, _T_userd
             yield
         return self.in_verif_data.pop()
 
-    @overload
-    def _transform_input(self : HasNotInputTransformation, data: _T_userdata_in) -> _T_userdata_in: ...
-    @overload
-    def _transform_input(self : HasInputTransformation, data: _T_userdata_in) -> _T_userdata_transformed: ...
-    def _transform_input(self, data: _T_userdata_in) -> _T_userdata_transformed | _T_userdata_in:
-        if MessageFrameworkProcess._guard_no_transformation_in(self):
-            return data
-        assert self.transformation_in is not None
-        return self.transformation_in(data)
-
-    @overload
-    def _transform_output(self : HasNoInOutTransformation, verification_input: _T_userdata_in, test_data : _T_userdata_test) -> _T_userdata_in: ...
-    @overload
-    def _transform_output(self : HasInAndNoOutTransformation, verification_input: _T_userdata_transformed, test_data : _T_userdata_test) -> _T_userdata_transformed: ...
-    @overload
-    def _transform_output(self : HasOutAndNoInTransformation, verification_input: _T_userdata_in, test_data : _T_userdata_test) -> _T_userdata_out: ...
-    @overload
-    def _transform_output(self : HasOutAndInTransformation, verification_input: _T_userdata_transformed, test_data : _T_userdata_test) -> _T_userdata_out: ...
-    def _transform_output(self, verification_input : _T_userdata_transformed | _T_userdata_in, test_data : _T_userdata_test) -> _T_userdata_out | _T_userdata_in | _T_userdata_transformed:
-        if self.transformation_out is not None:
-            return self.transformation_out(verification_input, test_data)
-        else:
-            return {}
-
-    def _get_send_data(self, verif_input):
-        if self.prepare_send_data is None:
-            return {}
-        else:
-            return self.prepare_send_data(verif_input)
-
-    def _call_checker(self, verification_input, test_data):
-        if self.checker is None:
-            return None
-        self.checker(verification_input, test_data)
-
     def process(self):
         if self.passive:
             yield Passive()
@@ -170,11 +111,11 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_test, _T_userd
                 if isinstance(raw_verif_input, EndOfInput):
                     break
                 raise RuntimeError(f"Got unknown MessageFrameworkCommand: {raw_verif_input}")
-            transformed_verif_input = self._transform_input(raw_verif_input.userdata)
-            send_data = self._get_send_data(transformed_verif_input)
+            transformed_verif_input = self.transformation_in(raw_verif_input.userdata)
+            send_data = self.prepare_send_data(transformed_verif_input)
             test_data = yield from self._get_test_data(send_data)
-            self._call_checker(transformed_verif_input, test_data)
-            transformed_output = self._transform_output(transformed_verif_input, test_data)
+            self.checker(transformed_verif_input, test_data)
+            transformed_output = self.transformation_out(transformed_verif_input, test_data)
             msg = InternalMessage(self.internal.clk.now, transformed_output)
             self.out_verif_data.append(msg)
         self.out_verif_data.append(EndOfInput())

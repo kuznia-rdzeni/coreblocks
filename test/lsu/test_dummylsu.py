@@ -2,6 +2,7 @@ import random
 from collections import deque
 from typing import Optional
 from parameterized import parameterized_class
+from dataclasses import dataclass
 
 from amaranth.sim import Settle, Passive
 
@@ -100,6 +101,12 @@ def construct_test_module(gp):
 # ================================================================
 # ================================================================
 
+@dataclass
+class GeneratedData():
+    ann_data : Optional[RecordIntDict]
+    instr : RecordIntDict
+    mem_data : RecordIntDict
+
 @parameterized_class(
     ("name", "max_wait"),
     [
@@ -171,7 +178,8 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
                 "sign": signess,
                 "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
             }
-        return {"ann_data" : ann_data, "instr" : instr, "mem_data" : mem_data}
+        return GeneratedData(ann_data, instr, mem_data)
+
 
     def random_wait(self):
         for i in range(random.randrange(self.max_wait)):
@@ -180,8 +188,9 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
     def test_body(self):
         selector = self.register_process("selector", self.test_module.test_circuit.select)
         selector.checker = lambda _, arg : self.assertEqual(arg["rs_entry_id"], 0)
-        inserter = self.register_process("inserter", self.test_module.test_circuit.insert)
+        inserter : MessageFrameworkProcess [GeneratedData, RecordIntDict, RecordIntDict] = self.register_process("inserter", self.test_module.test_circuit.insert) 
         inserter.transformation_in = lambda arg : arg["instr"]
+        reveal_type(inserter)
 
     def inserter(self):
         for i in range(self.tests_number):
