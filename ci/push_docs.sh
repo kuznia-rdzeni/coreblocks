@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 if [ -z "$GH_TOKEN" ] || [ -z "$GH_MAIL" ] || [ -z "$GH_NAME" ]; then
   echo "Environment configuration missing, exiting... "
   exit 1
