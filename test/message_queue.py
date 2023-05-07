@@ -1,15 +1,16 @@
 from collections import deque
 from abc import abstractmethod, ABC
-from typing import TypeVar, Generic, Callable, Any, Optional
+from typing import TypeVar, Generic, Callable, Optional
 
-__all__ =[
-        "MessageQueueInterface",
-        "MessageQueueCombiner",
-        "MessageQueueBroadcaster",
-        "MessageQueue",
-        ]
+__all__ = [
+    "MessageQueueInterface",
+    "MessageQueueCombiner",
+    "MessageQueueBroadcaster",
+    "MessageQueue",
+]
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 class MessageQueueInterface(ABC, Generic[T]):
     @abstractmethod
@@ -17,21 +18,22 @@ class MessageQueueInterface(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def append(self, val : T):
+    def append(self, val: T):
         pass
 
     @abstractmethod
     def pop(self) -> T:
         pass
 
+
 class MessageQueueCombiner(MessageQueueInterface):
     def __init__(self):
-        self.sources : list[MessageQueueInterface] = []
+        self.sources: list[MessageQueueInterface] = []
 
     def __bool__(self):
         return all([bool(src) for src in self.sources])
 
-    def add_source(self, src : MessageQueueInterface):
+    def add_source(self, src: MessageQueueInterface):
         self.sources.append(src)
 
     def append(self, val):
@@ -40,26 +42,28 @@ class MessageQueueCombiner(MessageQueueInterface):
     def pop(self):
         return [src.pop() for src in self.sources]
 
+
 class MessageQueueBroadcaster(MessageQueueInterface):
     def __init__(self):
-        self.destinations : list[MessageQueueInterface] = []
+        self.destinations: list[MessageQueueInterface] = []
 
     def __bool__(self):
         return False
 
-    def add_destination(self, dst : MessageQueueInterface):
+    def add_destination(self, dst: MessageQueueInterface):
         self.destinations.append(dst)
 
     def append(self, val):
         for dst in self.destinations:
-            dst.append(val) 
+            dst.append(val)
 
     def pop(self):
         raise NotImplementedError("MessageQueueBroadcaster doesn't support pop")
 
+
 class MessageQueue(MessageQueueInterface):
     def __init__(self, *, filter: Optional[Callable[..., bool]] = None):
-        self.q : deque = deque()
+        self.q: deque = deque()
         self.filter = filter
 
     def _discard_not_ok(self) -> None:
