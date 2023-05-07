@@ -95,7 +95,7 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_test, _T_userd
         self.out_verif_data = out_verif_data
 
         self.passive = False
-        self.transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = lambda x : x
+        self.transformation_in: Optional[Callable[[_T_userdata_in], _T_userdata_transformed]] = None
         self.transformation_out: Optional[Callable[[_T_userdata_transformed, _T_userdata_test], _T_userdata_out]] = None
         self.prepare_send_data: Optional[Callable[[_T_userdata_transformed], RecordIntDictRet]] = None
         self.checker: Optional[Callable[[_T_userdata_transformed, _T_userdata_test], None]] = None
@@ -129,10 +129,10 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_test, _T_userd
     @overload
     def _transform_input(self : HasInputTransformation, data: _T_userdata_in) -> _T_userdata_transformed: ...
     def _transform_input(self, data: _T_userdata_in) -> _T_userdata_transformed | _T_userdata_in:
-        if self.transformation_in is not None:
-            return self.transformation_in(data)
-        else:
+        if MessageFrameworkProcess._guard_no_transformation_in(self):
             return data
+        assert self.transformation_in is not None
+        return self.transformation_in(data)
 
     @overload
     def _transform_output(self : HasNoInOutTransformation, verification_input: _T_userdata_in, test_data : _T_userdata_test) -> _T_userdata_in: ...
