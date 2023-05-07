@@ -5,11 +5,12 @@ from message_queue import *
 
 # TODO add support for @Arusekk syntax trick
 
-__all__ =[
-        "MessageFrameworkProcess",
-        "TestCaseWithMessageFramework",
-        "InternalMessage",
-        ]
+__all__ = [
+    "MessageFrameworkProcess",
+    "TestCaseWithMessageFramework",
+    "InternalMessage",
+]
+
 
 class MessageFrameworkCommand:
     pass
@@ -20,6 +21,8 @@ class EndOfInput(MessageFrameworkCommand):
 
 
 _T_userdata = TypeVar("_T_userdata")
+
+
 @dataclass
 class InternalMessage(Generic[_T_userdata]):
     clk: int
@@ -46,6 +49,8 @@ class ClockProcess:
 _T_userdata_in = TypeVar("_T_userdata_in")
 _T_userdata_out = TypeVar("_T_userdata_out")
 _T_userdata_transformed = TypeVar("_T_userdata_transformed")
+
+
 class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_out, _T_userdata_transformed]):
     """
     tb : TestbenchIO
@@ -65,37 +70,44 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_out, _T_userda
         self,
         tb: Optional[TestbenchIO],
         *,
-        transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = lambda x : x, 
-        transformation_out: Callable[[_T_userdata_transformed, RecordIntDict], _T_userdata_out] = lambda x,y : {}, 
-        prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = lambda x : {}, 
-        checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = lambda x,y : None, 
+        transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = lambda x: x,
+        transformation_out: Callable[[_T_userdata_transformed, RecordIntDict], _T_userdata_out] = lambda x, y: {},
+        prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = lambda x: {},
+        checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = lambda x, y: None,
     ):
         self.tb = tb
 
         self.passive = False
         self.transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = transformation_in
-        self.transformation_out: Callable[[_T_userdata_transformed, RecordIntDict], _T_userdata_out] = transformation_out
+        self.transformation_out: Callable[
+            [_T_userdata_transformed, RecordIntDict], _T_userdata_out
+        ] = transformation_out
         self.prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = prepare_send_data
         self.checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = checker
         self.iteration_count: Optional[int] = None
 
-    def add_to_simulation(self,
+    def add_to_simulation(
+        self,
         internal_processes: "TestCaseWithMessageFramework.InternalProcesses",
         in_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_in]],
-        out_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_out]]
-                         ):
+        out_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_out]],
+    ):
         self.internal = internal_processes
         self.in_verif_data = in_verif_data
         self.out_verif_data = out_verif_data
 
     @staticmethod
-    def _guard_no_transformation_in(instance : 'MessageFrameworkProcess') -> TypeGuard['MessageFrameworkProcess'[_T_userdata_in, _T_userdata_out, _T_userdata_in]]:
+    def _guard_no_transformation_in(
+        instance: "MessageFrameworkProcess",
+    ) -> TypeGuard["MessageFrameworkProcess"[_T_userdata_in, _T_userdata_out, _T_userdata_in]]:
         if instance.transformation_in is None:
             return True
         return False
 
     @staticmethod
-    def _guard_no_transformation_out(instance : 'MessageFrameworkProcess') -> TypeGuard['MessageFrameworkProcess'[_T_userdata_in, _T_userdata_transformed, _T_userdata_transformed]]:
+    def _guard_no_transformation_out(
+        instance: "MessageFrameworkProcess",
+    ) -> TypeGuard["MessageFrameworkProcess"[_T_userdata_in, _T_userdata_transformed, _T_userdata_transformed]]:
         if instance.transformation_out is None:
             return True
         return False
@@ -151,7 +163,7 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         self.processes: dict[str, TestCaseWithMessageFramework.ProcessEntry] = {}
         self.internal = TestCaseWithMessageFramework.InternalProcesses(ClockProcess())
 
-    def register_process(self, name: str, proc : MessageFrameworkProcess[T1,Any,T3]):
+    def register_process(self, name: str, proc: MessageFrameworkProcess[T1, Any, T3]):
         combiner = MessageQueueCombiner[_MFVerificationDataType[T1]]()
         broadcaster = MessageQueueBroadcaster[_MFVerificationDataType[T3]]()
         proc.add_to_simulation(self.internal, combiner, broadcaster)
@@ -173,7 +185,7 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
     def add_data_flow(
         self, from_name: str, to_name: str, *, filter: Optional[Callable[[InternalMessage[_T_userdata]], bool]] = None
     ):
-        msg_q : MessageQueue[_MFVerificationDataType[_T_userdata]] = MessageQueue(filter=self._wrap_filter(filter))
+        msg_q: MessageQueue[_MFVerificationDataType[_T_userdata]] = MessageQueue(filter=self._wrap_filter(filter))
 
         proc_from = self.processes[from_name]
         proc_from.out_broadcaster.add_destination(msg_q)

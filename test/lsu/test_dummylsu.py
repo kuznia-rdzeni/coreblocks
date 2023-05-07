@@ -94,6 +94,7 @@ def construct_test_module(gp):
     io_in = WishboneInterfaceWrapper(bus.wbMaster)
     return ModuleConnector(test_circuit=test_circuit, bus=bus), io_in
 
+
 # ================================================================
 # ================================================================
 # ================================================================
@@ -101,11 +102,13 @@ def construct_test_module(gp):
 # ================================================================
 # ================================================================
 
+
 @dataclass
-class GeneratedData():
-    ann_data : Optional[RecordIntDict]
-    instr : RecordIntDict
-    mem_data : RecordIntDict
+class GeneratedData:
+    ann_data: Optional[RecordIntDict]
+    instr: RecordIntDict
+    mem_data: RecordIntDict
+
 
 @parameterized_class(
     ("name", "max_wait"),
@@ -172,28 +175,30 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             "s2_val": 0,
             "imm": imm,
         }
-        mem_data= {
-                "addr": addr,
-                "mask": mask,
-                "sign": signess,
-                "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
-            }
+        mem_data = {
+            "addr": addr,
+            "mask": mask,
+            "sign": signess,
+            "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+        }
         return GeneratedData(ann_data, instr, mem_data)
-
 
     def random_wait(self):
         for i in range(random.randrange(self.max_wait)):
             yield
 
     def test_body(self):
-        sel_check = lambda _, arg : self.assertEqual(arg["rs_entry_id"], 0)
+        sel_check = lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0)
         reveal_type(sel_check)
-        selector = MessageFrameworkProcess(self.test_module.test_circuit.select, checker = sel_check)
+        selector = MessageFrameworkProcess(self.test_module.test_circuit.select, checker=sel_check)
         reveal_type(selector)
         self.register_process("selector", selector)
 
-        inserter : MessageFrameworkProcess[GeneratedData, RecordIntDict, RecordIntDict]  =  MessageFrameworkProcess(self.test_module.test_circuit.insert, transformation_in = lambda arg : arg.instr,
-                                                                                                                    prepare_send_data = lambda req : {"rs_data" : req, "rs_entry_id" : 0}) 
+        inserter: MessageFrameworkProcess[GeneratedData, RecordIntDict, RecordIntDict] = MessageFrameworkProcess(
+            self.test_module.test_circuit.insert,
+            transformation_in=lambda arg: arg.instr,
+            prepare_send_data=lambda req: {"rs_data": req, "rs_entry_id": 0},
+        )
         reveal_type(inserter)
 
     def inserter(self):
@@ -254,7 +259,6 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             yield from self.io_in.slave_respond(resp_data)
             yield Settle()
 
-
     def consumer(self):
         i = -1
         while i < self.tests_number:
@@ -281,6 +285,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.consumer)
+
 
 # ================================================================
 # ================================================================

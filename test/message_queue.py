@@ -36,7 +36,7 @@ class MessageQueueCombiner(MessageQueueInterface[T]):
     def add_source(self, src: MessageQueueInterface):
         self.sources.append(src)
 
-    def append(self, val : T):
+    def append(self, val: T):
         raise NotImplementedError("MessageQueueCombiner doesn't support append")
 
     def pop(self) -> T:
@@ -53,7 +53,7 @@ class MessageQueueBroadcaster(MessageQueueInterface[T]):
     def add_destination(self, dst: MessageQueueInterface):
         self.destinations.append(dst)
 
-    def append(self, val : T):
+    def append(self, val: T):
         for dst in self.destinations:
             dst.append(val)
 
@@ -76,7 +76,7 @@ class MessageQueue(MessageQueueInterface, Generic[T]):
         self._discard_not_ok()
         return bool(self.q)
 
-    def append(self, val : T):
+    def append(self, val: T):
         if self.filter is not None:
             if self.filter(val):
                 self.q.append(val)
