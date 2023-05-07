@@ -186,10 +186,14 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             yield
 
     def test_body(self):
-        selector = self.register_process("selector", self.test_module.test_circuit.select)
-        selector.checker = lambda _, arg : self.assertEqual(arg["rs_entry_id"], 0)
-        inserter : MessageFrameworkProcess [GeneratedData, RecordIntDict, RecordIntDict] = self.register_process("inserter", self.test_module.test_circuit.insert) 
-        inserter.transformation_in = lambda arg : arg["instr"]
+        sel_check = lambda _, arg : self.assertEqual(arg["rs_entry_id"], 0)
+        reveal_type(sel_check)
+        selector = MessageFrameworkProcess(self.test_module.test_circuit.select, checker = sel_check)
+        reveal_type(selector)
+        self.register_process("selector", selector)
+
+        inserter : MessageFrameworkProcess[GeneratedData, RecordIntDict, RecordIntDict]  =  MessageFrameworkProcess(self.test_module.test_circuit.insert, transformation_in = lambda arg : arg.instr,
+                                                                                                                    prepare_send_data = lambda req : {"rs_data" : req, "rs_entry_id" : 0}) 
         reveal_type(inserter)
 
     def inserter(self):

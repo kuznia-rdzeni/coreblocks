@@ -28,6 +28,9 @@ class InternalMessage(Generic[_T_userdata]):
 
 _MFVerificationDataType = MessageFrameworkCommand | InternalMessage[_T_userdata]
 T = TypeVar("T")
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
+T3 = TypeVar("T3")
 
 
 class ClockProcess:
@@ -60,22 +63,30 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_out, _T_userda
 
     def __init__(
         self,
-        internal_processes: "TestCaseWithMessageFramework.InternalProcesses",
-        in_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_in]],
-        out_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_out]],
         tb: Optional[TestbenchIO],
+        *,
+        transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = lambda x : x, 
+        transformation_out: Callable[[_T_userdata_transformed, RecordIntDict], _T_userdata_out] = lambda x,y : {}, 
+        prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = lambda x : {}, 
+        checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = lambda x,y : None, 
     ):
-        self.internal = internal_processes
         self.tb = tb
-        self.in_verif_data = in_verif_data
-        self.out_verif_data = out_verif_data
 
         self.passive = False
-        self.transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = lambda x : cast(_T_userdata_transformed, x)
-        self.transformation_out: Callable[[_T_userdata_transformed, RecordIntDict], _T_userdata_out] = lambda x,y : cast(_T_userdata_out, {})
-        self.prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = lambda x: {}
-        self.checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = lambda x,y: None
+        self.transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = transformation_in
+        self.transformation_out: Callable[[_T_userdata_transformed, RecordIntDict], _T_userdata_out] = transformation_out
+        self.prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = prepare_send_data
+        self.checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = checker
         self.iteration_count: Optional[int] = None
+
+    def add_to_simulation(self,
+        internal_processes: "TestCaseWithMessageFramework.InternalProcesses",
+        in_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_in]],
+        out_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_out]]
+                         ):
+        self.internal = internal_processes
+        self.in_verif_data = in_verif_data
+        self.out_verif_data = out_verif_data
 
     @staticmethod
     def _guard_no_transformation_in(instance : 'MessageFrameworkProcess') -> TypeGuard['MessageFrameworkProcess'[_T_userdata_in, _T_userdata_out, _T_userdata_in]]:
@@ -101,6 +112,9 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_out, _T_userda
         return self.in_verif_data.pop()
 
     def process(self):
+        if not (hasattr(self, "in_verif_data") and hasattr(self, "out_verif_data") and hasattr(self, "internal")):
+            raise RuntimeError("Simulation started before adding proces to Message Framework.")
+
         if self.passive:
             yield Passive()
         i = 0
@@ -137,12 +151,11 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         self.processes: dict[str, TestCaseWithMessageFramework.ProcessEntry] = {}
         self.internal = TestCaseWithMessageFramework.InternalProcesses(ClockProcess())
 
-    def register_process(self, name: str, tb: Optional[TestbenchIO]) -> MessageFrameworkProcess:
-        combiner = MessageQueueCombiner()
-        broadcaster = MessageQueueBroadcaster()
-        proc = MessageFrameworkProcess(self.internal, combiner, broadcaster, tb)
+    def register_process(self, name: str, proc : MessageFrameworkProcess[T1,Any,T3]):
+        combiner = MessageQueueCombiner[_MFVerificationDataType[T1]]()
+        broadcaster = MessageQueueBroadcaster[_MFVerificationDataType[T3]]()
+        proc.add_to_simulation(self.internal, combiner, broadcaster)
         self.processes[name] = TestCaseWithMessageFramework.ProcessEntry(proc, combiner, broadcaster)
-        return proc
 
     def _wrap_filter(
         self, f: Optional[Callable[[InternalMessage[_T_userdata]], bool]]

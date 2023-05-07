@@ -26,7 +26,7 @@ class MessageQueueInterface(ABC, Generic[T]):
         pass
 
 
-class MessageQueueCombiner(MessageQueueInterface):
+class MessageQueueCombiner(MessageQueueInterface[T]):
     def __init__(self):
         self.sources: list[MessageQueueInterface] = []
 
@@ -36,14 +36,14 @@ class MessageQueueCombiner(MessageQueueInterface):
     def add_source(self, src: MessageQueueInterface):
         self.sources.append(src)
 
-    def append(self, val):
+    def append(self, val : T):
         raise NotImplementedError("MessageQueueCombiner doesn't support append")
 
-    def pop(self):
+    def pop(self) -> T:
         return [src.pop() for src in self.sources]
 
 
-class MessageQueueBroadcaster(MessageQueueInterface):
+class MessageQueueBroadcaster(MessageQueueInterface[T]):
     def __init__(self):
         self.destinations: list[MessageQueueInterface] = []
 
@@ -53,7 +53,7 @@ class MessageQueueBroadcaster(MessageQueueInterface):
     def add_destination(self, dst: MessageQueueInterface):
         self.destinations.append(dst)
 
-    def append(self, val):
+    def append(self, val : T):
         for dst in self.destinations:
             dst.append(val)
 
