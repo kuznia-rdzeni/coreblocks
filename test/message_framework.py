@@ -1,10 +1,15 @@
 from common import *
-from typing import TypeVar
+from typing import TypeVar, overload, Protocol, TypeGuard
 from dataclasses import dataclass
 from message_queue import *
 
 # TODO add support for @Arusekk syntax trick
 
+__all__ =[
+        "MessageFrameworkProcess",
+        "TestCaseWithMessageFramework",
+        "InternalMessage",
+        ]
 
 class MessageFrameworkCommand:
     pass
@@ -14,13 +19,14 @@ class EndOfInput(MessageFrameworkCommand):
     pass
 
 
+_T_userdata = TypeVar("_T_userdata", bound=RecordIntDict)
 @dataclass
-class InternalMessage:
+class InternalMessage(Generic[_T_userdata]):
     clk: int
-    userdata: RecordIntDict
+    userdata: _T_userdata
 
 
-_MFVerificationDataType = MessageFrameworkCommand | InternalMessage
+_MFVerificationDataType = MessageFrameworkCommand | InternalMessage[_T_userdata]
 T = TypeVar("T")
 
 
@@ -34,7 +40,34 @@ class ClockProcess:
             self.now += 1
 
 
-class MessageFrameworkProcess:
+_T_userdata_in = TypeVar("_T_userdata_in", bound=RecordIntDict)
+_T_userdata_test = TypeVar("_T_userdata_test", bound=RecordIntDict)
+_T_userdata_out = TypeVar("_T_userdata_out", bound=RecordIntDict)
+_T_userdata_transformed = TypeVar("_T_userdata_transformed", bound=RecordIntDict)
+
+class HasInputTransformation(Protocol[_T_userdata_in, _T_userdata_transformed]):
+    transformation_in : Callable[[_T_userdata_in], _T_userdata_transformed]
+
+class HasNotInputTransformation(Protocol):
+    transformation_in : None
+
+class HasOutputTransformation(Protocol[_T_userdata_test,_T_userdata_out, _T_userdata_transformed]):
+    transformation_out : Callable[[_T_userdata_transformed, _T_userdata_test], _T_userdata_out]
+
+class HasNotOutputTransformation(Protocol):
+    transformation_out : None
+
+class HasNoInOutTransformation(HasNotOutputTransformation, HasNotInputTransformation, Protocol):
+    ...
+class HasInAndNoOutTransformation(HasNotOutputTransformation, HasInputTransformation, Protocol):
+    ...
+class HasOutAndNoInTransformation(HasOutputTransformation, HasNotInputTransformation, Protocol):
+    ...
+class HasOutAndInTransformation(HasOutputTransformation, HasInputTransformation, Protocol):
+    ...
+
+
+class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_test, _T_userdata_out, _T_userdata_transformed]):
     """
     tb : TestbenchIO
         Method under test
@@ -52,8 +85,8 @@ class MessageFrameworkProcess:
     def __init__(
         self,
         internal_processes: "TestCaseWithMessageFramework.InternalProcesses",
-        in_verif_data: MessageQueueInterface[_MFVerificationDataType],
-        out_verif_data: MessageQueueInterface[_MFVerificationDataType],
+        in_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_in]],
+        out_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_out]],
         tb: Optional[TestbenchIO],
     ):
         self.internal = internal_processes
@@ -62,11 +95,23 @@ class MessageFrameworkProcess:
         self.out_verif_data = out_verif_data
 
         self.passive = False
-        self.transformation_in: Optional[Callable[[RecordIntDict], RecordIntDictRet]] = None
-        self.transformation_out: Optional[Callable[[RecordIntDict, RecordIntDict], RecordIntDictRet]] = None
-        self.prepare_send_data: Optional[Callable[[RecordIntDict], RecordIntDictRet]] = None
-        self.checker: Optional[Callable[[RecordIntDict, RecordIntDict], None]] = None
+        self.transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = lambda x : x
+        self.transformation_out: Optional[Callable[[_T_userdata_transformed, _T_userdata_test], _T_userdata_out]] = None
+        self.prepare_send_data: Optional[Callable[[_T_userdata_transformed], RecordIntDictRet]] = None
+        self.checker: Optional[Callable[[_T_userdata_transformed, _T_userdata_test], None]] = None
         self.iteration_count: Optional[int] = None
+
+    @staticmethod
+    def _guard_no_transformation_in(instance : 'MessageFrameworkProcess') -> TypeGuard['MessageFrameworkProcess'[_T_userdata_in, _T_userdata_test, _T_userdata_out, _T_userdata_in]]:
+        if instance.transformation_in is None:
+            return True
+        return False
+
+    @staticmethod
+    def _guard_no_transformation_out(instance : 'MessageFrameworkProcess') -> TypeGuard['MessageFrameworkProcess'[_T_userdata_in, _T_userdata_test, _T_userdata_transformed, _T_userdata_transformed]]:
+        if instance.transformation_out is None:
+            return True
+        return False
 
     def _get_test_data(self, arg_to_send: RecordIntDict):
         if self.tb is not None:
@@ -79,13 +124,25 @@ class MessageFrameworkProcess:
             yield
         return self.in_verif_data.pop()
 
-    def _transform_input(self, data: RecordIntDict) -> RecordIntDictRet:
+    @overload
+    def _transform_input(self : HasNotInputTransformation, data: _T_userdata_in) -> _T_userdata_in: ...
+    @overload
+    def _transform_input(self : HasInputTransformation, data: _T_userdata_in) -> _T_userdata_transformed: ...
+    def _transform_input(self, data: _T_userdata_in) -> _T_userdata_transformed | _T_userdata_in:
         if self.transformation_in is not None:
             return self.transformation_in(data)
         else:
             return data
 
-    def _transform_output(self, verification_input, test_data):
+    @overload
+    def _transform_output(self : HasNoInOutTransformation, verification_input: _T_userdata_in, test_data : _T_userdata_test) -> _T_userdata_in: ...
+    @overload
+    def _transform_output(self : HasInAndNoOutTransformation, verification_input: _T_userdata_transformed, test_data : _T_userdata_test) -> _T_userdata_transformed: ...
+    @overload
+    def _transform_output(self : HasOutAndNoInTransformation, verification_input: _T_userdata_in, test_data : _T_userdata_test) -> _T_userdata_out: ...
+    @overload
+    def _transform_output(self : HasOutAndInTransformation, verification_input: _T_userdata_transformed, test_data : _T_userdata_test) -> _T_userdata_out: ...
+    def _transform_output(self, verification_input : _T_userdata_transformed | _T_userdata_in, test_data : _T_userdata_test) -> _T_userdata_out | _T_userdata_in | _T_userdata_transformed:
         if self.transformation_out is not None:
             return self.transformation_out(verification_input, test_data)
         else:
@@ -102,28 +159,25 @@ class MessageFrameworkProcess:
             return None
         self.checker(verification_input, test_data)
 
-    def generate_wrapper(self):
-        def f():
-            if self.passive:
-                yield Passive()
-            i = 0
-            while self.iteration_count is None or (i < self.iteration_count):
-                i += 1
-                raw_verif_input = yield from self._get_verifcation_input()
-                if isinstance(raw_verif_input, MessageFrameworkCommand):
-                    if isinstance(raw_verif_input, EndOfInput):
-                        break
-                    raise RuntimeError(f"Got unknown MessageFrameworkCommand: {raw_verif_input}")
-                transformed_verif_input = self._transform_input(raw_verif_input.userdata)
-                send_data = self._get_send_data(transformed_verif_input)
-                test_data = yield from self._get_test_data(send_data)
-                self._call_checker(transformed_verif_input, test_data)
-                transformed_output = self._transform_output(transformed_verif_input, test_data)
-                msg = InternalMessage(self.internal.clk.now, transformed_output)
-                self.out_verif_data.append(msg)
-            self.out_verif_data.append(EndOfInput())
-
-        return f
+    def process(self):
+        if self.passive:
+            yield Passive()
+        i = 0
+        while self.iteration_count is None or (i < self.iteration_count):
+            i += 1
+            raw_verif_input = yield from self._get_verifcation_input()
+            if isinstance(raw_verif_input, MessageFrameworkCommand):
+                if isinstance(raw_verif_input, EndOfInput):
+                    break
+                raise RuntimeError(f"Got unknown MessageFrameworkCommand: {raw_verif_input}")
+            transformed_verif_input = self._transform_input(raw_verif_input.userdata)
+            send_data = self._get_send_data(transformed_verif_input)
+            test_data = yield from self._get_test_data(send_data)
+            self._call_checker(transformed_verif_input, test_data)
+            transformed_output = self._transform_output(transformed_verif_input, test_data)
+            msg = InternalMessage(self.internal.clk.now, transformed_output)
+            self.out_verif_data.append(msg)
+        self.out_verif_data.append(EndOfInput())
 
 
 class TestCaseWithMessageFramework(TestCaseWithSimulator):
@@ -150,8 +204,8 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         return proc
 
     def _wrap_filter(
-        self, f: Optional[Callable[[InternalMessage], bool]]
-    ) -> Optional[Callable[[_MFVerificationDataType], bool]]:
+        self, f: Optional[Callable[[InternalMessage[_T_userdata]], bool]]
+    ) -> Optional[Callable[[_MFVerificationDataType[_T_userdata]], bool]]:
         if f is None:
             return None
 
@@ -163,9 +217,9 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         return wraped
 
     def add_data_flow(
-        self, from_name: str, to_name: str, *, filter: Optional[Callable[[InternalMessage], bool]] = None
+        self, from_name: str, to_name: str, *, filter: Optional[Callable[[InternalMessage[_T_userdata]], bool]] = None
     ):
-        msg_q = MessageQueue(filter=self._wrap_filter(filter))
+        msg_q : MessageQueue[_MFVerificationDataType[_T_userdata]] = MessageQueue(filter=self._wrap_filter(filter))
 
         proc_from = self.processes[from_name]
         proc_from.out_broadcaster.add_destination(msg_q)
@@ -175,6 +229,6 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
 
     def start_test(self, module: HasElaborate):
         with self.run_simulation(module) as sim:
-            sim.add_sync_process(self.internal.clk)
-            for p in self.processes:
-                sim.add_sync_process(p)
+            sim.add_sync_process(self.internal.clk.process)
+            for p in self.processes.values():
+                sim.add_sync_process(p.proc.process)

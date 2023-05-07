@@ -13,6 +13,7 @@ from coreblocks.peripherals.wishbone import *
 from coreblocks.utils import ModuleConnector
 from test.common import *
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
+from test.message_framework import *
 
 
 def compare_data_records(r1, r2) -> bool:
@@ -91,6 +92,189 @@ def construct_test_module(gp):
 
     io_in = WishboneInterfaceWrapper(bus.wbMaster)
     return ModuleConnector(test_circuit=test_circuit, bus=bus), io_in
+
+# ================================================================
+# ================================================================
+# ================================================================
+# ================================================================
+# ================================================================
+# ================================================================
+
+@parameterized_class(
+    ("name", "max_wait"),
+    [
+        ("fast", 1),
+        ("big_waits", 10),
+    ],
+)
+class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
+    max_wait: int
+
+    def setUp(self) -> None:
+        # testing clear method in connection with wishbone slave mock is very tricky
+        # and it is hard to cover all corner cases of test functionality
+        # I suppose that there are still bugs in this test, but wuth occurence rate
+        # less than 10^-4
+        random.seed(14)
+        self.tests_number = 100
+        self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.test_module, self.io_in = construct_test_module(self.gp)
+        self.instr_queue = deque()
+        self.announce_queue = deque()
+        self.mem_data_queue = deque()
+        self.returned_data = deque()
+        self.cleared_queue_consumer = deque()
+        self.cleared_queue_wb = deque()
+        self.generate_instr(2**7, 2**7)
+
+    def generate_instr(self, max_reg_val, max_imm_val):
+        ops = {
+            "LB": (OpType.LOAD, Funct3.B),
+            "LBU": (OpType.LOAD, Funct3.BU),
+            "LH": (OpType.LOAD, Funct3.H),
+            "LHU": (OpType.LOAD, Funct3.HU),
+            "LW": (OpType.LOAD, Funct3.W),
+        }
+
+        # generate new instructions till we generate correct one
+        while True:
+            # generate opcode
+            (op, mask, signess) = generate_random_op(ops)
+            # generate rp1, val1 which create addr
+            rp_s1, s1_val, ann_data, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
+            imm = generate_imm(max_imm_val)
+            addr += imm
+            if check_instr(addr, op):
+                break
+
+        exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
+
+        # calculate word address and mask
+        mask = shift_mask_based_on_addr(mask, addr)
+        addr = addr >> 2
+
+        rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
+        rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
+        instr = {
+            "rp_s1": rp_s1,
+            "rp_s2": 0,
+            "rp_dst": rp_dst,
+            "rob_id": rob_id,
+            "exec_fn": exec_fn,
+            "s1_val": s1_val,
+            "s2_val": 0,
+            "imm": imm,
+        }
+        mem_data= {
+                "addr": addr,
+                "mask": mask,
+                "sign": signess,
+                "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+            }
+        return {"ann_data" : ann_data, "instr" : instr, "mem_data" : mem_data}
+
+    def random_wait(self):
+        for i in range(random.randrange(self.max_wait)):
+            yield
+
+    def test_body(self):
+        selector = self.register_process("selector", self.test_module.test_circuit.select)
+        selector.checker = lambda _, arg : self.assertEqual(arg["rs_entry_id"], 0)
+        inserter = self.register_process("inserter", self.test_module.test_circuit.insert)
+        inserter.transformation_in = lambda arg : arg["instr"]
+
+    def inserter(self):
+        for i in range(self.tests_number):
+            req = self.instr_queue.pop()
+            yield from self.test_module.test_circuit.insert.call(rs_data=req, rs_entry_id=1)
+            announc = self.announce_queue.pop()
+            if announc is not None:
+                yield from self.test_module.test_circuit.update.call(announc)
+            yield from self.random_wait()
+            if random.random() < 0.1:
+                # to keep in sync inserter and wishbone slave mock i need to distinguish individual access
+                # in clear conditions the only data which are available in wishobe is addr and sel.
+                if (len(self.mem_data_queue) < 3) or compare_data_records_loop(self.mem_data_queue, n=4):
+                    continue
+                yield from self.test_module.test_circuit.clear.call()
+                self.cleared_queue_consumer.append(i)
+                self.cleared_queue_wb.append(i)
+                yield from self.random_wait()
+
+    def wishbone_slave(self):
+        yield Passive()
+
+        i = -1
+        while True:
+            i += 1
+            yield from self.io_in.slave_wait()
+            while self.cleared_queue_wb and self.cleared_queue_wb[0] < i:
+                self.cleared_queue_wb.popleft()
+
+            while self.cleared_queue_wb and self.cleared_queue_wb[0] == i:
+                self.cleared_queue_wb.popleft()
+                next_expected = self.mem_data_queue[-1]
+                received_addr = yield self.io_in.wb.adr
+                received_mask = yield self.io_in.wb.sel
+                # check if clear was before request to wishbone, if yes omit this instruction
+                if (next_expected["addr"] != received_addr) | (next_expected["mask"] != received_mask):
+                    self.returned_data.append(-1)
+                    self.mem_data_queue.pop()
+                    i += 1
+            generated_data = self.mem_data_queue.pop()
+
+            mask = generated_data["mask"]
+            sign = generated_data["sign"]
+            yield from self.io_in.slave_verify(generated_data["addr"], 0, 0, mask)
+            yield from self.random_wait()
+
+            resp_data = int((generated_data["rnd_bytes"][:4]).hex(), 16)
+            data_shift = (mask & -mask).bit_length() - 1
+            assert mask.bit_length() == data_shift + mask.bit_count(), "Unexpected mask"
+
+            size = mask.bit_count() * 8
+            data_mask = 2**size - 1
+            data = (resp_data >> (data_shift * 8)) & data_mask
+            if sign:
+                data = int_to_signed(signed_to_int(data, size), 32)
+            self.returned_data.append(data)
+            yield from self.io_in.slave_respond(resp_data)
+            yield Settle()
+
+
+    def consumer(self):
+        i = -1
+        while i < self.tests_number:
+            i += 1
+            v = None
+            while i < self.tests_number:
+                v = yield from self.test_module.test_circuit.get_result.call_try()
+                while self.cleared_queue_consumer and self.cleared_queue_consumer[0] < i:
+                    self.cleared_queue_consumer.popleft()
+                if self.cleared_queue_consumer and self.cleared_queue_consumer[0] == i and self.returned_data:
+                    self.cleared_queue_consumer.popleft()
+                    self.returned_data.popleft()
+                    i += 1
+                if v is not None:
+                    break
+            if i >= self.tests_number:
+                break
+            assert v is not None
+            self.assertEqual(v["result"], self.returned_data.popleft())
+            yield from self.random_wait()
+
+    def test(self):
+        with self.run_simulation(self.test_module) as sim:
+            sim.add_sync_process(self.wishbone_slave)
+            sim.add_sync_process(self.inserter)
+            sim.add_sync_process(self.consumer)
+
+# ================================================================
+# ================================================================
+# ================================================================
+# ================================================================
+# ================================================================
+# ================================================================
 
 
 @parameterized_class(

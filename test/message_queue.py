@@ -61,9 +61,9 @@ class MessageQueueBroadcaster(MessageQueueInterface):
         raise NotImplementedError("MessageQueueBroadcaster doesn't support pop")
 
 
-class MessageQueue(MessageQueueInterface):
-    def __init__(self, *, filter: Optional[Callable[..., bool]] = None):
-        self.q: deque = deque()
+class MessageQueue(MessageQueueInterface, Generic[T]):
+    def __init__(self, *, filter: Optional[Callable[[T], bool]] = None):
+        self.q: deque[T] = deque()
         self.filter = filter
 
     def _discard_not_ok(self) -> None:
@@ -76,13 +76,13 @@ class MessageQueue(MessageQueueInterface):
         self._discard_not_ok()
         return bool(self.q)
 
-    def append(self, val):
+    def append(self, val : T):
         if self.filter is not None:
             if self.filter(val):
                 self.q.append(val)
         else:
             self.q.append(val)
 
-    def pop(self):
+    def pop(self) -> T:
         self._discard_not_ok()
         return self.q.popleft()
