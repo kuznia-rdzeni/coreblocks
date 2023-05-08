@@ -51,7 +51,6 @@ class SimultaneousDiamondTest(TestCaseWithSimulator):
                 for k, n in enumerate(methods):
                     enables[n] = bool(i & (1 << k))
                     yield from methods[n].set_enable(enables[n])
-                print(enables)
                 yield
                 dones: dict[str, bool] = {}
                 for n in methods:
