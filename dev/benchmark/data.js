@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683387637393,
+  "lastUpdate": 1683534943344,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -5266,6 +5266,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0a6b0f310c0739f86cd2da58d5d145a3e1c016ab"
         },
         "date": 1683387636186,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 58.1,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 18754,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 562,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5604,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4000f2fe8c5c6d36e00f20fe1e45033dee8b2b8a",
+          "message": "Fix pushing CI docs (#330)",
+          "timestamp": "2023-05-08T10:27:34+02:00",
+          "tree_id": "7685b98bb2e6a05dab4233477539333e47020191",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4000f2fe8c5c6d36e00f20fe1e45033dee8b2b8a"
+        },
+        "date": 1683534941476,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
