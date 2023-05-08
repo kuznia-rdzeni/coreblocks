@@ -15,7 +15,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
         <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -50,6 +50,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Current_graph.html">Full transaction-method graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Problem-checklist.html">Problem checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="synthesis/Synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptionsSummary.html">Summary of papers about interrupts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 </ul>
 
@@ -89,10 +91,10 @@
 <li class="toctree-l1"><a class="reference internal" href="Development_environment.html">Development environment</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="Development_environment.html#setting-up">Setting up</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Development_environment.html#using-scripts">Using scripts</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="Development_environment.html#run-tests">run_tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Development_environment.html#run-tests-py">run_tests.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="Development_environment.html#lint-sh">lint.sh</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Development_environment.html#core-graph">core_graph</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Development_environment.html#build-docs-sh">build-docs.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Development_environment.html#core-graph-py">core_graph.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="Development_environment.html#build-docs-sh">build_docs.sh</a></li>
 </ul>
 </li>
 </ul>
@@ -106,6 +108,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="Transactions.html#the-library">The library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Transactions.html#advanced-concepts">Advanced concepts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Transactions.html#transaction-and-method-nesting">Transaction and method nesting</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="scheduler/Overview.html">Scheduler overview</a><ul>
@@ -164,6 +170,24 @@
 <li class="toctree-l2"><a class="reference internal" href="synthesis/Synthesis.html#benchmarks">Benchmarks</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="components/icache.html#interface">Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="components/icache.html#assumptions">Assumptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="components/icache.html#address-mapping-example">Address mapping example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptionsSummary.html">Summary of papers about interrupts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="miscellany/exceptionsSummary.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="miscellany/exceptionsSummary.html#interrupt-handling-in-old-pcs">Interrupt handling in old PCs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="miscellany/exceptionsSummary.html#interrupt-handling-for-out-of-order-execution-processors">Interrupt Handling for Out-of-Order Execution Processors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="miscellany/exceptionsSummary.html#in-line-interrupt-handling-for-software-managed-tlbs">In-Line Interrupt Handling for Software-Managed TLBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="miscellany/exceptionsSummary.html#hardware-software-cost-analysis-of-interrupt-processing-strategies">Hardware/software cost analysis of interrupt processing strategies:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="miscellany/exceptionsSummary.html#igpu-exception-support-and-speculative-execution-on-gpus">iGPU: Exception Support and Speculative Execution on GPUs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="miscellany/exceptionsSummary.html#efficient-exception-handling-support-for-gpus">Efficient Exception Handling Support for GPUs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="miscellany/exceptionsSummary.html#others">Others</a></li>
+<li class="toctree-l2"><a class="reference internal" href="miscellany/exceptionsSummary.html#summary">Summary</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api.html#coreblocks">coreblocks</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.html">coreblocks package</a></li>
@@ -186,7 +210,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:05 2023-03-15.
+      <span class="lastupdated">Last updated on 08:28 2023-05-08.
       </span></p>
   </div>
 

@@ -15,7 +15,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
         <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -46,10 +46,10 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Development environment</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#setting-up">Setting up</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#using-scripts">Using scripts</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#run-tests">run_tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#run-tests-py">run_tests.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#lint-sh">lint.sh</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#core-graph">core_graph</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#build-docs-sh">build-docs.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#core-graph-py">core_graph.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#build-docs-sh">build_docs.sh</a></li>
 </ul>
 </li>
 </ul>
@@ -61,6 +61,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Current_graph.html">Full transaction-method graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Problem-checklist.html">Problem checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="synthesis/Synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptionsSummary.html">Summary of papers about interrupts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 </ul>
 
@@ -107,22 +109,22 @@
 <div class="section" id="using-scripts">
 <h2>Using scripts<a class="headerlink" href="#using-scripts" title="Permalink to this heading"></a></h2>
 <p>The development environment contains a number of scripts which are run in CI, but are also intended for local use. They are:</p>
-<div class="section" id="run-tests">
-<h3>run_tests<a class="headerlink" href="#run-tests" title="Permalink to this heading"></a></h3>
+<div class="section" id="run-tests-py">
+<h3>run_tests.py<a class="headerlink" href="#run-tests-py" title="Permalink to this heading"></a></h3>
 <p>Runs the unit tests. By default, every available test is run. Tests from a specific file can be run using the following call (<code class="docutils literal notranslate"><span class="pre">test_transactions</span></code> is used as an example):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">run_tests</span> <span class="n">test_transactions</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">run_tests</span><span class="o">.</span><span class="n">py</span> <span class="n">test_transactions</span>
 </pre></div>
 </div>
 <p>One can even run a specific test class from a file:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">run_tests</span> <span class="n">test_transactions</span><span class="o">.</span><span class="n">TestScheduler</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">run_tests</span><span class="o">.</span><span class="n">py</span> <span class="n">test_transactions</span><span class="o">.</span><span class="n">TestScheduler</span>
 </pre></div>
 </div>
 <p>Or a specific test method:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">run_tests</span> <span class="n">test_transactions</span><span class="o">.</span><span class="n">TestScheduler</span><span class="o">.</span><span class="n">test_single</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">run_tests</span><span class="o">.</span><span class="n">py</span> <span class="n">test_transactions</span><span class="o">.</span><span class="n">TestScheduler</span><span class="o">.</span><span class="n">test_single</span>
 </pre></div>
 </div>
-<p>The argument to <code class="docutils literal notranslate"><span class="pre">run_tests</span></code> is actually used to search within the full names of tests. The script runs all the tests which match the query. Thanks to this, if a given test class name is unique, just the class name can be used as an argument.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">run_tests</span></code> script has the following options:</p>
+<p>The argument to <code class="docutils literal notranslate"><span class="pre">run_tests.py</span></code> is actually used to search within the full names of tests. The script runs all the tests which match the query. Thanks to this, if a given test class name is unique, just the class name can be used as an argument.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">run_tests.py</span></code> script has the following options:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">-l</span></code>, <code class="docutils literal notranslate"><span class="pre">--list</span></code> – lists available tests. This option is helpful, e.g., to find a name of a test generated using the <code class="docutils literal notranslate"><span class="pre">parameterized</span></code> package.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-t</span></code>, <code class="docutils literal notranslate"><span class="pre">--trace</span></code> – generates waveforms in the <code class="docutils literal notranslate"><span class="pre">vcd</span></code> format and <code class="docutils literal notranslate"><span class="pre">gtkw</span></code> files for the <code class="docutils literal notranslate"><span class="pre">gtkwave</span></code> tool. The files are saved in the <code class="docutils literal notranslate"><span class="pre">test/__traces__/</span></code> directory. Useful for debugging and test-driven development.</p></li>
@@ -148,17 +150,17 @@
 </div>
 <p>This way you may display the changes <code class="docutils literal notranslate"><span class="pre">black</span></code> would apply to <code class="docutils literal notranslate"><span class="pre">[filename]</span></code> if you chose the <code class="docutils literal notranslate"><span class="pre">format</span></code> option for <code class="docutils literal notranslate"><span class="pre">lint.sh</span></code> script. This may help you locate the formatting issues.</p>
 </div>
-<div class="section" id="core-graph">
-<h3>core_graph<a class="headerlink" href="#core-graph" title="Permalink to this heading"></a></h3>
+<div class="section" id="core-graph-py">
+<h3>core_graph.py<a class="headerlink" href="#core-graph-py" title="Permalink to this heading"></a></h3>
 <p>Visualizes the core architecture as a graph. The script outputs a file in one of supported graph formats, which need to be passed to an appropriate tool to get a graph.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">core_graph</span></code> script has the following options:</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">core_graph.py</span></code> script has the following options:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">-p</span></code>, <code class="docutils literal notranslate"><span class="pre">--prune</span></code> – removes disconnected nodes from the output graph.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-f</span> <span class="pre">FORMAT</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">FORMAT</span></code> – selects the output format. Supported formats are <code class="docutils literal notranslate"><span class="pre">elk</span></code> (for <a class="reference external" href="https://www.eclipse.org/elk/">Eclipse Layout Kernel</a>), <code class="docutils literal notranslate"><span class="pre">dot</span></code> (for <a class="reference external" href="https://graphviz.org/">Graphviz</a>), <code class="docutils literal notranslate"><span class="pre">mermaid</span></code> (for <a class="reference external" href="https://mermaid.js.org/">Mermaid</a>).</p></li>
 </ul>
 </div>
 <div class="section" id="build-docs-sh">
-<h3>build-docs.sh<a class="headerlink" href="#build-docs-sh" title="Permalink to this heading"></a></h3>
+<h3>build_docs.sh<a class="headerlink" href="#build-docs-sh" title="Permalink to this heading"></a></h3>
 <p>Generates local documentation using <a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a>. The generated HTML files are located in <code class="docutils literal notranslate"><span class="pre">build/html</span></code>.</p>
 </div>
 </div>
@@ -176,7 +178,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:05 2023-03-15.
+      <span class="lastupdated">Last updated on 08:28 2023-05-08.
       </span></p>
   </div>
 

@@ -15,7 +15,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
         <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -51,6 +51,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Current_graph.html">Full transaction-method graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Problem-checklist.html">Problem checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="synthesis/Synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptionsSummary.html">Summary of papers about interrupts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 </ul>
 
@@ -150,6 +152,26 @@ Bus is requested by asserting CYC signal and is granted to masters in a round ro
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneArbiter.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slave_wb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Record</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneArbiter.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneBus">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.wishbone.</span></span><span class="sig-name descname"><span class="pre">WishboneBus</span></span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneBus" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Record</span></code></p>
+<p>Wishbone bus.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>wb_params: WishboneParameters</strong></dt><dd><p>Parameters for bus generation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneBus.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneBus.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -326,7 +348,7 @@ requests should be implemented in block that controlls <cite>ssel_tga</cite> sig
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:05 2023-03-15.
+      <span class="lastupdated">Last updated on 08:28 2023-05-08.
       </span></p>
   </div>
 

@@ -15,12 +15,12 @@
         <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
         <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="API" href="../api.html" />
+    <link rel="next" title="Instruction Cache" href="../components/icache.html" />
     <link rel="prev" title="Problem checklist" href="../Problem-checklist.html" /> 
 </head>
 
@@ -59,6 +59,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#benchmarks">Benchmarks</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellany/exceptionsSummary.html">Summary of papers about interrupts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API</a></li>
 </ul>
 
@@ -112,13 +114,13 @@ grows and more functionalities are added.</p>
 </div>
 <div class="section" id="usage">
 <h3>Usage<a class="headerlink" href="#usage" title="Permalink to this heading"></a></h3>
-<p>Script named <code class="docutils literal notranslate"><span class="pre">synthesize</span></code> is used to perform the <code class="docutils literal notranslate"><span class="pre">Core</span></code> synthesis.</p>
+<p>Script named <code class="docutils literal notranslate"><span class="pre">synthesize.py</span></code> is used to perform the <code class="docutils literal notranslate"><span class="pre">Core</span></code> synthesis.</p>
 <p>Example usage:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">scripts</span><span class="o">/</span><span class="n">synthesize</span> <span class="o">--</span><span class="n">help</span>
-<span class="o">./</span><span class="n">scripts</span><span class="o">/</span><span class="n">synthesize</span> <span class="o">--</span><span class="n">platform</span> <span class="n">ecp5</span> <span class="o">--</span><span class="n">verbose</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">scripts</span><span class="o">/</span><span class="n">synthesize</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">help</span>
+<span class="o">./</span><span class="n">scripts</span><span class="o">/</span><span class="n">synthesize</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">platform</span> <span class="n">ecp5</span> <span class="o">--</span><span class="n">verbose</span>
 </pre></div>
 </div>
-<p>To collect synthesis information we use script named <code class="docutils literal notranslate"><span class="pre">parse_benchmark_info</span></code>.</p>
+<p>To collect synthesis information we use script named <code class="docutils literal notranslate"><span class="pre">parse_benchmark_info.py</span></code>.</p>
 <p>This script parses the output of the synthesis tool and extracts the
 following information:</p>
 <ul class="simple">
@@ -142,14 +144,14 @@ following information:</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../Problem-checklist.html" class="btn btn-neutral float-left" title="Problem checklist" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../api.html" class="btn btn-neutral float-right" title="API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../components/icache.html" class="btn btn-neutral float-right" title="Instruction Cache" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:05 2023-03-15.
+      <span class="lastupdated">Last updated on 08:28 2023-05-08.
       </span></p>
   </div>
 

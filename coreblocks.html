@@ -15,7 +15,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
         <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -51,6 +51,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Current_graph.html">Full transaction-method graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Problem-checklist.html">Problem checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="synthesis/Synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptionsSummary.html">Summary of papers about interrupts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 </ul>
 
@@ -90,6 +92,7 @@
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.html#module-coreblocks.frontend.decode">coreblocks.frontend.decode module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.html#module-coreblocks.frontend.decoder">coreblocks.frontend.decoder module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.html#module-coreblocks.frontend.fetch">coreblocks.frontend.fetch module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.html#module-coreblocks.frontend.icache">coreblocks.frontend.icache module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.html#module-coreblocks.frontend">Module contents</a></li>
 </ul>
 </li>
@@ -108,6 +111,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#module-coreblocks.fu.alu">coreblocks.fu.alu module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#module-coreblocks.fu.fu_decoder">coreblocks.fu.fu_decoder module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#module-coreblocks.fu.jumpbranch">coreblocks.fu.jumpbranch module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#module-coreblocks.fu.mul_unit">coreblocks.fu.mul_unit module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.fu.html#module-coreblocks.fu.zbs">coreblocks.fu.zbs module</a></li>
@@ -117,8 +121,10 @@
 <li class="toctree-l1"><a class="reference internal" href="coreblocks.params.html">coreblocks.params package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.configurations">coreblocks.params.configurations module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.dependencies">coreblocks.params.dependencies module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.fu_params">coreblocks.params.fu_params module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.genparams">coreblocks.params.genparams module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.icache_params">coreblocks.params.icache_params module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.isa">coreblocks.params.isa module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.keys">coreblocks.params.keys module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.layouts">coreblocks.params.layouts module</a></li>
@@ -150,6 +156,8 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="coreblocks.structs_common.html">coreblocks.structs_common package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.structs_common.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.structs_common.html#module-coreblocks.structs_common.csr">coreblocks.structs_common.csr module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.structs_common.html#module-coreblocks.structs_common.csr_generic">coreblocks.structs_common.csr_generic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.structs_common.html#module-coreblocks.structs_common.rat">coreblocks.structs_common.rat module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.structs_common.html#module-coreblocks.structs_common.rf">coreblocks.structs_common.rf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.structs_common.html#module-coreblocks.structs_common.rob">coreblocks.structs_common.rob module</a></li>
@@ -189,7 +197,7 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.core.Core.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">wb_master_instr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMaster" title="coreblocks.peripherals.wishbone.WishboneMaster"><span class="pre">WishboneMaster</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">wb_master_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMaster" title="coreblocks.peripherals.wishbone.WishboneMaster"><span class="pre">WishboneMaster</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.core.Core.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">wb_instr_bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneBus" title="coreblocks.peripherals.wishbone.WishboneBus"><span class="pre">WishboneBus</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">wb_data_bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneBus" title="coreblocks.peripherals.wishbone.WishboneBus"><span class="pre">WishboneBus</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.core.Core.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -212,7 +220,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:05 2023-03-15.
+      <span class="lastupdated">Last updated on 08:28 2023-05-08.
       </span></p>
   </div>
 

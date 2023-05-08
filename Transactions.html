@@ -15,7 +15,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
         <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -53,6 +53,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#the-library">The library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#advanced-concepts">Advanced concepts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#transaction-and-method-nesting">Transaction and method nesting</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="scheduler/Overview.html">Scheduler overview</a></li>
@@ -61,6 +65,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Current_graph.html">Full transaction-method graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Problem-checklist.html">Problem checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="synthesis/Synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptionsSummary.html">Summary of papers about interrupts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 </ul>
 
@@ -228,6 +234,23 @@ The most useful ones are:</p>
 These are very useful in testbenches.</p></li>
 </ul>
 </div>
+<div class="section" id="advanced-concepts">
+<h2>Advanced concepts<a class="headerlink" href="#advanced-concepts" title="Permalink to this heading"></a></h2>
+<div class="section" id="transaction-and-method-nesting">
+<h3>Transaction and method nesting<a class="headerlink" href="#transaction-and-method-nesting" title="Permalink to this heading"></a></h3>
+<p>Transaction and method bodies can be nested. For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">Transaction</span><span class="p">()</span><span class="o">.</span><span class="n">body</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+    <span class="c1"># Transaction body.</span>
+
+    <span class="k">with</span> <span class="n">Transaction</span><span class="p">()</span><span class="o">.</span><span class="n">body</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+        <span class="c1"># Nested transaction body.</span>
+</pre></div>
+</div>
+<p>Nested transactions and methods can only run if the parent also runs.
+The converse is not true: it is possible that only the parent runs, but the nested transaction or method doesn’t (because of other limitations).
+Nesting implies scheduling order: the nested transaction or method is considered for execution after the parent.</p>
+</div>
+</div>
 </div>
 
 
@@ -242,7 +265,7 @@ These are very useful in testbenches.</p></li>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:05 2023-03-15.
+      <span class="lastupdated">Last updated on 08:28 2023-05-08.
       </span></p>
   </div>
 

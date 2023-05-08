@@ -15,7 +15,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
         <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -51,6 +51,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Current_graph.html">Full transaction-method graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Problem-checklist.html">Problem checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="synthesis/Synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptionsSummary.html">Summary of papers about interrupts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 </ul>
 
@@ -84,6 +86,200 @@
 <h1>coreblocks.structs_common package<a class="headerlink" href="#coreblocks-structs-common-package" title="Permalink to this heading"></a></h1>
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="module-coreblocks.structs_common.csr">
+<span id="coreblocks-structs-common-csr-module"></span><h2>coreblocks.structs_common.csr module<a class="headerlink" href="#module-coreblocks.structs_common.csr" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.CSRBlockComponent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr.</span></span><span class="sig-name descname"><span class="pre">CSRBlockComponent</span></span><a class="headerlink" href="#coreblocks.structs_common.csr.CSRBlockComponent" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="coreblocks.params.html#coreblocks.params.fu_params.BlockComponentParams" title="coreblocks.params.fu_params.BlockComponentParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">BlockComponentParams</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.CSRBlockComponent.get_module">
+<span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncBlock" title="coreblocks.utils.protocols.FuncBlock"><span class="pre">FuncBlock</span></a></span></span><a class="headerlink" href="#coreblocks.structs_common.csr.CSRBlockComponent.get_module" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.CSRBlockComponent.get_optypes">
+<span class="sig-name descname"><span class="pre">get_optypes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.structs_common.csr.CSRBlockComponent.get_optypes" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.CSRListKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr.</span></span><span class="sig-name descname"><span class="pre">CSRListKey</span></span><a class="headerlink" href="#coreblocks.structs_common.csr.CSRListKey" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ListKey</span></code>[<a class="reference internal" href="#coreblocks.structs_common.csr.CSRRegister" title="coreblocks.structs_common.csr.CSRRegister"><code class="xref py py-class docutils literal notranslate"><span class="pre">CSRRegister</span></code></a>]</p>
+<p>DependencyManager key collecting CSR registers globally as a list.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.CSRListKey.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.structs_common.csr.CSRListKey.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.CSRRegister">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr.</span></span><span class="sig-name descname"><span class="pre">CSRRegister</span></span><a class="headerlink" href="#coreblocks.structs_common.csr.CSRRegister" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>CSR Register
+Used to define a CSR register and specify its behaviour.
+<cite>CSRRegisters</cite> are automatically assigned to <cite>CSRListKey</cite> dependency key, to be accessed from <cite>CSRUnits</cite>.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Timer register that increments on each cycle and resets if read by CSR instruction</span>
+<span class="n">csr</span> <span class="o">=</span> <span class="n">CSRRegister</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">gp</span><span class="p">)</span>
+<span class="k">with</span> <span class="n">Transaction</span><span class="o">.</span><span class="n">body</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+    <span class="n">csr_val</span> <span class="o">=</span> <span class="n">csr</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">m</span><span class="o">.</span><span class="n">If</span><span class="p">(</span><span class="n">csr_val</span><span class="o">.</span><span class="n">read</span><span class="p">):</span>
+        <span class="n">csr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">m</span><span class="o">.</span><span class="n">Else</span><span class="p">():</span>
+        <span class="n">csr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">csr_val</span><span class="o">.</span><span class="n">data</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read: Method</strong></dt><dd><p>Reads register value and side effect status.
+Side effect fields <cite>read</cite> and <cite>written</cite> are set if register was accessed by _fu_read or _fu_write
+methods (by CSR instruction) in a current cycle; they can be used to trigger other actions.
+Always ready.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>Updates register value.
+Always ready. If _fu_write is called simultaneously, this call is ignored.</p>
+</dd>
+<dt><strong>_fu_read: Method</strong></dt><dd><p>Method connected automatically by <cite>CSRUnit</cite>. Reads register value.</p>
+</dd>
+<dt><strong>_fu_write: Method</strong></dt><dd><p>Method connected automatically by <cite>CSRUnit</cite>. Updates register value.
+Always ready. Has priority over <cite>write</cite> method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.CSRRegister.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csr_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ro_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.structs_common.csr.CSRRegister.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>csr_number: int</strong></dt><dd><p>Address of this CSR Register.</p>
+</dd>
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+<dt><strong>ro_bits: int</strong></dt><dd><p>Bit mask of read-only bits in register.
+Writes from _fu_write (instructions) to those bits are ignored.
+Note that this parameter is only required if there are some read-only
+bits in read-write register. Writes to read-only registers specified
+by upper 2 bits of CSR address set to <cite>0b11</cite> are discarded by <cite>CSRUnit</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.CSRUnit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr.</span></span><span class="sig-name descname"><span class="pre">CSRUnit</span></span><a class="headerlink" href="#coreblocks.structs_common.csr.CSRUnit" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Unit for performing Control and Status Regitsters computations.</p>
+<p>Accepts instructions with <cite>OpType.CSR_REG</cite> and <cite>OpType.CSR_IMM</cite>.
+Uses <cite>RS</cite> interface for input and <cite>FU</cite> interface for output.
+Depends on stalling the <cite>Fetch</cite> stage on CSR instructions and holds computation
+unitl all other instructions are commited.</p>
+<p>Each CSR register have to be specified by <cite>CSRRegister</cite> class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>select: Method</strong></dt><dd><p>Method from standard RS interface. Reserves a place for instruction.</p>
+</dd>
+<dt><strong>insert: Method</strong></dt><dd><p>Method from standard RS interface. Puts instruction in reserved place.</p>
+</dd>
+<dt><strong>update: Method</strong></dt><dd><p>Method from standard RS interface. Receives announcements of computed register values.</p>
+</dd>
+<dt><strong>get_result: Method</strong></dt><dd><p><cite>accept</cite> method from standard FU interface. Used to receive instruction result and pass it
+to the next pipeline stage.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.CSRUnit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rob_single_instr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Signal</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.structs_common.csr.CSRUnit.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+<dt><strong>rob_single_instr: Signal, in</strong></dt><dd><p>Signalls that there is only one instruction left in <cite>ROB</cite>.</p>
+</dd>
+<dt><strong>fetch_continue: Method</strong></dt><dd><p>Method to resume <cite>Fetch</cite> unit from stalled PC.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.CSRUnit.optypes">
+<span class="sig-name descname"><span class="pre">optypes</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{OpType.CSR_REG,</span> <span class="pre">OpType.CSR_IMM}</span></em><a class="headerlink" href="#coreblocks.structs_common.csr.CSRUnit.optypes" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.csr_access_privilege">
+<span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr.</span></span><span class="sig-name descname"><span class="pre">csr_access_privilege</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csr_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple[&lt;unknown&gt;.PrivilegeLevel,</span> <span class="pre">bool]</span></span></span><a class="headerlink" href="#coreblocks.structs_common.csr.csr_access_privilege" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.structs_common.csr_generic">
+<span id="coreblocks-structs-common-csr-generic-module"></span><h2>coreblocks.structs_common.csr_generic module<a class="headerlink" href="#module-coreblocks.structs_common.csr_generic" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.DoubleCounterCSR">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr_generic.</span></span><span class="sig-name descname"><span class="pre">DoubleCounterCSR</span></span><a class="headerlink" href="#coreblocks.structs_common.csr_generic.DoubleCounterCSR" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>DoubleCounterCSR
+Groups two <cite>CSRRegisters</cite> to form counter with double <cite>isa.xlen</cite> width.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>increment: Method</strong></dt><dd><p>Increments the counter by 1. At overflow, counter value is set to 0.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.DoubleCounterCSR.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params:</span> <span class="pre">~coreblocks.params.genparams.GenParams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_addr:</span> <span class="pre">~&lt;unknown&gt;.CSRAddress</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_addr:</span> <span class="pre">~typing.Optional[~&lt;unknown&gt;.CSRAddress]</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.structs_common.csr_generic.DoubleCounterCSR.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+<dt><strong>low_addr: CSRAddress</strong></dt><dd><p>Address of the CSR register representing lower part of the counter (bits <cite>[isa.xlen-1 : 0]</cite>).</p>
+</dd>
+<dt><strong>high_addr: CSRAddress or None, optional</strong></dt><dd><p>Address of the CSR register representing higher part of the counter (bits <cite>[2*isa.xlen-1 : isa.xlen]</cite>).
+If high_addr is None or not provided, then higher CSR is not synthetised and only the width of
+low_addr CSR is available to the counter.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.GenericCSRRegisters">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr_generic.</span></span><span class="sig-name descname"><span class="pre">GenericCSRRegisters</span></span><a class="headerlink" href="#coreblocks.structs_common.csr_generic.GenericCSRRegisters" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.GenericCSRRegisters.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.structs_common.csr_generic.GenericCSRRegisters.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-coreblocks.structs_common.rat">
 <span id="coreblocks-structs-common-rat-module"></span><h2>coreblocks.structs_common.rat module<a class="headerlink" href="#module-coreblocks.structs_common.rat" title="Permalink to this heading"></a></h2>
@@ -169,7 +365,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:05 2023-03-15.
+      <span class="lastupdated">Last updated on 08:28 2023-05-08.
       </span></p>
   </div>
 

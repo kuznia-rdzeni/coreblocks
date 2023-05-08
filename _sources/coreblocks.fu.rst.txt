@@ -20,6 +20,14 @@ coreblocks.fu.alu module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.fu.fu\_decoder module
+--------------------------------
+
+.. automodule:: coreblocks.fu.fu_decoder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.fu.jumpbranch module
 -------------------------------
 

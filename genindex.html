@@ -15,7 +15,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
         <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="#" />
@@ -49,6 +49,8 @@
 <li class="toctree-l1"><a class="reference internal" href="Current_graph.html">Full transaction-method graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Problem-checklist.html">Problem checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="synthesis/Synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptionsSummary.html">Summary of papers about interrupts</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 </ul>
 
@@ -118,13 +120,21 @@
 </li>
         <li><a href="coreblocks.frontend.html#coreblocks.frontend.fetch.Fetch.__init__">(coreblocks.frontend.fetch.Fetch method)</a>
 </li>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICache.__init__">(coreblocks.frontend.icache.ICache method)</a>
+</li>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICacheBypass.__init__">(coreblocks.frontend.icache.ICacheBypass method)</a>
+</li>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICacheInterface.__init__">(coreblocks.frontend.icache.ICacheInterface method)</a>
+</li>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.SimpleWBCacheRefiller.__init__">(coreblocks.frontend.icache.SimpleWBCacheRefiller method)</a>
+</li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.alu.AluFuncUnit.__init__">(coreblocks.fu.alu.AluFuncUnit method)</a>
+</li>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.Decoder.__init__">(coreblocks.fu.fu_decoder.Decoder method)</a>
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.jumpbranch.JumpBranchFuncUnit.__init__">(coreblocks.fu.jumpbranch.JumpBranchFuncUnit method)</a>
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulComponent.__init__">(coreblocks.fu.mul_unit.MulComponent method)</a>
-</li>
-        <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulFn.__init__">(coreblocks.fu.mul_unit.MulFn method)</a>
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulUnit.__init__">(coreblocks.fu.mul_unit.MulUnit method)</a>
 </li>
@@ -140,15 +150,15 @@
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.Zbs.__init__">(coreblocks.fu.zbs.Zbs method)</a>
 </li>
-        <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.__init__">(coreblocks.fu.zbs.ZbsFunction method)</a>
-</li>
-        <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunctionDecoder.__init__">(coreblocks.fu.zbs.ZbsFunctionDecoder method)</a>
-</li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsUnit.__init__">(coreblocks.fu.zbs.ZbsUnit method)</a>
 </li>
-        <li><a href="coreblocks.params.html#coreblocks.params.fu_params.DependencyManager.__init__">(coreblocks.params.fu_params.DependencyManager method)</a>
+        <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.__init__">(coreblocks.params.configurations.CoreConfiguration method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyManager.__init__">(coreblocks.params.dependencies.DependencyManager method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.genparams.GenParams.__init__">(coreblocks.params.genparams.GenParams method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters.__init__">(coreblocks.params.icache_params.ICacheParameters method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.ISA.__init__">(coreblocks.params.isa.ISA method)</a>
 </li>
@@ -160,11 +170,15 @@
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayouts.__init__">(coreblocks.params.layouts.CommonLayouts method)</a>
 </li>
+        <li><a href="coreblocks.params.html#coreblocks.params.layouts.CSRLayouts.__init__">(coreblocks.params.layouts.CSRLayouts method)</a>
+</li>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.DecodeLayouts.__init__">(coreblocks.params.layouts.DecodeLayouts method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.FetchLayouts.__init__">(coreblocks.params.layouts.FetchLayouts method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.FuncUnitLayouts.__init__">(coreblocks.params.layouts.FuncUnitLayouts method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.layouts.ICacheLayouts.__init__">(coreblocks.params.layouts.ICacheLayouts method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.LSULayouts.__init__">(coreblocks.params.layouts.LSULayouts method)</a>
 </li>
@@ -185,6 +199,8 @@
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.PipelinedWishboneMaster.__init__">(coreblocks.peripherals.wishbone.PipelinedWishboneMaster method)</a>
 </li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneArbiter.__init__">(coreblocks.peripherals.wishbone.WishboneArbiter method)</a>
+</li>
+        <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneBus.__init__">(coreblocks.peripherals.wishbone.WishboneBus method)</a>
 </li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneLayout.__init__">(coreblocks.peripherals.wishbone.WishboneLayout method)</a>
 </li>
@@ -209,6 +225,16 @@
         <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSBlockComponent.__init__">(coreblocks.stages.rs_func_block.RSBlockComponent method)</a>
 </li>
         <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSFuncBlock.__init__">(coreblocks.stages.rs_func_block.RSFuncBlock method)</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRListKey.__init__">(coreblocks.structs_common.csr.CSRListKey method)</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRRegister.__init__">(coreblocks.structs_common.csr.CSRRegister method)</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRUnit.__init__">(coreblocks.structs_common.csr.CSRUnit method)</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.DoubleCounterCSR.__init__">(coreblocks.structs_common.csr_generic.DoubleCounterCSR method)</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.GenericCSRRegisters.__init__">(coreblocks.structs_common.csr_generic.GenericCSRRegisters method)</a>
 </li>
         <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.FRAT.__init__">(coreblocks.structs_common.rat.FRAT method)</a>
 </li>
@@ -278,6 +304,8 @@
 </li>
         <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.Unifier.__init__">(coreblocks.utils.protocols.Unifier method)</a>
 </li>
+        <li><a href="coreblocks.utils.html#coreblocks.utils.utils.ModuleConnector.__init__">(coreblocks.utils.utils.ModuleConnector method)</a>
+</li>
       </ul></li>
   </ul></td>
 </tr></table>
@@ -289,6 +317,8 @@
 </li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit.accept">accept (coreblocks.utils.protocols.FuncUnit attribute)</a>
 </li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICacheInterface.accept_res">accept_res (coreblocks.frontend.icache.ICacheInterface attribute)</a>
+</li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.Adapter">Adapter (class in coreblocks.transactions.lib)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.AdapterTrans">AdapterTrans (class in coreblocks.transactions.lib)</a>
@@ -299,7 +329,7 @@
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.ADD">(coreblocks.params.isa.Funct7 attribute)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.params.html#coreblocks.params.fu_params.DependencyManager.add_dependency">add_dependency() (coreblocks.params.fu_params.DependencyManager method)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyManager.add_dependency">add_dependency() (coreblocks.params.dependencies.DependencyManager method)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.TransactionManager.add_transaction">add_transaction() (coreblocks.transactions.core.TransactionManager method)</a>
 
@@ -307,10 +337,14 @@
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.TransactionManager.add_transaction">(coreblocks.transactions.TransactionManager method)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.utils.html#coreblocks.utils.utils.AssignType.ALL">ALL (coreblocks.utils.utils.AssignType attribute)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.ADDRESS_GENERATION">ADDRESS_GENERATION (coreblocks.params.optypes.OpType attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.utils.html#coreblocks.utils.utils.align_to_power_of_two">align_to_power_of_two() (in module coreblocks.utils.utils)</a>
+</li>
+      <li><a href="coreblocks.utils.html#coreblocks.utils.utils.AssignType.ALL">ALL (coreblocks.utils.utils.AssignType attribute)</a>
+</li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.alu.ALUComponent">ALUComponent (class in coreblocks.fu.alu)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.alu.AluFuncUnit">AluFuncUnit (class in coreblocks.fu.alu)</a>
@@ -351,7 +385,7 @@
       </ul></li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.fifo.BasicFifo">BasicFifo (class in coreblocks.utils.fifo)</a>
 </li>
-      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Function.BCLR">BCLR (coreblocks.fu.zbs.ZbsFunction.Function attribute)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Fn.BCLR">BCLR (coreblocks.fu.zbs.ZbsFunction.Fn attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.BCLR">(coreblocks.params.isa.Funct3 attribute)</a>
@@ -361,7 +395,7 @@
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.BEQ">BEQ (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
-      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Function.BEXT">BEXT (coreblocks.fu.zbs.ZbsFunction.Function attribute)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Fn.BEXT">BEXT (coreblocks.fu.zbs.ZbsFunction.Fn attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.BEXT">(coreblocks.params.isa.Funct3 attribute)</a>
@@ -373,7 +407,7 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.BGEU">BGEU (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
-      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Function.BINV">BINV (coreblocks.fu.zbs.ZbsFunction.Function attribute)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Fn.BINV">BINV (coreblocks.fu.zbs.ZbsFunction.Fn attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.BINV">(coreblocks.params.isa.Funct3 attribute)</a>
@@ -383,6 +417,8 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.utils.html#coreblocks.utils.utils.bits_from_int">bits_from_int() (in module coreblocks.utils.utils)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.fu_params.BlockComponentParams">BlockComponentParams (class in coreblocks.params.fu_params)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.BLT">BLT (coreblocks.params.isa.Funct3 attribute)</a>
@@ -409,7 +445,7 @@
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.keys.BranchResolvedKey">BranchResolvedKey (class in coreblocks.params.keys)</a>
 </li>
-      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Function.BSET">BSET (coreblocks.fu.zbs.ZbsFunction.Function attribute)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Fn.BSET">BSET (coreblocks.fu.zbs.ZbsFunction.Fn attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.BSET">(coreblocks.params.isa.Funct3 attribute)</a>
@@ -435,7 +471,7 @@
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.Collector">Collector (class in coreblocks.transactions.lib)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.fu_params.DependencyKey.combine">combine() (coreblocks.params.fu_params.DependencyKey method)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey.combine">combine() (coreblocks.params.dependencies.DependencyKey method)</a>
 </li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.utils.AssignType.COMMON">COMMON (coreblocks.utils.utils.AssignType attribute)</a>
 </li>
@@ -492,6 +528,13 @@
 </li>
       </ul></li>
       <li>
+    coreblocks.frontend.icache
+
+      <ul>
+        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.icache">module</a>
+</li>
+      </ul></li>
+      <li>
     coreblocks.fu
 
       <ul>
@@ -503,6 +546,13 @@
 
       <ul>
         <li><a href="coreblocks.fu.html#module-coreblocks.fu.alu">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.fu.fu_decoder
+
+      <ul>
+        <li><a href="coreblocks.fu.html#module-coreblocks.fu.fu_decoder">module</a>
 </li>
       </ul></li>
       <li>
@@ -576,6 +626,13 @@
 </li>
       </ul></li>
       <li>
+    coreblocks.params.dependencies
+
+      <ul>
+        <li><a href="coreblocks.params.html#module-coreblocks.params.dependencies">module</a>
+</li>
+      </ul></li>
+      <li>
     coreblocks.params.fu_params
 
       <ul>
@@ -587,6 +644,13 @@
 
       <ul>
         <li><a href="coreblocks.params.html#module-coreblocks.params.genparams">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.params.icache_params
+
+      <ul>
+        <li><a href="coreblocks.params.html#module-coreblocks.params.icache_params">module</a>
 </li>
       </ul></li>
       <li>
@@ -610,8 +674,6 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.layouts">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.optypes
 
@@ -619,6 +681,8 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.optypes">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.peripherals
 
@@ -694,6 +758,20 @@
 
       <ul>
         <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.structs_common.csr
+
+      <ul>
+        <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.csr">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.structs_common.csr_generic
+
+      <ul>
+        <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.csr_generic">module</a>
 </li>
       </ul></li>
       <li>
@@ -794,11 +872,25 @@
         <li><a href="coreblocks.utils.html#module-coreblocks.utils.utils">module</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.CSR">CSR (coreblocks.params.optypes.OpType attribute)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration">CoreConfiguration (class in coreblocks.params.configurations)</a>
+</li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.csr_access_privilege">csr_access_privilege() (in module coreblocks.structs_common.csr)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.CSR_IMM">CSR_IMM (coreblocks.params.optypes.OpType attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.CSR_REG">CSR_REG (coreblocks.params.optypes.OpType attribute)</a>
+</li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRBlockComponent">CSRBlockComponent (class in coreblocks.structs_common.csr)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CSRLayouts">CSRLayouts (class in coreblocks.params.layouts)</a>
+</li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRListKey">CSRListKey (class in coreblocks.structs_common.csr)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.CSRRC">CSRRC (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.CSRRCI">CSRRCI (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRRegister">CSRRegister (class in coreblocks.structs_common.csr)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.CSRRS">CSRRS (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
@@ -807,6 +899,8 @@
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.CSRRW">CSRRW (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.CSRRWI">CSRRWI (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRUnit">CSRUnit (class in coreblocks.structs_common.csr)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -819,6 +913,10 @@
       <li><a href="coreblocks.stages.html#coreblocks.stages.backend.ResultAnnouncement.debug_signals">debug_signals() (coreblocks.stages.backend.ResultAnnouncement method)</a>
 
       <ul>
+        <li><a href="coreblocks.stages.html#coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier.debug_signals">(coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier method)</a>
+</li>
+        <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSFuncBlock.debug_signals">(coreblocks.stages.rs_func_block.RSFuncBlock method)</a>
+</li>
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Method.debug_signals">(coreblocks.transactions.core.Method method)</a>
 </li>
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Transaction.debug_signals">(coreblocks.transactions.core.Transaction method)</a>
@@ -832,18 +930,24 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.DecodeLayouts">DecodeLayouts (class in coreblocks.params.layouts)</a>
 </li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.Decoder">Decoder (class in coreblocks.fu.fu_decoder)</a>
+</li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager">DecoderManager (class in coreblocks.fu.fu_decoder)</a>
+</li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.def_method">def_method() (in module coreblocks.transactions)</a>
 
       <ul>
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.def_method">(in module coreblocks.transactions.core)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.params.html#coreblocks.params.fu_params.DependencyKey">DependencyKey (class in coreblocks.params.fu_params)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey">DependencyKey (class in coreblocks.params.dependencies)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.fu_params.DependencyManager">DependencyManager (class in coreblocks.params.fu_params)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyManager">DependencyManager (class in coreblocks.params.dependencies)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICache.deserialize_addr">deserialize_addr() (coreblocks.frontend.icache.ICache method)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.FenceTarget.DEV_I">DEV_I (coreblocks.params.isa.FenceTarget attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.FenceTarget.DEV_O">DEV_O (coreblocks.params.isa.FenceTarget attribute)</a>
@@ -859,6 +963,10 @@
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIVUW">DIVUW (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIVW">DIVW (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.DoubleCounterCSR">DoubleCounterCSR (class in coreblocks.structs_common.csr_generic)</a>
+</li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulComponent.dsp_width">dsp_width (coreblocks.fu.mul_unit.MulComponent attribute)</a>
 </li>
       <li><a href="coreblocks.fu.unsigned_multiplication.html#coreblocks.fu.unsigned_multiplication.common.DSPMulUnit">DSPMulUnit (class in coreblocks.fu.unsigned_multiplication.common)</a>
 </li>
@@ -894,6 +1002,8 @@
         <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.ECALL">(coreblocks.params.optypes.OpType attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey.empty_valid">empty_valid (coreblocks.params.dependencies.DependencyKey attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Extension">Extension (class in coreblocks.params.isa)</a>
 </li>
   </ul></td>
@@ -926,11 +1036,21 @@
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.FIFO">FIFO (class in coreblocks.transactions.lib)</a>
 </li>
+      <li><a href="coreblocks.utils.html#coreblocks.utils.utils.flatten_signals">flatten_signals() (in module coreblocks.utils.utils)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICacheInterface.flush">flush (coreblocks.frontend.icache.ICacheInterface attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager.Fn">Fn (coreblocks.fu.fu_decoder.DecoderManager attribute)</a>
+</li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.lib.Forwarder">Forwarder (class in coreblocks.transactions.lib)</a>
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.FRAT">FRAT (class in coreblocks.structs_common.rat)</a>
+</li>
+      <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSBlockComponent.func_units">func_units (coreblocks.stages.rs_func_block.RSBlockComponent attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.func_units_config">func_units_config (coreblocks.params.configurations.CoreConfiguration attribute)</a>
 </li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.FuncBlock">FuncBlock (class in coreblocks.utils.protocols)</a>
 </li>
@@ -960,6 +1080,8 @@
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.PipelinedWishboneMaster.generate_method_layouts">generate_method_layouts() (coreblocks.peripherals.wishbone.PipelinedWishboneMaster method)</a>
 </li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.GenericCSRRegisters">GenericCSRRegisters (class in coreblocks.structs_common.csr_generic)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.genparams.GenParams">GenParams (class in coreblocks.params.genparams)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.TransactionContext.get">get() (coreblocks.transactions.core.TransactionContext class method)</a>
@@ -972,12 +1094,24 @@
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.TransactionContext.get">(coreblocks.transactions.TransactionContext class method)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.params.html#coreblocks.params.fu_params.DependencyManager.get_dependency">get_dependency() (coreblocks.params.fu_params.DependencyManager method)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager.get_decoder">get_decoder() (coreblocks.fu.fu_decoder.DecoderManager class method)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyManager.get_dependency">get_dependency() (coreblocks.params.dependencies.DependencyManager method)</a>
 </li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier.get_extra_method">get_extra_method() (coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier method)</a>
 </li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager.get_function">get_function() (coreblocks.fu.fu_decoder.DecoderManager class method)</a>
+</li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.OwnershipGraph.get_hier_name">get_hier_name() (coreblocks.transactions.graph.OwnershipGraph method)</a>
 </li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager.get_instructions">get_instructions() (coreblocks.fu.fu_decoder.DecoderManager class method)</a>
+
+      <ul>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulFn.get_instructions">(coreblocks.fu.mul_unit.MulFn class method)</a>
+</li>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.get_instructions">(coreblocks.fu.zbs.ZbsFunction class method)</a>
+</li>
+      </ul></li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.alu.ALUComponent.get_module">get_module() (coreblocks.fu.alu.ALUComponent method)</a>
 
       <ul>
@@ -993,10 +1127,14 @@
 </li>
         <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSBlockComponent.get_module">(coreblocks.stages.rs_func_block.RSBlockComponent method)</a>
 </li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRBlockComponent.get_module">(coreblocks.structs_common.csr.CSRBlockComponent method)</a>
+</li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.OwnershipGraph.get_name">get_name() (coreblocks.transactions.graph.OwnershipGraph method)</a>
+</li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager.get_op_types">get_op_types() (coreblocks.fu.fu_decoder.DecoderManager class method)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.alu.ALUComponent.get_optypes">get_optypes() (coreblocks.fu.alu.ALUComponent method)</a>
 
@@ -1012,6 +1150,8 @@
         <li><a href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams.get_optypes">(coreblocks.params.fu_params.FunctionalComponentParams method)</a>
 </li>
         <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSBlockComponent.get_optypes">(coreblocks.stages.rs_func_block.RSBlockComponent method)</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRBlockComponent.get_optypes">(coreblocks.structs_common.csr.CSRBlockComponent method)</a>
 </li>
       </ul></li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.FuncBlock.get_result">get_result (coreblocks.utils.protocols.FuncBlock attribute)</a>
@@ -1040,6 +1180,26 @@
         <li><a href="coreblocks.params.html#coreblocks.params.isa.InstrType.I">(coreblocks.params.isa.InstrType attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICache">ICache (class in coreblocks.frontend.icache)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.icache_block_size_bits">icache_block_size_bits (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.icache_enable">icache_enable (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.icache_sets_bits">icache_sets_bits (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.icache_ways">icache_ways (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICacheBypass">ICacheBypass (class in coreblocks.frontend.icache)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICacheInterface">ICacheInterface (class in coreblocks.frontend.icache)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.ICacheLayouts">ICacheLayouts (class in coreblocks.params.layouts)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters">ICacheParameters (class in coreblocks.params.icache_params)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.Direction.IN">IN (coreblocks.transactions.graph.Direction attribute)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.Direction.INOUT">INOUT (coreblocks.transactions.graph.Direction attribute)</a>
@@ -1048,8 +1208,6 @@
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.OwnershipGraph.insert_edge">insert_edge() (coreblocks.transactions.graph.OwnershipGraph method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.OwnershipGraph.insert_node">insert_node() (coreblocks.transactions.graph.OwnershipGraph method)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.decoder.InstrDecoder">InstrDecoder (class in coreblocks.frontend.decoder)</a>
@@ -1060,7 +1218,11 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.ISA">ISA (class in coreblocks.params.isa)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.isa_str">isa_str (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit.issue">issue (coreblocks.utils.protocols.FuncUnit attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICacheInterface.issue_req">issue_req (coreblocks.frontend.icache.ICacheInterface attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1110,14 +1272,16 @@
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.Method.like">(coreblocks.transactions.Method static method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Opcode.LOAD">LOAD (coreblocks.params.isa.Opcode attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.LOAD">(coreblocks.params.optypes.OpType attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey.lock_on_get">lock_on_get (coreblocks.params.dependencies.DependencyKey attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.LOGIC">LOGIC (coreblocks.params.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.LSULayouts">LSULayouts (class in coreblocks.params.layouts)</a>
@@ -1172,9 +1336,13 @@
 </li>
         <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.fetch">coreblocks.frontend.fetch</a>
 </li>
+        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.icache">coreblocks.frontend.icache</a>
+</li>
         <li><a href="coreblocks.fu.html#module-coreblocks.fu">coreblocks.fu</a>
 </li>
         <li><a href="coreblocks.fu.html#module-coreblocks.fu.alu">coreblocks.fu.alu</a>
+</li>
+        <li><a href="coreblocks.fu.html#module-coreblocks.fu.fu_decoder">coreblocks.fu.fu_decoder</a>
 </li>
         <li><a href="coreblocks.fu.html#module-coreblocks.fu.jumpbranch">coreblocks.fu.jumpbranch</a>
 </li>
@@ -1196,9 +1364,13 @@
 </li>
         <li><a href="coreblocks.params.html#module-coreblocks.params.configurations">coreblocks.params.configurations</a>
 </li>
+        <li><a href="coreblocks.params.html#module-coreblocks.params.dependencies">coreblocks.params.dependencies</a>
+</li>
         <li><a href="coreblocks.params.html#module-coreblocks.params.fu_params">coreblocks.params.fu_params</a>
 </li>
         <li><a href="coreblocks.params.html#module-coreblocks.params.genparams">coreblocks.params.genparams</a>
+</li>
+        <li><a href="coreblocks.params.html#module-coreblocks.params.icache_params">coreblocks.params.icache_params</a>
 </li>
         <li><a href="coreblocks.params.html#module-coreblocks.params.isa">coreblocks.params.isa</a>
 </li>
@@ -1229,6 +1401,10 @@
         <li><a href="coreblocks.stages.html#module-coreblocks.stages.rs_func_block">coreblocks.stages.rs_func_block</a>
 </li>
         <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common">coreblocks.structs_common</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.csr">coreblocks.structs_common.csr</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.csr_generic">coreblocks.structs_common.csr_generic</a>
 </li>
         <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.rat">coreblocks.structs_common.rat</a>
 </li>
@@ -1261,6 +1437,8 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.utils.html#coreblocks.utils.utils.ModuleConnector">ModuleConnector (class in coreblocks.utils.utils)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12.MRET">MRET (coreblocks.params.isa.Funct12 attribute)</a>
 
       <ul>
@@ -1275,6 +1453,8 @@
         <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.MUL">(coreblocks.params.optypes.OpType attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulComponent.mul_unit_type">mul_unit_type (coreblocks.fu.mul_unit.MulComponent attribute)</a>
+</li>
       <li><a href="coreblocks.fu.unsigned_multiplication.html#coreblocks.fu.unsigned_multiplication.common.MulBaseUnsigned">MulBaseUnsigned (class in coreblocks.fu.unsigned_multiplication.common)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulComponent">MulComponent (class in coreblocks.fu.mul_unit)</a>
@@ -1358,6 +1538,8 @@
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsUnit.optypes">(coreblocks.fu.zbs.ZbsUnit attribute)</a>
 </li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRUnit.optypes">(coreblocks.structs_common.csr.CSRUnit attribute)</a>
+</li>
         <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.FuncBlock.optypes">(coreblocks.utils.protocols.FuncBlock attribute)</a>
 </li>
         <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit.optypes">(coreblocks.utils.protocols.FuncUnit attribute)</a>
@@ -1391,14 +1573,16 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Extension.P">P (coreblocks.params.isa.Extension attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.phys_regs_bits">phys_regs_bits (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.PipelinedWishboneMaster">PipelinedWishboneMaster (class in coreblocks.peripherals.wishbone)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.tracing.TracingFragment.prepare">prepare() (coreblocks.transactions.tracing.TracingFragment method)</a>
 </li>
-      <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Priority">Priority (class in coreblocks.transactions.core)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Priority">Priority (class in coreblocks.transactions.core)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.PRIV">PRIV (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Method.proxy">proxy() (coreblocks.transactions.core.Method method)</a>
@@ -1447,6 +1631,8 @@
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rob.ReorderBuffer">ReorderBuffer (class in coreblocks.structs_common.rob)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.replace">replace() (coreblocks.params.configurations.CoreConfiguration method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.stages.html#coreblocks.stages.backend.ResultAnnouncement">ResultAnnouncement (class in coreblocks.stages.backend)</a>
@@ -1459,11 +1645,15 @@
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.Priority.RIGHT">RIGHT (coreblocks.transactions.core.Priority attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.rob_entries_bits">rob_entries_bits (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.ROBLayouts">ROBLayouts (class in coreblocks.params.layouts)</a>
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.RRAT">RRAT (class in coreblocks.structs_common.rat)</a>
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rs.RS">RS (class in coreblocks.structs_common.rs)</a>
+</li>
+      <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSBlockComponent.rs_entries">rs_entries (coreblocks.stages.rs_func_block.RSBlockComponent attribute)</a>
 </li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSBlockComponent">RSBlockComponent (class in coreblocks.stages.rs_func_block)</a>
 </li>
@@ -1493,18 +1683,42 @@
 </li>
       <li><a href="coreblocks.fu.unsigned_multiplication.html#coreblocks.fu.unsigned_multiplication.sequence.SequentialUnsignedMul">SequentialUnsignedMul (class in coreblocks.fu.unsigned_multiplication.sequence)</a>
 </li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICache.serialize_addr">serialize_addr() (coreblocks.frontend.icache.ICache method)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.SH1ADD">SH1ADD (coreblocks.params.isa.Funct3 attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.SH1ADD">(coreblocks.params.isa.Funct7 attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.SH2ADD">SH2ADD (coreblocks.params.isa.Funct3 attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.SH2ADD">(coreblocks.params.isa.Funct7 attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.SH3ADD">SH3ADD (coreblocks.params.isa.Funct3 attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.SH3ADD">(coreblocks.params.isa.Funct7 attribute)</a>
+</li>
+      </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.SHIFT">SHIFT (coreblocks.params.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulType.SHIFT_MUL">SHIFT_MUL (coreblocks.fu.mul_unit.MulType attribute)</a>
 </li>
       <li><a href="coreblocks.fu.unsigned_multiplication.html#coreblocks.fu.unsigned_multiplication.shift.ShiftUnsignedMul">ShiftUnsignedMul (class in coreblocks.fu.unsigned_multiplication.shift)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.utils.html#coreblocks.utils.utils.silence_mustuse">silence_mustuse() (in module coreblocks.utils.utils)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.SimpleWBCacheRefiller">SimpleWBCacheRefiller (class in coreblocks.frontend.icache)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.SINGLE_BIT_MANIPULATION">SINGLE_BIT_MANIPULATION (coreblocks.params.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.SL">SL (coreblocks.params.isa.Funct7 attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.SLL">SLL (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.SLT">SLT (coreblocks.params.isa.Funct3 attribute)</a>
@@ -1523,6 +1737,8 @@
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.TransactionContext.stack">(coreblocks.transactions.TransactionContext attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.start_pc">start_pc (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Opcode.STORE">STORE (coreblocks.params.isa.Opcode attribute)</a>
 
       <ul>
@@ -1651,6 +1867,8 @@
       </ul></li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneArbiter">WishboneArbiter (class in coreblocks.peripherals.wishbone)</a>
 </li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneBus">WishboneBus (class in coreblocks.peripherals.wishbone)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.keys.WishboneDataKey">WishboneDataKey (class in coreblocks.params.keys)</a>
@@ -1699,9 +1917,7 @@
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction">ZbsFunction (class in coreblocks.fu.zbs)</a>
 </li>
-      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Function">ZbsFunction.Function (class in coreblocks.fu.zbs)</a>
-</li>
-      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunctionDecoder">ZbsFunctionDecoder (class in coreblocks.fu.zbs)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Fn">ZbsFunction.Fn (class in coreblocks.fu.zbs)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsUnit">ZbsUnit (class in coreblocks.fu.zbs)</a>
 </li>
@@ -1746,7 +1962,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:05 2023-03-15.
+      <span class="lastupdated">Last updated on 08:28 2023-05-08.
       </span></p>
   </div>
 

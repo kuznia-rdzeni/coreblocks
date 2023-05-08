@@ -4,6 +4,22 @@ coreblocks.structs\_common package
 Submodules
 ----------
 
+coreblocks.structs\_common.csr module
+-------------------------------------
+
+.. automodule:: coreblocks.structs_common.csr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.structs\_common.csr\_generic module
+----------------------------------------------
+
+.. automodule:: coreblocks.structs_common.csr_generic
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.structs\_common.rat module
 -------------------------------------
 
