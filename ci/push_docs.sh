@@ -26,7 +26,7 @@ echo $message
 
 # Copy files
 echo "Copying files to Wiki"
-rsync -av --delete $DOCS_DIR $TEMP_DIR/ --exclude .git --exclude_from "$DOCS_DIR/wiki_exclude"
+rsync -av --delete $DOCS_DIR $TEMP_DIR/ --exclude .git --exclude-from "$DOCS_DIR/wiki_exclude"
 
 # Setup credentials for wiki
 cd $TEMP_DIR
