@@ -150,11 +150,11 @@ class MergingForwarder(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        
+
         read_value = Record.like(self.read.data_out)
 
         self.write.simultaneous_with(self.read)
-        
+
         @def_method(m, self.write)
         def _(arg):
             Method.comb += read_value.eq(arg)
@@ -323,7 +323,7 @@ class AdapterTrans(AdapterBase):
         data_in = Signal.like(self.data_in)
         m.d.comb += data_in.eq(self.data_in)
 
-        with Transaction().body(m, request=self.en):
+        with Transaction(name=f"AdapterTrans_{self.iface.name}").body(m, request=self.en):
             data_out = self.iface(m, data_in)
             Transaction.comb += self.data_out.eq(data_out)
             m.d.comb += self.done.eq(1)
@@ -349,7 +349,7 @@ class Adapter(AdapterBase):
         Data passed as argument to the defined method.
     """
 
-    def __init__(self, *, i: MethodLayout = (), o: MethodLayout = ()):
+    def __init__(self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = ()):
         """
         Parameters
         ----------
@@ -358,7 +358,7 @@ class Adapter(AdapterBase):
         o: record layout
             The output layout of the defined method.
         """
-        super().__init__(Method(i=i, o=o))
+        super().__init__(Method(name=name, i=i, o=o))
         self.data_in = Record.like(self.iface.data_out)
         self.data_out = Record.like(self.iface.data_in)
 
@@ -743,7 +743,7 @@ def condition(m: Module, *, full: bool = False, unique: bool = False):
     this = TransactionBase.get()
     transactions = list[Transaction]()
     last = False
-    
+
     @contextmanager
     def next(cond: Optional[ValueLike] = None):
         nonlocal full, last
@@ -770,4 +770,3 @@ def condition(m: Module, *, full: bool = False, unique: bool = False):
 
     groups = [[transaction] for transaction in transactions]
     this.simultaneous_groups(*groups)
-
