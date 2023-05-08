@@ -64,8 +64,8 @@
                    end
                    subgraph ReorderBuffer["ROB ReorderBuffer"]
                        ReorderBuffer_put["put"]
-                       ReorderBuffer_retire["retire"]
                        ReorderBuffer_mark_done["mark_done"]
+                       ReorderBuffer_retire["retire"]
                    end
                    subgraph FuncBlocksUnifier["func_blocks_unifier FuncBlocksUnifier"]
                        subgraph Collector["result_collector Collector"]
