@@ -312,7 +312,7 @@ class TransactionManager(Elaboratable):
                 conflicts.append(conflict)
 
         # step 2: transitivity computation
-        simultaneous = set[frozenset[Transaction]]().union(*conflicts)
+        simultaneous = set[frozenset[Transaction]]()
 
         def conflicting(group1: frozenset[Transaction], group2: frozenset[Transaction]):
             for conflict in conflicts:
@@ -320,21 +320,20 @@ class TransactionManager(Elaboratable):
                     return True
             return False
 
-        def mergable_pairs(group1: frozenset[Transaction]):
-            for group2 in simultaneous:
-                if group1 & group2 and not conflicting(group1, group2):
-                    yield (group1, group2)
+        def intersecting_pairs(group: frozenset[Transaction]):
+            return ((group, other_group) for other_group in simultaneous if group & other_group)
 
         q = deque[Tuple[frozenset[Transaction], frozenset[Transaction]]]()
-        for group in simultaneous:
-            q.extend(mergable_pairs(group))
+        for group in set[frozenset[Transaction]]().union(*conflicts):
+            q.extend(intersecting_pairs(group))
+            simultaneous.add(group)
 
         while q:
             (group1, group2) = q.popleft()
             new_group = group1 | group2
-            if new_group in simultaneous:
+            if new_group in simultaneous or conflicting(group1, group2):
                 continue
-            q.extend(mergable_pairs(new_group))
+            q.extend((new_group, other_group) for other_group in simultaneous if new_group & other_group)
             simultaneous.add(new_group)
             for conflict in conflicts:
                 if group1 in conflict or group2 in conflict:
