@@ -8,7 +8,7 @@ from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Statement
-from itertools import count, chain
+from itertools import count, chain, filterfalse
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
 from ._utils import *
@@ -286,6 +286,19 @@ class TransactionManager(Elaboratable):
     def _simultaneous(self):
         method_map = MethodMap(self.transactions)
 
+        # remove orderings between simultaneous methods/transactions
+        # TODO: can it be done after transitivity, possibly catching more cases?
+        for elem in method_map.methods_and_transactions:
+            all_sims = frozenset[TransactionOrMethod]().union(*frozenset().union(*elem.simultaneous))
+            elem.relations = list(
+                filterfalse(
+                    lambda relation: not relation["conflict"]
+                    and relation["priority"] != Priority.UNDEFINED
+                    and relation["end"] in all_sims,
+                    elem.relations,
+                )
+            )
+
         # step 1: conflict set generation
         conflicts = list[set[frozenset[Transaction]]]()
 
@@ -360,14 +373,22 @@ class TransactionManager(Elaboratable):
             method.defined = transaction.defined
             method.method_uses = transaction.method_uses
             method.relations = transaction.relations
+            method.def_order = transaction.def_order
             methods[transaction] = method
+
+        for elem in method_map.methods_and_transactions:
+            # I guess method/transaction unification is really needed
+            for relation in elem.relations:
+                if relation["end"] in methods:
+                    relation["end"] = methods[relation["end"]]
 
         # step 5: construct merged transactions
         m = Module()
         m._MustUse__silence = True  # type: ignore
 
         for group in final_simultaneous:
-            with Transaction(manager=self).body(m):
+            name = "_".join([t.name for t in group])
+            with Transaction(manager=self, name=name).body(m):
                 for transaction in group:
                     methods[transaction](m)
 

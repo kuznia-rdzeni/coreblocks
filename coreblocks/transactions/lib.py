@@ -750,7 +750,8 @@ def condition(m: Module, *, full: bool = False, unique: bool = False):
         if last:
             raise RuntimeError("Condition clause added after catch-all")
         req = cond if cond is not None else 1
-        with (transaction := Transaction()).body(m, request=req):
+        name = f"{this.name}_cond{len(transactions)}"
+        with (transaction := Transaction(name=name)).body(m, request=req):
             yield
         if transactions and not unique:
             transactions[-1].schedule_before(transaction)
