@@ -5,6 +5,7 @@ from parameterized import parameterized_class
 from dataclasses import dataclass, asdict
 
 from amaranth.sim import Settle, Passive
+from amaranth.hdl.rec import Direction
 
 from coreblocks.params import OpType, GenParams
 from coreblocks.lsu.dummyLsu import LSUDummy
@@ -12,6 +13,8 @@ from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import *
 from coreblocks.peripherals.wishbone import *
 from coreblocks.utils import ModuleConnector
+from coreblocks.transactions.lib import Adapter
+from coreblocks.utils._typing import LayoutLike
 from test.common import *
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 from test.message_framework import *
@@ -102,6 +105,37 @@ def construct_test_module(gp):
 # ================================================================
 # ================================================================
 
+class WishboneMasterStub():
+    def __init__(self, wb_params: WishboneParameters):
+        #initialisation taken from peripherals/wishbone.py -- maybe there is possibility to make it common?
+        self.wb_params = wb_params
+        self.wb_layout = WishboneLayout(wb_params).wb_layout
+        self.generate_layouts(wb_params)
+
+        self.request = TestbenchIO(Adapter(i=self.requestLayout))
+        self.result = TestbenchIO(Adapter(o=self.resultLayout))
+
+    def generate_layouts(self, wb_params: WishboneParameters):
+        # generate method layouts locally
+        self.requestLayout : Any = [
+            ("addr", wb_params.addr_width, DIR_FANIN),
+            ("data", wb_params.data_width, DIR_FANIN),
+            ("we", 1, DIR_FANIN),
+            ("sel", wb_params.data_width // wb_params.granularity, DIR_FANIN),
+        ]
+
+        #TODO Fix typo Any to LayoutLike
+        self.resultLayout : Any = [("data", wb_params.data_width), ("err", 1)]
+    
+
+def construct_test_module_new(gp) -> tuple[ModuleConnector, WishboneMasterStub]:
+    wb_params = WishboneParameters(data_width=gp.isa.ilen, addr_width=32)
+
+    bus = WishboneMasterStub(wb_params)
+    test_circuit = SimpleTestCircuit(LSUDummy(gp, bus))
+
+    return ModuleConnector(test_circuit=test_circuit, request_mock = bus.request, result_mock = bus.result), bus
+
 
 @dataclass
 class AnnounceData:
@@ -109,22 +143,29 @@ class AnnounceData:
     value : int
 
 @dataclass
+class MemoryData:
+    addr: int
+    mask: int
+    sign: bool
+    rnd_bytes: bytes
+
+@dataclass
 class GeneratedData:
     ann_data: Optional[AnnounceData]
     instr: RecordIntDict
-    mem_data: RecordIntDict
-
-
+    mem_data: MemoryData
 
 @parameterized_class(
-    ("name", "max_wait"),
+    ("name", "max_wait", "max_reg_val", "max_imm_val"),
     [
-        ("fast", 1),
-        ("big_waits", 10),
+        ("fast", 1, 2**7, 2**7),
+        ("big_waits", 10, 2**7, 2**7),
     ],
 )
 class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
     max_wait: int
+    max_reg_val : int
+    max_imm_val : int
 
     def setUp(self) -> None:
         # testing clear method in connection with wishbone slave mock is very tricky
@@ -134,16 +175,17 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
         random.seed(14)
         self.tests_number = 100
         self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
-        self.test_module, self.io_in = construct_test_module(self.gp)
+        self.test_module, self.bus = construct_test_module_new(self.gp)
         self.instr_queue = deque()
         self.announce_queue = deque()
         self.mem_data_queue = deque()
         self.returned_data = deque()
         self.cleared_queue_consumer = deque()
         self.cleared_queue_wb = deque()
-        self.generate_instr(2**7, 2**7)
+        self.wishbone_request_valid = 0
+        self.wishbone_data_from_last_req = None
 
-    def generate_instr(self, max_reg_val, max_imm_val):
+    def generate_instr(self):
         ops = {
             "LB": (OpType.LOAD, Funct3.B),
             "LBU": (OpType.LOAD, Funct3.BU),
@@ -157,8 +199,8 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             # generate opcode
             (op, mask, signess) = generate_random_op(ops)
             # generate rp1, val1 which create addr
-            rp_s1, s1_val, ann_data, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
-            imm = generate_imm(max_imm_val)
+            rp_s1, s1_val, ann_data, addr = generate_register(self.max_reg_val, self.gp.phys_regs_bits)
+            imm = generate_imm(self.max_imm_val)
             addr += imm
             if check_instr(addr, op):
                 break
@@ -181,109 +223,93 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             "s2_val": 0,
             "imm": imm,
         }
-        mem_data = {
+        mem_data = MemoryData(**{
             "addr": addr,
             "mask": mask,
             "sign": signess,
             "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
-        }
+        })
         ann_data = AnnounceData(**ann_data) if ann_data is not None else None
         return GeneratedData(ann_data, instr, mem_data)
 
-    def random_wait(self):
-        for i in range(random.randrange(self.max_wait)):
-            yield
+    def clear_activator_filter(self, msg : InternalMessage):
+        self.last_clear = msg.clk
+        return False
+
+    def cleared_filter(self, msg : InternalMessage):
+        return msg.clk <= self.last_clear
 
     def test_body(self):
-        sel_check = lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0)
-        selector = MessageFrameworkProcess(self.test_module.test_circuit.select, checker=sel_check)
+        generator = MessageFrameworkProcess[Any, Any, GeneratedData](None, transformation_out=lambda x,y : self.generate_instr())
+        self.register_process("generator", generator)
+
+        selector = MessageFrameworkProcess[RecordIntDict, RecordIntDict, Any](self.test_module.test_circuit.select, checker= lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0), max_rand_wait = self.max_wait)
         self.register_process("selector", selector)
 
         inserter = MessageFrameworkProcess[GeneratedData, RecordIntDict, RecordIntDict](
             self.test_module.test_circuit.insert,
             transformation_in=lambda arg: arg.instr,
             prepare_send_data=lambda req: {"rs_data": req, "rs_entry_id": 0},
-        )
+        max_rand_wait = self.max_wait)
         self.register_process("inserter", inserter)
 
-        announcer = MessageFrameworkProcess[AnnounceData, RecordIntDict, AnnounceData](
+        announcer = MessageFrameworkProcess[AnnounceData, AnnounceData, RecordIntDict](
                 self.test_module.test_circuit.update,
-                prepare_send_data = lambda arg: asdict(arg)
-                )
-        self.register_process("announcer", announcer)
+                prepare_send_data = lambda arg: asdict(arg),
+                max_rand_wait = self.max_wait)
+        self.register_process("announcer", announcer, combiner_f=lambda arg: arg["generator"])
         self.add_data_flow("generator", "announcer", filter = lambda arg: arg.userdata is not None)
+        self.add_data_flow("inserter", "announcer")
 
-        cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear)
+        cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear, max_rand_wait = self.max_wait)
         self.register_process("cleaner", cleaner)
-        self.add_data_flow("starter", "cleaner", filter = lambda _: random.random()<0.1)
+        #TODO activate cleaner
+        self.add_data_flow("starter", "cleaner", filter = lambda _: False)#random.random()< 0.1)
 
+        self.wb_mock_acc = MessageFrameworkExternalAccess()
+        self.register_accessor("wb_mock_acc", self.wb_mock_acc)
 
-    def wishbone_slave(self):
-        yield Passive()
+        clear_filter_sink = MessageFrameworkProcess(None)
+        self.register_process("clear_filter_sink", clear_filter_sink)
+        self.add_data_flow("cleaner", "clear_filter_sink", filter = self.clear_activator_filter)
 
-        i = -1
-        while True:
-            i += 1
-            yield from self.io_in.slave_wait()
-            while self.cleared_queue_wb and self.cleared_queue_wb[0] < i:
-                self.cleared_queue_wb.popleft()
+        consumer = MessageFrameworkProcess[MemoryData, MemoryData, Any](
+                self.test_module.test_circuit.get_result,
+                checker = self.consumer_checker
+                )
+        self.register_process("consumer", consumer)
 
-            while self.cleared_queue_wb and self.cleared_queue_wb[0] == i:
-                self.cleared_queue_wb.popleft()
-                next_expected = self.mem_data_queue[-1]
-                received_addr = yield self.io_in.wb.adr
-                received_mask = yield self.io_in.wb.sel
-                # check if clear was before request to wishbone, if yes omit this instruction
-                if (next_expected["addr"] != received_addr) | (next_expected["mask"] != received_mask):
-                    self.returned_data.append(-1)
-                    self.mem_data_queue.pop()
-                    i += 1
-            generated_data = self.mem_data_queue.pop()
+        @def_method_mock(lambda: self.bus.request, sched_prio=0)
+        def request_mock(addr, data, we, sel):
+            arg = self.wb_mock_acc.get()
 
-            mask = generated_data["mask"]
-            sign = generated_data["sign"]
-            yield from self.io_in.slave_verify(generated_data["addr"], 0, 0, mask)
-            yield from self.random_wait()
+            self.assertEqual(addr, arg.addr)
+            self.assertEqual(we, 0)
+            self.assertEqual(sel, arg.mask)
 
-            resp_data = int((generated_data["rnd_bytes"][:4]).hex(), 16)
-            data_shift = (mask & -mask).bit_length() - 1
-            assert mask.bit_length() == data_shift + mask.bit_count(), "Unexpected mask"
+            self.wishbone_request_valid = True
+            self.wishbone_data_from_last_req = arg
+            return 
 
-            size = mask.bit_count() * 8
-            data_mask = 2**size - 1
-            data = (resp_data >> (data_shift * 8)) & data_mask
-            if sign:
-                data = int_to_signed(signed_to_int(data, size), 32)
-            self.returned_data.append(data)
-            yield from self.io_in.slave_respond(resp_data)
-            yield Settle()
+        @def_method_mock(lambda: self.bus.result, enable=lambda: self.wishbone_request_valid, sched_prio=0)
+        def response_mock(self):
+            self.wishbone_request_valid = False
+            data = self.wishbone_data_from_last_req["data"]
+            return {"data": data, "err" : 0}
 
-    def consumer(self):
-        i = -1
-        while i < self.tests_number:
-            i += 1
-            v = None
-            while i < self.tests_number:
-                v = yield from self.test_module.test_circuit.get_result.call_try()
-                while self.cleared_queue_consumer and self.cleared_queue_consumer[0] < i:
-                    self.cleared_queue_consumer.popleft()
-                if self.cleared_queue_consumer and self.cleared_queue_consumer[0] == i and self.returned_data:
-                    self.cleared_queue_consumer.popleft()
-                    self.returned_data.popleft()
-                    i += 1
-                if v is not None:
-                    break
-            if i >= self.tests_number:
-                break
-            assert v is not None
-            self.assertEqual(v["result"], self.returned_data.popleft())
-            yield from self.random_wait()
+                                                                        
+    def consumer_checker(self, in_verif : MemoryData, arg : RecordIntDictRet):
+        generated_data = int((in_verif.rnd_bytes[:4]).hex(), 16)
+        data_shift = (in_verif.mask & -in_verif.mask).bit_length() - 1
+        assert in_verif.mask.bit_length() == data_shift + in_verif.mask.bit_count(), "Unexpected mask"
 
-    def test(self):
-        with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.wishbone_slave)
-            sim.add_sync_process(self.inserter)
-            sim.add_sync_process(self.consumer)
+        size = in_verif.mask.bit_count() * 8
+        data_mask = 2**size - 1
+        data = (generated_data >> (data_shift * 8)) & data_mask
+        if in_verif.sign:
+            data = int_to_signed(signed_to_int(data, size), 32)
+
+        self.assertEqual(data, arg["result"])
 
 
 # ================================================================

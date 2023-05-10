@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.transactions import Method, def_method, Transaction, Priority
 from coreblocks.params import *
-from coreblocks.peripherals.wishbone import WishboneMaster
+from coreblocks.peripherals.wishbone import WishboneMasterProtocol
 from coreblocks.utils import assign
 from coreblocks.utils.protocols import FuncBlock
 
@@ -26,7 +26,7 @@ class LSUDummyInternals(Elaboratable):
         Signals that `resultData` is valid.
     """
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: Record) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMasterProtocol, current_instr: Record) -> None:
         """
         Parameters
         ----------
@@ -238,7 +238,7 @@ class LSUDummy(Elaboratable):
 
     optypes = {OpType.LOAD, OpType.STORE}
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMasterProtocol) -> None:
         """
         Parameters
         ----------
