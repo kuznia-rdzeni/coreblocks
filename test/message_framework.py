@@ -41,11 +41,28 @@ class ClockProcess:
         self.now: int = 0
 
     def process(self):
+        yield Passive()
         while True:
             yield
             self.now += 1
 
-def _simple_combiner(x : dict[str,T]) -> T:
+class StarterProcess:
+    def __init__(self, clk : ClockProcess, out_broadcaster : MessageQueueBroadcaster[_MFVerificationDataType[None]]):
+        self.clk = clk
+        self.out_broadcaster = out_broadcaster
+
+    def process(self):
+        yield Passive()
+        while True:
+            yield
+            # Add only if there is a little number of messages to not waste memory during tests.
+            # This process will be ready every cycle, but normal test process will be ready one for few
+            # cycles so without this "if" we will be genreting more messages than will be ever able to consume
+            if len(self.out_broadcaster) < 3:
+                self.out_broadcaster.append(InternalMessage(self.clk.now, None))
+
+
+def _default_combiner(x : dict[str,T]) -> T:
     if len(x)==1:
         return list(x.values())[0] 
     else:
@@ -164,13 +181,18 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
     @dataclass
     class InternalProcesses:
         clk: ClockProcess
+        starter : StarterProcess
 
     def __init__(self):
         super().__init__()
         self.processes: dict[str, TestCaseWithMessageFramework.ProcessEntry] = {}
-        self.internal = TestCaseWithMessageFramework.InternalProcesses(ClockProcess())
 
-    def register_process(self, name: str, proc: MessageFrameworkProcess[T1, Any, T3], *, combiner_f = _simple_combiner ):
+    def _create_internal(self):
+        clk = ClockProcess()
+        starter = StarterProcess(clk, MessageQueueBroadcaster())
+        self.internal = TestCaseWithMessageFramework.InternalProcesses(clk, starter)
+
+    def register_process(self, name: str, proc: MessageFrameworkProcess[T1, Any, T3], *, combiner_f = _default_combiner ):
         combiner = MessageQueueCombiner[_MFVerificationDataType[T1], Any](combiner=combiner_f)
         broadcaster = MessageQueueBroadcaster[_MFVerificationDataType[T3]]()
         proc.add_to_simulation(self.internal, combiner, broadcaster)
@@ -194,7 +216,10 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
     ):
         msg_q: MessageQueue[_MFVerificationDataType[_T_userdata]] = MessageQueue(filter=self._wrap_filter(filter))
 
-        proc_from = self.processes[from_name]
+        if from_name=="starter":
+            proc_from = self.internal.starter
+        else:
+            proc_from = self.processes[from_name]
         proc_from.out_broadcaster.add_destination(msg_q)
 
         proc_to = self.processes[to_name]

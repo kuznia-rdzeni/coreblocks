@@ -215,7 +215,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
 
         cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear)
         self.register_process("cleaner", cleaner)
-        self.add_data_flow("build-in_generator", "cleaner", filter = lambda _: random.random()<0.1)
+        self.add_data_flow("starter", "cleaner", filter = lambda _: random.random()<0.1)
 
 
     def wishbone_slave(self):

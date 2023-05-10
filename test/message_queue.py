@@ -19,6 +19,10 @@ class MessageQueueInterface(ABC, Generic[T]):
         pass
 
     @abstractmethod
+    def __len__(self) -> int:
+        pass
+
+    @abstractmethod
     def append(self, val: T):
         pass
 
@@ -35,6 +39,9 @@ class MessageQueueCombiner(MessageQueueInterface[T], Generic[T,T2]):
     def __bool__(self):
         return all([bool(src) for src in self.sources.values()])
 
+    def __len__(self):
+        return min([len(src) for src in self.sources.values()])
+
     def add_source(self, src: MessageQueueInterface, src_name : str):
         self.sources[src_name]=src
 
@@ -50,7 +57,10 @@ class MessageQueueBroadcaster(MessageQueueInterface[T]):
         self.destinations: list[MessageQueueInterface] = []
 
     def __bool__(self):
-        return False
+        return all([bool(dst) for dst in self.destinations])
+
+    def __len__(self):
+        return min([len(dst) for dst in self.destinations])
 
     def add_destination(self, dst: MessageQueueInterface):
         self.destinations.append(dst)
@@ -77,6 +87,9 @@ class MessageQueue(MessageQueueInterface, Generic[T]):
     def __bool__(self):
         self._discard_not_ok()
         return bool(self.q)
+
+    def __len__(self):
+        return len(self.q)
 
     def append(self, val: T):
         if self.filter is not None:
