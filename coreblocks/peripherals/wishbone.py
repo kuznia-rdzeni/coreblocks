@@ -18,8 +18,8 @@ class WishboneMasterProtocol(Protocol):
     requestLayout: LayoutLike
     resultLayout: LayoutLike
 
-    request: Any
-    result: Any
+    request: Method
+    result: Method
 
     def __init__(self, wb_params: "WishboneParameters"):
         ...

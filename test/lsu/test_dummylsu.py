@@ -113,8 +113,10 @@ class WishboneMasterStub:
         self.wb_layout = WishboneLayout(wb_params).wb_layout
         self.generate_layouts(wb_params)
 
-        self.request = TestbenchIO(Adapter(i=self.requestLayout))
-        self.result = TestbenchIO(Adapter(o=self.resultLayout))
+        self.request_tb = TestbenchIO(Adapter(i=self.requestLayout))
+        self.request = self.request_tb.adapter.iface
+        self.result_tb = TestbenchIO(Adapter(o=self.resultLayout))
+        self.result = self.result_tb.adapter.iface
 
     def generate_layouts(self, wb_params: WishboneParameters):
         # generate method layouts locally
@@ -135,7 +137,7 @@ def construct_test_module_new(gp) -> tuple[ModuleConnector, WishboneMasterStub]:
     bus = WishboneMasterStub(wb_params)
     test_circuit = SimpleTestCircuit(LSUDummy(gp, bus))
 
-    return ModuleConnector(test_circuit=test_circuit, request_mock=bus.request, result_mock=bus.result), bus
+    return ModuleConnector(test_circuit=test_circuit, request_mock=bus.request_tb, result_mock=bus.result_tb), bus
 
 
 @dataclass
@@ -246,84 +248,87 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
         return msg.clk <= self.last_clear
 
     def test_body(self):
-        generator = MessageFrameworkProcess[Any, Any, GeneratedData](
-            None, transformation_out=lambda x, y: self.generate_instr()
-        )
-        self.register_process("generator", generator)
-        self.add_data_flow("starter", "generator")
+        with self.prepare_env(self.test_module):
+            generator = MessageFrameworkProcess[Any, Any, GeneratedData](
+                None, transformation_out=lambda x, y: self.generate_instr()
+            )
+            self.register_process("generator", generator)
+            self.add_data_flow("starter", "generator")
 
-        selector = MessageFrameworkProcess[RecordIntDict, RecordIntDict, Any](
-            self.test_module.test_circuit.select,
-            checker=lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0),
-            max_rand_wait=self.max_wait,
-        )
-        self.register_process("selector", selector)
-        self.add_data_flow("starter", "selector")
+            print(vars(self.test_module))
+            print(vars(self.test_module.test_circuit))
+            selector = MessageFrameworkProcess[RecordIntDict, RecordIntDict, Any](
+                self.test_module.test_circuit.select,
+                checker=lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0),
+                max_rand_wait=self.max_wait,
+            )
+            self.register_process("selector", selector)
+            self.add_data_flow("starter", "selector")
 
-        inserter = MessageFrameworkProcess[GeneratedData, GeneratedData, GeneratedData](
-            self.test_module.test_circuit.insert,
-            prepare_send_data=lambda req: {"rs_data": req.instr, "rs_entry_id": 0},
-            transformation_out=lambda x, y: x,
-            max_rand_wait=self.max_wait,
-        )
-        self.register_process("inserter", inserter)
-        self.add_data_flow("generator", "inserter")
+            inserter = MessageFrameworkProcess[GeneratedData, GeneratedData, GeneratedData](
+                self.test_module.test_circuit.insert,
+                prepare_send_data=lambda req: {"rs_data": req.instr, "rs_entry_id": 0},
+                transformation_out=lambda x, y: x,
+                max_rand_wait=self.max_wait,
+            )
+            self.register_process("inserter", inserter)
+            self.add_data_flow("generator", "inserter")
 
-        def announce_transformation_in(arg: GeneratedData) -> AnnounceData:
-            assert arg.ann_data is not None
-            return arg.ann_data
+            def announce_transformation_in(arg: GeneratedData) -> AnnounceData:
+                assert arg.ann_data is not None
+                return arg.ann_data
 
-        # this can not be lambda because we have to pass types explicte
-        def announce_in_filter(arg: InternalMessage[GeneratedData]) -> bool:
-            return arg.userdata.ann_data is None
+            # this can not be lambda because we have to pass types explicte
+            def announce_in_filter(arg: InternalMessage[GeneratedData]) -> bool:
+                return arg.userdata.ann_data is None
 
-        announcer = MessageFrameworkProcess[GeneratedData, AnnounceData, RecordIntDict](
-            self.test_module.test_circuit.update,
-            transformation_in=announce_transformation_in,
-            prepare_send_data=lambda arg: asdict(arg),
-            max_rand_wait=self.max_wait,
-        )
-        self.register_process("announcer", announcer)
-        self.add_data_flow("inserter", "announcer", filter=announce_in_filter)
+            announcer = MessageFrameworkProcess[GeneratedData, AnnounceData, RecordIntDict](
+                self.test_module.test_circuit.update,
+                transformation_in=announce_transformation_in,
+                prepare_send_data=lambda arg: asdict(arg),
+                max_rand_wait=self.max_wait,
+            )
+            self.register_process("announcer", announcer)
+            self.add_data_flow("inserter", "announcer", filter=announce_in_filter)
 
-        cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear, max_rand_wait=self.max_wait)
-        self.register_process("cleaner", cleaner)
-        # TODO activate cleaner
-        self.add_data_flow("starter", "cleaner", filter=lambda _: False)  # random.random()< 0.1)
+            cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear, max_rand_wait=self.max_wait)
+            self.register_process("cleaner", cleaner)
+            # TODO activate cleaner
+            self.add_data_flow("starter", "cleaner", filter=lambda _: False)  # random.random()< 0.1)
 
-        clear_filter_sink = MessageFrameworkProcess(None)
-        self.register_process("clear_filter_sink", clear_filter_sink)
-        self.add_data_flow("cleaner", "clear_filter_sink", filter=self.clear_activator_filter)
+            clear_filter_sink = MessageFrameworkProcess(None)
+            self.register_process("clear_filter_sink", clear_filter_sink)
+            self.add_data_flow("cleaner", "clear_filter_sink", filter=self.clear_activator_filter)
 
-        self.wb_mock_acc = MessageFrameworkExternalAccess()
-        self.register_accessor("wb_mock_acc", self.wb_mock_acc)
-        self.add_data_flow("generator", "wb_mock_acc")
+            self.wb_mock_acc = MessageFrameworkExternalAccess()
+            self.register_accessor("wb_mock_acc", self.wb_mock_acc)
+            self.add_data_flow("generator", "wb_mock_acc")
 
-        consumer = MessageFrameworkProcess[GeneratedData, MemoryData, Any](
-            self.test_module.test_circuit.get_result,
-            transformation_in=lambda arg: arg.mem_data,
-            checker=self.consumer_checker,
-        )
-        self.register_process("consumer", consumer)
-        self.add_data_flow("inserter", "consumer")
+            consumer = MessageFrameworkProcess[GeneratedData, MemoryData, Any](
+                self.test_module.test_circuit.get_result,
+                transformation_in=lambda arg: arg.mem_data,
+                checker=self.consumer_checker,
+            )
+            self.register_process("consumer", consumer)
+            self.add_data_flow("inserter", "consumer")
 
-        @def_method_mock(lambda: self.bus.request, sched_prio=0)
-        def request_mock(addr, data, we, sel):
-            arg: GeneratedData = self.wb_mock_acc.get()
+            @def_method_mock(lambda: self.bus.request_tb, sched_prio=0)
+            def request_mock(addr, data, we, sel):
+                arg: GeneratedData = self.wb_mock_acc.get()
 
-            self.assertEqual(addr, arg.mem_data.addr)
-            self.assertEqual(we, 0)
-            self.assertEqual(sel, arg.mem_data.mask)
+                self.assertEqual(addr, arg.mem_data.addr)
+                self.assertEqual(we, 0)
+                self.assertEqual(sel, arg.mem_data.mask)
 
-            self.wishbone_request_valid = True
-            self.wishbone_data_from_last_req = arg
-            return
+                self.wishbone_request_valid = True
+                self.wishbone_data_from_last_req = arg
+                return
 
-        @def_method_mock(lambda: self.bus.result, enable=lambda: self.wishbone_request_valid, sched_prio=0)
-        def response_mock(self):
-            self.wishbone_request_valid = False
-            data = self.wishbone_data_from_last_req["data"]
-            return {"data": data, "err": 0}
+            @def_method_mock(lambda: self.bus.result_tb, enable=lambda: self.wishbone_request_valid, sched_prio=0)
+            def response_mock(self):
+                self.wishbone_request_valid = False
+                data = self.wishbone_data_from_last_req["data"]
+                return {"data": data, "err": 0}
 
     def consumer_checker(self, in_verif: MemoryData, arg: RecordIntDictRet):
         generated_data = int((in_verif.rnd_bytes[:4]).hex(), 16)

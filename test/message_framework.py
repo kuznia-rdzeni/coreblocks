@@ -1,8 +1,10 @@
 import random
-from common import *
 from typing import TypeVar, TypeGuard
 from dataclasses import dataclass
-from message_queue import *
+from contextlib import contextmanager
+
+from test.message_queue import *
+from test.common import *
 
 # TODO add support for @Arusekk syntax trick
 
@@ -149,22 +151,6 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _
         self.in_verif_data = in_verif_data
         self.out_verif_data = out_verif_data
 
-    @staticmethod
-    def _guard_no_transformation_in(
-        instance: "MessageFrameworkProcess",
-    ) -> TypeGuard["MessageFrameworkProcess"[_T_userdata_in, _T_userdata_out, _T_userdata_in]]:
-        if instance.transformation_in is None:
-            return True
-        return False
-
-    @staticmethod
-    def _guard_no_transformation_out(
-        instance: "MessageFrameworkProcess",
-    ) -> TypeGuard["MessageFrameworkProcess"[_T_userdata_in, _T_userdata_transformed, _T_userdata_transformed]]:
-        if instance.transformation_out is None:
-            return True
-        return False
-
     def _get_test_data(self, arg_to_send: RecordIntDict):
         if self.tb is not None:
             out_data = yield from self.tb.call(arg_to_send)
@@ -224,10 +210,11 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         clk: ClockProcess
         starter: StarterProcess
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.processes: dict[str, TestCaseWithMessageFramework.ProcessEntry] = {}
         self.accessors: dict[str, TestCaseWithMessageFramework.AccessEntry] = {}
+        self._create_internal()
 
     def _create_internal(self):
         clk = ClockProcess()
@@ -261,8 +248,16 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         return wraped
 
     def _raise_if_process_not_exist(self, name: str):
-        if name not in self.processes:
+        known_processes = {"starter"} | set(self.processes.keys()) | set(self.accessors.keys())
+        if name not in known_processes:
             raise RuntimeError(f"Tried to use not yet registrated process with name: {name}")
+
+    def _get_process_by_name(self, name: str) -> Union['TestCaseWithMessageFramework.ProcessEntry', 'TestCaseWithMessageFramework.AccessEntry']:
+        if name in self.processes:
+            return self.processes[name]
+        if name in self.accessors:
+            return self.accessors[name]
+        raise RuntimeError("Process name not known.")
 
     def add_data_flow(
         self, from_name: str, to_name: str, *, filter: Optional[Callable[[InternalMessage[_T_userdata]], bool]] = None
@@ -274,14 +269,16 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         if from_name == "starter":
             proc_from = self.internal.starter
         else:
-            proc_from = self.processes[from_name]
+            proc_from = self._get_process_by_name(from_name)
         proc_from.out_broadcaster.add_destination(msg_q)
 
-        proc_to = self.processes[to_name]
+        proc_to = self._get_process_by_name(to_name)
         proc_to.in_combiner.add_source(msg_q, from_name)
 
-    def start_test(self, module: HasElaborate):
+    @contextmanager
+    def prepare_env(self, module: HasElaborate):
         with self.run_simulation(module) as sim:
+            yield
             sim.add_sync_process(self.internal.clk.process)
             for p in self.processes.values():
                 sim.add_sync_process(p.proc.process)
