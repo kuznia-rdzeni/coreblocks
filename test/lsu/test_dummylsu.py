@@ -242,50 +242,62 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
     def test_body(self):
         generator = MessageFrameworkProcess[Any, Any, GeneratedData](None, transformation_out=lambda x,y : self.generate_instr())
         self.register_process("generator", generator)
+        self.add_data_flow("starter", "generator")
 
         selector = MessageFrameworkProcess[RecordIntDict, RecordIntDict, Any](self.test_module.test_circuit.select, checker= lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0), max_rand_wait = self.max_wait)
         self.register_process("selector", selector)
+        self.add_data_flow("starter", "selector")
 
-        inserter = MessageFrameworkProcess[GeneratedData, RecordIntDict, RecordIntDict](
+        inserter = MessageFrameworkProcess[GeneratedData, GeneratedData, GeneratedData](
             self.test_module.test_circuit.insert,
-            transformation_in=lambda arg: arg.instr,
-            prepare_send_data=lambda req: {"rs_data": req, "rs_entry_id": 0},
+            prepare_send_data=lambda req: {"rs_data": req.instr, "rs_entry_id": 0},
+            transformation_out = lambda x,y : x,
         max_rand_wait = self.max_wait)
         self.register_process("inserter", inserter)
+        self.add_data_flow("generator", "inserter")
 
-        announcer = MessageFrameworkProcess[AnnounceData, AnnounceData, RecordIntDict](
+        def announce_transformation_in(arg : GeneratedData) -> AnnounceData:
+            assert arg.ann_data is not None
+            return arg.ann_data
+        # this can not be lambda because we have to pass types explicte
+        def announce_in_filter(arg : InternalMessage[GeneratedData]) -> bool:
+            return arg.userdata.ann_data is None
+        announcer = MessageFrameworkProcess[GeneratedData, AnnounceData, RecordIntDict](
                 self.test_module.test_circuit.update,
+                transformation_in = announce_transformation_in,
                 prepare_send_data = lambda arg: asdict(arg),
                 max_rand_wait = self.max_wait)
-        self.register_process("announcer", announcer, combiner_f=lambda arg: arg["generator"])
-        self.add_data_flow("generator", "announcer", filter = lambda arg: arg.userdata is not None)
-        self.add_data_flow("inserter", "announcer")
+        self.register_process("announcer", announcer)
+        self.add_data_flow("inserter", "announcer", filter = announce_in_filter)
 
         cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear, max_rand_wait = self.max_wait)
         self.register_process("cleaner", cleaner)
         #TODO activate cleaner
         self.add_data_flow("starter", "cleaner", filter = lambda _: False)#random.random()< 0.1)
 
-        self.wb_mock_acc = MessageFrameworkExternalAccess()
-        self.register_accessor("wb_mock_acc", self.wb_mock_acc)
-
         clear_filter_sink = MessageFrameworkProcess(None)
         self.register_process("clear_filter_sink", clear_filter_sink)
         self.add_data_flow("cleaner", "clear_filter_sink", filter = self.clear_activator_filter)
 
-        consumer = MessageFrameworkProcess[MemoryData, MemoryData, Any](
+        self.wb_mock_acc = MessageFrameworkExternalAccess()
+        self.register_accessor("wb_mock_acc", self.wb_mock_acc)
+        self.add_data_flow("generator", "wb_mock_acc")
+
+        consumer = MessageFrameworkProcess[GeneratedData, MemoryData, Any](
                 self.test_module.test_circuit.get_result,
+                transformation_in = lambda arg : arg.mem_data,
                 checker = self.consumer_checker
                 )
         self.register_process("consumer", consumer)
+        self.add_data_flow("inserter", "consumer")
 
         @def_method_mock(lambda: self.bus.request, sched_prio=0)
         def request_mock(addr, data, we, sel):
-            arg = self.wb_mock_acc.get()
+            arg : GeneratedData = self.wb_mock_acc.get()
 
-            self.assertEqual(addr, arg.addr)
+            self.assertEqual(addr, arg.mem_data.addr)
             self.assertEqual(we, 0)
-            self.assertEqual(sel, arg.mask)
+            self.assertEqual(sel, arg.mem_data.mask)
 
             self.wishbone_request_valid = True
             self.wishbone_data_from_last_req = arg
