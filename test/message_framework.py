@@ -45,6 +45,13 @@ class ClockProcess:
             yield
             self.now += 1
 
+def _simple_combiner(x : dict[str,T]) -> T:
+    if len(x)==1:
+        return list(x.values())[0] 
+    else:
+        raise RuntimeError("You can use default combiner, only if there is exactly one source.")
+
+
 
 _T_userdata_in = TypeVar("_T_userdata_in")
 _T_userdata_out = TypeVar("_T_userdata_out")
@@ -163,8 +170,8 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         self.processes: dict[str, TestCaseWithMessageFramework.ProcessEntry] = {}
         self.internal = TestCaseWithMessageFramework.InternalProcesses(ClockProcess())
 
-    def register_process(self, name: str, proc: MessageFrameworkProcess[T1, Any, T3]):
-        combiner = MessageQueueCombiner[_MFVerificationDataType[T1]]()
+    def register_process(self, name: str, proc: MessageFrameworkProcess[T1, Any, T3], *, combiner_f = _simple_combiner ):
+        combiner = MessageQueueCombiner[_MFVerificationDataType[T1], Any](combiner=combiner_f)
         broadcaster = MessageQueueBroadcaster[_MFVerificationDataType[T3]]()
         proc.add_to_simulation(self.internal, combiner, broadcaster)
         self.processes[name] = TestCaseWithMessageFramework.ProcessEntry(proc, combiner, broadcaster)
@@ -191,7 +198,7 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         proc_from.out_broadcaster.add_destination(msg_q)
 
         proc_to = self.processes[to_name]
-        proc_to.in_combiner.add_source(msg_q)
+        proc_to.in_combiner.add_source(msg_q, from_name)
 
     def start_test(self, module: HasElaborate):
         with self.run_simulation(module) as sim:

@@ -2,7 +2,7 @@ import random
 from collections import deque
 from typing import Optional
 from parameterized import parameterized_class
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 from amaranth.sim import Settle, Passive
 
@@ -104,10 +104,16 @@ def construct_test_module(gp):
 
 
 @dataclass
+class AnnounceData:
+    tag : int
+    value : int
+
+@dataclass
 class GeneratedData:
-    ann_data: Optional[RecordIntDict]
+    ann_data: Optional[AnnounceData]
     instr: RecordIntDict
     mem_data: RecordIntDict
+
 
 
 @parameterized_class(
@@ -181,6 +187,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             "sign": signess,
             "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
         }
+        ann_data = AnnounceData(**ann_data) if ann_data is not None else None
         return GeneratedData(ann_data, instr, mem_data)
 
     def random_wait(self):
@@ -189,35 +196,27 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
 
     def test_body(self):
         sel_check = lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0)
-        reveal_type(sel_check)
         selector = MessageFrameworkProcess(self.test_module.test_circuit.select, checker=sel_check)
-        reveal_type(selector)
         self.register_process("selector", selector)
 
-        inserter: MessageFrameworkProcess[GeneratedData, RecordIntDict, RecordIntDict] = MessageFrameworkProcess(
+        inserter = MessageFrameworkProcess[GeneratedData, RecordIntDict, RecordIntDict](
             self.test_module.test_circuit.insert,
             transformation_in=lambda arg: arg.instr,
             prepare_send_data=lambda req: {"rs_data": req, "rs_entry_id": 0},
         )
-        reveal_type(inserter)
+        self.register_process("inserter", inserter)
 
-    def inserter(self):
-        for i in range(self.tests_number):
-            req = self.instr_queue.pop()
-            yield from self.test_module.test_circuit.insert.call(rs_data=req, rs_entry_id=1)
-            announc = self.announce_queue.pop()
-            if announc is not None:
-                yield from self.test_module.test_circuit.update.call(announc)
-            yield from self.random_wait()
-            if random.random() < 0.1:
-                # to keep in sync inserter and wishbone slave mock i need to distinguish individual access
-                # in clear conditions the only data which are available in wishobe is addr and sel.
-                if (len(self.mem_data_queue) < 3) or compare_data_records_loop(self.mem_data_queue, n=4):
-                    continue
-                yield from self.test_module.test_circuit.clear.call()
-                self.cleared_queue_consumer.append(i)
-                self.cleared_queue_wb.append(i)
-                yield from self.random_wait()
+        announcer = MessageFrameworkProcess[AnnounceData, RecordIntDict, AnnounceData](
+                self.test_module.test_circuit.update,
+                prepare_send_data = lambda arg: asdict(arg)
+                )
+        self.register_process("announcer", announcer)
+        self.add_data_flow("generator", "announcer", filter = lambda arg: arg.userdata is not None)
+
+        cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear)
+        self.register_process("cleaner", cleaner)
+        self.add_data_flow("build-in_generator", "cleaner", filter = lambda _: random.random()<0.1)
+
 
     def wishbone_slave(self):
         yield Passive()

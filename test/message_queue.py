@@ -1,6 +1,6 @@
 from collections import deque
 from abc import abstractmethod, ABC
-from typing import TypeVar, Generic, Callable, Optional
+from typing import TypeVar, Generic, Callable, Optional, Any
 
 __all__ = [
     "MessageQueueInterface",
@@ -10,6 +10,7 @@ __all__ = [
 ]
 
 T = TypeVar("T")
+T2 = TypeVar("T2")
 
 
 class MessageQueueInterface(ABC, Generic[T]):
@@ -26,21 +27,22 @@ class MessageQueueInterface(ABC, Generic[T]):
         pass
 
 
-class MessageQueueCombiner(MessageQueueInterface[T]):
-    def __init__(self):
-        self.sources: list[MessageQueueInterface] = []
+class MessageQueueCombiner(MessageQueueInterface[T], Generic[T,T2]):
+    def __init__(self, *, combiner : Callable[[dict[str, T2]],T] = lambda x:x):
+        self.sources: dict[str,MessageQueueInterface[T2]] = {}
+        self.combiner = combiner
 
     def __bool__(self):
-        return all([bool(src) for src in self.sources])
+        return all([bool(src) for src in self.sources.values()])
 
-    def add_source(self, src: MessageQueueInterface):
-        self.sources.append(src)
+    def add_source(self, src: MessageQueueInterface, src_name : str):
+        self.sources[src_name]=src
 
     def append(self, val: T):
         raise NotImplementedError("MessageQueueCombiner doesn't support append")
 
     def pop(self) -> T:
-        return [src.pop() for src in self.sources]
+        return self.combiner(dict((name, src.pop()) for (name, src) in self.sources.items()))
 
 
 class MessageQueueBroadcaster(MessageQueueInterface[T]):
