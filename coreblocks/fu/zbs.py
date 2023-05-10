@@ -23,13 +23,12 @@ class ZbsFunction(DecoderManager):
         BINV = auto()  # Bit invert
         BSET = auto()  # Bit set
 
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
+    def get_instructions(self) -> Sequence[tuple]:
         return [
-            (cls.Fn.BCLR, OpType.SINGLE_BIT_MANIPULATION, Funct3.BCLR, Funct7.BCLR),
-            (cls.Fn.BEXT, OpType.SINGLE_BIT_MANIPULATION, Funct3.BEXT, Funct7.BEXT),
-            (cls.Fn.BINV, OpType.SINGLE_BIT_MANIPULATION, Funct3.BINV, Funct7.BINV),
-            (cls.Fn.BSET, OpType.SINGLE_BIT_MANIPULATION, Funct3.BSET, Funct7.BSET),
+            (self.Fn.BCLR, OpType.SINGLE_BIT_MANIPULATION, Funct3.BCLR, Funct7.BCLR),
+            (self.Fn.BEXT, OpType.SINGLE_BIT_MANIPULATION, Funct3.BEXT, Funct7.BEXT),
+            (self.Fn.BINV, OpType.SINGLE_BIT_MANIPULATION, Funct3.BINV, Funct7.BINV),
+            (self.Fn.BSET, OpType.SINGLE_BIT_MANIPULATION, Funct3.BSET, Funct7.BSET),
         ]
 
 
@@ -55,7 +54,7 @@ class Zbs(Elaboratable):
         self.gen_params = gen_params
 
         self.xlen = gen_params.isa.xlen
-        self.function = ZbsFunction.get_function()
+        self.function = ZbsFunction().get_function()
         self.in1 = Signal(self.xlen)
         self.in2 = Signal(self.xlen)
 
@@ -91,7 +90,7 @@ class ZbsUnit(Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    optypes = ZbsFunction.get_op_types()
+    optypes = ZbsFunction().get_op_types()
 
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(FuncUnitLayouts)
@@ -105,7 +104,7 @@ class ZbsUnit(Elaboratable):
 
         m.submodules.zbs = zbs = Zbs(self.gen_params)
         m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
-        m.submodules.decoder = decoder = ZbsFunction.get_decoder(self.gen_params)
+        m.submodules.decoder = decoder = ZbsFunction().get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
         def _(arg):

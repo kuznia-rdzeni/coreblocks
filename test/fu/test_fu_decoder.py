@@ -40,9 +40,9 @@ class TestFuDecoder(TestCaseWithSimulator):
         return (yield decoder.decode_fn)
 
     def run_test_case(self, decoder_manager: Type[DecoderManager], test_inputs: Sequence[tuple]) -> None:
-        instructions = decoder_manager.get_instructions()
-        decoder = decoder_manager.get_decoder(self.gen_params)
-        op_type_dependent = len(decoder_manager.get_op_types()) != 1
+        instructions = decoder_manager().get_instructions()
+        decoder = decoder_manager().get_decoder(self.gen_params)
+        op_type_dependent = len(decoder_manager().get_op_types()) != 1
 
         def process():
             for test_input in test_inputs:

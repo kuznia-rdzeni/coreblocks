@@ -18,7 +18,6 @@ __all__ = ["JumpBranchFuncUnit", "JumpComponent"]
 
 
 class JumpBranchFn(DecoderManager):
-    @unique
     class Fn(IntFlag):
         JAL = auto()
         JALR = auto()
@@ -30,18 +29,17 @@ class JumpBranchFn(DecoderManager):
         BGE = auto()
         BGEU = auto()
 
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
+    def get_instructions(self) -> Sequence[tuple]:
         return [
-            (cls.Fn.BEQ, OpType.BRANCH, Funct3.BEQ),
-            (cls.Fn.BNE, OpType.BRANCH, Funct3.BNE),
-            (cls.Fn.BLT, OpType.BRANCH, Funct3.BLT),
-            (cls.Fn.BLTU, OpType.BRANCH, Funct3.BLTU),
-            (cls.Fn.BGE, OpType.BRANCH, Funct3.BGE),
-            (cls.Fn.BGEU, OpType.BRANCH, Funct3.BGEU),
-            (cls.Fn.JAL, OpType.JAL),
-            (cls.Fn.JALR, OpType.JALR, Funct3.JALR),
-            (cls.Fn.AUIPC, OpType.AUIPC),
+            (self.Fn.BEQ, OpType.BRANCH, Funct3.BEQ),
+            (self.Fn.BNE, OpType.BRANCH, Funct3.BNE),
+            (self.Fn.BLT, OpType.BRANCH, Funct3.BLT),
+            (self.Fn.BLTU, OpType.BRANCH, Funct3.BLTU),
+            (self.Fn.BGE, OpType.BRANCH, Funct3.BGE),
+            (self.Fn.BGEU, OpType.BRANCH, Funct3.BGEU),
+            (self.Fn.JAL, OpType.JAL),
+            (self.Fn.JALR, OpType.JALR, Funct3.JALR),
+            (self.Fn.AUIPC, OpType.AUIPC),
         ]
 
 
@@ -50,7 +48,7 @@ class JumpBranch(Elaboratable):
         self.gen_params = gen_params
 
         xlen = gen_params.isa.xlen
-        self.fn = JumpBranchFn.get_function()
+        self.fn = JumpBranchFn().get_function()
         self.in1 = Signal(xlen)
         self.in2 = Signal(xlen)
         self.in_pc = Signal(xlen)
@@ -111,7 +109,7 @@ class JumpBranch(Elaboratable):
 
 
 class JumpBranchFuncUnit(Elaboratable):
-    optypes = JumpBranchFn.get_op_types()
+    optypes = JumpBranchFn().get_op_types()
 
     def __init__(self, gen: GenParams):
         self.gen = gen
@@ -128,7 +126,7 @@ class JumpBranchFuncUnit(Elaboratable):
         m.submodules.jb = jb = JumpBranch(self.gen)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
-        m.submodules.decoder = decoder = JumpBranchFn.get_decoder(self.gen)
+        m.submodules.decoder = decoder = JumpBranchFn().get_decoder(self.gen)
 
         @def_method(m, self.accept)
         def _():

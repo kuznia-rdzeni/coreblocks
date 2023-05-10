@@ -10,7 +10,7 @@ from coreblocks.transactions.lib import *
 
 from ..common import TestCaseWithSimulator, TestbenchIO
 
-from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit
+from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit, Fn
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 
@@ -39,7 +39,7 @@ class TestAlu(TestCaseWithSimulator):
 
     def setUp(self):
         self.gen = GenParams(test_core_config)
-        self.alu = Alu(self.gen)
+        self.alu = Alu(self.gen, zba_enable=True)
 
         random.seed(42)
 
@@ -69,34 +69,34 @@ class TestAlu(TestCaseWithSimulator):
             sim.add_process(process)
 
     def test_add(self):
-        self.check_fn(AluFn.Fn.ADD, operator.add)
+        self.check_fn(Fn.ADD, operator.add)
 
     def test_sll(self):
-        self.check_fn(AluFn.Fn.SLL, lambda in1, in2: in1 << (in2 & (self.gen.isa.xlen - 1)))
+        self.check_fn(Fn.SLL, lambda in1, in2: in1 << (in2 & (self.gen.isa.xlen - 1)))
 
     def test_xor(self):
-        self.check_fn(AluFn.Fn.XOR, operator.xor)
+        self.check_fn(Fn.XOR, operator.xor)
 
     def test_srl(self):
-        self.check_fn(AluFn.Fn.SRL, lambda in1, in2: in1 >> (in2 & (self.gen.isa.xlen - 1)))
+        self.check_fn(Fn.SRL, lambda in1, in2: in1 >> (in2 & (self.gen.isa.xlen - 1)))
 
     def test_or(self):
-        self.check_fn(AluFn.Fn.OR, operator.or_)
+        self.check_fn(Fn.OR, operator.or_)
 
     def test_and(self):
-        self.check_fn(AluFn.Fn.AND, operator.and_)
+        self.check_fn(Fn.AND, operator.and_)
 
     def test_sub(self):
-        self.check_fn(AluFn.Fn.SUB, operator.sub)
+        self.check_fn(Fn.SUB, operator.sub)
 
     def test_sh1add(self):
-        self.check_fn(AluFn.Fn.SH1ADD, lambda in1, in2: (in1 << 1) + in2)
+        self.check_fn(Fn.SH1ADD, lambda in1, in2: (in1 << 1) + in2)
 
     def test_sh2add(self):
-        self.check_fn(AluFn.Fn.SH2ADD, lambda in1, in2: (in1 << 2) + in2)
+        self.check_fn(Fn.SH2ADD, lambda in1, in2: (in1 << 2) + in2)
 
     def test_sh3add(self):
-        self.check_fn(AluFn.Fn.SH3ADD, lambda in1, in2: (in1 << 3) + in2)
+        self.check_fn(Fn.SH3ADD, lambda in1, in2: (in1 << 3) + in2)
 
     def test_sra(self):
         def sra(in1, in2):
@@ -107,16 +107,16 @@ class TestAlu(TestCaseWithSimulator):
             else:
                 return in1 >> in2
 
-        self.check_fn(AluFn.Fn.SRA, sra)
+        self.check_fn(Fn.SRA, sra)
 
     def test_slt(self):
         self.check_fn(
-            AluFn.Fn.SLT,
+            Fn.SLT,
             lambda in1, in2: _cast_to_int_xlen(in1, self.gen.isa.xlen) < _cast_to_int_xlen(in2, self.gen.isa.xlen),
         )
 
     def test_sltu(self):
-        self.check_fn(AluFn.Fn.SLTU, operator.lt)
+        self.check_fn(Fn.SLTU, operator.lt)
 
 
 class AluFuncUnitTestCircuit(Elaboratable):
@@ -127,7 +127,7 @@ class AluFuncUnitTestCircuit(Elaboratable):
         m = Module()
         tm = TransactionModule(m)
 
-        m.submodules.func_unit = func_unit = AluFuncUnit(self.gen)
+        m.submodules.func_unit = func_unit = AluFuncUnit(self.gen, zba_enable=True)
 
         # mocked input and output
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))

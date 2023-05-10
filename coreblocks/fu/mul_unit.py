@@ -1,4 +1,4 @@
-from enum import IntFlag, unique, IntEnum, auto
+from enum import IntFlag, IntEnum, auto
 from typing import Sequence, Tuple
 from dataclasses import KW_ONLY, dataclass
 
@@ -27,7 +27,6 @@ class MulFn(DecoderManager):
     Hot wire enum of 5 different multiplication operations.
     """
 
-    @unique
     class Fn(IntFlag):
         MUL = auto()  # Lower part multiplication
         MULH = auto()  # Upper part multiplication signed×signed
@@ -37,13 +36,12 @@ class MulFn(DecoderManager):
         #
         # MULW = auto()  # Multiplication of lower half of bits
 
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
+    def get_instructions(self) -> Sequence[tuple]:
         return [
-            (cls.Fn.MUL, OpType.MUL, Funct3.MUL),
-            (cls.Fn.MULH, OpType.MUL, Funct3.MULH),
-            (cls.Fn.MULHU, OpType.MUL, Funct3.MULHU),
-            (cls.Fn.MULHSU, OpType.MUL, Funct3.MULHSU),
+            (self.Fn.MUL, OpType.MUL, Funct3.MUL),
+            (self.Fn.MULH, OpType.MUL, Funct3.MULH),
+            (self.Fn.MULHU, OpType.MUL, Funct3.MULHU),
+            (self.Fn.MULHSU, OpType.MUL, Funct3.MULHSU),
         ]
 
 
@@ -90,7 +88,7 @@ class MulUnit(Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    optypes = MulFn.get_op_types()
+    optypes = MulFn().get_op_types()
 
     def __init__(self, gen: GenParams, mul_type: MulType, dsp_width: int = 32):
         """
@@ -121,7 +119,7 @@ class MulUnit(Elaboratable):
             ],
             2,
         )
-        m.submodules.decoder = decoder = MulFn.get_decoder(self.gen)
+        m.submodules.decoder = decoder = MulFn().get_decoder(self.gen)
 
         # Selecting unsigned integer multiplication module
         match self.mul_type:
