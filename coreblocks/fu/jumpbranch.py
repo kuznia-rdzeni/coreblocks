@@ -110,7 +110,7 @@ class JumpBranch(Elaboratable):
         return m
 
 
-class JumpBranchFuncUnit(Elaboratable):
+class JumpBranchFuncUnit(FuncUnit, Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen
 

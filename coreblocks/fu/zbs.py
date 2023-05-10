@@ -79,7 +79,7 @@ class Zbs(Elaboratable):
         return m
 
 
-class ZbsUnit(Elaboratable):
+class ZbsUnit(FuncUnit, Elaboratable):
     """
     Module responsible for executing Zbs instructions.
 

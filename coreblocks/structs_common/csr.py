@@ -152,7 +152,7 @@ class CSRRegister(Elaboratable):
         return m
 
 
-class CSRUnit(Elaboratable):
+class CSRUnit(FuncBlock, Elaboratable):
     """
     Unit for performing Control and Status Regitsters computations.
 

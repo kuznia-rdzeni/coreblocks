@@ -77,7 +77,7 @@ class MulType(IntEnum):
     RECURSIVE_MUL = 2
 
 
-class MulUnit(Elaboratable):
+class MulUnit(FuncUnit, Elaboratable):
     """
     Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
     module. It uses standard FuncUnitLayout.

@@ -186,7 +186,7 @@ class LSUDummyInternals(Elaboratable):
         return m
 
 
-class LSUDummy(Elaboratable):
+class LSUDummy(FuncBlock, Elaboratable):
     """
     Very simple LSU, which serializes all stores and loads.
     It isn't fully compliant with RiscV spec. Doesn't support checking if

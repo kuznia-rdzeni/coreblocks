@@ -103,7 +103,7 @@ class Alu(Elaboratable):
         return m
 
 
-class AluFuncUnit(Elaboratable):
+class AluFuncUnit(FuncUnit, Elaboratable):
     def __init__(self, gen: GenParams):
         self.gen = gen
 

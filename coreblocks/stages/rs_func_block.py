@@ -12,7 +12,7 @@ from coreblocks.transactions.lib import Collector
 __all__ = ["RSFuncBlock", "RSBlockComponent"]
 
 
-class RSFuncBlock(Elaboratable):
+class RSFuncBlock(FuncBlock, Elaboratable):
     """
     Module combining multiple functional units with single RS unit. With
     input interface of RS and output interface of single FU.
