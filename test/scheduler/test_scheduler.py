@@ -7,6 +7,7 @@ from amaranth.sim import Settle
 from parameterized import parameterized_class
 from coreblocks.stages.rs_func_block import RSBlockComponent
 
+from coreblocks.transactions.core import Method
 from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.structs_common.rf import RegisterFile
@@ -14,6 +15,7 @@ from coreblocks.structs_common.rat import FRAT
 from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, Opcode, OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.structs_common.rob import ReorderBuffer
+from coreblocks.utils.protocols import FuncBlock
 from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
 
 
@@ -39,15 +41,21 @@ class SchedulerTestCircuit(Elaboratable):
         m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
 
         # mocked RSFuncBlock
-        class MockedRSFuncBlock:
+        class MockedRSFuncBlock(FuncBlock):
             def __init__(self, select, insert, optypes):
                 self.select = select
                 self.insert = insert
                 self.optypes = optypes
 
+            update: Method
+            get_result: Method
+
+            def elaborate(self, platform):
+                raise NotImplementedError
+
         method_rs_alloc = []
         method_rs_insert = []
-        rs_blocks = []
+        rs_blocks: list[tuple[FuncBlock, set[OpType]]] = []
         self.rs_alloc = []
         self.rs_insert = []
 
@@ -63,7 +71,7 @@ class SchedulerTestCircuit(Elaboratable):
             method_rs_insert.append(insert_adapter)
             self.rs_alloc.append(select_test)
             self.rs_insert.append(insert_test)
-            rs_blocks.append(MockedRSFuncBlock(alloc_adapter.iface, insert_adapter.iface, rs))
+            rs_blocks.append((MockedRSFuncBlock(alloc_adapter.iface, insert_adapter.iface, rs), rs))
 
             m.submodules[f"rs_alloc_{i}"] = self.rs_alloc[i]
             m.submodules[f"rs_insert_{i}"] = self.rs_insert[i]
@@ -84,7 +92,7 @@ class SchedulerTestCircuit(Elaboratable):
             rob_put=self.rob.put,
             rf_read1=self.rf.read1,
             rf_read2=self.rf.read2,
-            reservation_stations=rs_blocks,  # noqa
+            reservation_stations=rs_blocks,
             gen_params=self.gen_params,
         )
 
