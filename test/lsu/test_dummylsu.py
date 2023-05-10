@@ -105,9 +105,10 @@ def construct_test_module(gp):
 # ================================================================
 # ================================================================
 
-class WishboneMasterStub():
+
+class WishboneMasterStub:
     def __init__(self, wb_params: WishboneParameters):
-        #initialisation taken from peripherals/wishbone.py -- maybe there is possibility to make it common?
+        # initialisation taken from peripherals/wishbone.py -- maybe there is possibility to make it common?
         self.wb_params = wb_params
         self.wb_layout = WishboneLayout(wb_params).wb_layout
         self.generate_layouts(wb_params)
@@ -117,16 +118,16 @@ class WishboneMasterStub():
 
     def generate_layouts(self, wb_params: WishboneParameters):
         # generate method layouts locally
-        self.requestLayout : Any = [
+        self.requestLayout: Any = [
             ("addr", wb_params.addr_width, DIR_FANIN),
             ("data", wb_params.data_width, DIR_FANIN),
             ("we", 1, DIR_FANIN),
             ("sel", wb_params.data_width // wb_params.granularity, DIR_FANIN),
         ]
 
-        #TODO Fix typo Any to LayoutLike
-        self.resultLayout : Any = [("data", wb_params.data_width), ("err", 1)]
-    
+        # TODO Fix typo Any to LayoutLike
+        self.resultLayout: Any = [("data", wb_params.data_width), ("err", 1)]
+
 
 def construct_test_module_new(gp) -> tuple[ModuleConnector, WishboneMasterStub]:
     wb_params = WishboneParameters(data_width=gp.isa.ilen, addr_width=32)
@@ -134,13 +135,14 @@ def construct_test_module_new(gp) -> tuple[ModuleConnector, WishboneMasterStub]:
     bus = WishboneMasterStub(wb_params)
     test_circuit = SimpleTestCircuit(LSUDummy(gp, bus))
 
-    return ModuleConnector(test_circuit=test_circuit, request_mock = bus.request, result_mock = bus.result), bus
+    return ModuleConnector(test_circuit=test_circuit, request_mock=bus.request, result_mock=bus.result), bus
 
 
 @dataclass
 class AnnounceData:
-    tag : int
-    value : int
+    tag: int
+    value: int
+
 
 @dataclass
 class MemoryData:
@@ -149,11 +151,13 @@ class MemoryData:
     sign: bool
     rnd_bytes: bytes
 
+
 @dataclass
 class GeneratedData:
     ann_data: Optional[AnnounceData]
     instr: RecordIntDict
     mem_data: MemoryData
+
 
 @parameterized_class(
     ("name", "max_wait", "max_reg_val", "max_imm_val"),
@@ -164,8 +168,8 @@ class GeneratedData:
 )
 class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
     max_wait: int
-    max_reg_val : int
-    max_imm_val : int
+    max_reg_val: int
+    max_imm_val: int
 
     def setUp(self) -> None:
         # testing clear method in connection with wishbone slave mock is very tricky
@@ -223,77 +227,89 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             "s2_val": 0,
             "imm": imm,
         }
-        mem_data = MemoryData(**{
-            "addr": addr,
-            "mask": mask,
-            "sign": signess,
-            "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
-        })
+        mem_data = MemoryData(
+            **{
+                "addr": addr,
+                "mask": mask,
+                "sign": signess,
+                "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+            }
+        )
         ann_data = AnnounceData(**ann_data) if ann_data is not None else None
         return GeneratedData(ann_data, instr, mem_data)
 
-    def clear_activator_filter(self, msg : InternalMessage):
+    def clear_activator_filter(self, msg: InternalMessage):
         self.last_clear = msg.clk
         return False
 
-    def cleared_filter(self, msg : InternalMessage):
+    def cleared_filter(self, msg: InternalMessage):
         return msg.clk <= self.last_clear
 
     def test_body(self):
-        generator = MessageFrameworkProcess[Any, Any, GeneratedData](None, transformation_out=lambda x,y : self.generate_instr())
+        generator = MessageFrameworkProcess[Any, Any, GeneratedData](
+            None, transformation_out=lambda x, y: self.generate_instr()
+        )
         self.register_process("generator", generator)
         self.add_data_flow("starter", "generator")
 
-        selector = MessageFrameworkProcess[RecordIntDict, RecordIntDict, Any](self.test_module.test_circuit.select, checker= lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0), max_rand_wait = self.max_wait)
+        selector = MessageFrameworkProcess[RecordIntDict, RecordIntDict, Any](
+            self.test_module.test_circuit.select,
+            checker=lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0),
+            max_rand_wait=self.max_wait,
+        )
         self.register_process("selector", selector)
         self.add_data_flow("starter", "selector")
 
         inserter = MessageFrameworkProcess[GeneratedData, GeneratedData, GeneratedData](
             self.test_module.test_circuit.insert,
             prepare_send_data=lambda req: {"rs_data": req.instr, "rs_entry_id": 0},
-            transformation_out = lambda x,y : x,
-        max_rand_wait = self.max_wait)
+            transformation_out=lambda x, y: x,
+            max_rand_wait=self.max_wait,
+        )
         self.register_process("inserter", inserter)
         self.add_data_flow("generator", "inserter")
 
-        def announce_transformation_in(arg : GeneratedData) -> AnnounceData:
+        def announce_transformation_in(arg: GeneratedData) -> AnnounceData:
             assert arg.ann_data is not None
             return arg.ann_data
-        # this can not be lambda because we have to pass types explicte
-        def announce_in_filter(arg : InternalMessage[GeneratedData]) -> bool:
-            return arg.userdata.ann_data is None
-        announcer = MessageFrameworkProcess[GeneratedData, AnnounceData, RecordIntDict](
-                self.test_module.test_circuit.update,
-                transformation_in = announce_transformation_in,
-                prepare_send_data = lambda arg: asdict(arg),
-                max_rand_wait = self.max_wait)
-        self.register_process("announcer", announcer)
-        self.add_data_flow("inserter", "announcer", filter = announce_in_filter)
 
-        cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear, max_rand_wait = self.max_wait)
+        # this can not be lambda because we have to pass types explicte
+        def announce_in_filter(arg: InternalMessage[GeneratedData]) -> bool:
+            return arg.userdata.ann_data is None
+
+        announcer = MessageFrameworkProcess[GeneratedData, AnnounceData, RecordIntDict](
+            self.test_module.test_circuit.update,
+            transformation_in=announce_transformation_in,
+            prepare_send_data=lambda arg: asdict(arg),
+            max_rand_wait=self.max_wait,
+        )
+        self.register_process("announcer", announcer)
+        self.add_data_flow("inserter", "announcer", filter=announce_in_filter)
+
+        cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear, max_rand_wait=self.max_wait)
         self.register_process("cleaner", cleaner)
-        #TODO activate cleaner
-        self.add_data_flow("starter", "cleaner", filter = lambda _: False)#random.random()< 0.1)
+        # TODO activate cleaner
+        self.add_data_flow("starter", "cleaner", filter=lambda _: False)  # random.random()< 0.1)
 
         clear_filter_sink = MessageFrameworkProcess(None)
         self.register_process("clear_filter_sink", clear_filter_sink)
-        self.add_data_flow("cleaner", "clear_filter_sink", filter = self.clear_activator_filter)
+        self.add_data_flow("cleaner", "clear_filter_sink", filter=self.clear_activator_filter)
 
         self.wb_mock_acc = MessageFrameworkExternalAccess()
         self.register_accessor("wb_mock_acc", self.wb_mock_acc)
         self.add_data_flow("generator", "wb_mock_acc")
 
         consumer = MessageFrameworkProcess[GeneratedData, MemoryData, Any](
-                self.test_module.test_circuit.get_result,
-                transformation_in = lambda arg : arg.mem_data,
-                checker = self.consumer_checker
-                )
+            self.test_module.test_circuit.get_result,
+            transformation_in=lambda arg: arg.mem_data,
+            checker=self.consumer_checker,
+        )
         self.register_process("consumer", consumer)
         self.add_data_flow("inserter", "consumer")
 
         @def_method_mock(lambda: self.bus.request, sched_prio=0)
         def request_mock(addr, data, we, sel):
-            arg : GeneratedData = self.wb_mock_acc.get()
+            arg: GeneratedData = self.wb_mock_acc.get()
 
             self.assertEqual(addr, arg.mem_data.addr)
             self.assertEqual(we, 0)
@@ -301,16 +317,15 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
 
             self.wishbone_request_valid = True
             self.wishbone_data_from_last_req = arg
-            return 
+            return
 
         @def_method_mock(lambda: self.bus.result, enable=lambda: self.wishbone_request_valid, sched_prio=0)
         def response_mock(self):
             self.wishbone_request_valid = False
             data = self.wishbone_data_from_last_req["data"]
-            return {"data": data, "err" : 0}
+            return {"data": data, "err": 0}
 
-                                                                        
-    def consumer_checker(self, in_verif : MemoryData, arg : RecordIntDictRet):
+    def consumer_checker(self, in_verif: MemoryData, arg: RecordIntDictRet):
         generated_data = int((in_verif.rnd_bytes[:4]).hex(), 16)
         data_shift = (in_verif.mask & -in_verif.mask).bit_length() - 1
         assert in_verif.mask.bit_length() == data_shift + in_verif.mask.bit_count(), "Unexpected mask"

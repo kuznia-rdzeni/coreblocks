@@ -1,6 +1,6 @@
 import random
 from common import *
-from typing import TypeVar, overload, Protocol, TypeGuard
+from typing import TypeVar, TypeGuard
 from dataclasses import dataclass
 from message_queue import *
 
@@ -48,8 +48,9 @@ class ClockProcess:
             yield
             self.now += 1
 
+
 class StarterProcess:
-    def __init__(self, clk : ClockProcess, out_broadcaster : MessageQueueBroadcaster[_MFVerificationDataType[None]]):
+    def __init__(self, clk: ClockProcess, out_broadcaster: MessageQueueBroadcaster[_MFVerificationDataType[None]]):
         self.clk = clk
         self.out_broadcaster = out_broadcaster
 
@@ -64,20 +65,20 @@ class StarterProcess:
                 self.out_broadcaster.append(InternalMessage(self.clk.now, None))
 
 
-def _default_combiner(arg : dict[str,T]) -> T:
-    if len(arg)==1:
-        return list(arg.values())[0] 
+def _default_combiner(arg: dict[str, T]) -> T:
+    if len(arg) == 1:
+        return list(arg.values())[0]
     else:
         raise RuntimeError("You can use default combiner, only if there is exactly one source.")
-
 
 
 _T_userdata_in = TypeVar("_T_userdata_in")
 _T_userdata_out = TypeVar("_T_userdata_out")
 _T_userdata_transformed = TypeVar("_T_userdata_transformed")
 
+
 class MessageFrameworkExternalAccess(Generic[_T_userdata_in, _T_userdata_out]):
-    def __init__( self):
+    def __init__(self):
         pass
 
     def add_to_simulation(
@@ -92,13 +93,14 @@ class MessageFrameworkExternalAccess(Generic[_T_userdata_in, _T_userdata_out]):
 
     def get(self) -> _T_userdata_in:
         val = self.in_verif_data.pop()
-        while isinstance(val,MessageFrameworkCommand):
+        while isinstance(val, MessageFrameworkCommand):
             val = self.in_verif_data.pop()
         return val.userdata
 
-    def put(self, val : _T_userdata_out):
+    def put(self, val: _T_userdata_out):
         msg = InternalMessage(self.internal.clk.now, val)
         self.out_verif_data.append(msg)
+
 
 class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _T_userdata_out]):
     """
@@ -123,7 +125,7 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _
         transformation_out: Callable[[_T_userdata_transformed, RecordIntDict], _T_userdata_out] = lambda x, y: {},
         prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = lambda x: {},
         checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = lambda x, y: None,
-        max_rand_wait = 2
+        max_rand_wait=2,
     ):
         self.tb = tb
         self.max_rand_wait = max_rand_wait
@@ -175,7 +177,7 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _
         return self.in_verif_data.pop()
 
     def _random_wait(self):
-        cycles = random.randrange(self.max_rand_wait+1)
+        cycles = random.randrange(self.max_rand_wait + 1)
         for i in range(cycles):
             yield
 
@@ -207,7 +209,7 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _
 class TestCaseWithMessageFramework(TestCaseWithSimulator):
     @dataclass
     class ProcessEntry:
-        proc: MessageFrameworkProcess 
+        proc: MessageFrameworkProcess
         in_combiner: MessageQueueCombiner
         out_broadcaster: MessageQueueBroadcaster
 
@@ -220,7 +222,7 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
     @dataclass
     class InternalProcesses:
         clk: ClockProcess
-        starter : StarterProcess
+        starter: StarterProcess
 
     def __init__(self):
         super().__init__()
@@ -232,13 +234,15 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         starter = StarterProcess(clk, MessageQueueBroadcaster())
         self.internal = TestCaseWithMessageFramework.InternalProcesses(clk, starter)
 
-    def register_process(self, name: str, proc: MessageFrameworkProcess[T1, Any, T3], *, combiner_f = _default_combiner ):
+    def register_process(self, name: str, proc: MessageFrameworkProcess[T1, Any, T3], *, combiner_f=_default_combiner):
         combiner = MessageQueueCombiner[_MFVerificationDataType[T1], Any](combiner=combiner_f)
         broadcaster = MessageQueueBroadcaster[_MFVerificationDataType[T3]]()
         proc.add_to_simulation(self.internal, combiner, broadcaster)
         self.processes[name] = TestCaseWithMessageFramework.ProcessEntry(proc, combiner, broadcaster)
 
-    def register_accessor(self, name: str, proc: MessageFrameworkExternalAccess[T1, T2], *, combiner_f = _default_combiner ):
+    def register_accessor(
+        self, name: str, proc: MessageFrameworkExternalAccess[T1, T2], *, combiner_f=_default_combiner
+    ):
         combiner = MessageQueueCombiner[_MFVerificationDataType[T1], Any](combiner=combiner_f)
         broadcaster = MessageQueueBroadcaster[_MFVerificationDataType[T2]]()
         self.accessors[name] = TestCaseWithMessageFramework.AccessEntry(proc, combiner, broadcaster)
@@ -256,7 +260,7 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
 
         return wraped
 
-    def _raise_if_process_not_exist(self, name : str):
+    def _raise_if_process_not_exist(self, name: str):
         if name not in self.processes:
             raise RuntimeError(f"Tried to use not yet registrated process with name: {name}")
 
@@ -267,7 +271,7 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         self._raise_if_process_not_exist(to_name)
         msg_q: MessageQueue[_MFVerificationDataType[_T_userdata]] = MessageQueue(filter=self._wrap_filter(filter))
 
-        if from_name=="starter":
+        if from_name == "starter":
             proc_from = self.internal.starter
         else:
             proc_from = self.processes[from_name]

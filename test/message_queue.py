@@ -1,6 +1,6 @@
 from collections import deque
 from abc import abstractmethod, ABC
-from typing import TypeVar, Generic, Callable, Optional, Any
+from typing import TypeVar, Generic, Callable, Optional
 
 __all__ = [
     "MessageQueueInterface",
@@ -31,9 +31,9 @@ class MessageQueueInterface(ABC, Generic[T]):
         pass
 
 
-class MessageQueueCombiner(MessageQueueInterface[T], Generic[T,T2]):
-    def __init__(self, *, combiner : Callable[[dict[str, T2]],T] = lambda x:x):
-        self.sources: dict[str,MessageQueueInterface[T2]] = {}
+class MessageQueueCombiner(MessageQueueInterface[T], Generic[T, T2]):
+    def __init__(self, *, combiner: Callable[[dict[str, T2]], T] = lambda x: x):
+        self.sources: dict[str, MessageQueueInterface[T2]] = {}
         self.combiner = combiner
 
     def __bool__(self):
@@ -42,8 +42,8 @@ class MessageQueueCombiner(MessageQueueInterface[T], Generic[T,T2]):
     def __len__(self):
         return min([len(src) for src in self.sources.values()])
 
-    def add_source(self, src: MessageQueueInterface, src_name : str):
-        self.sources[src_name]=src
+    def add_source(self, src: MessageQueueInterface, src_name: str):
+        self.sources[src_name] = src
 
     def append(self, val: T):
         raise NotImplementedError("MessageQueueCombiner doesn't support append")
