@@ -15,6 +15,7 @@ __all__ = ["AluFuncUnit", "ALUComponent"]
 
 from coreblocks.utils.protocols import FuncUnit
 
+
 class Fn(IntFlag):
     ADD = auto()  # Addition
     SLL = auto()  # Logic left shift
@@ -26,11 +27,12 @@ class Fn(IntFlag):
     SRA = auto()  # Arithmetic right shift
     SLT = auto()  # Set if less than (signed)
     SLTU = auto()  # Set if less than (unsigned)
-    
+
     # ZBA extension
     SH1ADD = auto()  # Logic left shift by 1 and add
     SH2ADD = auto()  # Logic left shift by 2 and add
     SH3ADD = auto()  # Logic left shift by 3 and add
+
 
 class AluFn(DecoderManager):
     def __init__(self, zba_enable=False) -> None:
@@ -47,7 +49,7 @@ class AluFn(DecoderManager):
             SRA = auto()  # Arithmetic right shift
             SLT = auto()  # Set if less than (signed)
             SLTU = auto()  # Set if less than (unsigned)
-            
+
             if self.zba_enable:
                 SH1ADD = auto()  # Logic left shift by 1 and add
                 SH2ADD = auto()  # Logic left shift by 2 and add
@@ -74,7 +76,7 @@ class AluFn(DecoderManager):
 
 
 class Alu(Elaboratable):
-    def __init__(self, gen: GenParams, zba_enable = False):
+    def __init__(self, gen: GenParams, zba_enable=False):
         self.gen = gen
         self.zba_enable = zba_enable
         self.alu_fn = AluFn(zba_enable=zba_enable)
@@ -131,7 +133,7 @@ class Alu(Elaboratable):
 class AluFuncUnit(Elaboratable):
     optypes = AluFn().get_op_types()
 
-    def __init__(self, gen: GenParams, zba_enable = False):
+    def __init__(self, gen: GenParams, zba_enable=False):
         self.gen = gen
         self.zba_enable = zba_enable
 
@@ -165,7 +167,7 @@ class AluFuncUnit(Elaboratable):
 
 
 class ALUComponent(FunctionalComponentParams):
-    def __init__(self, zba_enable = True):
+    def __init__(self, zba_enable=True):
         self.zba_enable = zba_enable
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
