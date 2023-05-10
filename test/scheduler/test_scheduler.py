@@ -42,10 +42,9 @@ class SchedulerTestCircuit(Elaboratable):
 
         # mocked RSFuncBlock
         class MockedRSFuncBlock(FuncBlock):
-            def __init__(self, select, insert, optypes):
+            def __init__(self, select, insert):
                 self.select = select
                 self.insert = insert
-                self.optypes = optypes
 
             update: Method
             get_result: Method
@@ -71,7 +70,7 @@ class SchedulerTestCircuit(Elaboratable):
             method_rs_insert.append(insert_adapter)
             self.rs_alloc.append(select_test)
             self.rs_insert.append(insert_test)
-            rs_blocks.append((MockedRSFuncBlock(alloc_adapter.iface, insert_adapter.iface, rs), rs))
+            rs_blocks.append((MockedRSFuncBlock(alloc_adapter.iface, insert_adapter.iface), rs))
 
             m.submodules[f"rs_alloc_{i}"] = self.rs_alloc[i]
             m.submodules[f"rs_insert_{i}"] = self.rs_insert[i]
