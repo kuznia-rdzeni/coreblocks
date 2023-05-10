@@ -7,7 +7,6 @@ from amaranth.sim import Settle, Passive
 from coreblocks.params import GenParams, RSLayouts, SchedulerLayouts, OpType, Opcode, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.scheduler.scheduler import RSSelection
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
 from test.common import TestCaseWithSimulator, TestbenchIO
 
@@ -21,7 +20,6 @@ class RSSelector(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         rs_layouts = self.gen_params.get(RSLayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
@@ -44,7 +42,7 @@ class RSSelector(Elaboratable):
             push_instr=out_fifo.write,
         )
 
-        return tm
+        return m
 
 
 class TestRSSelect(TestCaseWithSimulator):

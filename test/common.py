@@ -118,7 +118,6 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         dummy = Signal()
         m.d.sync += dummy.eq(1)
@@ -130,7 +129,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
                 self._io[name] = TestbenchIO(AdapterTrans(attr))
                 m.submodules[name] = self._io[name]
 
-        return tm
+        return m
 
     def debug_signals(self):
         return [io.debug_signals() for io in self._io.values()]
@@ -138,7 +137,10 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
 class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
-    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
+    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
+        if add_transaction_module:
+            module = TransactionModule(module)
+
         test_name = unittest.TestCase.id(self)
         clk_period = 1e-6
 
@@ -147,6 +149,7 @@ class TestCaseWithSimulator(unittest.TestCase):
         else:
             extra_signals = functools.partial(auto_debug_signals, module)
 
+        # up to this place we use plain python test functionality, no `elaborate` is called
         sim = Simulator(module)
         sim.add_clock(clk_period)
         yield sim

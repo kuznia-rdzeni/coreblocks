@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.transactions import TransactionModule, Method, def_method
+from coreblocks.transactions import Method, def_method
 from coreblocks.transactions.lib import AdapterTrans
 
 
@@ -62,14 +62,13 @@ class TestElaboratable(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         m.submodules.echo = self.echo
         m.submodules.io_echo = self.io_echo
         m.submodules.consumer = self.consumer
         m.submodules.io_consume = self.io_consume
 
-        return tm
+        return m
 
 
 class TestAdapterTrans(TestCaseWithSimulator):

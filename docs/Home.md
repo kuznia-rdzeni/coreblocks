@@ -9,6 +9,8 @@ component implementations.
 Documentation located in the `docs/` directory collects description of the whole processor.
 In `Overview` a high level overview of CoreBlocks can be found.
 
+Html versions of these pages and API documentation generated from code are available at [kuznia-rdzeni.github.io/coreblocks/](https://kuznia-rdzeni.github.io/coreblocks/)
+
 
 ```{mermaid}
 graph

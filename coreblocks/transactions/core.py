@@ -12,7 +12,8 @@ from itertools import count, chain
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
 from ._utils import *
-from ..utils._typing import StatementLike, ValueLike, SignalBundle
+from ..utils import silence_mustuse
+from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
@@ -283,13 +284,16 @@ class TransactionManager(Elaboratable):
         return method_uses
 
     def elaborate(self, platform):
-        method_map = MethodMap(self.transactions)
-        relations = [
-            Relation(**relation, start=elem)
-            for elem in method_map.methods_and_transactions
-            for relation in elem.relations
-        ]
-        cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
+        # In the following, various problems in the transaction set-up are detected.
+        # The exception triggers an unused Elaboratable warning.
+        with silence_mustuse(self):
+            method_map = MethodMap(self.transactions)
+            relations = [
+                Relation(**relation, start=elem)
+                for elem in method_map.methods_and_transactions
+                for relation in elem.relations
+            ]
+            cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
 
         m = Module()
 
@@ -353,38 +357,39 @@ class TransactionContext:
 
 class TransactionModule(Elaboratable):
     """
-    `TransactionModule` is used as wrapper on `Module` class,
-    which add support for transaction to the `Module`. It creates a
+    `TransactionModule` is used as wrapper on `Elaboratable` classes,
+    which adds support for transactions. It creates a
     `TransactionManager` which will handle transaction scheduling
     and can be used in definition of `Method`\\s and `Transaction`\\s.
     """
 
-    def __init__(self, module: Module, manager: Optional[TransactionManager] = None):
+    def __init__(self, elaboratable: HasElaborate, manager: Optional[TransactionManager] = None):
         """
         Parameters
         ----------
-        module: Module
-                The `Module` which should be wrapped to add support for
+        elaboratable: HasElaborate
+                The `Elaboratable` which should be wrapped to add support for
                 transactions and methods.
         """
         if manager is None:
             manager = TransactionManager()
         self.transactionManager = manager
-        self.module = module
+        self.elaboratable = elaboratable
 
     def transaction_context(self) -> TransactionContext:
         return TransactionContext(self.transactionManager)
 
     def elaborate(self, platform):
-        with self.transaction_context():
-            for name in self.module._named_submodules:  # type: ignore
-                self.module._named_submodules[name] = Fragment.get(self.module._named_submodules[name], platform)
-            for idx in range(len(self.module._anon_submodules)):
-                self.module._anon_submodules[idx] = Fragment.get(self.module._anon_submodules[idx], platform)
+        with silence_mustuse(self.transactionManager):
+            with self.transaction_context():
+                elaboratable = Fragment.get(self.elaboratable, platform)
 
-        self.module.submodules._transactron_transManager = self.transactionManager
+        m = Module()
 
-        return self.module
+        m.submodules.main_module = elaboratable
+        m.submodules.transactionManager = self.transactionManager
+
+        return m
 
 
 class _TransactionBaseStatements:
