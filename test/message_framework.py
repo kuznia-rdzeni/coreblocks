@@ -128,18 +128,22 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _
         prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = lambda x: {},
         checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = lambda x, y: None,
         max_rand_wait=2,
+        iteration_count : Optional[int] = None,
+        passive : bool = False,
+        name : str = ""
     ):
         self.tb = tb
         self.max_rand_wait = max_rand_wait
+        self.name = name
 
-        self.passive = False
+        self.passive = passive
         self.transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = transformation_in
         self.transformation_out: Callable[
             [_T_userdata_transformed, RecordIntDict], _T_userdata_out
         ] = transformation_out
         self.prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = prepare_send_data
         self.checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = checker
-        self.iteration_count: Optional[int] = None
+        self.iteration_count = iteration_count
 
     def add_to_simulation(
         self,
@@ -175,6 +179,7 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _
             yield Passive()
         i = 0
         while self.iteration_count is None or (i < self.iteration_count):
+            print(self.name)
             i += 1
             raw_verif_input = yield from self._get_verifcation_input()
             if isinstance(raw_verif_input, MessageFrameworkCommand):
@@ -189,6 +194,7 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _
             transformed_output = self.transformation_out(transformed_verif_input, test_data)
             msg = InternalMessage(self.internal.clk.now, transformed_output)
             self.out_verif_data.append(msg)
+        print(f"Koniec procesu {self.name}")
         self.out_verif_data.append(EndOfInput())
 
 
@@ -280,5 +286,6 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         with self.run_simulation(module) as sim:
             yield
             sim.add_sync_process(self.internal.clk.process)
+            sim.add_sync_process(self.internal.starter.process)
             for p in self.processes.values():
                 sim.add_sync_process(p.proc.process)

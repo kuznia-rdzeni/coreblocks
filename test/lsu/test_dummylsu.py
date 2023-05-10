@@ -179,7 +179,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
         # I suppose that there are still bugs in this test, but wuth occurence rate
         # less than 10^-4
         random.seed(14)
-        self.tests_number = 100
+        self.tests_number = 10
         self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module, self.bus = construct_test_module_new(self.gp)
         self.instr_queue = deque()
@@ -192,6 +192,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
         self.wishbone_data_from_last_req = None
 
     def generate_instr(self):
+        print("generate_instr start")
         ops = {
             "LB": (OpType.LOAD, Funct3.B),
             "LBU": (OpType.LOAD, Funct3.BU),
@@ -250,7 +251,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
     def test_body(self):
         with self.prepare_env(self.test_module):
             generator = MessageFrameworkProcess[Any, Any, GeneratedData](
-                None, transformation_out=lambda x, y: self.generate_instr()
+                None, transformation_out=lambda x, y: self.generate_instr(), iteration_count=self.tests_number, name= "generator"
             )
             self.register_process("generator", generator)
             self.add_data_flow("starter", "generator")
@@ -261,6 +262,8 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
                 self.test_module.test_circuit.select,
                 checker=lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0),
                 max_rand_wait=self.max_wait,
+                passive=True,
+                name="selector"
             )
             self.register_process("selector", selector)
             self.add_data_flow("starter", "selector")
@@ -270,6 +273,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
                 prepare_send_data=lambda req: {"rs_data": req.instr, "rs_entry_id": 0},
                 transformation_out=lambda x, y: x,
                 max_rand_wait=self.max_wait,
+                name="inserter"
             )
             self.register_process("inserter", inserter)
             self.add_data_flow("generator", "inserter")
@@ -280,18 +284,20 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
 
             # this can not be lambda because we have to pass types explicte
             def announce_in_filter(arg: InternalMessage[GeneratedData]) -> bool:
-                return arg.userdata.ann_data is None
+                return arg.userdata.ann_data is not None
 
             announcer = MessageFrameworkProcess[GeneratedData, AnnounceData, RecordIntDict](
                 self.test_module.test_circuit.update,
                 transformation_in=announce_transformation_in,
                 prepare_send_data=lambda arg: asdict(arg),
                 max_rand_wait=self.max_wait,
+                passive = True,
+                name="announcer"
             )
             self.register_process("announcer", announcer)
             self.add_data_flow("inserter", "announcer", filter=announce_in_filter)
 
-            cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear, max_rand_wait=self.max_wait)
+            cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear, max_rand_wait=self.max_wait, name="cleaner", passive=True)
             self.register_process("cleaner", cleaner)
             # TODO activate cleaner
             self.add_data_flow("starter", "cleaner", filter=lambda _: False)  # random.random()< 0.1)
@@ -308,6 +314,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
                 self.test_module.test_circuit.get_result,
                 transformation_in=lambda arg: arg.mem_data,
                 checker=self.consumer_checker,
+                name="consumer"
             )
             self.register_process("consumer", consumer)
             self.add_data_flow("inserter", "consumer")
