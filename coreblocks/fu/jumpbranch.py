@@ -111,8 +111,6 @@ class JumpBranch(Elaboratable):
 
 
 class JumpBranchFuncUnit(Elaboratable):
-    optypes = JumpBranchFn.get_op_types()
-
     def __init__(self, gen: GenParams):
         self.gen = gen
 
@@ -165,4 +163,4 @@ class JumpComponent(FunctionalComponentParams):
         return unit
 
     def get_optypes(self) -> set[OpType]:
-        return JumpBranchFuncUnit.optypes
+        return JumpBranchFn.get_op_types()

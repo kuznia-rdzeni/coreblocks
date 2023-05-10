@@ -176,8 +176,6 @@ class CSRUnit(Elaboratable):
         to the next pipeline stage.
     """
 
-    optypes = {OpType.CSR_REG, OpType.CSR_IMM}
-
     def __init__(self, gen_params: GenParams, rob_single_instr: Signal):
         """
         Parameters
@@ -335,4 +333,4 @@ class CSRBlockComponent(BlockComponentParams):
         return unit
 
     def get_optypes(self) -> set[OpType]:
-        return CSRUnit.optypes
+        return {OpType.CSR_REG, OpType.CSR_IMM}

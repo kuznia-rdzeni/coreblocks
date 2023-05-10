@@ -91,8 +91,6 @@ class ZbsUnit(Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    optypes = ZbsFunction.get_op_types()
-
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(FuncUnitLayouts)
 
@@ -129,4 +127,4 @@ class ZbsComponent(FunctionalComponentParams):
         return ZbsUnit(gen_params)
 
     def get_optypes(self) -> set[OpType]:
-        return ZbsUnit.optypes
+        return ZbsFunction.get_op_types()

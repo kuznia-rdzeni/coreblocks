@@ -20,13 +20,13 @@ class FuncBlocksUnifier(Elaboratable):
         blocks: Iterable[BlockComponentParams],
         extra_methods_required: Iterable[UnifierKey],
     ):
-        self.rs_blocks = [block.get_module(gen_params) for block in blocks]
+        self.rs_blocks = [(block.get_module(gen_params), block.get_optypes()) for block in blocks]
         self.extra_methods_required = extra_methods_required
 
-        self.result_collector = Collector([block.get_result for block in self.rs_blocks])
+        self.result_collector = Collector([block.get_result for block, _ in self.rs_blocks])
         self.get_result = self.result_collector.method
 
-        self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
+        self.update_combiner = MethodProduct([block.update for block, _ in self.rs_blocks])
         self.update = self.update_combiner.method
 
         self.unifiers: dict[str, Unifier] = {}
@@ -48,7 +48,7 @@ class FuncBlocksUnifier(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        for n, unit in enumerate(self.rs_blocks):
+        for n, (unit, _) in enumerate(self.rs_blocks):
             m.submodules[f"rs_block_{n}"] = unit
 
         m.submodules["result_collector"] = self.result_collector

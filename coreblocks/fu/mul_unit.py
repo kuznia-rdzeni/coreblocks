@@ -90,8 +90,6 @@ class MulUnit(Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    optypes = MulFn.get_op_types()
-
     def __init__(self, gen: GenParams, mul_type: MulType, dsp_width: int = 32):
         """
         Parameters
@@ -218,4 +216,4 @@ class MulComponent(FunctionalComponentParams):
         return MulUnit(gen_params, self.mul_unit_type, self.dsp_width)
 
     def get_optypes(self) -> set[OpType]:
-        return MulUnit.optypes
+        return MulFn.get_op_types()
