@@ -114,10 +114,8 @@ class ConditionTest(TestCaseWithSimulator):
             nonlocal selection
             for c1, c2, c3 in product([0, 1], [0, 1], [0, 1]):
                 selection = None
-                print("precall")
                 yield from circ.source.call(cond1=c1, cond2=c2, cond3=c3)
-                print("postcall")
-                self.assertEqual(selection, min(c1, c2 * 2, c3 * 3))
+                self.assertEqual(selection, c1 + 2 * c2 * (1 - c1) + 3 * c3 * (1 - c2) * (1 - c1))
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(target_process)

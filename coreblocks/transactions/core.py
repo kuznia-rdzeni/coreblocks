@@ -276,10 +276,13 @@ class TransactionManager(Elaboratable):
     def _method_uses(method_map: MethodMap) -> Mapping["Transaction", Mapping["Method", Tuple[ValueLike, ValueLike]]]:
         method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
 
-        for source in method_map.methods_and_transactions:
-            for transaction in method_map.transactions_for(source):
-                for method, use_data in source.method_uses.items():
-                    method_uses[transaction][method] = use_data
+        def rec(transaction: Transaction, source: TransactionOrMethod, enables: list[ValueLike]):
+            for method, (arg, enable) in source.method_uses.items():
+                rec(transaction, method, enables + [enable])
+                method_uses[transaction][method] = (arg, Cat(*(enables + [enable])).all())
+
+        for transaction in method_map.transactions:
+            rec(transaction, transaction, [])
 
         return method_uses
 
@@ -529,6 +532,7 @@ class TransactionBase(Owned):
     comb: ClassVar[_TransactionBaseStatements] = _TransactionBaseStatements()
     def_counter: ClassVar[count] = count()
     def_order: int
+    ctrl_stack_size: int
     defined: bool = False
 
     def __init__(self):
@@ -577,6 +581,9 @@ class TransactionBase(Owned):
 
     def simultaneous_groups(self, *groups: Collection[TransactionOrMethod]):
         self.simultaneous.append(frozenset(map(frozenset, groups)))
+
+    def not_under_condition(self, m: Module):
+        return self.ctrl_stack_size == m.domain._depth
 
     @contextmanager
     def context(self, m: Module) -> Iterator[Self]:
@@ -669,8 +676,8 @@ class Transaction(TransactionBase):
         if manager is None:
             manager = TransactionContext.get()
         manager.add_transaction(self)
-        self.request = Signal()
-        self.grant = Signal()
+        self.request = Signal(name=self.name + "_request")
+        self.grant = Signal(name=self.name + "_grant")
 
     @contextmanager
     def body(self, m: Module, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
@@ -695,9 +702,16 @@ class Transaction(TransactionBase):
         if self.defined:
             raise RuntimeError("Transaction already defined")
         self.def_order = next(TransactionBase.def_counter)
-        m.d.comb += self.request.eq(request)
+
+        parent = TransactionBase.peek()
+        if parent is not None and parent.not_under_condition(m):
+            TransactionBase.comb += self.request.eq(request)
+        else:
+            m.d.comb += self.request.eq(request)
+
         with self.context(m):
             with m.If(self.grant):
+                self.ctrl_stack_size = m.domain._depth
                 yield self
         self.defined = True
 
@@ -770,8 +784,8 @@ class Method(TransactionBase):
         super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
-        self.ready = Signal()
-        self.run = Signal()
+        self.ready = Signal(name=self.name + "_ready")
+        self.run = Signal(name=self.name + "_run")
         self.data_in = Record(i)
         self.data_out = Record(o)
         self.nonexclusive = nonexclusive
@@ -812,10 +826,10 @@ class Method(TransactionBase):
         method : Method
             Method for which this method is a proxy for.
         """
-        m.d.comb += self.ready.eq(1)
-        m.d.comb += self.data_out.eq(method.data_out)
-        self.use_method(method, arg=self.data_in, enable=self.run)
-        self.defined = True
+
+        @def_method(m, self)
+        def _(arg):
+            return method(m, arg)
 
     @contextmanager
     def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
@@ -862,11 +876,18 @@ class Method(TransactionBase):
         if self.defined:
             raise RuntimeError("Method already defined")
         self.def_order = next(TransactionBase.def_counter)
-        try:
+
+        parent = TransactionBase.peek()
+        if parent is not None and parent.not_under_condition(m):
+            TransactionBase.comb += self.ready.eq(ready)
+        else:
             m.d.comb += self.ready.eq(ready)
+
+        try:
             m.d.comb += self.data_out.eq(out)
             with self.context(m):
                 with m.If(self.run):
+                    self.ctrl_stack_size = m.domain._depth
                     yield self.data_in
         finally:
             self.defined = True
@@ -920,7 +941,6 @@ class Method(TransactionBase):
             with Transaction.body(m):
                 ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
         """
-        enable_sig = Signal()
         arg_rec = Record.like(self.data_in)
 
         if arg is not None and kwargs:
@@ -929,7 +949,15 @@ class Method(TransactionBase):
         if arg is None:
             arg = kwargs
 
-        m.d.comb += enable_sig.eq(enable)
+        if TransactionBase.get().not_under_condition(
+            m
+        ):  # and not (self.name in ["update"] and TransactionBase.get().name == "method"):
+            # if not under conditions, enable can be passed directly
+            enable_sig = enable
+        else:
+            enable_sig = Signal(name=self.name + "_enable")
+            m.d.comb += enable_sig.eq(enable)
+
         TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
 
