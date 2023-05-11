@@ -39,7 +39,7 @@ class TestAlu(TestCaseWithSimulator):
 
     def setUp(self):
         self.gen = GenParams(test_core_config)
-        self.alu = Alu(self.gen, zba_enable=True)
+        self.alu = Alu(self.gen)
 
         random.seed(42)
 

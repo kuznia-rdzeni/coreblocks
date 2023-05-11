@@ -44,11 +44,11 @@ class JumpBranchFn(DecoderManager):
 
 
 class JumpBranch(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, fn=JumpBranchFn()):
         self.gen_params = gen_params
 
         xlen = gen_params.isa.xlen
-        self.fn = JumpBranchFn().get_function()
+        self.fn = fn.get_function()
         self.in1 = Signal(xlen)
         self.in2 = Signal(xlen)
         self.in_pc = Signal(xlen)
@@ -123,7 +123,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.jb = jb = JumpBranch(self.gen)
+        m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)

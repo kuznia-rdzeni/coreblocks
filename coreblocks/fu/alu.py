@@ -68,10 +68,10 @@ class AluFn(DecoderManager):
 
 
 class Alu(Elaboratable):
-    def __init__(self, gen: GenParams, zba_enable=True):
+    def __init__(self, gen: GenParams, alu_fn=AluFn()):
         self.gen = gen
-        self.zba_enable = zba_enable
-        self.alu_fn = AluFn(zba_enable=zba_enable)
+        self.zba_enable = alu_fn.zba_enable
+        self.alu_fn = alu_fn
 
         self.fn = self.alu_fn.get_function()
         self.in1 = Signal(gen.isa.xlen)
@@ -135,7 +135,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.alu = alu = Alu(self.gen, zba_enable=self.alu_fn.zba_enable)
+        m.submodules.alu = alu = Alu(self.gen, alu_fn=self.alu_fn)
         m.submodules.fifo = fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.alu_fn.get_decoder(self.gen)
 

@@ -50,11 +50,11 @@ class Zbs(Elaboratable):
         gen_params: Core generation parameters.
     """
 
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, function=ZbsFunction()):
         self.gen_params = gen_params
 
         self.xlen = gen_params.isa.xlen
-        self.function = ZbsFunction().get_function()
+        self.function = function.get_function()
         self.in1 = Signal(self.xlen)
         self.in2 = Signal(self.xlen)
 
@@ -102,7 +102,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.zbs = zbs = Zbs(self.gen_params)
+        m.submodules.zbs = zbs = Zbs(self.gen_params, function=self.zbs_fn)
         m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.zbs_fn.get_decoder(self.gen_params)
 
