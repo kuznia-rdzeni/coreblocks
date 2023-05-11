@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683559172926,
+  "lastUpdate": 1683818359035,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -5364,6 +5364,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/fb4d2a2b3b169ada65de841e13c3e408737c24d3"
         },
         "date": 1683559171650,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 58.1,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 18754,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 562,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5604,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e95f7a962aa054c93e4a447d7aaae6df9ab1816a",
+          "message": "Optype refactor (#334)\n\n* Clean up optype stuff\n\n* Derive from protocols for early checking\n\n* Fixed test (avoid noqa please...)\n\n* Cleanup",
+          "timestamp": "2023-05-11T17:11:30+02:00",
+          "tree_id": "425eb5f08de7a3c37a076f4f440214e7f441cc8c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e95f7a962aa054c93e4a447d7aaae6df9ab1816a"
+        },
+        "date": 1683818358088,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
