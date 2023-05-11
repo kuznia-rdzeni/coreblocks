@@ -211,14 +211,12 @@ It uses layout with two fields <cite>reg_id</cite> and <cite>reg_val</cite>.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.stages.rs_func_block.RSFuncBlock">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.stages.rs_func_block.</span></span><span class="sig-name descname"><span class="pre">RSFuncBlock</span></span><a class="headerlink" href="#coreblocks.stages.rs_func_block.RSFuncBlock" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncBlock" title="coreblocks.utils.protocols.FuncBlock"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuncBlock</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Module combining multiple functional units with single RS unit. With
 input interface of RS and output interface of single FU.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>optypes: set[OpType]</strong></dt><dd><p>Set of <cite>OpType</cite>s supported by this unit.</p>
-</dd>
 <dt><strong>insert: Method</strong></dt><dd><p>RS insert method.</p>
 </dd>
 <dt><strong>select: Method</strong></dt><dd><p>RS select method.</p>
@@ -233,7 +231,7 @@ layout described by <cite>FuncUnitLayouts</cite>.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.stages.rs_func_block.RSFuncBlock.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_units</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><span class="pre">FuncUnit</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs_entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.stages.rs_func_block.RSFuncBlock.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_units</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><span class="pre">coreblocks.utils.protocols.FuncUnit</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs_entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.stages.rs_func_block.RSFuncBlock.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -273,7 +271,7 @@ layout described by <cite>FuncUnitLayouts</cite>.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 15:12 2023-05-08.
+      <span class="lastupdated">Last updated on 15:12 2023-05-11.
       </span></p>
   </div>
 
