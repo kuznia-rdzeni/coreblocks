@@ -92,19 +92,21 @@ class ZbsUnit(Elaboratable):
 
     optypes = ZbsFunction().get_op_types()
 
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, zbs_fn=ZbsFunction()):
         layouts = gen_params.get(FuncUnitLayouts)
 
         self.gen_params = gen_params
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
 
+        self.zbs_fn = zbs_fn
+
     def elaborate(self, platform):
         m = Module()
 
         m.submodules.zbs = zbs = Zbs(self.gen_params)
         m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
-        m.submodules.decoder = decoder = ZbsFunction().get_decoder(self.gen_params)
+        m.submodules.decoder = decoder = self.zbs_fn.get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
         def _(arg):
@@ -124,8 +126,11 @@ class ZbsUnit(Elaboratable):
 
 
 class ZbsComponent(FunctionalComponentParams):
+    def __init__(self):
+        self.zbs_fn = ZbsFunction()
+
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return ZbsUnit(gen_params)
+        return ZbsUnit(gen_params, self.zbs_fn)
 
     def get_optypes(self) -> set[OpType]:
-        return ZbsUnit.optypes
+        return self.zbs_fn.get_op_types()

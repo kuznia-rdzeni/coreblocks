@@ -19,7 +19,7 @@ from coreblocks.utils.protocols import FuncUnit
 
 
 class AluFn(DecoderManager):
-    def __init__(self, zba_enable=False) -> None:
+    def __init__(self, zba_enable=True) -> None:
         self.zba_enable = zba_enable
 
     class Fn(IntFlag):
@@ -40,22 +40,27 @@ class AluFn(DecoderManager):
         SH3ADD = auto()  # Logic left shift by 3 and add
 
     def get_instructions(self) -> Sequence[tuple]:
-        return [
-            (self.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
-            (self.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
-            (self.Fn.SLT, OpType.COMPARE, Funct3.SLT),
-            (self.Fn.SLTU, OpType.COMPARE, Funct3.SLTU),
-            (self.Fn.XOR, OpType.LOGIC, Funct3.XOR),
-            (self.Fn.OR, OpType.LOGIC, Funct3.OR),
-            (self.Fn.AND, OpType.LOGIC, Funct3.AND),
-            (self.Fn.SLL, OpType.SHIFT, Funct3.SLL),
-            (self.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
-            (self.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
-        ] + [
-            (self.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SH1ADD),
-            (self.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SH2ADD),
-            (self.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SH3ADD),
-        ] if self.zba_enable else []
+        return (
+            [
+                (self.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
+                (self.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
+                (self.Fn.SLT, OpType.COMPARE, Funct3.SLT),
+                (self.Fn.SLTU, OpType.COMPARE, Funct3.SLTU),
+                (self.Fn.XOR, OpType.LOGIC, Funct3.XOR),
+                (self.Fn.OR, OpType.LOGIC, Funct3.OR),
+                (self.Fn.AND, OpType.LOGIC, Funct3.AND),
+                (self.Fn.SLL, OpType.SHIFT, Funct3.SLL),
+                (self.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
+                (self.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
+            ]
+            + [
+                (self.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SH1ADD),
+                (self.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SH2ADD),
+                (self.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SH3ADD),
+            ]
+            if self.zba_enable
+            else []
+        )
 
     @override
     def get_function(self) -> Value:
@@ -120,9 +125,9 @@ class Alu(Elaboratable):
 class AluFuncUnit(Elaboratable):
     optypes = AluFn().get_op_types()
 
-    def __init__(self, gen: GenParams, zba_enable=True):
+    def __init__(self, gen: GenParams, alu_fn=AluFn()):
         self.gen = gen
-        self.zba_enable = zba_enable
+        self.alu_fn = alu_fn
 
         layouts = gen.get(FuncUnitLayouts)
 
@@ -132,9 +137,9 @@ class AluFuncUnit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.alu = alu = Alu(self.gen, zba_enable=self.zba_enable)
+        m.submodules.alu = alu = Alu(self.gen, zba_enable=self.alu_fn.zba_enable)
         m.submodules.fifo = fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
-        m.submodules.decoder = decoder = AluFn(zba_enable=self.zba_enable).get_decoder(self.gen)
+        m.submodules.decoder = decoder = self.alu_fn.get_decoder(self.gen)
 
         @def_method(m, self.accept)
         def _():
@@ -156,9 +161,10 @@ class AluFuncUnit(Elaboratable):
 class ALUComponent(FunctionalComponentParams):
     def __init__(self, zba_enable=True):
         self.zba_enable = zba_enable
+        self.alu_fn = AluFn(zba_enable=zba_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return AluFuncUnit(gen_params, zba_enable=self.zba_enable)
+        return AluFuncUnit(gen_params, self.alu_fn)
 
     def get_optypes(self) -> set[OpType]:
-        return AluFn(zba_enable=self.zba_enable).get_op_types()
+        return self.alu_fn.get_op_types()

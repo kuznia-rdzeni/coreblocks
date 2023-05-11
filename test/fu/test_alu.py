@@ -126,7 +126,7 @@ class AluFuncUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.func_unit = func_unit = AluFuncUnit(self.gen, zba_enable=True)
+        m.submodules.func_unit = func_unit = AluFuncUnit(self.gen)
 
         # mocked input and output
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))

@@ -111,7 +111,7 @@ class JumpBranch(Elaboratable):
 class JumpBranchFuncUnit(Elaboratable):
     optypes = JumpBranchFn().get_op_types()
 
-    def __init__(self, gen: GenParams):
+    def __init__(self, gen: GenParams, jb_fn=JumpBranchFn()):
         self.gen = gen
 
         layouts = gen.get(FuncUnitLayouts)
@@ -120,13 +120,15 @@ class JumpBranchFuncUnit(Elaboratable):
         self.accept = Method(o=layouts.accept)
         self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
 
+        self.jb_fn = jb_fn
+
     def elaborate(self, platform):
         m = Module()
 
         m.submodules.jb = jb = JumpBranch(self.gen)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
-        m.submodules.decoder = decoder = JumpBranchFn().get_decoder(self.gen)
+        m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
 
         @def_method(m, self.accept)
         def _():
@@ -156,11 +158,14 @@ class JumpBranchFuncUnit(Elaboratable):
 
 
 class JumpComponent(FunctionalComponentParams):
+    def __init__(self):
+        self.jb_fn = JumpBranchFn()
+
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = JumpBranchFuncUnit(gen_params)
+        unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
         connections = gen_params.get(DependencyManager)
         connections.add_dependency(BranchResolvedKey(), unit.branch_result)
         return unit
 
     def get_optypes(self) -> set[OpType]:
-        return JumpBranchFuncUnit.optypes
+        return self.jb_fn.get_op_types()

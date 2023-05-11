@@ -90,7 +90,7 @@ class MulUnit(Elaboratable):
 
     optypes = MulFn().get_op_types()
 
-    def __init__(self, gen: GenParams, mul_type: MulType, dsp_width: int = 32):
+    def __init__(self, gen: GenParams, mul_type: MulType, dsp_width: int = 32, mul_fn=MulFn()):
         """
         Parameters
         ----------
@@ -106,6 +106,8 @@ class MulUnit(Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
 
+        self.mul_fn = mul_fn
+
     def elaborate(self, platform):
         m = Module()
 
@@ -119,7 +121,7 @@ class MulUnit(Elaboratable):
             ],
             2,
         )
-        m.submodules.decoder = decoder = MulFn().get_decoder(self.gen)
+        m.submodules.decoder = decoder = self.mul_fn.get_decoder(self.gen)
 
         # Selecting unsigned integer multiplication module
         match self.mul_type:
@@ -211,9 +213,10 @@ class MulComponent(FunctionalComponentParams):
     mul_unit_type: MulType
     _: KW_ONLY
     dsp_width: int = 32
+    mul_fn = MulFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return MulUnit(gen_params, self.mul_unit_type, self.dsp_width)
 
     def get_optypes(self) -> set[OpType]:
-        return MulUnit.optypes
+        return self.mul_fn.get_op_types()
