@@ -122,9 +122,7 @@ class Alu(Elaboratable):
         return m
 
 
-class AluFuncUnit(Elaboratable):
-    optypes = AluFn().get_op_types()
-
+class AluFuncUnit(FuncUnit, Elaboratable):
     def __init__(self, gen: GenParams, alu_fn=AluFn()):
         self.gen = gen
         self.alu_fn = alu_fn

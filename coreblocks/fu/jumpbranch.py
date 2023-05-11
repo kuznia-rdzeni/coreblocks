@@ -108,9 +108,7 @@ class JumpBranch(Elaboratable):
         return m
 
 
-class JumpBranchFuncUnit(Elaboratable):
-    optypes = JumpBranchFn().get_op_types()
-
+class JumpBranchFuncUnit(FuncUnit, Elaboratable):
     def __init__(self, gen: GenParams, jb_fn=JumpBranchFn()):
         self.gen = gen
 

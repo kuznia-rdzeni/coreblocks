@@ -78,7 +78,7 @@ class Zbs(Elaboratable):
         return m
 
 
-class ZbsUnit(Elaboratable):
+class ZbsUnit(FuncUnit, Elaboratable):
     """
     Module responsible for executing Zbs instructions.
 
@@ -89,8 +89,6 @@ class ZbsUnit(Elaboratable):
     accept: Method(i=FuncUnitLayouts.accept)
         Method used for getting result of requested computation.
     """
-
-    optypes = ZbsFunction().get_op_types()
 
     def __init__(self, gen_params: GenParams, zbs_fn=ZbsFunction()):
         layouts = gen_params.get(FuncUnitLayouts)
