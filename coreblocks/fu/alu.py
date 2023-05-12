@@ -1,7 +1,5 @@
 from typing import Sequence
-from typing_extensions import override
 from amaranth import *
-from amaranth import Value
 
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
@@ -40,31 +38,22 @@ class AluFn(DecoderManager):
         SH3ADD = auto()  # Logic left shift by 3 and add
 
     def get_instructions(self) -> Sequence[tuple]:
-        return (
-            [
-                (self.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
-                (self.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
-                (self.Fn.SLT, OpType.COMPARE, Funct3.SLT),
-                (self.Fn.SLTU, OpType.COMPARE, Funct3.SLTU),
-                (self.Fn.XOR, OpType.LOGIC, Funct3.XOR),
-                (self.Fn.OR, OpType.LOGIC, Funct3.OR),
-                (self.Fn.AND, OpType.LOGIC, Funct3.AND),
-                (self.Fn.SLL, OpType.SHIFT, Funct3.SLL),
-                (self.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
-                (self.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
-            ]
-            + [
-                (self.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SH1ADD),
-                (self.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SH2ADD),
-                (self.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SH3ADD),
-            ]
-            if self.zba_enable
-            else []
-        )
-
-    @override
-    def get_function(self) -> Value:
-        return Signal(shape=unsigned(len(self.get_instructions())))
+        return [
+            (self.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
+            (self.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
+            (self.Fn.SLT, OpType.COMPARE, Funct3.SLT),
+            (self.Fn.SLTU, OpType.COMPARE, Funct3.SLTU),
+            (self.Fn.XOR, OpType.LOGIC, Funct3.XOR),
+            (self.Fn.OR, OpType.LOGIC, Funct3.OR),
+            (self.Fn.AND, OpType.LOGIC, Funct3.AND),
+            (self.Fn.SLL, OpType.SHIFT, Funct3.SLL),
+            (self.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
+            (self.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
+        ] + [
+            (self.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SH1ADD),
+            (self.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SH2ADD),
+            (self.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SH3ADD),
+        ] * self.zba_enable
 
 
 class Alu(Elaboratable):
