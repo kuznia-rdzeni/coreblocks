@@ -1,7 +1,7 @@
 from amaranth import *
 from dataclasses import dataclass
 
-from coreblocks.transactions import Method, def_method, Transaction
+from coreblocks.transactions import Method, def_method, Transaction, ModuleX
 from coreblocks.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
@@ -113,7 +113,7 @@ class CSRRegister(Elaboratable):
         dm.add_dependency(CSRListKey(), self)
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         internal_method_layout = {("data", self.gen_params.isa.xlen), ("active", 1)}
         write_internal = Record(internal_method_layout)
@@ -213,7 +213,7 @@ class CSRUnit(FuncBlock, Elaboratable):
     def elaborate(self, platform):
         self._create_regfile()
 
-        m = Module()
+        m = ModuleX()
 
         reserved = Signal()
         ready_to_process = Signal()

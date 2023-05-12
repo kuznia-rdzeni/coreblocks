@@ -1,7 +1,7 @@
 from amaranth import *
 
 from coreblocks.params import GenParams
-from coreblocks.transactions import Method, Transaction
+from coreblocks.transactions import Method, Transaction, ModuleX
 
 __all__ = ["ResultAnnouncement"]
 
@@ -53,7 +53,7 @@ class ResultAnnouncement(Elaboratable):
         return [self.m_get_result.debug_signals()]
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         with Transaction().body(m):
             result = self.m_get_result(m)

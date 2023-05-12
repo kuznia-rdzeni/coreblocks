@@ -5,7 +5,7 @@ from typing import Protocol
 from amaranth import *
 from amaranth.utils import log2_int
 
-from coreblocks.transactions.core import def_method, Priority
+from coreblocks.transactions.core import def_method, Priority, ModuleX
 from coreblocks.transactions import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
 from coreblocks.utils import assign, OneHotSwitchDynamic
@@ -76,7 +76,7 @@ class ICacheBypass(Elaboratable, ICacheInterface):
         self.flush = Method()
 
     def elaborate(self, platform) -> Module:
-        m = Module()
+        m = ModuleX()
 
         req_addr = Signal(self.params.addr_width)
 
@@ -161,7 +161,7 @@ class ICache(Elaboratable, ICacheInterface):
         return Cat(addr.offset, addr.index, addr.tag)
 
     def elaborate(self, platform) -> Module:
-        m = Module()
+        m = ModuleX()
 
         m.submodules.mem = self.mem = ICacheMemory(self.params)
         m.submodules.req_fifo = self.req_fifo = FIFO(layout=self.addr_layout, depth=2)
@@ -325,7 +325,7 @@ class ICacheMemory(Elaboratable):
         self.data_wr_data = Signal(self.params.word_width)
 
     def elaborate(self, platform) -> Module:
-        m = Module()
+        m = ModuleX()
 
         for i in range(self.params.num_of_ways):
             way_wr = self.way_wr_en[i]
@@ -376,7 +376,7 @@ class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
         self.accept_refill = Method(o=layouts.accept_refill)
 
     def elaborate(self, platform) -> Module:
-        m = Module()
+        m = ModuleX()
 
         refill_address = Signal(self.params.word_width - self.params.offset_bits)
         refill_active = Signal()

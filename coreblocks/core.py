@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.transactions.core import Transaction
+from coreblocks.transactions.core import Transaction, ModuleX
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import InstructionCommitKey, BranchResolvedKey, WishboneDataKey
@@ -73,7 +73,7 @@ class Core(Elaboratable):
         )
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         m.d.comb += self.wb_master_instr.wbMaster.connect(self.wb_instr_bus)
         m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_data_bus)

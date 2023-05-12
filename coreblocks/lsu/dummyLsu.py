@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.transactions import Method, def_method, Transaction
+from coreblocks.transactions import Method, def_method, Transaction, ModuleX
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign
@@ -142,7 +142,7 @@ class LSUDummyInternals(Elaboratable):
         def check_if_instr_is_load(current_instr: Record) -> Value:
             return current_instr.exec_fn.op_type == OpType.LOAD
 
-        m = Module()
+        m = ModuleX()
 
         instr_ready = check_if_instr_ready(self.current_instr, self.result_ready)
         instr_is_load = check_if_instr_is_load(self.current_instr)
@@ -234,7 +234,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.bus = bus
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
         reserved = Signal()  # means that current_instr is reserved
         current_instr = Record(self.lsu_layouts.rs_data_layout + [("valid", 1)])
 

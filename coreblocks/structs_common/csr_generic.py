@@ -4,7 +4,7 @@ from typing import Optional
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import BitEnum
-from coreblocks.structs_common.csr import CSRRegister
+from coreblocks.structs_common.csr import CSRRegister, ModuleX
 from coreblocks.transactions.core import Method, Transaction, def_method
 
 
@@ -48,7 +48,7 @@ class DoubleCounterCSR(Elaboratable):
         self.register_high = CSRRegister(high_addr, gen_params) if high_addr is not None else None
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         m.submodules.register_low = self.register_low
         if self.register_high is not None:
@@ -73,7 +73,7 @@ class GenericCSRRegisters(Elaboratable):
         self.csr_time = DoubleCounterCSR(gp, CSRAddress.TIME, CSRAddress.TIMEH)
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         m.submodules.csr_cycle = self.csr_cycle
         m.submodules.csr_time = self.csr_time

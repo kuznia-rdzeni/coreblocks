@@ -116,7 +116,7 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
         self.inputs = []
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         # dummy signal
         s = Signal()
@@ -231,7 +231,7 @@ class MethodTransformerTestCircuit(Elaboratable):
         self.use_dicts = use_dicts
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         # dummy signal
         s = Signal()
@@ -378,7 +378,7 @@ class MethodProductTestCircuit(Elaboratable):
         self.target: list[TestbenchIO] = []
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         # dummy signal
         s = Signal()
