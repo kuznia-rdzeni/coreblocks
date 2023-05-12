@@ -8,17 +8,19 @@ from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Statement
+from amaranth.hdl.dsl import _ModuleBuilderDomain
 from itertools import count, chain
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
 from ._utils import *
 from ..utils import silence_mustuse
-from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate
+from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate, SwitchKey
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
     "MethodLayout",
     "Priority",
+    "ModuleX",
     "TransactionManager",
     "TransactionContext",
     "TransactionModule",
@@ -416,6 +418,112 @@ class _TransactionBaseStatements:
         return self.statements.clear()
 
 
+class ModuleBuilderDomainsX:
+    _m: "ModuleX"
+
+    def __init__(self, m: "ModuleX"):
+        object.__setattr__(self, "_m", m)
+
+    def __getattr__(self, name: str) -> _ModuleBuilderDomain:
+        if name == "combx":
+            return self._m.m1.d.__getattr__("comb")
+        else:
+            return self._m.m1.d.__getattr__(name)
+
+    def __getitem__(self, name: str) -> _ModuleBuilderDomain:
+        return self.__getattr__(name)
+
+    def __setattr__(self, name: str, value):
+        if not isinstance(value, _ModuleBuilderDomain):
+            raise AttributeError(f"Cannot assign 'd.{name}' attribute; did you mean 'd.{name} +='?")
+
+    def __setitem__(self, name: str, value):
+        return self.__setattr__(name, value)
+
+
+class ModuleX(Elaboratable):
+    def __init__(self):
+        self.m1 = Module()
+        self.m2 = Module()
+        self.d = ModuleBuilderDomainsX(self)
+        self.submodules = self.m1.submodules
+
+    @contextmanager
+    def IfX(self, cond: ValueLike):  # noqa: N802
+        with self.m1.If(cond):
+            yield
+
+    @contextmanager
+    def If(self, cond: ValueLike):  # noqa: N802
+        with self.m1.If(cond):
+            with self.m2.If(cond):
+                yield
+
+    @contextmanager
+    def Elif(self, cond):  # noqa: N802
+        with self.m1.Elif(cond):
+            with self.m2.Elif(cond):
+                yield
+
+    @contextmanager
+    def Else(self):  # noqa: N802
+        with self.m1.Else():
+            with self.m2.Else():
+                yield
+
+    @contextmanager
+    def Switch(self, test: ValueLike):  # noqa: N802
+        with self.m1.Switch(test):
+            with self.m2.Switch(test):
+                yield
+
+    @contextmanager
+    def Case(self, *patterns: SwitchKey):  # noqa: N802
+        with self.m1.Case(*patterns):
+            with self.m2.Case(*patterns):
+                yield
+
+    @contextmanager
+    def Default(self):  # noqa: N802
+        with self.m1.Default():
+            with self.m2.Default():
+                yield
+
+    @contextmanager
+    def FSM(self, reset: Optional[str] = None, domain: str = "sync", name: str = "fsm"):  # noqa: N802
+        with self.m1.FSM(reset, domain, name) as fsm:
+            with self.m2.FSM(reset, domain, name):
+                yield fsm
+
+    @contextmanager
+    def State(self, name: str):  # noqa: N802
+        with self.m1.State(name):
+            with self.m2.State(name):
+                yield
+
+    @property
+    def next(self):
+        ...
+
+    @next.setter
+    def next(self, name: str):
+        self.m1.next = name
+        self.m2.next = name
+
+    def elaborate(self, platform):
+        self.m1.submodules._m2 = self.m2
+        return self.m1
+
+    @property
+    def _MustUse__silence(self):  # noqa: N802
+        return self.m1._MustUse__silence
+
+    @_MustUse__silence.setter
+    def _MustUse__silence(self, value):  # noqa: N802
+        self.m1._MustUse__silence = value  # type: ignore
+        self.m2._MustUse__silence = value  # type: ignore
+
+
 class TransactionBase(Owned):
     stack: ClassVar[list[Union["Transaction", "Method"]]] = []
     comb: ClassVar[_TransactionBaseStatements] = _TransactionBaseStatements()
@@ -464,7 +572,7 @@ class TransactionBase(Owned):
         self.method_uses[method] = (arg, enable)
 
     @contextmanager
-    def context(self, m: Module) -> Iterator[Self]:
+    def context(self, m: ModuleX) -> Iterator[Self]:
         assert isinstance(self, Transaction) or isinstance(self, Method)  # for typing
 
         parent = TransactionBase.peek()
@@ -558,7 +666,7 @@ class Transaction(TransactionBase):
         self.grant = Signal()
 
     @contextmanager
-    def body(self, m: Module, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
+    def body(self, m: ModuleX, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
         """Defines the `Transaction` body.
 
         This context manager allows to conveniently define the actions
@@ -580,9 +688,9 @@ class Transaction(TransactionBase):
         if self.defined:
             raise RuntimeError("Transaction already defined")
         self.def_order = next(TransactionBase.def_counter)
-        m.d.comb += self.request.eq(request)
+        m.d.combx += self.request.eq(request)
         with self.context(m):
-            with m.If(self.grant):
+            with m.IfX(self.grant):
                 yield self
         self.defined = True
 
@@ -684,7 +792,7 @@ class Method(TransactionBase):
         """
         return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
 
-    def proxy(self, m: Module, method: "Method"):
+    def proxy(self, m: ModuleX, method: "Method"):
         """Define as a proxy for another method.
 
         The calls to this method will be forwarded to `method`.
@@ -703,7 +811,7 @@ class Method(TransactionBase):
         self.defined = True
 
     @contextmanager
-    def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
+    def body(self, m: ModuleX, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
         """Define method body
 
         The `body` context manager can be used to define the actions
@@ -748,16 +856,16 @@ class Method(TransactionBase):
             raise RuntimeError("Method already defined")
         self.def_order = next(TransactionBase.def_counter)
         try:
-            m.d.comb += self.ready.eq(ready)
+            m.d.combx += self.ready.eq(ready)
             m.d.comb += self.data_out.eq(out)
             with self.context(m):
-                with m.If(self.run):
+                with m.IfX(self.run):
                     yield self.data_in
         finally:
             self.defined = True
 
     def __call__(
-        self, m: Module, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
+        self, m: ModuleX, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
     ) -> Record:
         """Call a method.
 
@@ -814,7 +922,7 @@ class Method(TransactionBase):
         if arg is None:
             arg = kwargs
 
-        m.d.comb += enable_sig.eq(enable)
+        m.d.combx += enable_sig.eq(enable)
         TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
 
@@ -827,7 +935,7 @@ class Method(TransactionBase):
         return [self.ready, self.run, self.data_in, self.data_out]
 
 
-def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
+def def_method(m: ModuleX, method: Method, ready: ValueLike = C(1)):
     """Define a method.
 
     This decorator allows to define transactional methods in an

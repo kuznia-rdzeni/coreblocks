@@ -41,9 +41,9 @@ class FastRecursiveMul(Elaboratable):
         self.i2 = Signal(unsigned(n))
         self.r = Signal(unsigned(n * 2))
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform):
         if self.n <= self.dsp_width:
-            m = Module()
+            m = ModuleX()
             m.submodules.dsp = dsp = DSPMulUnit(self.dsp_width)
             with Transaction().body(m):
                 # The bit width of the `i1` and `i2` parameters of `dsp` is different than of `self.i1`
@@ -55,7 +55,7 @@ class FastRecursiveMul(Elaboratable):
         else:
             return self.recursive_module()
 
-    def recursive_module(self) -> Module:
+    def recursive_module(self) -> ModuleX:
         # Fast Recursive Multiplying Algorythm
         #
         # bit: N       N/2      0
@@ -75,7 +75,7 @@ class FastRecursiveMul(Elaboratable):
         #          = (high_1 * high_2) << N + (high_1 * low_2 + high_2 * low_1) << N/2 + low_1 * low_2 =
         #          = result_upper << N + (result_mid - result_low - result_upper) << N/2 + result_low
 
-        m = Module()
+        m = ModuleX()
 
         upper = self.n // 2
         lower = (self.n + 1) // 2
@@ -116,7 +116,7 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
         self.dsp_width = dsp_width
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
         m.submodules.fifo = fifo = FIFO([("o", 2 * self.gen.isa.xlen)], 2)
 
         m.submodules.mul = mul = FastRecursiveMul(self.gen.isa.xlen, self.dsp_width)

@@ -3,9 +3,8 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams
-from coreblocks.transactions import Method
+from coreblocks.transactions import Method, ModuleX, def_method
 from coreblocks.transactions.lib import FIFO
-from coreblocks.transactions.core import def_method
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
@@ -62,7 +61,7 @@ class Zbs(Elaboratable):
         self.result = Signal(self.xlen)
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         xlen_log = self.gen_params.isa.xlen_log
 
@@ -101,7 +100,7 @@ class ZbsUnit(Elaboratable):
         self.accept = Method(o=layouts.accept)
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         m.submodules.zbs = zbs = Zbs(self.gen_params)
         m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)

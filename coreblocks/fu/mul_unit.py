@@ -109,7 +109,7 @@ class MulUnit(Elaboratable):
         self.accept = Method(o=layouts.accept)
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         m.submodules.result_fifo = result_fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.params_fifo = params_fifo = FIFO(

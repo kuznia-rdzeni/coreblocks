@@ -5,7 +5,7 @@ from functools import reduce
 from typing import List
 import operator
 
-from coreblocks.transactions import Method, def_method
+from coreblocks.transactions import Method, def_method, ModuleX
 from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.utils.utils import OneHotSwitchDynamic
 from coreblocks.utils.fifo import BasicFifo
@@ -130,7 +130,7 @@ class WishboneMaster(Elaboratable):
         self.resultLayout = [("data", wb_params.data_width), ("err", 1)]
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         def FSMWBCycStart(request):  # noqa: N802
             # internal FSM function that starts Wishbone cycle
@@ -234,7 +234,7 @@ class PipelinedWishboneMaster(Elaboratable):
         self.result_out_layout = [("data", wb_params.data_width), ("err", 1)]
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         m.submodules.result_fifo = self.result_fifo = BasicFifo(self.result_out_layout, self.max_req)
         m.submodules.result_write_adapter = self.result_write_adapter = AdapterTrans(self.result_fifo.write)
@@ -316,7 +316,7 @@ class WishboneMuxer(Elaboratable):
         self.prev_stb = Signal()
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         m.d.sync += self.prev_stb.eq(self.master_wb.stb)
 
@@ -371,7 +371,7 @@ class WishboneArbiter(Elaboratable):
         self.req_signal = Signal(len(masters))
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         m.d.sync += self.prev_cyc.eq(self.slave_wb.cyc)
 
@@ -448,7 +448,7 @@ class WishboneMemorySlave(Elaboratable):
         self.bus = Record(WishboneLayout(wb_params, master=False).wb_layout)
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         m.submodules.rdport = rdport = self.mem.read_port()
         m.submodules.wrport = wrport = self.mem.write_port(granularity=self.granularity)

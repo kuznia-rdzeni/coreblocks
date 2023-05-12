@@ -1,7 +1,7 @@
 from typing import Iterable, Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
-from coreblocks.transactions import Method, def_method
+from coreblocks.transactions import Method, def_method, ModuleX
 from coreblocks.params import RSLayouts, GenParams, OpType
 from coreblocks.transactions.core import RecordDict
 
@@ -33,8 +33,8 @@ class RS(Elaboratable):
         self.rs_entries = rs_entries
         self.data = Array(Record(self.internal_layout) for _ in range(self.rs_entries))
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform):
+        m = ModuleX()
 
         m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
 

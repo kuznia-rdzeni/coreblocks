@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method, Priority
+from coreblocks.transactions import Method, def_method, Priority, ModuleX
 from coreblocks.transactions._utils import MethodLayout
 from coreblocks.utils._typing import ValueLike
 
@@ -60,7 +60,7 @@ class BasicFifo(Elaboratable):
                 return sig + 1
             return Mux(sig == mod - 1, 0, sig + 1)
 
-        m = Module()
+        m = ModuleX()
 
         m.submodules.buff_rdport = self.buff_rdport = self.buff.read_port(
             domain="comb", transparent=True

@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method
+from coreblocks.transactions import Method, def_method, ModuleX
 from coreblocks.params import RFLayouts, GenParams
 
 __all__ = ["RegisterFile"]
@@ -19,7 +19,7 @@ class RegisterFile(Elaboratable):
         self.free = Method(i=layouts.rf_free)
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         being_written = Signal(self.gen_params.phys_regs_bits)
         written_value = Signal(self.gen_params.isa.xlen)

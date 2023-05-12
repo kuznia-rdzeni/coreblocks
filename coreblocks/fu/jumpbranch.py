@@ -123,7 +123,7 @@ class JumpBranchFuncUnit(Elaboratable):
         self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
 
     def elaborate(self, platform):
-        m = Module()
+        m = ModuleX()
 
         m.submodules.jb = jb = JumpBranch(self.gen)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
