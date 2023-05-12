@@ -17,7 +17,7 @@ from coreblocks.peripherals.wishbone import WishboneMaster
 __all__ = ["ICache", "ICacheBypass", "ICacheInterface", "SimpleWBCacheRefiller"]
 
 
-def extract_instr_from_word(m: Module, params: ICacheParameters, word: Signal, addr: Value):
+def extract_instr_from_word(m: ModuleX, params: ICacheParameters, word: Signal, addr: Value):
     instr_out = Signal(params.instr_width)
     if len(word) == 32:
         m.d.comb += instr_out.eq(word)

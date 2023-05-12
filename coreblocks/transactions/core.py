@@ -8,7 +8,7 @@ from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
 from amaranth.hdl.ast import Statement
-from amaranth.hdl.dsl import _ModuleBuilderDomain
+from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 from itertools import count, chain
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
@@ -450,7 +450,7 @@ class ModuleBuilderDomainsX:
 
     def __getattr__(self, name: str) -> _ModuleBuilderDomain:
         if name == "combx":
-            return self._m.m1.d.__getattr__("comb")
+            return self._m.m2.d.__getattr__("comb")
         else:
             return self._m.m1.d.__getattr__(name)
 
@@ -471,6 +471,7 @@ class ModuleX(Elaboratable):
         self.m2 = Module()
         self.d = ModuleBuilderDomainsX(self)
         self.submodules = self.m1.submodules
+        self.fsm: Optional[FSM] = None
 
     @contextmanager
     def IfX(self, cond: ValueLike):  # noqa: N802
@@ -515,14 +516,17 @@ class ModuleX(Elaboratable):
 
     @contextmanager
     def FSM(self, reset: Optional[str] = None, domain: str = "sync", name: str = "fsm"):  # noqa: N802
+        old_fsm = self.fsm
         with self.m1.FSM(reset, domain, name) as fsm:
-            with self.m2.FSM(reset, domain, name):
-                yield fsm
+            self.fsm = fsm
+            yield fsm
+        self.fsm = old_fsm
 
     @contextmanager
     def State(self, name: str):  # noqa: N802
+        assert(self.fsm is not None)
         with self.m1.State(name):
-            with self.m2.State(name):
+            with self.m2.If(self.fsm.ongoing(name)):
                 yield
 
     @property
@@ -532,7 +536,6 @@ class ModuleX(Elaboratable):
     @next.setter
     def next(self, name: str):
         self.m1.next = name
-        self.m2.next = name
 
     def elaborate(self, platform):
         self.m1.submodules._m2 = self.m2

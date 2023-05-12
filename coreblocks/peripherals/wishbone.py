@@ -7,7 +7,7 @@ import operator
 
 from coreblocks.transactions import Method, def_method, ModuleX
 from coreblocks.transactions.lib import AdapterTrans
-from coreblocks.utils.utils import OneHotSwitchDynamic
+from coreblocks.utils.utils import OneHotSwitchDynamic, assign
 from coreblocks.utils.fifo import BasicFifo
 
 
@@ -142,8 +142,10 @@ class WishboneMaster(Elaboratable):
             m.d.sync += self.wbMaster.sel.eq(request.sel)
             m.next = "WBWaitACK"
 
-        with self.result.body(m, ready=self.res_ready, out=self.result_data):
+        @def_method(m, self.result, ready=self.res_ready)
+        def _():
             m.d.sync += self.res_ready.eq(0)
+            return self.result_data
 
         with m.FSM("Reset"):
             with m.State("Reset"):
@@ -156,11 +158,12 @@ class WishboneMaster(Elaboratable):
                 m.d.sync += self.wbMaster.stb.eq(0)
                 m.d.sync += self.wbMaster.cyc.eq(0)
 
-                with self.request.body(m, ready=(self.ready & ~self.res_ready)) as request:
+                @def_method(m, self.request, ready=(self.ready & ~self.res_ready))
+                def _(arg):
                     m.d.sync += self.ready.eq(0)
-                    m.d.sync += self.txn_req.connect(request)
+                    m.d.sync += assign(self.txn_req, arg)
                     # do WBCycStart state in the same clock cycle
-                    FSMWBCycStart(request)
+                    FSMWBCycStart(arg)
 
             with m.State("WBCycStart"):
                 FSMWBCycStart(self.txn_req)
