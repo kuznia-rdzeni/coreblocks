@@ -29,6 +29,10 @@ test/__traces__
 # riscv-tests
 test/external/riscv-tests/test-*
 
+# embench benchmark
+test/external/embench/build
+test/external/embench/logs
+
 # Documentation build
 build/
 docs/*.rst
