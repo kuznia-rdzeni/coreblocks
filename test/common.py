@@ -120,28 +120,21 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     class NotMethodException(TypeError):
         pass
 
-    @staticmethod
-    def transform_methods_to_testbenchios(
-        container: _T_nested_collection[Method],
-    ) -> Union[ModuleConnector, "TestbenchIO"]:
-        if isinstance(container, list):
-            return ModuleConnector(*[SimpleTestCircuit.transform_methods_to_testbenchios(elem) for elem in container])
-        elif isinstance(container, dict):
-            return ModuleConnector(
-                **dict(
-                    [
-                        (name, SimpleTestCircuit.transform_methods_to_testbenchios(elem))
-                        for name, elem in container.items()
-                    ]
+    def elaborate(self, platform):
+        def transform_methods_to_testbenchios(
+            container: _T_nested_collection[Method],
+        ) -> Union[ModuleConnector, "TestbenchIO"]:
+            if isinstance(container, list):
+                return ModuleConnector(*[transform_methods_to_testbenchios(elem) for elem in container])
+            elif isinstance(container, dict):
+                return ModuleConnector(
+                    **dict([(name, transform_methods_to_testbenchios(elem)) for name, elem in container.items()])
                 )
-            )
-        else:
-            if isinstance(container, Method):
+            elif isinstance(container, Method):
                 return TestbenchIO(AdapterTrans(container))
             else:
                 raise SimpleTestCircuit.NotMethodException()
 
-    def elaborate(self, platform):
         m = Module()
 
         dummy = Signal()
@@ -152,7 +145,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
             try:
                 if isinstance(attr, Method | list | dict):
-                    self._io[name] = self.transform_methods_to_testbenchios(attr)
+                    self._io[name] = transform_methods_to_testbenchios(attr)
                     m.submodules[name] = self._io[name]
             except SimpleTestCircuit.NotMethodException:
                 pass

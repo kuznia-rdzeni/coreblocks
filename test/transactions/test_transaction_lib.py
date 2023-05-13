@@ -124,7 +124,7 @@ class TestMemoryBank(TestCaseWithSimulator):
         random.seed(seed)
 
         def random_wait(rand: int):
-            yield from self.tick(random.randrange(1, rand + 1))
+            yield from self.tick(random.randrange(rand) + 1)
 
         def writer():
             for i in range(test_count):
@@ -577,7 +577,7 @@ class TestSerializer(TestCaseWithSimulator):
 
             return f
 
-        def responser(i: int):
+        def responder(i: int):
             def f():
                 for _ in range(test_count):
                     data_out = yield from m.test_circuit.serialize_out[i].call()
@@ -591,4 +591,4 @@ class TestSerializer(TestCaseWithSimulator):
             sim.add_sync_process(serial_resp_mock)
             for i in range(port_count):
                 sim.add_sync_process(requestor(i))
-                sim.add_sync_process(responser(i))
+                sim.add_sync_process(responder(i))
