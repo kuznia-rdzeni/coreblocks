@@ -50,6 +50,8 @@ class CoreConfiguration:
         Log of the number of sets of the instruction cache.
     icache_block_size_bits: int
         Log of the cache line size (in bytes).
+    allow_partial_extensions: bool
+        Allow partial support of extensions.
     _implied_extensions: Extenstion
         Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests
     """
@@ -68,6 +70,8 @@ class CoreConfiguration:
     icache_ways: int = 2
     icache_sets_bits: int = 7
     icache_block_size_bits: int = 5
+
+    allow_partial_extensions: bool = True
 
     _implied_extensions: Extension = Extension(0)
 
@@ -90,7 +94,7 @@ tiny_core_config = CoreConfiguration(
 # Core configuration with all supported components
 full_core_config = CoreConfiguration(
     func_units_config=(
-        RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4),
+        RSBlockComponent([ALUComponent(zba_enable=True), JumpComponent()], rs_entries=4),
         RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=4),
         LSUBlockComponent(),
         CSRBlockComponent(),
