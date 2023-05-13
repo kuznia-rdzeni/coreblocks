@@ -63,10 +63,12 @@ def extensions_supported(fu_config: Collection[BlockComponentParams]) -> tuple[E
     # OK: Add global switch if we want to use partial extensions with warning of unsupported ops (and default for now). If not selected error if partial != full
 
     for ext in Extension:
+        if ext.bit_count() != 1: # don't process aliases, only extensions with unique id
+            continue
+
         ext_added_optypes = optypes_required_by_extensions(ext, resolve_implications=False, ignore_unsupported=True)
         if ext_added_optypes & optypes:
             extensions_parital |= ext
-            print("add", ext)
 
         ext_all_optypes = optypes_required_by_extensions(ext, resolve_implications=True, ignore_unsupported=True)
         if optypes and ext_all_optypes and optypes.issuperset(ext_all_optypes):
