@@ -24,8 +24,8 @@ class CoreConfiguration:
 
     Parameters
     ----------
-    isa_str: str
-        RISCV ISA string. Examples: "rv32i", "rv32izicsr". Used for instruction decoding.
+    xlen: int
+        Bit width of Core.
     func_units_config: Collection[BlockComponentParams]
         Configuration of Functional Units and Reservation Stations.
         Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
@@ -43,7 +43,7 @@ class CoreConfiguration:
         Log of the cache line size (in bytes).5r4hl; lur4hk
     """
 
-    isa_str: str = "rv32i"
+    xlen: int = 32
     func_units_config: Collection[BlockComponentParams] = basic_configuration
 
     phys_regs_bits: int = 6
@@ -72,7 +72,6 @@ tiny_core_config = CoreConfiguration(
 
 # Core configuration with all supported components
 full_core_config = CoreConfiguration(
-    isa_str="rv32imzicsr",
     func_units_config=(
         RSBlockComponent([ALUComponent(), JumpComponent()], rs_entries=4),
         RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=4),

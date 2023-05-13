@@ -4,8 +4,9 @@ from inspect import signature
 from typing import TypeVar, Type, Protocol, runtime_checkable
 from amaranth.utils import log2_int
 
-from .isa import ISA
+from .isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
+from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
 
 from typing import TYPE_CHECKING
@@ -38,8 +39,12 @@ class GenParams(DependentCache):
     def __init__(self, cfg: CoreConfiguration):
         super().__init__()
 
-        self.isa = ISA(cfg.isa_str)
         self.func_units_config = cfg.func_units_config
+
+        ext_parital, ext_full = extensions_supported(self.func_units_config)
+        self.isa_str = gen_isa_string(ext_parital, cfg.xlen)
+
+        self.isa = ISA(self.isa_str)
 
         bytes_in_word = self.isa.xlen // 8
         self.wb_params = WishboneParameters(
