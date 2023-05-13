@@ -110,6 +110,11 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.alu.</span></span><span class="sig-name descname"><span class="pre">ALUComponent</span></span><a class="headerlink" href="#coreblocks.fu.alu.ALUComponent" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams" title="coreblocks.params.fu_params.FunctionalComponentParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">FunctionalComponentParams</span></code></a></p>
 <dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.alu.ALUComponent.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zba_enable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.alu.ALUComponent.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.alu.ALUComponent.get_module">
 <span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><span class="pre">FuncUnit</span></a></span></span><a class="headerlink" href="#coreblocks.fu.alu.ALUComponent.get_module" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -127,7 +132,7 @@
 <dd><p>Bases: <a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuncUnit</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.alu.AluFuncUnit.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.alu.AluFuncUnit.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen:</span> <span class="pre">~coreblocks.params.genparams.GenParams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alu_fn=&lt;coreblocks.fu.alu.AluFn</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.alu.AluFuncUnit.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -177,22 +182,22 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_decoder">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_decoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.fu.fu_decoder.Decoder" title="coreblocks.fu.fu_decoder.Decoder"><span class="pre">Decoder</span></a></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_decoder" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_decoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.fu.fu_decoder.Decoder" title="coreblocks.fu.fu_decoder.Decoder"><span class="pre">Decoder</span></a></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_decoder" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_function">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_function</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_function" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_function</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_function" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_instructions">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_instructions" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_instructions" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_op_types">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_op_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_op_types" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_op_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_op_types" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -206,7 +211,7 @@
 <dd><p>Bases: <a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuncUnit</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.jumpbranch.JumpBranchFuncUnit.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.jumpbranch.JumpBranchFuncUnit.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen:</span> <span class="pre">~coreblocks.params.genparams.GenParams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jb_fn=&lt;coreblocks.fu.jumpbranch.JumpBranchFn</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.jumpbranch.JumpBranchFuncUnit.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -215,6 +220,11 @@
 <dt class="sig sig-object py" id="coreblocks.fu.jumpbranch.JumpComponent">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.jumpbranch.</span></span><span class="sig-name descname"><span class="pre">JumpComponent</span></span><a class="headerlink" href="#coreblocks.fu.jumpbranch.JumpComponent" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams" title="coreblocks.params.fu_params.FunctionalComponentParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">FunctionalComponentParams</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.jumpbranch.JumpComponent.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.jumpbranch.JumpComponent.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.jumpbranch.JumpComponent.get_module">
 <span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><span class="pre">FuncUnit</span></a></span></span><a class="headerlink" href="#coreblocks.fu.jumpbranch.JumpComponent.get_module" title="Permalink to this definition"></a></dt>
@@ -252,6 +262,11 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulComponent.get_optypes">
 <span class="sig-name descname"><span class="pre">get_optypes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulComponent.get_optypes" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulComponent.mul_fn">
+<span class="sig-name descname"><span class="pre">mul_fn</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;coreblocks.fu.mul_unit.MulFn</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulComponent.mul_fn" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -295,7 +310,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.get_instructions">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.get_instructions" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.get_instructions" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -343,7 +358,7 @@ module. It uses standard FuncUnitLayout.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulUnit.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mul_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.fu.mul_unit.MulType" title="coreblocks.fu.mul_unit.MulType"><span class="pre">MulType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dsp_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">32</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulUnit.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen:</span> <span class="pre">~coreblocks.params.genparams.GenParams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mul_type:</span> <span class="pre">~coreblocks.fu.mul_unit.MulType</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dsp_width:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mul_fn=&lt;coreblocks.fu.mul_unit.MulFn</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulUnit.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -381,7 +396,7 @@ module. It uses standard FuncUnitLayout.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.zbs.Zbs.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.Zbs.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params:</span> <span class="pre">~coreblocks.params.genparams.GenParams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">function=&lt;coreblocks.fu.zbs.ZbsFunction</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.Zbs.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -390,6 +405,11 @@ module. It uses standard FuncUnitLayout.</p>
 <dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsComponent">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.zbs.</span></span><span class="sig-name descname"><span class="pre">ZbsComponent</span></span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsComponent" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams" title="coreblocks.params.fu_params.FunctionalComponentParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">FunctionalComponentParams</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsComponent.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsComponent.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsComponent.get_module">
 <span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><span class="pre">FuncUnit</span></a></span></span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsComponent.get_module" title="Permalink to this definition"></a></dt>
@@ -436,7 +456,7 @@ module. It uses standard FuncUnitLayout.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.get_instructions">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.get_instructions" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.get_instructions" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -458,7 +478,7 @@ module. It uses standard FuncUnitLayout.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsUnit.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsUnit.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params:</span> <span class="pre">~coreblocks.params.genparams.GenParams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zbs_fn=&lt;coreblocks.fu.zbs.ZbsFunction</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsUnit.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -481,7 +501,7 @@ module. It uses standard FuncUnitLayout.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 15:12 2023-05-11.
+      <span class="lastupdated">Last updated on 17:04 2023-05-13.
       </span></p>
   </div>
 
