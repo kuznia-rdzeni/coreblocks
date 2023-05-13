@@ -71,7 +71,7 @@ class CoreConfiguration:
     icache_sets_bits: int = 7
     icache_block_size_bits: int = 5
 
-    allow_partial_extensions: bool = True
+    allow_partial_extensions: bool = True  # TODO: Change to False when I extension will be fully supported
 
     _implied_extensions: Extension = Extension(0)
 
