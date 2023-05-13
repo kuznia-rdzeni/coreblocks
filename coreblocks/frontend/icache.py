@@ -1,5 +1,6 @@
 from functools import reduce
 import operator
+from typing import Protocol
 
 from amaranth import *
 from amaranth.utils import log2_int
@@ -8,14 +9,104 @@ from coreblocks.transactions.core import def_method, Priority
 from coreblocks.transactions import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
 from coreblocks.utils import assign, OneHotSwitchDynamic
+from coreblocks.utils._typing import HasElaborate
 from coreblocks.transactions.lib import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 
-__all__ = ["ICache", "SimpleWBCacheRefiller"]
+__all__ = ["ICache", "ICacheBypass", "ICacheInterface", "SimpleWBCacheRefiller"]
 
 
-class ICache(Elaboratable):
+def extract_instr_from_word(m: Module, params: ICacheParameters, word: Signal, addr: Value):
+    instr_out = Signal(params.instr_width)
+    if len(word) == 32:
+        m.d.comb += instr_out.eq(word)
+    elif len(word) == 64:
+        with m.If(addr[2] == 0):
+            m.d.comb += instr_out.eq(word[:32])  # Take lower 4 bytes
+        with m.Else():
+            m.d.comb += instr_out.eq(word[32:])  # Take upper 4 bytes
+    else:
+        raise RuntimeError("Word size different than 32 and 64 is not supported")
+    return instr_out
+
+
+class ICacheInterface(HasElaborate, Protocol):
+    """
+    Instruction Cache Interface.
+
+    Parameters
+    ----------
+    issue_req : Method
+        A method that is used to issue a cache lookup request.
+    accept_res : Method
+        A method that is used to accept the result of a cache lookup request.
+    flush : Method
+        A method that is used to flush the whole cache.
+    """
+
+    issue_req: Method
+    accept_res: Method
+    flush: Method
+
+
+class CacheRefillerInterface(HasElaborate, Protocol):
+    """
+    Instruction Cache Refiller Interface.
+
+    Parameters
+    ----------
+    start_refill : Method
+        A method that is used to start a refill for a given cache line.
+    accept_refill : Method
+        A method that is used to accept one word from the requested cache line.
+    """
+
+    start_refill: Method
+    accept_refill: Method
+
+
+class ICacheBypass(Elaboratable, ICacheInterface):
+    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, wb_master: WishboneMaster) -> None:
+        self.params = params
+        self.wb_master = wb_master
+
+        self.issue_req = Method(i=layouts.issue_req)
+        self.accept_res = Method(o=layouts.accept_res)
+        self.flush = Method()
+
+    def elaborate(self, platform) -> Module:
+        m = Module()
+
+        req_addr = Signal(self.params.addr_width)
+
+        @def_method(m, self.issue_req)
+        def _(addr: Value) -> None:
+            m.d.sync += req_addr.eq(addr)
+            self.wb_master.request(
+                m,
+                addr=addr >> log2_int(self.params.word_width_bytes),
+                data=0,
+                we=0,
+                sel=Repl(1, self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
+            )
+
+        @def_method(m, self.accept_res)
+        def _():
+            res = self.wb_master.result(m)
+            return {
+                "instr": extract_instr_from_word(m, self.params, res.data, req_addr),
+                "error": res.err,
+            }
+
+        @def_method(m, self.flush)
+        def _() -> None:
+            pass
+
+        return m
+
+
+class ICache(Elaboratable, ICacheInterface):
     """A simple set-associative instruction cache.
 
     The replacement policy is a pseudo random scheme. Every time a line is trashed,
@@ -27,21 +118,9 @@ class ICache(Elaboratable):
     to be written to cache. `refiller_accept` should set `last` bit when either an error occurs
     or the transfer is over. After issuing `last` bit, `refiller_accept` shouldn't be ready until
     the next transfer is started.
-
-
-    Attributes
-    ----------
-    issue_req : Method
-        A method that is used to issue a cache lookup request.
-    accept_res : Method
-        A method that is used to accept the result of a cache lookup request.
-    flush : Method
-        A method that is used to flush the whole cache.
     """
 
-    def __init__(
-        self, layouts: ICacheLayouts, params: ICacheParameters, refiller_start: Method, refiller_accept: Method
-    ) -> None:
+    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, refiller: CacheRefillerInterface) -> None:
         """
         Parameters
         ----------
@@ -58,13 +137,11 @@ class ICache(Elaboratable):
         self.layouts = layouts
         self.params = params
 
-        self.refiller_start = refiller_start
-        self.refiller_accept = refiller_accept
+        self.refiller = refiller
 
         self.issue_req = Method(i=layouts.issue_req)
         self.accept_res = Method(o=layouts.accept_res)
         self.flush = Method()
-
         self.flush.add_conflict(self.issue_req, Priority.LEFT)
 
         self.addr_layout = [
@@ -98,7 +175,7 @@ class ICache(Elaboratable):
         flush_start = Signal()
         flush_finish = Signal()
 
-        with m.FSM(reset="LOOKUP") as fsm:
+        with m.FSM(reset="FLUSH") as fsm:
             with m.State("FLUSH"):
                 with m.If(flush_finish):
                     m.next = "LOOKUP"
@@ -131,14 +208,7 @@ class ICache(Elaboratable):
         for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
             m.d.comb += mem_out.eq(self.mem.data_rd_data[i])
 
-        instr_out = Signal(self.params.instr_width)
-        if self.params.word_width == 32:
-            m.d.comb += instr_out.eq(mem_out)
-        else:
-            with m.If(request_addr[2] == 0):
-                m.d.comb += instr_out.eq(mem_out[:32])  # Take lower 4 bytes
-            with m.Else():
-                m.d.comb += instr_out.eq(mem_out[32:])  # Take upper 4 bytes
+        instr_out = extract_instr_from_word(m, self.params, mem_out, request_addr[:])
 
         refill_error_saved = Signal()
         m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_saved)
@@ -186,10 +256,10 @@ class ICache(Elaboratable):
         with Transaction().body(m, request=fsm.ongoing("LOOKUP") & needs_refill):
             # Align to the beginning of the cache line
             aligned_addr = self.serialize_addr(request_addr) & ~((1 << self.params.offset_bits) - 1)
-            self.refiller_start(m, addr=aligned_addr)
+            self.refiller.start_refill(m, addr=aligned_addr)
 
         with Transaction().body(m):
-            ret = self.refiller_accept(m)
+            ret = self.refiller.accept_refill(m)
             deserialized = self.deserialize_addr(ret.addr)
 
             Transaction.comb += [
@@ -297,7 +367,7 @@ class ICacheMemory(Elaboratable):
         return m
 
 
-class SimpleWBCacheRefiller(Elaboratable):
+class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
     def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, wb_master: WishboneMaster):
         self.params = params
         self.wb_master = wb_master

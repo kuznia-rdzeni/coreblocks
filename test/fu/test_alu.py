@@ -10,7 +10,7 @@ from coreblocks.transactions.lib import *
 
 from ..common import TestCaseWithSimulator, TestbenchIO
 
-from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit
+from coreblocks.fu.alu import Alu, AluFuncUnit, AluFn
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 
@@ -125,7 +125,6 @@ class AluFuncUnitTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         m.submodules.func_unit = func_unit = AluFuncUnit(self.gen)
 
@@ -133,7 +132,7 @@ class AluFuncUnitTestCircuit(Elaboratable):
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
         m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
 
-        return tm
+        return m
 
 
 class TestAluFuncUnit(TestCaseWithSimulator):

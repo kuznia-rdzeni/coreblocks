@@ -40,8 +40,8 @@ class FunctionalComponentParams(ABC):
         raise NotImplementedError()
 
 
-def optypes_supported(block_components: Iterable[BlockComponentParams]) -> set["OpType"]:
-    return {optype for block in block_components for optype in block.get_optypes()}
+def optypes_supported(components: Iterable[BlockComponentParams | FunctionalComponentParams]) -> set["OpType"]:
+    return {optype for component in components for optype in component.get_optypes()}
 
 
 def _remove_implications(extensions: Extension):

@@ -27,7 +27,6 @@ class UnsignedMultiplicationTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         m.submodules.func_unit = func_unit = self.mul_unit(self.gen)
 
@@ -35,7 +34,7 @@ class UnsignedMultiplicationTestCircuit(Elaboratable):
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
         m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
 
-        return tm
+        return m
 
 
 @parameterized_class(

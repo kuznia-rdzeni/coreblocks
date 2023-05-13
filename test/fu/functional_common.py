@@ -7,7 +7,6 @@ from amaranth import Elaboratable, Module
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.fu_params import FunctionalComponentParams
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 from test.common import TestbenchIO, TestCaseWithSimulator
 
@@ -30,7 +29,6 @@ class FunctionalTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen)
 
@@ -38,7 +36,7 @@ class FunctionalTestCircuit(Elaboratable):
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
         m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
 
-        return tm
+        return m
 
 
 class GenericFunctionalTestUnit(TestCaseWithSimulator):
