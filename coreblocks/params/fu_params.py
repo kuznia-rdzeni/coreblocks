@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from coreblocks.params.genparams import GenParams
     from coreblocks.params.optypes import OpType
 
+
 __all__ = [
     "BlockComponentParams",
     "FunctionalComponentParams",
@@ -51,7 +52,6 @@ def _remove_implications(extensions: Extension):
     return extensions & ~implied_extensions
 
 
-## Move that to genparams?
 def extensions_supported(fu_config: Collection[BlockComponentParams]) -> tuple[Extension, Extension]:
     optypes = optypes_supported(fu_config)
 
@@ -60,10 +60,11 @@ def extensions_supported(fu_config: Collection[BlockComponentParams]) -> tuple[E
     # Fully supported extensions
     extensions_full = Extension(0)
 
-    # OK: Add global switch if we want to use partial extensions with warning of unsupported ops (and default for now). If not selected error if partial != full
+    # OK: Add global switch if we want to use partial extensions with warning of unsupported ops (and default for now).
+    # If not selected error if partial != full
 
     for ext in Extension:
-        if ext.bit_count() != 1: # don't process aliases, only extensions with unique id
+        if ext.bit_count() != 1:  # don't process aliases, only extensions with unique id
             continue
 
         ext_added_optypes = optypes_required_by_extensions(ext, resolve_implications=False, ignore_unsupported=True)
@@ -74,20 +75,12 @@ def extensions_supported(fu_config: Collection[BlockComponentParams]) -> tuple[E
         if optypes and ext_all_optypes and optypes.issuperset(ext_all_optypes):
             extensions_full |= ext
 
-    # needed for extensions that just imply others without adding new optypes (like B).
-    # add them to partial extensions if they are fully supported for implied removal
+    # Needed for extensions that just imply others without adding new optypes (like B).
+    # Adds them to partial extensions if they are fully supported for implied removal
     extensions_parital |= extensions_full
 
-    # remove implied extensions
+    # Remove implied extensions
     extensions_parital = _remove_implications(extensions_parital)
     extensions_full = _remove_implications(extensions_full)
-
-    # special modifications
-
-    # TODO: convert to G; E->I (if gp); ISA STR ORDER MATTERS
-
-    #: generate isa strings in another function (isa_str, compiler_isa_str (bypass for zmull), extra info (with partial/full info and machine/sup mode)
-
-    print(extensions_parital, extensions_full)
 
     return (extensions_parital, extensions_full)

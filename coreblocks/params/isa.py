@@ -313,3 +313,23 @@ class ISA:
         self.ilen_log = self.ilen.bit_length() - 1
 
         self.csr_alen = 12
+
+
+def gen_isa_string(extensions: Extension, isa_xlen: int) -> str:
+    isa_str = "rv"
+
+    isa_str += str(isa_xlen)
+
+    # G extension alias should be defined first
+    if Extension.G in extensions:
+        isa_str += "g"
+        extensions ^= Extension.G
+
+    for ext in Extension:
+        if ext in extensions:
+            ext_name = str(ext.name).lower()
+            if ext_name[0] == "z" or ext_name[0] == "x":
+                ext_name = "_" + ext_name
+            isa_str += ext_name
+
+    return isa_str
