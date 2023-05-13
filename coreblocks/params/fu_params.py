@@ -58,7 +58,7 @@ def extensions_supported(
     optypes = optypes_supported(fu_config)
 
     # Fully and partially supported extensions
-    extensions_parital = Extension(0)
+    extensions_partial = Extension(0)
     # Fully supported extensions
     extensions_full = Extension(0)
 
@@ -68,7 +68,7 @@ def extensions_supported(
 
         ext_added_optypes = optypes_required_by_extensions(ext, resolve_implications=False, ignore_unsupported=True)
         if ext_added_optypes & optypes:
-            extensions_parital |= ext
+            extensions_partial |= ext
 
         ext_all_optypes = optypes_required_by_extensions(ext, resolve_implications=True, ignore_unsupported=True)
         if optypes and ext_all_optypes and optypes.issuperset(ext_all_optypes):
@@ -76,24 +76,24 @@ def extensions_supported(
 
     # Needed for extensions that just imply others without adding new optypes (like B).
     # Adds them to partial extensions if they are fully supported for implied removal
-    extensions_parital |= extensions_full
+    extensions_partial |= extensions_full
 
     # Remove implied extensions
-    extensions_parital = _remove_implications(extensions_parital)
+    extensions_partial = _remove_implications(extensions_partial)
     extensions_full = _remove_implications(extensions_full)
 
     # Apply special extensions that can't be deduced from functional units
 
     if embedded:
-        if Extension.I in extensions_parital:
-            extensions_parital |= Extension.E
-            extensions_parital ^= Extension.I
+        if Extension.I in extensions_partial:
+            extensions_partial |= Extension.E
+            extensions_partial ^= Extension.I
         if Extension.I in extensions_full:
             extensions_full |= Extension.E
             extensions_full ^= Extension.I
 
     if compressed:
-        extensions_parital |= Extension.C
+        extensions_partial |= Extension.C
         extensions_full |= Extension.C
 
-    return (extensions_parital, extensions_full)
+    return (extensions_partial, extensions_full)
