@@ -77,7 +77,7 @@ class MulType(IntEnum):
     RECURSIVE_MUL = 2
 
 
-class MulUnit(Elaboratable):
+class MulUnit(FuncUnit, Elaboratable):
     """
     Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
     module. It uses standard FuncUnitLayout.
@@ -89,8 +89,6 @@ class MulUnit(Elaboratable):
     accept: Method(i=gen.get(FuncUnitLayouts).accept)
         Method used for getting result of requested computation.
     """
-
-    optypes = MulFn.get_op_types()
 
     def __init__(self, gen: GenParams, mul_type: MulType, dsp_width: int = 32):
         """
@@ -218,4 +216,4 @@ class MulComponent(FunctionalComponentParams):
         return MulUnit(gen_params, self.mul_unit_type, self.dsp_width)
 
     def get_optypes(self) -> set[OpType]:
-        return MulUnit.optypes
+        return MulFn.get_op_types()
