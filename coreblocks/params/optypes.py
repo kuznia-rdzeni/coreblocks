@@ -83,21 +83,23 @@ optypes_by_extensions = {
 
 
 def optypes_required_by_extensions(
-    extensions: set[Extension], resolve_implications=True, ignore_unsupported=False
+    extensions: Extension, resolve_implications=True, ignore_unsupported=False
 ) -> set[OpType]:
     optypes = set()
 
     if resolve_implications:
-        implied_extensions = set()
-        for ext in extensions:
-            if ext in extension_implications and ext in optypes_by_extensions:
-                implied_extensions |= extension_implications[ext]
+        implied_extensions = Extension(0)
+        for ext in Extension:
+            if ext in extensions:
+                if ext in extension_implications and ext in optypes_by_extensions:
+                    implied_extensions |= extension_implications[ext]
         extensions |= implied_extensions
 
-    for ext in extensions:
-        if ext in optypes_by_extensions:
-            optypes = optypes.union(optypes_by_extensions[ext])
-        elif not ignore_unsupported:
-            raise Exception(f"Core do not support {ext!r} extension")
+    for ext in Extension:
+        if ext in extensions:
+            if ext in optypes_by_extensions:
+                optypes = optypes.union(optypes_by_extensions[ext])
+            elif not ignore_unsupported:
+                raise Exception(f"Core do not support {ext!r} extension")
 
     return optypes
