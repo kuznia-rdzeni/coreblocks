@@ -52,7 +52,9 @@ def _remove_implications(extensions: Extension):
     return extensions & ~implied_extensions
 
 
-def extensions_supported(fu_config: Collection[BlockComponentParams]) -> tuple[Extension, Extension]:
+def extensions_supported(
+    fu_config: Collection[BlockComponentParams], embedded: bool = False, compressed: bool = False
+) -> tuple[Extension, Extension]:
     optypes = optypes_supported(fu_config)
 
     # Fully and partially supported extensions
@@ -82,5 +84,19 @@ def extensions_supported(fu_config: Collection[BlockComponentParams]) -> tuple[E
     # Remove implied extensions
     extensions_parital = _remove_implications(extensions_parital)
     extensions_full = _remove_implications(extensions_full)
+
+    # Apply special extensions that can't be deduced from functional units
+
+    if embedded:
+        if Extension.I in extensions_parital:
+            extensions_parital |= Extension.E
+            extensions_parital ^= Extension.I
+        if Extension.I in extensions_full:
+            extensions_full |= Extension.E
+            extensions_full ^= Extension.I
+
+    if compressed:
+        extensions_parital |= Extension.C
+        extensions_full |= Extension.C
 
     return (extensions_parital, extensions_full)

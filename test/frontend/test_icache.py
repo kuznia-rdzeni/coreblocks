@@ -48,20 +48,20 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
 
 
 @parameterized_class(
-    ("name", "isa", "block_size"),
+    ("name", "isa_xlen", "block_size"),
     [
-        ("blk_size16B_rv32i", "rv32i", 4),
-        ("blk_size32B_rv32i", "rv32i", 5),
-        ("blk_size32B_rv64i", "rv64i", 5),
-        ("blk_size64B_rv32i", "rv32i", 6),
+        ("blk_size16B_rv32i", 32, 4),
+        ("blk_size32B_rv32i", 32, 5),
+        ("blk_size32B_rv64i", 64, 5),
+        ("blk_size64B_rv32i", 32, 6),
     ],
 )
 class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
-    isa: str
+    isa_xlen: int
     block_size: int
 
     def setUp(self) -> None:
-        self.gp = GenParams(test_core_config.replace(isa_str=self.isa, icache_block_size_bits=self.block_size))
+        self.gp = GenParams(test_core_config.replace(xlen=self.isa_xlen, icache_block_size_bits=self.block_size))
         self.cp = self.gp.icache_params
         self.test_module = SimpleWBCacheRefillerTestCircuit(self.gp)
 

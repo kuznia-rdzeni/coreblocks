@@ -41,7 +41,7 @@ class GenParams(DependentCache):
 
         self.func_units_config = cfg.func_units_config
 
-        ext_parital, ext_full = extensions_supported(self.func_units_config)
+        ext_parital, ext_full = extensions_supported(self.func_units_config, cfg.embedded, cfg.compressed)
         extensions = ext_parital
         extensions |= cfg._implied_extensions
         self.isa_str = gen_isa_string(extensions, cfg.xlen)

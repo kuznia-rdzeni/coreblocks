@@ -33,7 +33,9 @@ class CoreConfiguration:
         Configuration of Functional Units and Reservation Stations.
         Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
     compressed: bool
-        Specifies if 16-bit Compressed Instructions extenstion should be enabled.
+        Enables 16-bit Compressed Instructions extension.
+    embedded: bool
+        Enables Reduced Integer (E) extension.
     phys_regs_bits: int
         Size of the Physical Register File is 2**phys_regs_bits.
     rob_entries_bits: int
@@ -53,7 +55,8 @@ class CoreConfiguration:
     xlen: int = 32
     func_units_config: Collection[BlockComponentParams] = basic_configuration
 
-    compressed: int = False
+    compressed: bool = False
+    embedded: bool = False
 
     phys_regs_bits: int = 6
     rob_entries_bits: int = 7
