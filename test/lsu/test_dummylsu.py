@@ -151,7 +151,7 @@ class MemoryData:
     addr: int
     mask: int
     sign: bool
-    rnd_bytes: bytes
+    rnd_bytes: int
 
 
 @dataclass
@@ -182,17 +182,11 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
         self.tests_number = 10
         self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module, self.bus = construct_test_module_new(self.gp)
-        self.instr_queue = deque()
-        self.announce_queue = deque()
-        self.mem_data_queue = deque()
-        self.returned_data = deque()
-        self.cleared_queue_consumer = deque()
-        self.cleared_queue_wb = deque()
         self.wishbone_request_valid = 0
-        self.wishbone_data_from_last_req = None
+        self.wishbone_data_from_last_req : GeneratedData
+        self.last_clear = -1
 
     def generate_instr(self):
-        print("generate_instr start")
         ops = {
             "LB": (OpType.LOAD, Funct3.B),
             "LBU": (OpType.LOAD, Funct3.BU),
@@ -235,7 +229,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
                 "addr": addr,
                 "mask": mask,
                 "sign": signess,
-                "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+                "rnd_bytes": random.randint(0,2**32-1),
             }
         )
         ann_data = AnnounceData(**ann_data) if ann_data is not None else None
@@ -243,21 +237,23 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
 
     def clear_activator_filter(self, msg: InternalMessage):
         self.last_clear = msg.clk
+        print("New clear:", msg.clk)
         return False
 
     def cleared_filter(self, msg: InternalMessage):
-        return msg.clk <= self.last_clear
+        res = msg.clk > self.last_clear
+        if not res:
+            print("Dropped:", msg)
+        return res
 
     def test_body(self):
-        with self.prepare_env(self.test_module):
+        with self.prepare_env(self.test_module) as sim:
             generator = MessageFrameworkProcess[Any, Any, GeneratedData](
                 None, transformation_out=lambda x, y: self.generate_instr(), iteration_count=self.tests_number, name= "generator"
             )
             self.register_process("generator", generator)
             self.add_data_flow("starter", "generator")
 
-            print(vars(self.test_module))
-            print(vars(self.test_module.test_circuit))
             selector = MessageFrameworkProcess[RecordIntDict, RecordIntDict, Any](
                 self.test_module.test_circuit.select,
                 checker=lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0),
@@ -284,7 +280,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
 
             # this can not be lambda because we have to pass types explicte
             def announce_in_filter(arg: InternalMessage[GeneratedData]) -> bool:
-                return arg.userdata.ann_data is not None
+                return (arg.userdata.ann_data is not None) and self.cleared_filter(arg)
 
             announcer = MessageFrameworkProcess[GeneratedData, AnnounceData, RecordIntDict](
                 self.test_module.test_circuit.update,
@@ -300,24 +296,25 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear, max_rand_wait=self.max_wait, name="cleaner", passive=True)
             self.register_process("cleaner", cleaner)
             # TODO activate cleaner
-            self.add_data_flow("starter", "cleaner", filter=lambda _: False)  # random.random()< 0.1)
+            #self.add_data_flow("starter", "cleaner", filter=lambda _: False)
+            self.add_data_flow("starter", "cleaner", filter=lambda _: random.random() < 0.1)
 
-            clear_filter_sink = MessageFrameworkProcess(None)
+            clear_filter_sink = MessageFrameworkProcess(None, passive=True)
             self.register_process("clear_filter_sink", clear_filter_sink)
             self.add_data_flow("cleaner", "clear_filter_sink", filter=self.clear_activator_filter)
 
             self.wb_mock_acc = MessageFrameworkExternalAccess()
             self.register_accessor("wb_mock_acc", self.wb_mock_acc)
-            self.add_data_flow("generator", "wb_mock_acc")
+            self.add_data_flow("inserter", "wb_mock_acc", filter=self.cleared_filter)
 
-            consumer = MessageFrameworkProcess[GeneratedData, MemoryData, Any](
+            self.con = consumer = MessageFrameworkProcess[GeneratedData, MemoryData, Any](
                 self.test_module.test_circuit.get_result,
                 transformation_in=lambda arg: arg.mem_data,
                 checker=self.consumer_checker,
                 name="consumer"
             )
             self.register_process("consumer", consumer)
-            self.add_data_flow("inserter", "consumer")
+            self.add_data_flow("inserter", "consumer",filter=self.cleared_filter)
 
             @def_method_mock(lambda: self.bus.request_tb, sched_prio=0)
             def request_mock(addr, data, we, sel):
@@ -330,15 +327,19 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
                 self.wishbone_request_valid = True
                 self.wishbone_data_from_last_req = arg
                 return
+            sim.add_sync_process(request_mock)
 
             @def_method_mock(lambda: self.bus.result_tb, enable=lambda: self.wishbone_request_valid, sched_prio=0)
-            def response_mock(self):
+            def response_mock():
                 self.wishbone_request_valid = False
-                data = self.wishbone_data_from_last_req["data"]
+                data = self.wishbone_data_from_last_req.mem_data.rnd_bytes
                 return {"data": data, "err": 0}
+            sim.add_sync_process(response_mock)
+
 
     def consumer_checker(self, in_verif: MemoryData, arg: RecordIntDictRet):
-        generated_data = int((in_verif.rnd_bytes[:4]).hex(), 16)
+        print("consumer", in_verif, arg, self.con.internal.clk.now)
+        generated_data = in_verif.rnd_bytes
         data_shift = (in_verif.mask & -in_verif.mask).bit_length() - 1
         assert in_verif.mask.bit_length() == data_shift + in_verif.mask.bit_count(), "Unexpected mask"
 

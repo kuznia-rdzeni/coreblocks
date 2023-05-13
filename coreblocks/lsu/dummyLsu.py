@@ -281,7 +281,7 @@ class LSUDummy(Elaboratable):
             m.d.sync += reserved.eq(1)
             return {"rs_entry_id": 0}
 
-        @def_method(m, self.insert)
+        @def_method(m, self.insert, ~current_instr.valid & reserved)
         def _(rs_data: Record, rs_entry_id: Value):
             m.d.sync += assign(current_instr, rs_data)
             m.d.sync += current_instr.valid.eq(1)

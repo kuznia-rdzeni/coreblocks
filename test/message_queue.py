@@ -77,6 +77,7 @@ class MessageQueue(MessageQueueInterface, Generic[T]):
     def __init__(self, *, filter: Optional[Callable[[T], bool]] = None):
         self.q: deque[T] = deque()
         self.filter = filter
+        self.head_ok = False
 
     def _discard_not_ok(self) -> None:
         if self.filter is None:
@@ -86,6 +87,7 @@ class MessageQueue(MessageQueueInterface, Generic[T]):
 
     def __bool__(self):
         self._discard_not_ok()
+        self.head_ok = len(self)>0
         return bool(self.q)
 
     def __len__(self):
@@ -99,5 +101,7 @@ class MessageQueue(MessageQueueInterface, Generic[T]):
             self.q.append(val)
 
     def pop(self) -> T:
-        self._discard_not_ok()
+        if not self.head_ok:
+            self._discard_not_ok()
+        self.head_ok = False
         return self.q.popleft()

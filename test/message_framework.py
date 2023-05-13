@@ -172,30 +172,38 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _
             yield
 
     def process(self):
-        if not (hasattr(self, "in_verif_data") and hasattr(self, "out_verif_data") and hasattr(self, "internal")):
-            raise RuntimeError("Simulation started before adding proces to Message Framework.")
+        try:
+            if not (hasattr(self, "in_verif_data") and hasattr(self, "out_verif_data") and hasattr(self, "internal")):
+                raise RuntimeError("Simulation started before adding proces to Message Framework.")
 
-        if self.passive:
-            yield Passive()
-        i = 0
-        while self.iteration_count is None or (i < self.iteration_count):
-            print(self.name)
-            i += 1
-            raw_verif_input = yield from self._get_verifcation_input()
-            if isinstance(raw_verif_input, MessageFrameworkCommand):
-                if isinstance(raw_verif_input, EndOfInput):
-                    break
-                raise RuntimeError(f"Got unknown MessageFrameworkCommand: {raw_verif_input}")
-            transformed_verif_input = self.transformation_in(raw_verif_input.userdata)
-            send_data = self.prepare_send_data(transformed_verif_input)
-            self._random_wait()
-            test_data = yield from self._get_test_data(send_data)
-            self.checker(transformed_verif_input, test_data)
-            transformed_output = self.transformation_out(transformed_verif_input, test_data)
-            msg = InternalMessage(self.internal.clk.now, transformed_output)
-            self.out_verif_data.append(msg)
-        print(f"Koniec procesu {self.name}")
-        self.out_verif_data.append(EndOfInput())
+            if self.passive:
+                yield Passive()
+            i = 0
+            while self.iteration_count is None or (i < self.iteration_count):
+                print(self.name)
+                i += 1
+                raw_verif_input = yield from self._get_verifcation_input()
+                print(self.name, "raw_in", raw_verif_input, self.internal.clk.now)
+                if isinstance(raw_verif_input, MessageFrameworkCommand):
+                    if isinstance(raw_verif_input, EndOfInput):
+                        break
+                    raise RuntimeError(f"Got unknown MessageFrameworkCommand: {raw_verif_input}")
+                transformed_verif_input = self.transformation_in(raw_verif_input.userdata)
+                send_data = self.prepare_send_data(transformed_verif_input)
+                #print(self.name, "send_data", send_data)
+                self._random_wait()
+                test_data = yield from self._get_test_data(send_data)
+                print(self.name, "test_data", test_data, self.internal.clk.now)
+                self.checker(transformed_verif_input, test_data)
+                transformed_output = self.transformation_out(transformed_verif_input, test_data)
+                msg = InternalMessage(self.internal.clk.now, transformed_output)
+                #print(self.name, msg)
+                self.out_verif_data.append(msg)
+            print(f"Koniec procesu {self.name}")
+            self.out_verif_data.append(EndOfInput())
+        except Exception as e:
+            e.add_note(f"From process: {self.name}")
+            raise e
 
 
 class TestCaseWithMessageFramework(TestCaseWithSimulator):
@@ -238,6 +246,7 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
     ):
         combiner = MessageQueueCombiner[_MFVerificationDataType[T1], Any](combiner=combiner_f)
         broadcaster = MessageQueueBroadcaster[_MFVerificationDataType[T2]]()
+        proc.add_to_simulation(self.internal, combiner, broadcaster)
         self.accessors[name] = TestCaseWithMessageFramework.AccessEntry(proc, combiner, broadcaster)
 
     def _wrap_filter(
@@ -284,7 +293,7 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
     @contextmanager
     def prepare_env(self, module: HasElaborate):
         with self.run_simulation(module) as sim:
-            yield
+            yield sim
             sim.add_sync_process(self.internal.clk.process)
             sim.add_sync_process(self.internal.starter.process)
             for p in self.processes.values():
