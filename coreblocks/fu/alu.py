@@ -60,9 +60,8 @@ class Alu(Elaboratable):
     def __init__(self, gen: GenParams, alu_fn=AluFn()):
         self.gen = gen
         self.zba_enable = alu_fn.zba_enable
-        self.alu_fn = alu_fn
 
-        self.fn = self.alu_fn.get_function()
+        self.fn = alu_fn.get_function()
         self.in1 = Signal(gen.isa.xlen)
         self.in2 = Signal(gen.isa.xlen)
 
