@@ -1,11 +1,11 @@
 from abc import abstractmethod, ABC
-from typing import Iterable
+from collections.abc import Collection, Iterable
 
 from coreblocks.utils.protocols import FuncBlock, FuncUnit
 from coreblocks.params.isa import Extension, extension_implications
 from coreblocks.params.optypes import optypes_required_by_extensions
 
-from typing import TYPE_CHECKING, Collection
+from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
@@ -61,9 +61,6 @@ def extensions_supported(
     extensions_parital = Extension(0)
     # Fully supported extensions
     extensions_full = Extension(0)
-
-    # OK: Add global switch if we want to use partial extensions with warning of unsupported ops (and default for now).
-    # If not selected error if partial != full
 
     for ext in Extension:
         if ext.bit_count() != 1:  # don't process aliases, only extensions with unique id

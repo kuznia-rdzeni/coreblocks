@@ -53,7 +53,7 @@ class CoreConfiguration:
     allow_partial_extensions: bool
         Allow partial support of extensions.
     _implied_extensions: Extenstion
-        Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests
+        Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
     """
 
     xlen: int = 32

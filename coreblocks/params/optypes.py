@@ -98,6 +98,6 @@ def optypes_required_by_extensions(
             if ext in optypes_by_extensions:
                 optypes = optypes.union(optypes_by_extensions[ext])
             elif not ignore_unsupported:
-                raise Exception(f"Core do not support {ext!r} extension")
+                raise Exception(f"Core does not support {ext!r} extension")
 
     return optypes

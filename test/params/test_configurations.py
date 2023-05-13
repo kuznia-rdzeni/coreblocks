@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from unittest import TestCase
-from coreblocks.params.fu_params import extensions_supported
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.configurations import *
 from coreblocks.params.isa import gen_isa_string
+from coreblocks.params.fu_params import extensions_supported
 
 
 class TestConfigurationsISAString(TestCase):

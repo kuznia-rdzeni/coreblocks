@@ -1,7 +1,6 @@
-from collections.abc import Collection
+from collections.abc import Collection, Iterable
 from amaranth import *
 from dataclasses import dataclass
-from typing import Iterable
 from coreblocks.params import *
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
