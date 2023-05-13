@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 if [ -z "$GH_TOKEN" ] || [ -z "$GH_MAIL" ] || [ -z "$GH_NAME" ] || [ -z "$DOCS_DIR" ] || [ -z "$BUILD_DIR" ]; then
   echo "Environment configuration missing, exiting... "
   exit 1
