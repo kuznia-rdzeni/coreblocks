@@ -39,7 +39,7 @@ class JumpBranchWrapperComponent(FunctionalComponentParams):
         return JumpBranchWrapper(gen_params)
 
     def get_optypes(self) -> set[OpType]:
-        return JumpBranchFn.get_op_types()
+        return JumpBranchFn().get_op_types()
 
 
 @staticmethod
