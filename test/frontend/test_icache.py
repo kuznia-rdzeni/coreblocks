@@ -157,17 +157,17 @@ class ICacheBypassTestCircuit(Elaboratable):
 
 
 @parameterized_class(
-    ("name", "isa"),
+    ("name", "isa_xlen"),
     [
-        ("rv32i", "rv32i"),
-        ("rv64i", "rv64i"),
+        ("rv32i", 32),
+        ("rv64i", 64),
     ],
 )
 class TestICacheBypass(TestCaseWithSimulator):
-    isa: str
+    isa_xlen: str
 
     def setUp(self) -> None:
-        self.gp = GenParams(test_core_config.replace(isa_str=self.isa))
+        self.gp = GenParams(test_core_config.replace(xlen=self.isa_xlen))
         self.cp = self.gp.icache_params
         self.m = ICacheBypassTestCircuit(self.gp)
 
