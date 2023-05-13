@@ -266,7 +266,7 @@ class TestCoreAsmSource(TestCoreBase):
                 [
                     "riscv64-unknown-elf-as",
                     "-mabi=ilp32",
-                    "-march=" + self.configuration.isa_str,
+                    "-march=" + self.gp.isa_str,
                     "-o",
                     asm_tmp.name,
                     self.base_dir + self.source_file,

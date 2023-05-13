@@ -160,15 +160,15 @@ class ICacheTestCircuit(Elaboratable):
 
 
 @parameterized_class(
-    ("name", "isa", "block_size"),
+    ("name", "isa_xlen", "block_size"),
     [
-        ("blk_size16B_rv32i", "rv32i", 4),
-        ("blk_size64B_rv32i", "rv32i", 6),
-        ("blk_size32B_rv64i", "rv64i", 5),
+        ("blk_size16B_rv32i", 32, 4),
+        ("blk_size64B_rv32i", 32, 6),
+        ("blk_size32B_rv64i", 64, 5),
     ],
 )
 class TestICache(TestCaseWithSimulator):
-    isa: str
+    isa_xlen: int
     block_size: int
 
     def setUp(self) -> None:
@@ -183,7 +183,7 @@ class TestICache(TestCaseWithSimulator):
     def init_module(self, ways, sets) -> None:
         self.gp = GenParams(
             test_core_config.replace(
-                isa_str=self.isa,
+                xlen=self.isa_xlen,
                 icache_ways=ways,
                 icache_sets_bits=log2_int(sets),
                 icache_block_size_bits=self.block_size,

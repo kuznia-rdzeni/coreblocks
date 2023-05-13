@@ -67,7 +67,7 @@ class MultiplierUnitTest(GenericFunctionalTestUnit):
             ops,
             self.mul_unit,
             compute_result,
-            gen=GenParams(test_core_config.replace(isa_str="rv32im")),
+            gen=GenParams(test_core_config),
             number_of_tests=600,
             seed=32323,
             method_name=method_name,

@@ -42,7 +42,9 @@ class GenParams(DependentCache):
         self.func_units_config = cfg.func_units_config
 
         ext_parital, ext_full = extensions_supported(self.func_units_config)
-        self.isa_str = gen_isa_string(ext_parital, cfg.xlen)
+        extensions = ext_parital
+        extensions |= cfg._implied_extensions
+        self.isa_str = gen_isa_string(extensions, cfg.xlen)
 
         self.isa = ISA(self.isa_str)
 

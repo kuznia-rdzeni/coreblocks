@@ -1,8 +1,11 @@
 from collections.abc import Collection
 import dataclasses
 from dataclasses import dataclass
+
+from coreblocks.params.isa import Extension
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.stages.rs_func_block import RSBlockComponent
+
 from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.jumpbranch import JumpComponent
 from coreblocks.fu.mul_unit import MulComponent, MulType
@@ -29,6 +32,8 @@ class CoreConfiguration:
     func_units_config: Collection[BlockComponentParams]
         Configuration of Functional Units and Reservation Stations.
         Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
+    compressed: bool
+        Specifies if 16-bit Compressed Instructions extenstion should be enabled.
     phys_regs_bits: int
         Size of the Physical Register File is 2**phys_regs_bits.
     rob_entries_bits: int
@@ -40,11 +45,15 @@ class CoreConfiguration:
     icache_sets_bits: int
         Log of the number of sets of the instruction cache.
     icache_block_size_bits: int
-        Log of the cache line size (in bytes).5r4hl; lur4hk
+        Log of the cache line size (in bytes).
+    _implied_extensions: Extenstion
+        Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests
     """
 
     xlen: int = 32
     func_units_config: Collection[BlockComponentParams] = basic_configuration
+
+    compressed: int = False
 
     phys_regs_bits: int = 6
     rob_entries_bits: int = 7
@@ -53,6 +62,8 @@ class CoreConfiguration:
     icache_ways: int = 2
     icache_sets_bits: int = 7
     icache_block_size_bits: int = 5
+
+    _implied_extensions: Extension = Extension(0)
 
     def replace(self, **kwargs):
         return dataclasses.replace(self, **kwargs)
@@ -85,4 +96,5 @@ test_core_config = CoreConfiguration(
     func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(2)),
     rob_entries_bits=7,
     phys_regs_bits=7,
+    _implied_extensions=Extension.I,
 )
