@@ -64,5 +64,5 @@ class FuncBlocksUnifier(Elaboratable):
         return {
             "get_result": self.get_result.debug_signals(),
             "update": self.update.debug_signals(),
-            "rs_blocks": {i: auto_debug_signals(b) for i, (b,_) in enumerate(self.rs_blocks)},
+            "rs_blocks": {i: auto_debug_signals(b) for i, (b, _) in enumerate(self.rs_blocks)},
         }
