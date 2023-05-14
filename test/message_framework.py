@@ -1,6 +1,6 @@
 import sys
 import random
-from typing import TypeVar, TypeGuard
+from typing import TypeVar, TypeGuard, TypeAlias
 from dataclasses import dataclass
 from contextlib import contextmanager
 from collections import deque
@@ -24,20 +24,14 @@ class EndOfInput(MessageFrameworkCommand):
     pass
 
 
-_T_userdata = TypeVar("_T_userdata")
-
-
-@dataclass
-class InternalMessage(Generic[_T_userdata]):
-    clk: int
-    userdata: _T_userdata
-
-
-_MFVerificationDataType = MessageFrameworkCommand | InternalMessage[_T_userdata]
 T = TypeVar("T")
-T1 = TypeVar("T1")
-T2 = TypeVar("T2")
-T3 = TypeVar("T3")
+_T_userdata_in = TypeVar("_T_userdata_in")
+@dataclass
+class InternalMessage(Generic[T]):
+    clk: int
+    userdata: T
+
+_MFVerificationDataType : TypeAlias = MessageFrameworkCommand | InternalMessage[T]
 
 
 class ClockProcess:
@@ -52,31 +46,16 @@ class ClockProcess:
 
 
 class StarterProcess:
-    def __init__(self, clk: ClockProcess, out_broadcaster: MessageQueueBroadcaster[_MFVerificationDataType[None]]):
+    def __init__(self, clk: ClockProcess):
         self.clk = clk
-        self.out_broadcaster = out_broadcaster
+        self.proc_to_start : list ['MessageFrameworkProcessOneSrc'] = []
 
     def process(self):
         yield Passive()
         while True:
             yield
-            # Add only if there is a little number of messages to not waste memory during tests.
-            # This process will be ready every cycle, but normal test process will be ready one for few
-            # cycles so without this "if" we will be genreting more messages than will be ever able to consume
-            if len(self.out_broadcaster) < 3:
-                self.out_broadcaster.append(InternalMessage(self.clk.now, None))
-
-
-def _default_combiner(arg: dict[str, T]) -> T:
-    if len(arg) == 1:
-        return list(arg.values())[0]
-    else:
-        raise RuntimeError("You can use default combiner, only if there is exactly one source.")
-
-
-_T_userdata_in = TypeVar("_T_userdata_in")
-_T_userdata_out = TypeVar("_T_userdata_out")
-_T_userdata_transformed = TypeVar("_T_userdata_transformed")
+            for p in self.proc_to_start:
+                p(None)
 
 
 class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
@@ -87,23 +66,25 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
         max_rand_wait=2,
         iteration_count : Optional[int] = None,
         passive : bool = False,
-        name : str = ""
+        started : bool = False,
+        name : str = "",
+        filters :list[Callable[[InternalMessage[_T_userdata_in]], bool]] = []
     ):
         self.tb = tb
         self.max_rand_wait = max_rand_wait
         self.name = name
-
         self.passive = passive
         self.iteration_count = iteration_count
-        self.filters :list[Callable[[InternalMessage[_T_userdata_in]], bool]] = []
+        self.filters :list[Callable[[InternalMessage[_T_userdata_in]], bool]] = filters
+
         self.input_q = deque()
         self.callees : set[MessageFrameworkProcessOneSrc] = set()
 
-    def add_to_simulation(
-        self,
-        internal_processes: "TestCaseWithMessageFramework.InternalProcesses",
-    ):
-        self.internal = internal_processes
+        self.tc : 'TestCaseWithMessageFramework' = TestCaseWithMessageFramework.stack[-1]
+        self.internal = self.tc.internal
+        self.tc.processes.append(self)
+        if started:
+            self.internal.starter.proc_to_start.append(self)
 
     class RestartMsgProcessing(Exception):
         pass
@@ -196,11 +177,7 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
 
 
 class TestCaseWithMessageFramework(TestCaseWithSimulator):
-    @dataclass
-    class ProcessEntry:
-        proc: MessageFrameworkProcess
-        in_combiner: MessageQueueCombiner
-        out_broadcaster: MessageQueueBroadcaster
+    stack =[]
 
     @dataclass
     class InternalProcesses:
@@ -209,66 +186,21 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.processes: dict[str, TestCaseWithMessageFramework.ProcessEntry] = {}
         self._create_internal()
+        self.processes : list [MessageFrameworkProcessOneSrc] = []
 
     def _create_internal(self):
         clk = ClockProcess()
-        starter = StarterProcess(clk, MessageQueueBroadcaster())
+        starter = StarterProcess(clk)
         self.internal = TestCaseWithMessageFramework.InternalProcesses(clk, starter)
-
-    def register_process(self, name: str, proc: MessageFrameworkProcess[T1, Any, T3], *, combiner_f=_default_combiner):
-        combiner = MessageQueueCombiner[_MFVerificationDataType[T1], Any](combiner=combiner_f)
-        broadcaster = MessageQueueBroadcaster[_MFVerificationDataType[T3]]()
-        proc.add_to_simulation(self.internal, combiner, broadcaster)
-        self.processes[name] = TestCaseWithMessageFramework.ProcessEntry(proc, combiner, broadcaster)
-
-    def _wrap_filter(
-        self, f: Optional[Callable[[InternalMessage[_T_userdata]], bool]]
-    ) -> Optional[Callable[[_MFVerificationDataType[_T_userdata]], bool]]:
-        if f is None:
-            return None
-
-        def wraped(input: _MFVerificationDataType) -> bool:
-            if isinstance(input, MessageFrameworkCommand):
-                return True
-            return f(input)
-
-        return wraped
-
-    def _raise_if_process_not_exist(self, name: str):
-        known_processes = {"starter"} | set(self.processes.keys()) | set(self.accessors.keys())
-        if name not in known_processes:
-            raise RuntimeError(f"Tried to use not yet registrated process with name: {name}")
-
-    def _get_process_by_name(self, name: str) -> Union['TestCaseWithMessageFramework.ProcessEntry', 'TestCaseWithMessageFramework.AccessEntry']:
-        if name in self.processes:
-            return self.processes[name]
-        if name in self.accessors:
-            return self.accessors[name]
-        raise RuntimeError("Process name not known.")
-
-    def add_data_flow(
-        self, from_name: str, to_name: str, *, filter: Optional[Callable[[InternalMessage[_T_userdata]], bool]] = None
-    ):
-        self._raise_if_process_not_exist(from_name)
-        self._raise_if_process_not_exist(to_name)
-        msg_q: MessageQueue[_MFVerificationDataType[_T_userdata]] = MessageQueue(filter=self._wrap_filter(filter))
-
-        if from_name == "starter":
-            proc_from = self.internal.starter
-        else:
-            proc_from = self._get_process_by_name(from_name)
-        proc_from.out_broadcaster.add_destination(msg_q)
-
-        proc_to = self._get_process_by_name(to_name)
-        proc_to.in_combiner.add_source(msg_q, from_name)
 
     @contextmanager
     def prepare_env(self, module: HasElaborate):
+        self.stack.append(self)
         with self.run_simulation(module) as sim:
             yield sim
             sim.add_sync_process(self.internal.clk.process)
             sim.add_sync_process(self.internal.starter.process)
-            for p in self.processes.values():
-                sim.add_sync_process(p.proc.process)
+            for p in self.processes:
+                sim.add_sync_process(p.process)
+        self.stack.pop()
