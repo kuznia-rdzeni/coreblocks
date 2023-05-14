@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683997811487,
+  "lastUpdate": 1684089166531,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -5462,6 +5462,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/626d6c065f4b82d7b1b0c8ef05c0f32a5fd07f1b"
         },
         "date": 1683997810541,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 58.1,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 18754,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 562,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5604,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b925ebb960d040fd261912c73b0777f76c58bd06",
+          "message": "Fix debug_signals method bug introduced in #334 (#339)\n\n* Fix debug_signals method bug introduced in #334\n\n* lint\n\n---------\n\nCo-authored-by: Lekcyjna <309016@uwr.edu.pl>",
+          "timestamp": "2023-05-14T20:23:39+02:00",
+          "tree_id": "87b5f734f493c32d713f261442bf5f665bd7278b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b925ebb960d040fd261912c73b0777f76c58bd06"
+        },
+        "date": 1684089164894,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
