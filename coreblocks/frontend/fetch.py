@@ -33,7 +33,7 @@ class Fetch(Elaboratable):
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform):
         m = ModuleX()
 
         m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(

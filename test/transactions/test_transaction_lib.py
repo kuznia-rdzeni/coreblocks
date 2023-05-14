@@ -9,7 +9,7 @@ from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
-from coreblocks.utils._typing import LayoutLike
+from coreblocks.utils._typing import LayoutLike, ModuleLike
 from coreblocks.utils import ModuleConnector
 from ..common import (
     SimpleTestCircuit,
@@ -239,12 +239,12 @@ class MethodTransformerTestCircuit(Elaboratable):
 
         layout = data_layout(self.iosize)
 
-        def itransform_rec(m: Module, v: Record) -> Record:
+        def itransform_rec(m: ModuleLike, v: Record) -> Record:
             s = Record.like(v)
             m.d.comb += s.data.eq(v.data + 1)
             return s
 
-        def otransform_rec(m: Module, v: Record) -> Record:
+        def otransform_rec(m: ModuleLike, v: Record) -> Record:
             s = Record.like(v)
             m.d.comb += s.data.eq(v.data - 1)
             return s

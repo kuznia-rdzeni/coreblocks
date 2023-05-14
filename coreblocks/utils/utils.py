@@ -4,7 +4,7 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate, ModuleLike
 
 
 __all__ = [
@@ -21,7 +21,7 @@ __all__ = [
 
 
 @contextmanager
-def OneHotSwitch(m: Module, test: Value):
+def OneHotSwitch(m: ModuleLike, test: Value):
     """One-hot switch.
 
     This function allows one-hot matching in the style similar to the standard
@@ -66,16 +66,16 @@ def OneHotSwitch(m: Module, test: Value):
 
 
 @overload
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
     ...
 
 
 @overload
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: Literal[False] = False) -> Iterable[int]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[False] = False) -> Iterable[int]:
     ...
 
 
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: bool = False) -> Iterable[Optional[int]]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: bool = False) -> Iterable[Optional[int]]:
     """Dynamic one-hot switch.
 
     This function allows simple one-hot matching on signals which can have
