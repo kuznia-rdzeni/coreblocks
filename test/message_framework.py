@@ -13,6 +13,7 @@ __all__ = [
     "MessageFrameworkProcessOneSrc",
     "TestCaseWithMessageFramework",
     "InternalMessage",
+    "MessageFrameworkCommand",
 ]
 
 
@@ -26,12 +27,15 @@ class EndOfInput(MessageFrameworkCommand):
 
 T = TypeVar("T")
 _T_userdata_in = TypeVar("_T_userdata_in")
+
+
 @dataclass
 class InternalMessage(Generic[T]):
     clk: int
     userdata: T
 
-_MFVerificationDataType : TypeAlias = MessageFrameworkCommand | InternalMessage[T]
+
+_MFVerificationDataType: TypeAlias = MessageFrameworkCommand | InternalMessage[T]
 
 
 class ClockProcess:
@@ -48,7 +52,7 @@ class ClockProcess:
 class StarterProcess:
     def __init__(self, clk: ClockProcess):
         self.clk = clk
-        self.proc_to_start : list ['MessageFrameworkProcessOneSrc'] = []
+        self.proc_to_start: list["MessageFrameworkProcessOneSrc"] = []
 
     def process(self):
         yield Passive()
@@ -64,23 +68,23 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
         *,
         tb: Optional[TestbenchIO] = None,
         max_rand_wait=2,
-        iteration_count : Optional[int] = None,
-        passive : bool = False,
-        started : bool = False,
-        name : str = "",
-        filters :list[Callable[[InternalMessage[_T_userdata_in]], bool]] = []
+        iteration_count: Optional[int] = None,
+        passive: bool = False,
+        started: bool = False,
+        name: str = "",
+        filters: list[Callable[[InternalMessage[_T_userdata_in]], bool]] = [],
     ):
         self.tb = tb
         self.max_rand_wait = max_rand_wait
         self.name = name
         self.passive = passive
         self.iteration_count = iteration_count
-        self.filters :list[Callable[[InternalMessage[_T_userdata_in]], bool]] = filters
+        self.filters: list[Callable[[InternalMessage[_T_userdata_in]], bool]] = filters
 
         self.input_q = deque()
-        self.callees : set[MessageFrameworkProcessOneSrc] = set()
+        self.callees: set[MessageFrameworkProcessOneSrc] = set()
 
-        self.tc : 'TestCaseWithMessageFramework' = TestCaseWithMessageFramework.stack[-1]
+        self.tc: "TestCaseWithMessageFramework" = TestCaseWithMessageFramework.stack[-1]
         self.internal = self.tc.internal
         self.tc.processes.append(self)
         if started:
@@ -92,7 +96,7 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
     def drop(self):
         self.input_q.popleft()
 
-    def handle_raw_data(self, data : InternalMessage[_T_userdata_in]):
+    def handle_raw_data(self, data: InternalMessage[_T_userdata_in]):
         if not all([f(data) for f in self.filters]):
             self.drop()
             raise self.RestartMsgProcessing()
@@ -101,14 +105,14 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
     def handle_input_data(self, data):
         return data
 
-    def call_tb(self, send_data):
+    def call_tb(self, input_data):
         out_data = {}
         if self.tb is not None:
-            out_data = yield from self.tb.call_try(send_data)
+            out_data = yield from self.tb.call_try(input_data)
             if out_data is None:
                 raise self.RestartMsgProcessing()
             self.drop()
-        return send_data, out_data
+        return input_data, out_data
 
     def check(self, data):
         return data
@@ -121,7 +125,7 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
         for i in range(cycles):
             yield
 
-    def __call__(self, arg : _T_userdata_in):
+    def __call__(self, arg: _T_userdata_in):
         # Do some magic, so that user wouldn't see difference between this and normal function call.
         caller_frame = sys._getframe(1)
         caller = caller_frame.f_locals["self"]
@@ -135,15 +139,18 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
         packet = InternalMessage[_T_userdata_in](self.internal.clk.now, arg)
         self.input_q.append(packet)
 
+    def get_head(self):
+        return self.input_q[0]
+
     def _get_verifcation_input(self) -> TestGen[_MFVerificationDataType]:
         while not self.input_q:
             yield
-        return self.input_q[0]
+        return self.get_head()
 
-    def _receive_command(self, cmd : MessageFrameworkCommand):
+    def _receive_command(self, cmd: MessageFrameworkCommand):
         self.input_q.append(cmd)
 
-    def _send_command(self, cmd : MessageFrameworkCommand):
+    def _send_command(self, cmd: MessageFrameworkCommand):
         for c in self.callees:
             c._receive_command(cmd)
 
@@ -164,7 +171,7 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
                     data = self.handle_input_data(data)
                     data = yield from self.call_tb(data)
                 except self.RestartMsgProcessing:
-                    i-=1
+                    i -= 1
                     continue
                 self.check(data)
                 self.finish(data)
@@ -177,7 +184,7 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
 
 
 class TestCaseWithMessageFramework(TestCaseWithSimulator):
-    stack =[]
+    stack = []
 
     @dataclass
     class InternalProcesses:
@@ -187,7 +194,7 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._create_internal()
-        self.processes : list [MessageFrameworkProcessOneSrc] = []
+        self.processes: list[MessageFrameworkProcessOneSrc] = []
 
     def _create_internal(self):
         clk = ClockProcess()

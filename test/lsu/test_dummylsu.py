@@ -183,138 +183,203 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
         self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module, self.bus = construct_test_module_new(self.gp)
         self.wishbone_request_valid = 0
-        self.wishbone_data_from_last_req : GeneratedData
-        self.last_clear = -1
+        self.wishbone_data_from_last_req: GeneratedData
+        global last_clear
+        last_clear = -1
 
-    def generate_instr(self):
-        ops = {
-            "LB": (OpType.LOAD, Funct3.B),
-            "LBU": (OpType.LOAD, Funct3.BU),
-            "LH": (OpType.LOAD, Funct3.H),
-            "LHU": (OpType.LOAD, Funct3.HU),
-            "LW": (OpType.LOAD, Funct3.W),
-        }
+    class GeneratorProcess(MessageFrameworkProcessOneSrc):
+        def __init__(
+            self,
+            max_reg_val,
+            gp: GenParams,
+            max_imm_val,
+            inserter: MessageFrameworkProcessOneSrc[GeneratedData],
+            **kwargs,
+        ):
+            super().__init__(**kwargs)
+            self.max_reg_val = max_reg_val
+            self.max_imm_val = max_imm_val
+            self.gp = gp
+            self.inserter = inserter
 
-        # generate new instructions till we generate correct one
-        while True:
-            # generate opcode
-            (op, mask, signess) = generate_random_op(ops)
-            # generate rp1, val1 which create addr
-            rp_s1, s1_val, ann_data, addr = generate_register(self.max_reg_val, self.gp.phys_regs_bits)
-            imm = generate_imm(self.max_imm_val)
-            addr += imm
-            if check_instr(addr, op):
-                break
-
-        exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
-
-        # calculate word address and mask
-        mask = shift_mask_based_on_addr(mask, addr)
-        addr = addr >> 2
-
-        rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
-        rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
-        instr = {
-            "rp_s1": rp_s1,
-            "rp_s2": 0,
-            "rp_dst": rp_dst,
-            "rob_id": rob_id,
-            "exec_fn": exec_fn,
-            "s1_val": s1_val,
-            "s2_val": 0,
-            "imm": imm,
-        }
-        mem_data = MemoryData(
-            **{
-                "addr": addr,
-                "mask": mask,
-                "sign": signess,
-                "rnd_bytes": random.randint(0,2**32-1),
+        def generate_instr(self):
+            ops = {
+                "LB": (OpType.LOAD, Funct3.B),
+                "LBU": (OpType.LOAD, Funct3.BU),
+                "LH": (OpType.LOAD, Funct3.H),
+                "LHU": (OpType.LOAD, Funct3.HU),
+                "LW": (OpType.LOAD, Funct3.W),
             }
-        )
-        ann_data = AnnounceData(**ann_data) if ann_data is not None else None
-        return GeneratedData(ann_data, instr, mem_data)
 
-    def clear_activator_filter(self, msg: InternalMessage):
-        self.last_clear = msg.clk
-        print("New clear:", msg.clk)
-        return False
+            # generate new instructions till we generate correct one
+            while True:
+                # generate opcode
+                (op, mask, signess) = generate_random_op(ops)
+                # generate rp1, val1 which create addr
+                rp_s1, s1_val, ann_data, addr = generate_register(self.max_reg_val, self.gp.phys_regs_bits)
+                imm = generate_imm(self.max_imm_val)
+                addr += imm
+                if check_instr(addr, op):
+                    break
+
+            exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
+
+            # calculate word address and mask
+            mask = shift_mask_based_on_addr(mask, addr)
+            addr = addr >> 2
+
+            rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
+            rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
+            instr = {
+                "rp_s1": rp_s1,
+                "rp_s2": 0,
+                "rp_dst": rp_dst,
+                "rob_id": rob_id,
+                "exec_fn": exec_fn,
+                "s1_val": s1_val,
+                "s2_val": 0,
+                "imm": imm,
+            }
+            mem_data = MemoryData(
+                **{
+                    "addr": addr,
+                    "mask": mask,
+                    "sign": signess,
+                    "rnd_bytes": random.randint(0, 2**32 - 1),
+                }
+            )
+            ann_data = AnnounceData(**ann_data) if ann_data is not None else None
+            return GeneratedData(ann_data, instr, mem_data)
+
+        def finish(self, _):
+            instr = self.generate_instr()
+            self.inserter(instr)
 
     def cleared_filter(self, msg: InternalMessage):
-        res = msg.clk > self.last_clear
+        res = msg.clk > last_clear
         if not res:
             print("Dropped:", msg)
         return res
 
+    class SelectorProcess(MessageFrameworkProcessOneSrc):
+        def check(self, data):
+            assert data["rs_entry_id"] == 0, str(data["rs_entry_id"])
+
+    class InserterProcess(MessageFrameworkProcessOneSrc):
+        def call_tb(self, data):
+            _, tb_out = yield from super().call_tb({"rs_data": data.instr, "rs_entry_id": 0})
+            return data, tb_out
+
+        def finish(self, data):
+            input, tb_out = data
+            self.announcer(input)
+            self.consumer(input)
+            self.wb_mock_acc(input)
+
+    class AnnouncerProcess(MessageFrameworkProcessOneSrc):
+        def handle_input_data(self, data):
+            return asdict(data.ann_data)
+
+    class CleanerProcess(MessageFrameworkProcessOneSrc):
+        def handle_input_data(self, data):
+            # TODO activate cleaner
+            if random.random() < 0.1:
+                #                return {}
+                pass
+            self.drop()
+            raise self.RestartMsgProcessing
+
+        def finish(self, data):
+            global last_clear
+            last_clear = self.internal.clk.now
+            print("New clear:", last_clear)
+
+    class WishboneMockProcess(MessageFrameworkProcessOneSrc):
+        def process(self):
+            yield Passive()
+            yield
+
+        def get(self):
+            input = None
+            while input is None:
+                try:
+                    raw = self.get_head()
+                    self.drop()
+                    while isinstance(raw, MessageFrameworkCommand):
+                        raw = self.get_head()
+                        self.drop()
+                    input = self.handle_raw_data(raw)
+                except self.RestartMsgProcessing:
+                    pass
+            return input
+
+    class ConsumerProcess(MessageFrameworkProcessOneSrc):
+        def handle_input_data(self, data):
+            return data.mem_data
+
+        def check(self, data: tuple[MemoryData, RecordIntDictRet]):
+            in_verif, arg = data
+            print("consumer", in_verif, arg, self.internal.clk.now)
+            generated_data = in_verif.rnd_bytes
+            data_shift = (in_verif.mask & -in_verif.mask).bit_length() - 1
+            assert in_verif.mask.bit_length() == data_shift + in_verif.mask.bit_count(), "Unexpected mask"
+
+            size = in_verif.mask.bit_count() * 8
+            data_mask = 2**size - 1
+            data = (generated_data >> (data_shift * 8)) & data_mask
+            if in_verif.sign:
+                data = int_to_signed(signed_to_int(data, size), 32)
+
+            assert data == arg["result"], f"{data}=={arg['result']}"
+
     def test_body(self):
         with self.prepare_env(self.test_module) as sim:
-            generator = MessageFrameworkProcess[Any, Any, GeneratedData](
-                None, transformation_out=lambda x, y: self.generate_instr(), iteration_count=self.tests_number, name= "generator"
+            generator = self.GeneratorProcess(
+                self.max_reg_val,
+                self.gp,
+                self.max_imm_val,
+                inserter,
+                name="generator",
+                iteration_count=self.tests_number,
+                started=True,
             )
-            self.register_process("generator", generator)
-            self.add_data_flow("starter", "generator")
-
-            selector = MessageFrameworkProcess[RecordIntDict, RecordIntDict, Any](
-                self.test_module.test_circuit.select,
-                checker=lambda _, arg: self.assertEqual(arg["rs_entry_id"], 0),
+            selector = self.SelectorProcess(
+                tb=self.test_module.test_circuit.select,
                 max_rand_wait=self.max_wait,
                 passive=True,
-                name="selector"
+                name="selector",
+                started=True,
             )
-            self.register_process("selector", selector)
-            self.add_data_flow("starter", "selector")
 
-            inserter = MessageFrameworkProcess[GeneratedData, GeneratedData, GeneratedData](
-                self.test_module.test_circuit.insert,
-                prepare_send_data=lambda req: {"rs_data": req.instr, "rs_entry_id": 0},
-                transformation_out=lambda x, y: x,
-                max_rand_wait=self.max_wait,
-                name="inserter"
+            inserter = self.InserterProcess(
+                tb=self.test_module.test_circuit.insert, max_rand_wait=self.max_wait, name="inserter"
             )
-            self.register_process("inserter", inserter)
-            self.add_data_flow("generator", "inserter")
-
-            def announce_transformation_in(arg: GeneratedData) -> AnnounceData:
-                assert arg.ann_data is not None
-                return arg.ann_data
 
             # this can not be lambda because we have to pass types explicte
             def announce_in_filter(arg: InternalMessage[GeneratedData]) -> bool:
                 return (arg.userdata.ann_data is not None) and self.cleared_filter(arg)
 
-            announcer = MessageFrameworkProcess[GeneratedData, AnnounceData, RecordIntDict](
-                self.test_module.test_circuit.update,
-                transformation_in=announce_transformation_in,
-                prepare_send_data=lambda arg: asdict(arg),
+            announcer = self.AnnouncerProcess(
+                tb=self.test_module.test_circuit.update,
                 max_rand_wait=self.max_wait,
-                passive = True,
-                name="announcer"
+                passive=True,
+                name="announcer",
+                filters=[announce_in_filter],
             )
-            self.register_process("announcer", announcer)
-            self.add_data_flow("inserter", "announcer", filter=announce_in_filter)
 
-            cleaner = MessageFrameworkProcess(self.test_module.test_circuit.clear, max_rand_wait=self.max_wait, name="cleaner", passive=True)
-            self.register_process("cleaner", cleaner)
-            # TODO activate cleaner
-            #self.add_data_flow("starter", "cleaner", filter=lambda _: False)
-            self.add_data_flow("starter", "cleaner", filter=lambda _: random.random() < 0.1)
-
-            clear_filter_sink = MessageFrameworkProcess(None, passive=True)
-            self.register_process("clear_filter_sink", clear_filter_sink)
-            self.add_data_flow("cleaner", "clear_filter_sink", filter=self.clear_activator_filter)
-
-            self.wb_mock_acc = MessageFrameworkExternalAccess()
-            self.register_accessor("wb_mock_acc", self.wb_mock_acc)
-            self.add_data_flow("inserter", "wb_mock_acc", filter=self.cleared_filter)
-
-            self.con = consumer = MessageFrameworkProcess[GeneratedData, MemoryData, Any](
-                self.test_module.test_circuit.get_result,
-                transformation_in=lambda arg: arg.mem_data,
-                checker=self.consumer_checker,
-                name="consumer"
+            cleaner = self.CleanerProcess(
+                tb=self.test_module.test_circuit.clear,
+                max_rand_wait=self.max_wait,
+                name="cleaner",
+                passive=True,
+                started=True,
             )
-            self.register_process("consumer", consumer)
-            self.add_data_flow("inserter", "consumer",filter=self.cleared_filter)
+
+            self.wb_mock_acc = self.WishboneMockProcess(name="wb_mock", filters=[self.cleared_filter])
+
+            self.con = consumer = self.ConsumerProcess(
+                tb=self.test_module.test_circuit.get_result, name="consumer", filters=[self.cleared_filter]
+            )
 
             @def_method_mock(lambda: self.bus.request_tb, sched_prio=0)
             def request_mock(addr, data, we, sel):
@@ -327,6 +392,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
                 self.wishbone_request_valid = True
                 self.wishbone_data_from_last_req = arg
                 return
+
             sim.add_sync_process(request_mock)
 
             @def_method_mock(lambda: self.bus.result_tb, enable=lambda: self.wishbone_request_valid, sched_prio=0)
@@ -334,22 +400,8 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
                 self.wishbone_request_valid = False
                 data = self.wishbone_data_from_last_req.mem_data.rnd_bytes
                 return {"data": data, "err": 0}
+
             sim.add_sync_process(response_mock)
-
-
-    def consumer_checker(self, in_verif: MemoryData, arg: RecordIntDictRet):
-        print("consumer", in_verif, arg, self.con.internal.clk.now)
-        generated_data = in_verif.rnd_bytes
-        data_shift = (in_verif.mask & -in_verif.mask).bit_length() - 1
-        assert in_verif.mask.bit_length() == data_shift + in_verif.mask.bit_count(), "Unexpected mask"
-
-        size = in_verif.mask.bit_count() * 8
-        data_mask = 2**size - 1
-        data = (generated_data >> (data_shift * 8)) & data_mask
-        if in_verif.sign:
-            data = int_to_signed(signed_to_int(data, size), 32)
-
-        self.assertEqual(data, arg["result"])
 
 
 # ================================================================
