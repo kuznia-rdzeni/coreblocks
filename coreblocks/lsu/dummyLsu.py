@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.transactions import Method, def_method, Transaction, ModuleX
+from coreblocks.transactions import Method, def_method, Transaction, TModule
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign, ModuleLike
@@ -95,7 +95,7 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += data.eq(raw_data)
         return data
 
-    def op_init(self, m: ModuleX, op_initiated: Signal, is_store: bool):
+    def op_init(self, m: TModule, op_initiated: Signal, is_store: bool):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
 
@@ -113,7 +113,7 @@ class LSUDummyInternals(Elaboratable):
             self.bus.request(m, req)
             m.d.sync += op_initiated.eq(1)
 
-    def op_end(self, m: ModuleX, op_initiated: Signal, is_store: bool):
+    def op_end(self, m: TModule, op_initiated: Signal, is_store: bool):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
 
@@ -142,7 +142,7 @@ class LSUDummyInternals(Elaboratable):
         def check_if_instr_is_load(current_instr: Record) -> Value:
             return current_instr.exec_fn.op_type == OpType.LOAD
 
-        m = ModuleX()
+        m = TModule()
 
         instr_ready = check_if_instr_ready(self.current_instr, self.result_ready)
         instr_is_load = check_if_instr_is_load(self.current_instr)
@@ -234,7 +234,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.bus = bus
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
         reserved = Signal()  # means that current_instr is reserved
         current_instr = Record(self.lsu_layouts.rs_data_layout + [("valid", 1)])
 

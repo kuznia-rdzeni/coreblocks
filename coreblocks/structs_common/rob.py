@@ -1,5 +1,5 @@
 from amaranth import *
-from ..transactions import Method, def_method, ModuleX
+from ..transactions import Method, def_method, TModule
 from ..params import GenParams, ROBLayouts
 from ..params.dependencies import DependencyManager
 from ..params.keys import ROBSingleKey
@@ -20,7 +20,7 @@ class ReorderBuffer(Elaboratable):
         connections.add_dependency(ROBSingleKey(), self.single_entry)
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
 
         start_idx = Signal(self.params.rob_entries_bits)
         end_idx = Signal(self.params.rob_entries_bits)

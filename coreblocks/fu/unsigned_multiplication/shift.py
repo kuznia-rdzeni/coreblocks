@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.fu.unsigned_multiplication.common import MulBaseUnsigned
 from coreblocks.params import GenParams
-from coreblocks.transactions.core import def_method, ModuleX
+from coreblocks.transactions.core import def_method, TModule
 
 __all__ = ["ShiftUnsignedMul"]
 
@@ -17,7 +17,7 @@ class ShiftUnsignedMul(MulBaseUnsigned):
         super().__init__(gen)
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
         res = Signal(unsigned(self.gen.isa.xlen * 2))
 
         i1 = Signal(unsigned(self.gen.isa.xlen * 2))

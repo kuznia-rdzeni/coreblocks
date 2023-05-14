@@ -1,7 +1,7 @@
 from .core import *
 
 __all__ = [
-    "ModuleX",
+    "TModule",
     "TransactionManager",
     "TransactionContext",
     "TransactionModule",

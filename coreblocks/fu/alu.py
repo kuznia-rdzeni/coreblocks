@@ -60,7 +60,7 @@ class Alu(Elaboratable):
         self.out = Signal(gen_params.isa.xlen)
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(AluFn.Fn.ADD):
@@ -100,7 +100,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
         self.accept = Method(o=layouts.accept)
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
 
         m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.alu_fn)
         m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
