@@ -1,16 +1,16 @@
+import sys
 import random
 from typing import TypeVar, TypeGuard
 from dataclasses import dataclass
 from contextlib import contextmanager
+from collections import deque
 
-from test.message_queue import *
 from test.common import *
 
 # TODO add support for @Arusekk syntax trick
 
 __all__ = [
-    "MessageFrameworkProcess",
-    "MessageFrameworkExternalAccess",
+    "MessageFrameworkProcessOneSrc",
     "TestCaseWithMessageFramework",
     "InternalMessage",
 ]
@@ -79,54 +79,11 @@ _T_userdata_out = TypeVar("_T_userdata_out")
 _T_userdata_transformed = TypeVar("_T_userdata_transformed")
 
 
-class MessageFrameworkExternalAccess(Generic[_T_userdata_in, _T_userdata_out]):
-    def __init__(self):
-        pass
-
-    def add_to_simulation(
-        self,
-        internal_processes: "TestCaseWithMessageFramework.InternalProcesses",
-        in_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_in]],
-        out_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_out]],
-    ):
-        self.internal = internal_processes
-        self.in_verif_data = in_verif_data
-        self.out_verif_data = out_verif_data
-
-    def get(self) -> _T_userdata_in:
-        val = self.in_verif_data.pop()
-        while isinstance(val, MessageFrameworkCommand):
-            val = self.in_verif_data.pop()
-        return val.userdata
-
-    def put(self, val: _T_userdata_out):
-        msg = InternalMessage(self.internal.clk.now, val)
-        self.out_verif_data.append(msg)
-
-
-class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _T_userdata_out]):
-    """
-    tb : TestbenchIO
-        Method under test
-    transformation_in : Callable
-        Function used to transform incoming *verification* data
-    transformation_out : Callable
-        Function used to produce *verification* data for other testing processes
-        using as arguments transformed input verification data and test data from
-        tested method.
-    checker : Callable
-        Function to check correctness of test data from method using transformed
-        input verification data.
-    """
-
+class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
     def __init__(
         self,
-        tb: Optional[TestbenchIO],
         *,
-        transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = lambda x: x,
-        transformation_out: Callable[[_T_userdata_transformed, RecordIntDict], _T_userdata_out] = lambda x, y: {},
-        prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = lambda x: {},
-        checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = lambda x, y: None,
+        tb: Optional[TestbenchIO] = None,
         max_rand_wait=2,
         iteration_count : Optional[int] = None,
         passive : bool = False,
@@ -137,70 +94,102 @@ class MessageFrameworkProcess(Generic[_T_userdata_in, _T_userdata_transformed, _
         self.name = name
 
         self.passive = passive
-        self.transformation_in: Callable[[_T_userdata_in], _T_userdata_transformed] = transformation_in
-        self.transformation_out: Callable[
-            [_T_userdata_transformed, RecordIntDict], _T_userdata_out
-        ] = transformation_out
-        self.prepare_send_data: Callable[[_T_userdata_transformed], RecordIntDictRet] = prepare_send_data
-        self.checker: Callable[[_T_userdata_transformed, RecordIntDict], None] = checker
         self.iteration_count = iteration_count
+        self.filters :list[Callable[[InternalMessage[_T_userdata_in]], bool]] = []
+        self.input_q = deque()
+        self.callees : set[MessageFrameworkProcessOneSrc] = set()
 
     def add_to_simulation(
         self,
         internal_processes: "TestCaseWithMessageFramework.InternalProcesses",
-        in_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_in]],
-        out_verif_data: MessageQueueInterface[_MFVerificationDataType[_T_userdata_out]],
     ):
         self.internal = internal_processes
-        self.in_verif_data = in_verif_data
-        self.out_verif_data = out_verif_data
 
-    def _get_test_data(self, arg_to_send: RecordIntDict):
+    class RestartMsgProcessing(Exception):
+        pass
+
+    def drop(self):
+        self.input_q.popleft()
+
+    def handle_raw_data(self, data : InternalMessage[_T_userdata_in]):
+        if not all([f(data) for f in self.filters]):
+            self.drop()
+            raise self.RestartMsgProcessing()
+        return data.userdata
+
+    def handle_input_data(self, data):
+        return data
+
+    def call_tb(self, send_data):
+        out_data = {}
         if self.tb is not None:
-            out_data = yield from self.tb.call(arg_to_send)
-            return out_data
-        return {}
+            out_data = yield from self.tb.call_try(send_data)
+            if out_data is None:
+                raise self.RestartMsgProcessing()
+            self.drop()
+        return send_data, out_data
 
-    def _get_verifcation_input(self) -> TestGen[_MFVerificationDataType]:
-        while not self.in_verif_data:
-            yield
-        return self.in_verif_data.pop()
+    def check(self, data):
+        return data
 
-    def _random_wait(self):
+    def finish(self, data):
+        return
+
+    def random_wait(self):
         cycles = random.randrange(self.max_rand_wait + 1)
         for i in range(cycles):
             yield
 
+    def __call__(self, arg : _T_userdata_in):
+        # Do some magic, so that user wouldn't see difference between this and normal function call.
+        caller_frame = sys._getframe(1)
+        caller = caller_frame.f_locals["self"]
+        if not isinstance(caller, MessageFrameworkProcessOneSrc):
+            raise RuntimeError(f"Called {self.name} from process different than MessageFrameworkProcessOneSrc.")
+
+        # Register itself to caller to get MessageFrameworkCommands
+        if self not in caller.callees:
+            caller.callees.add(self)
+
+        packet = InternalMessage[_T_userdata_in](self.internal.clk.now, arg)
+        self.input_q.append(packet)
+
+    def _get_verifcation_input(self) -> TestGen[_MFVerificationDataType]:
+        while not self.input_q:
+            yield
+        return self.input_q[0]
+
+    def _receive_command(self, cmd : MessageFrameworkCommand):
+        self.input_q.append(cmd)
+
+    def _send_command(self, cmd : MessageFrameworkCommand):
+        for c in self.callees:
+            c._receive_command(cmd)
+
     def process(self):
         try:
-            if not (hasattr(self, "in_verif_data") and hasattr(self, "out_verif_data") and hasattr(self, "internal")):
-                raise RuntimeError("Simulation started before adding proces to Message Framework.")
-
             if self.passive:
                 yield Passive()
             i = 0
             while self.iteration_count is None or (i < self.iteration_count):
-                print(self.name)
                 i += 1
-                raw_verif_input = yield from self._get_verifcation_input()
-                print(self.name, "raw_in", raw_verif_input, self.internal.clk.now)
-                if isinstance(raw_verif_input, MessageFrameworkCommand):
-                    if isinstance(raw_verif_input, EndOfInput):
-                        break
-                    raise RuntimeError(f"Got unknown MessageFrameworkCommand: {raw_verif_input}")
-                transformed_verif_input = self.transformation_in(raw_verif_input.userdata)
-                send_data = self.prepare_send_data(transformed_verif_input)
-                #print(self.name, "send_data", send_data)
-                self._random_wait()
-                test_data = yield from self._get_test_data(send_data)
-                print(self.name, "test_data", test_data, self.internal.clk.now)
-                self.checker(transformed_verif_input, test_data)
-                transformed_output = self.transformation_out(transformed_verif_input, test_data)
-                msg = InternalMessage(self.internal.clk.now, transformed_output)
-                #print(self.name, msg)
-                self.out_verif_data.append(msg)
+                try:
+                    raw_verif_input = yield from self._get_verifcation_input()
+                    if isinstance(raw_verif_input, MessageFrameworkCommand):
+                        if isinstance(raw_verif_input, EndOfInput):
+                            break
+                        raise RuntimeError(f"Got unknown MessageFrameworkCommand: {raw_verif_input}")
+                    data = self.handle_raw_data(raw_verif_input)
+                    data = self.handle_input_data(data)
+                    data = yield from self.call_tb(data)
+                except self.RestartMsgProcessing:
+                    i-=1
+                    continue
+                self.check(data)
+                self.finish(data)
+                self.random_wait()
             print(f"Koniec procesu {self.name}")
-            self.out_verif_data.append(EndOfInput())
+            self._send_command(EndOfInput())
         except Exception as e:
             e.add_note(f"From process: {self.name}")
             raise e
@@ -214,12 +203,6 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         out_broadcaster: MessageQueueBroadcaster
 
     @dataclass
-    class AccessEntry:
-        proc: MessageFrameworkExternalAccess
-        in_combiner: MessageQueueCombiner
-        out_broadcaster: MessageQueueBroadcaster
-
-    @dataclass
     class InternalProcesses:
         clk: ClockProcess
         starter: StarterProcess
@@ -227,7 +210,6 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.processes: dict[str, TestCaseWithMessageFramework.ProcessEntry] = {}
-        self.accessors: dict[str, TestCaseWithMessageFramework.AccessEntry] = {}
         self._create_internal()
 
     def _create_internal(self):
@@ -240,14 +222,6 @@ class TestCaseWithMessageFramework(TestCaseWithSimulator):
         broadcaster = MessageQueueBroadcaster[_MFVerificationDataType[T3]]()
         proc.add_to_simulation(self.internal, combiner, broadcaster)
         self.processes[name] = TestCaseWithMessageFramework.ProcessEntry(proc, combiner, broadcaster)
-
-    def register_accessor(
-        self, name: str, proc: MessageFrameworkExternalAccess[T1, T2], *, combiner_f=_default_combiner
-    ):
-        combiner = MessageQueueCombiner[_MFVerificationDataType[T1], Any](combiner=combiner_f)
-        broadcaster = MessageQueueBroadcaster[_MFVerificationDataType[T2]]()
-        proc.add_to_simulation(self.internal, combiner, broadcaster)
-        self.accessors[name] = TestCaseWithMessageFramework.AccessEntry(proc, combiner, broadcaster)
 
     def _wrap_filter(
         self, f: Optional[Callable[[InternalMessage[_T_userdata]], bool]]
