@@ -2,7 +2,7 @@ import unittest
 import os
 import functools
 from contextlib import contextmanager, nullcontext
-from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
+from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast, Type, TypeGuard
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -105,6 +105,16 @@ def signed_to_int(x: int, xlen: int) -> int:
     """
     return x | -(x & (2 ** (xlen - 1)))
 
+def guard_nested_collection(cont : Any, TT : Type[T]) -> TypeGuard[_T_nested_collection[T]]:
+    if isinstance(cont, list):
+        return all([guard_nested_collection(elem,TT) for elem in cont])
+    elif isinstance(cont, dict):
+        return all([guard_nested_collection(elem, TT) for elem in cont.values()])
+    elif isinstance(cont, TT):
+        return True
+    else:
+        return False
+
 
 _T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
 
@@ -117,9 +127,6 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def __getattr__(self, name: str) -> Any:
         return self._io[name]
 
-    class NotMethodException(TypeError):
-        pass
-
     def elaborate(self, platform):
         def transform_methods_to_testbenchios(
             container: _T_nested_collection[Method],
@@ -130,10 +137,8 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
                 return ModuleConnector(
                     **dict([(name, transform_methods_to_testbenchios(elem)) for name, elem in container.items()])
                 )
-            elif isinstance(container, Method):
-                return TestbenchIO(AdapterTrans(container))
             else:
-                raise SimpleTestCircuit.NotMethodException()
+                return TestbenchIO(AdapterTrans(container))
 
         m = Module()
 
@@ -143,12 +148,9 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         m.submodules.dut = self._dut
 
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
-            try:
-                if isinstance(attr, Method | list | dict):
-                    self._io[name] = transform_methods_to_testbenchios(attr)
-                    m.submodules[name] = self._io[name]
-            except SimpleTestCircuit.NotMethodException:
-                pass
+            if guard_nested_collection(attr, Method):
+                self._io[name] = transform_methods_to_testbenchios(attr)
+                m.submodules[name] = self._io[name]
 
         return m
 
