@@ -10,7 +10,7 @@ from coreblocks.transactions.lib import *
 
 from ..common import TestCaseWithSimulator, TestbenchIO
 
-from coreblocks.fu.alu import AluFn, Alu, AluFuncUnit
+from coreblocks.fu.alu import Alu, AluFuncUnit, AluFn
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 
