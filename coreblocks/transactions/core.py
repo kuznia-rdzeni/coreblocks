@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Sequence, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import ClassVar, TypeAlias, TypedDict, Union, Optional, Tuple
+from typing import ClassVar, NoReturn, TypeAlias, TypedDict, Union, Optional, Tuple
 from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
@@ -15,7 +15,7 @@ from coreblocks.utils import AssignType, assign, ModuleConnector
 from coreblocks.utils.utils import OneHotSwitchDynamic
 from ._utils import *
 from ..utils import silence_mustuse
-from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate, SwitchKey
+from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate, SwitchKey, ModuleLike
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
@@ -465,12 +465,13 @@ class ModuleBuilderDomainsX:
         return self.__setattr__(name, value)
 
 
-class ModuleX(Elaboratable):
+class ModuleX(ModuleLike, Elaboratable):
     def __init__(self):
         self.m1 = Module()
         self.m2 = Module()
         self.d = ModuleBuilderDomainsX(self)
         self.submodules = self.m1.submodules
+        self.domains = self.m1.domains
         self.fsm: Optional[FSM] = None
 
     @contextmanager
@@ -524,14 +525,14 @@ class ModuleX(Elaboratable):
 
     @contextmanager
     def State(self, name: str):  # noqa: N802
-        assert(self.fsm is not None)
+        assert self.fsm is not None
         with self.m1.State(name):
             with self.m2.If(self.fsm.ongoing(name)):
                 yield
 
     @property
-    def next(self):
-        ...
+    def next(self) -> NoReturn:
+        raise NotImplementedError
 
     @next.setter
     def next(self, name: str):

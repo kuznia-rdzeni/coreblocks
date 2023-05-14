@@ -53,7 +53,7 @@ class BasicFifo(Elaboratable):
         self.clear.add_conflict(self.read, Priority.LEFT)
         self.clear.add_conflict(self.write, Priority.LEFT)
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform):
         def mod_incr(sig: Value, mod: int) -> Value:
             # perform (sig+1)%mod operation
             if mod == 2 ** len(sig):

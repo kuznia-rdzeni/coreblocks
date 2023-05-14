@@ -75,7 +75,7 @@ class ICacheBypass(Elaboratable, ICacheInterface):
         self.accept_res = Method(o=layouts.accept_res)
         self.flush = Method()
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform):
         m = ModuleX()
 
         req_addr = Signal(self.params.addr_width)
@@ -160,7 +160,7 @@ class ICache(Elaboratable, ICacheInterface):
     def serialize_addr(self, addr: Record) -> Value:
         return Cat(addr.offset, addr.index, addr.tag)
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform):
         m = ModuleX()
 
         m.submodules.mem = self.mem = ICacheMemory(self.params)
@@ -324,7 +324,7 @@ class ICacheMemory(Elaboratable):
         self.data_wr_en = Signal()
         self.data_wr_data = Signal(self.params.word_width)
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform):
         m = ModuleX()
 
         for i in range(self.params.num_of_ways):
@@ -375,7 +375,7 @@ class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
         self.start_refill = Method(i=layouts.start_refill)
         self.accept_refill = Method(o=layouts.accept_refill)
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform):
         m = ModuleX()
 
         refill_address = Signal(self.params.word_width - self.params.offset_bits)

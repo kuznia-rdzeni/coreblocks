@@ -30,7 +30,7 @@ class Decode(Elaboratable):
         self.get_raw = get_raw
         self.push_decoded = push_decoded
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform):
         m = ModuleX()
 
         m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gp)
