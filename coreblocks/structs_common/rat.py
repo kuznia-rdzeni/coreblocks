@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method, ModuleX
+from coreblocks.transactions import Method, def_method, TModule
 from coreblocks.params import RATLayouts, GenParams
 
 __all__ = ["FRAT", "RRAT"]
@@ -17,7 +17,7 @@ class FRAT(Elaboratable):
         self.rename = Method(i=self.rename_input_layout, o=self.rename_output_layout)
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
 
         @def_method(m, self.rename)
         def _(rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value):
@@ -39,7 +39,7 @@ class RRAT(Elaboratable):
         self.commit = Method(i=self.commit_input_layout, o=self.commit_output_layout)
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
 
         @def_method(m, self.commit)
         def _(rp_dst: Value, rl_dst: Value):

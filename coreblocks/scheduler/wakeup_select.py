@@ -37,7 +37,7 @@ class WakeupSelect(Elaboratable):
         self.issue = issue
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
 
         with Transaction().body(m):
             ready = self.get_ready(m)

@@ -1,5 +1,5 @@
 from amaranth import *
-from ..transactions import Method, Transaction, ModuleX
+from ..transactions import Method, Transaction, TModule
 from ..params import GenParams
 from .decoder import InstrDecoder
 
@@ -31,7 +31,7 @@ class Decode(Elaboratable):
         self.push_decoded = push_decoded
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
 
         m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gp)
 

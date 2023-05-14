@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from coreblocks.params import *
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
-from coreblocks.transactions import Method, ModuleX
+from coreblocks.transactions import Method, TModule
 from coreblocks.utils.debug_signals import auto_debug_signals, SignalBundle
 from coreblocks.utils.protocols import FuncUnit, FuncBlock
 from coreblocks.transactions.lib import Collector
@@ -56,7 +56,7 @@ class RSFuncBlock(Elaboratable):
         self.get_result = Method(o=self.fu_layouts.accept)
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
 
         m.submodules.rs = self.rs = RS(
             gen_params=self.gen_params,

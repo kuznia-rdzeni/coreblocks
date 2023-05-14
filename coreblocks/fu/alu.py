@@ -63,7 +63,7 @@ class Alu(Elaboratable):
         self.out = Signal(gen.isa.xlen)
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
 
         xlen = self.gen.isa.xlen
         xlen_log = self.gen.isa.xlen_log
@@ -115,7 +115,7 @@ class AluFuncUnit(Elaboratable):
         self.accept = Method(o=layouts.accept)
 
     def elaborate(self, platform):
-        m = ModuleX()
+        m = TModule()
 
         m.submodules.alu = alu = Alu(self.gen)
         m.submodules.fifo = fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
