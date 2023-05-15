@@ -116,8 +116,6 @@ def eager_deterministic_cc_scheduler(
     manager : TransactionManager
         TransactionManager which uses this instance of scheduler for
         arbitrating which agent should get a grant signal.
-    m : Module
-        Module to which signals and calculations should be connected.
     gr : TransactionGraph
         Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : Set[Transaction]
@@ -154,8 +152,6 @@ def trivial_roundrobin_cc_scheduler(
     manager : TransactionManager
         TransactionManager which uses this instance of scheduler for
         arbitrating which agent should get grant signal.
-    m : Module
-        Module to which signals and calculations should be connected.
     gr : TransactionGraph
         Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : Set[Transaction]
@@ -706,7 +702,7 @@ class Transaction(TransactionBase):
 
         Parameters
         ----------
-        m: Module
+        m: TModule
             The module where the `Transaction` is defined.
         request: Signal
             Indicates that the `Transaction` wants to be executed. By
@@ -827,7 +823,7 @@ class Method(TransactionBase):
 
         Parameters
         ----------
-        m : Module
+        m : TModule
             Module in which operations on signals should be executed,
             `proxy` uses the combinational domain only.
         method : Method
@@ -851,7 +847,7 @@ class Method(TransactionBase):
 
         Parameters
         ----------
-        m : Module
+        m : TModule
             Module in which operations on signals should be executed,
             `body` uses the combinational domain only.
         ready : Signal, in
@@ -905,7 +901,7 @@ class Method(TransactionBase):
 
         Parameters
         ----------
-        m : Module
+        m : TModule
             Module in which operations on signals should be executed,
         arg : Value or dict of Values
             Call argument. Can be passed as a `Record` of the method's
@@ -980,7 +976,7 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
 
     Parameters
     ----------
-    m: Module
+    m: TModule
         Module in which operations on signals should be executed.
     method: Method
         The method whose body is going to be defined.
