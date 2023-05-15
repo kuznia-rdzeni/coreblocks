@@ -7,7 +7,6 @@ from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
-from amaranth.hdl.ast import Statement
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 from itertools import count, chain
 
@@ -15,7 +14,7 @@ from coreblocks.utils import AssignType, assign, ModuleConnector
 from coreblocks.utils.utils import OneHotSwitchDynamic
 from ._utils import *
 from ..utils import silence_mustuse
-from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate, SwitchKey, ModuleLike
+from ..utils._typing import ValueLike, SignalBundle, HasElaborate, SwitchKey, ModuleLike
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
@@ -420,24 +419,6 @@ class TransactionModule(Elaboratable):
         return m
 
 
-class _TransactionBaseStatements:
-    def __init__(self):
-        self.statements: list[Statement] = []
-
-    def __iadd__(self, assigns: StatementLike):
-        if not TransactionBase.stack:
-            raise RuntimeError("No current body")
-        for stmt in Statement.cast(assigns):
-            self.statements.append(stmt)
-        return self
-
-    def __iter__(self):
-        return self.statements.__iter__()
-
-    def clear(self):
-        return self.statements.clear()
-
-
 class _AvoidingModuleBuilderDomains:
     _m: "TModule"
 
@@ -447,6 +428,8 @@ class _AvoidingModuleBuilderDomains:
     def __getattr__(self, name: str) -> _ModuleBuilderDomain:
         if name == "av_comb":
             return self._m.avoiding_module.d.__getattr__("comb")
+        elif name == "top_comb":
+            return self._m.top_module.d.__getattr__("comb")
         else:
             return self._m.main_module.d.__getattr__(name)
 
@@ -465,6 +448,7 @@ class TModule(ModuleLike, Elaboratable):
     def __init__(self):
         self.main_module = Module()
         self.avoiding_module = Module()
+        self.top_module = Module()
         self.d = _AvoidingModuleBuilderDomains(self)
         self.submodules = self.main_module.submodules
         self.domains = self.main_module.domains
@@ -542,15 +526,16 @@ class TModule(ModuleLike, Elaboratable):
     def _MustUse__silence(self, value):  # noqa: N802
         self.main_module._MustUse__silence = value  # type: ignore
         self.avoiding_module._MustUse__silence = value  # type: ignore
+        self.top_module._MustUse__silence = value  # type: ignore
 
     def elaborate(self, platform):
         self.main_module.submodules._avoiding_module = self.avoiding_module
+        self.main_module.submodules._top_module = self.top_module
         return self.main_module
 
 
 class TransactionBase(Owned):
     stack: ClassVar[list[Union["Transaction", "Method"]]] = []
-    comb: ClassVar[_TransactionBaseStatements] = _TransactionBaseStatements()
     def_counter: ClassVar[count] = count()
     def_order: int
     defined: bool = False
@@ -600,9 +585,7 @@ class TransactionBase(Owned):
         assert isinstance(self, Transaction) or isinstance(self, Method)  # for typing
 
         parent = TransactionBase.peek()
-        if parent is None:
-            assert not TransactionBase.comb.statements
-        else:
+        if parent is not None:
             parent.schedule_before(self)
 
         TransactionBase.stack.append(self)
@@ -611,9 +594,6 @@ class TransactionBase(Owned):
             yield self
         finally:
             TransactionBase.stack.pop()
-            if parent is None:
-                m.d.comb += TransactionBase.comb
-                TransactionBase.comb.clear()
 
     @classmethod
     def get(cls) -> Self:
@@ -697,7 +677,7 @@ class Transaction(TransactionBase):
         performed by a `Transaction` when it's granted. Each assignment
         added to a domain under `body` is guarded by the `grant` signal.
         Combinational assignments which do not need to be guarded by
-        `grant` can be added to `Transaction.comb` instead of
+        `grant` can be added to `m.d.top_comb` or `m.d.av_comb` instead of
         `m.d.comb`. `Method` calls can be performed under `body`.
 
         Parameters
@@ -829,8 +809,8 @@ class Method(TransactionBase):
         method : Method
             Method for which this method is a proxy for.
         """
-        m.d.comb += self.ready.eq(1)
-        m.d.comb += self.data_out.eq(method.data_out)
+        m.d.av_comb += self.ready.eq(1)
+        m.d.top_comb += self.data_out.eq(method.data_out)
         self.use_method(method, arg=self.data_in, enable=self.run)
         self.defined = True
 
@@ -842,8 +822,8 @@ class Method(TransactionBase):
         performed by a `Method` when it's run. Each assignment added to
         a domain under `body` is guarded by the `run` signal.
         Combinational assignments which do not need to be guarded by `run`
-        can be added to `Method.comb` instead of `m.d.comb`. `Method`
-        calls can be performed under `body`.
+        can be added to `m.d.av_comb` or `m.d.top_comb` instead of `m.d.comb`.
+        `Method` calls can be performed under `body`.
 
         Parameters
         ----------
@@ -881,7 +861,7 @@ class Method(TransactionBase):
         self.def_order = next(TransactionBase.def_counter)
         try:
             m.d.av_comb += self.ready.eq(ready)
-            m.d.comb += self.data_out.eq(out)
+            m.d.top_comb += self.data_out.eq(out)
             with self.context(m):
                 with m.AvoidedIf(self.run):
                     yield self.data_in
@@ -947,7 +927,7 @@ class Method(TransactionBase):
             arg = kwargs
 
         m.d.av_comb += enable_sig.eq(enable)
-        TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
+        m.d.top_comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
 
         return self.data_out
@@ -1023,6 +1003,6 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
             ret_out = method_def_helper(method, func, arg, **arg.fields)
 
         if ret_out is not None:
-            m.d.comb += assign(out, ret_out, fields=AssignType.ALL)
+            m.d.top_comb += assign(out, ret_out, fields=AssignType.ALL)
 
     return decorator

@@ -262,7 +262,7 @@ class ICache(Elaboratable, ICacheInterface):
             ret = self.refiller.accept_refill(m)
             deserialized = self.deserialize_addr(ret.addr)
 
-            Transaction.comb += [
+            m.d.top_comb += [
                 self.mem.data_wr_addr.index.eq(deserialized["index"]),
                 self.mem.data_wr_addr.offset.eq(deserialized["offset"]),
                 self.mem.data_wr_data.eq(ret.data),
