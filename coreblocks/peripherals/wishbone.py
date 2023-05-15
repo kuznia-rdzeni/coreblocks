@@ -268,7 +268,7 @@ class PipelinedWishboneMaster(Elaboratable):
         def _(arg) -> None:
             m.d.comb += self.wb.stb.eq(1)
 
-            Method.comb += [
+            m.d.top_comb += [
                 self.wb.adr.eq(arg.addr),
                 self.wb.dat_w.eq(arg.data),
                 self.wb.we.eq(arg.we),

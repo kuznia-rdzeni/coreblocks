@@ -73,7 +73,7 @@ class FIFO(Elaboratable):
         @def_method(m, self.write, ready=fifo.w_rdy)
         def _(arg):
             m.d.comb += fifo.w_en.eq(1)
-            Method.comb += fifo.w_data.eq(arg)
+            m.d.top_comb += fifo.w_data.eq(arg)
 
         @def_method(m, self.read, ready=fifo.r_rdy)
         def _():
@@ -127,12 +127,12 @@ class Forwarder(Elaboratable):
 
         @def_method(m, self.write, ready=~reg_valid)
         def _(arg):
-            Method.comb += read_value.eq(arg)  # for forwarding
+            m.d.av_comb += read_value.eq(arg)  # for forwarding
             m.d.sync += reg.eq(arg)
             m.d.sync += reg_valid.eq(1)
 
         with m.If(reg_valid):
-            m.d.comb += read_value.eq(reg)  # write method is not ready
+            m.d.av_comb += read_value.eq(reg)  # write method is not ready
 
         @def_method(m, self.read, ready=reg_valid | self.write.run)
         def _():
@@ -301,7 +301,7 @@ class AdapterTrans(AdapterBase):
 
         with Transaction().body(m, request=self.en):
             data_out = self.iface(m, data_in)
-            Transaction.comb += self.data_out.eq(data_out)
+            m.d.top_comb += self.data_out.eq(data_out)
             m.d.comb += self.done.eq(1)
 
         return m
@@ -347,7 +347,7 @@ class Adapter(AdapterBase):
 
         @def_method(m, self.iface, ready=self.en)
         def _(arg):
-            Method.comb += self.data_out.eq(arg)
+            m.d.top_comb += self.data_out.eq(arg)
             m.d.comb += self.done.eq(1)
             return data_in
 
@@ -590,8 +590,8 @@ class ConnectTrans(Elaboratable):
             data1 = Record.like(self.method1.data_out)
             data2 = Record.like(self.method2.data_out)
 
-            Transaction.comb += data1.eq(self.method1(m, data2))
-            Transaction.comb += data2.eq(self.method2(m, data1))
+            m.d.top_comb += data1.eq(self.method1(m, data2))
+            m.d.top_comb += data2.eq(self.method2(m, data1))
 
         return m
 
