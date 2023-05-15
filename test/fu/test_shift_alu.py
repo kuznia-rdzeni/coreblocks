@@ -13,15 +13,15 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ShiftAluFn.Fn, xle
     if fn == ShiftAluFn.Fn.SLL:
         res = i1 << (val2 & (xlen - 1))
 
-        return { "result": res & mask }
+        return {"result": res & mask}
 
     if fn == ShiftAluFn.Fn.SRA:
         val2 = val2 & (xlen - 1)
         res = 0
         if i1 & 2 ** (xlen - 1) != 0:
-            res =  (((1 << xlen) - 1) << xlen | i1) >> val2
+            res = (((1 << xlen) - 1) << xlen | i1) >> val2
         else:
-            res =  i1 >> val2
+            res = i1 >> val2
         return {"result": res & mask}
 
     if fn == ShiftAluFn.Fn.SRL:

@@ -15,6 +15,7 @@ from coreblocks.utils.protocols import FuncUnit
 
 __all__ = ["AluFuncUnit", "ALUComponent"]
 
+
 class AluFn(DecoderManager):
     def __init__(self, zba_enable=True) -> None:
         self.zba_enable = zba_enable

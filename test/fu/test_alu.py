@@ -4,6 +4,7 @@ from coreblocks.fu.alu import AluFn, ALUComponent
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
+
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: int) -> dict[str, int]:
     val2 = i_imm if i_imm else i2
     mask = (1 << xlen) - 1
@@ -11,7 +12,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: in
     res = 0
 
     if fn == AluFn.Fn.ADD:
-        res = (i1 + val2)
+        res = i1 + val2
 
     if fn == AluFn.Fn.SUB:
         res = i1 - val2
@@ -26,6 +27,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: in
         res = i1 & val2
 
     if fn == AluFn.Fn.SLT:
+
         def _cast_to_int_xlen(x):
             if xlen == 32:
                 return -int(0x100000000 - x) if (x > 0x7FFFFFFF) else x
@@ -45,7 +47,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: in
         res = (i1 << 2) + val2
 
     if fn == AluFn.Fn.SH3ADD:
-       res = (i1 << 3) + val2
+        res = (i1 << 3) + val2
 
     return {"result": res & mask}
 

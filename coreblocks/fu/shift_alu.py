@@ -17,7 +17,6 @@ __all__ = ["ShiftAluFuncUnit", "ShiftALUComponent"]
 
 
 class ShiftAluFn(DecoderManager):
-
     class Fn(IntFlag):
         SLL = auto()  # Logic left shift
         SRL = auto()  # Logic right shift
