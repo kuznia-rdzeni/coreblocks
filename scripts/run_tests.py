@@ -40,7 +40,7 @@ def load_unit_tests():
     return tests
 
 
-def load_regression_tests():
+def load_regression_tests() -> list[str]:
     all_tests = test.regression.test.get_all_test_names()
     if len(all_tests) == 0:
         res = subprocess.run(["make", "-C", "test/external/riscv-tests"])
@@ -50,13 +50,13 @@ def load_regression_tests():
 
     exclude = {"rv32ui-ma_data", "rv32ui-fence_i", "rv32um-div", "rv32um-divu", "rv32um-rem", "rv32um-remu"}
 
-    return [REGRESSION_TESTS_PREFIX + test for test in all_tests - exclude]
+    return list(all_tests - exclude)
 
 
 def run_regressions_with_cocotb(tests: list[str], traces: bool) -> bool:
     arglist = ["make", "-C", "test/regression/cocotb", "-f", "test.Makefile"]
 
-    test_cases = ",".join([name[len(REGRESSION_TESTS_PREFIX) :] for name in tests])
+    test_cases = ",".join(tests)
     arglist += [f"TESTCASE={test_cases}"]
 
     if traces:
@@ -74,9 +74,8 @@ def run_regressions_with_pysim(tests: list[str], traces: bool, verbose: bool) ->
         def test_fn():
             traces_file = None
             if traces:
-                traces_file = test_name
-            test_case = test_name[len(REGRESSION_TESTS_PREFIX) :]
-            asyncio.run(test.regression.test.run_test(PySimulation(verbose, traces_file=traces_file), test_case))
+                traces_file = REGRESSION_TESTS_PREFIX + test_name
+            asyncio.run(test.regression.test.run_test(PySimulation(verbose, traces_file=traces_file), test_name))
 
         test_fn.__name__ = test_name
         test_fn.__qualname__ = test_name
@@ -117,8 +116,10 @@ def main():
     regression_tests = load_regression_tests() if args.all else []
 
     if args.list:
-        for name in list(unit_tests.keys()) + regression_tests:
+        for name in list(unit_tests.keys()):
             print(name)
+        for name in regression_tests:
+            print(REGRESSION_TESTS_PREFIX + name)
         return
 
     if args.trace:
@@ -127,7 +128,7 @@ def main():
     if args.test_name:
         pattern = re.compile(args.test_name)
         unit_tests = {name: test for name, test in unit_tests.items() if pattern.search(name)}
-        regression_tests = [test for test in regression_tests if pattern.search(test)]
+        regression_tests = [test for test in regression_tests if pattern.search(REGRESSION_TESTS_PREFIX + test)]
 
         if not unit_tests and not regression_tests:
             print(f"Could not find test matching '{args.test_name}'")
