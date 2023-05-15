@@ -42,7 +42,7 @@ _start:
 
 .init_bss:
   la a0, __bss_start
-  la a1, __bss_end-4 /* section end is actually the start of the next section */
+  la a1, __bss_end-4 // section end is actually the start of the next section
   li a2, 0x0
   jal _fill_block
 
@@ -57,14 +57,18 @@ _start:
   jal main
 
 .inf_loop:
-  li a0, 0xfffffff0
-  sw a1, 0(a0);
+  // Store the return code
+  li t0, 0x80000004
+  sw a0, 0(t0);
+  // Signal that we finished the test
+  li t0, 0x80000000
+  sw a0, 0(t0);
   j .inf_loop
 
 /* Fills memory blocks */
 _fill_block:
     sw a2, 0(a0)
-    bgeu a0, a1, .qfb_end
+    bgeu a0, a1, .fb_end
     addi a0, a0, 4
     j _fill_block
 .fb_end:

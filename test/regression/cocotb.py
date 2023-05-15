@@ -135,7 +135,7 @@ class CocotbSimulation(SimulationBackend):
         self.dut = dut
         self.finish_event = Event()
 
-    async def run(self, mem_model: CoreMemoryModel) -> bool:
+    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> bool:
         clk = Clock(self.dut.clk, 1, "ns")
         cocotb.start_soon(clk.start())
 
@@ -149,7 +149,7 @@ class CocotbSimulation(SimulationBackend):
         data_wb = WishboneSlave(self.dut, "wb_data", self.dut.clk, mem_model, is_instr_bus=True)
         cocotb.start_soon(data_wb.start())
 
-        res = await with_timeout(self.finish_event.wait(), 5, "us")
+        res = await with_timeout(self.finish_event.wait(), timeout_cycles, "ns")
 
         return res is not None
 
