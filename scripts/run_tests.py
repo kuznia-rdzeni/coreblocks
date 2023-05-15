@@ -13,8 +13,10 @@ from pathlib import Path
 topdir = Path(__file__).parent.parent
 sys.path.insert(0, str(topdir))
 
-from test.regression.test import get_all_test_names, run_test  # noqa: E402
+import test.regression.test  # noqa: E402
 from test.regression.pysim import PySimulation  # noqa: E402
+
+REGRESSION_TESTS_PREFIX = "test.regression."
 
 
 def cd_to_topdir():
@@ -39,56 +41,62 @@ def load_unit_tests():
 
 
 def load_regression_tests():
-    all_tests = get_all_test_names()
+    all_tests = test.regression.test.get_all_test_names()
     if len(all_tests) == 0:
-        print("Could not find any regression tests.")
-        print("Did you forget to build them? If so, go to directory 'test/external/riscv-tests' and run 'make'.")
-        sys.exit(1)
+        res = subprocess.run(["make", "-C", "test/external/riscv-tests"])
+        if res.returncode != 0:
+            print("Couldn't build regression tests")
+            sys.exit(1)
 
     exclude = {"rv32ui-ma_data", "rv32ui-fence_i", "rv32um-div", "rv32um-divu", "rv32um-rem", "rv32um-remu"}
 
-    return [f"regression.{test}" for test in all_tests - exclude]
+    return [REGRESSION_TESTS_PREFIX + test for test in all_tests - exclude]
+
+
+def run_regressions_with_cocotb(tests: list[str], traces: bool) -> bool:
+    arglist = ["make", "-C", "test/regression/cocotb", "-f", "test.Makefile"]
+
+    test_cases = ",".join([name[len(REGRESSION_TESTS_PREFIX) :] for name in tests])
+    arglist += [f"TESTCASE={test_cases}"]
+
+    if traces:
+        arglist += ["TRACES=1"]
+
+    res = subprocess.run(arglist)
+
+    return res.returncode == 0
+
+
+def run_regressions_with_pysim(tests: list[str], traces: bool, verbose: bool) -> bool:
+    suite = unittest.TestSuite()
+
+    def _gen_test(test_name: str):
+        def test_fn():
+            traces_file = None
+            if traces:
+                traces_file = test_name
+            test_case = test_name[len(REGRESSION_TESTS_PREFIX) :]
+            asyncio.run(test.regression.test.run_test(PySimulation(verbose, traces_file=traces_file), test_case))
+
+        test_fn.__name__ = test_name
+        test_fn.__qualname__ = test_name
+
+        return test_fn
+
+    for test_name in tests:
+        suite.addTest(unittest.FunctionTestCase(_gen_test(test_name)))
+
+    runner = unittest.TextTestRunner(verbosity=(2 if verbose else 1))
+    result = runner.run(suite)
+
+    return result.wasSuccessful()
 
 
 def run_regression_tests(tests: list[str], backend: Literal["pysim", "cocotb"], traces: bool, verbose: bool) -> bool:
-    short_test_names = [name[11:] for name in tests]
-
     if backend == "cocotb":
-        arglist = ["make", "-C", "test/regression/cocotb", "-f", "test.Makefile"]
-
-        test_cases = ",".join(short_test_names)
-        arglist += [f"TESTCASE={test_cases}"]
-
-        if traces:
-            arglist += ["TRACES=1"]
-
-        res = subprocess.run(arglist)
-
-        return res.returncode == 0
-
+        return run_regressions_with_cocotb(tests, traces)
     elif backend == "pysim":
-        suite = unittest.TestSuite()
-
-        def _gen_test(test_name: str):
-            def test_fn():
-                traces_file = None
-                if traces:
-                    traces_file = test_name
-                asyncio.run(run_test(PySimulation(verbose, traces_file=traces_file), test_name[11:]))
-
-            test_fn.__name__ = test_name
-            test_fn.__qualname__ = test_name
-
-            return test_fn
-
-        for test_name in tests:
-            suite.addTest(unittest.FunctionTestCase(_gen_test(test_name)))
-
-        runner = unittest.TextTestRunner(verbosity=(2 if verbose else 1))
-        result = runner.run(suite)
-
-        return result.wasSuccessful()
-
+        return run_regressions_with_pysim(tests, traces, verbose)
     return False
 
 
