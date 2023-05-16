@@ -462,6 +462,7 @@ class TModule(ModuleLike, Elaboratable):
       multplexers while keeping related combinational and synchronous
       statements together.
     """
+
     def __init__(self):
         self.main_module = Module()
         self.avoiding_module = Module()
