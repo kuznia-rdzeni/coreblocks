@@ -628,7 +628,6 @@ class TransactionBase(Owned):
     stack: ClassVar[list[Union["Transaction", "Method"]]] = []
     def_counter: ClassVar[count] = count()
     def_order: int
-    ctrl_stack_size: int
     defined: bool = False
 
     def __init__(self):
@@ -677,9 +676,6 @@ class TransactionBase(Owned):
 
     def simultaneous_groups(self, *groups: Collection[TransactionOrMethod]):
         self.simultaneous.append(frozenset(map(frozenset, groups)))
-
-    def not_under_condition(self, m: Module):
-        return self.ctrl_stack_size == m.domain._depth
 
     @contextmanager
     def context(self, m: TModule) -> Iterator[Self]:
