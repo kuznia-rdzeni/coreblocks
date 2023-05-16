@@ -672,10 +672,16 @@ class TransactionBase(Owned):
         self.method_uses[method] = (arg, enable)
 
     def simultaneous_with(self, *others: TransactionOrMethod) -> None:
-        self.simultaneous.append(frozenset({frozenset(others)}))
+        self.simultaneous_groups(others)
+
+    def simultaneous_alternatives(self, *alternatives: TransactionOrMethod) -> None:
+        self.simultaneous_groups(*map(lambda other: [other], alternatives))
 
     def simultaneous_groups(self, *groups: Collection[TransactionOrMethod]):
-        self.simultaneous.append(frozenset(map(frozenset, groups)))
+        sgroups = frozenset(map(frozenset, groups))
+        if any(group1 != group2 and group1.issubset(group2) for group1 in sgroups for group2 in sgroups):
+            raise ValueError("Simultaneous groups must not be subsets")
+        self.simultaneous.append(sgroups)
 
     @contextmanager
     def context(self, m: TModule) -> Iterator[Self]:
