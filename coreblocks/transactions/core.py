@@ -361,6 +361,13 @@ class TransactionManager(Elaboratable):
 
         final_simultaneous = set(filter(maximal, simultaneous))
 
+        # verify that the groups are satisfiable
+        for group in final_simultaneous:
+            print(conflicts)
+            print(final_simultaneous)
+            if any(g1 != g2 and not g1.issubset(g2) and not g2.issubset(g1) and g1.issubset(group) and g2.issubset(group) for conflict in conflicts for g1 in conflict for g2 in conflict):
+                raise RuntimeError
+
         # step 4: convert transactions to methods
         joined_transactions = set[Transaction]().union(*final_simultaneous)
 

@@ -11,6 +11,12 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, condition
 
 
+def empty_method(m: TModule, method: Method):
+    @def_method(m, method)
+    def _():
+        pass
+
+
 class SimultaneousDiamondTestCircuit(Elaboratable):
     def __init__(self):
         self.method_l = Method()
@@ -21,25 +27,14 @@ class SimultaneousDiamondTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        @def_method(m, self.method_l)
-        def _():
-            pass
-
-        @def_method(m, self.method_r)
-        def _():
-            pass
-
-        @def_method(m, self.method_u)
-        def _():
-            pass
-
-        @def_method(m, self.method_d)
-        def _():
-            pass
+        empty_method(m, self.method_l)
+        empty_method(m, self.method_r)
+        empty_method(m, self.method_u)
+        empty_method(m, self.method_d)
 
         # the only possibilities for the following are: (l, u, r) or (l, d, r)
-        self.method_l.simultaneous_groups([self.method_u], [self.method_d])
-        self.method_r.simultaneous_groups([self.method_u], [self.method_d])
+        self.method_l.simultaneous_alternatives(self.method_u, self.method_d)
+        self.method_r.simultaneous_alternatives(self.method_u, self.method_d)
 
         return m
 
@@ -71,6 +66,35 @@ class SimultaneousDiamondTest(TestCaseWithSimulator):
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
+
+
+class UnsatisfiableTriangleTestCircuit(Elaboratable):
+    def __init__(self):
+        self.method_l = Method()
+        self.method_u = Method()
+        self.method_d = Method()
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        empty_method(m, self.method_l)
+        empty_method(m, self.method_u)
+        empty_method(m, self.method_d)
+
+        # the following is unsatisfiable
+        self.method_l.simultaneous_alternatives(self.method_u, self.method_d)
+        self.method_u.simultaneous_with(self.method_d)
+
+        return m
+
+
+class UnsatisfiableTriangleTest(TestCaseWithSimulator):
+    def test_unsatisfiable(self):
+        circ = SimpleTestCircuit(UnsatisfiableTriangleTestCircuit())
+        def test():
+            with self.run_simulation(circ) as sim:
+                pass
+        test()
 
 
 class ConditionTestCircuit(Elaboratable):
