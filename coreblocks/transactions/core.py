@@ -445,6 +445,23 @@ class _AvoidingModuleBuilderDomains:
 
 
 class TModule(ModuleLike, Elaboratable):
+    """Extended Amaranth module for use with transactions.
+
+    It includes three different combinational domains:
+
+    * `comb` domain, works like the `comb` domain in plain Amaranth modules.
+      Statements in `comb` are guarded by every condition, including
+      `AvoidedIf`. This means they are guarded by transaction and method
+      bodies: they don't execute if the given transaction/method is not run.
+    * `av_comb` is guarded by all conditions except `AvoidedIf`. This means
+      they are not guarded by transaction and method bodies. This allows to
+      reduce the amount of useless multplexers due to transaction use, while
+      still allowing the use of conditions in transaction/method bodies.
+    * `top_comb` is unguarded: statements added to this domain always
+      execute. It can be used to reduce combinational path length due to
+      multplexers while keeping related combinational and synchronous
+      statements together.
+    """
     def __init__(self):
         self.main_module = Module()
         self.avoiding_module = Module()
