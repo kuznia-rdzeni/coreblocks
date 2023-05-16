@@ -19,7 +19,7 @@ class SimultaneousDiamondTestCircuit(Elaboratable):
         self.method_d = Method()
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         @def_method(m, self.method_l)
         def _():
@@ -79,7 +79,7 @@ class ConditionTestCircuit(Elaboratable):
         self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)])
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         @def_method(m, self.source)
         def _(cond1, cond2, cond3):

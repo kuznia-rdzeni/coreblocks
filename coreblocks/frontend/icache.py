@@ -5,7 +5,7 @@ from typing import Protocol
 from amaranth import *
 from amaranth.utils import log2_int
 
-from coreblocks.transactions.core import def_method, Priority
+from coreblocks.transactions.core import def_method, Priority, TModule
 from coreblocks.transactions import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
 from coreblocks.utils import assign, OneHotSwitchDynamic
@@ -17,7 +17,7 @@ from coreblocks.peripherals.wishbone import WishboneMaster
 __all__ = ["ICache", "ICacheBypass", "ICacheInterface", "SimpleWBCacheRefiller"]
 
 
-def extract_instr_from_word(m: Module, params: ICacheParameters, word: Signal, addr: Value):
+def extract_instr_from_word(m: TModule, params: ICacheParameters, word: Signal, addr: Value):
     instr_out = Signal(params.instr_width)
     if len(word) == 32:
         m.d.comb += instr_out.eq(word)
@@ -75,8 +75,8 @@ class ICacheBypass(Elaboratable, ICacheInterface):
         self.accept_res = Method(o=layouts.accept_res)
         self.flush = Method()
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform):
+        m = TModule()
 
         req_addr = Signal(self.params.addr_width)
 
@@ -160,8 +160,8 @@ class ICache(Elaboratable, ICacheInterface):
     def serialize_addr(self, addr: Record) -> Value:
         return Cat(addr.offset, addr.index, addr.tag)
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform):
+        m = TModule()
 
         m.submodules.mem = self.mem = ICacheMemory(self.params)
         m.submodules.req_fifo = self.req_fifo = FIFO(layout=self.addr_layout, depth=2)
@@ -262,7 +262,7 @@ class ICache(Elaboratable, ICacheInterface):
             ret = self.refiller.accept_refill(m)
             deserialized = self.deserialize_addr(ret.addr)
 
-            Transaction.comb += [
+            m.d.top_comb += [
                 self.mem.data_wr_addr.index.eq(deserialized["index"]),
                 self.mem.data_wr_addr.offset.eq(deserialized["offset"]),
                 self.mem.data_wr_data.eq(ret.data),
@@ -324,8 +324,8 @@ class ICacheMemory(Elaboratable):
         self.data_wr_en = Signal()
         self.data_wr_data = Signal(self.params.word_width)
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform):
+        m = TModule()
 
         for i in range(self.params.num_of_ways):
             way_wr = self.way_wr_en[i]
@@ -375,8 +375,8 @@ class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
         self.start_refill = Method(i=layouts.start_refill)
         self.accept_refill = Method(o=layouts.accept_refill)
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform):
+        m = TModule()
 
         refill_address = Signal(self.params.word_width - self.params.offset_bits)
         refill_active = Signal()

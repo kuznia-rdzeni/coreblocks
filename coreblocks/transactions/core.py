@@ -2,23 +2,24 @@ from collections import defaultdict, deque
 from collections.abc import Collection, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import ClassVar, TypeAlias, TypedDict, Union, Optional, Tuple
+from typing import ClassVar, NoReturn, TypeAlias, TypedDict, Union, Optional, Tuple
 from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
-from amaranth.hdl.ast import Statement
 from itertools import count, chain, filterfalse
+from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
 from ._utils import *
 from ..utils import silence_mustuse
-from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate
+from ..utils._typing import ValueLike, SignalBundle, HasElaborate, SwitchKey, ModuleLike
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
     "MethodLayout",
     "Priority",
+    "TModule",
     "TransactionManager",
     "TransactionContext",
     "TransactionModule",
@@ -113,8 +114,6 @@ def eager_deterministic_cc_scheduler(
     manager : TransactionManager
         TransactionManager which uses this instance of scheduler for
         arbitrating which agent should get a grant signal.
-    m : Module
-        Module to which signals and calculations should be connected.
     gr : TransactionGraph
         Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : Set[Transaction]
@@ -151,8 +150,6 @@ def trivial_roundrobin_cc_scheduler(
     manager : TransactionManager
         TransactionManager which uses this instance of scheduler for
         arbitrating which agent should get grant signal.
-    m : Module
-        Module to which signals and calculations should be connected.
     gr : TransactionGraph
         Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
     cc : Set[Transaction]
@@ -275,8 +272,8 @@ class TransactionManager(Elaboratable):
     @staticmethod
     def _method_uses(method_map: MethodMap) -> Mapping["Transaction", Mapping["Method", Tuple[ValueLike, ValueLike]]]:
         method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
-
         enables: list[ValueLike] = []
+
         def rec(transaction: Transaction, source: TransactionOrMethod):
             for method, (arg, enable) in source.method_uses.items():
                 enables.append(enable)
@@ -389,7 +386,7 @@ class TransactionManager(Elaboratable):
                     relation["end"] = methods[relation["end"]]
 
         # step 5: construct merged transactions
-        m = Module()
+        m = TModule()
         m._MustUse__silence = True  # type: ignore
 
         for group in final_simultaneous:
@@ -512,27 +509,123 @@ class TransactionModule(Elaboratable):
         return m
 
 
-class _TransactionBaseStatements:
+class _AvoidingModuleBuilderDomains:
+    _m: "TModule"
+
+    def __init__(self, m: "TModule"):
+        object.__setattr__(self, "_m", m)
+
+    def __getattr__(self, name: str) -> _ModuleBuilderDomain:
+        if name == "av_comb":
+            return self._m.avoiding_module.d.__getattr__("comb")
+        elif name == "top_comb":
+            return self._m.top_module.d.__getattr__("comb")
+        else:
+            return self._m.main_module.d.__getattr__(name)
+
+    def __getitem__(self, name: str) -> _ModuleBuilderDomain:
+        return self.__getattr__(name)
+
+    def __setattr__(self, name: str, value):
+        if not isinstance(value, _ModuleBuilderDomain):
+            raise AttributeError(f"Cannot assign 'd.{name}' attribute; did you mean 'd.{name} +='?")
+
+    def __setitem__(self, name: str, value):
+        return self.__setattr__(name, value)
+
+
+class TModule(ModuleLike, Elaboratable):
     def __init__(self):
-        self.statements: list[Statement] = []
+        self.main_module = Module()
+        self.avoiding_module = Module()
+        self.top_module = Module()
+        self.d = _AvoidingModuleBuilderDomains(self)
+        self.submodules = self.main_module.submodules
+        self.domains = self.main_module.domains
+        self.fsm: Optional[FSM] = None
 
-    def __iadd__(self, assigns: StatementLike):
-        if not TransactionBase.stack:
-            raise RuntimeError("No current body")
-        for stmt in Statement.cast(assigns):
-            self.statements.append(stmt)
-        return self
+    @contextmanager
+    def AvoidedIf(self, cond: ValueLike):  # noqa: N802
+        with self.main_module.If(cond):
+            yield
 
-    def __iter__(self):
-        return self.statements.__iter__()
+    @contextmanager
+    def If(self, cond: ValueLike):  # noqa: N802
+        with self.main_module.If(cond):
+            with self.avoiding_module.If(cond):
+                yield
 
-    def clear(self):
-        return self.statements.clear()
+    @contextmanager
+    def Elif(self, cond):  # noqa: N802
+        with self.main_module.Elif(cond):
+            with self.avoiding_module.Elif(cond):
+                yield
+
+    @contextmanager
+    def Else(self):  # noqa: N802
+        with self.main_module.Else():
+            with self.avoiding_module.Else():
+                yield
+
+    @contextmanager
+    def Switch(self, test: ValueLike):  # noqa: N802
+        with self.main_module.Switch(test):
+            with self.avoiding_module.Switch(test):
+                yield
+
+    @contextmanager
+    def Case(self, *patterns: SwitchKey):  # noqa: N802
+        with self.main_module.Case(*patterns):
+            with self.avoiding_module.Case(*patterns):
+                yield
+
+    @contextmanager
+    def Default(self):  # noqa: N802
+        with self.main_module.Default():
+            with self.avoiding_module.Default():
+                yield
+
+    @contextmanager
+    def FSM(self, reset: Optional[str] = None, domain: str = "sync", name: str = "fsm"):  # noqa: N802
+        old_fsm = self.fsm
+        with self.main_module.FSM(reset, domain, name) as fsm:
+            self.fsm = fsm
+            yield fsm
+        self.fsm = old_fsm
+
+    @contextmanager
+    def State(self, name: str):  # noqa: N802
+        assert self.fsm is not None
+        with self.main_module.State(name):
+            with self.avoiding_module.If(self.fsm.ongoing(name)):
+                yield
+
+    @property
+    def next(self) -> NoReturn:
+        raise NotImplementedError
+
+    @next.setter
+    def next(self, name: str):
+        self.main_module.next = name
+
+    @property
+    def _MustUse__silence(self):  # noqa: N802
+        return self.main_module._MustUse__silence
+
+    @_MustUse__silence.setter
+    def _MustUse__silence(self, value):  # noqa: N802
+        self.main_module._MustUse__silence = value  # type: ignore
+        self.avoiding_module._MustUse__silence = value  # type: ignore
+        self.top_module._MustUse__silence = value  # type: ignore
+
+    def elaborate(self, platform):
+        self.main_module.submodules._avoiding_module = self.avoiding_module
+        self.main_module.submodules._top_module = self.top_module
+        return self.main_module
 
 
 class TransactionBase(Owned):
     stack: ClassVar[list[Union["Transaction", "Method"]]] = []
-    comb: ClassVar[_TransactionBaseStatements] = _TransactionBaseStatements()
     def_counter: ClassVar[count] = count()
     def_order: int
     ctrl_stack_size: int
@@ -589,13 +682,11 @@ class TransactionBase(Owned):
         return self.ctrl_stack_size == m.domain._depth
 
     @contextmanager
-    def context(self, m: Module) -> Iterator[Self]:
+    def context(self, m: TModule) -> Iterator[Self]:
         assert isinstance(self, Transaction) or isinstance(self, Method)  # for typing
 
         parent = TransactionBase.peek()
-        if parent is None:
-            assert not TransactionBase.comb.statements
-        else:
+        if parent is not None:
             parent.schedule_before(self)
 
         TransactionBase.stack.append(self)
@@ -604,9 +695,6 @@ class TransactionBase(Owned):
             yield self
         finally:
             TransactionBase.stack.pop()
-            if parent is None:
-                m.d.comb += TransactionBase.comb
-                TransactionBase.comb.clear()
 
     @classmethod
     def get(cls) -> Self:
@@ -683,19 +771,19 @@ class Transaction(TransactionBase):
         self.grant = Signal(name=self.name + "_grant")
 
     @contextmanager
-    def body(self, m: Module, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
+    def body(self, m: TModule, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
         """Defines the `Transaction` body.
 
         This context manager allows to conveniently define the actions
         performed by a `Transaction` when it's granted. Each assignment
         added to a domain under `body` is guarded by the `grant` signal.
         Combinational assignments which do not need to be guarded by
-        `grant` can be added to `Transaction.comb` instead of
+        `grant` can be added to `m.d.top_comb` or `m.d.av_comb` instead of
         `m.d.comb`. `Method` calls can be performed under `body`.
 
         Parameters
         ----------
-        m: Module
+        m: TModule
             The module where the `Transaction` is defined.
         request: Signal
             Indicates that the `Transaction` wants to be executed. By
@@ -706,15 +794,9 @@ class Transaction(TransactionBase):
             raise RuntimeError("Transaction already defined")
         self.def_order = next(TransactionBase.def_counter)
 
-        parent = TransactionBase.peek()
-        if parent is not None and parent.not_under_condition(m):
-            TransactionBase.comb += self.request.eq(request)
-        else:
-            m.d.comb += self.request.eq(request)
-
+        m.d.av_comb += self.request.eq(request)
         with self.context(m):
-            with m.If(self.grant):
-                self.ctrl_stack_size = m.domain._depth
+            with m.AvoidedIf(self.grant):
                 yield self
         self.defined = True
 
@@ -816,14 +898,14 @@ class Method(TransactionBase):
         """
         return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
 
-    def proxy(self, m: Module, method: "Method"):
+    def proxy(self, m: TModule, method: "Method"):
         """Define as a proxy for another method.
 
         The calls to this method will be forwarded to `method`.
 
         Parameters
         ----------
-        m : Module
+        m : TModule
             Module in which operations on signals should be executed,
             `proxy` uses the combinational domain only.
         method : Method
@@ -835,19 +917,19 @@ class Method(TransactionBase):
             return method(m, arg)
 
     @contextmanager
-    def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
+    def body(self, m: TModule, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
         """Define method body
 
         The `body` context manager can be used to define the actions
         performed by a `Method` when it's run. Each assignment added to
         a domain under `body` is guarded by the `run` signal.
         Combinational assignments which do not need to be guarded by `run`
-        can be added to `Method.comb` instead of `m.d.comb`. `Method`
-        calls can be performed under `body`.
+        can be added to `m.d.av_comb` or `m.d.top_comb` instead of `m.d.comb`.
+        `Method` calls can be performed under `body`.
 
         Parameters
         ----------
-        m : Module
+        m : TModule
             Module in which operations on signals should be executed,
             `body` uses the combinational domain only.
         ready : Signal, in
@@ -880,23 +962,17 @@ class Method(TransactionBase):
             raise RuntimeError("Method already defined")
         self.def_order = next(TransactionBase.def_counter)
 
-        parent = TransactionBase.peek()
-        if parent is not None and parent.not_under_condition(m):
-            TransactionBase.comb += self.ready.eq(ready)
-        else:
-            m.d.comb += self.ready.eq(ready)
-
         try:
-            m.d.comb += self.data_out.eq(out)
+            m.d.av_comb += self.ready.eq(ready)
+            m.d.top_comb += self.data_out.eq(out)
             with self.context(m):
-                with m.If(self.run):
-                    self.ctrl_stack_size = m.domain._depth
+                with m.AvoidedIf(self.run):
                     yield self.data_in
         finally:
             self.defined = True
 
     def __call__(
-        self, m: Module, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
+        self, m: TModule, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
     ) -> Record:
         """Call a method.
 
@@ -908,7 +984,7 @@ class Method(TransactionBase):
 
         Parameters
         ----------
-        m : Module
+        m : TModule
             Module in which operations on signals should be executed,
         arg : Value or dict of Values
             Call argument. Can be passed as a `Record` of the method's
@@ -952,16 +1028,9 @@ class Method(TransactionBase):
         if arg is None:
             arg = kwargs
 
-        if TransactionBase.get().not_under_condition(
-            m
-        ):  # and not (self.name in ["update"] and TransactionBase.get().name == "method"):
-            # if not under conditions, enable can be passed directly
-            enable_sig = enable
-        else:
-            enable_sig = Signal(name=self.name + "_enable")
-            m.d.comb += enable_sig.eq(enable)
-
-        TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
+        enable_sig = Signal(name=self.name + "_enable")
+        m.d.av_comb += enable_sig.eq(enable)
+        m.d.top_comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
 
         return self.data_out
@@ -973,7 +1042,7 @@ class Method(TransactionBase):
         return [self.ready, self.run, self.data_in, self.data_out]
 
 
-def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
+def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
     """Define a method.
 
     This decorator allows to define transactional methods in an
@@ -990,7 +1059,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
 
     Parameters
     ----------
-    m: Module
+    m: TModule
         Module in which operations on signals should be executed.
     method: Method
         The method whose body is going to be defined.
@@ -1037,6 +1106,6 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
             ret_out = method_def_helper(method, func, arg, **arg.fields)
 
         if ret_out is not None:
-            m.d.comb += assign(out, ret_out, fields=AssignType.ALL)
+            m.d.top_comb += assign(out, ret_out, fields=AssignType.ALL)
 
     return decorator

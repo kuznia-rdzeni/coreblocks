@@ -10,7 +10,8 @@ from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
 from coreblocks.transactions.lib import MergingForwarder
-from coreblocks.utils._typing import LayoutLike
+from coreblocks.utils._typing import LayoutLike, ModuleLike
+from coreblocks.utils import ModuleConnector
 from ..common import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
@@ -122,7 +123,7 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
         self.inputs = []
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         # dummy signal
         s = Signal()
@@ -237,7 +238,7 @@ class MethodTransformerTestCircuit(Elaboratable):
         self.use_dicts = use_dicts
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         # dummy signal
         s = Signal()
@@ -245,12 +246,12 @@ class MethodTransformerTestCircuit(Elaboratable):
 
         layout = data_layout(self.iosize)
 
-        def itransform_rec(m: Module, v: Record) -> Record:
+        def itransform_rec(m: ModuleLike, v: Record) -> Record:
             s = Record.like(v)
             m.d.comb += s.data.eq(v.data + 1)
             return s
 
-        def otransform_rec(m: Module, v: Record) -> Record:
+        def otransform_rec(m: ModuleLike, v: Record) -> Record:
             s = Record.like(v)
             m.d.comb += s.data.eq(v.data - 1)
             return s
@@ -331,69 +332,49 @@ class TestMethodTransformer(TestCaseWithSimulator):
             sim.add_sync_process(self.target)
 
 
-class MethodFilterTestCircuit(Elaboratable):
-    def __init__(self, iosize: int, use_methods: bool):
-        self.iosize = iosize
-        self.use_methods = use_methods
+class TestMethodFilter(TestCaseWithSimulator):
+    def initialize(self):
+        self.iosize = 4
+        self.layout = data_layout(self.iosize)
+        self.target = TestbenchIO(Adapter(i=self.layout, o=self.layout))
 
-    def elaborate(self, platform):
-        m = Module()
+    def source(self):
+        for i in range(2**self.iosize):
+            v = yield from self.tc.method.call(data=i)
+            if i & 1:
+                self.assertEqual(v["data"], (i + 1) & ((1 << self.iosize) - 1))
+            else:
+                self.assertEqual(v["data"], 0)
 
-        # dummy signal
-        s = Signal()
-        m.d.sync += s.eq(1)
+    @def_method_mock(lambda self: self.target, sched_prio=2)
+    def target_mock(self, data):
+        return {"data": data + 1}
 
-        layout = data_layout(self.iosize)
+    @def_method_mock(lambda self: self.cmeth, sched_prio=1)
+    def cmeth_mock(self, data):
+        return {"data": data % 2}
 
-        m.submodules.target = self.target = TestbenchIO(Adapter(i=layout, o=layout))
+    def test_method_filter_with_methods(self):
+        self.initialize()
+        self.cmeth = TestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface))
+        m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(self.source)
+            sim.add_sync_process(self.target_mock)
+            sim.add_sync_process(self.cmeth_mock)
+
+    def test_method_filter(self):
+        self.initialize()
 
         def condition(_, v):
             return v[0]
 
-        if self.use_methods:
-            cmeth = Method(i=layout, o=data_layout(1))
-
-            @def_method(m, cmeth)
-            def _(arg: Record):
-                return condition(m, arg)
-
-            filt = MethodFilter(self.target.adapter.iface, cmeth)
-        else:
-            filt = MethodFilter(self.target.adapter.iface, condition)
-
-        m.submodules.filt = filt
-
-        m.submodules.source = self.source = TestbenchIO(AdapterTrans(filt.method))
-
-        return m
-
-
-class TestMethodFilter(TestCaseWithSimulator):
-    m: MethodFilterTestCircuit
-
-    def source(self):
-        for i in range(2**self.m.iosize):
-            v = yield from self.m.source.call(data=i)
-            if i & 1:
-                self.assertEqual(v["data"], (i + 1) & ((1 << self.m.iosize) - 1))
-            else:
-                self.assertEqual(v["data"], 0)
-
-    @def_method_mock(lambda self: self.m.target)
-    def target(self, data):
-        return {"data": data + 1}
-
-    def test_method_filter(self):
-        self.m = MethodFilterTestCircuit(4, False)
-        with self.run_simulation(self.m) as sim:
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition))
+        m = ModuleConnector(test_circuit=self.tc, target=self.target)
+        with self.run_simulation(m) as sim:
             sim.add_sync_process(self.source)
-            sim.add_sync_process(self.target)
-
-    def test_method_filter_with_methods(self):
-        self.m = MethodFilterTestCircuit(4, True)
-        with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.source)
-            sim.add_sync_process(self.target)
+            sim.add_sync_process(self.target_mock)
 
 
 class MethodProductTestCircuit(Elaboratable):
@@ -404,7 +385,7 @@ class MethodProductTestCircuit(Elaboratable):
         self.target: list[TestbenchIO] = []
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         # dummy signal
         s = Signal()
