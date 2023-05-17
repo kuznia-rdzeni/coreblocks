@@ -24,12 +24,14 @@ def auto_debug_signals(thing) -> SignalBundle:
         if isinstance(thing, HasDebugSignals):
             return thing.debug_signals()
 
-        if "__dict__" not in dir(thing):
+        try:
+            vs = vars(thing)
+        except (KeyError, AttributeError):
             return []
 
         _visited.add(id(thing))
 
-        for v in vars(thing):
+        for v in vs:
             a = getattr(thing, v)
 
             # Check for reference cycles e.g. Amaranth's MustUse
