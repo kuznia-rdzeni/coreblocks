@@ -58,8 +58,7 @@ def auto_debug_signals(thing) -> SignalBundle:
                         submap[f"{v}[{i}]"] = sublist
                 if submap:
                     smap[v] = submap
-            # handle strings separately so that we don't get into infinity recursion because of
-            # string being `Collection`s
+            # avoid infinite recursion (strings are `Collection`s of strings)
             elif isinstance(a, str):
                 continue
             elif isinstance(a, Collection):
