@@ -6,7 +6,7 @@ from coreblocks.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
+from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts, RetirementLayouts
 from coreblocks.params.isa import BitEnum, Funct3
 from coreblocks.params.keys import BranchResolvedKey, ROBSingleKey
 from coreblocks.params.optypes import OpType
@@ -203,7 +203,12 @@ class CSRUnit(Elaboratable):
         self.update = Method(i=self.csr_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
 
+        self.retirement_layouts = gen_params.get(RetirementLayouts)
+        self.commit = Method(i=self.retirement_layouts.instruction_commit)
+
         self.regfile: dict[int, tuple[Method, Method]] = {}
+
+        self.hold_interrupt = Signal()
 
     def _create_regfile(self):
         # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` depenecy.
@@ -307,17 +312,32 @@ class CSRUnit(Elaboratable):
                 m.d.sync += instr.s1_val.eq(value)
                 m.d.sync += instr.rp_s1.eq(0)
 
+        result_rob_id = Signal(self.gen_params.rob_entries_bits)
+        commit_pending = Signal()
+
         @def_method(m, self.get_result, done)
         def _():
             m.d.comb += accepted.eq(1)
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
+
+            m.d.sync += commit_pending.eq(1)
+            m.d.sync += result_rob_id.eq(instr.rob_id)
+
             return {
                 "rob_id": instr.rob_id,
                 "rp_dst": instr.rp_dst,
                 "result": current_result,
             }
+
+        @def_method(m, self.commit)
+        def _(rob_id):
+            with m.If(rob_id == result_rob_id):
+                m.d.sync += commit_pending.eq(0)
+
+        # Prevents discarding possible side effects, by delaying interrupt until CSR instruction is fully commited.
+        m.d.comb += self.hold_interrupt.eq(ready_to_process | done | commit_pending)
 
         @def_method(m, self.fetch_continue, accepted)
         def _():
