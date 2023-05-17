@@ -9,6 +9,7 @@ from ..utils import ValueLike, assign, AssignType
 __all__ = [
     "FIFO",
     "Forwarder",
+    "MergingForwarder",
     "Collector",
     "ClickIn",
     "ClickOut",
