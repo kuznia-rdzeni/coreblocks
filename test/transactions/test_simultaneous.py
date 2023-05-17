@@ -8,7 +8,7 @@ from coreblocks.utils.utils import ModuleConnector
 from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_method_mock
 
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import Adapter, condition
+from coreblocks.transactions.lib import Adapter, AdapterTrans, Connect, ConnectTrans, condition
 
 
 def empty_method(m: TModule, method: Method):
@@ -95,6 +95,49 @@ class UnsatisfiableTriangleTest(TestCaseWithSimulator):
             with self.run_simulation(circ) as sim:
                 pass
         test()
+
+
+class HelperConnect(Elaboratable):
+    def __init__(self, source: Method, target: Method, request: Signal):
+        self.source = source
+        self.target = target
+        self.request = request
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        with Transaction().body(m, request=self.request):
+            self.target(m, self.source(m))
+
+        return m
+
+
+class TransitivityTestCircuit(Elaboratable):
+    def __init__(self):
+        self.source1 = TestbenchIO(AdapterTrans(Method(i=[('data', 2)])))
+        self.source2 = TestbenchIO(AdapterTrans(Method(i=[('data', 2)])))
+        self.target = TestbenchIO(Adapter(i=[('data', 2)]))
+        self.req1 = Signal()
+        self.req2 = Signal()
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.c1 = c1 = Connect([('data', 2)])
+        m.submodules.c2 = c2 = Connect([('data', 2)])
+        m.submodules.ct1 = ConnectTrans(self.source1.adapter.iface, c1.write)
+        m.submodules.ct2 = ConnectTrans(self.source2.adapter.iface, c1.write)
+        m.submodules.ct = ConnectTrans(c2.read, self.target.adapter.iface)
+        m.submodules.hc1 = HelperConnect(c1.read, c2.write, self.req1)
+        m.submodules.hc2 = HelperConnect(c1.read, c2.write, self.req2)
+        m.submodules.tgt = self.target
+
+        return m
+
+
+class TransitivityTest(TestCaseWithSimulator):
+    def test_transitivity(self):
+        pass
 
 
 class ConditionTestCircuit(Elaboratable):
