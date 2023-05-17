@@ -162,24 +162,26 @@ class GeneratedData:
 
 
 @parameterized_class(
-    ("name", "max_wait", "max_reg_val", "max_imm_val"),
+    ("name", "max_wait", "max_reg_val", "max_imm_val", "seed"),
     [
-        ("fast", 1, 2**7, 2**7),
-        ("big_waits", 10, 2**7, 2**7),
+        ("fast", 1, 2**7, 2**7, 24),
+        ("fast", 1, 2**7, 2**7, 26),
+        ("fast", 1, 2**7, 2**7, 28),
+        ("fast", 1, 2**7, 2**7, 29),
+        ("fast", 1, 2**7, 2**7, 20),
+        ("fast", 1, 2**7, 2**7, 21),
+        ("big_waits", 10, 2**7, 2**7, 15),
     ],
 )
 class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
     max_wait: int
     max_reg_val: int
     max_imm_val: int
+    seed : int
 
     def setUp(self) -> None:
-        # testing clear method in connection with wishbone slave mock is very tricky
-        # and it is hard to cover all corner cases of test functionality
-        # I suppose that there are still bugs in this test, but wuth occurence rate
-        # less than 10^-4
-        random.seed(14)
-        self.tests_number = 10
+        random.seed(self.seed)
+        self.tests_number = 50
         self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module, self.bus = construct_test_module_new(self.gp)
         self.wishbone_request_valid = 0
@@ -257,13 +259,14 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
 
     def cleared_filter(self, msg: InternalMessage):
         res = msg.clk > last_clear
-        if not res:
-            print("Dropped:", msg)
+        #if not res:
+        #    print("Dropped:", msg)
         return res
 
     class SelectorProcess(MessageFrameworkProcessOneSrc):
         def check(self, data):
-            assert data["rs_entry_id"] == 0, str(data["rs_entry_id"])
+            in_verif, arg = data
+            assert arg["rs_entry_id"] == 0, str(arg["rs_entry_id"])
 
     class InserterProcess(MessageFrameworkProcessOneSrc):
         def __init__(self, announcer, consumer, wb_mock, **kwargs):
@@ -289,8 +292,8 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
     class CleanerProcess(MessageFrameworkProcessOneSrc):
         def handle_input_data(self, data):
             # TODO activate cleaner
-            if random.random() < 0.1:
-                #                return {}
+            if random.random() < 0.01:
+                return {}
                 pass
             self.drop()
             raise self.RestartMsgProcessing
@@ -298,7 +301,6 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
         def finish(self, data):
             global last_clear
             last_clear = self.internal.clk.now
-            print("New clear:", last_clear)
 
     class WishboneMockProcess(MessageFrameworkProcessOneSrc):
         def process(self):
@@ -310,11 +312,11 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             while input is None:
                 try:
                     raw = self.get_head()
-                    self.drop()
                     while isinstance(raw, MessageFrameworkCommand):
                         raw = self.get_head()
                         self.drop()
                     input = self.handle_raw_data(raw)
+                    self.drop()
                 except self.RestartMsgProcessing:
                     pass
             return input
@@ -323,9 +325,12 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
         def handle_input_data(self, data):
             return data.mem_data
 
+        def call_tb(self, data):
+            output = yield from super().call_tb({})
+            return data, output[1]
+
         def check(self, data_in: tuple[MemoryData, RecordIntDictRet]):
             in_verif, arg = data_in
-            print("consumer", in_verif, arg, self.internal.clk.now)
             generated_data = in_verif.rnd_bytes
             data_shift = (in_verif.mask & -in_verif.mask).bit_length() - 1
             assert in_verif.mask.bit_length() == data_shift + in_verif.mask.bit_count(), "Unexpected mask"

@@ -53,6 +53,7 @@ class StarterProcess:
     def __init__(self, clk: ClockProcess):
         self.clk = clk
         self.proc_to_start: list["MessageFrameworkProcessOneSrc"] = []
+        self.callees=set()
 
     def process(self):
         yield Passive()
@@ -129,7 +130,7 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
         # Do some magic, so that user wouldn't see difference between this and normal function call.
         caller_frame = sys._getframe(1)
         caller = caller_frame.f_locals["self"]
-        if not isinstance(caller, MessageFrameworkProcessOneSrc):
+        if not (isinstance(caller, MessageFrameworkProcessOneSrc) or isinstance(caller, StarterProcess)):
             raise RuntimeError(f"Called {self.name} from process different than MessageFrameworkProcessOneSrc.")
 
         # Register itself to caller to get MessageFrameworkCommands
@@ -176,10 +177,9 @@ class MessageFrameworkProcessOneSrc(Generic[_T_userdata_in]):
                 self.check(data)
                 self.finish(data)
                 self.random_wait()
-            print(f"Koniec procesu {self.name}")
             self._send_command(EndOfInput())
         except Exception as e:
-            e.add_note(f"From process: {self.name}")
+            #e.add_note(f"From process: {self.name}")
             raise e
 
 
