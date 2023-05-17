@@ -19,7 +19,6 @@ class JumpBranchWrapper(Elaboratable):
         self.jb = JumpBranchFuncUnit(GenParams(test_core_config))
         self.issue = self.jb.issue
         self.accept = Method(o=gen_params.get(FuncUnitLayouts).accept + gen_params.get(FetchLayouts).branch_verify)
-        self.optypes = set()
 
     def elaborate(self, platform):
         m = Module()
@@ -40,7 +39,7 @@ class JumpBranchWrapperComponent(FunctionalComponentParams):
         return JumpBranchWrapper(gen_params)
 
     def get_optypes(self) -> set[OpType]:
-        return JumpBranchFuncUnit.optypes
+        return JumpBranchFn().get_op_types()
 
 
 @staticmethod

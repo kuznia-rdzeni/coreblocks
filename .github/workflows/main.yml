@@ -36,6 +36,9 @@ jobs:
       - name: Run tests
         run: ./scripts/run_tests.py --verbose
 
+      - name: Check traces
+        run: ./scripts/run_tests.py -t -c 1 TestCore 
+
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 5

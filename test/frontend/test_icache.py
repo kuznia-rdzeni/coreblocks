@@ -6,7 +6,6 @@ from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
 from amaranth.utils import log2_int
 
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, Adapter
 from coreblocks.frontend.icache import SimpleWBCacheRefiller, ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams, ICacheLayouts
@@ -24,7 +23,6 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         wb_params = WishboneParameters(
             data_width=self.gp.isa.xlen,
@@ -44,24 +42,24 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
 
         self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wbMaster)
 
-        return tm
+        return m
 
 
 @parameterized_class(
-    ("name", "isa", "block_size"),
+    ("name", "isa_xlen", "block_size"),
     [
-        ("blk_size16B_rv32i", "rv32i", 4),
-        ("blk_size32B_rv32i", "rv32i", 5),
-        ("blk_size32B_rv64i", "rv64i", 5),
-        ("blk_size64B_rv32i", "rv32i", 6),
+        ("blk_size16B_rv32i", 32, 4),
+        ("blk_size32B_rv32i", 32, 5),
+        ("blk_size32B_rv64i", 64, 5),
+        ("blk_size64B_rv32i", 32, 6),
     ],
 )
 class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
-    isa: str
+    isa_xlen: int
     block_size: int
 
     def setUp(self) -> None:
-        self.gp = GenParams(test_core_config.replace(isa_str=self.isa, icache_block_size_bits=self.block_size))
+        self.gp = GenParams(test_core_config.replace(xlen=self.isa_xlen, icache_block_size_bits=self.block_size))
         self.cp = self.gp.icache_params
         self.test_module = SimpleWBCacheRefillerTestCircuit(self.gp)
 
@@ -142,7 +140,6 @@ class ICacheBypassTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         wb_params = WishboneParameters(
             data_width=self.gp.isa.xlen,
@@ -156,21 +153,21 @@ class ICacheBypassTestCircuit(Elaboratable):
 
         self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wbMaster)
 
-        return tm
+        return m
 
 
 @parameterized_class(
-    ("name", "isa"),
+    ("name", "isa_xlen"),
     [
-        ("rv32i", "rv32i"),
-        ("rv64i", "rv64i"),
+        ("rv32i", 32),
+        ("rv64i", 64),
     ],
 )
 class TestICacheBypass(TestCaseWithSimulator):
-    isa: str
+    isa_xlen: str
 
     def setUp(self) -> None:
-        self.gp = GenParams(test_core_config.replace(isa_str=self.isa))
+        self.gp = GenParams(test_core_config.replace(xlen=self.isa_xlen))
         self.cp = self.gp.icache_params
         self.m = ICacheBypassTestCircuit(self.gp)
 
@@ -270,7 +267,6 @@ class ICacheTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         m.submodules.refiller = self.refiller = MockedCacheRefiller(self.gp)
         m.submodules.cache = self.cache = ICache(self.gp.get(ICacheLayouts), self.cp, self.refiller)
@@ -278,19 +274,19 @@ class ICacheTestCircuit(Elaboratable):
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.cache.accept_res))
         m.submodules.flush_cache = self.flush_cache = TestbenchIO(AdapterTrans(self.cache.flush))
 
-        return tm
+        return m
 
 
 @parameterized_class(
-    ("name", "isa", "block_size"),
+    ("name", "isa_xlen", "block_size"),
     [
-        ("blk_size16B_rv32i", "rv32i", 4),
-        ("blk_size64B_rv32i", "rv32i", 6),
-        ("blk_size32B_rv64i", "rv64i", 5),
+        ("blk_size16B_rv32i", 32, 4),
+        ("blk_size64B_rv32i", 32, 6),
+        ("blk_size32B_rv64i", 64, 5),
     ],
 )
 class TestICache(TestCaseWithSimulator):
-    isa: str
+    isa_xlen: int
     block_size: int
 
     def setUp(self) -> None:
@@ -305,7 +301,7 @@ class TestICache(TestCaseWithSimulator):
     def init_module(self, ways, sets) -> None:
         self.gp = GenParams(
             test_core_config.replace(
-                isa_str=self.isa,
+                xlen=self.isa_xlen,
                 icache_ways=ways,
                 icache_sets_bits=log2_int(sets),
                 icache_block_size_bits=self.block_size,

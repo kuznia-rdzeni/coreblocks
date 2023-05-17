@@ -66,8 +66,7 @@ class DecoderManager:
 
     """
 
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
+    def get_instructions(self) -> Sequence[tuple]:
         raise NotImplementedError
 
     """
@@ -79,9 +78,8 @@ class DecoderManager:
         List of OpTypes.
     """
 
-    @classmethod
-    def get_op_types(cls) -> set[OpType]:
-        return {instr[1] for instr in cls.get_instructions()}
+    def get_op_types(self) -> set[OpType]:
+        return {instr[1] for instr in self.get_instructions()}
 
     """
     Method returning auto generated instruction decoder.
@@ -97,14 +95,13 @@ class DecoderManager:
         List of OpTypes.
     """
 
-    @classmethod
-    def get_decoder(cls, gen_params: GenParams) -> Decoder:
+    def get_decoder(self, gen_params: GenParams) -> Decoder:
         # check how many different op types are there
-        op_types = cls.get_op_types()
+        op_types = self.get_op_types()
         multiple_op_types = len(op_types) > 1
 
         # if multiple op types detected, request op_type check in decoder
-        return Decoder(gen_params, cls.Fn, cls.get_instructions(), check_optype=multiple_op_types)
+        return Decoder(gen_params, self.Fn, self.get_instructions(), check_optype=multiple_op_types)
 
     """
     Method returning Signal Object for decoder, called function in FU blocks
@@ -115,6 +112,5 @@ class DecoderManager:
         Signal object.
     """
 
-    @classmethod
-    def get_function(cls) -> Value:
-        return Signal(cls.Fn)
+    def get_function(self) -> Value:
+        return Signal(self.Fn)
