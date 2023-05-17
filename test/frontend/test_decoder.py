@@ -139,7 +139,7 @@ class TestDecoder(TestCaseWithSimulator):
     ]
 
     def setUp(self):
-        gen = GenParams(test_core_config.replace(compressed=True, _implied_extensions=Extension.G))
+        gen = GenParams(test_core_config.replace(_implied_extensions=Extension.G))
         self.decoder = InstrDecoder(gen)
         self.cnt = 1
 

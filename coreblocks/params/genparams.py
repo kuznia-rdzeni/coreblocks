@@ -46,6 +46,9 @@ class GenParams(DependentCache):
         if not cfg.allow_partial_extensions and ext_partial != ext_full:
             raise RuntimeError(f"Extensions {ext_partial&~ext_full!r} are only partially supported")
 
+        if cfg.compressed:
+            raise RuntimeError("C extension is not supported yet")  # TODO: Remove after implementing C in decode
+
         extensions |= cfg._implied_extensions
         self.isa_str = gen_isa_string(extensions, cfg.xlen)
 
