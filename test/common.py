@@ -123,7 +123,7 @@ _T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
 class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def __init__(self, dut: _T_HasElaborate):
         self._dut = dut
-        self._io = dict[str, TestbenchIO | ModuleConnector]()
+        self._io: dict[str, _T_nested_collection[TestbenchIO]] = {}
 
     def __getattr__(self, name: str) -> Any:
         return self._io[name]
@@ -131,15 +131,26 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def elaborate(self, platform):
         def transform_methods_to_testbenchios(
             container: _T_nested_collection[Method],
-        ) -> Union[ModuleConnector, "TestbenchIO"]:
+        ) -> tuple[_T_nested_collection["TestbenchIO"], Union[ModuleConnector, "TestbenchIO"]]:
             if isinstance(container, list):
-                return ModuleConnector(*[transform_methods_to_testbenchios(elem) for elem in container])
+                tb_list = []
+                mc_list = []
+                for elem in container:
+                    tb, mc = transform_methods_to_testbenchios(elem)
+                    tb_list.append(tb)
+                    mc_list.append(mc)
+                return tb_list, ModuleConnector(*mc_list)
             elif isinstance(container, dict):
-                return ModuleConnector(
-                    **dict([(name, transform_methods_to_testbenchios(elem)) for name, elem in container.items()])
-                )
+                tb_dict = {}
+                mc_dict = {}
+                for name, elem in container.items():
+                    tb, mc = transform_methods_to_testbenchios(elem)
+                    tb_dict[name] = tb
+                    mc_dict[name] = mc
+                return tb_dict, ModuleConnector(*mc_dict)
             else:
-                return TestbenchIO(AdapterTrans(container))
+                tb = TestbenchIO(AdapterTrans(container))
+                return tb, tb
 
         m = Module()
 
@@ -149,9 +160,10 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         m.submodules.dut = self._dut
 
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
-            if guard_nested_collection(attr, Method):
-                self._io[name] = transform_methods_to_testbenchios(attr)
-                m.submodules[name] = self._io[name]
+            if guard_nested_collection(attr, Method) and attr:
+                tb_cont, mc = transform_methods_to_testbenchios(attr)
+                self._io[name] = tb_cont
+                m.submodules[name] = mc
 
         return m
 
