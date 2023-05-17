@@ -145,7 +145,33 @@ class Forwarder(Elaboratable):
 
 
 class Connect(Elaboratable):
+    """Forwarding by transaction simultaneity
+
+    Provides a means to connect two transactions with forwarding
+    by means of the transaction simultaneity mechanism. It provides
+    two methods: `read`, and `write`, which always execute simultaneously.
+    Typical use case is for moving data from `write` to `read`, but
+    data flow in the reverse direction is also possible.
+
+    Attributes
+    ----------
+    read: Method
+        The read method. Accepts a (possibly empty) `Record`, returns
+        a `Record`.
+    write: Method
+        The write method. Accepts a `Record`, returns a (possibly empty)
+        `Record`.
+    """
+
     def __init__(self, layout: MethodLayout = (), rev_layout: MethodLayout = ()):
+        """
+        Parameters
+        ----------
+        layout: record layout
+            The format of records forwarded.
+        rev_layout: record layout
+            The format of records forwarded in the reverse direction.
+        """
         self.read = Method(o=layout, i=rev_layout)
         self.write = Method(i=layout, o=rev_layout)
 
