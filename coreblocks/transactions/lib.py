@@ -9,7 +9,7 @@ from ..utils import ValueLike, assign, AssignType
 __all__ = [
     "FIFO",
     "Forwarder",
-    "MergingForwarder",
+    "Connect",
     "Collector",
     "ClickIn",
     "ClickOut",
@@ -144,24 +144,27 @@ class Forwarder(Elaboratable):
         return m
 
 
-class MergingForwarder(Elaboratable):
-    def __init__(self, layout: MethodLayout):
-        self.read = Method(o=layout)
-        self.write = Method(i=layout)
+class Connect(Elaboratable):
+    def __init__(self, layout: MethodLayout = (), rev_layout: MethodLayout = ()):
+        self.read = Method(o=layout, i=rev_layout)
+        self.write = Method(i=layout, o=rev_layout)
 
     def elaborate(self, platform):
         m = TModule()
 
         read_value = Record.like(self.read.data_out)
+        rev_read_value = Record.like(self.write.data_out)
 
         self.write.simultaneous_with(self.read)
 
         @def_method(m, self.write)
         def _(arg):
             m.d.av_comb += read_value.eq(arg)
+            return rev_read_value
 
         @def_method(m, self.read)
-        def _():
+        def _(arg):
+            m.d.av_comb += rev_read_value.eq(arg)
             return read_value
 
         return m
