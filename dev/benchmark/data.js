@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684233503978,
+  "lastUpdate": 1684336226086,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -5575,6 +5575,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 562,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 812,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5604,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c7a0dd8e203223e6480f24038edef83cfc9348d4",
+          "message": "Generate isa_str from func units config (#306)",
+          "timestamp": "2023-05-17T17:04:30+02:00",
+          "tree_id": "f64d625cb1855befe0a4c03c1f8ef48502faed38",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c7a0dd8e203223e6480f24038edef83cfc9348d4"
+        },
+        "date": 1684336225027,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 58.63,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 16954,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
             "unit": "LUT"
           },
           {
