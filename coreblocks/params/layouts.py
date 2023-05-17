@@ -13,6 +13,7 @@ __all__ = [
     "RFLayouts",
     "UnsignedMulUnitLayouts",
     "RATLayouts",
+    "RetirementLayouts",
     "LSULayouts",
     "CSRLayouts",
     "ICacheLayouts",
@@ -122,6 +123,13 @@ class RATLayouts:
 
         self.rat_commit_in = [("rl_dst", gen_params.isa.reg_cnt_log), ("rp_dst", gen_params.phys_regs_bits)]
         self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
+
+
+class RetirementLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.instruction_commit = [
+            ("rob_id", gen_params.rob_entries_bits),
+        ]
 
 
 class ROBLayouts:
@@ -315,10 +323,6 @@ class LSULayouts:
         self.rs_select_out = rs_interface.select_out
 
         self.rs_update_in = rs_interface.update_in
-
-        self.commit = [
-            ("rob_id", gen_params.rob_entries_bits),
-        ]
 
 
 class CSRLayouts:

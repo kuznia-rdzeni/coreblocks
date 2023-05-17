@@ -2,7 +2,7 @@ from coreblocks.stages.retirement import *
 
 from coreblocks.transactions.lib import FIFO, Adapter
 from coreblocks.structs_common.rat import RRAT
-from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
+from coreblocks.params import ROBLayouts, RFLayouts, GenParams, SchedulerLayouts, RetirementLayouts
 from coreblocks.params.configurations import test_core_config
 
 from ..common import *
@@ -20,7 +20,7 @@ class RetirementTestCircuit(Elaboratable):
 
         rob_layouts = self.gen_params.get(ROBLayouts)
         rf_layouts = self.gen_params.get(RFLayouts)
-        lsu_layouts = self.gen_params.get(LSULayouts)
+        retirement_layouts = self.gen_params.get(RetirementLayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
@@ -32,7 +32,9 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
 
-        m.submodules.mock_lsu_commit = self.mock_lsu_commit = TestbenchIO(Adapter(i=lsu_layouts.commit))
+        m.submodules.mock_lsu_commit = self.mock_lsu_commit = TestbenchIO(
+            Adapter(i=retirement_layouts.instruction_commit)
+        )
 
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
@@ -40,7 +42,7 @@ class RetirementTestCircuit(Elaboratable):
             r_rat_commit=self.rat.commit,
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
-            lsu_commit=self.mock_lsu_commit.adapter.iface,
+            instruction_commit=self.mock_lsu_commit.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))

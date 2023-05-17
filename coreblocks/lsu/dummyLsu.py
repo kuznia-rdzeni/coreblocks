@@ -226,12 +226,13 @@ class LSUDummy(Elaboratable):
         self.gen_params = gen_params
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.lsu_layouts = gen_params.get(LSULayouts)
+        self.retirement_layouts = gen_params.get(RetirementLayouts)
 
         self.insert = Method(i=self.lsu_layouts.rs_insert_in)
         self.select = Method(o=self.lsu_layouts.rs_select_out)
         self.update = Method(i=self.lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
-        self.commit = Method(i=self.lsu_layouts.commit)
+        self.commit = Method(i=self.retirement_layouts.instruction_commit)
 
         self.bus = bus
 

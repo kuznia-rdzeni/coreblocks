@@ -121,7 +121,7 @@ class Core(Elaboratable):
             r_rat_commit=rrat.commit,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
-            lsu_commit=self.func_blocks_unifier.get_extra_method(InstructionCommitKey()),
+            instruction_commit=self.func_blocks_unifier.get_extra_method(InstructionCommitKey()),
         )
 
         m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)

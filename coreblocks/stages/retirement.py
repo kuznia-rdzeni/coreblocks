@@ -14,13 +14,13 @@ class Retirement(Elaboratable):
         r_rat_commit: Method,
         free_rf_put: Method,
         rf_free: Method,
-        lsu_commit: Method
+        instruction_commit: Method
     ):
         self.rob_retire = rob_retire
         self.r_rat_commit = r_rat_commit
         self.free_rf_put = free_rf_put
         self.rf_free = rf_free
-        self.lsu_commit = lsu_commit
+        self.instruction_commit = instruction_commit
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
@@ -36,7 +36,7 @@ class Retirement(Elaboratable):
             rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
 
             self.rf_free(m, rat_out.old_rp_dst)
-            self.lsu_commit(m, rob_id=rob_entry.rob_id)
+            self.instruction_commit(m, rob_id=rob_entry.rob_id)
 
             # put old rp_dst to free RF list
             with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
