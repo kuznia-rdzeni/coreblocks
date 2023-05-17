@@ -1,7 +1,6 @@
 from amaranth import *
 from ._typing import SignalBundle, HasDebugSignals
 from collections.abc import Collection, Mapping
-import coreblocks.transactions.core
 
 
 def auto_debug_signals(thing) -> SignalBundle:
@@ -18,65 +17,57 @@ def auto_debug_signals(thing) -> SignalBundle:
         # to break reference cycles. There is only one instance of this set, for whole
         # `auto_debug_signals` recursion stack. It is being mutated by adding to it more
         # elements id, so that caller know what was visited by callee.
-        slist: list[SignalBundle] = []
         smap: dict[str, SignalBundle] = {}
 
-        if isinstance(thing, HasDebugSignals):
-            return thing.debug_signals()
-
-        try:
-            vs = vars(thing)
-        except (KeyError, AttributeError, TypeError):
+        # Check for reference cycles e.g. Amaranth's MustUse
+        if id(thing) in _visited:
             return []
-
         _visited.add(id(thing))
 
-        for v in vs:
-            a = getattr(thing, v)
-            if v == "func_block_unifier":
-                print(v)
+        match thing:
+            case HasDebugSignals():
+                return thing.debug_signals()
+            # avoid infinite recursion (strings are `Collection`s of strings)
+            case str():
+                return []
+            case Collection() | Mapping():
+                match thing:
+                    case Collection():
+                        f_iter = enumerate(thing)
+                    case Mapping():
+                        f_iter = thing.items()
+                for i, e in f_iter:
+                    sublist = auto_debug_signals_internal(e, _visited=_visited)
+                    if sublist:
+                        smap[f"[{i}]"] = sublist
+                if smap:
+                    return [smap]
+                return []
+            case Array():
+                for i, e in enumerate(thing):
+                    if isinstance(e, Record):
+                        e.name = f"[{i}]"
+                return [thing]
+            case Signal() | Record():
+                return [thing]
+            case _:
+                try:
+                    vs = vars(thing)
+                except (KeyError, AttributeError, TypeError):
+                    return []
 
-            # ignore private fields (mostly to ignore _MustUse_context to get pretty print)
-            if v[0] == "_":
-                continue
+                for v in vs:
+                    a = getattr(thing, v)
 
-            # Check for reference cycles e.g. Amaranth's MustUse
-            if id(a) in _visited:
-                continue
-            _visited.add(id(a))
+                    # ignore private fields (mostly to ignore _MustUse_context to get pretty print)
+                    if v[0] == "_":
+                        continue
 
-            match a:
-                case Elaboratable() | coreblocks.transactions.core.TransactionBase():
-                    smap[v] = auto_debug_signals_internal(a, _visited=_visited)
-                case Array():
-                    for i, e in enumerate(a):
-                        if isinstance(e, Record):
-                            e.name = f"{v}[{i}]"
-                    smap[v] = a
-                case Signal() | Record():
-                    slist.append(a)
-                case Mapping():
-                    submap = {}
-                    for i, e in a.items():
-                        sublist = auto_debug_signals_internal(e, _visited=_visited)
-                        if sublist:
-                            submap[f"{v}[{i}]"] = sublist
-                    if submap:
-                        smap[v] = submap
-                # avoid infinite recursion (strings are `Collection`s of strings)
-                case str():
-                    continue
-                case Collection():
-                    submap = {}
-                    for i, e in enumerate(a):
-                        sublist = auto_debug_signals_internal(e, _visited=_visited)
-                        if sublist:
-                            submap[f"{v}[{i}]"] = sublist
-                    if submap:
-                        smap[v] = submap
+                    dsignals = auto_debug_signals_internal(a, _visited=_visited)
+                    if dsignals:
+                        smap[v] = dsignals
+                if smap:
+                    return [smap]
+                return []
 
-        slist.append(smap)
-        return slist
-
-    lst =auto_debug_signals_internal(thing, _visited=set())
-    return lst
+    return auto_debug_signals_internal(thing, _visited=set())
