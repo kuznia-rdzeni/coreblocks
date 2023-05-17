@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from collections.abc import Collection, Iterable, Callable, Mapping, Iterator
+from collections.abc import Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
 from typing import ClassVar, NoReturn, TypeAlias, TypedDict, Union, Optional, Tuple
@@ -7,7 +7,7 @@ from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
-from itertools import count, chain, filterfalse
+from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
@@ -292,7 +292,7 @@ class TransactionManager(Elaboratable):
         # remove orderings between simultaneous methods/transactions
         # TODO: can it be done after transitivity, possibly catching more cases?
         for elem in method_map.methods_and_transactions:
-            all_sims = frozenset[TransactionOrMethod]().union(*frozenset().union(*elem.simultaneous))
+            all_sims = frozenset(elem.simultaneous_list)
             elem.relations = list(
                 filterfalse(
                     lambda relation: not relation["conflict"]
@@ -302,71 +302,45 @@ class TransactionManager(Elaboratable):
                 )
             )
 
-        # step 1: conflict set generation
-        conflicts = list[set[frozenset[Transaction]]]()
-
-        def conflict_for(elems: Iterable[TransactionOrMethod]):
-            elem_list = list(elems)
-            sim_list = list[Transaction]()
-
-            def rec(idx: int) -> Iterable[frozenset[Transaction]]:
-                if idx == len(elem_list):
-                    yield frozenset(sim_list)
-                else:
-                    for transaction in method_map.transactions_for(elem_list[idx]):
-                        sim_list.append(transaction)
-                        yield from rec(idx + 1)
-                        sim_list.pop()
-
-            return rec(0)
+        # step 1: simultaneous and independent sets generation
+        independents = defaultdict[Transaction, set[Transaction]](set)
 
         for elem in method_map.methods_and_transactions:
-            conflict = set[frozenset[Transaction]]()
-            for sims in elem.simultaneous:
-                for sim in sims:
-                    conflict.update(conflict_for(chain([elem], sim)))
-                conflicts.append(conflict)
+            indeps = frozenset[Transaction]().union(
+                *(frozenset(method_map.transactions_for(ind)) for ind in chain([elem], elem.independent_list))
+            )
+            for transaction1, transaction2 in product(indeps, indeps):
+                independents[transaction1].add(transaction2)
 
-        # step 2: transitivity computation
         simultaneous = set[frozenset[Transaction]]()
 
-        def conflicting(group1: frozenset[Transaction], group2: frozenset[Transaction]):
-            for conflict in conflicts:
-                if group1 in conflict and group2 in conflict:
-                    return True
-            return False
+        for elem in method_map.methods_and_transactions:
+            for sim_elem in elem.simultaneous_list:
+                for tr1, tr2 in product(method_map.transactions_for(elem), method_map.transactions_for(sim_elem)):
+                    if tr1 in independents[tr2]:
+                        raise RuntimeError("Unsatisfiable simultaneity constraints")
+                    simultaneous.add(frozenset({tr1, tr2}))
 
-        def intersecting_pairs(group: frozenset[Transaction]):
-            return ((group, other_group) for other_group in simultaneous if group & other_group)
+        # step 2: transitivity computation
+        tr_simultaneous = set[frozenset[Transaction]]()
 
-        q = deque[Tuple[frozenset[Transaction], frozenset[Transaction]]]()
-        for group in set[frozenset[Transaction]]().union(*conflicts):
-            q.extend(intersecting_pairs(group))
-            simultaneous.add(group)
+        def conflicting(group: frozenset[Transaction]):
+            return any(tr1 != tr2 and tr1 in independents[tr2] for tr1 in group for tr2 in group)
+
+        q = deque[frozenset[Transaction]](simultaneous)
 
         while q:
-            (group1, group2) = q.popleft()
-            new_group = group1 | group2
-            if new_group in simultaneous or conflicting(group1, group2):
+            new_group = q.popleft()
+            if new_group in tr_simultaneous or conflicting(new_group):
                 continue
-            q.extend((new_group, other_group) for other_group in simultaneous if new_group & other_group)
-            simultaneous.add(new_group)
-            for conflict in conflicts:
-                if group1 in conflict or group2 in conflict:
-                    conflict.add(new_group)
+            q.extend(new_group | other_group for other_group in simultaneous if new_group & other_group)
+            tr_simultaneous.add(new_group)
 
         # step 3: maximal group selection
         def maximal(group: frozenset[Transaction]):
-            return not any(group.issubset(group2) and group != group2 for group2 in simultaneous)
+            return not any(group.issubset(group2) and group != group2 for group2 in tr_simultaneous)
 
-        final_simultaneous = set(filter(maximal, simultaneous))
-
-        # verify that the groups are satisfiable
-        for group in final_simultaneous:
-            print(conflicts)
-            print(final_simultaneous)
-            if any(g1 != g2 and not g1.issubset(g2) and not g2.issubset(g1) and g1.issubset(group) and g2.issubset(group) for conflict in conflicts for g1 in conflict for g2 in conflict):
-                raise RuntimeError
+        final_simultaneous = set(filter(maximal, tr_simultaneous))
 
         # step 4: convert transactions to methods
         joined_transactions = set[Transaction]().union(*final_simultaneous)
@@ -640,7 +614,8 @@ class TransactionBase(Owned):
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
-        self.simultaneous: list[frozenset[frozenset[TransactionOrMethod]]] = []
+        self.simultaneous_list: list[TransactionOrMethod] = []
+        self.independent_list: list[TransactionOrMethod] = []
 
     def add_conflict(self, end: TransactionOrMethod, priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
@@ -678,17 +653,15 @@ class TransactionBase(Owned):
             raise RuntimeError("Method can't be called twice from the same transaction")
         self.method_uses[method] = (arg, enable)
 
-    def simultaneous_with(self, *others: TransactionOrMethod) -> None:
-        self.simultaneous_groups(others)
+    def simultaneous(self, *others: TransactionOrMethod) -> None:
+        self.simultaneous_list += others
 
-    def simultaneous_alternatives(self, *alternatives: TransactionOrMethod) -> None:
-        self.simultaneous_groups(*map(lambda other: [other], alternatives))
+    def simultaneous_alternatives(self, *others: TransactionOrMethod) -> None:
+        self.simultaneous(*others)
+        others[0].independent(*others[1:])
 
-    def simultaneous_groups(self, *groups: Collection[TransactionOrMethod]):
-        sgroups = frozenset(map(frozenset, groups))
-        if any(group1 != group2 and group1.issubset(group2) for group1 in sgroups for group2 in sgroups):
-            raise ValueError("Simultaneous groups must not be subsets")
-        self.simultaneous.append(sgroups)
+    def independent(self, *others: TransactionOrMethod) -> None:
+        self.independent_list += others
 
     @contextmanager
     def context(self, m: TModule) -> Iterator[Self]:

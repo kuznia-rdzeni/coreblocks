@@ -71,7 +71,7 @@ class TestConnect(TestFifoBase):
     @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
     def test_fifo(self, writer_rand, reader_rand):
         self.do_test_fifo(Connect, writer_rand=writer_rand, reader_rand=reader_rand)
-    
+
     @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
     def test_rev_fifo(self, writer_rand, reader_rand):
         self.do_test_fifo(RevConnect, writer_rand=writer_rand, reader_rand=reader_rand)

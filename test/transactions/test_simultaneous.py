@@ -8,7 +8,7 @@ from coreblocks.utils.utils import ModuleConnector
 from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_method_mock
 
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import Adapter, AdapterTrans, Connect, ConnectTrans, condition
+from coreblocks.transactions.lib import Adapter, Connect, ConnectTrans, condition
 
 
 def empty_method(m: TModule, method: Method):
@@ -83,7 +83,7 @@ class UnsatisfiableTriangleTestCircuit(Elaboratable):
 
         # the following is unsatisfiable
         self.method_l.simultaneous_alternatives(self.method_u, self.method_d)
-        self.method_u.simultaneous_with(self.method_d)
+        self.method_u.simultaneous(self.method_d)
 
         return m
 
@@ -91,10 +91,10 @@ class UnsatisfiableTriangleTestCircuit(Elaboratable):
 class UnsatisfiableTriangleTest(TestCaseWithSimulator):
     def test_unsatisfiable(self):
         circ = SimpleTestCircuit(UnsatisfiableTriangleTestCircuit())
-        def test():
-            with self.run_simulation(circ) as sim:
+
+        with self.assertRaises(RuntimeError):
+            with self.run_simulation(circ) as _:
                 pass
-        test()
 
 
 class HelperConnect(Elaboratable):
@@ -115,8 +115,8 @@ class HelperConnect(Elaboratable):
 
 class TransitivityTestCircuit(Elaboratable):
     def __init__(self, target: Method, req1: Signal, req2: Signal):
-        self.source1 = Method(i=[('data', 2)])
-        self.source2 = Method(i=[('data', 2)])
+        self.source1 = Method(i=[("data", 2)])
+        self.source2 = Method(i=[("data", 2)])
         self.target = target
         self.req1 = req1
         self.req2 = req2
@@ -124,8 +124,8 @@ class TransitivityTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.c1 = c1 = Connect([('data', 2)])
-        m.submodules.c2 = c2 = Connect([('data', 2)])
+        m.submodules.c1 = c1 = Connect([("data", 2)])
+        m.submodules.c2 = c2 = Connect([("data", 2)])
         self.source1.proxy(m, c1.write)
         self.source2.proxy(m, c1.write)
         m.submodules.ct = ConnectTrans(c2.read, self.target)
@@ -140,17 +140,17 @@ class TransitivityTest(TestCaseWithSimulator):
         target = TestbenchIO(Adapter(i=[("data", 2)]))
         req1 = Signal()
         req2 = Signal()
-        
+
         circ = SimpleTestCircuit(TransitivityTestCircuit(target.adapter.iface, req1, req2))
         m = ModuleConnector(test_circuit=circ, target=target)
-        
+
         result: Optional[int]
 
         @def_method_mock(lambda: target)
         def target_process(data):
             nonlocal result
             result = data
-        
+
         def process():
             nonlocal result
             for source, data, reqv1, reqv2 in product([circ.source1, circ.source2], [0, 1, 2, 3], [0, 1], [0, 1]):

@@ -155,7 +155,7 @@ class Connect(Elaboratable):
         read_value = Record.like(self.read.data_out)
         rev_read_value = Record.like(self.write.data_out)
 
-        self.write.simultaneous_with(self.read)
+        self.write.simultaneous(self.read)
 
         @def_method(m, self.write)
         def _(arg):
@@ -773,5 +773,7 @@ def condition(m: TModule, *, full: bool = False, unique: bool = False):
         with next():
             pass
 
-    groups = [[transaction] for transaction in transactions]
-    this.simultaneous_groups(*groups)
+    for transaction in transactions:
+        this.simultaneous(transaction)
+
+    transactions[0].independent(*transactions[1:])
