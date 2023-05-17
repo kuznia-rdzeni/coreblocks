@@ -1,8 +1,7 @@
 from typing import Sequence
 from amaranth import *
 
-from coreblocks.transactions import Method
-from coreblocks.transactions.core import def_method
+from coreblocks.transactions import *
 from coreblocks.transactions.lib import FIFO
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
@@ -13,10 +12,10 @@ from enum import IntFlag, auto
 
 from coreblocks.utils.protocols import FuncUnit
 
-__all__ = ["ShiftAluFuncUnit", "ShiftALUComponent"]
+__all__ = ["ShiftFuncUnit", "ShiftUnitComponent"]
 
 
-class ShiftAluFn(DecoderManager):
+class ShiftUnitFn(DecoderManager):
     class Fn(IntFlag):
         SLL = auto()  # Logic left shift
         SRL = auto()  # Logic right shift
@@ -30,11 +29,11 @@ class ShiftAluFn(DecoderManager):
         ]
 
 
-class ShiftAlu(Elaboratable):
-    def __init__(self, gen_params: GenParams, shift_alu_fn=ShiftAluFn()):
+class ShiftUnit(Elaboratable):
+    def __init__(self, gen_params: GenParams, shift_unit_fn=ShiftUnitFn()):
         self.gen_params = gen_params
 
-        self.fn = shift_alu_fn.get_function()
+        self.fn = shift_unit_fn.get_function()
         self.in1 = Signal(gen_params.isa.xlen)
         self.in2 = Signal(gen_params.isa.xlen)
 
@@ -47,20 +46,20 @@ class ShiftAlu(Elaboratable):
         xlen_log = self.gen_params.isa.xlen_log
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
-            with OneHotCase(ShiftAluFn.Fn.SLL):
+            with OneHotCase(ShiftUnitFn.Fn.SLL):
                 m.d.comb += self.out.eq(self.in1 << self.in2[0:xlen_log])
-            with OneHotCase(ShiftAluFn.Fn.SRL):
+            with OneHotCase(ShiftUnitFn.Fn.SRL):
                 m.d.comb += self.out.eq(self.in1 >> self.in2[0:xlen_log])
-            with OneHotCase(ShiftAluFn.Fn.SRA):
+            with OneHotCase(ShiftUnitFn.Fn.SRA):
                 m.d.comb += self.out.eq(Cat(self.in1, Repl(self.in1[xlen - 1], xlen)) >> self.in2[0:xlen_log])
 
         return m
 
 
-class ShiftAluFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, shift_alu_fn=ShiftAluFn()):
+class ShiftFuncUnit(FuncUnit, Elaboratable):
+    def __init__(self, gen_params: GenParams, shift_unit_fn=ShiftUnitFn()):
         self.gen_params = gen_params
-        self.shift_alu_fn = shift_alu_fn
+        self.shift_unit_fn = shift_unit_fn
 
         layouts = gen_params.get(FuncUnitLayouts)
 
@@ -70,9 +69,9 @@ class ShiftAluFuncUnit(FuncUnit, Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.shift_alu = shift_alu = ShiftAlu(self.gen_params, shift_alu_fn=self.shift_alu_fn)
+        m.submodules.shift_alu = shift_alu = ShiftUnit(self.gen_params, shift_unit_fn=self.shift_unit_fn)
         m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
-        m.submodules.decoder = decoder = self.shift_alu_fn.get_decoder(self.gen_params)
+        m.submodules.decoder = decoder = self.shift_unit_fn.get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
         def _():
@@ -91,12 +90,12 @@ class ShiftAluFuncUnit(FuncUnit, Elaboratable):
         return m
 
 
-class ShiftALUComponent(FunctionalComponentParams):
+class ShiftUnitComponent(FunctionalComponentParams):
     def __init__(self):
-        self.shift_alu_fn = ShiftAluFn()
+        self.shift_unit_fn = ShiftUnitFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return ShiftAluFuncUnit(gen_params, self.shift_alu_fn)
+        return ShiftFuncUnit(gen_params, self.shift_unit_fn)
 
     def get_optypes(self) -> set[OpType]:
-        return self.shift_alu_fn.get_op_types()
+        return self.shift_unit_fn.get_op_types()

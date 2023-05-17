@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.stages.rs_func_block import RSBlockComponent
 from coreblocks.fu.alu import ALUComponent
-from coreblocks.fu.shift_alu import ShiftALUComponent
+from coreblocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.fu.jumpbranch import JumpComponent
 from coreblocks.fu.mul_unit import MulComponent, MulType
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
@@ -13,7 +13,7 @@ from coreblocks.structs_common.csr import CSRBlockComponent
 __all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
-    RSBlockComponent([ALUComponent(), ShiftALUComponent(), JumpComponent()], rs_entries=4),
+    RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=4),
     LSUBlockComponent(),
 )
 
@@ -68,7 +68,7 @@ basic_core_config = CoreConfiguration()
 # Minimal core configuration
 tiny_core_config = CoreConfiguration(
     func_units_config=(
-        RSBlockComponent([ALUComponent(), ShiftALUComponent(), JumpComponent()], rs_entries=2),
+        RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
         LSUBlockComponent(),
     ),
     rob_entries_bits=6,
@@ -78,7 +78,7 @@ tiny_core_config = CoreConfiguration(
 full_core_config = CoreConfiguration(
     isa_str="rv32imzicsr",
     func_units_config=(
-        RSBlockComponent([ALUComponent(), ShiftALUComponent(), JumpComponent()], rs_entries=4),
+        RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=4),
         RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=4),
         LSUBlockComponent(),
         CSRBlockComponent(),
