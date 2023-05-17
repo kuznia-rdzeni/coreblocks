@@ -22,7 +22,6 @@ def glue_flex(elems: list[int], elen: int, eew: EEW) -> int:
     out = 0
     ebits = eew_to_bits(eew)
     mask = 2**ebits - 1
-    print(elems)
     for elem in reversed(elems):
         out = (out << ebits) | (elem & mask)
     return out
@@ -40,7 +39,7 @@ def op_flex(substract: bool, in1: int, in2: int, elen: int, eew: EEW) -> int:
 
 class TestFlexibleAdder(TestCaseWithSimulator):
     def setUp(self):
-        self.eew = EEW.w16
+        self.eew = EEW.w64
         self.alu = FlexibleAdder(out_width=self.eew)
         random.seed(14)
 
@@ -56,16 +55,21 @@ class TestFlexibleAdder(TestCaseWithSimulator):
         yield self.alu.substract.eq(substract)
         yield self.alu.in1.eq(in1)
         yield self.alu.in2.eq(in2)
+        yield self.alu.eew.eq(op_eew)
         yield Settle()
 
-        return (yield self.alu.out_data)
+        # for gtkwave pprint
+        yield Delay(10e-7)
+
+        return (yield self.alu.out_data), (yield self.alu.out_carry)
 
     def check_fn(self, substract, out_fn):
         def process():
-            for eew in {EEW.w8, EEW.w16}:#, EEW.w32, EEW.w64}:
+            for eew in {EEW.w8, EEW.w16, EEW.w32, EEW.w64}:
                 for in1, in2 in self.test_inputs:
-                    print("Nowy test")
-                    returned_out = yield from self.yield_signals(substract, C(in1, self.elen), C(in2, self.elen), eew)
+                    returned_out, returned_carry = yield from self.yield_signals(
+                        substract, C(in1, self.elen), C(in2, self.elen), eew
+                    )
                     mask = 2**self.elen - 1
                     correct_out = out_fn(in1 & mask, in2 & mask, eew) & mask
                     self.assertEqual(returned_out, correct_out)

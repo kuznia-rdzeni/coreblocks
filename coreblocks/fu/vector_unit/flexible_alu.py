@@ -60,8 +60,8 @@ class FlexibleAdder(Elaboratable):
         if self.out_width == EEW.w8:
             result = self.in1 + self.in2_trans
             assert result.shape().width == self.out_width_bits + 1
-            m.d.comb += self.out_data.eq(result[:-1])
-            m.d.comb += self.out_carry.eq(result[-1])
+            m.d.comb += self.out_data.eq(result & (2**self.out_width_bits - 1))
+            m.d.comb += self.out_carry.eq(result >> self.out_width_bits)
         else:
             smaller_out_width_bits = self.out_width_bits // 2
             smaller_out_width_eew = bits_to_eew(smaller_out_width_bits)
@@ -72,19 +72,19 @@ class FlexibleAdder(Elaboratable):
                 m.d.comb += adder.eew.eq(self.eew)
                 m.d.comb += adder.substract.eq(self.substract)
 
-            m.d.comb += adder_down.in1.eq(self.in1[:smaller_out_width_bits])
-            m.d.comb += adder_down.in2.eq(self.in2_trans[:smaller_out_width_bits])
-            m.d.comb += adder_high.in1.eq(self.in1[smaller_out_width_bits:])
-            m.d.comb += adder_high.in2.eq(self.in2_trans[smaller_out_width_bits:])
+            m.d.comb += adder_down.in1.eq(self.in1 & (2**smaller_out_width_bits - 1))
+            m.d.comb += adder_down.in2.eq(self.in2_trans & (2**smaller_out_width_bits - 1))
+            m.d.comb += adder_high.in1.eq(self.in1 >> smaller_out_width_bits)
+            m.d.comb += adder_high.in2.eq(self.in2_trans >> smaller_out_width_bits)
 
             with m.If(self.eew >= self.out_width):
-                whole_high = Cat(adder_high.out_carry, adder_high.out_data)
+                whole_high = (adder_high.out_carry << smaller_out_width_bits) | adder_high.out_data
                 high_with_down_carry = whole_high + adder_down.out_carry
                 result = (high_with_down_carry << smaller_out_width_bits) | adder_down.out_data
-                m.d.comb += self.out_data.eq(result[: self.out_width_bits])
-                m.d.comb += self.out_carry.eq(result[self.out_width_bits])
+                m.d.comb += self.out_data.eq(result & (2**self.out_width_bits - 1))
+                m.d.comb += self.out_carry.eq(result >> self.out_width_bits)
             with m.Else():
-                result = Cat(adder_high.out_data, adder_down.out_data)
+                result = (adder_high.out_data << smaller_out_width_bits) | adder_down.out_data
                 m.d.comb += self.out_data.eq(result)
 
         # so that Amaranth allows us to use add_clock
