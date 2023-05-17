@@ -26,53 +26,57 @@ def auto_debug_signals(thing) -> SignalBundle:
 
         try:
             vs = vars(thing)
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, TypeError):
             return []
 
         _visited.add(id(thing))
 
         for v in vs:
             a = getattr(thing, v)
+            if v == "func_block_unifier":
+                print(v)
+
+            # ignore private fields (mostly to ignore _MustUse_context to get pretty print)
+            if v[0] == "_":
+                continue
 
             # Check for reference cycles e.g. Amaranth's MustUse
             if id(a) in _visited:
                 continue
             _visited.add(id(a))
 
-            # ignore private fields (mostly to ignore _MustUse_context to get pretty print)
-            if v[0] == "_":
-                continue
-
-            if isinstance(a, Elaboratable) or isinstance(a, coreblocks.transactions.core.TransactionBase):
-                smap[v] = auto_debug_signals_internal(a, _visited=_visited)
-            elif isinstance(a, Array):
-                for i, e in enumerate(a):
-                    if isinstance(e, Record):
-                        e.name = f"{v}[{i}]"
-                smap[v] = a
-            elif isinstance(a, Signal) or isinstance(a, Record):
-                slist.append(a)
-            elif isinstance(a, Mapping):
-                submap = {}
-                for i, e in a.items():
-                    sublist = auto_debug_signals_internal(e, _visited=_visited)
-                    if sublist:
-                        submap[f"{v}[{i}]"] = sublist
-                if submap:
-                    smap[v] = submap
-            # avoid infinite recursion (strings are `Collection`s of strings)
-            elif isinstance(a, str):
-                continue
-            elif isinstance(a, Collection):
-                submap = {}
-                for i, e in enumerate(a):
-                    sublist = auto_debug_signals_internal(e, _visited=_visited)
-                    if sublist:
-                        submap[f"{v}[{i}]"] = sublist
-                if submap:
-                    smap[v] = submap
+            match a:
+                case Elaboratable() | coreblocks.transactions.core.TransactionBase():
+                    smap[v] = auto_debug_signals_internal(a, _visited=_visited)
+                case Array():
+                    for i, e in enumerate(a):
+                        if isinstance(e, Record):
+                            e.name = f"{v}[{i}]"
+                    smap[v] = a
+                case Signal() | Record():
+                    slist.append(a)
+                case Mapping():
+                    submap = {}
+                    for i, e in a.items():
+                        sublist = auto_debug_signals_internal(e, _visited=_visited)
+                        if sublist:
+                            submap[f"{v}[{i}]"] = sublist
+                    if submap:
+                        smap[v] = submap
+                # avoid infinite recursion (strings are `Collection`s of strings)
+                case str():
+                    continue
+                case Collection():
+                    submap = {}
+                    for i, e in enumerate(a):
+                        sublist = auto_debug_signals_internal(e, _visited=_visited)
+                        if sublist:
+                            submap[f"{v}[{i}]"] = sublist
+                    if submap:
+                        smap[v] = submap
 
         slist.append(smap)
         return slist
 
-    return auto_debug_signals_internal(thing, _visited=set())
+    lst =auto_debug_signals_internal(thing, _visited=set())
+    return lst

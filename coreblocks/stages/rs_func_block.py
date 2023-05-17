@@ -87,7 +87,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             "select": self.select.debug_signals(),
             "update": self.update.debug_signals(),
             "get_result": self.get_result.debug_signals(),
-            "rs": self.rs,
+            "rs": auto_debug_signals(self.rs),
             "func_units": {i: auto_debug_signals(b) for i, b in enumerate(self.func_units)},
         }
 
