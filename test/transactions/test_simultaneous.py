@@ -10,6 +10,7 @@ from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import Adapter, Connect, ConnectTrans, condition
 
+from parameterized import parameterized
 
 def empty_method(m: TModule, method: Method):
     @def_method(m, method)
@@ -173,33 +174,38 @@ class TransitivityTest(TestCaseWithSimulator):
 
 
 class ConditionTestCircuit(Elaboratable):
-    def __init__(self, target: Method):
+    def __init__(self, target: Method, *, full: bool, unique: bool):
         self.target = target
         self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)])
+        self.full = full
+        self.unique = unique
 
     def elaborate(self, platform):
         m = TModule()
 
         @def_method(m, self.source)
         def _(cond1, cond2, cond3):
-            with condition(m) as branch:
+            with condition(m, full=self.full, unique=self.unique) as branch:
                 with branch(cond1):
                     self.target(m, cond=1)
                 with branch(cond2):
                     self.target(m, cond=2)
                 with branch(cond3):
                     self.target(m, cond=3)
-                with branch():
-                    self.target(m, cond=0)
+                # TODO: also test behavior without catch-all
+                if self.full:
+                    with branch():
+                        self.target(m, cond=0)
 
         return m
 
 
 class ConditionTest(TestCaseWithSimulator):
-    def test_condition(self):
+    @parameterized.expand([False, True])
+    def test_condition(self, full: bool):
         target = TestbenchIO(Adapter(i=[("cond", 2)]))
 
-        circ = SimpleTestCircuit(ConditionTestCircuit(target.adapter.iface))
+        circ = SimpleTestCircuit(ConditionTestCircuit(target.adapter.iface, full=full, unique=False))
         m = ModuleConnector(test_circuit=circ, target=target)
 
         selection: Optional[int]
@@ -214,7 +220,12 @@ class ConditionTest(TestCaseWithSimulator):
             for c1, c2, c3 in product([0, 1], [0, 1], [0, 1]):
                 selection = None
                 yield from circ.source.call(cond1=c1, cond2=c2, cond3=c3)
-                self.assertEqual(selection, c1 + 2 * c2 * (1 - c1) + 3 * c3 * (1 - c2) * (1 - c1))
+                
+                if selection is None:
+                    self.assertFalse(full)
+                    self.assertEqual((c1, c2, c3), (0, 0, 0))
+                else:
+                    self.assertEqual(selection, c1 + 2 * c2 * (1 - c1) + 3 * c3 * (1 - c2) * (1 - c1))
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(target_process)
