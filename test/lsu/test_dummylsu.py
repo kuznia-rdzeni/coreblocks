@@ -266,6 +266,12 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             assert data["rs_entry_id"] == 0, str(data["rs_entry_id"])
 
     class InserterProcess(MessageFrameworkProcessOneSrc):
+        def __init__(self, announcer, consumer, wb_mock, **kwargs):
+            super().__init__(**kwargs)
+            self.announcer = announcer
+            self.consumer = consumer
+            self.wb_mock = wb_mock
+
         def call_tb(self, data):
             _, tb_out = yield from super().call_tb({"rs_data": data.instr, "rs_entry_id": 0})
             return data, tb_out
@@ -274,7 +280,7 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
             input, tb_out = data
             self.announcer(input)
             self.consumer(input)
-            self.wb_mock_acc(input)
+            self.wb_mock(input)
 
     class AnnouncerProcess(MessageFrameworkProcessOneSrc):
         def handle_input_data(self, data):
@@ -317,8 +323,8 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
         def handle_input_data(self, data):
             return data.mem_data
 
-        def check(self, data: tuple[MemoryData, RecordIntDictRet]):
-            in_verif, arg = data
+        def check(self, data_in: tuple[MemoryData, RecordIntDictRet]):
+            in_verif, arg = data_in
             print("consumer", in_verif, arg, self.internal.clk.now)
             generated_data = in_verif.rnd_bytes
             data_shift = (in_verif.mask & -in_verif.mask).bit_length() - 1
@@ -334,6 +340,32 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
 
     def test_body(self):
         with self.prepare_env(self.test_module) as sim:
+
+            def announce_in_filter(arg: InternalMessage[GeneratedData]) -> bool:
+                return (arg.userdata.ann_data is not None) and self.cleared_filter(arg)
+
+            self.wb_mock = self.WishboneMockProcess(name="wb_mock", filters=[self.cleared_filter])
+            self.con = consumer = self.ConsumerProcess(
+                tb=self.test_module.test_circuit.get_result, name="consumer", filters=[self.cleared_filter]
+            )
+
+            announcer = self.AnnouncerProcess(
+                tb=self.test_module.test_circuit.update,
+                max_rand_wait=self.max_wait,
+                passive=True,
+                name="announcer",
+                filters=[announce_in_filter],
+            )
+
+            inserter = self.InserterProcess(
+                announcer,
+                consumer,
+                self.wb_mock,
+                tb=self.test_module.test_circuit.insert,
+                max_rand_wait=self.max_wait,
+                name="inserter",
+            )
+
             generator = self.GeneratorProcess(
                 self.max_reg_val,
                 self.gp,
@@ -351,22 +383,6 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
                 started=True,
             )
 
-            inserter = self.InserterProcess(
-                tb=self.test_module.test_circuit.insert, max_rand_wait=self.max_wait, name="inserter"
-            )
-
-            # this can not be lambda because we have to pass types explicte
-            def announce_in_filter(arg: InternalMessage[GeneratedData]) -> bool:
-                return (arg.userdata.ann_data is not None) and self.cleared_filter(arg)
-
-            announcer = self.AnnouncerProcess(
-                tb=self.test_module.test_circuit.update,
-                max_rand_wait=self.max_wait,
-                passive=True,
-                name="announcer",
-                filters=[announce_in_filter],
-            )
-
             cleaner = self.CleanerProcess(
                 tb=self.test_module.test_circuit.clear,
                 max_rand_wait=self.max_wait,
@@ -375,15 +391,9 @@ class TestDummyLSULoadsNew(TestCaseWithMessageFramework):
                 started=True,
             )
 
-            self.wb_mock_acc = self.WishboneMockProcess(name="wb_mock", filters=[self.cleared_filter])
-
-            self.con = consumer = self.ConsumerProcess(
-                tb=self.test_module.test_circuit.get_result, name="consumer", filters=[self.cleared_filter]
-            )
-
             @def_method_mock(lambda: self.bus.request_tb, sched_prio=0)
             def request_mock(addr, data, we, sel):
-                arg: GeneratedData = self.wb_mock_acc.get()
+                arg: GeneratedData = self.wb_mock.get()
 
                 self.assertEqual(addr, arg.mem_data.addr)
                 self.assertEqual(we, 0)
