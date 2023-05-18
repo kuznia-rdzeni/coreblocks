@@ -152,7 +152,7 @@ class CSRRegister(Elaboratable):
         return m
 
 
-class CSRUnit(Elaboratable):
+class CSRUnit(FuncBlock, Elaboratable):
     """
     Unit for performing Control and Status Regitsters computations.
 
@@ -175,8 +175,6 @@ class CSRUnit(Elaboratable):
         `accept` method from standard FU interface. Used to receive instruction result and pass it
         to the next pipeline stage.
     """
-
-    optypes = {OpType.CSR_REG, OpType.CSR_IMM}
 
     def __init__(self, gen_params: GenParams, rob_single_instr: Signal):
         """
@@ -335,4 +333,4 @@ class CSRBlockComponent(BlockComponentParams):
         return unit
 
     def get_optypes(self) -> set[OpType]:
-        return CSRUnit.optypes
+        return {OpType.CSR_REG, OpType.CSR_IMM}

@@ -361,7 +361,7 @@ class Scheduler(Elaboratable):
         rob_put: Method,
         rf_read1: Method,
         rf_read2: Method,
-        reservation_stations: Sequence[FuncBlock],
+        reservation_stations: Sequence[tuple[FuncBlock, set[OpType]]],
         gen_params: GenParams
     ):
         """
@@ -429,13 +429,13 @@ class Scheduler(Elaboratable):
         m.submodules.rs_selector = RSSelection(
             gen_params=self.gen_params,
             get_instr=reg_alloc_out_buf.read,
-            rs_select=[(rs.select, rs.optypes) for rs in self.rs],
+            rs_select=[(rs.select, optypes) for rs, optypes in self.rs],
             push_instr=rs_select_out_buf.write,
         )
 
         m.submodules.rs_insertion = RSInsertion(
             get_instr=rs_select_out_buf.read,
-            rs_insert=[rs.insert for rs in self.rs],
+            rs_insert=[rs.insert for rs, _ in self.rs],
             rf_read1=self.rf_read1,
             rf_read2=self.rf_read2,
             gen_params=self.gen_params,

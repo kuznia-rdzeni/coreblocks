@@ -186,7 +186,7 @@ class LSUDummyInternals(Elaboratable):
         return m
 
 
-class LSUDummy(Elaboratable):
+class LSUDummy(FuncBlock, Elaboratable):
     """
     Very simple LSU, which serializes all stores and loads.
     It isn't fully compliant with RiscV spec. Doesn't support checking if
@@ -210,8 +210,6 @@ class LSUDummy(Elaboratable):
     commit : Method
         Used to inform LSU that new instruction have been retired.
     """
-
-    optypes = {OpType.LOAD, OpType.STORE}
 
     def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
         """
@@ -294,4 +292,4 @@ class LSUBlockComponent(BlockComponentParams):
         return unit
 
     def get_optypes(self) -> set[OpType]:
-        return LSUDummy.optypes
+        return {OpType.LOAD, OpType.STORE}

@@ -38,6 +38,7 @@ def main():
     parser.add_argument("-l", "--list", action="store_true", help="List all tests")
     parser.add_argument("-t", "--trace", action="store_true", help="Dump waveforms")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
+    parser.add_argument("-c", "--count", type=int, help="Start `c` first tests which match regexp")
     parser.add_argument("test_name", nargs="?")
 
     args = parser.parse_args()
@@ -61,6 +62,8 @@ def main():
         if not matches:
             print(f"Could not find test matching '{args.test_name}'")
             sys.exit(1)
+        if args.count is not None:
+            matches = matches[: args.count]
 
         to_run = unittest.TestSuite(matches)
     else:

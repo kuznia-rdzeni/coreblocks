@@ -18,7 +18,6 @@ __all__ = ["JumpBranchFuncUnit", "JumpComponent"]
 
 
 class JumpBranchFn(DecoderManager):
-    @unique
     class Fn(IntFlag):
         JAL = auto()
         JALR = auto()
@@ -30,27 +29,26 @@ class JumpBranchFn(DecoderManager):
         BGE = auto()
         BGEU = auto()
 
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
+    def get_instructions(self) -> Sequence[tuple]:
         return [
-            (cls.Fn.BEQ, OpType.BRANCH, Funct3.BEQ),
-            (cls.Fn.BNE, OpType.BRANCH, Funct3.BNE),
-            (cls.Fn.BLT, OpType.BRANCH, Funct3.BLT),
-            (cls.Fn.BLTU, OpType.BRANCH, Funct3.BLTU),
-            (cls.Fn.BGE, OpType.BRANCH, Funct3.BGE),
-            (cls.Fn.BGEU, OpType.BRANCH, Funct3.BGEU),
-            (cls.Fn.JAL, OpType.JAL),
-            (cls.Fn.JALR, OpType.JALR, Funct3.JALR),
-            (cls.Fn.AUIPC, OpType.AUIPC),
+            (self.Fn.BEQ, OpType.BRANCH, Funct3.BEQ),
+            (self.Fn.BNE, OpType.BRANCH, Funct3.BNE),
+            (self.Fn.BLT, OpType.BRANCH, Funct3.BLT),
+            (self.Fn.BLTU, OpType.BRANCH, Funct3.BLTU),
+            (self.Fn.BGE, OpType.BRANCH, Funct3.BGE),
+            (self.Fn.BGEU, OpType.BRANCH, Funct3.BGEU),
+            (self.Fn.JAL, OpType.JAL),
+            (self.Fn.JALR, OpType.JALR, Funct3.JALR),
+            (self.Fn.AUIPC, OpType.AUIPC),
         ]
 
 
 class JumpBranch(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, fn=JumpBranchFn()):
         self.gen_params = gen_params
 
         xlen = gen_params.isa.xlen
-        self.fn = JumpBranchFn.get_function()
+        self.fn = fn.get_function()
         self.in1 = Signal(xlen)
         self.in2 = Signal(xlen)
         self.in_pc = Signal(xlen)
@@ -110,10 +108,8 @@ class JumpBranch(Elaboratable):
         return m
 
 
-class JumpBranchFuncUnit(Elaboratable):
-    optypes = JumpBranchFn.get_op_types()
-
-    def __init__(self, gen: GenParams):
+class JumpBranchFuncUnit(FuncUnit, Elaboratable):
+    def __init__(self, gen: GenParams, jb_fn=JumpBranchFn()):
         self.gen = gen
 
         layouts = gen.get(FuncUnitLayouts)
@@ -122,13 +118,15 @@ class JumpBranchFuncUnit(Elaboratable):
         self.accept = Method(o=layouts.accept)
         self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
 
+        self.jb_fn = jb_fn
+
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.jb = jb = JumpBranch(self.gen)
+        m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
-        m.submodules.decoder = decoder = JumpBranchFn.get_decoder(self.gen)
+        m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
 
         @def_method(m, self.accept)
         def _():
@@ -158,11 +156,14 @@ class JumpBranchFuncUnit(Elaboratable):
 
 
 class JumpComponent(FunctionalComponentParams):
+    def __init__(self):
+        self.jb_fn = JumpBranchFn()
+
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = JumpBranchFuncUnit(gen_params)
+        unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
         connections = gen_params.get(DependencyManager)
         connections.add_dependency(BranchResolvedKey(), unit.branch_result)
         return unit
 
     def get_optypes(self) -> set[OpType]:
-        return JumpBranchFuncUnit.optypes
+        return self.jb_fn.get_op_types()
