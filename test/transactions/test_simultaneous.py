@@ -201,7 +201,7 @@ class ConditionTestCircuit(Elaboratable):
 
 
 class ConditionTest(TestCaseWithSimulator):
-    @parameterized.expand([False, True])
+    @parameterized.expand([(False, ), (True, )])
     def test_condition(self, full: bool):
         target = TestbenchIO(Adapter(i=[("cond", 2)]))
 
