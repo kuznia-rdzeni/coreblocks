@@ -769,7 +769,7 @@ class CatTrans(Elaboratable):
 
 
 @contextmanager
-def condition(m: TModule, *, full: bool = False, unique: bool = False):
+def condition(m: TModule, *, full: bool = False, priority: bool = True):
     this = TransactionBase.get()
     transactions = list[Transaction]()
     last = False
@@ -783,12 +783,12 @@ def condition(m: TModule, *, full: bool = False, unique: bool = False):
         name = f"{this.name}_cond{len(transactions)}"
         with (transaction := Transaction(name=name)).body(m, request=req):
             yield
-        if transactions and not unique:
+        if transactions and priority:
             transactions[-1].schedule_before(transaction)
         if cond is None:
             full = True
             last = True
-            if unique:
+            if not priority:
                 for transaction0 in transactions:
                     transaction0.schedule_before(transaction)
         transactions.append(transaction)

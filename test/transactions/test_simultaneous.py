@@ -174,18 +174,18 @@ class TransitivityTest(TestCaseWithSimulator):
 
 
 class ConditionTestCircuit(Elaboratable):
-    def __init__(self, target: Method, *, full: bool, unique: bool):
+    def __init__(self, target: Method, *, full: bool, priority: bool):
         self.target = target
         self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)])
         self.full = full
-        self.unique = unique
+        self.priority = priority
 
     def elaborate(self, platform):
         m = TModule()
 
         @def_method(m, self.source)
         def _(cond1, cond2, cond3):
-            with condition(m, full=self.full, unique=self.unique) as branch:
+            with condition(m, full=self.full, priority=self.priority) as branch:
                 with branch(cond1):
                     self.target(m, cond=1)
                 with branch(cond2):
@@ -201,11 +201,11 @@ class ConditionTestCircuit(Elaboratable):
 
 
 class ConditionTest(TestCaseWithSimulator):
-    @parameterized.expand([(False, ), (True, )])
-    def test_condition(self, full: bool):
+    @parameterized.expand(product([False, True], [False, True]))
+    def test_condition(self, full: bool, priority: bool):
         target = TestbenchIO(Adapter(i=[("cond", 2)]))
 
-        circ = SimpleTestCircuit(ConditionTestCircuit(target.adapter.iface, full=full, unique=False))
+        circ = SimpleTestCircuit(ConditionTestCircuit(target.adapter.iface, full=full, priority=priority))
         m = ModuleConnector(test_circuit=circ, target=target)
 
         selection: Optional[int]
@@ -224,8 +224,10 @@ class ConditionTest(TestCaseWithSimulator):
                 if selection is None:
                     self.assertFalse(full)
                     self.assertEqual((c1, c2, c3), (0, 0, 0))
-                else:
+                elif priority:
                     self.assertEqual(selection, c1 + 2 * c2 * (1 - c1) + 3 * c3 * (1 - c2) * (1 - c1))
+                else:
+                    self.assertIn(selection, [c1, 2 * c2, 3 * c3])
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(target_process)
