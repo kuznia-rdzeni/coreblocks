@@ -12,6 +12,7 @@ from coreblocks.transactions.lib import Adapter, Connect, ConnectTrans, conditio
 
 from parameterized import parameterized
 
+
 def empty_method(m: TModule, method: Method):
     @def_method(m, method)
     def _():
@@ -205,7 +206,9 @@ class ConditionTest(TestCaseWithSimulator):
     def test_condition(self, nonblocking: bool, priority: bool, catchall: bool):
         target = TestbenchIO(Adapter(i=[("cond", 2)]))
 
-        circ = SimpleTestCircuit(ConditionTestCircuit(target.adapter.iface, nonblocking=nonblocking, priority=priority, catchall=catchall))
+        circ = SimpleTestCircuit(
+            ConditionTestCircuit(target.adapter.iface, nonblocking=nonblocking, priority=priority, catchall=catchall)
+        )
         m = ModuleConnector(test_circuit=circ, target=target)
 
         selection: Optional[int]
@@ -223,7 +226,7 @@ class ConditionTest(TestCaseWithSimulator):
 
                 if catchall or nonblocking:
                     self.assertIsNotNone(res)
-               
+
                 if res is None:
                     self.assertIsNone(selection)
                     self.assertFalse(catchall or nonblocking)
