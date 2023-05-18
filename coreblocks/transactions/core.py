@@ -291,7 +291,9 @@ class TransactionManager(Elaboratable):
         return method_enables
 
     @staticmethod
-    def _method_calls(m: Module, method_map: MethodMap) -> tuple[Mapping["Method", Sequence[ValueLike]], Mapping["Method", Sequence[ValueLike]]]:
+    def _method_calls(
+        m: Module, method_map: MethodMap
+    ) -> tuple[Mapping["Method", Sequence[ValueLike]], Mapping["Method", Sequence[ValueLike]]]:
         args = defaultdict[Method, list[ValueLike]](list)
         runs = defaultdict[Method, list[ValueLike]](list)
 
@@ -331,7 +333,7 @@ class TransactionManager(Elaboratable):
         for method, transactions in method_map.transactions_by_method.items():
             granted = Cat(transaction.grant & method_enables[transaction][method] for transaction in transactions)
             m.d.comb += method.run.eq(granted.any())
-        
+
         (method_args, method_runs) = self._method_calls(m, method_map)
 
         for method in method_map.methods:
