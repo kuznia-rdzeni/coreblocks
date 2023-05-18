@@ -297,7 +297,7 @@ class TransactionManager(Elaboratable):
 
         for source in method_map.methods_and_transactions:
             if isinstance(source, Method):
-                run = source.run
+                run = Cat(transaction.grant for transaction in method_map.transactions_by_method[source])
             else:
                 run = source.grant
             for method, (arg, _) in source.method_uses.items():
