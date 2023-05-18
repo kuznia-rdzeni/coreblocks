@@ -46,7 +46,6 @@ def OneHotSwitch(m: Module, test: Value):
     test : Signal
         The signal being tested.
     """
-    count = len(test)
 
     @contextmanager
     def case(n: Optional[int] = None):
