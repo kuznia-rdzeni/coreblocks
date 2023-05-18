@@ -678,13 +678,49 @@ class TransactionBase(Owned):
         self.method_uses[method] = (arg, enable)
 
     def simultaneous(self, *others: TransactionOrMethod) -> None:
+        """Adds simultaneity relations.
+
+        The given `Transaction`\\s or `Method``\\s will execute simultaneously
+        (in the same clock cycle) with this `Transaction` or `Method`.
+
+        Parameters
+        ----------
+        *others: Transaction or Method
+            The `Transaction`\\s or `Method`\\s to be executed simultaneously.
+        """
         self.simultaneous_list += others
 
     def simultaneous_alternatives(self, *others: TransactionOrMethod) -> None:
+        """Adds exclusive simultaneity relations.
+
+        Each of the given `Transaction`\\s or `Method``\\s will execute
+        simultaneously (in the same clock cycle) with this `Transaction` or
+        `Method`. However, each of the given `Transaction`\\s or `Method`\\s
+        will be separately considered for execution.
+
+        Parameters
+        ----------
+        *others: Transaction or Method
+            The `Transaction`\\s or `Method`\\s to be executed simultaneously,
+            but mutually exclusive, with this `Transaction` or `Method`.
+        """
         self.simultaneous(*others)
         others[0].independent(*others[1:])
 
     def independent(self, *others: TransactionOrMethod) -> None:
+        """Adds independence relations.
+
+        This `Transaction` or `Method`, together with all the given
+        `Transaction`\\s or `Method`\\s, will never be considered (pairwise)
+        for simultaneous execution.
+
+        Parameters
+        ----------
+        *others: Transaction or Method
+            The `Transaction`\\s or `Method`\\s which, together with this
+            `Transaction` or `Method`, need to be independently considered
+            for execution.
+        """
         self.independent_list += others
 
     @contextmanager
