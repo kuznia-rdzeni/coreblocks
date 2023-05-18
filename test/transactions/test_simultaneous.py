@@ -174,11 +174,12 @@ class TransitivityTest(TestCaseWithSimulator):
 
 
 class ConditionTestCircuit(Elaboratable):
-    def __init__(self, target: Method, *, full: bool, priority: bool):
+    def __init__(self, target: Method, *, full: bool, priority: bool, catchall: bool):
         self.target = target
         self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)])
         self.full = full
         self.priority = priority
+        self.catchall = catchall
 
     def elaborate(self, platform):
         m = TModule()
@@ -192,8 +193,7 @@ class ConditionTestCircuit(Elaboratable):
                     self.target(m, cond=2)
                 with branch(cond3):
                     self.target(m, cond=3)
-                # TODO: also test behavior without catch-all
-                if self.full:
+                if self.catchall:
                     with branch():
                         self.target(m, cond=0)
 
@@ -201,11 +201,11 @@ class ConditionTestCircuit(Elaboratable):
 
 
 class ConditionTest(TestCaseWithSimulator):
-    @parameterized.expand(product([False, True], [False, True]))
-    def test_condition(self, full: bool, priority: bool):
+    @parameterized.expand(product([False, True], [False, True], [False, True]))
+    def test_condition(self, full: bool, priority: bool, catchall: bool):
         target = TestbenchIO(Adapter(i=[("cond", 2)]))
 
-        circ = SimpleTestCircuit(ConditionTestCircuit(target.adapter.iface, full=full, priority=priority))
+        circ = SimpleTestCircuit(ConditionTestCircuit(target.adapter.iface, full=full, priority=priority, catchall=catchall))
         m = ModuleConnector(test_circuit=circ, target=target)
 
         selection: Optional[int]
@@ -219,9 +219,16 @@ class ConditionTest(TestCaseWithSimulator):
             nonlocal selection
             for c1, c2, c3 in product([0, 1], [0, 1], [0, 1]):
                 selection = None
-                yield from circ.source.call(cond1=c1, cond2=c2, cond3=c3)
-                
-                if selection is None:
+                res = yield from circ.source.call_try(cond1=c1, cond2=c2, cond3=c3)
+
+                if catchall or not full:
+                    self.assertIsNotNone(res)
+               
+                if res is None:
+                    self.assertIsNone(selection)
+                    self.assertFalse(catchall or not full)
+                    self.assertEqual((c1, c2, c3), (0, 0, 0))
+                elif selection is None:
                     self.assertFalse(full)
                     self.assertEqual((c1, c2, c3), (0, 0, 0))
                 elif priority:
