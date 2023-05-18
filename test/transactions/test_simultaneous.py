@@ -174,10 +174,10 @@ class TransitivityTest(TestCaseWithSimulator):
 
 
 class ConditionTestCircuit(Elaboratable):
-    def __init__(self, target: Method, *, full: bool, priority: bool, catchall: bool):
+    def __init__(self, target: Method, *, nonblocking: bool, priority: bool, catchall: bool):
         self.target = target
         self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)])
-        self.full = full
+        self.nonblocking = nonblocking
         self.priority = priority
         self.catchall = catchall
 
@@ -186,7 +186,7 @@ class ConditionTestCircuit(Elaboratable):
 
         @def_method(m, self.source)
         def _(cond1, cond2, cond3):
-            with condition(m, full=self.full, priority=self.priority) as branch:
+            with condition(m, nonblocking=self.nonblocking, priority=self.priority) as branch:
                 with branch(cond1):
                     self.target(m, cond=1)
                 with branch(cond2):
@@ -202,10 +202,10 @@ class ConditionTestCircuit(Elaboratable):
 
 class ConditionTest(TestCaseWithSimulator):
     @parameterized.expand(product([False, True], [False, True], [False, True]))
-    def test_condition(self, full: bool, priority: bool, catchall: bool):
+    def test_condition(self, nonblocking: bool, priority: bool, catchall: bool):
         target = TestbenchIO(Adapter(i=[("cond", 2)]))
 
-        circ = SimpleTestCircuit(ConditionTestCircuit(target.adapter.iface, full=full, priority=priority, catchall=catchall))
+        circ = SimpleTestCircuit(ConditionTestCircuit(target.adapter.iface, nonblocking=nonblocking, priority=priority, catchall=catchall))
         m = ModuleConnector(test_circuit=circ, target=target)
 
         selection: Optional[int]
@@ -221,15 +221,15 @@ class ConditionTest(TestCaseWithSimulator):
                 selection = None
                 res = yield from circ.source.call_try(cond1=c1, cond2=c2, cond3=c3)
 
-                if catchall or not full:
+                if catchall or nonblocking:
                     self.assertIsNotNone(res)
                
                 if res is None:
                     self.assertIsNone(selection)
-                    self.assertFalse(catchall or not full)
+                    self.assertFalse(catchall or nonblocking)
                     self.assertEqual((c1, c2, c3), (0, 0, 0))
                 elif selection is None:
-                    self.assertFalse(full)
+                    self.assertTrue(nonblocking)
                     self.assertEqual((c1, c2, c3), (0, 0, 0))
                 elif priority:
                     self.assertEqual(selection, c1 + 2 * c2 * (1 - c1) + 3 * c3 * (1 - c2) * (1 - c1))
