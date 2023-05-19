@@ -1,4 +1,4 @@
-from collections.abc import Collection
+from collections.abc import Collection, Iterable
 from amaranth import *
 from dataclasses import dataclass
 from coreblocks.params import *

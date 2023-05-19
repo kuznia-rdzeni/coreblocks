@@ -17,7 +17,7 @@ from coreblocks.utils.protocols import FuncUnit
 
 
 class AluFn(DecoderManager):
-    def __init__(self, zba_enable=True) -> None:
+    def __init__(self, zba_enable=False) -> None:
         self.zba_enable = zba_enable
 
     class Fn(IntFlag):
@@ -145,7 +145,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
 
 
 class ALUComponent(FunctionalComponentParams):
-    def __init__(self, zba_enable=True):
+    def __init__(self, zba_enable=False):
         self.zba_enable = zba_enable
         self.alu_fn = AluFn(zba_enable=zba_enable)
 

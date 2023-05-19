@@ -4,8 +4,9 @@ from inspect import signature
 from typing import TypeVar, Type, Protocol, runtime_checkable
 from amaranth.utils import log2_int
 
-from .isa import ISA
+from .isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
+from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
 
 from typing import TYPE_CHECKING
@@ -38,8 +39,23 @@ class GenParams(DependentCache):
     def __init__(self, cfg: CoreConfiguration):
         super().__init__()
 
-        self.isa = ISA(cfg.isa_str)
         self.func_units_config = cfg.func_units_config
+
+        ext_partial, ext_full = extensions_supported(self.func_units_config, cfg.embedded, cfg.compressed)
+        extensions = ext_partial if cfg.allow_partial_extensions else ext_full
+        if not cfg.allow_partial_extensions and ext_partial != ext_full:
+            raise RuntimeError(f"Extensions {ext_partial&~ext_full!r} are only partially supported")
+
+        if cfg.embedded:
+            raise RuntimeError("E extension is not supported yet")  # TODO: Remove after implementing E in decode
+
+        if cfg.compressed:
+            raise RuntimeError("C extension is not supported yet")  # TODO: Remove after implementing C in decode
+
+        extensions |= cfg._implied_extensions
+        self.isa_str = gen_isa_string(extensions, cfg.xlen)
+
+        self.isa = ISA(self.isa_str)
 
         bytes_in_word = self.isa.xlen // 8
         self.wb_params = WishboneParameters(

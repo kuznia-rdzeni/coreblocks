@@ -198,7 +198,7 @@ _extension_requirements = {
 }
 
 # Extensions which implicitly imply another extensions (can be joined using | operator)
-_extension_implications = {
+extension_implications = {
     Extension.F: Extension.ZICSR,
     Extension.M: Extension.ZMMUL,
     Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
@@ -278,7 +278,7 @@ class ISA:
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
 
-        for ext, imply in _extension_implications.items():
+        for ext, imply in extension_implications.items():
             if ext in self.extensions:
                 self.extensions |= imply
 
@@ -309,3 +309,23 @@ class ISA:
         self.ilen_log = self.ilen.bit_length() - 1
 
         self.csr_alen = 12
+
+
+def gen_isa_string(extensions: Extension, isa_xlen: int) -> str:
+    isa_str = "rv"
+
+    isa_str += str(isa_xlen)
+
+    # G extension alias should be defined first
+    if Extension.G in extensions:
+        isa_str += "g"
+        extensions ^= Extension.G
+
+    for ext in Extension:
+        if ext in extensions:
+            ext_name = str(ext.name).lower()
+            if ext_name[0] == "z" or ext_name[0] == "x":
+                ext_name = "_" + ext_name
+            isa_str += ext_name
+
+    return isa_str
