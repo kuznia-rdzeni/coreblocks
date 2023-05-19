@@ -23,7 +23,14 @@ do_ops:
     and x6, x7, x6
     slli x6, x6, 3 
     blt x0, x6, do_ops
-    j infloop # no mret support yet
+    j mret
 
 .org 0x100
     j int_handler
+
+# hacky way to do mret - loop and detect this address in simulation
+.org 0x110
+mret:
+    # fill with 32 NOPs
+    .fill 32, 4, 0
+    j mret

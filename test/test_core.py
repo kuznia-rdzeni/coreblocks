@@ -60,6 +60,7 @@ class TestElaboratable(Elaboratable):
         self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
         self.interrupt = TestbenchIO(AdapterTrans(self.core.ROB.interrupt))
+        self.mret = TestbenchIO(AdapterTrans(self.core.int_coordinator.iret))
 
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
@@ -67,6 +68,7 @@ class TestElaboratable(Elaboratable):
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
         m.submodules.interrupt = self.interrupt
+        m.submodules.mret = self.mret
 
         m.d.comb += wb_instr_bus.connect(self.wb_mem_slave.bus)
         m.d.comb += wb_data_bus.connect(self.wb_mem_slave_data.bus)
@@ -300,15 +302,24 @@ class TestCoreBasicAsmSource(TestCoreAsmSourceBase):
 class TestCoreInterrupt(TestCoreAsmSourceBase):
     def setUp(self):
         self.source_file = "interrupt.asm"
-        self.cycle_count = 100
+        self.main_cycle_count = 500
         self.configuration = basic_core_config
         self.gp = GenParams(self.configuration)
+        random.seed(1500100900)
 
     def run_with_interrupt(self):
-        yield from self.tick(30)
-        yield from self.m.interrupt.call()
-        yield from self.tick(500)
+        main_cycles = 0
+        while main_cycles < self.main_cycle_count:
+            r = random.randint(0, 50)
+            main_cycles += r
+            yield from self.tick(r)
+            yield from self.m.interrupt.call()
+            while (yield self.m.core.fetch.pc) < 0x110:
+                yield
+            yield from self.m.mret.call()
+            yield from self.tick(random.randint(20, 100))
         self.assertEqual((yield from self.get_arch_reg_val(8)), 38)
+        self.assertEqual((yield from self.get_arch_reg_val(2)), 2971215073)
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file, self.configuration.isa_str)

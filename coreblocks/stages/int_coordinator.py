@@ -25,7 +25,7 @@ class InterruptCoordinator(Elaboratable):
         self.rob_can_flush = rob_can_flush
         self.rob_flush = rob_flush
         self.free_reg_put = free_reg_put
-        self.trigger = Method()
+        self.trigger = Method(i=[('pc', self.gen_params.isa.xlen)])
         self.iret = Method()
         self.allow_retirement = Signal(reset=1)
         self.interrupt = Signal()
@@ -61,16 +61,26 @@ class InterruptCoordinator(Elaboratable):
                         m.next = "unstall"
             with m.State("unstall"):
                 with Transaction(name="IntUnstall").body(m):
-                    m.d.sync += old_pc.eq(self.pc_verify_branch(m, next_pc=int_handler_addr))
+                    self.pc_verify_branch(m, next_pc=int_handler_addr)
                     m.d.sync += self.allow_retirement.eq(1)
-                    m.next = "iret"
-            with m.State("iret"):
-                with m.If(~self.interrupt):
-                    m.next = "idle"
+                    m.next = "wait_for_iret"
+            with m.State("wait_for_iret"):
+                with Transaction(name="IretStallFetch").body(m, request=~self.interrupt):
+                    # potentially problematic: jump could unstall this stall which is intended to perform
+                    # a jump back to the interrupted instruction but this shouldn't happen when proper mret
+                    # handling is implemented on the assumption that it will be the last instruction in ROB
+                    # (we stall fetching when it's encountered)
+                    self.pc_stall(m)
+                    m.next = "iret_jump"
+            with m.State("iret_jump"):
+                with Transaction(name="IretJump").body(m):
+                    self.pc_verify_branch(m, next_pc=old_pc)
+                    m.next="idle"
 
         # should be called by interrupt controller (CLIC?)
         @def_method(m, self.trigger)
-        def _():
+        def _(pc):
+            m.d.sync += old_pc.eq(pc)
             m.d.sync += self.interrupt.eq(1)
 
         # should be called by block responsible for handling mret (FU?)

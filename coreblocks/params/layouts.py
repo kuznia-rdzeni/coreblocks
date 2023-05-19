@@ -15,6 +15,7 @@ __all__ = [
     "RATLayouts",
     "LSULayouts",
     "CSRLayouts",
+    "IntCoordinatorLayouts",
     "ICacheLayouts",
 ]
 
@@ -126,6 +127,7 @@ class ROBLayouts:
         self.data_layout = [
             ("rl_dst", gen_params.isa.reg_cnt_log),
             ("rp_dst", gen_params.phys_regs_bits),
+            ("pc", gen_params.isa.xlen),
         ]
 
         self.id_layout = [
@@ -339,6 +341,11 @@ class LSULayouts:
         retirement = gen_params.get(RetirementLayouts)
 
         self.precommit = retirement.precommit
+
+
+class IntCoordinatorLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.trigger = [("pc", gen_params.isa.xlen)]
 
 
 class CSRLayouts:

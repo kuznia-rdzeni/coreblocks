@@ -64,6 +64,7 @@ class RegAllocation(Elaboratable):
                 {
                     "rl_dst": instr.regs_l.rl_dst,
                     "rp_dst": free_reg,
+                    "pc": instr.pc
                 },
             )
 

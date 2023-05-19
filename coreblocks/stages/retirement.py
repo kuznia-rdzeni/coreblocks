@@ -43,20 +43,22 @@ class Retirement(Elaboratable):
             self.precommit(m, rob_id=rob_entry.rob_id)
 
         with Transaction().body(m, request=self.int_coordinator.allow_retirement):
-            rob_entry = self.rob_retire(m)
+            # look up instruction without actually retiring it
+            lookup = self.rob_retire.data_out
+            with m.If(lookup.interrupt):
+                self.int_coordinator.trigger(m, lookup.rob_data.pc)
+            with m.Else():
+                rob_entry = self.rob_retire(m)
+                # set rl_dst -> rp_dst in R-RAT
+                rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
 
-            with m.If(rob_entry.interrupt):
-                self.int_coordinator.trigger(m)
+                self.rf_free(m, rat_out.old_rp_dst)
+                self.lsu_commit(m, rob_id=rob_entry.rob_id)
 
-            # set rl_dst -> rp_dst in R-RAT
-            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
+                # put old rp_dst to free RF list
+                with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
+                    self.free_rf_put(m, rat_out.old_rp_dst)
 
-            self.rf_free(m, rat_out.old_rp_dst)
-
-            # put old rp_dst to free RF list
-            with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
-                self.free_rf_put(m, rat_out.old_rp_dst)
-
-            self.instret_csr.increment(m)
+                self.instret_csr.increment(m)
 
         return m

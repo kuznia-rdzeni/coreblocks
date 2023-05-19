@@ -2,7 +2,7 @@ from coreblocks.stages.retirement import *
 
 from coreblocks.transactions.lib import FIFO, Adapter
 from coreblocks.structs_common.rat import RRAT
-from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
+from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts, IntCoordinatorLayouts
 from coreblocks.params.configurations import test_core_config
 
 from ..common import *
@@ -11,11 +11,15 @@ import random
 
 
 class IntCoordinatorMock(Elaboratable):
+    def __init__(self, gen_params: GenParams):
+        self.gp = gen_params
+
     def elaborate(self, platform):
         m = Module()
         tm = TransactionModule(m)
 
-        m.submodules.trigger_mock = self.trigger_mock = TestbenchIO(Adapter())
+        int_layout = self.gp.get(IntCoordinatorLayouts).trigger
+        m.submodules.trigger_mock = self.trigger_mock = TestbenchIO(Adapter(i=int_layout))
         self.allow_retirement = C(1)
         self.trigger = self.trigger_mock.adapter.iface
         return tm
@@ -46,7 +50,7 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
-        m.submodules.mock_interrupt = self.mock_interrupt = IntCoordinatorMock()
+        m.submodules.mock_interrupt = self.mock_interrupt = IntCoordinatorMock(self.gen_params)
 
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,

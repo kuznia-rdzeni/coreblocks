@@ -18,6 +18,11 @@ class ReorderBuffer(Elaboratable):
         self.interrupt = Method()
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
+    def free_entry(self, m, start_idx):
+        m.d.sync += start_idx.eq(start_idx + 1)
+        m.d.sync += self.data[start_idx].done.eq(0)
+        m.d.sync += self.data[start_idx].interrupt.eq(0)
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -26,6 +31,7 @@ class ReorderBuffer(Elaboratable):
 
         peek_possible = start_idx != end_idx
         put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
+        empty = start_idx == end_idx
 
         @def_method(m, self.peek, ready=peek_possible)
         def _():
@@ -57,9 +63,12 @@ class ReorderBuffer(Elaboratable):
         @def_method(m, self.flush)
         def _():
             m.d.sync += start_idx.eq(start_idx + 1)
+            m.d.sync += self.data[start_idx].done.eq(0)
+            m.d.sync += self.data[start_idx].interrupt.eq(0)
             return self.data[start_idx].rob_data.rp_dst
 
-        @def_method(m, self.interrupt)
+        # don't allow signaling an interrupt if ROB is empty to avoid corner cases
+        @def_method(m, self.interrupt, ready=~empty)
         def _():
             m.d.sync += self.data[start_idx].interrupt.eq(1)
 
