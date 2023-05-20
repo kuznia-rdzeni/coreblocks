@@ -275,11 +275,17 @@ class TransactionManager(Elaboratable):
     @staticmethod
     def _method_uses(method_map: MethodMap) -> Mapping["Transaction", Mapping["Method", Tuple[ValueLike, ValueLike]]]:
         method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
+        enables: list[ValueLike] = []
 
-        for source in method_map.methods_and_transactions:
-            for transaction in method_map.transactions_for(source):
-                for method, use_data in source.method_uses.items():
-                    method_uses[transaction][method] = use_data
+        def rec(transaction: Transaction, source: TransactionOrMethod):
+            for method, (arg, enable) in source.method_uses.items():
+                enables.append(enable)
+                rec(transaction, method)
+                method_uses[transaction][method] = (arg, Cat(*enables).all())
+                enables.pop()
+
+        for transaction in method_map.transactions:
+            rec(transaction, transaction)
 
         return method_uses
 
