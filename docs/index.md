@@ -17,5 +17,6 @@ Problem-checklist.md
 synthesis/Synthesis.md
 components/icache.md
 miscellany/exceptionsSummary.md
+miscellany/side_effects_handling.md
 api.md
 ```
