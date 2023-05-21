@@ -858,17 +858,29 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
 
 
 class PriorityOrderingProxy(Elaboratable):
+    """Proxy for ordering methods
+
+    This proxy allow to order called methods. It guarantees that if
+    there is a `k` method called (in any order), then theys will be
+    connected to `k` first methods from ordered list and both arguments
+    and results of methods calls will be correctly forwarded.
+
+    There is no fairness algorithm used, but there is a guarantee that always
+    the biggest subset of available methods will be called.
+
+    WARNING: This scales up badly -- O(2^n) -- so it is discouraged to use
+    that module with more than 6 inputs.
+
+    Parameters
+    ----------
+    m_ordered : list[Method]
+        A list of methods which will be called in order. So if `j`-th method
+        is called and `i<j` then `i` also is called.
+    m_unordered : list[Method]
+        Calls to this methods will be ordered.
     """
-    Proxy for ordering methods. It forward all `k` method calls from input
-    to first `k` methods of output.
 
-    No round-robin or any other fairness.
-
-    WARNING: This scales up badly -- O(2^n)
-    """
-
-    def __init__(self, port_count: int, methods_ordered: list[Method]):
-        self.port_count = port_count
+    def __init__(self, methods_ordered: list[Method]):
         self.m_ordered = methods_ordered
         self._m_connects = [
             Connect(self.m_ordered[0].data_in.layout, self.m_ordered[0].data_out.layout) for _ in self.m_ordered
@@ -882,7 +894,7 @@ class PriorityOrderingProxy(Elaboratable):
         m.submodules.connects = ModuleConnector(*self._m_connects)
 
         with Transaction().body(m):
-            with condition(m) as branch:
+            with condition(m, priority=True) as branch:
                 for k in range(len(self.m_unordered), 0, -1):
                     for comb_un in itertools.combinations(self._m_unordered_read, k):
                         with branch(1):  # sic!

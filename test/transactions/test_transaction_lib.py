@@ -482,7 +482,7 @@ class TestPriorityOrderingProxy(TestCaseWithSimulator):
         self.clk = 0
         self.ordered_called = {}
         self.test_circuit = SimpleTestCircuit(
-            PriorityOrderingProxy(self.method_count, [tb.adapter.iface for tb in self.ordered])
+            PriorityOrderingProxy([tb.adapter.iface for tb in self.ordered])
         )
         self.m = ModuleConnector(*self.ordered, test_circuit=self.test_circuit)
 
