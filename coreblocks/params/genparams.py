@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from inspect import signature
-from typing import TypeVar, Type, Protocol, runtime_checkable
+from typing import TypeVar, Type, Protocol, runtime_checkable, Any
 from amaranth.utils import log2_int
 
 from .isa import ISA, gen_isa_string
@@ -20,18 +19,38 @@ T = TypeVar("T")
 
 
 class DependentCache:
-    def __init__(self):
-        self._depcache = {}
+    """
+    Cache for classes, that depend on the `DependentCache` class itself.
 
-    def get(self, cls: Type[T]) -> T:
-        v = self._depcache.get(cls, None)
+    Cached classes may accept one positional argument in the constructor, where this `DependentCache` class will
+    be passed. Classes may define any number keyword arguments in the constructor and separate cache entry will
+    be created for each set of the arguments.
+
+    Methods
+    -------
+    get: T, **kwargs -> T
+        Gets class `cls` from cache. Caches `cls` reference if this is the first call for it.
+        Optionally accepts `kwargs` for additional arguments in `cls` constructor.
+
+    """
+
+    def __init__(self):
+        self._depcache: dict[tuple[Any, frozenset[tuple[str, Any]]], Any] = {}
+
+    def get(self, cls: Type[T], **kwargs) -> T:
+        v = self._depcache.get((cls, frozenset(kwargs.items())), None)
         if v is None:
-            sig = signature(cls)
-            if sig.parameters:
-                v = cls(self)
+            positional_count = cls.__init__.__code__.co_argcount
+
+            # first positional arg is `self` field, second may be `DependentCache`
+            if positional_count > 2:
+                raise KeyError(f"Too many positional arguments in {cls!r} constructor")
+
+            if positional_count > 1:
+                v = cls(self, **kwargs)
             else:
-                v = cls()
-            self._depcache[cls] = v
+                v = cls(**kwargs)
+            self._depcache[(cls, frozenset(kwargs.items()))] = v
         return v
 
 
