@@ -820,7 +820,7 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
 
     @contextmanager
     def branch(cond: Optional[ValueLike] = None):
-        nonlocal nonblocking, last
+        nonlocal last
         if last:
             raise RuntimeError("Condition clause added after catch-all")
         req = cond if cond is not None else 1
@@ -830,7 +830,6 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
         if transactions and priority:
             transactions[-1].schedule_before(transaction)
         if cond is None:
-            nonblocking = False
             last = True
             if not priority:
                 for transaction0 in transactions:
@@ -839,7 +838,7 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
 
     yield branch
 
-    if nonblocking:
+    if nonblocking and not last:
         with branch():
             pass
 
