@@ -272,7 +272,7 @@ def assign(
         yield lhs_val.eq(rhs_val)
 
 
-def popcount(m: ModuleLike, s: Signal) -> Signal:
+def popcount(m: Module, s: Signal) -> Signal:
     """
     Implementation of popcount algorithm from https://en.wikipedia.org/wiki/Hamming_weight
     """
@@ -297,16 +297,16 @@ def popcount(m: ModuleLike, s: Signal) -> Signal:
         m.d.comb += popcount_sig2.eq((popcount_sig1 & m2) + ((popcount_sig1 >> 2) & m2))
     if s.shape().width > 4:
         popcount_sigs.append(popcount_sig3 := Signal.like(popcount_sigs[-1]))
-        m.d.comb += popcount_sig3.eq((popcount_sigs[-1] + (popcount_sigs[-1] >> 4)) & m4)
+        m.d.comb += popcount_sig3.eq((popcount_sigs[-2] + (popcount_sigs[-2] >> 4)) & m4)
     if s.shape().width > 8:
         popcount_sigs.append(popcount_sig4 := Signal.like(popcount_sigs[-1]))
-        m.d.comb += popcount_sig4.eq(popcount_sigs[-1] + (popcount_sigs[-1] >> 8))
+        m.d.comb += popcount_sig4.eq(popcount_sigs[-2] + (popcount_sigs[-2] >> 8))
     if s.shape().width > 16:
         popcount_sigs.append(popcount_sig5 := Signal.like(popcount_sigs[-1]))
-        m.d.comb += popcount_sig5.eq(popcount_sigs[-1] + (popcount_sigs[-1] >> 16))
+        m.d.comb += popcount_sig5.eq(popcount_sigs[-2] + (popcount_sigs[-2] >> 16))
     if s.shape().width > 32:
         popcount_sigs.append(popcount_sig6 := Signal.like(popcount_sigs[-1]))
-        m.d.comb += popcount_sig6.eq(popcount_sigs[-1] + (popcount_sigs[-1] >> 32))
+        m.d.comb += popcount_sig6.eq(popcount_sigs[-2] + (popcount_sigs[-2] >> 32))
 
     popcount_sigs.append(popcount_res := Signal.like(popcount_sigs[-1]))
     m.d.comb += popcount_res.eq(popcount_sigs[-2] & 0x7F)

@@ -1,6 +1,10 @@
 import unittest
+import random
 
-from coreblocks.utils import align_to_power_of_two
+from amaranth import *
+from test.common import *
+from coreblocks.utils import align_to_power_of_two, popcount
+from parameterized import parameterized_class
 
 
 class TestAlignToPowerOfTwo(unittest.TestCase):
@@ -24,3 +28,44 @@ class TestAlignToPowerOfTwo(unittest.TestCase):
         for num, power, expected in test_cases:
             out = align_to_power_of_two(num, power)
             self.assertEqual(expected, out)
+
+
+class PopcountTestCircuit(Elaboratable):
+    def __init__(self, size: int):
+        self.sig_in = Signal(size)
+        self.sig_out = Signal(size)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        self.sig_out = popcount(m, self.sig_in)
+        # dummy signal
+        s = Signal()
+        m.d.sync += s.eq(1)
+
+        return m
+
+
+@parameterized_class(
+    ("name", "size"),
+    [("size" + str(s), s) for s in [2, 3, 4, 5, 6, 8, 10, 16, 21, 32, 43, 64]],
+)
+class TestPopcount(TestCaseWithSimulator):
+    size: int
+
+    def setUp(self):
+        random.seed(14)
+        self.test_number = 40
+        self.m = PopcountTestCircuit(self.size)
+
+    def process(self):
+        for i in range(self.test_number):
+            n = random.randrange(2**self.size)
+            yield self.m.sig_in.eq(n)
+            yield Settle()
+            out_popcount = yield self.m.sig_out
+            self.assertEqual(out_popcount, n.bit_count(), f"{n:x}")
+
+    def test_popcount(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_process(self.process)
