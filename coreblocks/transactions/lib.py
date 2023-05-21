@@ -875,7 +875,7 @@ class PriorityOrderingProxy(Elaboratable):
     ----------
     m_ordered : list[Method]
         A list of methods which will be called in order. So if `j`-th method
-        is called and `i<j` then `i` also is called.
+        is called and `i<j` then `i`-th Method also is called.
     m_unordered : list[Method]
         Calls to this methods will be ordered.
     """
