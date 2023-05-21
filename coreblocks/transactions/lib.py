@@ -1,3 +1,4 @@
+import itertools
 from contextlib import contextmanager
 from typing import Callable, Tuple, Optional
 from amaranth import *
@@ -32,6 +33,8 @@ __all__ = [
     "condition",
     "AnyToAnySimpleRoutingBlock",
     "OmegaRoutingNetwork",
+    "PriorityOrderingTransProxyTrans",
+    "PriorityOrderingProxyTrans",
 ]
 
 # FIFOs
@@ -688,6 +691,14 @@ class Collector(Elaboratable):
 # Example transactions
 
 
+def connect_methods(m: TModule, method1: Method, method2: Method):
+    data1 = Record.like(method1.data_out)
+    data2 = Record.like(method2.data_out)
+
+    m.d.top_comb += data1.eq(method1(m, data2))
+    m.d.top_comb += data2.eq(method2(m, data1))
+
+
 class ConnectTrans(Elaboratable):
     """Simple connecting transaction.
 
@@ -713,12 +724,7 @@ class ConnectTrans(Elaboratable):
         m = TModule()
 
         with Transaction().body(m):
-            data1 = Record.like(self.method1.data_out)
-            data2 = Record.like(self.method2.data_out)
-
-            m.d.top_comb += data1.eq(self.method1(m, data2))
-            m.d.top_comb += data2.eq(self.method2(m, data1))
-
+            connect_methods(m, self.method1, self.method2)
         return m
 
 
@@ -1444,5 +1450,82 @@ class OmegaRoutingNetwork(Elaboratable, RoutingBlock):
             @def_method(m, self.receive[self.outputs_count - i - 1])
             def _():
                 return {"data": (switches[-1][i // self.switch_port_count].reads[i % self.switch_port_count](m)).data}
+        return m
 
+class PriorityOrderingTransProxyTrans(Elaboratable):
+    """Proxy for ordering methods
+
+    This proxy allows to order called methods. It guarantee that if
+    there is a `k` method called (in any order), then they will be
+    connected to `k` first methods from ordered list and both arguments
+    and results of methods will be correctly forwarded.
+
+    There is no fairness algorithm used, but there is a guarantee that always
+    the biggest subset of available methods will be called.
+
+    WARNING: This scales up badly -- O(2^n) -- so it is discouraged to use
+    that module with more than 6 inputs.
+    """
+
+    def __init__(self, methods_ordered: list[Method], methods_unordered: list[Method]):
+        """
+        Parameters
+        ----------
+        methods_ordered : list[Method]
+            A list of methods which will be called in order. So if `j`-th method
+            is called and `i<j` then `i`-th Method also is called.
+        methods_unordered : list[Method]
+            Methods whose calls should be ordered.
+        """
+        self._m_ordered = methods_ordered
+        self._m_unordered = methods_unordered
+
+
+    def elaborate(self, platform):
+        m = TModule()
+
+
+
+
+
+
+        with Transaction().body(m):
+            with condition(m, priority=True) as branch:
+                for k in range(len(self._m_unordered), 0, -1):
+                    for comb_un in itertools.combinations(self._m_unordered, k):
+                        with branch(1):  # sic!
+                            for un, ord in zip(comb_un, self._m_ordered):
+                                connect_methods(m, un, ord)
+        return m
+
+
+class PriorityOrderingProxyTrans(PriorityOrderingTransProxyTrans):
+    """Proxy for ordering methods
+
+    Gender changing wrapper for PriorityOrderingTransProxyTrans.
+
+    Attributes
+    ----------
+    m_unordered : list[Method]
+        Calls to these methods will be ordered.
+    """
+
+    def __init__(self, methods_ordered: list[Method]):
+        """
+        Parameters
+        ----------
+        methods_ordered : list[Method]
+            A list of methods which will be called in order. So if `j`-th method
+            is called and `i<j` then `i`-th Method also is called.
+        """
+        self._m_connects = [
+            Connect(methods_ordered[0].data_in.layout, methods_ordered[0].data_out.layout) for _ in methods_ordered
+        ]
+        _m_unordered_read = [connect.read for connect in self._m_connects]
+        super().__init__(methods_ordered, _m_unordered_read)
+        self.m_unordered = [connect.write for connect in self._m_connects]
+
+    def elaborate(self, platform):
+        m = super().elaborate(platform)
+        m.submodules.connects = ModuleConnector(*self._m_connects)
         return m
