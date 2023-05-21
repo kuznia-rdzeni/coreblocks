@@ -467,3 +467,60 @@ class TestMethodProduct(TestCaseWithSimulator):
             sim.add_sync_process(method_process)
             for k in range(targets):
                 sim.add_sync_process(target_process(k))
+
+
+class TestPriorityOrderingProxy(TestCaseWithSimulator):
+    def setUp(self):
+        random.seed(14)
+        self.test_number = 100
+        self.in_lay = data_layout(3)
+        self.out_lay = data_layout(5)
+        self.method_count = 4  # Do not increase to more than 7, this scales up bad
+        self.ordered: list[TestbenchIO] = [
+            TestbenchIO(Adapter(i=self.in_lay, o=self.out_lay)) for _ in range(self.method_count)
+        ]
+        self.clk = 0
+        self.ordered_called = {}
+        self.test_circuit = SimpleTestCircuit(
+            PriorityOrderingProxy(self.method_count, [tb.adapter.iface for tb in self.ordered])
+        )
+        self.m = ModuleConnector(*self.ordered, test_circuit=self.test_circuit)
+
+    def method_mock_generator(self, k):
+        @def_method_mock(lambda: self.ordered[k])
+        def f(arg):
+            nonlocal self
+            self.ordered_called[k] = self.clk
+
+        return f
+
+    def gen_activation_list(self):
+        return [random.randrange(2) for _ in range(self.method_count)]
+
+    def call_from_activation_list(self, activation_list):
+        for i in range(self.method_count):
+            if activation_list[i]:
+                yield from self.test_circuit.m_unordered[i].call_init({"data": 11})
+
+    def disable_all(self):
+        for i in range(self.method_count):
+            yield from self.test_circuit.m_unordered[i].disable()
+
+    def check(self, activation_list):
+        for i in range(sum(activation_list)):
+            self.assertEqual(self.ordered_called[i], self.clk)
+
+    def activator(self):
+        for i in range(self.test_number):
+            self.clk = i
+            activation_list = self.gen_activation_list()
+            yield from self.call_from_activation_list(activation_list)
+            yield
+            yield from self.disable_all()
+            self.check(activation_list)
+
+    def test_priority_ordering_proxy(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.activator)
+            for i in range(len(self.ordered)):
+                sim.add_sync_process(self.method_mock_generator(i))

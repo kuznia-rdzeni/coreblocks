@@ -1,10 +1,11 @@
+import itertools
 from contextlib import contextmanager
 from typing import Callable, Tuple, Optional
 from amaranth import *
 from .core import *
 from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
-from ..utils import ValueLike, assign, AssignType
+from ..utils import ValueLike, assign, AssignType, ModuleConnector
 
 __all__ = [
     "FIFO",
@@ -22,6 +23,7 @@ __all__ = [
     "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
+    "PriorityOrderingProxy",
 ]
 
 # FIFOs
@@ -637,16 +639,23 @@ class ConnectTrans(Elaboratable):
         self.method1 = method1
         self.method2 = method2
 
+    def t_elaborate(self):
+        self.transaction = Transaction()
+
     def elaborate(self, platform):
         m = TModule()
 
-        with Transaction().body(m):
+        try:
+            self.transaction
+        except AttributeError:
+            self.t_elaborate()
+
+        with self.transaction.body(m):
             data1 = Record.like(self.method1.data_out)
             data2 = Record.like(self.method2.data_out)
 
             m.d.top_comb += data1.eq(self.method1(m, data2))
             m.d.top_comb += data2.eq(self.method2(m, data1))
-
         return m
 
 
@@ -846,3 +855,41 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
         this.simultaneous(transaction)
 
     transactions[0].independent(*transactions[1:])
+
+
+class PriorityOrderingProxy(Elaboratable):
+    """
+    Proxy for ordering methods. It forward all `k` method calls from input
+    to first `k` methods of output.
+
+    No round-robin or any other fairness.
+
+    WARNING: This scales up badly -- O(2^n)
+    """
+
+    def __init__(self, port_count: int, methods_ordered: list[Method]):
+        self.port_count = port_count
+        self.m_ordered = methods_ordered
+        self._m_connects = [
+            Connect(self.m_ordered[0].data_in.layout, self.m_ordered[0].data_out.layout) for _ in self.m_ordered
+        ]
+        self.m_unordered = [connect.write for connect in self._m_connects]
+        self._m_unordered_read = [connect.read for connect in self._m_connects]
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules.connects = ModuleConnector(*self._m_connects)
+
+        with Transaction().body(m):
+            with condition(m) as branch:
+                for k in range(len(self.m_unordered), 0, -1):
+                    for comb_un in itertools.combinations(self._m_unordered_read, k):
+                        with branch(1):  # sic!
+                            branch_trans = TransactionBase.get()
+                            for un, ord in zip(comb_un, self.m_ordered):
+                                trans_mod = ConnectTrans(un, ord)
+                                trans_mod.t_elaborate()
+                                m.submodules += trans_mod
+                                branch_trans.simultaneous(trans_mod.transaction)
+        return m
