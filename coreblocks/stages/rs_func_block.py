@@ -1,11 +1,10 @@
-from collections.abc import Collection
+from collections.abc import Collection, Iterable
 from amaranth import *
 from dataclasses import dataclass
 from coreblocks.params import *
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method
-from coreblocks.utils.debug_signals import auto_debug_signals, SignalBundle
 from coreblocks.utils.protocols import FuncUnit, FuncBlock
 from coreblocks.transactions.lib import Collector
 
@@ -79,17 +78,6 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         self.get_result.proxy(m, collector.method)
 
         return m
-
-    def debug_signals(self) -> SignalBundle:
-        # TODO: enhanced auto_debug_signals would allow to remove this method
-        return {
-            "insert": self.insert.debug_signals(),
-            "select": self.select.debug_signals(),
-            "update": self.update.debug_signals(),
-            "get_result": self.get_result.debug_signals(),
-            "rs": self.rs,
-            "func_units": {i: auto_debug_signals(b) for i, b in enumerate(self.func_units)},
-        }
 
 
 @dataclass(frozen=True)
