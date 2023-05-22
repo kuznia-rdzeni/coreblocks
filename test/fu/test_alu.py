@@ -14,6 +14,7 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
 from ..common import TestCaseWithSimulator, TestbenchIO
+from test.common import signed_to_int
 
 
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: int) -> dict[str, int]:
@@ -34,15 +35,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: in
         case AluFn.Fn.AND:
             res = i1 & val2
         case AluFn.Fn.SLT:
-
-            def _cast_to_int_xlen(x):
-                if xlen == 32:
-                    return -int(0x100000000 - x) if (x > 0x7FFFFFFF) else x
-                elif xlen == 64:
-                    return -int(0x10000000000000000 - x) if (x > 0x7FFFFFFFFFFFFFFF) else x
-                return 0
-
-            res = _cast_to_int_xlen(i1) < _cast_to_int_xlen(val2)
+            res = signed_to_int(i1, xlen) < signed_to_int(val2, xlen)
         case AluFn.Fn.SLTU:
             res = i1 < val2
         case AluFn.Fn.SH1ADD:
