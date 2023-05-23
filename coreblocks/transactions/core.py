@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Iterable, Callable, Mapping, Iterator
+from collections.abc import Sequence, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
 from typing import ClassVar, TypeAlias, TypedDict, Union, Optional, Tuple
@@ -11,6 +11,7 @@ from amaranth.hdl.ast import Statement
 from itertools import count, chain
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
+from coreblocks.utils.utils import OneHotSwitchDynamic
 from ._utils import *
 from ..utils import silence_mustuse
 from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate
@@ -273,21 +274,41 @@ class TransactionManager(Elaboratable):
         return cgr, rgr, porder
 
     @staticmethod
-    def _method_uses(method_map: MethodMap) -> Mapping["Transaction", Mapping["Method", Tuple[ValueLike, ValueLike]]]:
-        method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
+    def _method_enables(method_map: MethodMap) -> Mapping["Transaction", Mapping["Method", ValueLike]]:
+        method_enables = defaultdict[Transaction, dict[Method, ValueLike]](dict)
         enables: list[ValueLike] = []
 
         def rec(transaction: Transaction, source: TransactionOrMethod):
-            for method, (arg, enable) in source.method_uses.items():
+            for method, (_, enable) in source.method_uses.items():
                 enables.append(enable)
                 rec(transaction, method)
-                method_uses[transaction][method] = (arg, Cat(*enables).all())
+                method_enables[transaction][method] = Cat(*enables).all()
                 enables.pop()
 
         for transaction in method_map.transactions:
             rec(transaction, transaction)
 
-        return method_uses
+        return method_enables
+
+    @staticmethod
+    def _method_calls(
+        m: Module, method_map: MethodMap
+    ) -> tuple[Mapping["Method", Sequence[ValueLike]], Mapping["Method", Sequence[ValueLike]]]:
+        args = defaultdict[Method, list[ValueLike]](list)
+        runs = defaultdict[Method, list[ValueLike]](list)
+
+        for source in method_map.methods_and_transactions:
+            if isinstance(source, Method):
+                run_val = Cat(transaction.grant for transaction in method_map.transactions_by_method[source]).any()
+                run = Signal()
+                m.d.comb += run.eq(run_val)
+            else:
+                run = source.grant
+            for method, (arg, _) in source.method_uses.items():
+                args[method].append(arg)
+                runs[method].append(run)
+
+        return (args, runs)
 
     def elaborate(self, platform):
         # In the following, various problems in the transaction set-up are detected.
@@ -307,18 +328,21 @@ class TransactionManager(Elaboratable):
             *[self.cc_scheduler(method_map, cgr, cc, porder) for cc in _graph_ccs(rgr)]
         )
 
-        method_uses = self._method_uses(method_map)
+        method_enables = self._method_enables(method_map)
 
         for method, transactions in method_map.transactions_by_method.items():
-            granted = Signal(len(transactions))
-            for n, transaction in enumerate(transactions):
-                (tdata, enable) = method_uses[transaction][method]
-                m.d.comb += granted[n].eq(transaction.grant & enable)
+            granted = Cat(transaction.grant & method_enables[transaction][method] for transaction in transactions)
+            m.d.comb += method.run.eq(granted.any())
 
-                with m.If(transaction.grant):
-                    m.d.comb += method.data_in.eq(tdata)
-            runnable = granted.any()
-            m.d.comb += method.run.eq(runnable)
+        (method_args, method_runs) = self._method_calls(m, method_map)
+
+        for method in method_map.methods:
+            if len(method_args[method]) == 1:
+                m.d.comb += method.data_in.eq(method_args[method][0])
+            else:
+                runs = Cat(method_runs[method])
+                for i in OneHotSwitchDynamic(m, runs):
+                    m.d.comb += method.data_in.eq(method_args[method][i])
 
         return m
 
