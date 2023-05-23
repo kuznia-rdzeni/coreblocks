@@ -15,7 +15,7 @@ jobs:
   build-regression-tests:
     name: Build regression tests
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.05.15
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.05.14
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -24,6 +24,12 @@ jobs:
 
       - name: Build riscv-tests
         run: cd test/external/riscv-tests && make
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: "riscv-tests"
+          path: |
+            test/external/riscv-tests/test-*
 
   run-regression-tests:
     name: Run regression tests using cocotb
@@ -42,6 +48,10 @@ jobs:
 
       - name: Generate Verilog
         run: PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: "riscv-tests"
 
       - name: Run tests
         run: |
