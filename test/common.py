@@ -270,7 +270,7 @@ class TestbenchIO(Elaboratable):
 
     def call(self, data: RecordIntDict = {}, /, **kwdata: int | RecordIntDict) -> TestGen[RecordIntDictRet]:
         if data and kwdata:
-            raise TypeError("call_try() takes either a single dict or keyword arguments")
+            raise TypeError("call() takes either a single dict or keyword arguments")
         if not data:
             data = kwdata
         yield from self.call_init(data)

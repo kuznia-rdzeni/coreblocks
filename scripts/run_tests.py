@@ -108,6 +108,7 @@ def main():
     parser.add_argument(
         "-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend for regression tests"
     )
+    parser.add_argument("-c", "--count", type=int, help="Start `c` first tests which match regexp")
     parser.add_argument("test_name", nargs="?")
 
     args = parser.parse_args()
@@ -137,7 +138,7 @@ def main():
     unit_tests_success = True
     if unit_tests:
         runner = unittest.TextTestRunner(verbosity=(2 if args.verbose else 1))
-        result = runner.run(unittest.TestSuite(list(unit_tests.values())))
+        result = runner.run(unittest.TestSuite(list(unit_tests.values())[:args.count]))
         unit_tests_success = result.wasSuccessful()
 
     regression_tests_success = True
