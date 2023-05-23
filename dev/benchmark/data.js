@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684835721443,
+  "lastUpdate": 1684840152910,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -5928,6 +5928,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 5604,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "324526@uwr.edu.pl",
+            "name": "Wojciech Pokój",
+            "username": "wojpok"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6a3bb92d0a35a1c09e8e229e0a92a86abdfa65c0",
+          "message": "Shift Alu (#340)",
+          "timestamp": "2023-05-23T12:59:43+02:00",
+          "tree_id": "ea62086f131d17e70c5ed424e3f580de59445fe1",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6a3bb92d0a35a1c09e8e229e0a92a86abdfa65c0"
+        },
+        "date": 1684840151082,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 55.49,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 22781,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 860,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5608,
             "unit": "LUT"
           }
         ]
