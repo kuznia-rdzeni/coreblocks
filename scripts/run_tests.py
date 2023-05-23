@@ -138,7 +138,7 @@ def main():
     unit_tests_success = True
     if unit_tests:
         runner = unittest.TextTestRunner(verbosity=(2 if args.verbose else 1))
-        result = runner.run(unittest.TestSuite(list(unit_tests.values())[:args.count]))
+        result = runner.run(unittest.TestSuite(list(unit_tests.values())[: args.count]))
         unit_tests_success = result.wasSuccessful()
 
     regression_tests_success = True
