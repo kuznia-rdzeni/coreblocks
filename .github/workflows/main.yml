@@ -52,6 +52,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: "riscv-tests"
+          path: test/external/riscv-tests
 
       - name: Run tests
         run: |
