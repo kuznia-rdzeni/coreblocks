@@ -168,7 +168,9 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         return m
 
     def debug_signals(self):
-        return [auto_debug_signals(io) for io in self._io.values()]
+        # TODO changes to be removed before merge due to lack of rebase of simultanous transactions
+        #return [auto_debug_signals(io) for io in self._io.values()]
+        return []
 
 
 class TestCaseWithSimulator(unittest.TestCase):
