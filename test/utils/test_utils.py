@@ -48,7 +48,7 @@ class PopcountTestCircuit(Elaboratable):
 
 @parameterized_class(
     ("name", "size"),
-    [("size" + str(s), s) for s in [2, 3, 4, 5, 6, 8, 10, 16, 21, 32, 33, 64]],
+    [("size" + str(s), s) for s in [2, 3, 4, 5, 6, 8, 10, 16, 21, 32, 33, 64, 1025]],
 )
 class TestPopcount(TestCaseWithSimulator):
     size: int

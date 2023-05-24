@@ -277,40 +277,29 @@ def popcount(m: Module, s: Signal) -> Signal:
     """
     Implementation of popcount algorithm from https://en.wikipedia.org/wiki/Hamming_weight
     """
+
+    def generate_mask(n: int, width: int):
+        b = "0" * n + "1" * n
+        b = b * (2 ** (width - 1).bit_length() // (2 * n))
+        return int(b, 2)
+
     width = len(s)
-    if width > 64:
-        raise ValueError("Current popcount implementation don't support signals longer than 64 bits")
 
     popcount_sigs = []
-
-    popcount_sig0 = Signal.like(s)
-    m.d.comb += popcount_sig0.eq(s)
-    popcount_sigs.append(popcount_sig0)
-
-    m1 = 0x5555555555555555
-    m2 = 0x3333333333333333
-    m4 = 0x0F0F0F0F0F0F0F0F
-
     popcount_sigs.append(Signal(width))
-    m.d.comb += popcount_sigs[-1].eq(popcount_sigs[-2] - ((popcount_sigs[-2] >> 1) & m1))
+    m.d.comb += popcount_sigs[-1].eq(s)
 
-    if width > 2:
-        popcount_sigs.append(Signal(width))
-        m.d.comb += popcount_sigs[-1].eq((popcount_sigs[-2] & m2) + ((popcount_sigs[-2] >> 2) & m2))
-    if width > 4:
-        popcount_sigs.append(Signal(width))
-        m.d.comb += popcount_sigs[-1].eq((popcount_sigs[-2] + (popcount_sigs[-2] >> 4)) & m4)
-    # Because of assumption that this function support at most signals with 64 bit width
-    # masks in below 'if'-s are not needed (64 can be written on 7 bits, and after application of
-    # previous mask we have 8 bits already available)
-    for limit in {8, 16, 32}:
+    limit = 1
+    while width > limit:
         if width > limit:
+            mask = generate_mask(limit, width)
             popcount_sigs.append(Signal(width))
-            m.d.comb += popcount_sigs[-1].eq(popcount_sigs[-2] + (popcount_sigs[-2] >> limit))
+            m.d.comb += popcount_sigs[-1].eq((popcount_sigs[-2] & mask) + ((popcount_sigs[-2] >> limit) & mask))
+        limit *= 2
 
-    popcount_sigs.append(Signal(bits_for(width)))
-    m.d.comb += popcount_sigs[-1].eq(popcount_sigs[-2] & 0x7F)
-    return popcount_sigs[-1]
+    popcount_res = Signal(bits_for(width))
+    m.d.comb += popcount_res.eq(popcount_sigs[-1])
+    return popcount_res
 
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
