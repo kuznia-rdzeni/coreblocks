@@ -53,8 +53,11 @@ class Decode(Elaboratable):
                     "regs_l": {
                         # read/writes to phys reg 0 make no effect
                         "rl_dst": Mux(instr_decoder.rd_v, instr_decoder.rd, 0),
+                        "rl_dst_rf": Mux(instr_decoder.rd_v, instr_decoder.rd_rf, 0),
                         "rl_s1": Mux(instr_decoder.rs1_v, instr_decoder.rs1, 0),
+                        "rl_s1_rf" : Mux(instr_decoder.rs1_v, instr_decoder.rs1_rf, 0),
                         "rl_s2": Mux(instr_decoder.rs2_v, instr_decoder.rs2, 0),
+                        "rl_s2_rf" : Mux(instr_decoder.rs2_v, instr_decoder.rs2_rf, 0),
                     },
                     "imm": instr_decoder.imm,
                     "csr": instr_decoder.csr,

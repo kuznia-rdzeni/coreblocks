@@ -8,4 +8,5 @@ __all__ = [
     "Transaction",
     "Method",
     "def_method",
+    "loop_def_method",
 ]

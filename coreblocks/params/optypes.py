@@ -44,6 +44,19 @@ class OpType(IntEnum):
     SFENCEVMA = auto()
     #: Internal Coreblocks OpType, specifing that instruction caused Exception before FU execution
     EXCEPTION = auto()
+    V_ARITHMETIC = auto()
+    V_ARITHMETIC_IMM = auto()
+    V_ARITHMETIC_SCALAR = auto()
+    # TODO after V implementation check if there is a need for separate optype for narrowing
+    V_ARITHMETIC_NARROWING = auto()
+    V_ARITHMETIC_NARROWING_IMM = auto()
+    V_ARITHMETIC_NARROWING_SCALAR = auto()
+    V_PERMUTATION = auto()
+    V_PERMUTATION_IMM = auto()
+    V_PERMUTATION_SCALAR = auto()
+    V_CONTROL = auto()
+    V_REDUCTION = auto()
+
 
 
 #
@@ -104,6 +117,19 @@ optypes_by_extensions = {
     Extension.XINTSUPERVISOR: [
         OpType.SRET,
         OpType.SFENCEVMA,
+    ],
+    Extension.V: [
+        OpType.V_ARITHMETIC,
+        OpType.V_ARITHMETIC_IMM,
+        OpType.V_ARITHMETIC_SCALAR,
+        OpType.V_ARITHMETIC_NARROWING, 
+        OpType.V_ARITHMETIC_NARROWING_IMM, 
+        OpType.V_ARITHMETIC_NARROWING_SCALAR, 
+        OpType.V_PERMUTATION,
+        OpType.V_PERMUTATION_IMM,
+        OpType.V_PERMUTATION_SCALAR,
+        OpType.V_CONTROL,
+        OpType.V_REDUCTION,
     ],
 }
 

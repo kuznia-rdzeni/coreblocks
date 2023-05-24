@@ -1,3 +1,4 @@
+import itertools
 from contextlib import contextmanager
 from typing import Callable, Tuple, Optional
 from amaranth import *
@@ -5,8 +6,10 @@ from amaranth.utils import *
 from .core import *
 from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
-from ..utils import ValueLike, assign, AssignType
 from ..utils.fifo import BasicFifo
+from ..utils import ValueLike, assign, AssignType, ModuleConnector
+from ..utils.protocols import RoutingBlock
+from ..utils._typing import LayoutLike
 
 __all__ = [
     "FIFO",
@@ -28,6 +31,11 @@ __all__ = [
     "Serializer",
     "MethodTryProduct",
     "condition",
+    "condition_switch",
+    "AnyToAnySimpleRoutingBlock",
+    "OmegaRoutingNetwork",
+    "PriorityOrderingTransProxyTrans",
+    "PriorityOrderingProxyTrans",
 ]
 
 # FIFOs
@@ -684,6 +692,14 @@ class Collector(Elaboratable):
 # Example transactions
 
 
+def connect_methods(m: TModule, method1: Method, method2: Method):
+    data1 = Record.like(method1.data_out)
+    data2 = Record.like(method2.data_out)
+
+    m.d.top_comb += data1.eq(method1(m, data2))
+    m.d.top_comb += data2.eq(method2(m, data1))
+
+
 class ConnectTrans(Elaboratable):
     """Simple connecting transaction.
 
@@ -709,12 +725,7 @@ class ConnectTrans(Elaboratable):
         m = TModule()
 
         with Transaction().body(m):
-            data1 = Record.like(self.method1.data_out)
-            data2 = Record.like(self.method2.data_out)
-
-            m.d.top_comb += data1.eq(self.method1(m, data2))
-            m.d.top_comb += data2.eq(self.method2(m, data1))
-
+            connect_methods(m, self.method1, self.method2)
         return m
 
 
@@ -921,6 +932,8 @@ class MemoryBank(Elaboratable):
     Provides a transactional interface to synchronous Amaranth Memory with one
     read and one write port. It supports optionally writing with given granularity.
 
+    Reads aren't transparent.
+
     Attributes
     ----------
     read_req: Method
@@ -974,7 +987,7 @@ class MemoryBank(Elaboratable):
 
         mem = Memory(width=self.width, depth=self.elem_count)
         m.submodules.read_port = read_port = mem.read_port()
-        m.submodules.write_port = write_port = mem.write_port()
+        m.submodules.write_port = write_port = mem.write_port(granularity=self.granularity)
         read_output_valid = Signal()
         prev_read_addr = Signal(self.addr_width)
         write_pending = Signal()
@@ -1090,17 +1103,15 @@ class Serializer(Elaboratable):
         pending_requests = BasicFifo(self.id_layout, self.depth)
         m.submodules.pending_requests = pending_requests
 
-        for i in range(self.port_count):
+        @loop_def_method(m, self.serialize_in)
+        def _(i, arg):
+            pending_requests.write(m, {"id": i})
+            self.serialized_req_method(m, arg)
 
-            @def_method(m, self.serialize_in[i])
-            def _(arg):
-                pending_requests.write(m, {"id": i})
-                self.serialized_req_method(m, arg)
-
-            @def_method(m, self.serialize_out[i], ready=(pending_requests.head.id == i))
-            def _():
-                pending_requests.read(m)
-                return self.serialized_resp_method(m)
+        @loop_def_method(m, self.serialize_out, ready_list=lambda i: pending_requests.head.id == i)
+        def _(_):
+            pending_requests.read(m)
+            return self.serialized_resp_method(m)
 
         self.clear.proxy(m, pending_requests.clear)
 
@@ -1185,3 +1196,336 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
             pass
 
     this.simultaneous_alternatives(*transactions)
+
+
+def condition_switch(
+    m: TModule, variable: Signal, branch_number: int, *, nonblocking: bool = True, priority: bool = True
+):
+    """
+    Syntax sugar to easy define condition which compares given signal to first `branch_number` integers.
+    """
+    with condition(m, nonblocking=nonblocking, priority=priority) as branch:
+        for i in range(branch_number):
+            with branch(variable == i):
+                yield i
+
+
+def def_one_caller_wrapper(method_to_wrap: Method, wrapper: Method) -> TModule:
+    """
+    Function used to a wrap method that can only have one caller. After wrapping
+    many callers can call the wrapper. Results are buffered and passed to the
+    wrapped method from one source.
+
+    Parameters
+    ----------
+    method_to_wrap : Method
+        Method that can only be called by a single caller.
+    wrapper : Method
+        Method to be defined as a wrapper over `method_to_wrap`.
+
+    Returns
+    -------
+    TModule
+        Module with created amaranth connections.
+    """
+    if len(method_to_wrap.data_out):
+        raise ValueError("def_one_caller_wrapper support only wrapping of methods which don't return data.")
+
+    m = TModule()
+    buffer = FIFO(method_to_wrap.data_in.layout, 2)
+    m.submodules += buffer
+
+    @def_method(m, wrapper)
+    def _(arg):
+        buffer.write(m, arg)
+
+    m.submodules += ConnectTrans(buffer.read, method_to_wrap)
+
+    return m
+
+
+class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
+    """Routing by any-to-any connections
+
+    Routing block which create a any-to-any connection between inputs and
+    outputs and next forwards input data to proper output based on address.
+
+    - Connection complexity: O(n^2)
+    - All connections are combinational
+    - Routing is done based on an address, so to don't have combinational loop
+      there is a buffering of inputs on each send method
+
+    Attributes
+    ----------
+    send : list[Method]
+        List of methods used to send `data` to the receiver with `addr`.
+    receive : list[Method]
+        Methods used to receive data based on addresses. k-th method
+        from the list returns data for address `k`.
+    """
+
+    def __init__(self, inputs_count: int, outputs_count: int, data_layout: LayoutLike):
+        """
+        Parameters
+        ----------
+        outputs_count: int
+            Number of receiver methods which should be generated.
+        data_layout: LayoutLike
+            Layout of data which should be transferend from sender to reciver.
+        """
+        self.inputs_count = inputs_count
+        self.outputs_count = outputs_count
+        self.data_layout = data_layout
+        self.addr_width = bits_for(self.outputs_count - 1)
+
+        self.send_layout: LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
+
+        self.send = [Method(i=self.send_layout) for _ in range(self.inputs_count)]
+        self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
+
+        self._connectors = [Connect(self.data_layout) for _ in range(self.outputs_count)]
+
+    def elaborate(self, platform):
+        if not self.send:
+            raise ValueError("Sender lists empty")
+        m = TModule()
+
+        m.submodules.connectors = ModuleConnector(*self._connectors)
+
+        _internal_send = [Method(i=self.send_layout) for _ in range(self.inputs_count)]
+
+        @loop_def_method(m, _internal_send)
+        def _(i, addr, data):
+            with condition(m, nonblocking=False) as branch:
+                for i in range(self.outputs_count):
+                    with branch(addr == i):
+                        self._connectors[i].write(m, data)
+
+        sender_wrappers = [def_one_caller_wrapper(_internal_send[i], self.send[i]) for i in range(self.inputs_count)]
+        m.submodules.sender_wrappers = ModuleConnector(*sender_wrappers)
+
+        for i in range(self.outputs_count):
+            self.receive[i].proxy(m, self._connectors[i].read)
+
+        return m
+
+
+class _OmegaRoutingSwitch(Elaboratable):
+    """An internal building block of OmegaRoutingNetwork
+
+    This switch has `_ports_count=2` inputs and outputs and based
+    on the most significant bit of the address it routes data either
+    to the upper (if MSB = 0) or the lower (MSB = 1) output.
+
+    The output address is shifted 1 bit to the left, so that the bit, based on which
+    this switch was routing, is removed and the original second MSB bit
+    is now the MSB.
+
+    Attributes
+    ----------
+    _ports_count : int
+        Implementation defined constant to describe the number of input and output ports.
+    reads : list[Method], len(reads) == _ports_count
+        Methods used to read data from upper output (0-th method) and
+        lower output (1-st method)
+    writes : list[Method], len(writes) == _ports_count
+        Methods used to insert data into the switch.
+    """
+
+    _ports_count = 2
+
+    def __init__(self, send_layout: LayoutLike):
+        """
+        Parameters
+        ----------
+        send_layout : LayoutLike
+            Layout with two fields: `addr` and `data`.
+        """
+        self.send_layout = send_layout
+
+        # 0 - "up" port; 1 - "down" port
+        self.reads = [Method(o=self.send_layout) for _ in range(self._ports_count)]
+        self.writes = [Method(i=self.send_layout) for _ in range(self._ports_count)]
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        buffers = [FIFO(self.send_layout, 2) for _ in range(self._ports_count)]
+        m.submodules.buffers = ModuleConnector(*buffers)
+
+        @loop_def_method(m, self.writes)
+        def _(_, addr, data):
+            new_addr = addr << 1
+            with m.If(addr[-1]):
+                buffers[0].write(m, addr=new_addr, data=data)
+            with m.Else():
+                buffers[1].write(m, addr=new_addr, data=data)
+
+        for i in range(self._ports_count):
+            self.reads[i].proxy(m, buffers[i].read)
+        return m
+
+
+class OmegaRoutingNetwork(Elaboratable, RoutingBlock):
+    """Omega routing network
+
+    A network consisting of grid of small switches, each of which routes data either
+    "up" or "down", based on one bit of the address. Connecting switches in the correct
+    way allows us to construct a routing network with log(n) depth.
+
+    Currently, the implementation supports only power of two number of ports.
+
+    Attributes
+    ----------
+    send : list[Method]
+        List of methods used to send `data` to the receiver with `addr`.
+    receive : list[Method]
+        Methods used to receive data based on addresses. k-th method
+        from the list returns data for address `k`.
+    """
+
+    def __init__(self, ports_count: int, data_layout: LayoutLike):
+        """
+        Parameters
+        ----------
+        ports_count : int
+            The number of input and output ports to create.
+        data_layout : LayoutLike
+            Layout of data which are being transfered by network.
+        """
+        self.outputs_count = ports_count
+        self.data_layout = data_layout
+
+        self.addr_width = self.stages = bits_for(self.outputs_count - 1)
+        self.switch_port_count = _OmegaRoutingSwitch._ports_count
+        self.switches_in_stage = self.outputs_count // self.switch_port_count
+
+        if self.outputs_count.bit_count() > 1:
+            raise ValueError("OmegaRoutingNetwork don't support odd number of outputs.")
+
+        self.send_layout: LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
+
+        self.send = [Method(i=self.send_layout) for _ in range(self.outputs_count)]
+        self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
+
+    def _connect_stages(
+        self, from_stage: list[_OmegaRoutingSwitch], to_stage: list[_OmegaRoutingSwitch]
+    ) -> Elaboratable:
+        # flatten list in format 00112233
+        froms = []
+        for switch in from_stage:
+            froms += switch.reads
+
+        # flatten list in format 01230123
+        tos = []
+        for i in range(self.switch_port_count):
+            for switch in to_stage:
+                tos.append(switch.writes[i])
+
+        assert len(froms) == len(tos)
+        connections = [ConnectTrans(froms[i], tos[i]) for i in range(len(froms))]
+        return ModuleConnector(*connections)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        _internal_send = [Method(i=self.send_layout) for _ in range(self.outputs_count)]
+
+        switches: list[list[_OmegaRoutingSwitch]] = []
+        switches_connectors = []
+        for i in range(self.stages):
+            switches.append([_OmegaRoutingSwitch(self.send_layout) for _ in range(self.switches_in_stage)])
+            switches_connectors.append(ModuleConnector(*switches[i]))
+        m.submodules.switches = ModuleConnector(*switches_connectors)
+
+        stages_connectors = []
+        for i in range(1, self.stages):
+            stages_connectors.append(self._connect_stages(switches[i - 1], switches[i]))
+        m.submodules.stages_connectors = ModuleConnector(*stages_connectors)
+
+        @loop_def_method(m, _internal_send)
+        def _(i: int, arg):
+            switches[0][i // self.switch_port_count].writes[i % self.switch_port_count](m, arg)
+
+        sender_wrappers = [def_one_caller_wrapper(_internal_send[i], self.send[i]) for i in range(self.outputs_count)]
+        m.submodules.sender_wrappers = ModuleConnector(*sender_wrappers)
+
+        @loop_def_method(m, self.receive)
+        def _(i: int):
+            i = self.outputs_count - i - 1
+            return {"data": (switches[-1][i // self.switch_port_count].reads[i % self.switch_port_count](m)).data}
+
+        return m
+
+
+class PriorityOrderingTransProxyTrans(Elaboratable):
+    """Proxy for ordering methods
+
+    This proxy allows to order called methods. It guarantee that if
+    there is a `k` method called (in any order), then they will be
+    connected to `k` first methods from ordered list and both arguments
+    and results of methods will be correctly forwarded.
+
+    There is no fairness algorithm used, but there is a guarantee that always
+    the biggest subset of available methods will be called.
+
+    WARNING: This scales up badly -- O(2^n) -- so it is discouraged to use
+    that module with more than 6 inputs.
+    """
+
+    def __init__(self, methods_ordered: list[Method], methods_unordered: list[Method]):
+        """
+        Parameters
+        ----------
+        methods_ordered : list[Method]
+            A list of methods which will be called in order. So if `j`-th method
+            is called and `i<j` then `i`-th Method also is called.
+        methods_unordered : list[Method]
+            Methods whose calls should be ordered.
+        """
+        self._m_ordered = methods_ordered
+        self._m_unordered = methods_unordered
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        with Transaction().body(m):
+            with condition(m, priority=True) as branch:
+                for k in range(len(self._m_unordered), 0, -1):
+                    for comb_un in itertools.combinations(self._m_unordered, k):
+                        with branch(1):  # sic!
+                            for un, ord in zip(comb_un, self._m_ordered):
+                                connect_methods(m, un, ord)
+        return m
+
+
+class PriorityOrderingProxyTrans(PriorityOrderingTransProxyTrans):
+    """Proxy for ordering methods
+
+    Gender changing wrapper for PriorityOrderingTransProxyTrans.
+
+    Attributes
+    ----------
+    m_unordered : list[Method]
+        Calls to these methods will be ordered.
+    """
+
+    def __init__(self, methods_ordered: list[Method]):
+        """
+        Parameters
+        ----------
+        methods_ordered : list[Method]
+            A list of methods which will be called in order. So if `j`-th method
+            is called and `i<j` then `i`-th Method also is called.
+        """
+        self._m_connects = [
+            Connect(methods_ordered[0].data_in.layout, methods_ordered[0].data_out.layout) for _ in methods_ordered
+        ]
+        _m_unordered_read = [connect.read for connect in self._m_connects]
+        super().__init__(methods_ordered, _m_unordered_read)
+        self.m_unordered = [connect.write for connect in self._m_connects]
+
+    def elaborate(self, platform):
+        m = super().elaborate(platform)
+        m.submodules.connects = ModuleConnector(*self._m_connects)
+        return m
