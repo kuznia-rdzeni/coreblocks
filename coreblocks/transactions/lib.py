@@ -853,7 +853,26 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
 
 
 class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
+    """Routing by any-to-any connections
+
+    Routing block which create a any-to-any connection between inputs and
+    outputs and next forwards input data to proper output based on address.
+
+    - Connection complexity: O(n^2)
+    - All connections are combinational
+    - Routing is done based on address, so to don't have combinational loop
+      to each send method only one user should be connected.
+    """
+
     def __init__(self, outputs_count: int, data_layout: LayoutLike):
+        """
+        Parameters
+        ----------
+        outputs_count: int
+            Number of receiver methods which should be generated.
+        data_layout: LayoutLike
+            Layout of data which should be transferend from sender to reciver.
+        """
         self.outputs_count = outputs_count
         self.data_layout = data_layout
         self.addr_width = bits_for(self.outputs_count - 1)
@@ -866,6 +885,10 @@ class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
         self._connectors = [Connect(self.data_layout) for _ in range(self.outputs_count)]
 
     def get_new_send_method(self):
+        """
+        Generator of new send methods so that it will be harder to
+        connect two users to the same `send` methods by mistake.
+        """
         self.send.append(Method(i=self.send_layout))
         return self.send[-1]
 
