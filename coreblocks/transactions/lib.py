@@ -978,7 +978,7 @@ class OmegaRoutingNetwork(Elaboratable, RoutingBlock):
         self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
 
 
-    def _connect_stages(self, from_stage : list[_OmegaRoutingSwitch], to_stage : list[_OmegaRoutingSwitch]):
+    def _connect_stages(self, from_stage : list[_OmegaRoutingSwitch], to_stage : list[_OmegaRoutingSwitch]) -> Elaboratable:
         # flatten list in format 00112233
         froms = [ ]
         for switch in from_stage:
@@ -998,27 +998,31 @@ class OmegaRoutingNetwork(Elaboratable, RoutingBlock):
         m = TModule()
 
         _internal_send = [Method(i=self.data_layout) for _ in range(self.outputs_count)]
-        switches : list[list[_OmegaRoutingSwitch]] = []
 
-        stages_connectors = []
+        switches : list[list[_OmegaRoutingSwitch]] = []
+        switches_connectors = []
         for i in range(self.stages):
             switches.append([])
             for j in range(self.switches_in_stage):
                 switches[i].append(_OmegaRoutingSwitch(self.send_layout))
-            stages_connectors.append(ModuleConnector(*switches[i]))
-        m.submodules.stages = ModuleConnector(*stages_connectors)
+            switches_connectors.append(ModuleConnector(*switches[i]))
+        m.submodules.switches = ModuleConnector(*switches_connectors)
 
-        # TODO connect stages
+        stages_connectors = []
+        for i in range(1, self.stages):
+            stages_connectors.append(self._connect_stages(switches[i-1], switches[i]))
+        m.submodules.stages_connectors = ModuleConnector(*stages_connectors)
         
         sender_wrappers = []
         for i in range(self.outputs_count):
             @def_method(m, _internal_send[i])
             def _(arg):
-                switches[0][i].writes[i%self.switch_port_count](m, arg)
+                switches[0][i//self.switch_port_count].writes[i%self.switch_port_count](m, arg)
             sender_wrappers.append(def_one_caller_wrapper(_internal_send[i], self.send[i]))
         m.submodules.sender_wrappers = ModuleConnector(*sender_wrappers)
 
-        # TODO receive
+        for i in range(self.outputs_count):
+            self.receive[i].proxy(m, switches[-1][i // self.switch_port_count].reads[i%self.switch_port_count])
         
         return m
 
