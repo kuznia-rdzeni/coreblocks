@@ -273,33 +273,15 @@ def assign(
         yield lhs_val.eq(rhs_val)
 
 
-def popcount(m: Module, s: Signal) -> Signal:
-    """
-    Implementation of popcount algorithm from https://en.wikipedia.org/wiki/Hamming_weight
-    """
+def popcount(s: Value):
+    sum_layers = [s[i] for i in range(len(s))]
 
-    def generate_mask(n: int, width: int):
-        b = "0" * n + "1" * n
-        b = b * (2 ** (width - 1).bit_length() // (2 * n))
-        return int(b, 2)
+    while len(sum_layers) > 1:
+        if len(sum_layers) % 2:
+            sum_layers.append(C(0))
+        sum_layers = [a + b for a, b in zip(sum_layers[::2], sum_layers[1::2])]
 
-    width = len(s)
-
-    popcount_sigs = []
-    popcount_sigs.append(Signal(width))
-    m.d.comb += popcount_sigs[-1].eq(s)
-
-    limit = 1
-    while width > limit:
-        if width > limit:
-            mask = generate_mask(limit, width)
-            popcount_sigs.append(Signal(width))
-            m.d.comb += popcount_sigs[-1].eq((popcount_sigs[-2] & mask) + ((popcount_sigs[-2] >> limit) & mask))
-        limit *= 2
-
-    popcount_res = Signal(bits_for(width))
-    m.d.comb += popcount_res.eq(popcount_sigs[-1])
-    return popcount_res
+    return sum_layers[0][0:bits_for(len(s))]
 
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
