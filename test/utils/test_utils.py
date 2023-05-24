@@ -38,7 +38,7 @@ class PopcountTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.d.comb += self.sig_out.eq(popcount(m, self.sig_in))
+        m.d.comb += self.sig_out.eq(popcount(self.sig_in))
         # dummy signal
         s = Signal()
         m.d.sync += s.eq(1)
