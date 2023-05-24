@@ -9,9 +9,64 @@ on:
     branches:
       - master
       - 'feature/**'
+  workflow_dispatch:
 
 jobs:
-  test:
+  build-regression-tests:
+    name: Build regression tests
+    runs-on: ubuntu-latest
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.05.14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Build riscv-tests
+        run: cd test/external/riscv-tests && make
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: "riscv-tests"
+          path: |
+            test/external/riscv-tests/test-*
+
+  run-regression-tests:
+    name: Run regression tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008
+    needs: build-regression-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -r requirements-dev.txt
+
+      - name: Generate Verilog
+        run: PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: "riscv-tests"
+          path: test/external/riscv-tests
+
+      - name: Run tests
+        run: |
+          scripts/run_tests.py -a regression
+
+      - name: Test Report
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: test/regression/cocotb/results.xml
+          check_name: cocotb test results
+          comment_mode: off
+
+  unit-test:
+    name: Run unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -40,6 +95,7 @@ jobs:
         run: ./scripts/run_tests.py -t -c 1 TestCore 
 
   lint:
+    name: Check code formatting and typing
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

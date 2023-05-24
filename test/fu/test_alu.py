@@ -1,6 +1,11 @@
+from coreblocks.params import Funct3, Funct7, GenParams, OpType
+from coreblocks.params.configurations import test_core_config
+from coreblocks.fu.alu import AluFn, ALUComponent, AluFuncUnit
+
+from test.fu.functional_common import GenericFunctionalTestUnit
+
 import random
 from collections import deque
-import operator
 
 from amaranth import *
 from amaranth.sim import *
@@ -9,114 +14,104 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
 from ..common import TestCaseWithSimulator, TestbenchIO
-
-from coreblocks.fu.alu import Alu, AluFuncUnit, AluFn
-from coreblocks.params import *
-from coreblocks.params.configurations import test_core_config
+from test.common import signed_to_int
 
 
-def _cast_to_int_xlen(x, xlen):
-    if xlen == 32:
-        return -int(0x100000000 - x) if (x > 0x7FFFFFFF) else x
-    elif xlen == 64:
-        return -int(0x10000000000000000 - x) if (x > 0x7FFFFFFFFFFFFFFF) else x
-    return 0
+def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: int) -> dict[str, int]:
+    val2 = i_imm if i_imm else i2
+    mask = (1 << xlen) - 1
+
+    res = 0
+
+    match fn:
+        case AluFn.Fn.ADD:
+            res = i1 + val2
+        case AluFn.Fn.SUB:
+            res = i1 - val2
+        case AluFn.Fn.XOR:
+            res = i1 ^ val2
+        case AluFn.Fn.OR:
+            res = i1 | val2
+        case AluFn.Fn.AND:
+            res = i1 & val2
+        case AluFn.Fn.SLT:
+            res = signed_to_int(i1, xlen) < signed_to_int(val2, xlen)
+        case AluFn.Fn.SLTU:
+            res = i1 < val2
+        case AluFn.Fn.SH1ADD:
+            res = (i1 << 1) + val2
+        case AluFn.Fn.SH2ADD:
+            res = (i1 << 2) + val2
+        case AluFn.Fn.SH3ADD:
+            res = (i1 << 3) + val2
+
+    return {"result": res & mask}
 
 
-class TestAlu(TestCaseWithSimulator):
-    TEST_INPUTS = [
-        (312123, 4),
-        (115478972, 312351066),
-        (55, 10),
-        (0, 0),
-        (4294967295, 1),
-        (0, 4294967295),
-        (4294967295, 1),
-        (4294967295, 4294967295),
-        (4294967293, 2),
-        (2, 0),
-    ]
+ops = {
+    AluFn.Fn.ADD: {
+        "op_type": OpType.ARITHMETIC,
+        "funct3": Funct3.ADD,
+        "funct7": Funct7.ADD,
+    },
+    AluFn.Fn.SUB: {
+        "op_type": OpType.ARITHMETIC,
+        "funct3": Funct3.ADD,
+        "funct7": Funct7.SUB,
+    },
+    AluFn.Fn.SLT: {
+        "op_type": OpType.COMPARE,
+        "funct3": Funct3.SLT,
+    },
+    AluFn.Fn.SLTU: {
+        "op_type": OpType.COMPARE,
+        "funct3": Funct3.SLTU,
+    },
+    AluFn.Fn.XOR: {
+        "op_type": OpType.LOGIC,
+        "funct3": Funct3.XOR,
+    },
+    AluFn.Fn.OR: {
+        "op_type": OpType.LOGIC,
+        "funct3": Funct3.OR,
+    },
+    AluFn.Fn.AND: {
+        "op_type": OpType.LOGIC,
+        "funct3": Funct3.AND,
+    },
+    AluFn.Fn.SH1ADD: {
+        "op_type": OpType.ADDRESS_GENERATION,
+        "funct3": Funct3.SH1ADD,
+        "funct7": Funct7.SH1ADD,
+    },
+    AluFn.Fn.SH2ADD: {
+        "op_type": OpType.ADDRESS_GENERATION,
+        "funct3": Funct3.SH2ADD,
+        "funct7": Funct7.SH2ADD,
+    },
+    AluFn.Fn.SH3ADD: {
+        "op_type": OpType.ADDRESS_GENERATION,
+        "funct3": Funct3.SH3ADD,
+        "funct7": Funct7.SH3ADD,
+    },
+}
 
-    def setUp(self):
-        self.gen = GenParams(test_core_config)
-        self.alu = Alu(self.gen, AluFn(zba_enable=True))
 
-        random.seed(42)
+class AluUnitTest(GenericFunctionalTestUnit):
+    def test_test(self):
+        self.run_pipeline()
 
-        # Supply hand-written tests with random test inputs
-        self.test_inputs = TestAlu.TEST_INPUTS
-        max_int = 2**self.gen.isa.xlen - 1
-        for i in range(20):
-            self.test_inputs.append((random.randint(0, max_int), random.randint(0, max_int)))
-
-    def yield_signals(self, fn, in1, in2):
-        yield self.alu.fn.eq(fn)
-        yield self.alu.in1.eq(in1)
-        yield self.alu.in2.eq(in2)
-        yield Settle()
-
-        return (yield self.alu.out)
-
-    def check_fn(self, fn, out_fn):
-        def process():
-            for in1, in2 in self.test_inputs:
-                returned_out = yield from self.yield_signals(fn, C(in1, self.gen.isa.xlen), C(in2, self.gen.isa.xlen))
-                mask = 2**self.gen.isa.xlen - 1
-                correct_out = out_fn(in1 & mask, in2 & mask) & mask
-                self.assertEqual(returned_out, correct_out)
-
-        with self.run_simulation(self.alu) as sim:
-            sim.add_process(process)
-
-    def test_add(self):
-        self.check_fn(AluFn.Fn.ADD, operator.add)
-
-    def test_sll(self):
-        self.check_fn(AluFn.Fn.SLL, lambda in1, in2: in1 << (in2 & (self.gen.isa.xlen - 1)))
-
-    def test_xor(self):
-        self.check_fn(AluFn.Fn.XOR, operator.xor)
-
-    def test_srl(self):
-        self.check_fn(AluFn.Fn.SRL, lambda in1, in2: in1 >> (in2 & (self.gen.isa.xlen - 1)))
-
-    def test_or(self):
-        self.check_fn(AluFn.Fn.OR, operator.or_)
-
-    def test_and(self):
-        self.check_fn(AluFn.Fn.AND, operator.and_)
-
-    def test_sub(self):
-        self.check_fn(AluFn.Fn.SUB, operator.sub)
-
-    def test_sh1add(self):
-        self.check_fn(AluFn.Fn.SH1ADD, lambda in1, in2: (in1 << 1) + in2)
-
-    def test_sh2add(self):
-        self.check_fn(AluFn.Fn.SH2ADD, lambda in1, in2: (in1 << 2) + in2)
-
-    def test_sh3add(self):
-        self.check_fn(AluFn.Fn.SH3ADD, lambda in1, in2: (in1 << 3) + in2)
-
-    def test_sra(self):
-        def sra(in1, in2):
-            xlen = self.gen.isa.xlen
-            in2 = in2 & (xlen - 1)
-            if in1 & 2 ** (xlen - 1) != 0:
-                return (((2**xlen) - 1) << xlen | in1) >> in2
-            else:
-                return in1 >> in2
-
-        self.check_fn(AluFn.Fn.SRA, sra)
-
-    def test_slt(self):
-        self.check_fn(
-            AluFn.Fn.SLT,
-            lambda in1, in2: _cast_to_int_xlen(in1, self.gen.isa.xlen) < _cast_to_int_xlen(in2, self.gen.isa.xlen),
+    def __init__(self, method_name: str = "runTest"):
+        super().__init__(
+            ops,
+            ALUComponent(zba_enable=True),
+            compute_result,
+            gen=GenParams(test_core_config),
+            number_of_tests=800,
+            seed=42,
+            method_name=method_name,
+            zero_imm=False,
         )
-
-    def test_sltu(self):
-        self.check_fn(AluFn.Fn.SLTU, operator.lt)
 
 
 class AluFuncUnitTestCircuit(Elaboratable):
