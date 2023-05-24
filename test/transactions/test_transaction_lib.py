@@ -1,7 +1,8 @@
 import random
+import itertools
 from operator import and_
 from functools import reduce
-from typing import TypeAlias
+from typing import TypeAlias, Callable
 from amaranth.sim import Settle, Passive
 from parameterized import parameterized
 from collections import defaultdict
@@ -10,7 +11,7 @@ from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
-from coreblocks.utils._typing import LayoutLike, ModuleLike
+from coreblocks.utils._typing import LayoutLike, ModuleLike, HasElaborate
 from coreblocks.utils import ModuleConnector
 from ..common import (
     SimpleTestCircuit,
@@ -471,16 +472,35 @@ class TestMethodProduct(TestCaseWithSimulator):
 
 
 class TestRoutingBlock(TestCaseWithSimulator):
-    @parameterized.expand([(1, 1), (2, 2), (4, 3), (2, 5)])
-    def test_routing_block(self, input_count: int, output_count: int):
-        test_number = 100
-        data_size = 5
-        layout = data_layout(data_size)
-
+    @staticmethod
+    def prepare_any_to_any_circuit(input_count, output_count, layout):
         test_circuit = AnyToAnySimpleRoutingBlock(output_count, layout)
         for i in range(input_count):
             test_circuit.get_new_send_method()
         m = SimpleTestCircuit(test_circuit)
+        return m
+
+    @staticmethod
+    def prepare_omega_circuit(input_count, output_count, layout):
+        test_circuit = OmegaRoutingNetwork(output_count, layout)
+        m = SimpleTestCircuit(test_circuit)
+        return m
+
+    common_sizes = [(1,1), (2,2), (8,8)]
+    non_symetric_sizes = [(4,3), (3,5)]
+
+    constructors = [prepare_omega_circuit, prepare_any_to_any_circuit]
+
+    common_test_configurations = [size+(func,) for size, func in itertools.product(common_sizes,constructors)]
+    non_symetric_configurations = [size+(func,) for size, func in itertools.product(non_symetric_sizes, [prepare_any_to_any_circuit])]
+
+    @parameterized.expand(common_test_configurations)
+    def test_routing_block(self, input_count: int, output_count: int, prepare_test_circuit : Callable[[int, int, LayoutLike], SimpleTestCircuit]):
+        test_number = 100
+        data_size = 5
+        layout = data_layout(data_size)
+
+        m = prepare_test_circuit(input_count, output_count, layout)
 
         received_data_dicts = [defaultdict(int) for i in range(output_count)]
         pending_packets = [0 for i in range(output_count)]

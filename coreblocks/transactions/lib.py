@@ -26,6 +26,7 @@ __all__ = [
     "MethodFilter",
     "MethodProduct",
     "AnyToAnySimpleRoutingBlock",
+    "OmegaRoutingNetwork"
 ]
 
 # FIFOs
