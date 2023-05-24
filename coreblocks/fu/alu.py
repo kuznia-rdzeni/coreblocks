@@ -33,6 +33,38 @@ class AluFn(DecoderManager):
         SH2ADD = auto()  # Logic left shift by 2 and add
         SH3ADD = auto()  # Logic left shift by 3 and add
 
+        # ZBB extension
+        ANDN = auto() # Bitwise ANDN
+        ORN = auto() # Bitwise ORN
+        XNOR = auto() # Bitwise XNOR
+
+        CLZ = auto() # Count leading zeros
+        # CLZW = auto() # Count leading zeros in word RV64
+        CTZ = auto() # Count trailing zeros
+        # CTZW = auto() # Count trailing zeros in word RV64
+
+        CPOP = auto() # Count set bits
+        CPOPW = auto() # Count set bits in word
+
+        MAX = auto() # Maximum
+        MAXU = auto() # Unsigned maximum
+        MIN = auto() # Minimum
+        MINU = auto() # Unsigned minimum
+
+        SEXT_B = auto() # Sign-extend byte
+        SEXT_H = auto() # Sign-extend halfword
+        ZERO_H = auto() # Zero extend halfword
+
+        ROL = auto() # Rotate left
+        # ROLW = auto() # Rotate left word RV64
+        ROR = auto() # Rotate right
+        # RORI immediate
+        # RORIW immediate
+        # RORW = auto() # Rotate right word RV64
+
+        ORCB = auto() # Bitwise or combine
+        REV8 = auto() # Reverse byte ordering
+
     def get_instructions(self) -> Sequence[tuple]:
         return [
             (self.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
