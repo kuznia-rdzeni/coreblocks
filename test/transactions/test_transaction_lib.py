@@ -4,9 +4,9 @@ import itertools
 from operator import and_
 from functools import reduce
 from amaranth.sim import Settle, Passive
-from typing import Optional, TypeAlias
 from parameterized import parameterized
-from collections import deque
+from typing import TypeAlias, Callable, Optional
+from collections import defaultdict, deque
 
 from amaranth import *
 from coreblocks.transactions import *
@@ -779,3 +779,81 @@ class ConditionTest(TestCaseWithSimulator):
         with self.run_simulation(m) as sim:
             sim.add_sync_process(target_process)
             sim.add_sync_process(process)
+
+class TestRoutingBlock(TestCaseWithSimulator):
+    @staticmethod
+    def prepare_any_to_any_circuit(input_count, output_count, layout):
+        test_circuit = AnyToAnySimpleRoutingBlock(output_count, layout)
+        for i in range(input_count):
+            test_circuit.get_new_send_method()
+        m = SimpleTestCircuit(test_circuit)
+        return m
+
+    @staticmethod
+    def prepare_omega_circuit(input_count, output_count, layout):
+        test_circuit = OmegaRoutingNetwork(output_count, layout)
+        m = SimpleTestCircuit(test_circuit)
+        return m
+
+    common_sizes = [(2, 2), (8, 8)]
+    any_to_any_sizes = [(1, 1), (4, 3), (3, 5)]
+
+    constructors = [prepare_omega_circuit, prepare_any_to_any_circuit]
+
+    common_test_configurations = [size + (func,) for size, func in itertools.product(common_sizes, constructors)]
+    any_to_any_configurations = [
+        size + (func,) for size, func in itertools.product(any_to_any_sizes, [prepare_any_to_any_circuit])
+    ]
+
+    @parameterized.expand(common_test_configurations + any_to_any_configurations)
+    def test_routing_block(
+        self,
+        input_count: int,
+        output_count: int,
+        prepare_test_circuit: Callable[[int, int, LayoutLike], SimpleTestCircuit],
+    ):
+        test_number = 100
+        data_size = 5
+        layout = data_layout(data_size)
+
+        m = prepare_test_circuit(input_count, output_count, layout)
+
+        received_data_dicts = [defaultdict(int) for i in range(output_count)]
+        pending_packets = [0 for i in range(output_count)]
+        senders_passive = [False for i in range(input_count)]
+
+        def create_sender_process(k: int):
+            def process():
+                for i in range(test_number):
+                    addr = random.randrange(output_count)
+                    data = {"data": random.randrange(2**data_size)}
+                    yield from m.send[k].call(addr=addr, data=data)
+                    received_data_dicts[addr][data["data"]] += 1
+                    pending_packets[addr] += 1
+                senders_passive[k] = True
+
+            return process
+
+        def create_receiver_process(k: int):
+            def process():
+                yield Passive()
+                while True:
+                    res = yield from m.receive[k].call()
+                    received_data_dicts[k][res["data"]] -= 1
+                    pending_packets[k] -= 1
+
+            return process
+
+        def checker():
+            while not all([pending_packets[i] == 0 for i in range(output_count)] + senders_passive):
+                yield
+            for d in received_data_dicts:
+                for k, val in d.items():
+                    self.assertEqual(val, 0)
+
+        with self.run_simulation(m) as sim:
+            for i in range(input_count):
+                sim.add_sync_process(create_sender_process(i))
+            for i in range(output_count):
+                sim.add_sync_process(create_receiver_process(i))
+            sim.add_sync_process(checker)
