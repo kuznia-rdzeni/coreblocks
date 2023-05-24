@@ -46,7 +46,6 @@ def OneHotSwitch(m: Module, test: Value):
     test : Signal
         The signal being tested.
     """
-    count = len(test)
 
     @contextmanager
     def case(n: Optional[int] = None):
@@ -58,7 +57,7 @@ def OneHotSwitch(m: Module, test: Value):
             i = (n & -n).bit_length() - 1
             if n - (1 << i) != 0:
                 raise ValueError("%d not in one-hot representation" % n)
-            with m.Case("-" * (count - i - 1) + "1" + "-" * i):
+            with m.Case(n):
                 yield
 
     with m.Switch(test):

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Iterable, Callable, Mapping, Iterator
+from collections.abc import Sequence, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
 from typing import ClassVar, TypeAlias, TypedDict, Union, Optional, Tuple
@@ -11,6 +11,7 @@ from amaranth.hdl.ast import Statement
 from itertools import count, chain
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
+from coreblocks.utils.utils import OneHotSwitchDynamic
 from ._utils import *
 from ..utils import silence_mustuse
 from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate
@@ -65,9 +66,9 @@ class MethodMap:
         def rec(transaction: Transaction, source: TransactionBase):
             for method in source.method_uses.keys():
                 if not method.defined:
-                    raise RuntimeError("Trying to use method which is not defined yet")
+                    raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
                 if method in self.methods_by_transaction[transaction]:
-                    raise RuntimeError("Method can't be called twice from the same transaction")
+                    raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
                 rec(transaction, method)
@@ -273,15 +274,41 @@ class TransactionManager(Elaboratable):
         return cgr, rgr, porder
 
     @staticmethod
-    def _method_uses(method_map: MethodMap) -> Mapping["Transaction", Mapping["Method", Tuple[ValueLike, ValueLike]]]:
-        method_uses = defaultdict[Transaction, dict[Method, Tuple[ValueLike, ValueLike]]](dict)
+    def _method_enables(method_map: MethodMap) -> Mapping["Transaction", Mapping["Method", ValueLike]]:
+        method_enables = defaultdict[Transaction, dict[Method, ValueLike]](dict)
+        enables: list[ValueLike] = []
+
+        def rec(transaction: Transaction, source: TransactionOrMethod):
+            for method, (_, enable) in source.method_uses.items():
+                enables.append(enable)
+                rec(transaction, method)
+                method_enables[transaction][method] = Cat(*enables).all()
+                enables.pop()
+
+        for transaction in method_map.transactions:
+            rec(transaction, transaction)
+
+        return method_enables
+
+    @staticmethod
+    def _method_calls(
+        m: Module, method_map: MethodMap
+    ) -> tuple[Mapping["Method", Sequence[ValueLike]], Mapping["Method", Sequence[ValueLike]]]:
+        args = defaultdict[Method, list[ValueLike]](list)
+        runs = defaultdict[Method, list[ValueLike]](list)
 
         for source in method_map.methods_and_transactions:
-            for transaction in method_map.transactions_for(source):
-                for method, use_data in source.method_uses.items():
-                    method_uses[transaction][method] = use_data
+            if isinstance(source, Method):
+                run_val = Cat(transaction.grant for transaction in method_map.transactions_by_method[source]).any()
+                run = Signal()
+                m.d.comb += run.eq(run_val)
+            else:
+                run = source.grant
+            for method, (arg, _) in source.method_uses.items():
+                args[method].append(arg)
+                runs[method].append(run)
 
-        return method_uses
+        return (args, runs)
 
     def elaborate(self, platform):
         # In the following, various problems in the transaction set-up are detected.
@@ -301,18 +328,21 @@ class TransactionManager(Elaboratable):
             *[self.cc_scheduler(method_map, cgr, cc, porder) for cc in _graph_ccs(rgr)]
         )
 
-        method_uses = self._method_uses(method_map)
+        method_enables = self._method_enables(method_map)
 
         for method, transactions in method_map.transactions_by_method.items():
-            granted = Signal(len(transactions))
-            for n, transaction in enumerate(transactions):
-                (tdata, enable) = method_uses[transaction][method]
-                m.d.comb += granted[n].eq(transaction.grant & enable)
+            granted = Cat(transaction.grant & method_enables[transaction][method] for transaction in transactions)
+            m.d.comb += method.run.eq(granted.any())
 
-                with m.If(transaction.grant):
-                    m.d.comb += method.data_in.eq(tdata)
-            runnable = granted.any()
-            m.d.comb += method.run.eq(runnable)
+        (method_args, method_runs) = self._method_calls(m, method_map)
+
+        for method in method_map.methods:
+            if len(method_args[method]) == 1:
+                m.d.comb += method.data_in.eq(method_args[method][0])
+            else:
+                runs = Cat(method_runs[method])
+                for i in OneHotSwitchDynamic(m, runs):
+                    m.d.comb += method.data_in.eq(method_args[method][i])
 
         return m
 
@@ -454,7 +484,7 @@ class TransactionBase(Owned):
 
     def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
         if method in self.method_uses:
-            raise RuntimeError("Method can't be called twice from the same transaction")
+            raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction '{self.name}'")
         self.method_uses[method] = (arg, enable)
 
     @contextmanager
@@ -572,7 +602,7 @@ class Transaction(TransactionBase):
             every clock cycle.
         """
         if self.defined:
-            raise RuntimeError("Transaction already defined")
+            raise RuntimeError(f"Transaction '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
         m.d.comb += self.request.eq(request)
         with self.context(m):
@@ -739,7 +769,7 @@ class Method(TransactionBase):
                 m.d.comb += sum.eq(data_in.arg1 + data_in.arg2)
         """
         if self.defined:
-            raise RuntimeError("Method already defined")
+            raise RuntimeError(f"Method '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
         try:
             m.d.comb += self.ready.eq(ready)
@@ -803,7 +833,7 @@ class Method(TransactionBase):
         arg_rec = Record.like(self.data_in)
 
         if arg is not None and kwargs:
-            raise ValueError("Method call with both keyword arguments and legacy record argument")
+            raise ValueError(f"Method '{self.name}' call with both keyword arguments and legacy record argument")
 
         if arg is None:
             arg = kwargs
