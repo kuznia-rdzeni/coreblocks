@@ -7,7 +7,7 @@ from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
 from ..utils import ValueLike, assign, AssignType, ModuleConnector
 from ..utils.protocols import RoutingBlock
-from ..utils._typing import LayoutLike
+from ..utils._typing import LayoutLike, ModuleLike
 
 __all__ = [
     "FIFO",
@@ -912,3 +912,117 @@ class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
             self.receive[i].proxy(m, self._connectors[i].read)
 
         return m
+
+def def_one_caller_wrapper(method_to_wrap : Method, wrapper : Method) -> TModule:
+    if len(method_to_wrap.data_out):
+        raise ValueError("def_one_caller_wrapper support only wrapping of methods which don't return data.")
+
+    m = TModule()
+    buffer = FIFO(method_to_wrap.data_in.layout, 2)
+    m.submodules += buffer
+
+    @def_method(m, wrapper)
+    def _(arg):
+        buffer.write(arg)
+
+    m.submodules += ConnectTrans(buffer.read, method_to_wrap)
+
+    return m
+
+
+class _OmegaRoutingSwitch(Elaboratable):
+    _ports_count = 2
+
+    def __init__(self, send_layout: LayoutLike):
+        self.send_layout = send_layout
+
+        # 0 - "up" port; 1 - "down" port
+        self.reads = [Method(o=self.send_layout) for _ in range(self._ports_count)]
+        self.writes = [Method(i=self.send_layout) for _ in range(self._ports_count)]
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        buffers = [FIFO(self.send_layout, 2) for _ in range(self._ports_count)]
+        m.submodules.buffers = ModuleConnector(*buffers)
+
+        for met in self.writes:
+            @def_method(m, met)
+            def _(addr, data):
+                new_addr = addr << 1
+                if addr[-1]:
+                    buffers[0].write(m, addr = new_addr, data=data)
+                else:
+                    buffers[1].write(m, addr = new_addr, data=data)
+
+        for i in range(self._ports_count):
+            self.reads[i].proxy(m, buffers[i].read)
+        return m
+
+class OmegaRoutingNetwork(Elaboratable, RoutingBlock):
+
+    def __init__(self, outputs_count : int, data_layout : LayoutLike):
+        self.outputs_count = outputs_count
+        self.data_layout = data_layout
+
+        self.addr_width = self.stages = bits_for(self.outputs_count - 1)
+        self.switch_port_count = _OmegaRoutingSwitch._ports_count
+        self.switches_in_stage = outputs_count // self.switch_port_count
+
+        if self.outputs_count%self.switch_port_count:
+            raise ValueError("OmegaRoutingNetwork don't support odd number of outputs.")
+
+        self.send_layout: LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
+
+        self.send = [Method(i=self.data_layout) for _ in range(self.outputs_count)]
+        self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
+
+
+    def _connect_stages(self, from_stage : list[_OmegaRoutingSwitch], to_stage : list[_OmegaRoutingSwitch]):
+        # flatten list in format 00112233
+        froms = [ ]
+        for switch in from_stage:
+            froms += switch.reads
+
+        # flatten list in format 01230123
+        tos = []
+        for i in range(self.switch_port_count):
+            for switch in to_stage:
+                tos.append(switch.writes[i])
+
+        assert len(froms) == len(tos)
+        connections = [ConnectTrans(froms[i], tos[i]) for i in range(len(froms))]
+        return ModuleConnector(*connections)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        _internal_send = [Method(i=self.data_layout) for _ in range(self.outputs_count)]
+        switches : list[list[_OmegaRoutingSwitch]] = []
+
+        stages_connectors = []
+        for i in range(self.stages):
+            switches.append([])
+            for j in range(self.switches_in_stage):
+                switches[i].append(_OmegaRoutingSwitch(self.send_layout))
+            stages_connectors.append(ModuleConnector(*switches[i]))
+        m.submodules.stages = ModuleConnector(*stages_connectors)
+
+        # TODO connect stages
+        
+        sender_wrappers = []
+        for i in range(self.outputs_count):
+            @def_method(m, _internal_send[i])
+            def _(arg):
+                switches[0][i].writes[i%self.switch_port_count](m, arg)
+            sender_wrappers.append(def_one_caller_wrapper(_internal_send[i], self.send[i]))
+        m.submodules.sender_wrappers = ModuleConnector(*sender_wrappers)
+
+        # TODO receive
+        
+        return m
+
+
+
+
+
