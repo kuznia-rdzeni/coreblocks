@@ -300,8 +300,9 @@ def popcount(m: Module, s: Signal) -> Signal:
     if width > 4:
         popcount_sigs.append(Signal(width))
         m.d.comb += popcount_sigs[-1].eq((popcount_sigs[-2] + (popcount_sigs[-2] >> 4)) & m4)
-    # because of assumption that this function support at most signals with 64 bit width
-    # masks in below 'if'-s are not needed
+    # Because of assumption that this function support at most signals with 64 bit width
+    # masks in below 'if'-s are not needed (64 can be written on 7 bits, and after application of
+    # previous mask we have 8 bits already available)
     for limit in {8, 16, 32}:
         if width > limit:
             popcount_sigs.append(Signal(width))
