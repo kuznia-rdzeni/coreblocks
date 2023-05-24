@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684931269650,
+  "lastUpdate": 1684965590888,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -6050,6 +6050,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/acbd241b02e9e02480ff86c8ef6bac8a640f520d"
         },
         "date": 1684931268387,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 55.49,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 22781,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 860,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5608,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "43571100192f9d3aaa7d48ba29f0b5f7fddc3038",
+          "message": "Popcount (#354)\n\nCo-authored-by: Lekcyjna <309016@uwr.edu.pl>\r\nCo-authored-by: Marek Materzok <tilk@tilk.eu>",
+          "timestamp": "2023-05-24T23:50:07+02:00",
+          "tree_id": "cdcb671f550effdb659b0dd8d363b68d2c30b685",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/43571100192f9d3aaa7d48ba29f0b5f7fddc3038"
+        },
+        "date": 1684965588959,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
