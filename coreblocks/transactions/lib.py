@@ -5,7 +5,7 @@ from amaranth.utils import *
 from .core import *
 from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
-from ..utils import ValueLike, assign, AssignType
+from ..utils import ValueLike, assign, AssignType, ModuleConnector
 from ..utils.protocols import RoutingBlock
 from ..utils._typing import LayoutLike
 
@@ -730,30 +730,6 @@ class ManyToOneConnectTrans(Elaboratable):
 
         return m
 
-class AnyToAnyRoutingBlock(Elaboratable, RoutingBlock):
-
-    def __init__(self, inputs_count : int, outputs_count : int, data_layout : LayoutLike):
-        self.inputs_count = inputs_count
-        self.outputs_count = outputs_count
-        self.data_layout = data_layout
-        self.addr_width = log2_int(self.outputs_count)
-
-        self.send_layout : LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
-
-        self.send = [Method(i=self.send_layout) for _ in range(self.inputs_count)]
-        self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
-
-    def elaborate(self, platform):
-        m = Module()
-
-        for i in range(self.inputs_count):
-            @def_method(m, self.send[i])
-            def _(addr, data):
-
-
-        return m
-
-
 class CatTrans(Elaboratable):
     """Concatenating transaction.
 
@@ -872,3 +848,43 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
         this.simultaneous(transaction)
 
     transactions[0].independent(*transactions[1:])
+
+class AnyToAnyRoutingBlock(Elaboratable, RoutingBlock):
+
+    def __init__(self, outputs_count : int, data_layout : LayoutLike):
+        self.outputs_count = outputs_count
+        self.data_layout = data_layout
+        self.addr_width = log2_int(self.outputs_count)
+
+        self.send_layout : LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
+
+        self.send = []
+        self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
+        
+        self._connectors = [Connect(self.data_layout) for _ in range(self.outputs_count)]
+
+    def get_new_send_method(self):
+        self.send.append(Method(i=self.send_layout))
+        return self.send[-1]
+
+    def elaborate(self, platform):
+        if not self.send:
+            raise ValueError("Sender lists empty")
+        m = TModule()
+
+        m.submodules.connectors = ModuleConnector(*self._connectors)
+
+        for sender in self.send:
+            @def_method(m, sender)
+            def _(addr, data):
+                with condition(m) as branch:
+                    for i in range(self.outputs_count):
+                        with branch(addr == i):
+                            self._connectors[i].write(data)
+
+        for i in range(self.outputs_count):
+            self.receive[i].proxy(m, self._connectors[i].read)
+
+        return m
+
+
