@@ -68,9 +68,9 @@ class Funct3(BitEnum, width=3):
     W = SLT = CSRRS = MULHSU = SH1ADD = 0b010
     SLTU = CSRRC = MULHU = 0b011
     BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = 0b100
-    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = 0b101
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = 0b101
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = 0b110
-    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = 0b111
+    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = 0b111
 
 
 class Funct7(BitEnum, width=7):

@@ -175,6 +175,33 @@ _instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.SH2ADD, Funct7.SH2ADD),
         Encoding(Opcode.OP, Funct3.SH3ADD, Funct7.SH3ADD),
     ],
+    OpType.BIT_MANIPULATION: [
+        Encoding(Opcode.OP, Funct3.ANDN, Funct7.ANDN),
+        Encoding(Opcode.OP_IMM, Funct3.CLZ, funct12=Funct12.CLZ),
+        # Encoding(Opcode.OP_IMM_32, Funct3.CLZ, funct12=Funct12.CLZ),
+        Encoding(Opcode.OP_IMM, Funct3.CPOP, funct12=Funct12.CPOP),
+        # Encoding(Opcode.OP_IMM_32, Funct3.CPOP, funct12=Funct12.CPOP),
+        Encoding(Opcode.OP_IMM, Funct3.CTZ, funct12=Funct12.CTZ),
+        # Encoding(Opcode.OP_IMM_32, Funct3.CTZ, funct12=Funct12.CTZ),
+        Encoding(Opcode.OP, Funct3.MAX, Funct7.MAX),
+        Encoding(Opcode.OP, Funct3.MAXU, Funct7.MAX),
+        Encoding(Opcode.OP, Funct3.MIN, Funct7.MIN),
+        Encoding(Opcode.OP, Funct3.MINU, Funct7.MIN),
+        Encoding(Opcode.OP_IMM, Funct3.ORCB, funct12=Funct12.ORCB),
+        Encoding(Opcode.OP, Funct3.ORN, Funct7.ORN),
+        Encoding(Opcode.OP_IMM, Funct3.REV8, funct12=Funct12.REV8_32),
+        # Encoding(Opcode.OP_IMM, Funct3.REV8, funct12=Funct12.REV8_64),
+        Encoding(Opcode.OP, Funct3.ROL, Funct7.ROL),
+        # Encoding(Opcode.OP32, Funct3.ROL, Funct7.ROL),
+        Encoding(Opcode.OP, Funct3.ROR, Funct7.ROR),
+        Encoding(Opcode.OP_IMM, Funct3.ROR, Funct7.ROR), # 64???,
+        # Encoding(Opcode.OP_IMM_32, Funct3.ROR, Funct7.ROR),
+        # Encoding(Opcode.OP32, Funct3.ROR, Funct7.ROR),
+        Encoding(Opcode.OP_IMM, Funct3.SEXTB, funct12=Funct12.SEXTB),
+        Encoding(Opcode.OP_IMM, Funct3.SEXTH, funct12=Funct12.SEXTH),
+        Encoding(Opcode.OP, Funct3.XNOR, Funct7.XNOR),
+        Encoding(Opcode.OP_IMM, Funct3.ZEXTH, funct12=Funct12.ZEXTH), # 64???
+    ],
 }
 
 
