@@ -281,7 +281,7 @@ def popcount(s: Value):
             sum_layers.append(C(0))
         sum_layers = [a + b for a, b in zip(sum_layers[::2], sum_layers[1::2])]
 
-    return sum_layers[0][0:bits_for(len(s))]
+    return sum_layers[0][0 : bits_for(len(s))]
 
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
