@@ -4,6 +4,7 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
+from amaranth.utils import bits_for
 from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
 
 
@@ -276,7 +277,8 @@ def popcount(m: Module, s: Signal) -> Signal:
     """
     Implementation of popcount algorithm from https://en.wikipedia.org/wiki/Hamming_weight
     """
-    if s.shape().width > 64:
+    width = len(s)
+    if width > 64:
         raise ValueError("Current popcount implementation don't support signals longer than 64 bits")
 
     popcount_sigs = []
@@ -289,28 +291,25 @@ def popcount(m: Module, s: Signal) -> Signal:
     m2 = 0x3333333333333333
     m4 = 0x0F0F0F0F0F0F0F0F
 
-    popcount_sigs.append(popcount_sig1 := Signal.like(popcount_sigs[-1]))
-    m.d.comb += popcount_sig1.eq(popcount_sig0 - ((popcount_sig0 >> 1) & m1))
+    popcount_sigs.append(Signal(width))
+    m.d.comb += popcount_sigs[-1].eq(popcount_sigs[-2] - ((popcount_sigs[-2] >> 1) & m1))
 
-    if s.shape().width > 2:
-        popcount_sigs.append(popcount_sig2 := Signal.like(popcount_sigs[-1]))
-        m.d.comb += popcount_sig2.eq((popcount_sig1 & m2) + ((popcount_sig1 >> 2) & m2))
-    if s.shape().width > 4:
-        popcount_sigs.append(popcount_sig3 := Signal.like(popcount_sigs[-1]))
-        m.d.comb += popcount_sig3.eq((popcount_sigs[-2] + (popcount_sigs[-2] >> 4)) & m4)
-    if s.shape().width > 8:
-        popcount_sigs.append(popcount_sig4 := Signal.like(popcount_sigs[-1]))
-        m.d.comb += popcount_sig4.eq(popcount_sigs[-2] + (popcount_sigs[-2] >> 8))
-    if s.shape().width > 16:
-        popcount_sigs.append(popcount_sig5 := Signal.like(popcount_sigs[-1]))
-        m.d.comb += popcount_sig5.eq(popcount_sigs[-2] + (popcount_sigs[-2] >> 16))
-    if s.shape().width > 32:
-        popcount_sigs.append(popcount_sig6 := Signal.like(popcount_sigs[-1]))
-        m.d.comb += popcount_sig6.eq(popcount_sigs[-2] + (popcount_sigs[-2] >> 32))
+    if width > 2:
+        popcount_sigs.append(Signal(width))
+        m.d.comb += popcount_sigs[-1].eq((popcount_sigs[-2] & m2) + ((popcount_sigs[-2] >> 2) & m2))
+    if width > 4:
+        popcount_sigs.append(Signal(width))
+        m.d.comb += popcount_sigs[-1].eq((popcount_sigs[-2] + (popcount_sigs[-2] >> 4)) & m4)
+    # because of assumption that this function support at most signals with 64 bit width
+    # masks in below 'if'-s are not needed
+    for limit in {8, 16, 32}:
+        if width > limit:
+            popcount_sigs.append(Signal(width))
+            m.d.comb += popcount_sigs[-1].eq(popcount_sigs[-2] + (popcount_sigs[-2] >> limit))
 
-    popcount_sigs.append(popcount_res := Signal.like(popcount_sigs[-1]))
-    m.d.comb += popcount_res.eq(popcount_sigs[-2] & 0x7F)
-    return popcount_res
+    popcount_sigs.append(Signal(bits_for(width)))
+    m.d.comb += popcount_sigs[-1].eq(popcount_sigs[-2] & 0x7F)
+    return popcount_sigs[-1]
 
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:

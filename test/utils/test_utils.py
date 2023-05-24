@@ -38,7 +38,7 @@ class PopcountTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        self.sig_out = popcount(m, self.sig_in)
+        m.d.comb += self.sig_out.eq(popcount(m, self.sig_in))
         # dummy signal
         s = Signal()
         m.d.sync += s.eq(1)
@@ -48,7 +48,7 @@ class PopcountTestCircuit(Elaboratable):
 
 @parameterized_class(
     ("name", "size"),
-    [("size" + str(s), s) for s in [2, 3, 4, 5, 6, 8, 10, 16, 21, 32, 43, 64]],
+    [("size" + str(s), s) for s in [2, 3, 4, 5, 6, 8, 10, 16, 21, 32, 33, 64]],
 )
 class TestPopcount(TestCaseWithSimulator):
     size: int
@@ -58,13 +58,17 @@ class TestPopcount(TestCaseWithSimulator):
         self.test_number = 40
         self.m = PopcountTestCircuit(self.size)
 
+    def check(self, n):
+        yield self.m.sig_in.eq(n)
+        yield Settle()
+        out_popcount = yield self.m.sig_out
+        self.assertEqual(out_popcount, n.bit_count(), f"{n:x}")
+
     def process(self):
         for i in range(self.test_number):
             n = random.randrange(2**self.size)
-            yield self.m.sig_in.eq(n)
-            yield Settle()
-            out_popcount = yield self.m.sig_out
-            self.assertEqual(out_popcount, n.bit_count(), f"{n:x}")
+            yield from self.check(n)
+        yield from self.check(2**self.size - 1)
 
     def test_popcount(self):
         with self.run_simulation(self.m) as sim:
