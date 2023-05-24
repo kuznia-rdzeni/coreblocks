@@ -1,10 +1,13 @@
 from contextlib import contextmanager
 from typing import Callable, Tuple, Optional
 from amaranth import *
+from amaranth.utils import *
 from .core import *
 from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
 from ..utils import ValueLike, assign, AssignType
+from ..utils.protocols import RoutingBlock
+from ..utils._typing import LayoutLike
 
 __all__ = [
     "FIFO",
@@ -724,6 +727,29 @@ class ManyToOneConnectTrans(Elaboratable):
 
         for i in range(self.count):
             m.submodules[f"ManyToOneConnectTrans_input_{i}"] = ConnectTrans(self.m_put_result, self.get_results[i])
+
+        return m
+
+class AnyToAnyRoutingBlock(Elaboratable, RoutingBlock):
+
+    def __init__(self, inputs_count : int, outputs_count : int, data_layout : LayoutLike):
+        self.inputs_count = inputs_count
+        self.outputs_count = outputs_count
+        self.data_layout = data_layout
+        self.addr_width = log2_int(self.outputs_count)
+
+        self.send_layout : LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
+
+        self.send = [Method(i=self.send_layout) for _ in range(self.inputs_count)]
+        self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        for i in range(self.inputs_count):
+            @def_method(m, self.send[i])
+            def _(addr, data):
+
 
         return m
 
