@@ -25,7 +25,7 @@ __all__ = [
     "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
-    "AnyToAnySimpleRoutingBlock"
+    "AnyToAnySimpleRoutingBlock",
 ]
 
 # FIFOs
@@ -731,6 +731,7 @@ class ManyToOneConnectTrans(Elaboratable):
 
         return m
 
+
 class CatTrans(Elaboratable):
     """Concatenating transaction.
 
@@ -850,18 +851,18 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
 
     transactions[0].independent(*transactions[1:])
 
-class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
 
-    def __init__(self, outputs_count : int, data_layout : LayoutLike):
+class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
+    def __init__(self, outputs_count: int, data_layout: LayoutLike):
         self.outputs_count = outputs_count
         self.data_layout = data_layout
-        self.addr_width = bits_for(self.outputs_count-1)
+        self.addr_width = bits_for(self.outputs_count - 1)
 
-        self.send_layout : LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
+        self.send_layout: LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
 
         self.send = []
         self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
-        
+
         self._connectors = [Connect(self.data_layout) for _ in range(self.outputs_count)]
 
     def get_new_send_method(self):
@@ -876,6 +877,7 @@ class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
         m.submodules.connectors = ModuleConnector(*self._connectors)
 
         for sender in self.send:
+
             @def_method(m, sender)
             def _(addr, data):
                 with condition(m, nonblocking=False) as branch:
@@ -887,5 +889,3 @@ class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
             self.receive[i].proxy(m, self._connectors[i].read)
 
         return m
-
-

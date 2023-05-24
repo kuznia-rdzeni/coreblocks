@@ -1,6 +1,6 @@
 from typing import Protocol
 from coreblocks.transactions import Method
-from ._typing import HasElaborate, ValueLike
+from ._typing import HasElaborate
 
 
 __all__ = ["FuncUnit", "FuncBlock", "Unifier", "RoutingBlock"]
@@ -24,6 +24,7 @@ class FuncBlock(HasElaborate, Protocol):
     update: Method
     get_result: Method
 
+
 class RoutingBlock(HasElaborate, Protocol):
-    send : list[Method]
-    receive : list[Method]
+    send: list[Method]
+    receive: list[Method]

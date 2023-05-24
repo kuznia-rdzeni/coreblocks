@@ -169,7 +169,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
     def debug_signals(self):
         # TODO changes to be removed before merge due to lack of rebase of simultanous transactions
-        #return [auto_debug_signals(io) for io in self._io.values()]
+        # return [auto_debug_signals(io) for io in self._io.values()]
         return []
 
 

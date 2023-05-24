@@ -2,7 +2,7 @@ import random
 from operator import and_
 from functools import reduce
 from typing import TypeAlias
-from amaranth.sim import Settle, Passive, Active
+from amaranth.sim import Settle, Passive
 from parameterized import parameterized
 from collections import defaultdict
 
@@ -469,11 +469,12 @@ class TestMethodProduct(TestCaseWithSimulator):
             for k in range(targets):
                 sim.add_sync_process(target_process(k))
 
+
 class TestRoutingBlock(TestCaseWithSimulator):
-    @parameterized.expand([(1, 1), (2,2), (4,3), (2, 5)])
-    def test_routing_block(self, input_count :int, output_count : int):
+    @parameterized.expand([(1, 1), (2, 2), (4, 3), (2, 5)])
+    def test_routing_block(self, input_count: int, output_count: int):
         test_number = 100
-        data_size= 5
+        data_size = 5
         layout = data_layout(data_size)
 
         test_circuit = AnyToAnySimpleRoutingBlock(output_count, layout)
@@ -485,29 +486,30 @@ class TestRoutingBlock(TestCaseWithSimulator):
         pending_packets = [0 for i in range(output_count)]
         senders_passive = [False for i in range(input_count)]
 
-
-        def create_sender_process(k : int):
+        def create_sender_process(k: int):
             def process():
                 for i in range(test_number):
                     addr = random.randrange(output_count)
-                    data = {"data" : random.randrange(2**data_size)}
-                    yield from m.send[k].call(addr=addr, data = data)
-                    received_data_dicts[addr][data["data"]]+=1
-                    pending_packets[addr]+=1
-                senders_passive[k]=True
+                    data = {"data": random.randrange(2**data_size)}
+                    yield from m.send[k].call(addr=addr, data=data)
+                    received_data_dicts[addr][data["data"]] += 1
+                    pending_packets[addr] += 1
+                senders_passive[k] = True
+
             return process
 
-        def create_receiver_process(k : int):
+        def create_receiver_process(k: int):
             def process():
                 yield Passive()
                 while True:
                     res = yield from m.receive[k].call()
-                    received_data_dicts[k][res["data"]]-=1
-                    pending_packets[k]-=1
+                    received_data_dicts[k][res["data"]] -= 1
+                    pending_packets[k] -= 1
+
             return process
 
         def checker():
-            while not all([pending_packets[i]==0 for i in range(output_count)] + senders_passive):
+            while not all([pending_packets[i] == 0 for i in range(output_count)] + senders_passive):
                 yield
             for d in received_data_dicts:
                 for k, val in d.items():
