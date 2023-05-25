@@ -38,7 +38,7 @@ def load_benchmarks():
 
 
 def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
-    arglist = ["make", "-C", "test/regression/cocotb", "-f", "benchmark.Makefile"]
+    arglist = ["make", "-C", "test/regression/cocotb", "-f", "benchmark.Makefile", "--no-print-directory"]
 
     test_cases = ",".join(benchmarks)
     arglist += [f"TESTCASE={test_cases}"]

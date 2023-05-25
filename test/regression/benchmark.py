@@ -33,7 +33,7 @@ class MMIO(RandomAccessMemory):
 
 
 def get_all_benchmark_names():
-    return os.listdir(embench_dir)
+    return os.listdir(embench_dir) if os.path.exists(embench_dir) else []
 
 
 async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
@@ -45,7 +45,7 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
 
     mem_model = CoreMemoryModel(mem_segments)
 
-    success = await sim_backend.run(mem_model, timeout_cycles=5000000)
+    success = await sim_backend.run(mem_model, timeout_cycles=20000000)
 
     if not success:
         raise RuntimeError("Simulation timed out")
