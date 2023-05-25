@@ -32,6 +32,7 @@ test/external/riscv-tests/test-*
 # embench benchmark
 test/external/embench/build
 test/external/embench/logs
+/test/regression/benchmark_results
 
 # Documentation build
 build/

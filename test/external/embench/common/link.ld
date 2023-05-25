@@ -1,7 +1,7 @@
 OUTPUT_ARCH( "riscv" )
 ENTRY(_start)
 
-_STACK_SIZE = 0x200;
+_STACK_SIZE = 0x1000;
 
 MEMORY
 {
@@ -56,7 +56,7 @@ SECTIONS
   .stack : {
     __stack_end = .;
     . += _STACK_SIZE;
-    . = ALIGN(4);
+    . = ALIGN(16);
     __stack_top = .;
   } >dmem
 

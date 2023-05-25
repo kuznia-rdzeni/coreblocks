@@ -4,7 +4,7 @@
 SIM ?= verilator
 TOPLEVEL_LANG ?= verilog
 
-VERILOG_SOURCES += $(PWD)/../../../vex.v
+VERILOG_SOURCES += $(PWD)/../../../core.v
 # use VHDL_SOURCES for VHDL files
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
@@ -13,7 +13,7 @@ TOPLEVEL = top
 # MODULE is the basename of the Python test file
 MODULE = benchmark_entrypoint
 
-SIM_BUILD = build/test
+SIM_BUILD = build/benchmark
 
 # Yosys/Amaranth borkedness workaround
 ifeq ($(SIM),verilator)

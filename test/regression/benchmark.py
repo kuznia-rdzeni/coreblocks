@@ -1,13 +1,13 @@
 import os
-import asyncio
+import json
 from pathlib import Path
 
 from .memory import *
 from .common import SimulationBackend
-from .pysim import PySimulation
 
 test_dir = Path(__file__).parent.parent
 embench_dir = test_dir.joinpath("external/embench/build/src")
+results_dir = test_dir.joinpath("regression/benchmark_results")
 
 
 class MMIO(RandomAccessMemory):
@@ -21,13 +21,13 @@ class MMIO(RandomAccessMemory):
             return WriteReply()
         else:
             return super().write(req)
-    
+
     def return_code(self):
         return int.from_bytes(self.data[4:8], "little")
 
     def cycle_cnt(self):
         return int.from_bytes(self.data[8:16], "little")
-    
+
     def instr_cnt(self):
         return int.from_bytes(self.data[16:24], "little")
 
@@ -45,7 +45,7 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
 
     mem_model = CoreMemoryModel(mem_segments)
 
-    success = await sim_backend.run(mem_model, timeout_cycles=2000000)
+    success = await sim_backend.run(mem_model, timeout_cycles=5000000)
 
     if not success:
         raise RuntimeError("Simulation timed out")
@@ -53,9 +53,8 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
     if mmio.return_code() != 0:
         raise RuntimeError("The benchmark exited with a non-zero return code: %d" % mmio.return_code())
 
-    print("Cycle cnt:", mmio.cycle_cnt())
-    print("Instr cnt:", mmio.instr_cnt())
+    results = {"cycle": mmio.cycle_cnt(), "instr": mmio.instr_cnt()}
 
-
-if __name__ == "__main__":
-    asyncio.run(run_benchmark(PySimulation(verbose=True, traces_file="montaz"), "aha-mont64"))
+    os.makedirs(str(results_dir), exist_ok=True)
+    with open(f"{str(results_dir)}/{benchmark_name}.json", "w") as outfile:
+        json.dump(results, outfile)

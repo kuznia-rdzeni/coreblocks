@@ -49,7 +49,7 @@ class PySimulation(SimulationBackend):
                     )
                 else:
                     if self.verbose:
-                        print(f"Wishbone '{bus_name}' bus read request: addr=0x{addr:x} sel={sel}")
+                        print(f"Wishbone '{bus_name}' bus read request: addr=0x{addr:x} sel={sel:b}")
                     resp = mem_model.read(
                         ReadRequest(
                             addr=addr,
@@ -59,6 +59,9 @@ class PySimulation(SimulationBackend):
                         )
                     )
                     resp_data = resp.data
+
+                    if self.verbose:
+                        print(f"Wishbone '{bus_name}' bus read response: data=0x{resp.data:x}")
 
                 ack = err = rty = 0
                 match resp.status:

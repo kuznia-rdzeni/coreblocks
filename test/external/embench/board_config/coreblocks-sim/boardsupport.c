@@ -6,7 +6,6 @@
   asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \
   __tmp; })
 
-#define rdtime() read_csr(time)
 #define rdcycle() ((((uint64_t) read_csr(cycleh)) << 32) | read_csr(cycle))
 #define rdinstret() ((((uint64_t) read_csr(instreth)) << 32) | read_csr(instret))
 
