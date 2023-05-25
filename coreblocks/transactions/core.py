@@ -66,9 +66,9 @@ class MethodMap:
         def rec(transaction: Transaction, source: TransactionBase):
             for method in source.method_uses.keys():
                 if not method.defined:
-                    raise RuntimeError("Trying to use method which is not defined yet")
+                    raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
                 if method in self.methods_by_transaction[transaction]:
-                    raise RuntimeError("Method can't be called twice from the same transaction")
+                    raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
                 rec(transaction, method)
@@ -484,7 +484,7 @@ class TransactionBase(Owned):
 
     def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
         if method in self.method_uses:
-            raise RuntimeError("Method can't be called twice from the same transaction")
+            raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction '{self.name}'")
         self.method_uses[method] = (arg, enable)
 
     @contextmanager
@@ -602,7 +602,7 @@ class Transaction(TransactionBase):
             every clock cycle.
         """
         if self.defined:
-            raise RuntimeError("Transaction already defined")
+            raise RuntimeError(f"Transaction '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
         m.d.comb += self.request.eq(request)
         with self.context(m):
@@ -769,7 +769,7 @@ class Method(TransactionBase):
                 m.d.comb += sum.eq(data_in.arg1 + data_in.arg2)
         """
         if self.defined:
-            raise RuntimeError("Method already defined")
+            raise RuntimeError(f"Method '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
         try:
             m.d.comb += self.ready.eq(ready)
@@ -833,7 +833,7 @@ class Method(TransactionBase):
         arg_rec = Record.like(self.data_in)
 
         if arg is not None and kwargs:
-            raise ValueError("Method call with both keyword arguments and legacy record argument")
+            raise ValueError(f"Method '{self.name}' call with both keyword arguments and legacy record argument")
 
         if arg is None:
             arg = kwargs
