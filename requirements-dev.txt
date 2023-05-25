@@ -9,7 +9,7 @@ myst-parser==0.18.0
 numpydoc==1.5.0
 parameterized==0.8.1
 pre-commit==2.16.0
-pyright==1.1.309
+pyright==1.1.308
 Sphinx==5.1.1
 sphinx-rtd-theme==1.0.0
 sphinxcontrib-mermaid==0.8.1
