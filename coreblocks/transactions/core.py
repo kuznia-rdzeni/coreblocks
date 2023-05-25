@@ -427,11 +427,11 @@ class _AvoidingModuleBuilderDomains:
 
     def __getattr__(self, name: str) -> _ModuleBuilderDomain:
         if name == "av_comb":
-            return self._m.avoiding_module.d.__getattr__("comb")
+            return self._m.avoiding_module.d["comb"]
         elif name == "top_comb":
-            return self._m.top_module.d.__getattr__("comb")
+            return self._m.top_module.d["comb"]
         else:
-            return self._m.main_module.d.__getattr__(name)
+            return self._m.main_module.d[name]
 
     def __getitem__(self, name: str) -> _ModuleBuilderDomain:
         return self.__getattr__(name)
