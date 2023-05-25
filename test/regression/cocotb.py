@@ -1,3 +1,4 @@
+from decimal import Decimal
 import inspect
 from typing import Any
 from collections.abc import Coroutine
@@ -140,7 +141,7 @@ class CocotbSimulation(SimulationBackend):
         cocotb.start_soon(clk.start())
 
         self.dut.rst.value = 1
-        await Timer(1, "ns")
+        await Timer(Decimal(1), "ns")
         self.dut.rst.value = 0
 
         instr_wb = WishboneSlave(self.dut, "wb_instr", self.dut.clk, mem_model, is_instr_bus=True)
