@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Coroutine
+from decimal import Decimal
 from enum import Enum, auto
 from typing import Any, Optional, TypeVar
+import logging
 import cocotb
 import os
 from glob import glob
-from cocotb.clock import Clock, Timer
+from cocotb.clock import Clock
+from cocotb.triggers import Timer
 from cocotb.regression import TestFactory
 from cocotb.handle import ModifiableObject
 from cocotb.triggers import FallingEdge, First, with_timeout
@@ -183,7 +186,7 @@ class WishboneSlave:
 
             sig_m = WishboneMasterSignals()
             self.bus.sample(sig_m)
-            cocotb.logging.debug("%s: %s", self.name, sig_m)
+            logging.debug("%s: %s", self.name, sig_m)
 
             sig_s = WishboneSlaveSignals()
             if sig_m.we:
@@ -213,7 +216,7 @@ class WishboneSlave:
                         raise ValueError("Bus doesn't support rty")
                     sig_s.rty = 1
 
-            cocotb.logging.debug("%s: %s", self.name, sig_s)
+            logging.debug("%s: %s", self.name, sig_s)
             self.bus.drive(sig_s)
             await clock_edge_event
             self.bus.drive(WishboneSlaveSignals())
@@ -231,7 +234,7 @@ def align_to_power_of_two(num: int, power: int) -> int:
 
 
 async def test(dut, test_name):
-    cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
+    logging.getLogger().setLevel(logging.INFO)
 
     instr_segments: list[tuple[range, bytes]] = []
     data_segments: list[tuple[range, bytes]] = []
@@ -257,7 +260,7 @@ async def test(dut, test_name):
     cocotb.start_soon(clk.start())
 
     dut.rst.value = 1
-    await Timer(1, "ns")
+    await Timer(Decimal(1), "ns")
     dut.rst.value = 0
 
     instr_mem = CombinedModel([(r, RAMModel(dut.clk, d)) for (r, d) in instr_segments])
