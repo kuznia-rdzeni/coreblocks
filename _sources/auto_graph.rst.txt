@@ -6,12 +6,12 @@
                subgraph Core["core Core"]
                    Core_InitFreeRFFifo["InitFreeRFFifo"]
                    subgraph WishboneMaster["wb_master_instr WishboneMaster"]
-                       WishboneMaster_request["request"]
                        WishboneMaster_result["result"]
+                       WishboneMaster_request["request"]
                    end
                    subgraph WishboneMaster1["wb_master_data WishboneMaster"]
-                       WishboneMaster1_request["request"]
                        WishboneMaster1_result["result"]
+                       WishboneMaster1_request["request"]
                    end
                    subgraph FIFO["fifo_fetch FIFO"]
                        FIFO_write["write"]
@@ -58,8 +58,8 @@
                    end
                    subgraph RegisterFile["RF RegisterFile"]
                        RegisterFile_read1["read1"]
-                       RegisterFile_free["free"]
                        RegisterFile_write["write"]
+                       RegisterFile_free["free"]
                        RegisterFile_read2["read2"]
                    end
                    subgraph ReorderBuffer["ROB ReorderBuffer"]
@@ -71,8 +71,8 @@
                        subgraph Collector["result_collector Collector"]
                            Collector_method["method"]
                            subgraph Forwarder1["forwarder Forwarder"]
-                               Forwarder1_read["read"]
                                Forwarder1_write["write"]
+                               Forwarder1_read["read"]
                            end
                            subgraph ManyToOneConnectTrans["connect ManyToOneConnectTrans"]
                                subgraph ConnectTrans["ManyToOneConnectTrans_input_0 ConnectTrans"]
@@ -141,8 +141,8 @@
                            subgraph Collector1["collector Collector"]
                                Collector1_method["method"]
                                subgraph Forwarder2["forwarder Forwarder"]
-                                   Forwarder2_read["read"]
                                    Forwarder2_write["write"]
+                                   Forwarder2_read["read"]
                                end
                                subgraph ManyToOneConnectTrans1["connect ManyToOneConnectTrans"]
                                    subgraph ConnectTrans2["ManyToOneConnectTrans_input_0 ConnectTrans"]
@@ -353,12 +353,12 @@
    FIFO3_read --> ConnectTrans3_ConnectTrans
    JumpBranchFuncUnit_accept --> ConnectTrans4_ConnectTrans
    FIFO4_read --> ConnectTrans4_ConnectTrans
+   LSUDummyInternals_LSUDummyInternals --> WishboneMaster1_request
    LSUDummyInternals_LSUDummyInternals5 --> WishboneMaster1_request
-   LSUDummyInternals_LSUDummyInternals4 --> WishboneMaster1_request
-   LSUDummyInternals_LSUDummyInternals1 --> WishboneMaster1_request
+   LSUDummyInternals_LSUDummyInternals2 --> WishboneMaster1_request
    LSUDummyInternals_LSUDummyInternals3 --> WishboneMaster1_request
-   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals2
-   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals
+   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals4
+   WishboneMaster1_result --> LSUDummyInternals_LSUDummyInternals1
    ConnectTrans_ConnectTrans --> Forwarder1_write
    ConnectTrans1_ConnectTrans --> Forwarder1_write
    RSFuncBlock_get_result --> ConnectTrans_ConnectTrans
