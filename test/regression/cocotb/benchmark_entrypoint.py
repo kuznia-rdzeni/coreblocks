@@ -10,7 +10,7 @@ from test.regression.benchmark import run_benchmark, get_all_benchmark_names  # 
 
 
 async def _do_benchmark(dut, benchmark_name):
-    cocotb.logging.getLogger().setLevel(cocotb.logging.DEBUG)
+    cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
     await run_benchmark(CocotbSimulation(dut), benchmark_name)
 
 

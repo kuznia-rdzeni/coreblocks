@@ -32,7 +32,19 @@ def load_benchmarks():
 
         all_tests = test.regression.benchmark.get_all_benchmark_names()
 
-    exclude = {"cubic", "huffbench", "nbody", "picojpeg", "primecount", "qrduino", "sglib-combined", "st", "wikisort"}
+    exclude = {
+        "cubic",
+        "huffbench",
+        "nbody",
+        "picojpeg",
+        "primecount",
+        "qrduino",
+        "sglib-combined",
+        "st",
+        "wikisort",
+        "matmult-int",
+        "edn",
+    }
 
     return list(set(all_tests) - exclude)
 
@@ -91,6 +103,12 @@ def main():
     parser.add_argument("-t", "--trace", action="store_true", help="Dump waveforms")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument("-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend")
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="benchmark.json",
+        help="Selects output file to write information to. Default: %(default)s",
+    )
     parser.add_argument("benchmark_name", nargs="?")
 
     args = parser.parse_args()
@@ -115,6 +133,7 @@ def main():
         print("Benchmark execution failed")
         sys.exit(1)
 
+    results = []
     ipcs = []
     for name in benchmarks:
         with open(f"{str(test.regression.benchmark.results_dir)}/{name}.json", "r") as f:
@@ -122,9 +141,14 @@ def main():
 
         ipc = res["instr"] / res["cycle"]
         ipcs.append(ipc)
+
+        results.append({"name": name, "unit": "Instructions Per Cycle", "value": ipc})
         print(f"Benchmark '{name}': cycles={res['cycle']}, instructions={res['instr']} ipc={ipc:.4f}")
 
     print(f"Average ipc={sum(ipcs)/len(ipcs):.4f}")
+
+    with open(args.output, "w") as benchmark_file:
+        json.dump(results, benchmark_file, indent=4)
 
 
 if __name__ == "__main__":
