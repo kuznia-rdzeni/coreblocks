@@ -1,8 +1,7 @@
 from amaranth import *
-from coreblocks.transactions.core import def_method
 from coreblocks.utils.fifo import BasicFifo
 from coreblocks.frontend.icache import ICacheInterface
-from ..transactions import Method, Transaction
+from ..transactions import def_method, Method, Transaction, TModule
 from ..params import GenParams, FetchLayouts
 
 
@@ -34,8 +33,8 @@ class Fetch(Elaboratable):
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform):
+        m = TModule()
 
         m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(
             layout=[("addr", self.gp.isa.xlen)], depth=2
