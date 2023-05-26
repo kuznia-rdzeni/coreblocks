@@ -378,9 +378,9 @@ class WishboneArbiter(Elaboratable):
 
         m.d.sync += self.prev_cyc.eq(self.slave_wb.cyc)
 
-        m.submodules.rr = RoundRobin(count=len(self.masters))
+        m.submodules.rr = rr = RoundRobin(count=len(self.masters))
         m.d.comb += [self.req_signal[i].eq(self.masters[i].cyc) for i in range(len(self.masters))]
-        m.d.comb += m.submodules.rr.requests.eq(Mux(self.arb_enable, self.req_signal, 0))
+        m.d.comb += rr.requests.eq(Mux(self.arb_enable, self.req_signal, 0))
 
         master_array = Array([master for master in self.masters])
         # If master ends wb cycle, enable rr input to select new master on next cycle if avaliable (cyc off for 1 cycle)
