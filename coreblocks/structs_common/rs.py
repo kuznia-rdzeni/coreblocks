@@ -49,7 +49,7 @@ class RS(Elaboratable):
         take_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
         take_possible = take_vector.any()
 
-        ready_lists = []
+        ready_lists: list[Value] = []
         for op_list in self.ready_for:
             op_vector = Cat(Cat(record.rs_data.exec_fn.op_type == op for op in op_list).any() for record in self.data)
             ready_lists.append(take_vector & op_vector)
