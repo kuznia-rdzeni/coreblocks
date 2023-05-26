@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685098156789,
+  "lastUpdate": 1685100821813,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -6158,6 +6158,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 22781,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 860,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5608,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bbc6b12fce380614b7c26313e05d0cea0bc4c2f9",
+          "message": "New combinational domains for cutting combinational paths (Multi-modules) (#337)",
+          "timestamp": "2023-05-26T13:25:49+02:00",
+          "tree_id": "8f5966539a25cd19d3b0041ee51b21cc0ada7756",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bbc6b12fce380614b7c26313e05d0cea0bc4c2f9"
+        },
+        "date": 1685100820563,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 57.83,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 21351,
             "unit": "LUT4"
           },
           {
