@@ -121,7 +121,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         self.jb_fn = jb_fn
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
