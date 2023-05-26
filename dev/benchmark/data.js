@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684965590888,
+  "lastUpdate": 1685098156789,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -6099,6 +6099,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/43571100192f9d3aaa7d48ba29f0b5f7fddc3038"
         },
         "date": 1684965588959,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 55.49,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 22781,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 860,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5608,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "068532fb8bd9e0cd13ef5741620da3722d1d6c5d",
+          "message": "Update pyright, fix typing issues (#358)",
+          "timestamp": "2023-05-26T12:37:02+02:00",
+          "tree_id": "e77f15d9e03244b9a498dc8b43d3d93e3d128707",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/068532fb8bd9e0cd13ef5741620da3722d1d6c5d"
+        },
+        "date": 1685098155647,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
