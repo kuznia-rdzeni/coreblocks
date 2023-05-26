@@ -60,16 +60,21 @@ class JumpBranch(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        branch_target = Signal(self.gen_params.isa.xlen)
+
         # Spec: "The 12-bit B-immediate encodes signed offsets in multiples of 2,
         # and is added to the current pc to give the target address."
-        branch_target = self.in_pc + self.in_imm[:12].as_signed()
+        # Multiplies of 2 are converted to the real offset in the decode stage, so we have 13 bits.
+        m.d.comb += branch_target.eq(self.in_pc + self.in_imm[:13].as_signed())
+
         m.d.comb += self.reg_res.eq(self.in_pc + 4)
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(JumpBranchFn.Fn.JAL):
                 # Spec: "[...] the J-immediate encodes a signed offset in multiples of 2 bytes.
                 # The offset is sign-extended and added to the pc to form the jump target address."
-                m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm[:20].as_signed())
+                # Multiplies of 2 are converted to the real offset in the decode stage, so we have 21 bits.
+                m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm[:21].as_signed())
                 m.d.comb += self.taken.eq(1)
             with OneHotCase(JumpBranchFn.Fn.JALR):
                 # Spec: "The target address is obtained by adding the 12-bit signed I-immediate

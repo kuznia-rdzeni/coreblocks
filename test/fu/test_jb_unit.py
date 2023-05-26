@@ -45,12 +45,12 @@ class JumpBranchWrapperComponent(FunctionalComponentParams):
 @staticmethod
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> Dict[str, int]:
     max_int = 2**xlen - 1
-    branch_target = pc + signed_to_int(i_imm & 0xFFF, 12)
+    branch_target = pc + signed_to_int(i_imm & 0x1FFF, 13)
     next_pc = 0
     res = pc + 4
 
     if fn == JumpBranchFn.Fn.JAL:
-        next_pc = pc + signed_to_int(i_imm & 0xFFFFF, 20)  # truncate to first 20 bits
+        next_pc = pc + signed_to_int(i_imm & 0x1FFFFF, 21)  # truncate to first 21 bits
     if fn == JumpBranchFn.Fn.JALR:
         # truncate to first 12 bits and set 0th bit to 0
         next_pc = (i1 + signed_to_int(i_imm & 0xFFF, 12)) & ~0x1
