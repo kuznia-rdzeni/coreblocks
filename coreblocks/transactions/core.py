@@ -684,8 +684,8 @@ class Transaction(TransactionBase):
         if manager is None:
             manager = TransactionContext.get()
         manager.add_transaction(self)
-        self.request = Signal()
-        self.grant = Signal()
+        self.request = Signal(name=self.name + "_request")
+        self.grant = Signal(name=self.name + "_grant")
 
     @contextmanager
     def body(self, m: TModule, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
@@ -785,8 +785,8 @@ class Method(TransactionBase):
         super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
-        self.ready = Signal()
-        self.run = Signal()
+        self.ready = Signal(name=self.name + "_ready")
+        self.run = Signal(name=self.name + "run")
         self.data_in = Record(i)
         self.data_out = Record(o)
         self.nonexclusive = nonexclusive
@@ -935,7 +935,7 @@ class Method(TransactionBase):
             with Transaction.body(m):
                 ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
         """
-        enable_sig = Signal()
+        enable_sig = Signal(name=self.name + "_enable")
         arg_rec = Record.like(self.data_in)
 
         if arg is not None and kwargs:
