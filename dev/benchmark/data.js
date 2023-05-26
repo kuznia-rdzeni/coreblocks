@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685103156718,
+  "lastUpdate": 1685103416107,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -6246,6 +6246,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b04d5ebe4e0665d40a240812d59c2ff3497f4645"
         },
         "date": 1685103155510,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 55.31,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 21988,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 438,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 860,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5608,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "75f0effa8dd324efcf65e7cd6eaf268885c51301",
+          "message": "Add support for zmmul extension in the toolchain (#364)",
+          "timestamp": "2023-05-26T14:10:33+02:00",
+          "tree_id": "3afb889043bcf486ee067f5780f858b168c8c1d1",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/75f0effa8dd324efcf65e7cd6eaf268885c51301"
+        },
+        "date": 1685103414603,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
