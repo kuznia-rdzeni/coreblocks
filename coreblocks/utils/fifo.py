@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method, Priority
+from coreblocks.transactions import Method, def_method, Priority, TModule
 from coreblocks.transactions._utils import MethodLayout
 from coreblocks.utils._typing import ValueLike
 
@@ -53,14 +53,14 @@ class BasicFifo(Elaboratable):
         self.clear.add_conflict(self.read, Priority.LEFT)
         self.clear.add_conflict(self.write, Priority.LEFT)
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform):
         def mod_incr(sig: Value, mod: int) -> Value:
             # perform (sig+1)%mod operation
             if mod == 2 ** len(sig):
                 return sig + 1
             return Mux(sig == mod - 1, 0, sig + 1)
 
-        m = Module()
+        m = TModule()
 
         m.submodules.buff_rdport = self.buff_rdport = self.buff.read_port(
             domain="comb", transparent=True
