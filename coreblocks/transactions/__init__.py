@@ -1,6 +1,7 @@
 from .core import *
 
 __all__ = [
+    "TModule",
     "TransactionManager",
     "TransactionContext",
     "TransactionModule",

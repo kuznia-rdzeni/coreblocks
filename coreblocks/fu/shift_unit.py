@@ -67,7 +67,7 @@ class ShiftFuncUnit(FuncUnit, Elaboratable):
         self.accept = Method(o=layouts.accept)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.shift_alu = shift_alu = ShiftUnit(self.gen_params, shift_unit_fn=self.shift_unit_fn)
         m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)

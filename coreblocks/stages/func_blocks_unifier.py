@@ -4,7 +4,7 @@ from amaranth import *
 
 from coreblocks.params import GenParams, BlockComponentParams, DependencyManager
 from coreblocks.params.dependencies import UnifierKey
-from coreblocks.transactions import Method
+from coreblocks.transactions import Method, TModule
 from coreblocks.transactions.lib import MethodProduct, Collector
 from coreblocks.utils.protocols import Unifier
 
@@ -45,7 +45,7 @@ class FuncBlocksUnifier(Elaboratable):
             raise ValueError(f"Method {item} was not declared as required.")
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         for n, (unit, _) in enumerate(self.rs_blocks):
             m.submodules[f"rs_block_{n}"] = unit
