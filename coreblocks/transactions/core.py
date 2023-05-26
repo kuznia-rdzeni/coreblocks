@@ -67,9 +67,9 @@ class MethodMap:
         def rec(transaction: Transaction, source: TransactionBase):
             for method in source.method_uses.keys():
                 if not method.defined:
-                    raise RuntimeError("Trying to use method which is not defined yet")
+                    raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
                 if method in self.methods_by_transaction[transaction]:
-                    raise RuntimeError("Method can't be called twice from the same transaction")
+                    raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
                 rec(transaction, method)
@@ -522,11 +522,11 @@ class _AvoidingModuleBuilderDomains:
 
     def __getattr__(self, name: str) -> _ModuleBuilderDomain:
         if name == "av_comb":
-            return self._m.avoiding_module.d.__getattr__("comb")
+            return self._m.avoiding_module.d["comb"]
         elif name == "top_comb":
-            return self._m.top_module.d.__getattr__("comb")
+            return self._m.top_module.d["comb"]
         else:
-            return self._m.main_module.d.__getattr__(name)
+            return self._m.main_module.d[name]
 
     def __getitem__(self, name: str) -> _ModuleBuilderDomain:
         return self.__getattr__(name)
@@ -540,6 +540,24 @@ class _AvoidingModuleBuilderDomains:
 
 
 class TModule(ModuleLike, Elaboratable):
+    """Extended Amaranth module for use with transactions.
+
+    It includes three different combinational domains:
+
+    * `comb` domain, works like the `comb` domain in plain Amaranth modules.
+      Statements in `comb` are guarded by every condition, including
+      `AvoidedIf`. This means they are guarded by transaction and method
+      bodies: they don't execute if the given transaction/method is not run.
+    * `av_comb` is guarded by all conditions except `AvoidedIf`. This means
+      they are not guarded by transaction and method bodies. This allows to
+      reduce the amount of useless multplexers due to transaction use, while
+      still allowing the use of conditions in transaction/method bodies.
+    * `top_comb` is unguarded: statements added to this domain always
+      execute. It can be used to reduce combinational path length due to
+      multplexers while keeping related combinational and synchronous
+      statements together.
+    """
+
     def __init__(self):
         self.main_module = Module()
         self.avoiding_module = Module()
@@ -674,7 +692,7 @@ class TransactionBase(Owned):
 
     def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
         if method in self.method_uses:
-            raise RuntimeError("Method can't be called twice from the same transaction")
+            raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction '{self.name}'")
         self.method_uses[method] = (arg, enable)
 
     def simultaneous(self, *others: TransactionOrMethod) -> None:
@@ -833,7 +851,7 @@ class Transaction(TransactionBase):
             every clock cycle.
         """
         if self.defined:
-            raise RuntimeError("Transaction already defined")
+            raise RuntimeError(f"Transaction '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
 
         m.d.av_comb += self.request.eq(request)
@@ -1001,7 +1019,7 @@ class Method(TransactionBase):
                 m.d.comb += sum.eq(data_in.arg1 + data_in.arg2)
         """
         if self.defined:
-            raise RuntimeError("Method already defined")
+            raise RuntimeError(f"Method '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
 
         try:
@@ -1065,7 +1083,7 @@ class Method(TransactionBase):
         arg_rec = Record.like(self.data_in)
 
         if arg is not None and kwargs:
-            raise ValueError("Method call with both keyword arguments and legacy record argument")
+            raise ValueError(f"Method '{self.name}' call with both keyword arguments and legacy record argument")
 
         if arg is None:
             arg = kwargs

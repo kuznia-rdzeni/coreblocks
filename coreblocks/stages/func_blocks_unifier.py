@@ -6,7 +6,6 @@ from coreblocks.params import GenParams, BlockComponentParams, DependencyManager
 from coreblocks.params.dependencies import UnifierKey
 from coreblocks.transactions import Method, TModule
 from coreblocks.transactions.lib import MethodProduct, Collector
-from coreblocks.utils.debug_signals import auto_debug_signals, SignalBundle
 from coreblocks.utils.protocols import Unifier
 
 __all__ = ["FuncBlocksUnifier"]
@@ -58,11 +57,3 @@ class FuncBlocksUnifier(Elaboratable):
             m.submodules[name] = unifier
 
         return m
-
-    def debug_signals(self) -> SignalBundle:
-        # TODO: enhanced auto_debug_signals would allow to remove this method
-        return {
-            "get_result": self.get_result.debug_signals(),
-            "update": self.update.debug_signals(),
-            "rs_blocks": {i: auto_debug_signals(b) for i, (b, _) in enumerate(self.rs_blocks)},
-        }
