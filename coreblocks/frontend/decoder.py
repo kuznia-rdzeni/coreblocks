@@ -194,13 +194,13 @@ _instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.ROL, Funct7.ROL),
         # Encoding(Opcode.OP32, Funct3.ROL, Funct7.ROL),
         Encoding(Opcode.OP, Funct3.ROR, Funct7.ROR),
-        Encoding(Opcode.OP_IMM, Funct3.ROR, Funct7.ROR), # 64???,
+        Encoding(Opcode.OP_IMM, Funct3.ROR, Funct7.ROR),  # 64???,
         # Encoding(Opcode.OP_IMM_32, Funct3.ROR, Funct7.ROR),
         # Encoding(Opcode.OP32, Funct3.ROR, Funct7.ROR),
         Encoding(Opcode.OP_IMM, Funct3.SEXTB, funct12=Funct12.SEXTB),
         Encoding(Opcode.OP_IMM, Funct3.SEXTH, funct12=Funct12.SEXTH),
         Encoding(Opcode.OP, Funct3.XNOR, Funct7.XNOR),
-        Encoding(Opcode.OP_IMM, Funct3.ZEXTH, funct12=Funct12.ZEXTH), # 64???
+        Encoding(Opcode.OP_IMM, Funct3.ZEXTH, funct12=Funct12.ZEXTH),  # 64???
     ],
 }
 

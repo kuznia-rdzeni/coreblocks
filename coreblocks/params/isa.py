@@ -99,6 +99,7 @@ class Funct12(BitEnum, width=12):
     SEXTH = 0b011000000101
     ZEXTH = 0b000010000000
 
+
 @unique
 class FenceTarget(BitEnum, width=4):
     MEM_W = 0b0001

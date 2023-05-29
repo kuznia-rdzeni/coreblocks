@@ -16,8 +16,9 @@ __all__ = ["AluFuncUnit", "ALUComponent"]
 
 
 class AluFn(DecoderManager):
-    def __init__(self, zba_enable=False) -> None:
+    def __init__(self, zba_enable=False, zbb_enable=False) -> None:
         self.zba_enable = zba_enable
+        self.zbb_enable = zbb_enable
 
     class Fn(IntFlag):
         ADD = auto()  # Addition
@@ -34,55 +35,59 @@ class AluFn(DecoderManager):
         SH3ADD = auto()  # Logic left shift by 3 and add
 
         # ZBB extension
-        ANDN = auto() # Bitwise ANDN
-        ORN = auto() # Bitwise ORN
-        XNOR = auto() # Bitwise XNOR
+        ANDN = auto()  # Bitwise ANDN
+        ORN = auto()  # Bitwise ORN
+        XNOR = auto()  # Bitwise XNOR
 
-        CLZ = auto() # Count leading zeros
-        # CLZW = auto() # Count leading zeros in word RV64
-        CTZ = auto() # Count trailing zeros
-        # CTZW = auto() # Count trailing zeros in word RV64
+        CLZ = auto()  # Count leading zeros
+        CTZ = auto()  # Count trailing zeros
+        CPOP = auto()  # Count set bits
 
-        CPOP = auto() # Count set bits
-        CPOPW = auto() # Count set bits in word
+        MAX = auto()  # Maximum
+        MAXU = auto()  # Unsigned maximum
+        MIN = auto()  # Minimum
+        MINU = auto()  # Unsigned minimum
 
-        MAX = auto() # Maximum
-        MAXU = auto() # Unsigned maximum
-        MIN = auto() # Minimum
-        MINU = auto() # Unsigned minimum
+        SEXT_B = auto()  # Sign-extend byte
+        SEXT_H = auto()  # Sign-extend halfword
+        ZERO_H = auto()  # Zero extend halfword
 
-        SEXT_B = auto() # Sign-extend byte
-        SEXT_H = auto() # Sign-extend halfword
-        ZERO_H = auto() # Zero extend halfword
-
-        ROL = auto() # Rotate left
-        # ROLW = auto() # Rotate left word RV64
-        ROR = auto() # Rotate right
-        # RORI immediate
-        # RORIW immediate
-        # RORW = auto() # Rotate right word RV64
-
-        ORCB = auto() # Bitwise or combine
-        REV8 = auto() # Reverse byte ordering
+        ORCB = auto()  # Bitwise or combine
+        REV8 = auto()  # Reverse byte ordering
 
     def get_instructions(self) -> Sequence[tuple]:
-        return [
-            (self.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
-            (self.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
-            (self.Fn.SLT, OpType.COMPARE, Funct3.SLT),
-            (self.Fn.SLTU, OpType.COMPARE, Funct3.SLTU),
-            (self.Fn.XOR, OpType.LOGIC, Funct3.XOR),
-            (self.Fn.OR, OpType.LOGIC, Funct3.OR),
-            (self.Fn.AND, OpType.LOGIC, Funct3.AND),
-        ] + [
-            (self.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SH1ADD),
-            (self.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SH2ADD),
-            (self.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SH3ADD),
-        ] * self.zba_enable
+        return (
+            [
+                (self.Fn.ADD, OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
+                (self.Fn.SUB, OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
+                (self.Fn.SLT, OpType.COMPARE, Funct3.SLT),
+                (self.Fn.SLTU, OpType.COMPARE, Funct3.SLTU),
+                (self.Fn.XOR, OpType.LOGIC, Funct3.XOR),
+                (self.Fn.OR, OpType.LOGIC, Funct3.OR),
+                (self.Fn.AND, OpType.LOGIC, Funct3.AND),
+            ]
+            + [
+                (self.Fn.SH1ADD, OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SH1ADD),
+                (self.Fn.SH2ADD, OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SH2ADD),
+                (self.Fn.SH3ADD, OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SH3ADD),
+            ]
+            * self.zba_enable
+            + [
+                (self.Fn.ANDN, OpType.BIT_MANIPULATION, Funct3.ANDN, Funct7.ANDN),
+                (self.Fn.XNOR, OpType.BIT_MANIPULATION, Funct3.XNOR, Funct7.XNOR),
+                (self.Fn.ORN, OpType.BIT_MANIPULATION, Funct3.ORN, Funct7.ORN),
+                (self.Fn.MAX, OpType.BIT_MANIPULATION, Funct3.MAX, Funct7.MAX),
+                (self.Fn.MAXU, OpType.BIT_MANIPULATION, Funct3.MAXU, Funct7.MAX),
+                (self.Fn.MIN, OpType.BIT_MANIPULATION, Funct3.MIN, Funct7.MIN),
+                (self.Fn.MINU, OpType.BIT_MANIPULATION, Funct3.MINU, Funct7.MIN),
+            ]
+            * self.zbb_enable
+        )
 
 
 class Alu(Elaboratable):
     def __init__(self, gen_params: GenParams, alu_fn=AluFn()):
+        self.zba_enable = alu_fn.zba_enable
         self.zba_enable = alu_fn.zba_enable
 
         self.fn = alu_fn.get_function()
@@ -117,6 +122,34 @@ class Alu(Elaboratable):
                     m.d.comb += self.out.eq((self.in1 << 2) + self.in2)
                 with OneHotCase(AluFn.Fn.SH3ADD):
                     m.d.comb += self.out.eq((self.in1 << 3) + self.in2)
+
+            if self.zba_enable:
+                with OneHotCase(AluFn.Fn.ANDN):
+                    m.d.comb += self.out.eq(self.in1 & ~self.in2)
+                with OneHotCase(AluFn.Fn.XNOR):
+                    m.d.comb += self.out.eq(~(self.in1 ^ self.in2))
+                with OneHotCase(AluFn.Fn.ORN):
+                    m.d.comb += self.out.eq(self.in1 | ~self.in2)
+                with OneHotCase(AluFn.Fn.MIN):
+                    with m.If(self.in1.as_signed() < self.in2.as_signed()):
+                        m.d.comb += self.out.eq(self.in1)
+                    with m.Else():
+                        m.d.comb += self.out.eq(self.in2)
+                with OneHotCase(AluFn.Fn.MINU):
+                    with m.If(self.in1 < self.in2):
+                        m.d.comb += self.out.eq(self.in1)
+                    with m.Else():
+                        m.d.comb += self.out.eq(self.in2)
+                with OneHotCase(AluFn.Fn.MAX):
+                    with m.If(self.in1.as_signed() >= self.in2.as_signed()):
+                        m.d.comb += self.out.eq(self.in1)
+                    with m.Else():
+                        m.d.comb += self.out.eq(self.in2)
+                with OneHotCase(AluFn.Fn.MAXU):
+                    with m.If(self.in1 >= self.in2):
+                        m.d.comb += self.out.eq(self.in1)
+                    with m.Else():
+                        m.d.comb += self.out.eq(self.in2)
 
         return m
 
@@ -156,9 +189,10 @@ class AluFuncUnit(FuncUnit, Elaboratable):
 
 
 class ALUComponent(FunctionalComponentParams):
-    def __init__(self, zba_enable=False):
+    def __init__(self, zba_enable=False, zbb_enable=False):
         self.zba_enable = zba_enable
-        self.alu_fn = AluFn(zba_enable=zba_enable)
+        self.zba_enable = zbb_enable
+        self.alu_fn = AluFn(zba_enable=zba_enable, zbb_enable=zbb_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return AluFuncUnit(gen_params, self.alu_fn)

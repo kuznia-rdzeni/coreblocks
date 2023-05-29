@@ -16,22 +16,33 @@ __all__ = ["ShiftFuncUnit", "ShiftUnitComponent"]
 
 
 class ShiftUnitFn(DecoderManager):
+    def __init__(self, zbb_enable=False) -> None:
+        self.zbb_enable = zbb_enable
+
     class Fn(IntFlag):
         SLL = auto()  # Logic left shift
         SRL = auto()  # Logic right shift
         SRA = auto()  # Arithmetic right shift
+
+        # ZBB Extension
+        ROR = auto()  # Rotate right
+        ROL = auto()  # Rotate left
 
     def get_instructions(self) -> Sequence[tuple]:
         return [
             (self.Fn.SLL, OpType.SHIFT, Funct3.SLL),
             (self.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
             (self.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
-        ]
+        ] + [
+            (self.Fn.ROR, OpType.BIT_MANIPULATION, Funct3.ROR, Funct7.ROR),
+            (self.Fn.ROL, OpType.BIT_MANIPULATION, Funct3.ROL, Funct7.ROL),
+        ] * self.zbb_enable
 
 
 class ShiftUnit(Elaboratable):
     def __init__(self, gen_params: GenParams, shift_unit_fn=ShiftUnitFn()):
         self.gen_params = gen_params
+        self.zbb_enable = shift_unit_fn.zbb_enable
 
         self.fn = shift_unit_fn.get_function()
         self.in1 = Signal(gen_params.isa.xlen)
@@ -52,6 +63,12 @@ class ShiftUnit(Elaboratable):
                 m.d.comb += self.out.eq(self.in1 >> self.in2[0:xlen_log])
             with OneHotCase(ShiftUnitFn.Fn.SRA):
                 m.d.comb += self.out.eq(Cat(self.in1, Repl(self.in1[xlen - 1], xlen)) >> self.in2[0:xlen_log])
+
+            if self.zbb_enable:
+                with OneHotCase(ShiftUnitFn.Fn.ROL):
+                    m.d.comb += self.out.eq((Cat(self.in1, self.in1) << self.in2[0:xlen_log])[xlen : (2 * xlen)])
+                with OneHotCase(ShiftUnitFn.Fn.ROR):
+                    m.d.comb += self.out.eq(Cat(self.in1, self.in1) >> self.in2[0:xlen_log])
 
         return m
 
@@ -91,8 +108,8 @@ class ShiftFuncUnit(FuncUnit, Elaboratable):
 
 
 class ShiftUnitComponent(FunctionalComponentParams):
-    def __init__(self):
-        self.shift_unit_fn = ShiftUnitFn()
+    def __init__(self, zbb_enable=False):
+        self.shift_unit_fn = ShiftUnitFn(zbb_enable=zbb_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return ShiftFuncUnit(gen_params, self.shift_unit_fn)

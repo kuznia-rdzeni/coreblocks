@@ -44,6 +44,20 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: in
             res = (i1 << 2) + val2
         case AluFn.Fn.SH3ADD:
             res = (i1 << 3) + val2
+        case AluFn.Fn.ANDN:
+            res = i1 & ~val2
+        case AluFn.Fn.XNOR:
+            res = ~(i1 ^ val2)
+        case AluFn.Fn.ORN:
+            res = i1 | ~val2
+        case AluFn.Fn.MAX:
+            res = max(signed_to_int(i1, xlen), signed_to_int(val2, xlen))
+        case AluFn.Fn.MAXU:
+            res = max(i1, val2)
+        case AluFn.Fn.MIN:
+            res = min(signed_to_int(i1, xlen), signed_to_int(val2, xlen))
+        case AluFn.Fn.MINU:
+            res = min(i1, val2)
 
     return {"result": res & mask}
 
@@ -94,6 +108,41 @@ ops = {
         "funct3": Funct3.SH3ADD,
         "funct7": Funct7.SH3ADD,
     },
+    AluFn.Fn.ANDN: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.ANDN,
+        "funct7": Funct7.ANDN,
+    },
+    AluFn.Fn.XNOR: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.XNOR,
+        "funct7": Funct7.XNOR,
+    },
+    AluFn.Fn.ORN: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.ORN,
+        "funct7": Funct7.ORN,
+    },
+    AluFn.Fn.MAX: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.MAX,
+        "funct7": Funct7.MAX,
+    },
+    AluFn.Fn.MAXU: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.MAXU,
+        "funct7": Funct7.MAX,
+    },
+    AluFn.Fn.MIN: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.MIN,
+        "funct7": Funct7.MIN,
+    },
+    AluFn.Fn.MINU: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.MINU,
+        "funct7": Funct7.MIN,
+    },
 }
 
 
@@ -104,7 +153,7 @@ class AluUnitTest(GenericFunctionalTestUnit):
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
             ops,
-            ALUComponent(zba_enable=True),
+            ALUComponent(zba_enable=True, zbb_enable=True),
             compute_result,
             gen=GenParams(test_core_config),
             number_of_tests=800,

@@ -80,7 +80,7 @@ optypes_by_extensions = {
     ],
     Extension.ZBB: [
         OpType.BIT_MANIPULATION,
-    ]
+    ],
 }
 
 

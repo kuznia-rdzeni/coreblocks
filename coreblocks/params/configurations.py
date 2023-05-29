@@ -95,7 +95,9 @@ tiny_core_config = CoreConfiguration(
 # Core configuration with all supported components
 full_core_config = CoreConfiguration(
     func_units_config=(
-        RSBlockComponent([ALUComponent(zba_enable=True), ShiftUnitComponent(), JumpComponent()], rs_entries=4),
+        RSBlockComponent(
+            [ALUComponent(zba_enable=True, zbb_enable=True), ShiftUnitComponent(), JumpComponent()], rs_entries=4
+        ),
         RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=4),
         LSUBlockComponent(),
         CSRBlockComponent(),
