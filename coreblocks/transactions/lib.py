@@ -842,7 +842,4 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
         with branch():
             pass
 
-    for transaction in transactions:
-        this.simultaneous(transaction)
-
-    transactions[0].independent(*transactions[1:])
+    this.simultaneous_alternatives(*transactions)
