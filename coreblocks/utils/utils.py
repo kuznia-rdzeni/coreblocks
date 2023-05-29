@@ -4,7 +4,8 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
+from amaranth.utils import bits_for
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate, ModuleLike
 
 
 __all__ = [
@@ -17,11 +18,12 @@ __all__ = [
     "bits_from_int",
     "ModuleConnector",
     "silence_mustuse",
+    "popcount",
 ]
 
 
 @contextmanager
-def OneHotSwitch(m: Module, test: Value):
+def OneHotSwitch(m: ModuleLike, test: Value):
     """One-hot switch.
 
     This function allows one-hot matching in the style similar to the standard
@@ -65,16 +67,16 @@ def OneHotSwitch(m: Module, test: Value):
 
 
 @overload
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
     ...
 
 
 @overload
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: Literal[False] = False) -> Iterable[int]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[False] = False) -> Iterable[int]:
     ...
 
 
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: bool = False) -> Iterable[Optional[int]]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: bool = False) -> Iterable[Optional[int]]:
     """Dynamic one-hot switch.
 
     This function allows simple one-hot matching on signals which can have
@@ -269,6 +271,17 @@ def assign(
                     "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs_val.shape(), lhs, rhs_val.shape(), rhs)
                 )
         yield lhs_val.eq(rhs_val)
+
+
+def popcount(s: Value):
+    sum_layers = [s[i] for i in range(len(s))]
+
+    while len(sum_layers) > 1:
+        if len(sum_layers) % 2:
+            sum_layers.append(C(0))
+        sum_layers = [a + b for a, b in zip(sum_layers[::2], sum_layers[1::2])]
+
+    return sum_layers[0][0 : bits_for(len(s))]
 
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:

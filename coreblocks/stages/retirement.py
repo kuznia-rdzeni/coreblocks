@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.transactions.core import Method, Transaction
+from coreblocks.transactions.core import Method, Transaction, TModule
 from coreblocks.params.genparams import GenParams
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
 
@@ -25,7 +25,7 @@ class Retirement(Elaboratable):
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.instret_csr = self.instret_csr
 
