@@ -58,6 +58,45 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: in
             res = min(signed_to_int(i1, xlen), signed_to_int(val2, xlen))
         case AluFn.Fn.MINU:
             res = min(i1, val2)
+        case AluFn.Fn.CPOP:
+            res = i1.bit_count()
+        case AluFn.Fn.SEXTH:
+            bit = (i1 >> 15) & 1
+            if bit:
+                res = i1 | (mask ^ 0xFFFF)
+            else:
+                res = i1 & 0xFFFF
+        case AluFn.Fn.SEXTB:
+            bit = (i1 >> 7) & 1
+            if bit:
+                res = i1 | (mask ^ 0xFF)
+            else:
+                res = i1 & 0xFF
+        case AluFn.Fn.ZEXTH:
+            res = i1 & 0xFFFF
+        case AluFn.Fn.ORCB:
+            i1 |= i1 >> 1
+            i1 |= i1 >> 2
+            i1 |= i1 >> 4
+
+            i1 &= 0x010101010101010101
+
+            for i in range(8):
+                res |= i1 << i
+        case AluFn.Fn.REV8:
+            for i in range(xlen // 8):
+                res = (res << 8) | (i1 & 0xFF)
+                i1 >>= 8  # Haskell screams in pain
+        case AluFn.Fn.CLZ:
+            res = xlen - i1.bit_length()
+        case AluFn.Fn.CTZ:
+            acc = 0
+
+            for i in range(xlen):
+                acc = (acc << 1) | (i1 & 1)
+                i1 >>= 1
+
+            res = xlen - acc.bit_length()
 
     return {"result": res & mask}
 
@@ -143,6 +182,46 @@ ops = {
         "funct3": Funct3.MINU,
         "funct7": Funct7.MIN,
     },
+    AluFn.Fn.CPOP: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_1,
+        "funct3": Funct3.CPOP,
+        "funct7": Funct7.CPOP,
+    },
+    AluFn.Fn.SEXTB: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_1,
+        "funct3": Funct3.SEXTB,
+        "funct7": Funct7.SEXTB,
+    },
+    AluFn.Fn.ZEXTH: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_1,
+        "funct3": Funct3.ZEXTH,
+        "funct7": Funct7.ZEXTH,
+    },
+    AluFn.Fn.SEXTH: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_2,
+        "funct3": Funct3.SEXTH,
+        "funct7": Funct7.SEXTH,
+    },
+    AluFn.Fn.ORCB: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_1,
+        "funct3": Funct3.ORCB,
+        "funct7": Funct7.ORCB,
+    },
+    AluFn.Fn.REV8: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_1,
+        "funct3": Funct3.REV8,
+        "funct7": Funct7.REV8,
+    },
+    AluFn.Fn.CLZ: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_2,
+        "funct3": Funct3.CLZ,
+        "funct7": Funct7.CLZ,
+    },
+    AluFn.Fn.CTZ: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_3,
+        "funct3": Funct3.CTZ,
+        "funct7": Funct7.CTZ,
+    },
 }
 
 
@@ -156,7 +235,7 @@ class AluUnitTest(GenericFunctionalTestUnit):
             ALUComponent(zba_enable=True, zbb_enable=True),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=800,
+            number_of_tests=3000,
             seed=42,
             method_name=method_name,
             zero_imm=False,

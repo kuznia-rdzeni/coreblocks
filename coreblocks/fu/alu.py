@@ -12,6 +12,8 @@ from enum import IntFlag, auto
 
 from coreblocks.utils.protocols import FuncUnit
 
+from coreblocks.utils.utils import popcount
+
 __all__ = ["AluFuncUnit", "ALUComponent"]
 
 
@@ -97,6 +99,7 @@ class Alu(Elaboratable):
     def __init__(self, gen_params: GenParams, alu_fn=AluFn()):
         self.zba_enable = alu_fn.zba_enable
         self.zba_enable = alu_fn.zba_enable
+        self.gen_params = gen_params
 
         self.fn = alu_fn.get_function()
         self.in1 = Signal(gen_params.isa.xlen)
@@ -106,6 +109,9 @@ class Alu(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
+
+        xlen = self.gen_params.isa.xlen
+        xlen_log = self.gen_params.isa.xlen_log
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(AluFn.Fn.ADD):
@@ -159,8 +165,59 @@ class Alu(Elaboratable):
                     with m.Else():
                         m.d.comb += self.out.eq(self.in2)
                 with OneHotCase(AluFn.Fn.CPOP):
-                    
+                    m.d.comb += self.out.eq(popcount(self.in1))
+                with OneHotCase(AluFn.Fn.CLZ):
 
+                    def iter(step: int, s: Value) -> Value:
+                        if step == -1:
+                            return C(0)
+
+                        upper = 2 ** (step + 1)
+                        le = lower = 2**step
+
+                        high_bits = Repl(s[lower:upper].any(), le)
+
+                        resh = high_bits & iter(step - 1, s[lower:upper])
+                        resl = ~high_bits & (le | (iter(step - 1, s[0:lower])))
+
+                        return resh | resl
+
+                    m.d.comb += self.out.eq(iter(xlen_log - 1, self.in1))
+                with OneHotCase(AluFn.Fn.CTZ):
+
+                    def iter(step: int, s: Value) -> Value:
+                        if step == -1:
+                            return C(0)
+
+                        upper = 2 ** (step + 1)
+                        le = lower = 2**step
+
+                        low_bits = Repl(s[0:lower].any(), le)
+
+                        resh = ~low_bits & (le | iter(step - 1, s[lower:upper]))
+                        resl = low_bits & (iter(step - 1, s[0:lower]))
+
+                        return resh | resl
+
+                    m.d.comb += self.out.eq(iter(xlen_log - 1, self.in1))
+                with OneHotCase(AluFn.Fn.SEXTH):
+                    m.d.comb += self.out.eq(Cat(self.in1[0:16], Repl(self.in1[15], xlen - 16)))
+                with OneHotCase(AluFn.Fn.SEXTB):
+                    m.d.comb += self.out.eq(Cat(self.in1[0:8], Repl(self.in1[7], xlen - 8)))
+                with OneHotCase(AluFn.Fn.ZEXTH):
+                    m.d.comb += self.out.eq(Cat(self.in1[0:16], C(0, shape=unsigned(xlen - 16))))
+                with OneHotCase(AluFn.Fn.ORCB):
+
+                    def _or(s: Value) -> Value:
+                        return Repl(s.any(), 8)
+
+                    for i in range(xlen // 8):
+                        m.d.comb += self.out[i * 8 : (i + 1) * 8].eq(_or(self.in1[i * 8 : (i + 1) * 8]))
+                with OneHotCase(AluFn.Fn.REV8):
+                    en = xlen // 8
+                    for i in range(en):
+                        j = en - i - 1
+                        m.d.comb += self.out[i * 8 : (i + 1) * 8].eq(self.in1[j * 8 : (j + 1) * 8])
         return m
 
 

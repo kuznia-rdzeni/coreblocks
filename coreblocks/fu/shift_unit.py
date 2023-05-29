@@ -51,7 +51,7 @@ class ShiftUnit(Elaboratable):
         self.out = Signal(gen_params.isa.xlen)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         xlen = self.gen_params.isa.xlen
         xlen_log = self.gen_params.isa.xlen_log

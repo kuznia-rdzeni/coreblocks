@@ -86,6 +86,7 @@ class Funct7(BitEnum, width=7):
     ZEXTH = 0b0000100
     CPOP = CLZ = CTZ = 0b0011000
 
+
 class Funct12(BitEnum, width=12):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
