@@ -3,6 +3,7 @@ from amaranth.lib.enum import IntEnum
 from dataclasses import dataclass
 
 from transactron import Method, def_method, Transaction, TModule
+from transactron.core import Priority
 from coreblocks.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
@@ -175,6 +176,9 @@ class CSRUnit(FuncBlock, Elaboratable):
     get_result: Method
         `accept` method from standard FU interface. Used to receive instruction result and pass it
         to the next pipeline stage.
+    clear: Method
+        Clears the CSRUnits interal FU. Note that this method should be only used to clear and discard instruction
+        only before it started executing.
     """
 
     def __init__(self, gen_params: GenParams):
@@ -199,6 +203,13 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.update = Method(i=self.csr_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
         self.precommit = Method(i=self.csr_layouts.precommit)
+
+        self.clear = Method()
+        self.clear.add_conflict(self.select, Priority.LEFT)
+        self.clear.add_conflict(self.insert, Priority.LEFT)
+        self.clear.add_conflict(self.update, Priority.LEFT)
+        self.clear.add_conflict(self.get_result, Priority.LEFT)
+        self.clear.add_conflict(self.fetch_continue, Priority.LEFT)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
@@ -318,6 +329,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         @def_method(m, self.get_result, done)
         def _():
             m.d.comb += accepted.eq(1)
+
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
@@ -333,6 +345,12 @@ class CSRUnit(FuncBlock, Elaboratable):
                 "result": current_result,
                 "exception": exception,
             }
+
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += reserved.eq(0)
+            m.d.sync += instr.valid.eq(0)
+            m.d.sync += done.eq(0)
 
         @def_method(m, self.fetch_continue, accepted)
         def _():
