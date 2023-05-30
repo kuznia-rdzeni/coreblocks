@@ -8,7 +8,7 @@ on:
 
 jobs:
   synthesis:
-    name: Synthesis senchmarks
+    name: Synthesis benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 20
     container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5
