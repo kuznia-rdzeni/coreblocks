@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685117714657,
+  "lastUpdate": 1685485836220,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -6344,6 +6344,55 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/481d8e0dc327e37eb9eea6ce656a0e273d2ab4eb"
         },
         "date": 1685117713297,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 57.62,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 21214,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 860,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5608,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1b52e927d6276e5a212311e08c2b8a51e5020669",
+          "message": "Nicer UnifierKey (#371)",
+          "timestamp": "2023-05-31T00:22:25+02:00",
+          "tree_id": "4730bcd54555fda2d48734aa5d9afc60b1c9fbf6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/1b52e927d6276e5a212311e08c2b8a51e5020669"
+        },
+        "date": 1685485834985,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
