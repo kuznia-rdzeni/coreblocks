@@ -1,8 +1,6 @@
 from amaranth import *
 from ..transactions import Method, def_method, TModule
 from ..params import GenParams, ROBLayouts
-from ..params.dependencies import DependencyManager
-from ..params.keys import ROBSingleKey
 
 __all__ = ["ReorderBuffer"]
 
@@ -16,9 +14,6 @@ class ReorderBuffer(Elaboratable):
         self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
         self.retire = Method()
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
-        self.single_entry = Signal()
-        connections = gen_params.get(DependencyManager)
-        connections.add_dependency(ROBSingleKey(), self.single_entry)
 
     def elaborate(self, platform):
         m = TModule()
@@ -28,8 +23,6 @@ class ReorderBuffer(Elaboratable):
 
         peek_possible = start_idx != end_idx
         put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
-
-        m.d.comb += self.single_entry.eq((start_idx + 1)[0 : len(start_idx)] == end_idx)
 
         @def_method(m, self.peek, ready=peek_possible)
         def _():

@@ -8,7 +8,7 @@ from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import BitEnum, Funct3
-from coreblocks.params.keys import BranchResolvedKey, ROBSingleKey
+from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
 
@@ -176,21 +176,18 @@ class CSRUnit(FuncBlock, Elaboratable):
         to the next pipeline stage.
     """
 
-    def __init__(self, gen_params: GenParams, rob_single_instr: Signal):
+    def __init__(self, gen_params: GenParams):
         """
         Parameters
         ----------
         gen_params: GenParams
             Core generation parameters.
-        rob_single_instr: Signal, in
-            Signalls that there is only one instruction left in `ROB`.
         fetch_continue: Method
             Method to resume `Fetch` unit from stalled PC.
         """
         self.gen_params = gen_params
         self.dependency_manager = gen_params.get(DependencyManager)
 
-        self.rob_empty = rob_single_instr
         self.fetch_continue = Method(o=gen_params.get(FetchLayouts).branch_verify)
 
         # Standard RS interface
@@ -200,6 +197,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.insert = Method(i=self.csr_layouts.rs_insert_in)
         self.update = Method(i=self.csr_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
+        self.precommit = Method(i=self.csr_layouts.precommit)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
@@ -219,12 +217,13 @@ class CSRUnit(FuncBlock, Elaboratable):
         ready_to_process = Signal()
         done = Signal()
         accepted = Signal()
+        rob_sfx_empty = Signal()
 
         current_result = Signal(self.gen_params.isa.xlen)
 
         instr = Record(self.csr_layouts.rs_data_layout + [("valid", 1)])
 
-        m.d.comb += ready_to_process.eq(self.rob_empty & instr.valid & (instr.rp_s1 == 0))
+        m.d.comb += ready_to_process.eq(rob_sfx_empty & instr.valid & (instr.rp_s1 == 0))
 
         # RISCV Zicsr spec Table 1.1
         should_read_csr = Signal()
@@ -321,15 +320,20 @@ class CSRUnit(FuncBlock, Elaboratable):
         def _():
             return {"next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
 
+        # Generate rob_sfx_empty signal from precommit
+        @def_method(m, self.precommit)
+        def _(rob_id):
+            m.d.comb += rob_sfx_empty.eq(instr.rob_id == rob_id)
+
         return m
 
 
 class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
-        rob_single = connections.get_dependency(ROBSingleKey())
-        unit = CSRUnit(gen_params, rob_single)
+        unit = CSRUnit(gen_params)
         connections.add_dependency(BranchResolvedKey(), unit.fetch_continue)
+        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 
     def get_optypes(self) -> set[OpType]:
