@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from abc import ABCMeta, abstractmethod, ABC
+from abc import abstractmethod, ABC
 from collections.abc import Callable
 from typing import Any, Generic, TypeVar
 
@@ -84,15 +84,7 @@ class ListKey(Generic[T], DependencyKey[T, list[T]]):
         return data
 
 
-class UnifierKeyMeta(ABCMeta):
-    def __new__(cls, name, bases, classdict, unifier: Callable[[list[Method]], Unifier], **kwargs):
-        classdict["unifier"] = unifier
-        result = type.__new__(cls, name, bases, classdict, **kwargs)
-        return result
-
-
-class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]], metaclass=UnifierKeyMeta,
-                 unifier=lambda _, __: {}):
+class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]]):
     """Base class for method unifier dependency keys.
 
     Method unifier dependency keys are used to collect methods to be called by
@@ -102,6 +94,10 @@ class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]], metac
     """
 
     unifier: Callable[[list[Method]], Unifier]
+
+    def __init_subclass__(cls, unifier: Callable[[list[Method]], Unifier], **kwargs) -> None:
+        cls.unifier = unifier
+        return super().__init_subclass__(**kwargs)
 
     def combine(self, data: list[Method]) -> tuple[Method, dict[str, Unifier]]:
         if len(data) == 1:
