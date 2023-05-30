@@ -1,12 +1,10 @@
-from collections.abc import Callable
 from amaranth import *
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
 from coreblocks.params.dependencies import SimpleKey, UnifierKey
-from coreblocks.transactions.core import Method, TModule
+from coreblocks.transactions.core import TModule
 from coreblocks.transactions.lib import MethodProduct, Collector
 from coreblocks.peripherals.wishbone import WishboneMaster
-from coreblocks.utils.protocols import Unifier
 
 
 __all__ = [
@@ -36,17 +34,15 @@ precommit_unifier = partial(MethodProduct, combiner=([("stall", 1)], precommit_c
 
 
 @dataclass(frozen=True)
-class InstructionPrecommitKey(UnifierKey):
-    unifier: Callable[[list[Method]], Unifier] = field(
-        default=precommit_unifier, init=False
-    )
+class InstructionPrecommitKey(UnifierKey, unifier=precommit_unifier):
+    pass
 
 
 @dataclass(frozen=True)
-class InstructionCommitKey(UnifierKey):
-    unifier: Callable[[list[Method]], Unifier] = field(default=MethodProduct, init=False)
+class InstructionCommitKey(UnifierKey, unifier=MethodProduct):
+    pass
 
 
 @dataclass(frozen=True)
-class BranchResolvedKey(UnifierKey):
-    unifier: Callable[[list[Method]], Unifier] = field(default=Collector, init=False)
+class BranchResolvedKey(UnifierKey, unifier=Collector):
+    pass
