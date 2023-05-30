@@ -13,7 +13,8 @@ class ReorderBuffer(Elaboratable):
         layouts = gen_params.get(ROBLayouts)
         self.put = Method(i=layouts.data_layout, o=layouts.id_layout)
         self.mark_done = Method(i=layouts.id_layout)
-        self.retire = Method(o=layouts.retire_layout)
+        self.peek = Method(o=layouts.peek_layout)
+        self.retire = Method()
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
         self.single_entry = Signal()
         connections = gen_params.get(DependencyManager)
@@ -29,11 +30,14 @@ class ReorderBuffer(Elaboratable):
 
         m.d.comb += self.single_entry.eq((start_idx + 1)[0 : len(start_idx)] == end_idx)
 
+        @def_method(m, self.peek, ready=self.data[start_idx].done)
+        def _():
+            return {"rob_data": self.data[start_idx].rob_data, "rob_id": start_idx}
+
         @def_method(m, self.retire, ready=self.data[start_idx].done)
         def _():
             m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.data[start_idx].done.eq(0)
-            return {"rob_data": self.data[start_idx].rob_data, "rob_id": start_idx}
 
         @def_method(m, self.put, ready=put_possible)
         def _(arg):

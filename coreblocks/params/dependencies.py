@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from abc import abstractmethod, ABC
+from collections.abc import Callable, Collection
 from typing import Any, Generic, TypeVar
 
 from coreblocks.transactions import Method
@@ -92,7 +93,7 @@ class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]]):
     allows to customize the calling behavior.
     """
 
-    unifier: type[Unifier]
+    unifier: Callable[[Collection[Method]], Unifier]
 
     def combine(self, data: list[Method]) -> tuple[Method, dict[str, Unifier]]:
         if len(data) == 1:

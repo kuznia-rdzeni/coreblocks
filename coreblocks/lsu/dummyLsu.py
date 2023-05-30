@@ -229,6 +229,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.select = Method(o=self.lsu_layouts.rs_select_out)
         self.update = Method(i=self.lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
+        self.precommit = Method(i=self.lsu_layouts.precommit_in, o=self.lsu_layouts.precommit_out)
         self.commit = Method(i=self.lsu_layouts.commit)
 
         self.bus = bus
@@ -270,6 +271,10 @@ class LSUDummy(FuncBlock, Elaboratable):
                 m.d.sync += reserved.eq(0)
             return {"rob_id": current_instr.rob_id, "rp_dst": current_instr.rp_dst, "result": internal.loadedData}
 
+        @def_method(m, self.precommit)
+        def _(rob_id: Value):
+            return {"stall": 0}  # TODO: I/O reads
+
         @def_method(m, self.commit)
         def _(rob_id: Value):
             with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
@@ -289,6 +294,7 @@ class LSUBlockComponent(BlockComponentParams):
         wb_master = connections.get_dependency(WishboneDataKey())
         unit = LSUDummy(gen_params, wb_master)
         connections.add_dependency(InstructionCommitKey(), unit.commit)
+        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 
     def get_optypes(self) -> set[OpType]:

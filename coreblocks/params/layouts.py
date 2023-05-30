@@ -140,7 +140,7 @@ class ROBLayouts:
             ("done", 1),
         ]
 
-        self.retire_layout = [("rob_data", self.data_layout), ("rob_id", gen_params.rob_entries_bits)]
+        self.peek_layout = [("rob_data", self.data_layout), ("rob_id", gen_params.rob_entries_bits)]
 
 
 class RSInterfaceLayouts:
@@ -315,6 +315,14 @@ class LSULayouts:
         self.rs_select_out = rs_interface.select_out
 
         self.rs_update_in = rs_interface.update_in
+
+        self.precommit_in = [
+            ("rob_id", gen_params.rob_entries_bits),
+        ]
+
+        self.precommit_out = [
+            ("stall", 1),
+        ]
 
         self.commit = [
             ("rob_id", gen_params.rob_entries_bits),
