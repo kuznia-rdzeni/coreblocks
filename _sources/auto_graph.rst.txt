@@ -6,12 +6,12 @@
                subgraph Core["core Core"]
                    Core_InitFreeRFFifo["InitFreeRFFifo"]
                    subgraph WishboneMaster["wb_master_instr WishboneMaster"]
-                       WishboneMaster_result["result"]
                        WishboneMaster_request["request"]
+                       WishboneMaster_result["result"]
                    end
                    subgraph WishboneMaster1["wb_master_data WishboneMaster"]
-                       WishboneMaster1_request["request"]
                        WishboneMaster1_result["result"]
+                       WishboneMaster1_request["request"]
                    end
                    subgraph FIFO["fifo_fetch FIFO"]
                        FIFO_read["read"]
@@ -28,10 +28,10 @@
                    end
                    subgraph ICache["icache ICache"]
                        ICache_ICache["ICache"]
-                       ICache_ICache1["ICache"]
-                       ICache_ICache2["ICache"]
                        ICache_accept_res["accept_res"]
                        ICache_issue_req["issue_req"]
+                       ICache_ICache1["ICache"]
+                       ICache_ICache2["ICache"]
                        subgraph FIFO1["req_fifo FIFO"]
                            FIFO1_read["read"]
                            FIFO1_write["write"]
@@ -42,9 +42,9 @@
                        end
                    end
                    subgraph Fetch["fetch Fetch"]
-                       Fetch_verify_branch["verify_branch"]
                        Fetch_Fetch["Fetch"]
                        Fetch_Fetch1["Fetch"]
+                       Fetch_verify_branch["verify_branch"]
                        subgraph BasicFifo1["fetch_target_queue BasicFifo"]
                            BasicFifo1_write["write"]
                            BasicFifo1_read["read"]
@@ -57,10 +57,10 @@
                        RRAT_commit["commit"]
                    end
                    subgraph RegisterFile["RF RegisterFile"]
-                       RegisterFile_free["free"]
-                       RegisterFile_read2["read2"]
                        RegisterFile_read1["read1"]
                        RegisterFile_write["write"]
+                       RegisterFile_read2["read2"]
+                       RegisterFile_free["free"]
                    end
                    subgraph ReorderBuffer["ROB ReorderBuffer"]
                        ReorderBuffer_put["put"]
