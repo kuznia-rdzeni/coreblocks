@@ -35,21 +35,22 @@ class Retirement(Elaboratable):
 
         with Transaction().body(m):
             rob_entry = self.rob_peek(m)
-            stall = self.precommit(m, rob_id=rob_entry.rob_id)
+            self.precommit(m, rob_id=rob_entry.rob_id)
 
-            with m.If(~stall.stall):
-                self.rob_retire(m)
+        with Transaction().body(m):
+            rob_entry = self.rob_peek(m)
+            self.rob_retire(m)
 
-                # set rl_dst -> rp_dst in R-RAT
-                rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
+            # set rl_dst -> rp_dst in R-RAT
+            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
 
-                self.rf_free(m, rat_out.old_rp_dst)
-                self.commit(m, rob_id=rob_entry.rob_id)
+            self.rf_free(m, rat_out.old_rp_dst)
+            self.commit(m, rob_id=rob_entry.rob_id)
 
-                # put old rp_dst to free RF list
-                with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
-                    self.free_rf_put(m, rat_out.old_rp_dst)
+            # put old rp_dst to free RF list
+            with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
+                self.free_rf_put(m, rat_out.old_rp_dst)
 
-                self.instret_csr.increment(m)
+            self.instret_csr.increment(m)
 
         return m

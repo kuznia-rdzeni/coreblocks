@@ -26,15 +26,8 @@ class ROBSingleKey(SimpleKey[Signal]):
     pass
 
 
-def precommit_combiner(m: TModule, vals: list[Record]):
-    return {"stall": Cat(val.stall for val in vals).any()}
-
-
-precommit_unifier = partial(MethodProduct, combiner=([("stall", 1)], precommit_combiner))
-
-
 @dataclass(frozen=True)
-class InstructionPrecommitKey(UnifierKey, unifier=precommit_unifier):
+class InstructionPrecommitKey(UnifierKey, unifier=MethodProduct):
     pass
 
 

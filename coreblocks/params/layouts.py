@@ -316,12 +316,8 @@ class LSULayouts:
 
         self.rs_update_in = rs_interface.update_in
 
-        self.precommit_in = [
+        self.precommit = [
             ("rob_id", gen_params.rob_entries_bits),
-        ]
-
-        self.precommit_out = [
-            ("stall", 1),
         ]
 
         self.commit = [
