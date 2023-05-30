@@ -10,7 +10,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
 from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
 
-from typing import Optional
+from typing import Optional, cast
 import random
 import subprocess
 import tempfile
@@ -29,7 +29,7 @@ from riscvmodel.insn import (
     InstructionJAL,
 )
 from riscvmodel.model import Model
-from riscvmodel.isa import InstructionRType, get_insns
+from riscvmodel.isa import Instruction, InstructionRType, get_insns
 from riscvmodel.variant import RV32I
 
 
@@ -195,7 +195,8 @@ class TestCoreRandomized(TestCoreBase):
         self.instr_count = 300
         random.seed(42)
 
-        instructions = get_insns(cls=InstructionRType, variant=RV32I)
+        # cast is there to avoid stubbing riscvmodel
+        instructions = cast(list[type[Instruction]], get_insns(cls=InstructionRType, variant=RV32I))
         instructions += [
             InstructionADDI,
             InstructionSLTI,
