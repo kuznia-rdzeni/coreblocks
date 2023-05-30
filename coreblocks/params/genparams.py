@@ -35,7 +35,7 @@ class DependentCache:
     """
 
     def __init__(self):
-        self._depcache: dict[tuple[Any, frozenset[tuple[str, Any]]], Any] = {}
+        self._depcache: dict[tuple[Type, frozenset[tuple[str, Any]]], Type] = {}
 
     def get(self, cls: Type[T], **kwargs) -> T:
         v = self._depcache.get((cls, frozenset(kwargs.items())), None)
