@@ -1,9 +1,8 @@
 from amaranth import *
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from coreblocks.params.dependencies import SimpleKey, UnifierKey
 from coreblocks.transactions.lib import MethodProduct, Collector
 from coreblocks.peripherals.wishbone import WishboneMaster
-from coreblocks.utils.protocols import Unifier
 
 
 __all__ = [
@@ -24,10 +23,10 @@ class ROBSingleKey(SimpleKey[Signal]):
 
 
 @dataclass(frozen=True)
-class InstructionCommitKey(UnifierKey):
-    unifier: type[Unifier] = field(default=MethodProduct, init=False)
+class InstructionCommitKey(UnifierKey, unifier=MethodProduct):
+    pass
 
 
 @dataclass(frozen=True)
-class BranchResolvedKey(UnifierKey):
-    unifier: type[Unifier] = field(default=Collector, init=False)
+class BranchResolvedKey(UnifierKey, unifier=Collector):
+    pass
