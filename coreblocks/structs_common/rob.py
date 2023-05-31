@@ -12,7 +12,7 @@ class ReorderBuffer(Elaboratable):
         self.put = Method(i=layouts.data_layout, o=layouts.id_layout)
         self.mark_done = Method(i=layouts.id_layout)
         self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
-        self.retire = Method()
+        self.retire = Method(o=layouts.retire_layout)
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
     def elaborate(self, platform):
@@ -32,6 +32,9 @@ class ReorderBuffer(Elaboratable):
         def _():
             m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.data[start_idx].done.eq(0)
+            # TODO: because of a problem with mocking nonexclusive methods,
+            # retire replicates functionality of peek
+            return {"rob_data": self.data[start_idx].rob_data, "rob_id": start_idx}
 
         @def_method(m, self.put, ready=put_possible)
         def _(arg):

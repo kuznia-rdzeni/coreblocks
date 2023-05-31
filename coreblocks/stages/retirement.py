@@ -43,8 +43,7 @@ class Retirement(Elaboratable):
                 self.precommit(m, rob_id=rob_entry.rob_id)
 
         with Transaction().body(m):
-            rob_entry = self.rob_peek(m)
-            self.rob_retire(m)
+            rob_entry = self.rob_retire(m)
 
             # set rl_dst -> rp_dst in R-RAT
             rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
