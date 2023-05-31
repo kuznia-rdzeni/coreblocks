@@ -98,7 +98,7 @@ class AluFn(DecoderManager):
 class Alu(Elaboratable):
     def __init__(self, gen_params: GenParams, alu_fn=AluFn()):
         self.zba_enable = alu_fn.zba_enable
-        self.zba_enable = alu_fn.zba_enable
+        self.zbb_enable = alu_fn.zbb_enable
         self.gen_params = gen_params
 
         self.fn = alu_fn.get_function()
@@ -137,7 +137,7 @@ class Alu(Elaboratable):
                 with OneHotCase(AluFn.Fn.SH3ADD):
                     m.d.comb += self.out.eq((self.in1 << 3) + self.in2)
 
-            if self.zba_enable:
+            if self.zbb_enable:
                 with OneHotCase(AluFn.Fn.ANDN):
                     m.d.comb += self.out.eq(self.in1 & ~self.in2)
                 with OneHotCase(AluFn.Fn.XNOR):
