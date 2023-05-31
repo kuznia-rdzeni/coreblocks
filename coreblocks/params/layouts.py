@@ -177,10 +177,6 @@ class RetirementLayouts:
             ("rob_id", gen_params.rob_entries_bits),
         ]
 
-        self.commit = [
-            ("rob_id", gen_params.rob_entries_bits),
-        ]
-
 
 class RSLayouts:
     def __init__(self, gen_params: GenParams):
@@ -333,8 +329,6 @@ class LSULayouts:
         retirement = gen_params.get(RetirementLayouts)
 
         self.precommit = retirement.precommit
-
-        self.commit = retirement.commit
 
 
 class CSRLayouts:
