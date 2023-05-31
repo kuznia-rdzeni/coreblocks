@@ -87,7 +87,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: "embench"
-          path: test/external/embench
+          path: test/external/embench/build
 
       - name: Run benchmarks
         run: |
