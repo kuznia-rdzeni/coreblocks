@@ -93,3 +93,6 @@ class RSBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return optypes_supported(self.func_units)
+
+    def get_rs_entry_count(self) -> int:
+        return self.rs_entries

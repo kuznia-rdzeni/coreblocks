@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, Type, Protocol, runtime_checkable, Any
+from typing import TypeVar, Type, Any
 from amaranth.utils import log2_int
 
 from .isa import ISA, gen_isa_string
@@ -95,13 +95,8 @@ class GenParams(DependentCache):
 
         self.max_rs_entries = 1
 
-        @runtime_checkable
-        class HasRSEntries(Protocol):
-            rs_entries: int
-
         for block in self.func_units_config:
-            if isinstance(block, HasRSEntries):
-                self.max_rs_entries = max(self.max_rs_entries, block.rs_entries)
+            self.max_rs_entries = max(self.max_rs_entries, block.get_rs_entry_count())
 
         self.rs_number_bits = (len(self.func_units_config) - 1).bit_length()
 

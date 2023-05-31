@@ -325,8 +325,6 @@ class CSRUnit(FuncBlock, Elaboratable):
 
 
 class CSRBlockComponent(BlockComponentParams):
-    rs_entries = 1
-
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
         rob_single = connections.get_dependency(ROBSingleKey())
@@ -336,3 +334,6 @@ class CSRBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.CSR_REG, OpType.CSR_IMM}
+
+    def get_rs_entry_count(self) -> int:
+        return 1
