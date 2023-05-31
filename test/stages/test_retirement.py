@@ -33,8 +33,6 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
 
-        m.submodules.mock_lsu_commit = self.mock_lsu_commit = TestbenchIO(Adapter(i=lsu_layouts.commit))
-
         m.submodules.mock_lsu_precommit = self.mock_lsu_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
         m.submodules.retirement = self.retirement = Retirement(
@@ -44,7 +42,6 @@ class RetirementTestCircuit(Elaboratable):
             r_rat_commit=self.rat.commit,
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
-            commit=self.mock_lsu_commit.adapter.iface,
             precommit=self.mock_lsu_precommit.adapter.iface,
         )
 
@@ -123,10 +120,6 @@ class RetirementTest(TestCaseWithSimulator):
         def lsu_precommit_process(rob_id):
             self.assertEqual(rob_id, self.lsu_precommit_q.popleft())
 
-        @def_method_mock(lambda: retc.mock_lsu_commit, sched_prio=2)
-        def lsu_commit_process(rob_id):
-            self.assertEqual(rob_id, self.lsu_commit_q.popleft())
-
         with self.run_simulation(retc) as sim:
             sim.add_sync_process(retire_process)
             sim.add_sync_process(peek_process)
@@ -134,4 +127,3 @@ class RetirementTest(TestCaseWithSimulator):
             sim.add_sync_process(rat_process)
             sim.add_sync_process(rf_free_process)
             sim.add_sync_process(lsu_precommit_process)
-            sim.add_sync_process(lsu_commit_process)

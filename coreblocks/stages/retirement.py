@@ -15,8 +15,7 @@ class Retirement(Elaboratable):
         r_rat_commit: Method,
         free_rf_put: Method,
         rf_free: Method,
-        precommit: Method,
-        commit: Method
+        precommit: Method
     ):
         self.gen_params = gen_params
         self.rob_peek = rob_peek
@@ -25,7 +24,6 @@ class Retirement(Elaboratable):
         self.free_rf_put = free_rf_put
         self.rf_free = rf_free
         self.precommit = precommit
-        self.commit = commit
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
@@ -34,13 +32,12 @@ class Retirement(Elaboratable):
 
         m.submodules.instret_csr = self.instret_csr
 
-        new_insn = Signal(reset=1)
-
         with Transaction().body(m):
-            with m.If(new_insn):
-                m.d.sync += new_insn.eq(0)
-                rob_entry = self.rob_peek(m)
-                self.precommit(m, rob_id=rob_entry.rob_id)
+            # TODO: do we prefer single precommit call per instruction?
+            # If so, the precommit method should send an acknowledge signal here.
+            # Just calling once is not enough, because the insn might not be in relevant unit yet.
+            rob_entry = self.rob_peek(m)
+            self.precommit(m, rob_id=rob_entry.rob_id)
 
         with Transaction().body(m):
             rob_entry = self.rob_retire(m)
@@ -49,14 +46,11 @@ class Retirement(Elaboratable):
             rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
 
             self.rf_free(m, rat_out.old_rp_dst)
-            self.commit(m, rob_id=rob_entry.rob_id)
 
             # put old rp_dst to free RF list
             with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
                 self.free_rf_put(m, rat_out.old_rp_dst)
 
             self.instret_csr.increment(m)
-
-            m.d.sync += new_insn.eq(1)
 
         return m

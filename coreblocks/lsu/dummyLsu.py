@@ -207,8 +207,8 @@ class LSUDummy(FuncBlock, Elaboratable):
         and we have a value which can be used in further computations.
     get_result : Method
         To put load/store results to the next stage of pipeline.
-    commit : Method
-        Used to inform LSU that new instruction have been retired.
+    precommit : Method
+        Used to inform LSU that new instruction is ready to be retired.
     """
 
     def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
@@ -230,7 +230,6 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.update = Method(i=self.lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
         self.precommit = Method(i=self.lsu_layouts.precommit)
-        self.commit = Method(i=self.lsu_layouts.commit)
 
         self.bus = bus
 
@@ -273,10 +272,7 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         @def_method(m, self.precommit)
         def _(rob_id: Value):
-            pass  # TODO: I/O reads
-
-        @def_method(m, self.commit)
-        def _(rob_id: Value):
+            # TODO: I/O reads
             with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
                 m.d.sync += internal.execute_store.eq(1)
 
@@ -293,7 +289,6 @@ class LSUBlockComponent(BlockComponentParams):
         connections = gen_params.get(DependencyManager)
         wb_master = connections.get_dependency(WishboneDataKey())
         unit = LSUDummy(gen_params, wb_master)
-        connections.add_dependency(InstructionCommitKey(), unit.commit)
         connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 
