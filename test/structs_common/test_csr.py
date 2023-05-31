@@ -19,14 +19,13 @@ class CSRUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        self.rob_single_insn = Signal()
-
-        m.submodules.dut = self.dut = CSRUnit(self.gen_params, self.rob_single_insn)
+        m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
         m.submodules.select = self.select = TestbenchIO(AdapterTrans(self.dut.select))
         m.submodules.insert = self.insert = TestbenchIO(AdapterTrans(self.dut.insert))
         m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
         m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
+        m.submodules.precommit = self.precommit = TestbenchIO(AdapterTrans(self.dut.precommit))
 
         m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(AdapterTrans(self.dut.fetch_continue))
 
@@ -112,7 +111,6 @@ class TestCSRUnit(TestCaseWithSimulator):
         yield from self.dut.fetch_continue.enable()
         for _ in range(self.cycles):
             yield from self.random_wait()
-            yield self.dut.rob_single_insn.eq(0)
 
             op = yield from self.generate_instruction()
 
@@ -125,7 +123,7 @@ class TestCSRUnit(TestCaseWithSimulator):
                 yield from self.dut.update.call(tag=op["exp"]["rs1"]["rp_s1"], value=op["exp"]["rs1"]["value"])
 
             yield from self.random_wait()
-            yield self.dut.rob_single_insn.eq(1)
+            yield from self.dut.precommit.call()
 
             yield from self.random_wait()
             res = yield from self.dut.accept.call()
