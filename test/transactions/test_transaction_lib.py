@@ -133,18 +133,15 @@ class TestMemoryBank(TestCaseWithSimulator):
                 a = random.randrange(max_addr)
                 yield from m.write.call(data=d, addr=a)
                 yield Settle()
-                # print("w", a, d)
                 data_dict[a] = d
                 yield from random_wait(writer_rand)
 
         def reader_req():
             for i in range(test_count):
                 a = random.randrange(max_addr)
-                # print(data_dict)
                 yield from m.read_req.call(addr=a)
                 for i in range(2):
                     yield Settle()
-                # print("rq", a)
                 read_req_queue.append((a, data_dict[a]))
                 yield from random_wait(reader_req_rand)
 
@@ -153,7 +150,6 @@ class TestMemoryBank(TestCaseWithSimulator):
                 while not read_req_queue:
                     yield from random_wait(reader_resp_rand)
                 a, d = read_req_queue.popleft()
-                # print("rp", a)
                 self.assertEqual((yield from m.read_resp.call()), {"data": data_dict[a]})
                 yield from random_wait(reader_resp_rand)
 
