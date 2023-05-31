@@ -33,7 +33,7 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
 
-        m.submodules.mock_lsu_precommit = self.mock_lsu_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
+        m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
@@ -42,7 +42,7 @@ class RetirementTestCircuit(Elaboratable):
             r_rat_commit=self.rat.commit,
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
-            precommit=self.mock_lsu_precommit.adapter.iface,
+            precommit=self.mock_precommit.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -57,7 +57,7 @@ class RetirementTest(TestCaseWithSimulator):
         self.rat_map_q = deque()
         self.submit_q = deque()
         self.rf_free_q = deque()
-        self.lsu_precommit_q = deque()
+        self.precommit_q = deque()
         self.lsu_commit_q = deque()
 
         random.seed(8)
@@ -77,7 +77,7 @@ class RetirementTest(TestCaseWithSimulator):
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
                 self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id})
                 self.lsu_commit_q.append(rob_id)
-                self.lsu_precommit_q.append(rob_id)
+                self.precommit_q.append(rob_id)
             # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
@@ -116,9 +116,9 @@ class RetirementTest(TestCaseWithSimulator):
         def rf_free_process(reg_id):
             self.assertEqual(reg_id, self.rf_free_q.popleft())
 
-        @def_method_mock(lambda: retc.mock_lsu_precommit, sched_prio=2)
-        def lsu_precommit_process(rob_id):
-            self.assertEqual(rob_id, self.lsu_precommit_q.popleft())
+        @def_method_mock(lambda: retc.mock_precommit, sched_prio=2)
+        def precommit_process(rob_id):
+            self.assertEqual(rob_id, self.precommit_q.popleft())
 
         with self.run_simulation(retc) as sim:
             sim.add_sync_process(retire_process)
@@ -126,4 +126,4 @@ class RetirementTest(TestCaseWithSimulator):
             sim.add_sync_process(free_reg_process)
             sim.add_sync_process(rat_process)
             sim.add_sync_process(rf_free_process)
-            sim.add_sync_process(lsu_precommit_process)
+            sim.add_sync_process(precommit_process)
