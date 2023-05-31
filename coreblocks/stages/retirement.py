@@ -18,6 +18,7 @@ class Retirement(Elaboratable):
         precommit: Method,
         commit: Method
     ):
+        self.gen_params = gen_params
         self.rob_peek = rob_peek
         self.rob_retire = rob_retire
         self.r_rat_commit = r_rat_commit
@@ -33,9 +34,13 @@ class Retirement(Elaboratable):
 
         m.submodules.instret_csr = self.instret_csr
 
+        new_insn = Signal(reset=1)
+
         with Transaction().body(m):
-            rob_entry = self.rob_peek(m)
-            self.precommit(m, rob_id=rob_entry.rob_id)
+            with m.If(new_insn):
+                m.d.sync += new_insn.eq(0)
+                rob_entry = self.rob_peek(m)
+                self.precommit(m, rob_id=rob_entry.rob_id)
 
         with Transaction().body(m):
             rob_entry = self.rob_peek(m)
@@ -52,5 +57,7 @@ class Retirement(Elaboratable):
                 self.free_rf_put(m, rat_out.old_rp_dst)
 
             self.instret_csr.increment(m)
+
+            m.d.sync += new_insn.eq(1)
 
         return m
