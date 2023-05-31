@@ -15,7 +15,7 @@ class RetirementTestCircuit(Elaboratable):
         self.gen_params = gen_params
 
     def elaborate(self, platform):
-        m = TModule()
+        m = Module()
 
         rob_layouts = self.gen_params.get(ROBLayouts)
         rf_layouts = self.gen_params.get(RFLayouts)
