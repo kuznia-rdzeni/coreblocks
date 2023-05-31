@@ -325,6 +325,8 @@ class CSRUnit(FuncBlock, Elaboratable):
 
 
 class CSRBlockComponent(BlockComponentParams):
+    rs_entries = 1
+
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
         rob_single = connections.get_dependency(ROBSingleKey())
