@@ -155,94 +155,6 @@ class Forwarder(Elaboratable):
 
         return m
 
-
-class MemoryBank(Elaboratable):
-    """MemoryBank module.
-
-    Provides a transactional interface to synchronous Amaranth Memory with one
-    read port and one write port. It supports optionally writing with given granularity.
-
-    Attributes
-    ----------
-    read_req: Method
-        The read request method. Accepts an `addr` from which data should be read.
-        Ready only if there is no response pending to be read or response is currently being read.
-    read_resp: Method
-        The read response method. Return `data_layout` Record which was saved on `addr` given by last
-        `read_req` method call. Ready only after `read_req` call.
-    write: Method
-        The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
-        and optionaly `mask` if `granularity` is not None. `1` in mask means that apropriate part should be written.
-    """
-
-    def __init__(self, *, data_layout: MethodLayout, elem_count: int, granularity: Optional[int] = None):
-        """
-        Parameters
-        ----------
-        data_layout: record layout
-            The format of records stored in the Memory.
-        elem_count: int
-            Number of elements stored in Memory.
-        granularity: Optional[int]
-            Granularity of write, forwarded to Amaranth. If `None` the whole record is always saved at once.
-            If not the width of `data_layout` is split into `granularity` parts, which can be saved independently.
-        """
-        self.data_layout = data_layout
-        self.elem_count = elem_count
-        self.granularity = granularity
-        self.width = len(Record(self.data_layout))
-        self.addr_width = bits_for(self.elem_count - 1)
-
-        self.read_req_layout = [("addr", self.addr_width)]
-        if self.granularity is None:
-            self.write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
-        else:
-            self.write_layout = [
-                ("addr", self.addr_width),
-                ("data", self.data_layout),
-                ("mask", self.width // self.granularity),
-            ]
-
-        self.read_req = Method(i=self.read_req_layout)
-        self.read_resp = Method(o=self.data_layout)
-        self.write = Method(i=self.write_layout)
-
-    def elaborate(self, platform) -> Module:
-        m = Module()
-
-        mem = Memory(width=self.width, depth=self.elem_count)
-        m.submodules.read_port = read_port = mem.read_port()
-        m.submodules.write_port = write_port = mem.write_port()
-        read_output_valid = Signal()
-        prev_read_addr = Signal(self.addr_width)
-        m.d.comb += read_port.addr.eq(prev_read_addr)
-
-        # read_resp has to be defined before read_req, to handle read_output_valid signal correctly
-        @def_method(m, self.read_resp, ready=read_output_valid)
-        def _():
-            m.d.sync += read_output_valid.eq(0)
-            return read_port.data
-
-        self.read_resp.schedule_before(self.read_req)
-
-        @def_method(m, self.read_req, ready=~read_output_valid | self.read_resp.run)
-        def _(addr):
-            m.d.sync += read_output_valid.eq(1)
-            m.d.comb += read_port.addr.eq(addr)
-            m.d.sync += prev_read_addr.eq(addr)
-
-        @def_method(m, self.write)
-        def _(arg):
-            m.d.comb += write_port.addr.eq(arg.addr)
-            m.d.comb += write_port.data.eq(arg.data)
-            if self.granularity is None:
-                m.d.comb += write_port.en.eq(1)
-            else:
-                m.d.comb += write_port.en.eq(arg.mask)
-
-        return m
-
-
 # "Clicked" input
 
 
@@ -810,6 +722,151 @@ class CatTrans(Elaboratable):
             m.d.comb += ddata.eq(Cat(sdata1, sdata2))
 
         return m
+
+class ArgumentsToResultsZipper(Elaboratable):
+    def __init__(self, args_layout : MethodLayout, results_layout : MethodLayout):
+        self.results_layout = results_layout
+        self.args_layout = args_layout
+        self.output_layout = [("args", self.args_layout),("results", results_layout)]
+
+        self.write_args = Method(i = self.args_layout)
+        self.write_results = Method(i = self.results_layout)
+        self.read = Method(o = self.output_layout)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        fifo = FIFO(self.args_layout, depth = 2)
+        forwarder = Forwarder(self.results_layout)
+        
+        m.submodules.fifo = fifo
+        m.submodules.forwarder = forwarder
+
+        @def_method(m, self.write_args)
+        def _(arg):
+            fifo.write(m, arg)
+
+        @def_method(m, self.write_results)
+        def _(arg):
+            forwarder.write(m, arg)
+
+        @def_method(m, self.read)
+        def _():
+            args = fifo.read(m)
+            results = forwarder.read(m)
+            return {"args":args, "results" : results}
+
+        return m
+
+class ArgumentsToTransResultsZipper(ArgumentsToResultsZipper):
+    def __init__(self, args_layout : MethodLayout, results_layout : MethodLayout, results_getter_method : Method):
+        super().__init__(args_layout, results_layout)
+        self.results_getter_method = results_getter_method
+
+    def elaborate(self, platform):
+        m = super().elaborate(platform)
+        connect = ConnectTrans(self.results_getter_method, self.write_results)
+        m.submodules.connect = connect
+        return m
+
+
+class MemoryBank(Elaboratable):
+    """MemoryBank module.
+
+    Provides a transactional interface to synchronous Amaranth Memory with one
+    read port and one write port. It supports optionally writing with given granularity.
+
+    Attributes
+    ----------
+    read_req: Method
+        The read request method. Accepts an `addr` from which data should be read.
+        Ready only if there is no response pending to be read or response is currently being read.
+    read_resp: Method
+        The read response method. Return `data_layout` Record which was saved on `addr` given by last
+        `read_req` method call. Ready only after `read_req` call.
+    write: Method
+        The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
+        and optionaly `mask` if `granularity` is not None. `1` in mask means that apropriate part should be written.
+    """
+
+    def __init__(self, *, data_layout: MethodLayout, elem_count: int, granularity: Optional[int] = None):
+        """
+        Parameters
+        ----------
+        data_layout: record layout
+            The format of records stored in the Memory.
+        elem_count: int
+            Number of elements stored in Memory.
+        granularity: Optional[int]
+            Granularity of write, forwarded to Amaranth. If `None` the whole record is always saved at once.
+            If not the width of `data_layout` is split into `granularity` parts, which can be saved independently.
+        """
+        self.data_layout = data_layout
+        self.elem_count = elem_count
+        self.granularity = granularity
+        self.width = len(Record(self.data_layout))
+        self.addr_width = bits_for(self.elem_count - 1)
+
+        self.read_req_layout = [("addr", self.addr_width)]
+        if self.granularity is None:
+            self.write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
+        else:
+            self.write_layout = [
+                ("addr", self.addr_width),
+                ("data", self.data_layout),
+                ("mask", self.width // self.granularity),
+            ]
+
+        self.read_req = Method(i=self.read_req_layout)
+        self.read_resp = Method(o=self.data_layout)
+        self.write = Method(i=self.write_layout)
+        self._internal_read_resp = None
+
+    def elaborate(self, platform) -> Module:
+        m = Module()
+
+        mem = Memory(width=self.width, depth=self.elem_count)
+        m.submodules.read_port = read_port = mem.read_port()
+        m.submodules.write_port = write_port = mem.write_port()
+        read_output_valid = Signal()
+        prev_read_addr = Signal(self.addr_width)
+        m.d.comb += read_port.addr.eq(prev_read_addr)
+
+        self._internal_read_resp = Method(o=self.data_layout)
+        # internal_read_resp has to be defined before read_req, to handle read_output_valid signal correctly
+        @def_method(m, self._internal_read_resp, ready = read_output_valid)
+        def _():
+            m.d.sync += read_output_valid.eq(0)
+            return read_port.data
+
+
+        zipper = ArgumentsToTransResultsZipper([("valid",1)], self.data_layout, self._internal_read_resp)
+        m.submodules.zipper = zipper
+
+        @def_method(m, self.read_resp)
+        def _():
+            output = zipper.read(m)
+            return output.results
+
+        @def_method(m, self.read_req)
+        def _(addr):
+            m.d.sync += read_output_valid.eq(1)
+            m.d.comb += read_port.addr.eq(addr)
+            m.d.sync += prev_read_addr.eq(addr)
+            zipper.write_args(m, valid=1)
+
+        @def_method(m, self.write)
+        def _(arg):
+            m.d.comb += write_port.addr.eq(arg.addr)
+            m.d.comb += write_port.data.eq(arg.data)
+            if self.granularity is None:
+                m.d.comb += write_port.en.eq(1)
+            else:
+                m.d.comb += write_port.en.eq(arg.mask)
+
+        return m
+
+
 
 
 class Serializer(Elaboratable):

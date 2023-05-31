@@ -2,7 +2,7 @@ import random
 from operator import and_
 from functools import reduce
 from typing import TypeAlias
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Passive
 from parameterized import parameterized
 from collections import deque
 
@@ -121,6 +121,7 @@ class TestMemoryBank(TestCaseWithSimulator):
 
         data_dict: dict[int, int] = dict((i, 0) for i in range(max_addr))
         read_req_queue = deque()
+        addr_queue = deque()
 
         random.seed(seed)
 
@@ -142,21 +143,41 @@ class TestMemoryBank(TestCaseWithSimulator):
                 yield from m.read_req.call(addr=a)
                 for i in range(2):
                     yield Settle()
-                read_req_queue.append((a, data_dict[a]))
+                addr_queue.append((i, a))
                 yield from random_wait(reader_req_rand)
 
         def reader_resp():
             for i in range(test_count):
                 while not read_req_queue:
                     yield from random_wait(reader_resp_rand)
-                a, d = read_req_queue.popleft()
-                self.assertEqual((yield from m.read_resp.call()), {"data": data_dict[a]})
+                d = read_req_queue.popleft()
+                self.assertEqual((yield from m.read_resp.call()), {"data": d})
                 yield from random_wait(reader_resp_rand)
+
+        def internal_reader_resp():
+            assert m._dut._internal_read_resp is not None
+            yield Passive()
+            while True:
+                if addr_queue:
+                    instr, a = addr_queue[0]
+                else:
+                    yield
+                    continue
+                d = data_dict[a]
+                # check when internal method has been run to capture
+                # memory state for tests purposes
+                if (yield m._dut._internal_read_resp.run):
+                    addr_queue.popleft()
+                    read_req_queue.append(d)
+                yield
+
+
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(reader_req)
             sim.add_sync_process(reader_resp)
             sim.add_sync_process(writer)
+            sim.add_sync_process(internal_reader_resp)
 
     def test_pipelined(self):
         data_width = 6
