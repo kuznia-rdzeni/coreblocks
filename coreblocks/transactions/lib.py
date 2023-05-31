@@ -155,6 +155,7 @@ class Forwarder(Elaboratable):
 
         return m
 
+
 # "Clicked" input
 
 
@@ -723,22 +724,23 @@ class CatTrans(Elaboratable):
 
         return m
 
+
 class ArgumentsToResultsZipper(Elaboratable):
-    def __init__(self, args_layout : MethodLayout, results_layout : MethodLayout):
+    def __init__(self, args_layout: MethodLayout, results_layout: MethodLayout):
         self.results_layout = results_layout
         self.args_layout = args_layout
-        self.output_layout = [("args", self.args_layout),("results", results_layout)]
+        self.output_layout = [("args", self.args_layout), ("results", results_layout)]
 
-        self.write_args = Method(i = self.args_layout)
-        self.write_results = Method(i = self.results_layout)
-        self.read = Method(o = self.output_layout)
+        self.write_args = Method(i=self.args_layout)
+        self.write_results = Method(i=self.results_layout)
+        self.read = Method(o=self.output_layout)
 
     def elaborate(self, platform):
         m = Module()
 
-        fifo = FIFO(self.args_layout, depth = 2)
+        fifo = FIFO(self.args_layout, depth=2)
         forwarder = Forwarder(self.results_layout)
-        
+
         m.submodules.fifo = fifo
         m.submodules.forwarder = forwarder
 
@@ -754,12 +756,13 @@ class ArgumentsToResultsZipper(Elaboratable):
         def _():
             args = fifo.read(m)
             results = forwarder.read(m)
-            return {"args":args, "results" : results}
+            return {"args": args, "results": results}
 
         return m
 
+
 class ArgumentsToTransResultsZipper(ArgumentsToResultsZipper):
-    def __init__(self, args_layout : MethodLayout, results_layout : MethodLayout, results_getter_method : Method):
+    def __init__(self, args_layout: MethodLayout, results_layout: MethodLayout, results_getter_method: Method):
         super().__init__(args_layout, results_layout)
         self.results_getter_method = results_getter_method
 
@@ -833,14 +836,14 @@ class MemoryBank(Elaboratable):
         m.d.comb += read_port.addr.eq(prev_read_addr)
 
         self._internal_read_resp = Method(o=self.data_layout)
+
         # internal_read_resp has to be defined before read_req, to handle read_output_valid signal correctly
-        @def_method(m, self._internal_read_resp, ready = read_output_valid)
+        @def_method(m, self._internal_read_resp, ready=read_output_valid)
         def _():
             m.d.sync += read_output_valid.eq(0)
             return read_port.data
 
-
-        zipper = ArgumentsToTransResultsZipper([("valid",1)], self.data_layout, self._internal_read_resp)
+        zipper = ArgumentsToTransResultsZipper([("valid", 1)], self.data_layout, self._internal_read_resp)
         m.submodules.zipper = zipper
 
         @def_method(m, self.read_resp)
@@ -865,8 +868,6 @@ class MemoryBank(Elaboratable):
                 m.d.comb += write_port.en.eq(arg.mask)
 
         return m
-
-
 
 
 class Serializer(Elaboratable):

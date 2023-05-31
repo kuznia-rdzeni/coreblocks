@@ -171,8 +171,6 @@ class TestMemoryBank(TestCaseWithSimulator):
                     read_req_queue.append(d)
                 yield
 
-
-
         with self.run_simulation(m) as sim:
             sim.add_sync_process(reader_req)
             sim.add_sync_process(reader_resp)
@@ -181,11 +179,8 @@ class TestMemoryBank(TestCaseWithSimulator):
 
     def test_pipelined(self):
         data_width = 6
-        max_addr=9
+        max_addr = 9
         m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr))
-
-        data_dict: dict[int, int] = dict((i, 0) for i in range(max_addr))
-        read_req_queue = deque()
 
         random.seed(14)
 
