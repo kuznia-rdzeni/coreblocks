@@ -58,7 +58,6 @@ class RetirementTest(TestCaseWithSimulator):
         self.submit_q = deque()
         self.rf_free_q = deque()
         self.precommit_q = deque()
-        self.lsu_commit_q = deque()
 
         random.seed(8)
         self.cycles = 256
@@ -76,7 +75,6 @@ class RetirementTest(TestCaseWithSimulator):
                 rat_state[rl] = rp
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
                 self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id})
-                self.lsu_commit_q.append(rob_id)
                 self.precommit_q.append(rob_id)
             # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
