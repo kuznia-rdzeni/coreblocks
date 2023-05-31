@@ -162,6 +162,37 @@ class TestMemoryBank(TestCaseWithSimulator):
             sim.add_sync_process(reader_resp)
             sim.add_sync_process(writer)
 
+    def test_pipelined(self):
+        data_width = 6
+        max_addr=9
+        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr))
+
+        data_dict: dict[int, int] = dict((i, 0) for i in range(max_addr))
+        read_req_queue = deque()
+
+        random.seed(14)
+
+        def process():
+            a = 3
+            d1 = random.randrange(2**data_width)
+            yield from m.write.call_init(data=d1, addr=a)
+            yield from m.read_req.call_init(addr=a)
+            yield
+            d2 = random.randrange(2**data_width)
+            yield from m.write.call_init(data=d2, addr=a)
+            yield from m.read_resp.call_init()
+            yield
+            yield from m.write.disable()
+            yield from m.read_req.disable()
+            ret_d1 = (yield from m.read_resp.call_result())["data"]
+            self.assertEqual(d1, ret_d1)
+            yield
+            ret_d2 = (yield from m.read_resp.call_result())["data"]
+            self.assertEqual(d2, ret_d2)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(process)
+
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
     def __init__(self, count: int, lay: LayoutLike):
