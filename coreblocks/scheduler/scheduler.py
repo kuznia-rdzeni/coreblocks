@@ -320,14 +320,16 @@ class RSInsertion(Elaboratable):
                     "imm": instr.imm,
                     "csr": instr.csr,
                     "pc": instr.pc,
-                },
-                "rs_entry_id": instr.rs_entry_id,
+                }
             }
 
             for i, rs_insert in enumerate(self.rs_insert):
                 # connect only matching fields
                 arg = Record.like(rs_insert.data_in)
                 m.d.comb += assign(arg, data, fields=AssignType.COMMON)
+                # this assignment truncates signal width from max rs_entry_bits to target RS specific width
+                m.d.comb += arg.rs_entry_id.eq(instr.rs_entry_id)
+
                 with m.If(instr.rs_selected == i):
                     rs_insert(m, arg)
 

@@ -41,10 +41,11 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             Number of entries in RS.
         """
         self.gen_params = gen_params
-        self.rs_layouts = gen_params.get(RSLayouts)
+        self.rs_entries = rs_entries
+        self.rs_entries_bits = (rs_entries - 1).bit_length()
+        self.rs_layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.func_units = list(func_units)
-        self.rs_entries = rs_entries
 
         self.insert = Method(i=self.rs_layouts.insert_in)
         self.select = Method(o=self.rs_layouts.select_out)

@@ -93,7 +93,7 @@ class GenParams(DependentCache):
         # if not optypes_required_by_extensions(self.isa.extensions) <= optypes_supported(func_units_config):
         #     raise Exception(f"Functional unit configuration fo not support all extension required by{isa_str}")
 
-        self.rs_entries = 1
+        self.max_rs_entries = 1
 
         @runtime_checkable
         class HasRSEntries(Protocol):
@@ -101,11 +101,11 @@ class GenParams(DependentCache):
 
         for block in self.func_units_config:
             if isinstance(block, HasRSEntries):
-                self.rs_entries = max(self.rs_entries, block.rs_entries)
+                self.max_rs_entries = max(self.max_rs_entries, block.rs_entries)
 
         self.rs_number_bits = (len(self.func_units_config) - 1).bit_length()
 
         self.phys_regs_bits = cfg.phys_regs_bits
         self.rob_entries_bits = cfg.rob_entries_bits
-        self.rs_entries_bits = (self.rs_entries - 1).bit_length()
+        self.max_rs_entries_bits = (self.max_rs_entries - 1).bit_length()
         self.start_pc = cfg.start_pc
