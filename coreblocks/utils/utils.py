@@ -8,7 +8,6 @@ from ._typing import ValueLike, LayoutList, SignalBundle
 
 
 __all__ = [
-    "MismatchedLayoutError",
     "AssignType",
     "assign",
     "OneHotSwitchDynamic",
@@ -16,6 +15,8 @@ __all__ = [
     "flatten_signals",
     "align_to_power_of_two",
     "bits_from_int",
+    "Python311Exception",
+    "AssignError",
 ]
 
 
@@ -106,6 +107,28 @@ def OneHotSwitchDynamic(m: Module, test: Value, *, default: bool = False) -> Ite
     return
 
 
+class Python311Exception(Exception):
+    """
+    Compatibility exception that exposes the same API as
+    Python 3.11 BaseException (in particular add_note method)
+    """
+
+    def __init__(self, msg: str = ""):
+        self.message = msg
+        self.__notes__ = []
+        super().__init__(msg)
+
+    def add_note(self, msg: str):
+        self.__notes__.append(msg)
+
+    def __str__(self):
+        return "\n".join([self.message] + self.__notes__)
+
+
+class AssignError(Python311Exception):
+    pass
+
+
 class AssignType(Enum):
     COMMON = 1
     RHS = 2
@@ -114,17 +137,6 @@ class AssignType(Enum):
 
 AssignFields: TypeAlias = AssignType | Iterable[str] | Mapping[str, "AssignFields"]
 AssignArg: TypeAlias = ValueLike | Mapping[str, "AssignArg"]
-
-
-class MismatchedLayoutError(KeyError):
-    def __init__(self, msg: str, lhs_fields: Optional[set[str]], rhs_fields: Optional[set[str]]):
-        super().__init__(msg)
-        self.msg = msg
-        self.lhs_fields = lhs_fields
-        self.rhs_fields = rhs_fields
-
-    def __str__(self):
-        return f"{self.msg} (LHS: {self.lhs_fields}, RHS: {self.rhs_fields})"
 
 
 def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
@@ -234,13 +246,13 @@ def assign(
             names = set(fields)
 
         if not names and (lhs_fields or rhs_fields):
-            raise MismatchedLayoutError("There are no common fields in assigment", lhs_fields, rhs_fields)
+            raise ValueError("There are no common fields in assigment lhs: {} rhs: {}".format(lhs_fields, rhs_fields))
 
         for name in names:
             if name not in lhs_fields:
-                raise MismatchedLayoutError("Field {} not present in LHS".format(name), lhs_fields, rhs_fields)
+                raise KeyError("Field {} not present in lhs".format(name))
             if name not in rhs_fields:
-                raise MismatchedLayoutError("Field {} not present in RHS".format(name), lhs_fields, rhs_fields)
+                raise KeyError("Field {} not present in rhs".format(name))
 
             subfields = fields
             if isinstance(fields, Mapping):

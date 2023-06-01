@@ -6,7 +6,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
-from coreblocks.transactions.core import MethodLayoutError
+from coreblocks.utils import AssignError
 
 from parameterized import parameterized
 
@@ -88,21 +88,21 @@ class TestDefMethod(TestCaseWithSimulator):
         def definition(arg):
             return {"foo1": Signal(3), "baz": Signal(4)}
 
-        with self.assertRaises(MethodLayoutError):
+        with self.assertRaises(AssignError):
             self.do_test_definition(definition)
 
     def test_fields_invalid2(self):
         def definition(arg):
             return {"foo1": Signal(3)}
 
-        with self.assertRaises(MethodLayoutError):
+        with self.assertRaises(AssignError):
             self.do_test_definition(definition)
 
     def test_fields_invalid3(self):
         def definition(arg):
             return {"foo1": {"baz1": Signal(), "baz2": Signal()}, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(AssignError):
             self.do_test_definition(definition)
 
     def test_fields_invalid4(self):
