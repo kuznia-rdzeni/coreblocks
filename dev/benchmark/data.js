@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685613116891,
+  "lastUpdate": 1685613585954,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -6615,6 +6615,72 @@ window.BENCHMARK_DATA = {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 5608,
             "unit": "LUT"
+          }
+        ]
+      }
+    ],
+    "Performance (IPC)": [
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f22d67ada17b425d5e4d759d9549404cd1a2d2a4",
+          "message": "Hopefully fix benchmark workflow (#373)",
+          "timestamp": "2023-06-01T11:43:07+02:00",
+          "tree_id": "381ba085799084d3cb5e79c9863a83179d704f99",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f22d67ada17b425d5e4d759d9549404cd1a2d2a4"
+        },
+        "date": 1685613584522,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
           }
         ]
       }
