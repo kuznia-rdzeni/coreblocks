@@ -948,7 +948,7 @@ class Method(TransactionBase):
         try:
             m.d.top_comb += assign(arg_rec, arg, fields=AssignType.ALL)
         except (KeyError, ValueError, TypeError) as e:
-            new_e = assign_exception_helper(e, method)
+            new_e = assign_exception_helper(e, self)
             new_e.add_note("LHS is defined input layout, RHS is the call argument layout")
             raise new_e from e
 
