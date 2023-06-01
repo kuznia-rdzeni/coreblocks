@@ -6,9 +6,8 @@ from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
 from amaranth.utils import log2_int
 
-from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans, Adapter
-from coreblocks.frontend.icache import SimpleWBCacheRefiller, ICache
+from coreblocks.frontend.icache import SimpleWBCacheRefiller, ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
 from coreblocks.params.configurations import test_core_config
@@ -24,7 +23,6 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         wb_params = WishboneParameters(
             data_width=self.gp.isa.xlen,
@@ -44,24 +42,24 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
 
         self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wbMaster)
 
-        return tm
+        return m
 
 
 @parameterized_class(
-    ("name", "isa", "block_size"),
+    ("name", "isa_xlen", "block_size"),
     [
-        ("blk_size16B_rv32i", "rv32i", 4),
-        ("blk_size32B_rv32i", "rv32i", 5),
-        ("blk_size32B_rv64i", "rv64i", 5),
-        ("blk_size64B_rv32i", "rv32i", 6),
+        ("blk_size16B_rv32i", 32, 4),
+        ("blk_size32B_rv32i", 32, 5),
+        ("blk_size32B_rv64i", 64, 5),
+        ("blk_size64B_rv32i", 32, 6),
     ],
 )
 class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
-    isa: str
+    isa_xlen: int
     block_size: int
 
     def setUp(self) -> None:
-        self.gp = GenParams(test_core_config.replace(isa_str=self.isa, icache_block_size_bits=self.block_size))
+        self.gp = GenParams(test_core_config.replace(xlen=self.isa_xlen, icache_block_size_bits=self.block_size))
         self.cp = self.gp.icache_params
         self.test_module = SimpleWBCacheRefillerTestCircuit(self.gp)
 
@@ -135,6 +133,133 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
             sim.add_sync_process(self.refiller_process)
 
 
+class ICacheBypassTestCircuit(Elaboratable):
+    def __init__(self, gen_params: GenParams):
+        self.gp = gen_params
+        self.cp = self.gp.icache_params
+
+    def elaborate(self, platform):
+        m = Module()
+
+        wb_params = WishboneParameters(
+            data_width=self.gp.isa.xlen,
+            addr_width=self.gp.isa.xlen,
+        )
+
+        m.submodules.wb_master = self.wb_master = WishboneMaster(wb_params)
+        m.submodules.bypass = self.bypass = ICacheBypass(self.gp.get(ICacheLayouts), self.cp, self.wb_master)
+        m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.bypass.issue_req))
+        m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.bypass.accept_res))
+
+        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wbMaster)
+
+        return m
+
+
+@parameterized_class(
+    ("name", "isa_xlen"),
+    [
+        ("rv32i", 32),
+        ("rv64i", 64),
+    ],
+)
+class TestICacheBypass(TestCaseWithSimulator):
+    isa_xlen: str
+
+    def setUp(self) -> None:
+        self.gp = GenParams(test_core_config.replace(xlen=self.isa_xlen))
+        self.cp = self.gp.icache_params
+        self.m = ICacheBypassTestCircuit(self.gp)
+
+        random.seed(42)
+
+        self.mem = dict()
+        self.bad_addrs = dict()
+
+        self.requests = deque()
+
+        # Add two consecutive addresses
+        self.requests.append(0)
+        self.requests.append(4)
+
+        for _ in range(100):
+            addr = random.randrange(0, 2**self.gp.isa.xlen, 4)
+            self.requests.append(addr)
+
+            if random.random() < 0.10:
+                self.bad_addrs[addr] = True
+
+    def load_or_gen_mem(self, addr: int):
+        if addr not in self.mem:
+            self.mem[addr] = random.randrange(2**self.gp.isa.ilen)
+        return self.mem[addr]
+
+    def wishbone_slave(self):
+        yield Passive()
+
+        while True:
+            yield from self.m.wb_ctrl.slave_wait()
+
+            # Wishbone is addressing words, so we need to shit it a bit to get the real address.
+            addr = (yield self.m.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
+
+            while random.random() < 0.5:
+                yield
+
+            err = 1 if addr in self.bad_addrs else 0
+
+            data = self.load_or_gen_mem(addr)
+            if self.gp.isa.xlen == 64:
+                data = self.load_or_gen_mem(addr + 4) << 32 | data
+
+            yield from self.m.wb_ctrl.slave_respond(data, err=err)
+
+            yield Settle()
+
+    def user_process(self):
+        while self.requests:
+            req_addr = self.requests.popleft()
+            yield from self.m.issue_req.call(addr=req_addr)
+
+            while random.random() < 0.5:
+                yield
+
+            ret = yield from self.m.accept_res.call()
+
+            if (req_addr & ~(self.cp.word_width_bytes - 1)) in self.bad_addrs:
+                self.assertTrue(ret["error"])
+            else:
+                self.assertFalse(ret["error"])
+                self.assertEqual(ret["instr"], self.mem[req_addr])
+
+            while random.random() < 0.5:
+                yield
+
+    def test(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.wishbone_slave)
+            sim.add_sync_process(self.user_process)
+
+
+class MockedCacheRefiller(Elaboratable, CacheRefillerInterface):
+    def __init__(self, gen_params: GenParams):
+        layouts = gen_params.get(ICacheLayouts)
+
+        self.start_refill_mock = TestbenchIO(Adapter(i=layouts.start_refill))
+        self.accept_refill_mock = TestbenchIO(Adapter(o=layouts.accept_refill))
+
+        self.start_refill = self.start_refill_mock.adapter.iface
+        self.accept_refill = self.accept_refill_mock.adapter.iface
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.start_refill = self.start_refill_mock
+        m.submodules.accept_refill = self.accept_refill_mock
+
+        return m
+
+
 class ICacheTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gp = gen_params
@@ -142,33 +267,26 @@ class ICacheTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
-        # mocked cache refiller
-        layouts = self.gp.get(ICacheLayouts)
-        m.submodules.start_refill = self.start_refill = TestbenchIO(Adapter(i=layouts.start_refill))
-        m.submodules.accept_refill = self.accept_refill = TestbenchIO(Adapter(o=layouts.accept_refill))
-
-        m.submodules.cache = self.cache = ICache(
-            layouts, self.cp, self.start_refill.adapter.iface, self.accept_refill.adapter.iface
-        )
+        m.submodules.refiller = self.refiller = MockedCacheRefiller(self.gp)
+        m.submodules.cache = self.cache = ICache(self.gp.get(ICacheLayouts), self.cp, self.refiller)
         m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.cache.issue_req))
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.cache.accept_res))
         m.submodules.flush_cache = self.flush_cache = TestbenchIO(AdapterTrans(self.cache.flush))
 
-        return tm
+        return m
 
 
 @parameterized_class(
-    ("name", "isa", "block_size"),
+    ("name", "isa_xlen", "block_size"),
     [
-        ("blk_size16B_rv32i", "rv32i", 4),
-        ("blk_size64B_rv32i", "rv32i", 6),
-        ("blk_size32B_rv64i", "rv64i", 5),
+        ("blk_size16B_rv32i", 32, 4),
+        ("blk_size64B_rv32i", 32, 6),
+        ("blk_size32B_rv64i", 64, 5),
     ],
 )
 class TestICache(TestCaseWithSimulator):
-    isa: str
+    isa_xlen: int
     block_size: int
 
     def setUp(self) -> None:
@@ -183,7 +301,7 @@ class TestICache(TestCaseWithSimulator):
     def init_module(self, ways, sets) -> None:
         self.gp = GenParams(
             test_core_config.replace(
-                isa_str=self.isa,
+                xlen=self.isa_xlen,
                 icache_ways=ways,
                 icache_sets_bits=log2_int(sets),
                 icache_block_size_bits=self.block_size,
@@ -197,7 +315,7 @@ class TestICache(TestCaseWithSimulator):
         refill_word_cnt = 0
         refill_addr = 0
 
-        @def_method_mock(lambda: self.m.start_refill)
+        @def_method_mock(lambda: self.m.refiller.start_refill_mock)
         def start_refill_mock(addr):
             nonlocal refill_in_fly, refill_word_cnt, refill_addr
             self.refill_requests.append(addr)
@@ -205,7 +323,7 @@ class TestICache(TestCaseWithSimulator):
             refill_in_fly = True
             refill_addr = addr
 
-        @def_method_mock(lambda: self.m.accept_refill, enable=lambda: refill_in_fly)
+        @def_method_mock(lambda: self.m.refiller.accept_refill_mock, enable=lambda: refill_in_fly)
         def accept_refill_mock():
             nonlocal refill_in_fly, refill_word_cnt, refill_addr
 

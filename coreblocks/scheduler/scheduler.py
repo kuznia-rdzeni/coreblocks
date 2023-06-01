@@ -2,7 +2,7 @@ from typing import Sequence
 
 from amaranth import *
 
-from coreblocks.transactions import Method, Transaction
+from coreblocks.transactions import Method, Transaction, TModule
 from coreblocks.transactions.lib import FIFO, Forwarder
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from coreblocks.utils import assign, AssignType
@@ -42,7 +42,7 @@ class RegAllocation(Elaboratable):
         self.get_free_reg = get_free_reg
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         free_reg = Signal(self.gen_params.phys_regs_bits)
         data_out = Record(self.output_layout)
@@ -91,7 +91,7 @@ class Renaming(Elaboratable):
         self.rename = rename
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         data_out = Record(self.output_layout)
 
@@ -148,7 +148,7 @@ class ROBAllocation(Elaboratable):
         self.rob_put = rob_put
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         data_out = Record(self.output_layout)
 
@@ -224,7 +224,7 @@ class RSSelection(Elaboratable):
         # Module de facto performs two stages. First it gets an instruction and decodes its `OpType` into
         # one-hot signal. Second, it selects first available RS which supports this instruction type.
         # In the future, we can try to move FIFO here in order to avoid using `Forwarder`.
-        m = Module()
+        m = TModule()
         m.submodules.forwarder = forwarder = Forwarder(self.input_layout)
 
         lookup = Signal(OpType)  # lookup of currently processed optype
@@ -296,7 +296,7 @@ class RSInsertion(Elaboratable):
         self.rf_read2 = rf_read2
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         # This transaction will not be stalled by single RS because insert methods do not use conditional calling,
         # therefore we can use single transaction here.
@@ -361,7 +361,7 @@ class Scheduler(Elaboratable):
         rob_put: Method,
         rf_read1: Method,
         rf_read2: Method,
-        reservation_stations: Sequence[FuncBlock],
+        reservation_stations: Sequence[tuple[FuncBlock, set[OpType]]],
         gen_params: GenParams
     ):
         """
@@ -399,7 +399,7 @@ class Scheduler(Elaboratable):
         self.rs = reservation_stations
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(self.layouts.reg_alloc_out, 2)
         m.submodules.reg_alloc = RegAllocation(
@@ -429,13 +429,13 @@ class Scheduler(Elaboratable):
         m.submodules.rs_selector = RSSelection(
             gen_params=self.gen_params,
             get_instr=reg_alloc_out_buf.read,
-            rs_select=[(rs.select, rs.optypes) for rs in self.rs],
+            rs_select=[(rs.select, optypes) for rs, optypes in self.rs],
             push_instr=rs_select_out_buf.write,
         )
 
         m.submodules.rs_insertion = RSInsertion(
             get_instr=rs_select_out_buf.read,
-            rs_insert=[rs.insert for rs in self.rs],
+            rs_insert=[rs.insert for rs, _ in self.rs],
             rf_read1=self.rf_read1,
             rf_read2=self.rf_read2,
             gen_params=self.gen_params,

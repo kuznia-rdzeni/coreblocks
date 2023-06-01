@@ -4,12 +4,11 @@ from amaranth import *
 
 from coreblocks.params import GenParams, BlockComponentParams, DependencyManager
 from coreblocks.params.dependencies import UnifierKey
-from coreblocks.transactions import Method
+from coreblocks.transactions import Method, TModule
 from coreblocks.transactions.lib import MethodProduct, Collector
+from coreblocks.utils.protocols import Unifier
 
 __all__ = ["FuncBlocksUnifier"]
-
-from coreblocks.utils.protocols import Unifier
 
 
 class FuncBlocksUnifier(Elaboratable):
@@ -20,13 +19,13 @@ class FuncBlocksUnifier(Elaboratable):
         blocks: Iterable[BlockComponentParams],
         extra_methods_required: Iterable[UnifierKey],
     ):
-        self.rs_blocks = [block.get_module(gen_params) for block in blocks]
+        self.rs_blocks = [(block.get_module(gen_params), block.get_optypes()) for block in blocks]
         self.extra_methods_required = extra_methods_required
 
-        self.result_collector = Collector([block.get_result for block in self.rs_blocks])
+        self.result_collector = Collector([block.get_result for block, _ in self.rs_blocks])
         self.get_result = self.result_collector.method
 
-        self.update_combiner = MethodProduct([block.update for block in self.rs_blocks])
+        self.update_combiner = MethodProduct([block.update for block, _ in self.rs_blocks])
         self.update = self.update_combiner.method
 
         self.unifiers: dict[str, Unifier] = {}
@@ -46,9 +45,9 @@ class FuncBlocksUnifier(Elaboratable):
             raise ValueError(f"Method {item} was not declared as required.")
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
-        for n, unit in enumerate(self.rs_blocks):
+        for n, (unit, _) in enumerate(self.rs_blocks):
             m.submodules[f"rs_block_{n}"] = unit
 
         m.submodules["result_collector"] = self.result_collector

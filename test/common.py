@@ -118,7 +118,6 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
     def elaborate(self, platform):
         m = Module()
-        tm = TransactionModule(m)
 
         dummy = Signal()
         m.d.sync += dummy.eq(1)
@@ -128,51 +127,70 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
             if isinstance(attr, Method):
                 self._io[name] = TestbenchIO(AdapterTrans(attr))
-                m.submodules += self._io[name]
+                m.submodules[name] = self._io[name]
 
-        return tm
+        return m
 
     def debug_signals(self):
         return [io.debug_signals() for io in self._io.values()]
 
 
-class TestCaseWithSimulator(unittest.TestCase):
-    @contextmanager
-    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4):
-        test_name = unittest.TestCase.id(self)
+class PysimSimulator(Simulator):
+    def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
+        if add_transaction_module:
+            module = TransactionModule(module)
+
+        super().__init__(module)
+
         clk_period = 1e-6
+        self.add_clock(clk_period)
 
         if isinstance(module, HasDebugSignals):
             extra_signals = module.debug_signals
         else:
             extra_signals = functools.partial(auto_debug_signals, module)
 
-        sim = Simulator(module)
-        sim.add_clock(clk_period)
-        yield sim
-
-        if "__COREBLOCKS_DUMP_TRACES" in os.environ:
+        if traces_file:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
-
             # Signal handling is hacky and accesses Simulator internals.
             # TODO: try to merge with Amaranth.
             if isinstance(extra_signals, Callable):
                 extra_signals = extra_signals()
-            clocks = [d.clk for d in cast(Any, sim)._fragment.domains.values()]
+            clocks = [d.clk for d in cast(Any, self)._fragment.domains.values()]
 
-            ctx = write_vcd_ext(
-                cast(Any, sim)._engine,
-                f"{traces_dir}/{test_name}.vcd",
-                f"{traces_dir}/{test_name}.gtkw",
+            self.ctx = write_vcd_ext(
+                cast(Any, self)._engine,
+                f"{traces_dir}/{traces_file}.vcd",
+                f"{traces_dir}/{traces_file}.gtkw",
                 traces=[clocks, extra_signals],
             )
         else:
-            ctx = nullcontext()
+            self.ctx = nullcontext()
 
-        with ctx:
-            sim.run_until(clk_period * max_cycles)
-            self.assertFalse(sim.advance(), "Simulation time limit exceeded")
+        self.deadline = clk_period * max_cycles
+
+    def run(self) -> bool:
+        with self.ctx:
+            self.run_until(self.deadline)
+
+        return not self.advance()
+
+
+class TestCaseWithSimulator(unittest.TestCase):
+    @contextmanager
+    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
+        traces_file = None
+        if "__COREBLOCKS_DUMP_TRACES" in os.environ:
+            traces_file = unittest.TestCase.id(self)
+
+        sim = PysimSimulator(
+            module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
+        )
+        yield sim
+        res = sim.run()
+
+        self.assertTrue(res, "Simulation time limit exceeded")
 
     def tick(self, cycle_cnt=1):
         """
@@ -252,7 +270,7 @@ class TestbenchIO(Elaboratable):
 
     def call(self, data: RecordIntDict = {}, /, **kwdata: int | RecordIntDict) -> TestGen[RecordIntDictRet]:
         if data and kwdata:
-            raise TypeError("call_try() takes either a single dict or keyword arguments")
+            raise TypeError("call() takes either a single dict or keyword arguments")
         if not data:
             data = kwdata
         yield from self.call_init(data)

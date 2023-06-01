@@ -4,7 +4,7 @@ ENTRY(_start)
 MEMORY
 {
     text (rxai!w) : ORIGIN = 0x00000000, LENGTH = 64K
-    data (wxa!ri) : ORIGIN = 0x80000000, LENGTH = 128K
+    data (wxa!ri) : ORIGIN = 0x10000000, LENGTH = 128K
 }
 
 PHDRS

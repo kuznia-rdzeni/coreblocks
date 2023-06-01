@@ -1,10 +1,6 @@
-from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
 
-from coreblocks.transactions import TransactionModule
-from coreblocks.transactions.lib import AdapterTrans
-
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import TestCaseWithSimulator, SimpleTestCircuit
 
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.params import GenParams
@@ -12,28 +8,6 @@ from coreblocks.params.configurations import test_core_config
 
 from queue import Queue
 from random import Random
-
-
-class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gp = gen_params
-
-    def elaborate(self, platform):
-        m = Module()
-        tm = TransactionModule(m)
-        rb = ReorderBuffer(self.gp)
-
-        self.rb = rb
-        self.io_in = TestbenchIO(AdapterTrans(rb.put))
-        self.io_update = TestbenchIO(AdapterTrans(rb.mark_done))
-        self.io_out = TestbenchIO(AdapterTrans(rb.retire))
-
-        m.submodules.rb = rb
-        m.submodules.io_in = self.io_in
-        m.submodules.io_update = self.io_update
-        m.submodules.io_out = self.io_out
-
-        return tm
 
 
 class TestReorderBuffer(TestCaseWithSimulator):
@@ -47,7 +21,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             log_reg = self.rand.randint(0, self.log_regs - 1)
             phys_reg = self.regs_left_queue.get()
             regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
-            rob_id = yield from self.m.io_in.call(regs)
+            rob_id = yield from self.m.put.call(regs)
             self.to_execute_list.append((rob_id, phys_reg))
             self.retire_queue.put((regs, rob_id["rob_id"]))
 
@@ -62,28 +36,26 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 idx = self.rand.randint(0, len(self.to_execute_list) - 1)
                 rob_id, executed = self.to_execute_list.pop(idx)
                 self.executed_list.append(executed)
-                yield from self.m.io_update.call(rob_id)
+                yield from self.m.mark_done.call(rob_id)
 
     def do_retire(self):
         cnt = 0
         while True:
             if self.retire_queue.empty():
-                self.m.io_out.enable()
+                self.m.retire.enable()
                 yield
-                is_ready = yield self.m.io_out.adapter.done
+                is_ready = yield self.m.retire.adapter.done
                 self.assertEqual(is_ready, 0)  # transaction should not be ready if there is nothing to retire
             else:
                 regs, rob_id_exp = self.retire_queue.get()
-                results = yield from self.m.io_out.call()
+                results = yield from self.m.peek.call()
+                yield from self.m.retire.call()
                 phys_reg = results["rob_data"]["rp_dst"]
                 self.assertEqual(rob_id_exp, results["rob_id"])
                 self.assertIn(phys_reg, self.executed_list)
                 self.executed_list.remove(phys_reg)
 
                 yield Settle()
-                self.assertEqual(
-                    (yield self.m.rb.single_entry), len(self.executed_list) + len(self.to_execute_list) == 1
-                )
                 self.assertEqual(results["rob_data"], regs)
                 self.regs_left_queue.put(phys_reg)
 
@@ -97,7 +69,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
         gp = GenParams(
             test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6)
         )  # smaller size means better coverage
-        m = TestElaboratable(gp)
+        m = SimpleTestCircuit(ReorderBuffer(gp))
         self.m = m
 
         self.regs_left_queue = Queue()
@@ -120,7 +92,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
         for _ in range(self.test_steps):
             log_reg = self.rand.randrange(self.log_regs)
             phys_reg = self.rand.randrange(self.phys_regs)
-            rob_id = yield from self.m.io_in.call(rl_dst=log_reg, rp_dst=phys_reg)
+            rob_id = yield from self.m.put.call(rl_dst=log_reg, rp_dst=phys_reg)
             self.to_execute_list.append(rob_id)
 
     def do_single_update(self):
@@ -128,21 +100,21 @@ class TestFullDoneCase(TestCaseWithSimulator):
             yield
 
         rob_id = self.to_execute_list.pop(0)
-        yield from self.m.io_update.call(rob_id)
+        yield from self.m.mark_done.call(rob_id)
 
     def do_retire(self):
         for i in range(self.test_steps - 1):
             yield from self.do_single_update()
 
-        yield from self.m.io_out.call()
+        yield from self.m.retire.call()
         yield from self.do_single_update()
 
         for i in range(self.test_steps - 1):
-            yield from self.m.io_out.call()
+            yield from self.m.retire.call()
 
-        yield from self.m.io_out.enable()
+        yield from self.m.retire.enable()
         yield
-        res = yield self.m.io_out.adapter.done
+        res = yield self.m.retire.adapter.done
         self.assertEqual(res, 0)  # should be disabled, since we have read all elements
 
     def test_single(self):
@@ -150,7 +122,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
 
         gp = GenParams(test_core_config)
         self.test_steps = 2**gp.rob_entries_bits
-        m = TestElaboratable(gp)
+        m = SimpleTestCircuit(ReorderBuffer(gp))
         self.m = m
         self.to_execute_list = []
 

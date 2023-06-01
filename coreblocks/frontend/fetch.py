@@ -1,8 +1,8 @@
 from amaranth import *
-from coreblocks.transactions.core import def_method
-from ..transactions import Method, Transaction
+from coreblocks.utils.fifo import BasicFifo
+from coreblocks.frontend.icache import ICacheInterface
+from ..transactions import def_method, Method, Transaction, TModule
 from ..params import GenParams, FetchLayouts
-from ..peripherals.wishbone import WishboneMaster
 
 
 class Fetch(Elaboratable):
@@ -11,59 +11,71 @@ class Fetch(Elaboratable):
     after each fetch.
     """
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, cont: Method) -> None:
+    def __init__(self, gen_params: GenParams, icache: ICacheInterface, cont: Method) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
-        bus : WishboneMaster
-            Instance of WishboneMaster connected to memory with instructions
-            to be executed by the core.
+        icache : ICacheInterface
+            Instruction Cache
         cont : Method
             Method which should be invoked to send fetched data to the next step.
             It has layout as described by `FetchLayout`.
         """
         self.gp = gen_params
-        self.bus = bus
+        self.icache = icache
         self.cont = cont
-
-        self.pc = Signal(gen_params.isa.xlen, reset=gen_params.start_pc)
-        self.halt_pc = Signal(bus.wb_params.addr_width, reset=2**bus.wb_params.addr_width - 1)
 
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+        # PC of the last fetched instruction. For now only used in tests.
+        self.pc = Signal(self.gp.isa.xlen)
 
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(
+            layout=[("addr", self.gp.isa.xlen)], depth=2
+        )
+
+        speculative_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
+
+        discard_next = Signal()
         stalled = Signal()
-        req = Record(self.bus.requestLayout)
-        m.d.comb += req.addr.eq(self.pc >> 2)
-        m.d.comb += req.sel.eq(2 ** (self.gp.isa.ilen // self.bus.wb_params.granularity) - 1)
 
-        with Transaction(name="FetchRQ").body(m, request=(~stalled)):
-            self.bus.request(m, req)
+        with Transaction().body(m, request=~stalled):
+            self.icache.issue_req(m, addr=speculative_pc)
+            self.fetch_target_queue.write(m, addr=speculative_pc)
 
-        with Transaction().body(m, request=(self.pc != self.halt_pc)):
-            fetched = self.bus.result(m)
+            m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
 
-            with m.If(fetched.err == 0):
-                # bits 4:7 currently are enough to uniquely distinguish jumps and branches,
-                # but this could potentially change in the future since there's a reserved
-                # (currently unused) bit pattern in the spec, see table 19.1 in RISC-V spec v2.2
-                is_branch = fetched.data[4:7] == 0b110
-                is_system = fetched.data[2:7] == 0b11100
+        with Transaction().body(m):
+            pc = self.fetch_target_queue.read(m).addr
+            res = self.icache.accept_res(m)
+
+            # bits 4:7 currently are enough to uniquely distinguish jumps and branches,
+            # but this could potentially change in the future since there's a reserved
+            # (currently unused) bit pattern in the spec, see table 19.1 in RISC-V spec v2.2
+            is_branch = res.instr[4:7] == 0b110
+            is_system = res.instr[2:7] == 0b11100
+
+            with m.If(discard_next):
+                m.d.sync += discard_next.eq(0)
+            # TODO: find a better way to fail when there's a fetch error.
+            with m.Elif(res.error == 0):
                 with m.If(is_branch | is_system):
                     m.d.sync += stalled.eq(1)
+                    m.d.sync += discard_next.eq(1)
 
-                m.d.sync += self.pc.eq(self.pc + self.gp.isa.ilen_bytes)
+                m.d.sync += self.pc.eq(pc)
 
-                self.cont(m, data=fetched.data, pc=self.pc)
+                self.cont(m, data=res.instr, pc=pc)
 
         @def_method(m, self.verify_branch, ready=stalled)
         def _(next_pc: Value):
-            m.d.sync += self.pc.eq(next_pc)
+            m.d.sync += speculative_pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
 
         return m

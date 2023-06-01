@@ -16,8 +16,8 @@ test-$(1)-%: $${ISA_TESTS_DIR}/$(1)/%.S
 
 endef
 
-$(eval $(call compile_template,rv32ui,-mabi=ilp32 -march=rv32i))
-$(eval $(call compile_template,rv32um,-mabi=ilp32 -march=rv32im))
+$(eval $(call compile_template,rv32ui,-mabi=ilp32 -march=rv32i_zifencei))
+$(eval $(call compile_template,rv32um,-mabi=ilp32 -march=rv32im_zifencei))
 
 all: $(addprefix test-rv32ui-,${rv32ui_sc_tests}) $(addprefix test-rv32um-,${rv32um_sc_tests})
 
