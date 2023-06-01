@@ -36,4 +36,3 @@ class MretKey(SimpleKey[Method]):
 @dataclass(frozen=True)
 class ClearKey(UnifierKey, unifier=MethodProduct):
     pass
-

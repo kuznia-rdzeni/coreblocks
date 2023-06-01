@@ -244,7 +244,7 @@ class TestCoreRandomized(TestCoreBase):
 class TestCoreAsmSourceBase(TestCoreBase):
     base_dir: str = "test/asm/"
 
-    def prepare_source(self, filename, isa_str):
+    def prepare_source(self, filename):
         bin_src = []
 
         with tempfile.NamedTemporaryFile() as asm_tmp:
@@ -293,7 +293,7 @@ class TestCoreBasicAsmSource(TestCoreAsmSourceBase):
             self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
 
     def test_asm_source(self):
-        bin_src = self.prepare_source(self.source_file, self.configuration.isa_str)
+        bin_src = self.prepare_source(self.source_file)
         self.m = TestElaboratable(self.gp, instr_mem=bin_src)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_and_check)
@@ -317,7 +317,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         self.assertEqual((yield from self.get_arch_reg_val(2)), 2971215073)
 
     def test_interrupted_prog(self):
-        bin_src = self.prepare_source(self.source_file, self.configuration.isa_str)
+        bin_src = self.prepare_source(self.source_file)
         self.m = TestElaboratable(self.gp, instr_mem=bin_src)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_with_interrupt)

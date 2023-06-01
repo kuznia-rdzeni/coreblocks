@@ -1,8 +1,9 @@
 from amaranth import *
 
 from coreblocks.params import *
-from coreblocks.transactions.core import Method, Transaction, def_method
+from coreblocks.transactions.core import Method, Transaction, def_method, TModule
 from coreblocks.params.keys import MretKey
+
 
 class InterruptCoordinator(Elaboratable):
     def __init__(
@@ -25,7 +26,7 @@ class InterruptCoordinator(Elaboratable):
         self.rob_can_flush = rob_can_flush
         self.rob_flush = rob_flush
         self.free_reg_put = free_reg_put
-        self.trigger = Method(i=[('pc', self.gen_params.isa.xlen)])
+        self.trigger = Method(i=[("pc", self.gen_params.isa.xlen)])
         self.iret = Method()
         self.allow_retirement = Signal(reset=1)
         self.interrupt = Signal()
@@ -34,7 +35,7 @@ class InterruptCoordinator(Elaboratable):
         connections.add_dependency(MretKey(), self.iret)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         old_pc = Signal(self.gen_params.isa.xlen)
         int_handler_addr = C(0x100)
 
@@ -78,7 +79,7 @@ class InterruptCoordinator(Elaboratable):
             with m.State("iret_jump"):
                 with Transaction(name="IretJump").body(m):
                     self.pc_verify_branch(m, next_pc=old_pc)
-                    m.next="idle"
+                    m.next = "idle"
 
         # should be called by interrupt controller (CLIC?)
         @def_method(m, self.trigger, ready=~self.interrupt)

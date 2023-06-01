@@ -2,7 +2,7 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import FIFO
+from coreblocks.utils.fifo import BasicFifo
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
 from coreblocks.utils import OneHotSwitch
@@ -65,12 +65,13 @@ class ShiftFuncUnit(FuncUnit, Elaboratable):
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
+        self.clear = Method()
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.shift_alu = shift_alu = ShiftUnit(self.gen_params, shift_unit_fn=self.shift_unit_fn)
-        m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
+        m.submodules.fifo = fifo = BasicFifo(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.shift_unit_fn.get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
@@ -86,6 +87,8 @@ class ShiftFuncUnit(FuncUnit, Elaboratable):
             m.d.comb += shift_alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
             fifo.write(m, rob_id=arg.rob_id, result=shift_alu.out, rp_dst=arg.rp_dst)
+
+        self.clear.proxy(m, fifo.clear)
 
         return m
 

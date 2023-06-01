@@ -28,7 +28,7 @@ class FuncBlocksUnifier(Elaboratable):
         self.update_combiner = MethodProduct([block.update for block, _ in self.rs_blocks])
         self.update = self.update_combiner.method
 
-        self.clear_combiner = MethodProduct([block.clear for block in self.rs_blocks])
+        self.clear_combiner = MethodProduct([block.clear for block, _ in self.rs_blocks])
         self.clear = self.clear_combiner.method
 
         self.unifiers: dict[str, Unifier] = {}

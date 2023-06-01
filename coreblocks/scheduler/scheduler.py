@@ -3,7 +3,7 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import Method, Transaction, TModule
-from coreblocks.transactions.lib import FIFO, Forwarder, MethodProduct
+from coreblocks.transactions.lib import Forwarder, MethodProduct
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from coreblocks.utils import assign, AssignType
 from coreblocks.utils.protocols import FuncBlock
@@ -61,11 +61,7 @@ class RegAllocation(Elaboratable):
 
             rob_id = self.rob_put(
                 m,
-                {
-                    "rl_dst": instr.regs_l.rl_dst,
-                    "rp_dst": free_reg,
-                    "pc": instr.pc
-                },
+                {"rl_dst": instr.regs_l.rl_dst, "rp_dst": free_reg, "pc": instr.pc},
             )
 
             m.d.comb += assign(data_out, instr)

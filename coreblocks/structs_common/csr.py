@@ -344,10 +344,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         def _(rob_id):
             m.d.comb += rob_sfx_empty.eq(instr.rob_id == rob_id)
 
-        @def_method(m, self.clear)
-        def _():
-            pass
-
         return m
 
 

@@ -3,7 +3,7 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
-from coreblocks.transactions.lib import FIFO, ConnectTrans, MethodProduct, ConnectAndTransformTrans
+from coreblocks.transactions.lib import ConnectAndTransformTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import InstructionPrecommitKey, BranchResolvedKey, WishboneDataKey, ClearKey
 from coreblocks.params.genparams import GenParams
@@ -146,7 +146,7 @@ class Core(Elaboratable):
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
-            int_coordinator=self.int_coordinator
+            int_coordinator=self.int_coordinator,
         )
 
         m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)

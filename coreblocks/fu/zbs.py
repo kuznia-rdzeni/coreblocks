@@ -4,7 +4,6 @@ from amaranth import *
 
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams
 from coreblocks.transactions import Method, TModule, def_method
-from coreblocks.transactions.lib import FIFO
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.fifo import BasicFifo
 from coreblocks.utils.protocols import FuncUnit
@@ -100,18 +99,12 @@ class ZbsUnit(FuncUnit, Elaboratable):
 
         self.zbs_fn = zbs_fn
 
-<<<<<<< HEAD
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.zbs = zbs = Zbs(self.gen_params, function=self.zbs_fn)
-        m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
-        m.submodules.decoder = decoder = self.zbs_fn.get_decoder(self.gen_params)
-=======
-        m.submodules.zbs = zbs = Zbs(self.gen_params)
         m.submodules.result_fifo = result_fifo = BasicFifo(self.gen_params.get(FuncUnitLayouts).accept, 2)
-        m.submodules.decoder = decoder = ZbsFunction.get_decoder(self.gen_params)
->>>>>>> 5b2430b (Make the typechecker happy)
+        m.submodules.decoder = decoder = self.zbs_fn.get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
         def _(arg):

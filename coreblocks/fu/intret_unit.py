@@ -10,27 +10,24 @@ from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
 from coreblocks.params.keys import MretKey
-from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 from coreblocks.utils.fifo import BasicFifo
 
 from coreblocks.fu.fu_decoder import DecoderManager
 
+
 class IntRetFn(DecoderManager):
     @unique
     class Fn(IntFlag):
-       MRET = auto()
+        MRET = auto()
 
     @classmethod
     def get_instructions(cls) -> Sequence[tuple]:
-        return [
-            (cls.Fn.MRET, OpType.MRET)
-        ]
+        return [(cls.Fn.MRET, OpType.MRET)]
+
 
 class IntRetFuncUnit(Elaboratable):
-    optypes = IntRetFn.get_op_types()
-
-    def __init__(self, gen: GenParams):
+    def __init__(self, gen: GenParams, intret_fn=IntRetFn()):
         self.gen = gen
 
         layouts = gen.get(FuncUnitLayouts)
@@ -39,12 +36,15 @@ class IntRetFuncUnit(Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
         self.clear = Method()
-        self.commit = Method(i=layouts.commit)
+        self.precommit = Method(i=layouts.precommit)
+
+        self.intret_fn = intret_fn
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.fifo_mret = fifo_mret = BasicFifo(self.gen.get(FuncUnitLayouts).accept, 2)
+        m.submodules.decoder = self.intret_fn.get_decoder(self.gen)
 
         self.accept.proxy(m, fifo_mret.read)
         self.clear.proxy(m, fifo_mret.clear)
@@ -55,8 +55,7 @@ class IntRetFuncUnit(Elaboratable):
 
         mret_trigger = self.connections.get_dependency(MretKey())
 
-        # print(mret_trigger)
-        @def_method(m, self.commit)
+        @def_method(m, self.precommit)
         def _(rob_id):
             mret_trigger(m)
 
@@ -64,11 +63,14 @@ class IntRetFuncUnit(Elaboratable):
 
 
 class IntRetComponent(FunctionalComponentParams):
+    def __init__(self):
+        self.fn = IntRetFn()
+
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = IntRetFuncUnit(gen_params)
+        unit = IntRetFuncUnit(gen_params, self.fn)
         connections = gen_params.get(DependencyManager)
-        connections.add_dependency(InstructionCommitKey(), unit.commit)
+        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 
     def get_optypes(self) -> set[OpType]:
-        return IntRetFuncUnit.optypes
+        return self.fn.get_op_types()
