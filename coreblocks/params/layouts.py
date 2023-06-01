@@ -140,7 +140,10 @@ class ROBLayouts:
             ("done", 1),
         ]
 
-        self.retire_layout = [("rob_data", self.data_layout), ("rob_id", gen_params.rob_entries_bits)]
+        self.peek_layout = self.retire_layout = [
+            ("rob_data", self.data_layout),
+            ("rob_id", gen_params.rob_entries_bits),
+        ]
 
 
 class RSInterfaceLayouts:
@@ -166,6 +169,13 @@ class RSInterfaceLayouts:
         self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
 
         self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
+
+
+class RetirementLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.precommit = [
+            ("rob_id", gen_params.rob_entries_bits),
+        ]
 
 
 class RSLayouts:
@@ -316,9 +326,9 @@ class LSULayouts:
 
         self.rs_update_in = rs_interface.update_in
 
-        self.commit = [
-            ("rob_id", gen_params.rob_entries_bits),
-        ]
+        retirement = gen_params.get(RetirementLayouts)
+
+        self.precommit = retirement.precommit
 
 
 class CSRLayouts:
@@ -355,3 +365,7 @@ class CSRLayouts:
         self.rs_select_out = rs_interface.select_out
 
         self.rs_update_in = rs_interface.update_in
+
+        retirement = gen_params.get(RetirementLayouts)
+
+        self.precommit = retirement.precommit
