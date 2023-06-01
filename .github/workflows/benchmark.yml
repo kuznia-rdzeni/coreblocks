@@ -76,6 +76,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Set ownership (Github Actions workaround)
+        run: |
+          # https://github.com/actions/runner/issues/2033
+          chown -R $(id -u):$(id -g) $PWD
+
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
