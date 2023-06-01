@@ -308,16 +308,11 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         random.seed(1500100900)
 
     def run_with_interrupt(self):
-        main_cycles = 0
-        while main_cycles < self.main_cycle_count:
-            r = random.randint(0, 50)
-            main_cycles += r
-            yield from self.tick(r)
-            yield from self.m.interrupt.call()
-            while (yield self.m.core.fetch.pc) < 0x110:
-                yield
-            yield from self.m.mret.call()
-            yield from self.tick(random.randint(20, 100))
+        # wait 50 cycles, then trigger an interrupt
+        yield from self.tick(50)
+        yield from self.m.interrupt.call()
+        yield from self.tick(self.main_cycle_count)
+
         self.assertEqual((yield from self.get_arch_reg_val(8)), 38)
         self.assertEqual((yield from self.get_arch_reg_val(2)), 2971215073)
 

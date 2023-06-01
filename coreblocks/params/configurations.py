@@ -10,6 +10,7 @@ from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.fu.jumpbranch import JumpComponent
 from coreblocks.fu.mul_unit import MulComponent, MulType
+from coreblocks.fu.intret_unit import IntRetComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
 from coreblocks.structs_common.csr import CSRBlockComponent
 
@@ -18,6 +19,7 @@ __all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_c
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=4),
     LSUBlockComponent(),
+    RSBlockComponent([IntRetComponent()], rs_entries=4),
 )
 
 

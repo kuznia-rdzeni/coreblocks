@@ -2,7 +2,7 @@ from coreblocks.stages.retirement import *
 
 from coreblocks.transactions.lib import FIFO, Adapter
 from coreblocks.structs_common.rat import RRAT
-from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts, IntCoordinatorLayouts
+from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts, FuncUnitLayouts, IntCoordinatorLayouts
 from coreblocks.params.configurations import test_core_config
 
 from ..common import *
@@ -36,6 +36,7 @@ class RetirementTestCircuit(Elaboratable):
         rf_layouts = self.gen_params.get(RFLayouts)
         lsu_layouts = self.gen_params.get(LSULayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
+        fu_layouts = self.gen_params.get(FuncUnitLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(

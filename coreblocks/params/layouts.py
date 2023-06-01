@@ -300,6 +300,10 @@ class FuncUnitLayouts:
             ("rp_dst", gen_params.phys_regs_bits),
         ]
 
+        self.commit = [
+            ("rob_id", gen_params.rob_entries_bits)
+        ]
+
 
 class UnsignedMulUnitLayouts:
     def __init__(self, gen_params: GenParams):

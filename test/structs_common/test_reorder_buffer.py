@@ -18,9 +18,10 @@ class TestReorderBuffer(TestCaseWithSimulator):
 
             while self.rand.random() < 0.5:
                 yield  # to slow down puts
-            log_reg = self.rand.randint(0, self.log_regs - 1)
+            log_reg = self.rand.randrange(0, self.log_regs)
             phys_reg = self.regs_left_queue.get()
-            regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
+            pc = self.rand.randrange(0, 2**self.xlen)
+            regs = {"rl_dst": log_reg, "rp_dst": phys_reg, "pc": pc}
             rob_id = yield from self.m.put.call(regs)
             self.to_execute_list.append((rob_id, phys_reg))
             self.retire_queue.put((regs, rob_id["rob_id"]))
@@ -80,6 +81,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             self.regs_left_queue.put(i)
 
         self.log_regs = gp.isa.reg_cnt
+        self.xlen = gp.isa.xlen
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(self.gen_input)

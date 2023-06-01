@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.params import *
 from coreblocks.transactions.core import Method, Transaction, def_method
-
+from coreblocks.params.keys import MretKey
 
 class InterruptCoordinator(Elaboratable):
     def __init__(
@@ -29,6 +29,9 @@ class InterruptCoordinator(Elaboratable):
         self.iret = Method()
         self.allow_retirement = Signal(reset=1)
         self.interrupt = Signal()
+
+        connections = self.gen_params.get(DependencyManager)
+        connections.add_dependency(MretKey(), self.iret)
 
     def elaborate(self, platform):
         m = Module()
@@ -78,7 +81,7 @@ class InterruptCoordinator(Elaboratable):
                     m.next="idle"
 
         # should be called by interrupt controller (CLIC?)
-        @def_method(m, self.trigger)
+        @def_method(m, self.trigger, ready=~self.interrupt)
         def _(pc):
             m.d.sync += old_pc.eq(pc)
             m.d.sync += self.interrupt.eq(1)
