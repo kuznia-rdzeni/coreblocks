@@ -4,7 +4,7 @@ from amaranth.lib import data
 from amaranth.hdl.ast import ArrayProxy, Slice
 
 from coreblocks.utils._typing import LayoutLike
-from coreblocks.utils.utils import AssignArg, AssignType, AssignFields, assign
+from coreblocks.utils.utils import AssignError, AssignArg, AssignType, AssignFields, assign
 
 from unittest import TestCase
 from parameterized import parameterized_class, parameterized
@@ -65,29 +65,29 @@ class TestAssign(TestCase):
     mk: Callable[[LayoutLike], AssignArg]
 
     def test_rhs_exception(self):
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AssignError):
             list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_ab), fields=AssignType.RHS))
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AssignError):
             list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_ac), fields=AssignType.RHS))
 
     def test_all_exception(self):
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AssignError):
             list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_ab), fields=AssignType.ALL))
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AssignError):
             list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_a), fields=AssignType.ALL))
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AssignError):
             list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_ac), fields=AssignType.ALL))
 
     def test_missing_exception(self):
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AssignError):
             list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_ab), fields=self.wrap({"b"})))
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AssignError):
             list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_a), fields=self.wrap({"b"})))
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AssignError):
             list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_a), fields=self.wrap({"b"})))
 
     def test_wrong_bits(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AssignError):
             list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_a_alt)))
 
     @parameterized.expand(

@@ -4,7 +4,7 @@ from inspect import Parameter, signature
 from typing import Callable, Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
 from ..utils._typing import LayoutLike
-from ..utils import OneHotSwitchDynamic, AssignError
+from ..utils import OneHotSwitchDynamic
 
 __all__ = [
     "Scheduler",
@@ -15,7 +15,6 @@ __all__ = [
     "GraphCC",
     "get_caller_class_name",
     "method_def_helper",
-    "assign_exception_helper",
 ]
 
 
@@ -151,9 +150,3 @@ def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elabo
         return None, default
     else:
         raise RuntimeError("Not called from a method")
-
-
-def assign_exception_helper(e, method):
-    new_e = AssignError(e.__str__())  # this can be removed in python 3.11
-    new_e.add_note("Caused by: {}".format(method))
-    return new_e

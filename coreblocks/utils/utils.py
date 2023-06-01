@@ -249,13 +249,13 @@ def assign(
             names = set(fields)
 
         if not names and (lhs_fields or rhs_fields):
-            raise ValueError("There are no common fields in assigment lhs: {} rhs: {}".format(lhs_fields, rhs_fields))
+            raise AssignError("There are no common fields in assigment LHS: {}, RHS: {}".format(lhs_fields, rhs_fields))
 
         for name in names:
             if name not in lhs_fields:
-                raise KeyError("Field {} not present in lhs".format(name))
+                raise AssignError("Field '{}' in RHS not present in LHS".format(name))
             if name not in rhs_fields:
-                raise KeyError("Field {} not present in rhs".format(name))
+                raise AssignError("Field '{}' in LHS not present in RHS".format(name))
 
             subfields = fields
             if isinstance(fields, Mapping):
@@ -272,9 +272,9 @@ def assign(
             )
     else:
         if not isinstance(fields, AssignType):
-            raise ValueError("Fields on assigning non-records")
+            raise AssignError("Fields on assigning non-records")
         if not isinstance(lhs, ValueLike) or not isinstance(rhs, ValueLike):
-            raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
+            raise AssignError("Unsupported assignment LHS: {}, RHS: {}".format(lhs, rhs))
 
         lhs_val = Value.cast(lhs)
         rhs_val = Value.cast(rhs)
@@ -291,8 +291,8 @@ def assign(
             and (rhs_strict or has_explicit_shape(rhs))
         ):
             if lhs_val.shape() != rhs_val.shape():
-                raise ValueError(
-                    "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs_val.shape(), lhs, rhs_val.shape(), rhs)
+                raise AssignError(
+                    "Shapes not matching: LHS: {} {}, RHS: {} {}".format(lhs_val.shape(), lhs, rhs_val.shape(), rhs)
                 )
         yield lhs_val.eq(rhs_val)
 

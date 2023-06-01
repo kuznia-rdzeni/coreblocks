@@ -10,7 +10,7 @@ from amaranth import tracer
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 from itertools import count, chain
 
-from coreblocks.utils import AssignType, assign, ModuleConnector
+from coreblocks.utils import AssignError, AssignType, assign, ModuleConnector
 from coreblocks.utils.utils import OneHotSwitchDynamic
 from ._utils import *
 from ..utils import silence_mustuse
@@ -947,10 +947,10 @@ class Method(TransactionBase):
         m.d.av_comb += enable_sig.eq(enable)
         try:
             m.d.top_comb += assign(arg_rec, arg, fields=AssignType.ALL)
-        except (KeyError, ValueError, TypeError) as e:
-            new_e = assign_exception_helper(e, self)
-            new_e.add_note("LHS is defined input layout, RHS is the call argument layout")
-            raise new_e from e
+        except AssignError as e:
+            e.add_note("Caused by: {}".format(self))
+            e.add_note("LHS is defined input layout, RHS is the call argument layout")
+            raise
 
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
 
@@ -1038,9 +1038,9 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
 
         try:
             m.d.top_comb += assign(out, ret_out, fields=AssignType.ALL)
-        except (KeyError, ValueError, TypeError) as e:
-            new_e = assign_exception_helper(e, method)
-            new_e.add_note("LHS is defined output layout, RHS is returned output layout")
-            raise new_e from e
+        except AssignError as e:
+            e.add_note("Caused by: {}".format(method))
+            e.add_note("LHS is defined output layout, RHS is returned output layout")
+            raise
 
     return decorator
