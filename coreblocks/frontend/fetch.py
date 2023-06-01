@@ -37,22 +37,27 @@ class Fetch(Elaboratable):
         m = TModule()
 
         m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(
-            layout=[("addr", self.gp.isa.xlen)], depth=2
+            layout=[("addr", self.gp.isa.xlen), ("spin", 1)], depth=2
         )
 
         speculative_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
 
-        discard_next = Signal()
         stalled = Signal()
+        spin = Signal()
 
         with Transaction().body(m, request=~stalled):
             self.icache.issue_req(m, addr=speculative_pc)
-            self.fetch_target_queue.write(m, addr=speculative_pc)
+            self.fetch_target_queue.write(m, addr=speculative_pc, spin=spin)
 
             m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
 
+        def stall():
+            m.d.sync += stalled.eq(1)
+            with m.If(~stalled):
+                m.d.sync += spin.eq(~spin)
+
         with Transaction().body(m):
-            pc = self.fetch_target_queue.read(m).addr
+            target = self.fetch_target_queue.read(m)
             res = self.icache.accept_res(m)
 
             # bits 4:7 currently are enough to uniquely distinguish jumps and branches,
@@ -61,17 +66,16 @@ class Fetch(Elaboratable):
             is_branch = res.instr[4:7] == 0b110
             is_system = res.instr[2:7] == 0b11100
 
-            with m.If(discard_next):
-                m.d.sync += discard_next.eq(0)
+            with m.If(spin != target.spin):
+                pass
             # TODO: find a better way to fail when there's a fetch error.
             with m.Elif(res.error == 0):
                 with m.If(is_branch | is_system):
-                    m.d.sync += stalled.eq(1)
-                    m.d.sync += discard_next.eq(1)
+                    stall()
 
-                m.d.sync += self.pc.eq(pc)
+                m.d.sync += self.pc.eq(target.addr)
 
-                self.cont(m, data=res.instr, pc=pc)
+                self.cont(m, data=res.instr, pc=target.addr)
 
         @def_method(m, self.verify_branch, ready=stalled)
         def _(next_pc: Value):
