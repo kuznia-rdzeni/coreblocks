@@ -5,7 +5,7 @@ from .memory import CoreMemoryModel
 
 class SimulationBackend(ABC):
     @abstractmethod
-    async def run(self, mem_model: CoreMemoryModel) -> bool:
+    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int) -> bool:
         raise NotImplementedError
 
     @abstractmethod
