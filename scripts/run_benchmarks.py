@@ -44,6 +44,9 @@ def load_benchmarks():
         "wikisort",
         "matmult-int",
         "edn",
+        "nettle-aes",
+        "md5sum",
+        "tarfind",
     }
 
     return list(set(all_tests) - exclude)

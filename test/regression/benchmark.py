@@ -11,6 +11,15 @@ results_dir = test_dir.joinpath("regression/benchmark_results")
 
 
 class MMIO(RandomAccessMemory):
+    """Memory Mapped IO.
+
+    The structure of the MMIO is as follows:
+    0x80000000-0x80000004 (int): finish signal - if the program writes here, the simulation terminates.
+    0x80000004-0x80000008 (int): return code of the program
+    0x80000008-0x80000010 (uint64_t): the number of cycles spent during the benchmark
+    0x80000010-0x80000018 (uint64_t): the number of instruction executed during the benchmark
+    """
+
     def __init__(self, on_finish: Callable[[], None]):
         super().__init__(range(0x80000000, 0x80000000 + 24), SegmentFlags.READ | SegmentFlags.WRITE, b"\x00" * 24)
         self.on_finish = on_finish
