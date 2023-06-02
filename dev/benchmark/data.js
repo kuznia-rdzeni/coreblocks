@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685613585954,
+  "lastUpdate": 1685740906924,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -6609,6 +6609,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as ram: (ECP5)",
             "value": 860,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5608,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f2bcf12703b8b37e301522bdef2d9da8627fe0e9",
+          "message": "Make fetcher ready for discarding multiple instructions (#375)",
+          "timestamp": "2023-06-02T23:12:01+02:00",
+          "tree_id": "107554c4d5dadde6d00b56d1c13e7015404e70b5",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f2bcf12703b8b37e301522bdef2d9da8627fe0e9"
+        },
+        "date": 1685740905133,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 55.7,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 20896,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 864,
             "unit": "LUT"
           },
           {
