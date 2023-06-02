@@ -66,16 +66,24 @@ class Fetch(Elaboratable):
             is_branch = res.instr[4:7] == 0b110
             is_system = res.instr[2:7] == 0b11100
 
-            with m.If(spin != target.spin):
-                pass
-            # TODO: find a better way to fail when there's a fetch error.
-            with m.Elif(res.error == 0):
-                with m.If(is_branch | is_system):
-                    stall()
+            with m.If(spin == target.spin):
+                instr = Signal(self.gp.isa.ilen)
 
-                m.d.sync += self.pc.eq(target.addr)
+                with m.If(res.error == 0):
+                    # TODO: this should ideally bypass decoder and push a decoded 'trigger ibus
+                    # error' instruction instead.  For now push UNIMP, which happens to be 0x0000
+                    # in RV32C, and should throw 'illegal instruction' exception.
+                    # If we do not support C, it should throw the same exception anyway.
+                    m.d.comb += instr.eq(0x0000)
 
-                self.cont(m, data=res.instr, pc=target.addr)
+                with m.Else():
+                    with m.If(is_branch | is_system):
+                        stall()
+
+                    m.d.sync += self.pc.eq(target.addr)
+                    m.d.comb += instr.eq(target.instr)
+
+                self.cont(m, data=instr, pc=target.addr)
 
         @def_method(m, self.verify_branch, ready=stalled)
         def _(next_pc: Value):
