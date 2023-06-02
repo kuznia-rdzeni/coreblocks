@@ -1,3 +1,4 @@
+from dataclasses import KW_ONLY, dataclass
 from functools import reduce
 from operator import or_
 from typing import Optional
@@ -23,11 +24,12 @@ _rs1_itypes = [InstrType.R, InstrType.I, InstrType.S, InstrType.B]
 _rs2_itypes = [InstrType.R, InstrType.S, InstrType.B]
 
 
+@dataclass(frozen=True)
 class Encoding:
     """
     Class representing encoding of single RISC-V instruction.
 
-    Attributes
+    Parameters
     ----------
     opcode: Opcode
         Opcode of instruction.
@@ -48,24 +50,14 @@ class Encoding:
         accordingly to `InstrType`. Default is False.
     """
 
-    def __init__(
-        self,
-        opcode: Opcode,
-        funct3: Optional[Funct3] = None,
-        funct7: Optional[Funct7] = None,
-        funct12: Optional[Funct12] = None,
-        *,
-        instr_type_override: Optional[InstrType] = None,
-        rd_zero: bool = False,
-        rs1_zero: bool = False,
-    ):
-        self.opcode = opcode
-        self.funct3 = funct3
-        self.funct7 = funct7
-        self.funct12 = funct12
-        self.instr_type_override = instr_type_override
-        self.rd_zero = rd_zero
-        self.rs1_zero = rs1_zero
+    opcode: Opcode
+    funct3: Optional[Funct3] = None
+    funct7: Optional[Funct7] = None
+    funct12: Optional[Funct12] = None
+    _ = KW_ONLY
+    instr_type_override: Optional[InstrType] = None
+    rd_zero: bool = False
+    rs1_zero: bool = False
 
 
 #
