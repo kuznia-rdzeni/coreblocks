@@ -74,7 +74,7 @@ class Fetch(Elaboratable):
                 self.cont(m, data=res.instr, pc=pc)
 
         @def_method(m, self.verify_branch, ready=stalled)
-        def _(next_pc: Value):
+        def _(from_pc: Value, next_pc: Value):
             m.d.sync += speculative_pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
 
