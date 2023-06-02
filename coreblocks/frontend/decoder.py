@@ -459,6 +459,7 @@ class InstrDecoder(Elaboratable):
             m.d.comb += [
                 self.opcode.eq(Opcode.OP_IMM),
                 self.funct3.eq(Funct3.ADD),
+                self.funct3_v.eq(1),
                 self.rs1.eq(0),
                 self.rs1_v.eq(1),
             ]
