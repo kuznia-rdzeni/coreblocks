@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685740906924,
+  "lastUpdate": 1685741323506,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -6729,6 +6729,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "minver",
             "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f2bcf12703b8b37e301522bdef2d9da8627fe0e9",
+          "message": "Make fetcher ready for discarding multiple instructions (#375)",
+          "timestamp": "2023-06-02T23:12:01+02:00",
+          "tree_id": "107554c4d5dadde6d00b56d1c13e7015404e70b5",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f2bcf12703b8b37e301522bdef2d9da8627fe0e9"
+        },
+        "date": 1685741322498,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
             "unit": "Instructions Per Cycle"
           }
         ]
