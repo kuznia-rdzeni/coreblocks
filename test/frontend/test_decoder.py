@@ -103,6 +103,10 @@ class TestDecoder(TestCaseWithSimulator):
             fm=FenceFm.NONE,
             op=OpType.FENCE,
         ),
+        # ECALL
+        InstrTest(0x00000073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL, rd=0, rs1=0, op=OpType.ECALL),
+        # EBREAK
+        InstrTest(0x00100073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK, rd=0, rs1=0, op=OpType.EBREAK),
     ]
     DECODER_TESTS_ZIFENCEI = [
         InstrTest(0x0000100F, Opcode.MISC_MEM, Funct3.FENCEI, rd=0, rs1=0, imm=0, op=OpType.FENCEI),
@@ -130,10 +134,6 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x02A47233, Opcode.OP, Funct3.REMU, Funct7.MULDIV, rd=4, rs1=8, rs2=10, op=OpType.DIV_REM),
     ]
     DECODER_TESTS_XINTMACHINEMODE = [
-        # ECALL
-        InstrTest(0x00000073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL, rd=0, rs1=0, op=OpType.ECALL),
-        # EBREAK
-        InstrTest(0x00100073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK, rd=0, rs1=0, op=OpType.EBREAK),
         # MRET
         InstrTest(0x30200073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.MRET, rd=0, rs1=0, op=OpType.MRET),
         # WFI
