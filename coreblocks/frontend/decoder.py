@@ -370,7 +370,7 @@ class InstrDecoder(Elaboratable):
 
         for enc in supported_encodings:
             with m.If(
-                (self.opcode == enc.opcode if enc.opcode is not None else 1)
+                (opcode == enc.opcode if enc.opcode is not None else 1)
                 & (self.funct3 == enc.funct3 if enc.funct3 is not None else 1)
                 & (self.funct7 == enc.funct7 if enc.funct7 is not None else 1)
                 & (self.funct12 == enc.funct12 if enc.funct12 is not None else 1)
