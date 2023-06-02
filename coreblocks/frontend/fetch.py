@@ -69,7 +69,7 @@ class Fetch(Elaboratable):
             with m.If(spin == target.spin):
                 instr = Signal(self.gp.isa.ilen)
 
-                with m.If(res.error == 0):
+                with m.If(res.error != 0):
                     # TODO: this should ideally bypass decoder and push a decoded 'trigger ibus
                     # error' instruction instead.  For now push UNIMP, which happens to be 0x0000
                     # in RV32C, and should throw 'illegal instruction' exception.
