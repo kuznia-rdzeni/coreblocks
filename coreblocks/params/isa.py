@@ -327,11 +327,15 @@ def gen_isa_string(extensions: Extension, isa_xlen: int) -> str:
         isa_str += "g"
         extensions ^= Extension.G
 
+    previous_multi_letter = False
     for ext in Extension:
         if ext in extensions:
             ext_name = str(ext.name).lower()
-            if ext_name[0] == "z" or ext_name[0] == "x":
-                ext_name = "_" + ext_name
+
+            if previous_multi_letter:
+                isa_str += "_"
+            previous_multi_letter = len(ext_name) > 1
+
             isa_str += ext_name
 
     return isa_str
