@@ -53,10 +53,6 @@ optypes_by_extensions = {
         OpType.LOAD,
         OpType.STORE,
         OpType.FENCE,
-        OpType.ECALL,
-        OpType.EBREAK,
-        OpType.MRET,
-        OpType.WFI,
     ],
     Extension.ZIFENCEI: [
         OpType.FENCEI,
@@ -76,6 +72,12 @@ optypes_by_extensions = {
     ],
     Extension.ZBA: [
         OpType.ADDRESS_GENERATION,
+    ],
+    Extension.XINTMACHINEMODE: [
+        OpType.ECALL,
+        OpType.EBREAK,
+        OpType.MRET,
+        OpType.WFI,
     ],
 }
 

@@ -176,6 +176,10 @@ class Extension(IntFlag):
     ZBS = auto()
     #: Total store ordering
     ZTSO = auto()
+    #: Coreblocks internal categorizing extension: Machine-Mode Privilieged Instructions
+    XINTMACHINEMODE = auto()
+    #: Coreblocks internal categorizing extension: Supervisor Instructions
+    XINTSUPERVISOR = auto()
     #: General extension containing all basic operations
     G = I | M | A | F | D | ZICSR | ZIFENCEI
 
