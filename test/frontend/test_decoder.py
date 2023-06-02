@@ -103,14 +103,6 @@ class TestDecoder(TestCaseWithSimulator):
             fm=FenceFm.NONE,
             op=OpType.FENCE,
         ),
-        # ECALL
-        InstrTest(0x00000073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL, rd=0, rs1=0, op=OpType.ECALL),
-        # EBREAK
-        InstrTest(0x00100073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK, rd=0, rs1=0, op=OpType.EBREAK),
-        # MRET
-        InstrTest(0x30200073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.MRET, rd=0, rs1=0, op=OpType.MRET),
-        # WFI
-        InstrTest(0x10500073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI, rd=0, rs1=0, op=OpType.WFI),
     ]
     DECODER_TESTS_ZIFENCEI = [
         InstrTest(0x0000100F, Opcode.MISC_MEM, Funct3.FENCEI, rd=0, rs1=0, imm=0, op=OpType.FENCEI),
@@ -137,9 +129,27 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x02716233, Opcode.OP, Funct3.REM, Funct7.MULDIV, rd=4, rs1=2, rs2=7, op=OpType.DIV_REM),
         InstrTest(0x02A47233, Opcode.OP, Funct3.REMU, Funct7.MULDIV, rd=4, rs1=8, rs2=10, op=OpType.DIV_REM),
     ]
+    DECODER_TESTS_XINTMACHINEMODE = [
+        # ECALL
+        InstrTest(0x00000073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL, rd=0, rs1=0, op=OpType.ECALL),
+        # EBREAK
+        InstrTest(0x00100073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK, rd=0, rs1=0, op=OpType.EBREAK),
+        # MRET
+        InstrTest(0x30200073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.MRET, rd=0, rs1=0, op=OpType.MRET),
+        # WFI
+        InstrTest(0x10500073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI, rd=0, rs1=0, op=OpType.WFI),
+    ]
+    DECODER_TESTS_XINTSUPERVISOR = [
+        # SRET
+        InstrTest(0x10200073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.SRET, rd=0, rs1=0, op=OpType.SRET),
+    ]
 
     def setUp(self):
-        gen = GenParams(test_core_config.replace(_implied_extensions=Extension.G))
+        gen = GenParams(
+            test_core_config.replace(
+                _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR
+            )
+        )
         self.decoder = InstrDecoder(gen)
         self.cnt = 1
 
@@ -213,4 +223,12 @@ class TestDecoder(TestCaseWithSimulator):
 
     def test_illegal(self):
         for test in self.DECODER_TESTS_ILLEGAL:
+            self.do_test(test)
+
+    def test_xintmachinemode(self):
+        for test in self.DECODER_TESTS_XINTMACHINEMODE:
+            self.do_test(test)
+
+    def test_xintsupervisor(self):
+        for test in self.DECODER_TESTS_XINTSUPERVISOR:
             self.do_test(test)
