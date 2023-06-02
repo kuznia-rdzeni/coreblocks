@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685741323506,
+  "lastUpdate": 1685742077933,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -6648,6 +6648,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 20896,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 864,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5608,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a903b181b1884403a2558d682777bf5dc6fb3651",
+          "message": "Make verify_branch know its origin with from_pc (#378)",
+          "timestamp": "2023-06-02T23:33:49+02:00",
+          "tree_id": "41f8563314467cc9f70ec01ffd7ad94305b9b00d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a903b181b1884403a2558d682777bf5dc6fb3651"
+        },
+        "date": 1685742076888,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 54.59,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 25745,
             "unit": "LUT4"
           },
           {
