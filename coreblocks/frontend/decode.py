@@ -45,7 +45,7 @@ class Decode(Elaboratable):
                     "opcode": instr_decoder.opcode,
                     "illegal": instr_decoder.illegal,
                     "exec_fn": {
-                        "op_type": instr_decoder.op,
+                        "op_type": instr_decoder.optype,
                         "funct3": instr_decoder.funct3,
                         "funct7": instr_decoder.funct7,
                     },

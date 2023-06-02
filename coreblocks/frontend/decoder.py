@@ -8,8 +8,6 @@ from coreblocks.params import *
 
 __all__ = ["InstrDecoder"]
 
-from coreblocks.utils import OneHotSwitchDynamic
-
 # Important
 #
 # In order to add new instructions to be decoded by this decoder assuming they do not required additional
@@ -23,10 +21,6 @@ _rd_itypes = [InstrType.R, InstrType.I, InstrType.U, InstrType.J]
 _rs1_itypes = [InstrType.R, InstrType.I, InstrType.S, InstrType.B]
 
 _rs2_itypes = [InstrType.R, InstrType.S, InstrType.B]
-
-_funct3_itypes = [InstrType.R, InstrType.I, InstrType.S, InstrType.B]
-
-_funct7_itypes = [InstrType.R]
 
 
 class Encoding:
@@ -43,6 +37,15 @@ class Encoding:
         Seven bits function identifier. If not exists for instruction then `None`.
     funct12: Optional[Funct12]
         Twelve bits function identifier. If not exists for instruction then `None`.
+    instr_type_override: Optional[InstrType]
+        Specify `InstrType` used for decoding of register and immediate for single opcode.
+        If set to `None` optype is determined from instrustion opcode, which is almost always correct.
+    rd_zero: bool
+        `rd` field is specifed as constant zero in instruction encoding. Other fields are decoded
+        accordingly to `InstrType`. Default is False.
+    rs1_zero: bool
+        `rs1` field is specifed as constant zero in instruction encoding. Other fields are decoded
+        accordingly to `InstrType`. Default is False.
     """
 
     def __init__(
@@ -51,11 +54,18 @@ class Encoding:
         funct3: Optional[Funct3] = None,
         funct7: Optional[Funct7] = None,
         funct12: Optional[Funct12] = None,
+        *,
+        instr_type_override: Optional[InstrType] = None,
+        rd_zero: bool = False,
+        rs1_zero: bool = False,
     ):
         self.opcode = opcode
         self.funct3 = funct3
         self.funct7 = funct7
         self.funct12 = funct12
+        self.instr_type_override = instr_type_override
+        self.rd_zero = rd_zero
+        self.rs1_zero = rs1_zero
 
 
 #
@@ -124,16 +134,16 @@ _instructions_by_optype = {
         Encoding(Opcode.MISC_MEM, Funct3.FENCE),  # fence
     ],
     OpType.ECALL: [
-        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL),  # ecall
+        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL, rd_zero=True, rs1_zero=True),  # ecall
     ],
     OpType.EBREAK: [
-        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK),  # ebreak
+        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK, rd_zero=True, rs1_zero=True),  # ebreak
     ],
     OpType.MRET: [
-        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.MRET),  # mret
+        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.MRET, rd_zero=True, rs1_zero=True),  # mret
     ],
     OpType.WFI: [
-        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI),  # wfi
+        Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI, rd_zero=True, rs1_zero=True),  # wfi
     ],
     OpType.FENCEI: [
         Encoding(Opcode.MISC_MEM, Funct3.FENCEI),  # fence.i
@@ -223,7 +233,7 @@ class InstrDecoder(Elaboratable):
         Fence mode for `FENCE` instructions.
     csr: Signal(gen.isa.csr_alen), out
         Address of Control and Source Register for `CSR` instructions.
-    op: Signal(OpType), out
+    optype: Signal(OpType), out
         Operation type of instruction, used to define functional unit to perform this kind of instructions.
     illegal: Signal(1), out
         Signal if decoding of instruction was successful. If instruction do not fit into any supported
@@ -254,11 +264,8 @@ class InstrDecoder(Elaboratable):
         # Opcode and funct
         self.opcode = Signal(Opcode)
         self.funct3 = Signal(Funct3)
-        self.funct3_v = Signal()
         self.funct7 = Signal(Funct7)
-        self.funct7_v = Signal()
         self.funct12 = Signal(Funct12)
-        self.funct12_v = Signal()
 
         # Destination register
         self.rd = Signal(gen.isa.reg_cnt_log)
@@ -284,7 +291,7 @@ class InstrDecoder(Elaboratable):
         self.csr = Signal(gen.isa.csr_alen)
 
         # Operation type
-        self.op = Signal(OpType)
+        self.optype = Signal(OpType)
 
         # Illegal instruction
         self.illegal = Signal()
@@ -307,40 +314,22 @@ class InstrDecoder(Elaboratable):
         """
         return sig.eq(self.instr[start : start + len(sig)])
 
-    def _match(self, encodings: list[Encoding]) -> Value:
-        """
-        Creates amaranth value of instruction belonging into list of encodings.
-
-        Parameters
-        ----------
-        encodings: List[Encoding]
-            List of encoding to be checked against currently decoding instruction.
-
-        Returns
-        ----------
-        Value
-            Value of instruction having type of encodings in the list.
-        """
-        return reduce(
-            or_,
-            map(
-                lambda enc: (self.opcode == enc.opcode if enc.opcode is not None else 1)
-                & (self.funct3 == enc.funct3 if enc.funct3 is not None else 1)
-                & (self.funct7 == enc.funct7 if enc.funct7 is not None else 1)
-                & (self.funct12 == enc.funct12 if enc.funct12 is not None else 1)
-                & (
-                    (self.rd == 0) & (self.rs1 == 0) if enc.opcode == Opcode.SYSTEM and enc.funct3 == Funct3.PRIV else 1
-                ),
-                encodings,
-            ),
-        )
-
     def elaborate(self, platform):
         m = Module()
 
         # XXX: we always assume the synchronous domain to be present.
         dummy = Signal()
         m.d.sync += dummy.eq(1)
+
+        extensions = self.gen.isa.extensions
+        supported_encodings: set[Encoding] = set()
+        encoding_to_optype = dict()
+        for ext, optypes in optypes_by_extensions.items():
+            if extensions & ext:
+                for optype in optypes:
+                    for encoding in _instructions_by_optype[optype]:
+                        supported_encodings.add(encoding)
+                        encoding_to_optype[encoding] = optype
 
         # Opcode
 
@@ -350,7 +339,6 @@ class InstrDecoder(Elaboratable):
         # Instruction type
 
         instruction_type = Signal(InstrType)  # format of instruction
-        opcode_invalid = Signal()
 
         with m.Switch(opcode):
             with m.Case(Opcode.OP_IMM, Opcode.JALR, Opcode.LOAD, Opcode.MISC_MEM, Opcode.SYSTEM):
@@ -365,35 +353,53 @@ class InstrDecoder(Elaboratable):
                 m.d.comb += instruction_type.eq(InstrType.B)
             with m.Case(Opcode.STORE):
                 m.d.comb += instruction_type.eq(InstrType.S)
-            with m.Default():
-                m.d.comb += opcode_invalid.eq(1)
 
-        # Decode funct
+        # Decode and match instruction encoding
 
-        m.d.comb += self.funct3_v.eq(reduce(or_, (instruction_type == t for t in _funct3_itypes)))
-        with m.If(self.funct3_v):
-            m.d.comb += self._extract(12, self.funct3)
-
-        m.d.comb += self.funct7_v.eq(
-            reduce(or_, (instruction_type == t for t in _funct7_itypes))
-            | ((opcode == Opcode.OP_IMM) & ((self.funct3 == Funct3.SLL) | (self.funct3 == Funct3.SR)))
-        )
-        with m.If(self.funct7_v):
-            m.d.comb += self._extract(25, self.funct7)
-
-        m.d.comb += self.funct12_v.eq((opcode == Opcode.SYSTEM) & (self.funct3 == Funct3.PRIV))
-        with m.If(self.funct12_v):
-            m.d.comb += self._extract(20, self.funct12)
-
-        # Destination and source registers
+        m.d.comb += [
+            self._extract(12, self.funct3),
+            self._extract(25, self.funct7),
+            self._extract(20, self.funct12),
+        ]
 
         m.d.comb += [
             self._extract(7, self.rd),
-            self.rd_v.eq(reduce(or_, (instruction_type == t for t in _rd_itypes))),
             self._extract(15, self.rs1),
-            self.rs1_v.eq(reduce(or_, (instruction_type == t for t in _rs1_itypes))),
             self._extract(20, self.rs2),
-            self.rs2_v.eq(reduce(or_, (instruction_type == t for t in _rs2_itypes))),
+        ]
+
+        rd_invalid = Signal()
+        rs1_invalid = Signal()
+        rs2_invalid = Signal()
+
+        m.d.comb += self.optype.eq(OpType.UNKNOWN)
+
+        for enc in supported_encodings:
+            with m.If(
+                (self.opcode == enc.opcode if enc.opcode is not None else 1)
+                & (self.funct3 == enc.funct3 if enc.funct3 is not None else 1)
+                & (self.funct7 == enc.funct7 if enc.funct7 is not None else 1)
+                & (self.funct12 == enc.funct12 if enc.funct12 is not None else 1)
+                & (self.rd == 0 if enc.rd_zero else 1)
+                & (self.rs1 == 0 if enc.rs1_zero else 1)
+            ):
+                m.d.comb += self.optype.eq(encoding_to_optype[enc])
+
+                if enc.instr_type_override is not None:
+                    m.d.comb += instruction_type.eq(enc.instr_type_override)
+
+                m.d.comb += rd_invalid.eq(enc.rd_zero)
+                m.d.comb += rs1_invalid.eq(enc.rs1_zero)
+
+                if enc.funct12 is not None:
+                    m.d.comb += rs2_invalid.eq(1)
+
+        # Destination and source registers validity
+
+        m.d.comb += [
+            self.rd_v.eq(reduce(or_, (instruction_type == t for t in _rd_itypes)) & ~rd_invalid),
+            self.rs1_v.eq(reduce(or_, (instruction_type == t for t in _rs1_itypes)) & ~rs1_invalid),
+            self.rs2_v.eq(reduce(or_, (instruction_type == t for t in _rs2_itypes)) & ~rs2_invalid),
         ]
 
         # Immediate
@@ -443,24 +449,13 @@ class InstrDecoder(Elaboratable):
 
         m.d.comb += self._extract(20, self.csr)
 
-        # Operation type
+        # CSR with immediate correction
 
-        extensions = self.gen.isa.extensions
-        op_type_mask = Signal(len(OpType) - 1)
-
-        first_valid_optype = OpType.UNKNOWN.value + 1  # value of first OpType which is not UNKNOWN
-
-        for ext, optypes in optypes_by_extensions.items():
-            if extensions & ext:
-                for optype in optypes:
-                    list_of_encodings = _instructions_by_optype[optype]
-                    m.d.comb += op_type_mask[optype.value - first_valid_optype].eq(self._match(list_of_encodings))
-
-        for i in OneHotSwitchDynamic(m, op_type_mask, default=True):
-            if i is not None:
-                m.d.comb += self.op.eq(i + first_valid_optype)
-            else:  # default case
-                m.d.comb += self.op.eq(OpType.UNKNOWN)
+        with m.If(self.optype == OpType.CSR_IMM):
+            m.d.comb += [
+                self.imm.eq(uimm5),
+                self.rs1_v.eq(0),
+            ]
 
         # Instruction simplification
 
@@ -469,22 +464,14 @@ class InstrDecoder(Elaboratable):
             m.d.comb += [
                 self.opcode.eq(Opcode.OP_IMM),
                 self.funct3.eq(Funct3.ADD),
-                self.funct3_v.eq(1),
                 self.rs1.eq(0),
+                self.rs1_v.eq(1),
             ]
         with m.Else():
             m.d.comb += self.opcode.eq(opcode)
 
-        # CSR with immediate correction
-
-        with m.If(self.op == OpType.CSR_IMM):
-            m.d.comb += [
-                self.imm.eq(uimm5),
-                self.rs1_v.eq(0),
-            ]
-
         # Illegal instruction detection
 
-        m.d.comb += self.illegal.eq(opcode_invalid | (self.op == OpType.UNKNOWN))
+        m.d.comb += self.illegal.eq(self.optype == OpType.UNKNOWN)
 
         return m
