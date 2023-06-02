@@ -81,7 +81,7 @@ class Fetch(Elaboratable):
                         stall()
 
                     m.d.sync += self.pc.eq(target.addr)
-                    m.d.comb += instr.eq(target.instr)
+                    m.d.comb += instr.eq(res.instr)
 
                 self.cont(m, data=instr, pc=target.addr)
 
