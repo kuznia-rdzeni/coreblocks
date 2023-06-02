@@ -252,6 +252,7 @@ class FetchLayouts:
         ]
 
         self.branch_verify = [
+            ("from_pc", gen_params.isa.xlen),
             ("next_pc", gen_params.isa.xlen),
         ]
 
