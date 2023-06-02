@@ -81,11 +81,13 @@ class Funct7(BitEnum, width=7):
     BCLR = BEXT = 0b0100100
     BINV = 0b0110100
     BSET = 0b0010100
+    SFENCEVMA = 0b0001001
 
 
 class Funct12(BitEnum, width=12):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
+    SRET = 0b000100000010
     MRET = 0b001100000010
     WFI = 0b000100000101
 

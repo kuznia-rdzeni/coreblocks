@@ -33,6 +33,8 @@ class OpType(IntEnum):
     DIV_REM = auto()
     SINGLE_BIT_MANIPULATION = auto()
     ADDRESS_GENERATION = auto()
+    SRET = auto()
+    SFENCEVMA = auto()
 
 
 #
@@ -78,6 +80,10 @@ optypes_by_extensions = {
         OpType.EBREAK,
         OpType.MRET,
         OpType.WFI,
+    ],
+    Extension.XINTSUPERVISOR: [
+        OpType.SRET,
+        OpType.SFENCEVMA,
     ],
 }
 
