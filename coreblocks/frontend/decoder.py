@@ -256,8 +256,11 @@ class InstrDecoder(Elaboratable):
         # Opcode and funct
         self.opcode = Signal(Opcode)
         self.funct3 = Signal(Funct3)
+        self.funct3_v = Signal()
         self.funct7 = Signal(Funct7)
+        self.funct7_v = Signal()
         self.funct12 = Signal(Funct12)
+        self.funct12_v = Signal()
 
         # Destination register
         self.rd = Signal(gen.isa.reg_cnt_log)
@@ -315,7 +318,7 @@ class InstrDecoder(Elaboratable):
 
         extensions = self.gen.isa.extensions
         supported_encodings: set[Encoding] = set()
-        encoding_to_optype = dict()
+        encoding_to_optype: dict[Encoding, OpType] = dict()
         for ext, optypes in optypes_by_extensions.items():
             if extensions & ext:
                 for optype in optypes:
@@ -362,7 +365,6 @@ class InstrDecoder(Elaboratable):
 
         rd_invalid = Signal()
         rs1_invalid = Signal()
-        rs2_invalid = Signal()
 
         m.d.comb += self.optype.eq(OpType.UNKNOWN)
 
@@ -383,15 +385,16 @@ class InstrDecoder(Elaboratable):
                 m.d.comb += rd_invalid.eq(enc.rd_zero)
                 m.d.comb += rs1_invalid.eq(enc.rs1_zero)
 
-                if enc.funct12 is not None:
-                    m.d.comb += rs2_invalid.eq(1)
+                m.d.comb += self.funct3_v.eq(enc.funct3 is not None)
+                m.d.comb += self.funct7_v.eq(enc.funct7 is not None)
+                m.d.comb += self.funct12_v.eq(enc.funct12 is not None)
 
         # Destination and source registers validity
 
         m.d.comb += [
             self.rd_v.eq(reduce(or_, (instruction_type == t for t in _rd_itypes)) & ~rd_invalid),
             self.rs1_v.eq(reduce(or_, (instruction_type == t for t in _rs1_itypes)) & ~rs1_invalid),
-            self.rs2_v.eq(reduce(or_, (instruction_type == t for t in _rs2_itypes)) & ~rs2_invalid),
+            self.rs2_v.eq(reduce(or_, (instruction_type == t for t in _rs2_itypes)) & ~self.funct12_v),
         ]
 
         # Immediate

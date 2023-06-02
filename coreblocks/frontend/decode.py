@@ -46,8 +46,9 @@ class Decode(Elaboratable):
                     "illegal": instr_decoder.illegal,
                     "exec_fn": {
                         "op_type": instr_decoder.optype,
-                        "funct3": instr_decoder.funct3,
-                        "funct7": instr_decoder.funct7,
+                        # imm muxing in FUs depend on unused functs set to 0
+                        "funct3": Mux(instr_decoder.funct3_v, instr_decoder.funct3, 0),
+                        "funct7": Mux(instr_decoder.funct7_v, instr_decoder.funct7, 0),
                     },
                     "regs_l": {
                         # read/writes to phys reg 0 make no effect
