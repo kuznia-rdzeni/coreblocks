@@ -178,9 +178,6 @@ _instructions_by_optype = {
     OpType.SRET: [
         Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.SRET),  # sret
     ],
-    OpType.SFENCEVMA: [
-        Encoding(Opcode.SYSTEM, Funct3.PRIV, Funct7.SFENCEVMA),  # sfence.vma
-    ],
 }
 
 
