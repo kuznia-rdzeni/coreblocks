@@ -268,7 +268,7 @@ class TestCoreAsmSource(TestCoreBase):
                 [
                     "riscv64-unknown-elf-as",
                     "-mabi=ilp32",
-                    "-march=rv32im_zicsr",  # TODO: take from gp.isa_str when binutils will be updated to support zmmul
+                    f"-march={self.gp._toolchain_isa_str}",
                     "-o",
                     asm_tmp.name,
                     self.base_dir + self.source_file,

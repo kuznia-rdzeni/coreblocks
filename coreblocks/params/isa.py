@@ -317,7 +317,7 @@ class ISA:
         self.csr_alen = 12
 
 
-def gen_isa_string(extensions: Extension, isa_xlen: int) -> str:
+def gen_isa_string(extensions: Extension, isa_xlen: int, *, skip_internal: bool = True) -> str:
     isa_str = "rv"
 
     isa_str += str(isa_xlen)
@@ -331,6 +331,9 @@ def gen_isa_string(extensions: Extension, isa_xlen: int) -> str:
     for ext in Extension:
         if ext in extensions:
             ext_name = str(ext.name).lower()
+
+            if skip_internal and ext_name.startswith("xint"):
+                continue
 
             if previous_multi_letter:
                 isa_str += "_"
