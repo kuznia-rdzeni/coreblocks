@@ -10,7 +10,7 @@ class ReorderBuffer(Elaboratable):
         self.params = gen_params
         layouts = gen_params.get(ROBLayouts)
         self.put = Method(i=layouts.data_layout, o=layouts.id_layout)
-        self.mark_done = Method(i=layouts.id_layout)
+        self.mark_done = Method(i=layouts.mark_done_layout)
         self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
         self.retire = Method(o=layouts.retire_layout)
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
@@ -47,7 +47,8 @@ class ReorderBuffer(Elaboratable):
         # If functional units aren't flushed, finished obsolete instructions
         # could mark fields in ROB as done when they shouldn't.
         @def_method(m, self.mark_done)
-        def _(rob_id: Value):
+        def _(rob_id: Value, exception):
             m.d.sync += self.data[rob_id].done.eq(1)
+            m.d.sync += self.data[rob_id].exception.eq(exception)
 
         return m

@@ -12,7 +12,7 @@ from enum import IntFlag, auto
 
 from coreblocks.utils.protocols import FuncUnit
 
-__all__ = ["ExceptionFuncUnit", "ExceptionUnitComponent"]
+__all__ = ["ExceptionFuncUnit"]
 
 
 class ExceptionUnitFn(DecoderManager):
@@ -59,7 +59,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
                     pass
 
-            fifo.write(m, rob_id=arg.rob_id, result=0, rp_dst=arg.rp_dst)
+            fifo.write(m, result=0, exception=1, rob_id=arg.rob_id, rp_dst=arg.rp_dst)
 
         return m
 
