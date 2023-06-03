@@ -33,6 +33,8 @@ class OpType(IntEnum):
     DIV_REM = auto()
     SINGLE_BIT_MANIPULATION = auto()
     ADDRESS_GENERATION = auto()
+    #: Internal Coreblocks OpType, specifing that instruction caused Exception before FU execution
+    EXCEPTION = auto()
 
 
 #
