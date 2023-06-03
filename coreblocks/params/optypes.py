@@ -37,6 +37,8 @@ class OpType(IntEnum):
     UNARY_BIT_MANIPULATION_1 = auto()
     UNARY_BIT_MANIPULATION_2 = auto()
     UNARY_BIT_MANIPULATION_3 = auto()
+    UNARY_BIT_MANIPULATION_4 = auto()
+    UNARY_BIT_MANIPULATION_5 = auto()
 
 
 #
@@ -86,6 +88,8 @@ optypes_by_extensions = {
         OpType.UNARY_BIT_MANIPULATION_1,
         OpType.UNARY_BIT_MANIPULATION_2,
         OpType.UNARY_BIT_MANIPULATION_3,
+        OpType.UNARY_BIT_MANIPULATION_4,
+        OpType.UNARY_BIT_MANIPULATION_5,
     ],
 }
 

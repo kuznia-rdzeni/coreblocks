@@ -192,17 +192,19 @@ _instructions_by_optype = {
         Encoding(Opcode.OP_IMM, Funct3.REV8, funct12=Funct12.REV8_32),
         Encoding(Opcode.OP_IMM, Funct3.SEXTB, funct12=Funct12.SEXTB),
         Encoding(Opcode.OP_IMM, Funct3.ZEXTH, funct12=Funct12.ZEXTH),
-        Encoding(Opcode.OP_IMM, Funct3.CPOP, funct12=Funct12.CPOP),
     ],
-    # Instructions CPOP, CLZ and CTZ cannot be distiguished by their Funct7 code
-    # so they need separete OpTypes
-    # Same goes for SEXTH and SEXTHB
+    # Instructions SEXTH, SEXTHB, CPOP, CLZ and CTZ  cannot be distiguished by their Funct7 code
     OpType.UNARY_BIT_MANIPULATION_2: [
         Encoding(Opcode.OP_IMM, Funct3.SEXTH, funct12=Funct12.SEXTH),
-        Encoding(Opcode.OP_IMM, Funct3.CLZ, funct12=Funct12.CLZ),
     ],
     OpType.UNARY_BIT_MANIPULATION_3: [
+        Encoding(Opcode.OP_IMM, Funct3.CLZ, funct12=Funct12.CLZ),
+    ],
+    OpType.UNARY_BIT_MANIPULATION_4: [
         Encoding(Opcode.OP_IMM, Funct3.CTZ, funct12=Funct12.CTZ),
+    ],
+    OpType.UNARY_BIT_MANIPULATION_5: [
+        Encoding(Opcode.OP_IMM, Funct3.CPOP, funct12=Funct12.CPOP),
     ],
 }
 

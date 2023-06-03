@@ -82,9 +82,8 @@ class Funct7(BitEnum, width=7):
     BINV = REV8 = 0b0110100
     BSET = ORCB = 0b0010100
     MAX = MIN = 0b0000101
-    ROL = ROR = SEXTB = SEXTH = 0b0110000
+    ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = 0b0110000
     ZEXTH = 0b0000100
-    CPOP = CLZ = CTZ = 0b0011000
 
 
 class Funct12(BitEnum, width=12):

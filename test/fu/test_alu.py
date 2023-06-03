@@ -183,7 +183,7 @@ ops = {
         "funct7": Funct7.MIN,
     },
     AluFn.Fn.CPOP: {
-        "op_type": OpType.UNARY_BIT_MANIPULATION_1,
+        "op_type": OpType.UNARY_BIT_MANIPULATION_5,
         "funct3": Funct3.CPOP,
         "funct7": Funct7.CPOP,
     },
@@ -213,15 +213,15 @@ ops = {
         "funct7": Funct7.REV8,
     },
     AluFn.Fn.CLZ: {
-        "op_type": OpType.UNARY_BIT_MANIPULATION_2,
+        "op_type": OpType.UNARY_BIT_MANIPULATION_3,
         "funct3": Funct3.CLZ,
         "funct7": Funct7.CLZ,
     },
-    # AluFn.Fn.CTZ: {
-    #    "op_type": OpType.UNARY_BIT_MANIPULATION_3,
-    #    "funct3": Funct3.CTZ,
-    #    "funct7": Funct7.CTZ,
-    # },
+    AluFn.Fn.CTZ: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_4,
+        "funct3": Funct3.CTZ,
+        "funct7": Funct7.CTZ,
+    },
 }
 
 
