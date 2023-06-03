@@ -90,13 +90,12 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: in
         case AluFn.Fn.CLZ:
             res = xlen - i1.bit_length()
         case AluFn.Fn.CTZ:
-            acc = 0
-
-            for i in range(xlen):
-                acc = (acc << 1) | (i1 & 1)
-                i1 >>= 1
-
-            res = xlen - acc.bit_length()
+            if i1 == 0:
+                res = xlen.bit_length()
+            else:
+                while (i1 & 1) == 0:
+                    res += 1
+                    i1 >>= 1
 
     return {"result": res & mask}
 
