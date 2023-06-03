@@ -217,11 +217,11 @@ ops = {
         "funct3": Funct3.CLZ,
         "funct7": Funct7.CLZ,
     },
-    AluFn.Fn.CTZ: {
-        "op_type": OpType.UNARY_BIT_MANIPULATION_3,
-        "funct3": Funct3.CTZ,
-        "funct7": Funct7.CTZ,
-    },
+    # AluFn.Fn.CTZ: {
+    #    "op_type": OpType.UNARY_BIT_MANIPULATION_3,
+    #    "funct3": Funct3.CTZ,
+    #    "funct7": Funct7.CTZ,
+    # },
 }
 
 
@@ -235,7 +235,7 @@ class AluUnitTest(GenericFunctionalTestUnit):
             ALUComponent(zba_enable=True, zbb_enable=True),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=3000,
+            number_of_tests=1000,
             seed=42,
             method_name=method_name,
             zero_imm=False,

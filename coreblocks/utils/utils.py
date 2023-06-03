@@ -19,6 +19,8 @@ __all__ = [
     "ModuleConnector",
     "silence_mustuse",
     "popcount",
+    "count_leading_zeros",
+    "count_trailing_zeros",
 ]
 
 
@@ -282,6 +284,73 @@ def popcount(s: Value):
         sum_layers = [a + b for a, b in zip(sum_layers[::2], sum_layers[1::2])]
 
     return sum_layers[0][0 : bits_for(len(s))]
+
+
+def count_leading_zeros(s: Value, xlen_log: int) -> Value:
+    def iter(s: Value, step: int) -> Value:
+        # if no bits left - return empty value
+        if step == 0:
+            return C(0)
+
+        # boudaries of upper and lower halfs of the value
+        upper_bound = 2**step
+        lower_bound = 2 ** (step - 1)
+
+        current_bit = 1 << (step - 1)
+
+        # recursive call
+        upper_value = iter(s[lower_bound:], step - 1)
+        lower_value = iter(s[:lower_bound], step - 1)
+
+        # upper mask is on iff there are lit bits in upper half
+        upper_mask = Repl(s[lower_bound:upper_bound].any(), xlen_log + 1)
+        # otherwise lower mask is lit
+        lower_mask = ~upper_mask
+
+        # if there are lit bits in upperhalf - take result directly from recursive value
+        # otherwise add 1 << (step - 1) to lower value and return
+        result = (upper_mask & upper_value) | (lower_mask & (current_bit | lower_value))
+
+        return result
+
+    value = iter(s, xlen_log)
+
+    # 0 number edge case
+    # if s == 0 then iter() returns value off by 1
+    # this swith negates this effect
+    mask = Repl(s.any(), xlen_log + 1)
+    high_bit = 1 << xlen_log
+
+    result = ((~mask) & high_bit) | (mask & value)
+    return result
+
+
+def count_trailing_zeros(s: Value, xlen_log: int) -> Value:
+    # solution is a mirrored version of CLZs
+    def iter(s: Value, step: int) -> Value:
+        if step == 0:
+            return C(0)
+
+        lower_bound = 2 ** (step - 1)
+        current_bit = 1 << (step - 1)
+
+        upper_value = iter(s[lower_bound:], step - 1)
+        lower_value = iter(s[:lower_bound], step - 1)
+
+        lower_mask = Repl(s[:lower_bound].any(), xlen_log + 1)
+        upper_mask = ~lower_mask
+
+        result = (upper_mask & (current_bit | upper_value)) | (lower_mask & lower_value)
+
+        return result
+
+    value = iter(s, xlen_log)
+
+    mask = Repl(s.any(), xlen_log + 1)
+    high_bit = 1 << (xlen_log - 1)
+
+    result = ((~mask) & high_bit) | (mask & value)
+    return result
 
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:

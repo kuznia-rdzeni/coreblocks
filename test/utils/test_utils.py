@@ -3,7 +3,7 @@ import random
 
 from amaranth import *
 from test.common import *
-from coreblocks.utils import align_to_power_of_two, popcount
+from coreblocks.utils import align_to_power_of_two, popcount, count_leading_zeros, count_trailing_zeros
 from parameterized import parameterized_class
 
 
@@ -71,5 +71,107 @@ class TestPopcount(TestCaseWithSimulator):
         yield from self.check(2**self.size - 1)
 
     def test_popcount(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_process(self.process)
+
+
+class CLZTestCircuit(Elaboratable):
+    def __init__(self, xlen_log: int):
+        self.sig_in = Signal(1 << xlen_log)
+        self.sig_out = Signal(xlen_log + 1)
+        self.xlen_log = xlen_log
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.d.comb += self.sig_out.eq(count_leading_zeros(self.sig_in, self.xlen_log))
+        # dummy signal
+        s = Signal()
+        m.d.sync += s.eq(1)
+
+        return m
+
+
+@parameterized_class(
+    ("name", "size"),
+    [("size" + str(s), s) for s in range(1, 7)],
+)
+class TestCountLeadingZeros(TestCaseWithSimulator):
+    size: int
+
+    def setUp(self):
+        random.seed(14)
+        self.test_number = 40
+        self.m = CLZTestCircuit(self.size)
+
+    def check(self, n):
+        yield self.m.sig_in.eq(n)
+        yield Settle()
+        out_clz = yield self.m.sig_out
+        self.assertEqual(out_clz, (2**self.size) - n.bit_length(), f"{n:x}")
+
+    def process(self):
+        for i in range(self.test_number):
+            n = random.randrange(2**self.size)
+            yield from self.check(n)
+        yield from self.check(2**self.size - 1)
+
+    def test_count_leading_zeros(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_process(self.process)
+
+
+class CTZTestCircuit(Elaboratable):
+    def __init__(self, xlen_log: int):
+        self.sig_in = Signal(1 << xlen_log)
+        self.sig_out = Signal(xlen_log + 1)
+        self.xlen_log = xlen_log
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.d.comb += self.sig_out.eq(count_trailing_zeros(self.sig_in, self.xlen_log))
+        # dummy signal
+        s = Signal()
+        m.d.sync += s.eq(1)
+
+        return m
+
+
+@parameterized_class(
+    ("name", "size"),
+    [("size" + str(1 << s), 1 << s) for s in range(0, 7)],
+)
+class TestCountTrailingZeros(TestCaseWithSimulator):
+    size: int
+
+    def setUp(self):
+        random.seed(14)
+        self.test_number = 40
+        self.m = CTZTestCircuit(self.size.bit_length())
+
+    def check(self, n):
+        yield self.m.sig_in.eq(n)
+        yield Settle()
+        out_ctz = yield self.m.sig_out
+
+        expected = 0
+
+        if n == 0:
+            expected = self.size
+        else:
+            while not (n & 1):
+                expected += 1
+                n >>= 1
+
+        self.assertEqual(out_ctz, expected, f"{n:x}")
+
+    def process(self):
+        for i in range(self.test_number):
+            n = random.randrange(2**self.size)
+            yield from self.check(n)
+        yield from self.check(2**self.size - 1)
+
+    def test_count_trailing_zeros(self):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.process)
