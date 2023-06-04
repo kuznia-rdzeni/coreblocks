@@ -61,7 +61,9 @@ class ClMultiplier(Elaboratable):
         recursion_depth: int
             Depth of recursive submodules for parallel computation (assumes bit_width to be a power of 2)
         """
-        if bit_width == 1 and recursion_depth != 0:
+        if bit_width.bit_count() != 1:
+            raise ValueError("bit_width should be a power of 2")
+        if bit_width.bit_length() <= recursion_depth:
             raise ValueError("Too large recursion depth")
 
         self.recursion_depth = recursion_depth
@@ -183,15 +185,14 @@ class ZbcUnit(Elaboratable):
                 ("high_res", 1),
                 ("rev_res", 1),
             ],
-            2,
+            1,
         )
         m.submodules.decoder = decoder = ZbcFn.get_decoder(self.gen_params)
-        m.submodules.zbc = clmul = ClMultiplier(self.gen_params.isa.xlen, self.recursion_depth)
+        m.submodules.clmul = clmul = ClMultiplier(self.gen_params.isa.xlen, self.recursion_depth)
 
-        m.d.sync += clmul.reset.eq(0)
-        in_progress = Signal()
+        m.d.comb += clmul.reset.eq(0)
 
-        @def_method(m, self.accept, ready=~clmul.busy & ~clmul.reset & in_progress)
+        @def_method(m, self.accept, ready=~clmul.busy)
         def _():
             xlen = self.gen_params.isa.xlen
 
@@ -201,23 +202,19 @@ class ZbcUnit(Elaboratable):
             result = Mux(params.high_res, output[xlen:], output[:xlen])
             reversed_result = Mux(params.rev_res, result[::-1], result)
 
-            m.d.sync += in_progress.eq(0)
-
             return {"rob_id": params.rob_id, "rp_dst": params.rp_dst, "result": reversed_result}
 
-        @def_method(m, self.issue, ready=~clmul.busy & ~in_progress)
-        def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
+        @def_method(m, self.issue)
+        def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc):
+            m.d.comb += decoder.exec_fn.eq(exec_fn)
 
-            i1 = arg.s1_val
-            i2 = Mux(arg.imm, arg.imm, arg.s2_val)
+            i1 = s1_val
+            i2 = Mux(imm, imm, s2_val)
 
             value1 = Signal(self.gen_params.isa.xlen)
             value2 = Signal(self.gen_params.isa.xlen)
             high_res = Signal(1)
             rev_res = Signal(1)
-
-            m.d.sync += in_progress.eq(1)
 
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ZbcFn.Fn.CLMUL):
@@ -239,11 +236,11 @@ class ZbcUnit(Elaboratable):
                     m.d.comb += value1.eq(i1[::-1])
                     m.d.comb += value2.eq(i2[::-1])
 
-            params_fifo.write(m, rob_id=arg.rob_id, rp_dst=arg.rp_dst, high_res=high_res, rev_res=rev_res)
+            params_fifo.write(m, rob_id=rob_id, rp_dst=rp_dst, high_res=high_res, rev_res=rev_res)
 
-            m.d.sync += clmul.i1.eq(value1)
-            m.d.sync += clmul.i2.eq(value2)
-            m.d.sync += clmul.reset.eq(1)
+            m.d.comb += clmul.i1.eq(value1)
+            m.d.comb += clmul.i2.eq(value2)
+            m.d.comb += clmul.reset.eq(1)
 
         return m
 

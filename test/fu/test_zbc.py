@@ -50,17 +50,50 @@ ops = {
 }
 
 
-class ZbcUnitTest(GenericFunctionalTestUnit):
+class IterativeZbcUnitTest(GenericFunctionalTestUnit):
     def test_test(self):
         self.run_pipeline()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
             ops,
-            ZbcComponent(),
+            ZbcComponent(recursion_depth=0),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=600,
+            number_of_tests=400,
+            seed=323262,
+            method_name=method_name,
+        )
+
+
+class RecursiveZbcUnitTestDepth3(GenericFunctionalTestUnit):
+    def test_test(self):
+        self.run_pipeline()
+
+    def __init__(self, method_name: str = "runTest"):
+        super().__init__(
+            ops,
+            ZbcComponent(recursion_depth=3),
+            compute_result,
+            gen=GenParams(test_core_config),
+            number_of_tests=400,
+            seed=323262,
+            method_name=method_name,
+        )
+
+
+class RecursiveZbcUnitTestFullDepth(GenericFunctionalTestUnit):
+    def test_test(self):
+        self.run_pipeline()
+
+    def __init__(self, method_name: str = "runTest"):
+        gen = GenParams(test_core_config)
+        super().__init__(
+            ops,
+            ZbcComponent(recursion_depth=gen.isa.xlen_log),
+            compute_result,
+            gen=gen,
+            number_of_tests=300,
             seed=323262,
             method_name=method_name,
         )
