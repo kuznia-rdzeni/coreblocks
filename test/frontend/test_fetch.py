@@ -130,7 +130,7 @@ class TestFetch(TestCaseWithSimulator):
             if instr["is_branch"]:
                 for _ in range(random.randrange(10)):
                     yield
-                yield from self.m.verify_branch.call(next_pc=instr["next_pc"])
+                yield from self.m.verify_branch.call(from_pc=instr["pc"], next_pc=instr["next_pc"])
 
             v = yield from self.m.io_out.call()
             self.assertEqual(v["pc"], instr["pc"])
