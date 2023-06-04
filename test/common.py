@@ -107,10 +107,10 @@ def signed_to_int(x: int, xlen: int) -> int:
 
 
 def guard_nested_collection(cont: Any, t: Type[T]) -> TypeGuard[_T_nested_collection[T]]:
-    if isinstance(cont, list):
+    if isinstance(cont, (list, dict)):
+        if isinstance(cont, dict):
+            cont = cont.values()
         return all([guard_nested_collection(elem, t) for elem in cont])
-    elif isinstance(cont, dict):
-        return all([guard_nested_collection(elem, t) for elem in cont.values()])
     elif isinstance(cont, t):
         return True
     else:
