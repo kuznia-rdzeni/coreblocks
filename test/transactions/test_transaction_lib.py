@@ -1,4 +1,5 @@
 import random
+import itertools
 from operator import and_
 from functools import reduce
 from typing import TypeAlias
@@ -112,12 +113,18 @@ class TestForwarder(TestFifoBase):
 
 
 class TestMemoryBank(TestCaseWithSimulator):
-    @parameterized.expand([(9, 3, 3, 3, 14), (16, 3, 3, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)])
-    def test_mem(self, max_addr, writer_rand, reader_req_rand, reader_resp_rand, seed):
+    test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
+
+    parametrized_input = [tc + sf for tc, sf in itertools.product(test_conf, [(True,), (False,)])]
+
+    @parameterized.expand(parametrized_input)
+    def test_mem(self, max_addr, writer_rand, reader_req_rand, reader_resp_rand, seed, safe_writes):
         test_count = 200
 
         data_width = 6
-        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr))
+        m = SimpleTestCircuit(
+            MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, safe_writes=safe_writes)
+        )
 
         data_dict: dict[int, int] = dict((i, 0) for i in range(max_addr))
         read_req_queue = deque()
@@ -133,7 +140,8 @@ class TestMemoryBank(TestCaseWithSimulator):
                 d = random.randrange(2**data_width)
                 a = random.randrange(max_addr)
                 yield from m.write.call(data=d, addr=a)
-                yield Settle()
+                for i in range(2):
+                    yield Settle()
                 data_dict[a] = d
                 yield from random_wait(writer_rand)
 
@@ -141,9 +149,13 @@ class TestMemoryBank(TestCaseWithSimulator):
             for i in range(test_count):
                 a = random.randrange(max_addr)
                 yield from m.read_req.call(addr=a)
-                for i in range(2):
+                for i in range(1):
                     yield Settle()
-                addr_queue.append((i, a))
+                if safe_writes:
+                    d = data_dict[a]
+                    read_req_queue.append(d)
+                else:
+                    addr_queue.append((i, a))
                 yield from random_wait(reader_req_rand)
 
         def reader_resp():
@@ -175,12 +187,13 @@ class TestMemoryBank(TestCaseWithSimulator):
             sim.add_sync_process(reader_req)
             sim.add_sync_process(reader_resp)
             sim.add_sync_process(writer)
-            sim.add_sync_process(internal_reader_resp)
+            if not safe_writes:
+                sim.add_sync_process(internal_reader_resp)
 
     def test_pipelined(self):
         data_width = 6
         max_addr = 9
-        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr))
+        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, safe_writes=False))
 
         random.seed(14)
 
