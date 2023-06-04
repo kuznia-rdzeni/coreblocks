@@ -30,7 +30,7 @@ class MyThing(Elaboratable):
     ...
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         ...
 
@@ -78,7 +78,9 @@ class MyOtherThing(Elaboratable):
         ...
 
     def elaborate(self, platform):
-        m = Module()
+        # A TModule needs to be used instead of an Amaranth module
+
+        m = TModule()
 
         ...
 
@@ -147,3 +149,21 @@ The most useful ones are:
 * `FIFO`, for queues accessed with two methods, `read` and `write`.
 * `Adapter` and `AdapterTrans`, for communicating with transactions and methods from plain Amaranth code.
   These are very useful in testbenches.
+
+## Advanced concepts
+
+### Transaction and method nesting
+
+Transaction and method bodies can be nested. For example:
+
+```python
+with Transaction().body(m):
+    # Transaction body.
+
+    with Transaction().body(m):
+        # Nested transaction body.
+```
+
+Nested transactions and methods can only run if the parent also runs.
+The converse is not true: it is possible that only the parent runs, but the nested transaction or method doesn't (because of other limitations).
+Nesting implies scheduling order: the nested transaction or method is considered for execution after the parent.

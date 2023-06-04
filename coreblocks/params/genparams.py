@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from inspect import signature
-from typing import TypeVar, Type, Protocol, runtime_checkable
+from typing import TypeVar, Type, Protocol, runtime_checkable, Any
 from amaranth.utils import log2_int
 
-from .isa import ISA
+from .isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
+from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
 
 from typing import TYPE_CHECKING
@@ -19,18 +19,38 @@ T = TypeVar("T")
 
 
 class DependentCache:
-    def __init__(self):
-        self._depcache = {}
+    """
+    Cache for classes, that depend on the `DependentCache` class itself.
 
-    def get(self, cls: Type[T]) -> T:
-        v = self._depcache.get(cls, None)
+    Cached classes may accept one positional argument in the constructor, where this `DependentCache` class will
+    be passed. Classes may define any number keyword arguments in the constructor and separate cache entry will
+    be created for each set of the arguments.
+
+    Methods
+    -------
+    get: T, **kwargs -> T
+        Gets class `cls` from cache. Caches `cls` reference if this is the first call for it.
+        Optionally accepts `kwargs` for additional arguments in `cls` constructor.
+
+    """
+
+    def __init__(self):
+        self._depcache: dict[tuple[Type, frozenset[tuple[str, Any]]], Type] = {}
+
+    def get(self, cls: Type[T], **kwargs) -> T:
+        v = self._depcache.get((cls, frozenset(kwargs.items())), None)
         if v is None:
-            sig = signature(cls)
-            if sig.parameters:
-                v = cls(self)
+            positional_count = cls.__init__.__code__.co_argcount
+
+            # first positional arg is `self` field, second may be `DependentCache`
+            if positional_count > 2:
+                raise KeyError(f"Too many positional arguments in {cls!r} constructor")
+
+            if positional_count > 1:
+                v = cls(self, **kwargs)
             else:
-                v = cls()
-            self._depcache[cls] = v
+                v = cls(**kwargs)
+            self._depcache[(cls, frozenset(kwargs.items()))] = v
         return v
 
 
@@ -38,8 +58,23 @@ class GenParams(DependentCache):
     def __init__(self, cfg: CoreConfiguration):
         super().__init__()
 
-        self.isa = ISA(cfg.isa_str)
         self.func_units_config = cfg.func_units_config
+
+        ext_partial, ext_full = extensions_supported(self.func_units_config, cfg.embedded, cfg.compressed)
+        extensions = ext_partial if cfg.allow_partial_extensions else ext_full
+        if not cfg.allow_partial_extensions and ext_partial != ext_full:
+            raise RuntimeError(f"Extensions {ext_partial&~ext_full!r} are only partially supported")
+
+        if cfg.embedded:
+            raise RuntimeError("E extension is not supported yet")  # TODO: Remove after implementing E in decode
+
+        if cfg.compressed:
+            raise RuntimeError("C extension is not supported yet")  # TODO: Remove after implementing C in decode
+
+        extensions |= cfg._implied_extensions
+        self.isa_str = gen_isa_string(extensions, cfg.xlen)
+
+        self.isa = ISA(self.isa_str)
 
         bytes_in_word = self.isa.xlen // 8
         self.wb_params = WishboneParameters(

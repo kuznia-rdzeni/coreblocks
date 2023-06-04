@@ -10,7 +10,7 @@
 //-----------------------------------------------------------------------
 
 #define TESTNUM gp
-#define DEBUG_REG 0xfffffff0
+#define DEBUG_REG 0x80000000
 
 #define RVTEST_RV32U
 #define RVTEST_RV64U RVTEST_RV32U

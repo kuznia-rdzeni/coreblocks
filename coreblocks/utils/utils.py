@@ -4,7 +4,8 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle
+from amaranth.utils import bits_for
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate, ModuleLike
 
 
 __all__ = [
@@ -15,11 +16,14 @@ __all__ = [
     "flatten_signals",
     "align_to_power_of_two",
     "bits_from_int",
+    "ModuleConnector",
+    "silence_mustuse",
+    "popcount",
 ]
 
 
 @contextmanager
-def OneHotSwitch(m: Module, test: Value):
+def OneHotSwitch(m: ModuleLike, test: Value):
     """One-hot switch.
 
     This function allows one-hot matching in the style similar to the standard
@@ -44,7 +48,6 @@ def OneHotSwitch(m: Module, test: Value):
     test : Signal
         The signal being tested.
     """
-    count = len(test)
 
     @contextmanager
     def case(n: Optional[int] = None):
@@ -56,7 +59,7 @@ def OneHotSwitch(m: Module, test: Value):
             i = (n & -n).bit_length() - 1
             if n - (1 << i) != 0:
                 raise ValueError("%d not in one-hot representation" % n)
-            with m.Case("-" * (count - i - 1) + "1" + "-" * i):
+            with m.Case(n):
                 yield
 
     with m.Switch(test):
@@ -64,16 +67,16 @@ def OneHotSwitch(m: Module, test: Value):
 
 
 @overload
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
     ...
 
 
 @overload
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: Literal[False] = False) -> Iterable[int]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[False] = False) -> Iterable[int]:
     ...
 
 
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: bool = False) -> Iterable[Optional[int]]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: bool = False) -> Iterable[Optional[int]]:
     """Dynamic one-hot switch.
 
     This function allows simple one-hot matching on signals which can have
@@ -270,6 +273,17 @@ def assign(
         yield lhs_val.eq(rhs_val)
 
 
+def popcount(s: Value):
+    sum_layers = [s[i] for i in range(len(s))]
+
+    while len(sum_layers) > 1:
+        if len(sum_layers) % 2:
+            sum_layers.append(C(0))
+        sum_layers = [a + b for a, b in zip(sum_layers[::2], sum_layers[1::2])]
+
+    return sum_layers[0][0 : bits_for(len(s))]
+
+
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]
 
@@ -316,3 +330,42 @@ def align_to_power_of_two(num: int, power: int) -> int:
 def bits_from_int(num: int, lower: int, length: int):
     """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
     return (num >> lower) & (1 << (length) - 1)
+
+
+class ModuleConnector(Elaboratable):
+    """
+    An Elaboratable to create a new module, which will have all arguments
+    added as its submodules.
+    """
+
+    def __init__(self, *args: HasElaborate, **kwargs: HasElaborate):
+        """
+        Parameters
+        ----------
+        *args
+            Modules which should be added as anonymous submodules.
+        **kwargs
+            Modules which will be added as named submodules.
+        """
+        self.args = args
+        self.kwargs = kwargs
+
+    def elaborate(self, platform):
+        m = Module()
+
+        for elem in self.args:
+            m.submodules += elem
+
+        for name, elem in self.kwargs.items():
+            m.submodules[name] = elem
+
+        return m
+
+
+@contextmanager
+def silence_mustuse(elaboratable: Elaboratable):
+    try:
+        yield
+    except Exception:
+        elaboratable._MustUse__silence = True  # type: ignore
+        raise

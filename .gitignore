@@ -23,11 +23,16 @@ venv.bak/
 test/__traces__
 
 # cocotb build
-test/cocotb/sim_build/
-test/cocotb/results.xml
+/test/regression/cocotb/build
+/test/regression/cocotb/results.xml
 
 # riscv-tests
 test/external/riscv-tests/test-*
+
+# embench benchmark
+test/external/embench/build
+test/external/embench/logs
+/test/regression/benchmark_results
 
 # Documentation build
 build/

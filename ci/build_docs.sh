@@ -7,4 +7,11 @@ if [ -z "$DOCS_DIR" ] || [ -z "$BUILD_DIR" ]; then
   exit 1
 fi
 
-scripts/build_docs.sh -d "$DOCS_DIR" -o "$BUILD_DIR"
+echo "creating build directory"
+mkdir -p "$BUILD_DIR"
+
+echo "copying markdown docs and config"
+rsync -av "$DOCS_DIR/" "$BUILD_DIR/sources"
+
+echo "generating and building docs"
+scripts/build_docs.sh -d "$BUILD_DIR/sources" -o "$BUILD_DIR/html"

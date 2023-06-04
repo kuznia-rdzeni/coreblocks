@@ -2,10 +2,10 @@ from amaranth import *
 
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.transactions.core import Transaction
+from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import InstructionCommitKey, BranchResolvedKey, WishboneDataKey
+from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
@@ -15,6 +15,7 @@ from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
+from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch
 from coreblocks.utils.fifo import BasicFifo
@@ -37,7 +38,18 @@ class Core(Elaboratable):
         self.free_rf_fifo = BasicFifo(
             self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
-        self.fetch = Fetch(self.gen_params, self.wb_master_instr, self.fifo_fetch.write)
+
+        cache_layouts = self.gen_params.get(ICacheLayouts)
+        if gen_params.icache_params.enable:
+            self.icache_refiller = SimpleWBCacheRefiller(
+                cache_layouts, self.gen_params.icache_params, self.wb_master_instr
+            )
+            self.icache = ICache(cache_layouts, self.gen_params.icache_params, self.icache_refiller)
+        else:
+            self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
+
+        self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
+
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params)
@@ -49,7 +61,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[InstructionCommitKey(), BranchResolvedKey()],
+            extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -61,7 +73,7 @@ class Core(Elaboratable):
         )
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.d.comb += self.wb_master_instr.wbMaster.connect(self.wb_instr_bus)
         m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_data_bus)
@@ -76,6 +88,9 @@ class Core(Elaboratable):
         m.submodules.ROB = rob = self.ROB
 
         m.submodules.fifo_fetch = self.fifo_fetch
+        if self.icache_refiller:
+            m.submodules.icache_refiller = self.icache_refiller
+        m.submodules.icache = self.icache
         m.submodules.fetch = self.fetch
 
         m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
@@ -102,11 +117,12 @@ class Core(Elaboratable):
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
         m.submodules.retirement = Retirement(
             self.gen_params,
+            rob_peek=rob.peek,
             rob_retire=rob.retire,
             r_rat_commit=rrat.commit,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
-            lsu_commit=self.func_blocks_unifier.get_extra_method(InstructionCommitKey()),
+            precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
         )
 
         m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)

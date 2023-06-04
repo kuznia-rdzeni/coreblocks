@@ -3,7 +3,7 @@ from amaranth.sim import *
 
 from coreblocks.utils import OneHotSwitch
 
-from .common import TestCaseWithSimulator
+from test.common import TestCaseWithSimulator
 
 from parameterized import parameterized
 
