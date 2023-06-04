@@ -155,7 +155,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 yield from random_wait(reader_resp_rand)
 
         def internal_reader_resp():
-            assert m._dut._internal_read_resp is not None
+            assert m._dut._internal_read_resp_trans is not None
             yield Passive()
             while True:
                 if addr_queue:
@@ -166,7 +166,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 d = data_dict[a]
                 # check when internal method has been run to capture
                 # memory state for tests purposes
-                if (yield m._dut._internal_read_resp.run):
+                if (yield m._dut._internal_read_resp_trans.grant):
                     addr_queue.popleft()
                     read_req_queue.append(d)
                 yield

@@ -806,18 +806,6 @@ class ArgumentsToResultsZipper(Elaboratable):
         return m
 
 
-class ArgumentsToTransResultsZipper(ArgumentsToResultsZipper):
-    def __init__(self, args_layout: MethodLayout, results_layout: MethodLayout, results_getter_method: Method):
-        super().__init__(args_layout, results_layout)
-        self.results_getter_method = results_getter_method
-
-    def elaborate(self, platform):
-        m = super().elaborate(platform)
-        connect = ConnectTrans(self.results_getter_method, self.write_results)
-        m.submodules.connect = connect
-        return m
-
-
 class MemoryBank(Elaboratable):
     """MemoryBank module.
 
@@ -868,7 +856,7 @@ class MemoryBank(Elaboratable):
         self.read_req = Method(i=self.read_req_layout)
         self.read_resp = Method(o=self.data_layout)
         self.write = Method(i=self.write_layout)
-        self._internal_read_resp = None
+        self._internal_read_resp_trans = None
 
     def elaborate(self, platform) -> Module:
         m = Module()
@@ -880,16 +868,13 @@ class MemoryBank(Elaboratable):
         prev_read_addr = Signal(self.addr_width)
         m.d.comb += read_port.addr.eq(prev_read_addr)
 
-        self._internal_read_resp = Method(o=self.data_layout)
-
-        # internal_read_resp has to be defined before read_req, to handle read_output_valid signal correctly
-        @def_method(m, self._internal_read_resp, ready=read_output_valid)
-        def _():
-            m.d.sync += read_output_valid.eq(0)
-            return read_port.data
-
-        zipper = ArgumentsToTransResultsZipper([("valid", 1)], self.data_layout, self._internal_read_resp)
+        zipper = ArgumentsToResultsZipper([("valid", 1)], self.data_layout)
         m.submodules.zipper = zipper
+
+        self._internal_read_resp_trans = Transaction()
+        with self._internal_read_resp_trans.body(m, request = read_output_valid):
+            m.d.sync += read_output_valid.eq(0)
+            zipper.write_results(m, read_port.data)
 
         @def_method(m, self.read_resp)
         def _():
