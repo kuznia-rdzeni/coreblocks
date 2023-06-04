@@ -12,7 +12,7 @@ from coreblocks.params import (
     FuncUnitLayouts,
     FunctionalComponentParams,
 )
-from coreblocks.transactions import Method, def_method
+from coreblocks.transactions import Method, def_method, TModule
 from coreblocks.transactions.lib import FIFO
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
@@ -165,18 +165,17 @@ class ZbcUnit(Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    optypes = ZbcFn.get_op_types()
-
-    def __init__(self, gen_params: GenParams, recursion_depth: int):
+    def __init__(self, gen_params: GenParams, recursion_depth: int, zbc_fn: ZbcFn):
         layouts = gen_params.get(FuncUnitLayouts)
 
+        self.zbc_fn = zbc_fn
         self.recursion_depth = recursion_depth
         self.gen_params = gen_params
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.params_fifo = params_fifo = FIFO(
             [
@@ -187,7 +186,7 @@ class ZbcUnit(Elaboratable):
             ],
             1,
         )
-        m.submodules.decoder = decoder = ZbcFn.get_decoder(self.gen_params)
+        m.submodules.decoder = decoder = self.zbc_fn.get_decoder(self.gen_params)
         m.submodules.clmul = clmul = ClMultiplier(self.gen_params.isa.xlen, self.recursion_depth)
 
         m.d.comb += clmul.reset.eq(0)
@@ -248,9 +247,10 @@ class ZbcUnit(Elaboratable):
 @dataclass(frozen=True)
 class ZbcComponent(FunctionalComponentParams):
     recursion_depth: int = 3
+    zbc_fn = ZbcFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return ZbcUnit(gen_params, self.recursion_depth)
+        return ZbcUnit(gen_params, self.recursion_depth, self.zbc_fn)
 
     def get_optypes(self) -> set[OpType]:
-        return ZbcUnit.optypes
+        return self.zbc_fn.get_op_types()
