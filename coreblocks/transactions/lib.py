@@ -726,7 +726,52 @@ class CatTrans(Elaboratable):
 
 
 class ArgumentsToResultsZipper(Elaboratable):
+    """Zips arguments used to call method with results, cutting critical path.
+
+    This module provide possibility to pass arguments from caller and connect it with results
+    from callee. Argumets are stored in 2-FIFO and results in Forwared. Because of this assymetry
+    callee should provide results as long as they aren't correctly received.
+
+    FIFO is used as rate-limiter, when FIFO is full there should be no new reqests issued.
+
+    Example topology:
+
+    ```{mermaid}
+    graph LR
+        Caller;
+        Caller -- write_arguments --> 2-FIFO;
+        Caller -- invoke --> Callee["Callee \n (1+ cycle delay)"];
+        Callee -- write_results --> Forwarder;
+        Forwarder -- read --> Zip;
+        2-FIFO -- read --> Zip;
+        Zip -- read --> User;
+
+        subgraph ArgumentsToResultsZipper
+            Forwarder;
+            2-FIFO;
+            Zip;
+        end
+    ```
+
+    Attributes
+    ----------
+    write_args: Method
+        Method to write arguments with `args_layout` format to 2-FIFO.
+    write_results: Method
+        Method to save results with `results_layout` in Forwarder.
+    read: Method
+        Reads latest entries from fifo and forwarder and return them as
+        record with two fields: 'args' and 'results'.
+    """
     def __init__(self, args_layout: MethodLayout, results_layout: MethodLayout):
+        """
+        Parameters
+        ----------
+        args_layout: record layout
+            The format of arguments.
+        results_layout: record layout
+            The format of results.
+        """
         self.results_layout = results_layout
         self.args_layout = args_layout
         self.output_layout = [("args", self.args_layout), ("results", results_layout)]
