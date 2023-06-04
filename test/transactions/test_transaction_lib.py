@@ -115,16 +115,28 @@ class TestForwarder(TestFifoBase):
 class TestMemoryBank(TestCaseWithSimulator):
     test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
 
-    parametrized_input = [tc + sf for tc, sf in itertools.product(test_conf, [(True,), (False,)])]
+    parametrized_input = [
+        tc + sf for tc, sf in itertools.product(test_conf, [(True, True), (False, False), (True, False)])
+    ]
 
     @parameterized.expand(parametrized_input)
-    def test_mem(self, max_addr, writer_rand, reader_req_rand, reader_resp_rand, seed, safe_writes):
+    def test_mem(self, max_addr, writer_rand, reader_req_rand, reader_resp_rand, seed, safe_writes, transparent):
         test_count = 200
 
         data_width = 6
         m = SimpleTestCircuit(
-            MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, safe_writes=safe_writes)
+            MemoryBank(
+                data_layout=[("data", data_width)],
+                elem_count=max_addr,
+                safe_writes=safe_writes,
+                transparent=transparent,
+            )
         )
+
+        if transparent:
+            settle_writer, settle_reader_req = 1, 2
+        else:
+            settle_writer, settle_reader_req = 2, 1
 
         data_dict: dict[int, int] = dict((i, 0) for i in range(max_addr))
         read_req_queue = deque()
@@ -140,7 +152,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 d = random.randrange(2**data_width)
                 a = random.randrange(max_addr)
                 yield from m.write.call(data=d, addr=a)
-                for i in range(2):
+                for i in range(settle_writer):
                     yield Settle()
                 data_dict[a] = d
                 yield from random_wait(writer_rand)
@@ -149,7 +161,7 @@ class TestMemoryBank(TestCaseWithSimulator):
             for i in range(test_count):
                 a = random.randrange(max_addr)
                 yield from m.read_req.call(addr=a)
-                for i in range(1):
+                for i in range(settle_reader_req):
                     yield Settle()
                 if safe_writes:
                     d = data_dict[a]
@@ -193,7 +205,9 @@ class TestMemoryBank(TestCaseWithSimulator):
     def test_pipelined(self):
         data_width = 6
         max_addr = 9
-        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, safe_writes=False))
+        m = SimpleTestCircuit(
+            MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, safe_writes=False, transparent=False)
+        )
 
         random.seed(14)
 

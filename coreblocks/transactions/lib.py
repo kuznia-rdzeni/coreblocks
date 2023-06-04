@@ -6,6 +6,7 @@ from .core import SignalBundle, RecordDict
 from ._utils import MethodLayout
 from ..utils import ValueLike, assign, AssignType
 from ..utils.fifo import BasicFifo
+from ..utils._typing import ShapeLike, LayoutLike
 
 __all__ = [
     "FIFO",
@@ -827,7 +828,13 @@ class MemoryBank(Elaboratable):
     """
 
     def __init__(
-        self, *, data_layout: MethodLayout, elem_count: int, granularity: Optional[int] = None, safe_writes: bool = True
+        self,
+        *,
+        data_layout: MethodLayout,
+        elem_count: int,
+        granularity: Optional[int] = None,
+        safe_writes: bool = True,
+        transparent: bool = True,
     ):
         """
         Parameters
@@ -840,9 +847,12 @@ class MemoryBank(Elaboratable):
             Granularity of write, forwarded to Amaranth. If `None` the whole record is always saved at once.
             If not the width of `data_layout` is split into `granularity` parts, which can be saved independently.
         safe_writes: bool
-            Set to `False` if an optimisation can be done to increase troughput of writes. This will cause that
+            Set to `False` if an optimisation can be done to increase throughput of writes. This will cause that
             writes will be reordered with respects to reads eg. in seqence "read A, write A X", read can return
             "X" even when write was called later. By default `True` which disable optimisation.
+        transparent : bool
+            If set to "True", and there will be read and write concurently executed on the same address. Read will
+            output newly written data. Requires `safe_writes=True`. It has bigger throughput than `transparent=False`.
         """
         self.data_layout = data_layout
         self.elem_count = elem_count
@@ -850,11 +860,17 @@ class MemoryBank(Elaboratable):
         self.width = len(Record(self.data_layout))
         self.addr_width = bits_for(self.elem_count - 1)
         self.safe_writes = safe_writes
+        self.transparent = transparent
 
         self.read_req_layout = [("addr", self.addr_width)]
         self.write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
         if self.granularity is not None:
             self.write_layout.append(("mask", self.width // self.granularity))
+        self.args_to_fifo_layout: list[tuple[str, LayoutLike | ShapeLike]] = [("valid", 1), ("dd", 3)]
+        if self.transparent:
+            if not self.safe_writes:
+                raise ValueError("'transparent' requires 'safe_writes' flag")
+            self.args_to_fifo_layout.append(("data", self.data_layout))
 
         self.read_req = Method(i=self.read_req_layout)
         self.read_resp = Method(o=self.data_layout)
@@ -875,7 +891,7 @@ class MemoryBank(Elaboratable):
         write_args_prev = Record(self.write_layout)
         m.d.comb += read_port.addr.eq(prev_read_addr)
 
-        zipper = ArgumentsToResultsZipper([("valid", 1)], self.data_layout)
+        zipper = ArgumentsToResultsZipper(self.args_to_fifo_layout, self.data_layout)
         m.submodules.zipper = zipper
 
         self._internal_read_resp_trans = Transaction()
@@ -898,30 +914,59 @@ class MemoryBank(Elaboratable):
 
         @def_method(m, self.read_resp)
         def _():
-            output = zipper.read(m)
-            return output.results
+            zipper_output = zipper.read(m)
+            if self.transparent:
+                output = Record(self.data_layout)
+                with m.If(zipper_output.args.valid):
+                    m.d.comb += output.eq(zipper_output.args.data)
+                with m.Else():
+                    m.d.comb += output.eq(zipper_output.results)
+                return output
+            else:
+                return zipper_output.results
 
         @def_method(m, self.read_req, ~write_pending)
         def _(addr):
-            m.d.sync += read_output_valid.eq(1)
             m.d.comb += read_port.addr.eq(addr)
             m.d.sync += prev_read_addr.eq(addr)
-            zipper.write_args(m, valid=1)
+            m.d.sync += read_output_valid.eq(1)
+            args_to_write_to_fifo = Record(self.args_to_fifo_layout)
+            if self.transparent:
+                with m.If((addr == write_args.addr) & self.write.run):
+                    m.d.comb += args_to_write_to_fifo.valid.eq(1)
+                    m.d.comb += args_to_write_to_fifo.data.eq(write_args.data)
+                with m.Else():
+                    m.d.comb += args_to_write_to_fifo.valid.eq(0)
+            else:
+                m.d.comb += args_to_write_to_fifo.valid.eq(0)
+            zipper.write_args(m, args_to_write_to_fifo)
 
         if self.safe_writes:
-            self.read_req.schedule_before(self.write)
+            if self.transparent:
+                self.write.schedule_before(self.read_req)
+                # turn off exception about definition order
+                self.read_req.def_order = 10000000000
+            else:
+                self.read_req.schedule_before(self.write)
 
         @def_method(m, self.write, ~write_pending)
         def _(arg):
+            m.d.comb += assign(write_args, arg, fields=AssignType.ALL)
             if self.safe_writes:
-                with m.If((arg.addr == read_port.addr) & (read_output_valid | self.read_req.run)):
-                    m.d.sync += write_pending.eq(1)
-                    m.d.sync += assign(write_args_prev, arg, fields=AssignType.ALL)
-                with m.Else():
-                    m.d.comb += write_req.eq(1)
+                if self.transparent:
+                    with m.If((arg.addr == prev_read_addr) & read_output_valid):
+                        m.d.sync += write_pending.eq(1)
+                        m.d.sync += assign(write_args_prev, arg, fields=AssignType.ALL)
+                    with m.Else():
+                        m.d.comb += write_req.eq(1)
+                else:
+                    with m.If((arg.addr == read_port.addr) & (read_output_valid | self.read_req.run)):
+                        m.d.sync += write_pending.eq(1)
+                        m.d.sync += assign(write_args_prev, arg, fields=AssignType.ALL)
+                    with m.Else():
+                        m.d.comb += write_req.eq(1)
             else:
                 m.d.comb += write_req.eq(1)
-            m.d.comb += assign(write_args, arg, fields=AssignType.ALL)
 
         return m
 
