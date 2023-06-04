@@ -318,7 +318,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.fetch_continue, accepted)
         def _():
-            return {"next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
+            return {"from_pc": instr.pc, "next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
 
         # Generate rob_sfx_empty signal from precommit
         @def_method(m, self.precommit)
