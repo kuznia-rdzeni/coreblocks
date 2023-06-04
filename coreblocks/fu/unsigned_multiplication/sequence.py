@@ -45,9 +45,9 @@ class RecursiveWithSingleDSPMul(Elaboratable):
         self.confirm = Signal(reset=0)
         self.reset = Signal()
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform) -> TModule:
         if self.n <= self.dsp.n:
-            m = Module()
+            m = TModule()
             with m.If(self.reset):
                 m.d.sync += self.confirm.eq(0)
 
@@ -61,7 +61,7 @@ class RecursiveWithSingleDSPMul(Elaboratable):
         else:
             return self.recursive_module()
 
-    def recursive_module(self) -> Module:
+    def recursive_module(self) -> TModule:
         # Classic Multiplying Algorythm
         #
         # bit: N       N/2      0
@@ -80,7 +80,7 @@ class RecursiveWithSingleDSPMul(Elaboratable):
         #          = (high_1 * high_2) << N + (high_1 * low_2 + high_2 * low_1) << N/2 + low_1 * low_2
         #          = result_uu << N + (result_lu + result_ul) << N/2 + result_ll
 
-        m = Module()
+        m = TModule()
 
         m.submodules.low_mul = mul1 = RecursiveWithSingleDSPMul(self.dsp, self.n // 2)
         m.submodules.mid_mul = mul2 = RecursiveWithSingleDSPMul(self.dsp, self.n // 2)
@@ -131,7 +131,7 @@ class SequentialUnsignedMul(MulBaseUnsigned):
         self.dsp_width = dsp_width
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         m.submodules.dsp = dsp = DSPMulUnit(self.dsp_width)
         m.submodules.multiplier = multiplier = RecursiveWithSingleDSPMul(dsp, self.gen.isa.xlen)
 

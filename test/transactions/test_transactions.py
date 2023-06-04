@@ -108,7 +108,7 @@ class TransactionConflictTestCircuit(Elaboratable):
         self.scheduler = scheduler
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         tm = TransactionModule(m, TransactionManager(self.scheduler))
         adapter = Adapter(i=data_layout(32), o=data_layout(32))
         m.submodules.out = self.out = TestbenchIO(adapter)
@@ -226,7 +226,7 @@ class PriorityTestCircuit(SchedulingTestCircuit):
 
 class TransactionPriorityTestCircuit(PriorityTestCircuit):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         transaction1 = Transaction()
         transaction2 = Transaction()
@@ -248,7 +248,7 @@ class TransactionPriorityTestCircuit(PriorityTestCircuit):
 
 class MethodPriorityTestCircuit(PriorityTestCircuit):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         method1 = Method()
         method2 = Method()
@@ -324,7 +324,7 @@ class TestTransactionPriorities(TestCaseWithSimulator):
 
 class NestedTransactionsTestCircuit(SchedulingTestCircuit):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         tm = TransactionModule(m)
 
         with tm.transaction_context():
@@ -342,7 +342,7 @@ class NestedTransactionsTestCircuit(SchedulingTestCircuit):
 
 class NestedMethodsTestCircuit(SchedulingTestCircuit):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         tm = TransactionModule(m)
 
         method1 = Method()
@@ -398,7 +398,7 @@ class TestNested(TestCaseWithSimulator):
 
 class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         tm = TransactionModule(m)
 
         method = Method()

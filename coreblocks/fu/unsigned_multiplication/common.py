@@ -57,7 +57,7 @@ class DSPMulUnit(Elaboratable):
         self.compute = Method(i=[("i1", n), ("i2", n)], o=[("o", 2 * n)])
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         @def_method(m, self.compute)
         def _(arg):

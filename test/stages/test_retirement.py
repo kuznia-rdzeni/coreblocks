@@ -27,19 +27,22 @@ class RetirementTestCircuit(Elaboratable):
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
 
+        m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(Adapter(o=rob_layouts.peek_layout))
+
         m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.retire_layout))
 
         m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
 
-        m.submodules.mock_lsu_commit = self.mock_lsu_commit = TestbenchIO(Adapter(i=lsu_layouts.commit))
+        m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
             rob_retire=self.mock_rob_retire.adapter.iface,
+            rob_peek=self.mock_rob_peek.adapter.iface,
             r_rat_commit=self.rat.commit,
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
-            lsu_commit=self.mock_lsu_commit.adapter.iface,
+            precommit=self.mock_precommit.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -54,7 +57,7 @@ class RetirementTest(TestCaseWithSimulator):
         self.rat_map_q = deque()
         self.submit_q = deque()
         self.rf_free_q = deque()
-        self.lsu_commit_q = deque()
+        self.precommit_q = deque()
 
         random.seed(8)
         self.cycles = 256
@@ -72,7 +75,7 @@ class RetirementTest(TestCaseWithSimulator):
                 rat_state[rl] = rp
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
                 self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id})
-                self.lsu_commit_q.append(rob_id)
+                self.precommit_q.append(rob_id)
             # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
@@ -80,9 +83,14 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
-        @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q))
-        def submit_process():
+        @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q), sched_prio=1)
+        def retire_process():
             return self.submit_q.popleft()
+
+        # TODO: mocking really seems to dislike nonexclusive methods for some reason
+        @def_method_mock(lambda: retc.mock_rob_peek, enable=lambda: bool(self.submit_q))
+        def peek_process():
+            return self.submit_q[0]
 
         def free_reg_process():
             while self.rf_exp_q:
@@ -102,17 +110,18 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertFalse(self.submit_q)
             self.assertFalse(self.rf_free_q)
 
-        @def_method_mock(lambda: retc.mock_rf_free, sched_prio=1)
+        @def_method_mock(lambda: retc.mock_rf_free, sched_prio=2)
         def rf_free_process(reg_id):
             self.assertEqual(reg_id, self.rf_free_q.popleft())
 
-        @def_method_mock(lambda: retc.mock_lsu_commit, sched_prio=1)
-        def lsu_commit_process(rob_id):
-            self.assertEqual(rob_id, self.lsu_commit_q.popleft())
+        @def_method_mock(lambda: retc.mock_precommit, sched_prio=2)
+        def precommit_process(rob_id):
+            self.assertEqual(rob_id, self.precommit_q.popleft())
 
         with self.run_simulation(retc) as sim:
-            sim.add_sync_process(submit_process)
+            sim.add_sync_process(retire_process)
+            sim.add_sync_process(peek_process)
             sim.add_sync_process(free_reg_process)
             sim.add_sync_process(rat_process)
             sim.add_sync_process(rf_free_process)
-            sim.add_sync_process(lsu_commit_process)
+            sim.add_sync_process(precommit_process)

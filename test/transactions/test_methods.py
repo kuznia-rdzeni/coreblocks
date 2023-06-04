@@ -22,7 +22,7 @@ class TestDefMethod(TestCaseWithSimulator):
             self.method_definition = method_definition
 
         def elaborate(self, platform):
-            m = Module()
+            m = TModule()
             m._MustUse__silence = True  # type: ignore
 
             def_method(m, self.method)(self.method_definition)
@@ -129,7 +129,7 @@ class AdapterCircuit(Elaboratable):
         self.methods = methods
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules += self.module
         for method in self.methods:
@@ -150,7 +150,7 @@ class TestInvalidMethods(TestCase):
                 self.meth2 = Method()
 
             def elaborate(self, platform):
-                m = Module()
+                m = TModule()
                 m._MustUse__silence = True  # type: ignore
 
                 with self.meth1.body(m):
@@ -173,7 +173,7 @@ class TestInvalidMethods(TestCase):
                 self.meth4 = Method()
 
             def elaborate(self, platform):
-                m = Module()
+                m = TModule()
 
                 with self.meth1.body(m):
                     pass
@@ -199,7 +199,7 @@ class TestInvalidMethods(TestCase):
                 self.meth1 = Method()
 
             def elaborate(self, platform):
-                m = Module()
+                m = TModule()
 
                 with self.meth1.body(m):
                     self.meth1(m)
@@ -216,7 +216,7 @@ class TestInvalidMethods(TestCase):
                 self.meth2 = Method()
 
             def elaborate(self, platform):
-                m = Module()
+                m = TModule()
 
                 with self.meth1.body(m):
                     self.meth2(m)
@@ -232,7 +232,7 @@ class TestInvalidMethods(TestCase):
     def test_redefine(self):
         class Redefine(Elaboratable):
             def elaborate(self, platform):
-                m = Module()
+                m = TModule()
                 m._MustUse__silence = True  # type: ignore
 
                 meth = Method()
@@ -251,11 +251,11 @@ class TestInvalidMethods(TestCase):
                 self.meth = Method(i=data_layout(1))
 
             def elaborate(self, platform):
-                return Module()
+                return TModule()
 
         class Circuit(Elaboratable):
             def elaborate(self, platform):
-                m = Module()
+                m = TModule()
 
                 m.submodules.undefined = undefined = Undefined()
                 m.submodules.adapter = AdapterTrans(undefined.meth)
@@ -276,7 +276,7 @@ class Quadruple(Elaboratable):
         self.quadruple = Method(i=layout, o=layout)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         @def_method(m, self.id)
         def _(arg):
@@ -298,7 +298,7 @@ class QuadrupleCircuit(Elaboratable):
         self.quadruple = quadruple
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.quadruple = self.quadruple
         m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(self.quadruple.quadruple))
@@ -315,7 +315,7 @@ class Quadruple2(Elaboratable):
         self.quadruple = Method(i=layout, o=layout)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.sub = Quadruple()
 
@@ -343,7 +343,7 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
 
 class ConditionalCallCircuit(Elaboratable):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         meth = Method(i=data_layout(1))
 
@@ -364,7 +364,7 @@ class ConditionalCallCircuit(Elaboratable):
 
 class ConditionalMethodCircuit1(Elaboratable):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         meth = Method()
 
@@ -383,7 +383,7 @@ class ConditionalMethodCircuit1(Elaboratable):
 
 class ConditionalMethodCircuit2(Elaboratable):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         meth = Method()
 
@@ -404,7 +404,7 @@ class ConditionalMethodCircuit2(Elaboratable):
 
 class ConditionalTransactionCircuit1(Elaboratable):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         self.ready = Signal()
         m.submodules.tb = self.tb = TestbenchIO(Adapter())
@@ -420,7 +420,7 @@ class ConditionalTransactionCircuit1(Elaboratable):
 
 class ConditionalTransactionCircuit2(Elaboratable):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         self.ready = Signal()
         m.submodules.tb = self.tb = TestbenchIO(Adapter())
@@ -492,7 +492,7 @@ class TestConditionals(TestCaseWithSimulator):
 
 class NonexclusiveMethodCircuit(Elaboratable):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         self.ready = Signal()
         self.running = Signal()

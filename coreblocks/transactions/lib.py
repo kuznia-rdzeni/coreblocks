@@ -68,7 +68,7 @@ class FIFO(Elaboratable):
         self.write = Method(i=layout)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.fifo = fifo = self.fifoType(width=self.width, depth=self.depth)
 
@@ -77,7 +77,7 @@ class FIFO(Elaboratable):
         @def_method(m, self.write, ready=fifo.w_rdy)
         def _(arg):
             m.d.comb += fifo.w_en.eq(1)
-            Method.comb += fifo.w_data.eq(arg)
+            m.d.top_comb += fifo.w_data.eq(arg)
 
         @def_method(m, self.read, ready=fifo.r_rdy)
         def _():
@@ -126,7 +126,7 @@ class Forwarder(Elaboratable):
         self.clear.add_conflict(self.write, Priority.LEFT)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         reg = Record.like(self.read.data_out)
         reg_valid = Signal()
@@ -137,12 +137,12 @@ class Forwarder(Elaboratable):
 
         @def_method(m, self.write, ready=~reg_valid)
         def _(arg):
-            Method.comb += read_value.eq(arg)  # for forwarding
+            m.d.av_comb += read_value.eq(arg)  # for forwarding
             m.d.sync += reg.eq(arg)
             m.d.sync += reg_valid.eq(1)
 
         with m.If(reg_valid):
-            m.d.comb += read_value.eq(reg)  # write method is not ready
+            m.d.av_comb += read_value.eq(reg)  # write method is not ready
 
         @def_method(m, self.read, ready=reg_valid | self.write.run)
         def _():
@@ -190,7 +190,7 @@ class ClickIn(Elaboratable):
         self.dat = Record(layout)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         btn1 = Signal()
         btn2 = Signal()
@@ -246,7 +246,7 @@ class ClickOut(Elaboratable):
         self.dat = Record(layout)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         btn1 = Signal()
         btn2 = Signal()
@@ -307,7 +307,7 @@ class AdapterTrans(AdapterBase):
         self.data_out = Record.like(iface.data_out)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         # this forces data_in signal to appear in VCD dumps
         data_in = Signal.like(self.data_in)
@@ -315,7 +315,7 @@ class AdapterTrans(AdapterBase):
 
         with Transaction().body(m, request=self.en):
             data_out = self.iface(m, data_in)
-            Transaction.comb += self.data_out.eq(data_out)
+            m.d.top_comb += self.data_out.eq(data_out)
             m.d.comb += self.done.eq(1)
 
         return m
@@ -353,7 +353,7 @@ class Adapter(AdapterBase):
         self.data_out = Record.like(self.iface.data_in)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         # this forces data_in signal to appear in VCD dumps
         data_in = Signal.like(self.data_in)
@@ -361,7 +361,7 @@ class Adapter(AdapterBase):
 
         @def_method(m, self.iface, ready=self.en)
         def _(arg):
-            Method.comb += self.data_out.eq(arg)
+            m.d.top_comb += self.data_out.eq(arg)
             m.d.comb += self.done.eq(1)
             return data_in
 
@@ -390,8 +390,8 @@ class MethodTransformer(Elaboratable):
         self,
         target: Method,
         *,
-        i_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], RecordDict]]] = None,
-        o_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], RecordDict]]] = None,
+        i_transform: Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
+        o_transform: Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
     ):
         """
         Parameters
@@ -418,7 +418,7 @@ class MethodTransformer(Elaboratable):
         self.o_fun = o_transform[1]
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         @def_method(m, self.method)
         def _(arg):
@@ -446,7 +446,7 @@ class MethodFilter(Elaboratable):
     """
 
     def __init__(
-        self, target: Method, condition: Callable[[Module, Record], ValueLike], default: Optional[RecordDict] = None
+        self, target: Method, condition: Callable[[TModule, Record], ValueLike], default: Optional[RecordDict] = None
     ):
         """
         Parameters
@@ -469,7 +469,7 @@ class MethodFilter(Elaboratable):
         self.default = default
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         ret = Record.like(self.target.data_out)
         m.d.comb += assign(ret, self.default, fields=AssignType.ALL)
@@ -487,7 +487,7 @@ class MethodProduct(Elaboratable):
     def __init__(
         self,
         targets: list[Method],
-        combiner: Optional[Tuple[MethodLayout, Callable[[Module, list[Record]], RecordDict]]] = None,
+        combiner: Optional[Tuple[MethodLayout, Callable[[TModule, list[Record]], RecordDict]]] = None,
     ):
         """Method product.
 
@@ -519,7 +519,7 @@ class MethodProduct(Elaboratable):
         self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         @def_method(m, self.method)
         def _(arg):
@@ -560,7 +560,7 @@ class Collector(Elaboratable):
                 raise Exception("Not all methods have this same layout")
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout)
 
@@ -598,14 +598,14 @@ class ConnectTrans(Elaboratable):
         self.method2 = method2
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         with Transaction().body(m):
             data1 = Record.like(self.method1.data_out)
             data2 = Record.like(self.method2.data_out)
 
-            Transaction.comb += data1.eq(self.method1(m, data2))
-            Transaction.comb += data2.eq(self.method2(m, data1))
+            m.d.top_comb += data1.eq(self.method1(m, data2))
+            m.d.top_comb += data2.eq(self.method2(m, data1))
 
         return m
 
@@ -625,8 +625,8 @@ class ConnectAndTransformTrans(Elaboratable):
         method1: Method,
         method2: Method,
         *,
-        i_fun: Optional[Callable[[Module, Record], RecordDict]] = None,
-        o_fun: Optional[Callable[[Module, Record], RecordDict]] = None,
+        i_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
+        o_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
     ):
         """
         Parameters
@@ -646,7 +646,7 @@ class ConnectAndTransformTrans(Elaboratable):
         self.o_fun = o_fun or (lambda _, x: x)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.transformer = transformer = MethodTransformer(
             self.method2,
@@ -680,7 +680,7 @@ class ManyToOneConnectTrans(Elaboratable):
         self.count = len(self.get_results)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         for i in range(self.count):
             m.submodules[f"ManyToOneConnectTrans_input_{i}"] = ConnectTrans(self.m_put_result, self.get_results[i])
@@ -712,7 +712,7 @@ class CatTrans(Elaboratable):
         self.dst = dst
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         with Transaction().body(m):
             sdata1 = self.src1(m)
@@ -782,7 +782,7 @@ class ArgumentsToResultsZipper(Elaboratable):
         self.read = Method(o=self.output_layout)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         fifo = FIFO(self.args_layout, depth=2)
         forwarder = Forwarder(self.results_layout)
@@ -861,8 +861,8 @@ class MemoryBank(Elaboratable):
         self.write = Method(i=self.write_layout)
         self._internal_read_resp_trans = None
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
 
         mem = Memory(width=self.width, depth=self.elem_count)
         m.submodules.read_port = read_port = mem.read_port()
@@ -979,8 +979,8 @@ class Serializer(Elaboratable):
         self.serialize_in = [Method.like(self.serialized_req_method) for _ in range(self.port_count)]
         self.serialize_out = [Method.like(self.serialized_resp_method) for _ in range(self.port_count)]
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
 
         pending_requests = BasicFifo(self.id_layout, self.depth)
         m.submodules.pending_requests = pending_requests
