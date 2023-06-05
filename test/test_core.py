@@ -268,7 +268,9 @@ class TestCoreAsmSource(TestCoreBase):
                 [
                     "riscv64-unknown-elf-as",
                     "-mabi=ilp32",
-                    f"-march={self.gp._toolchain_isa_str}",
+                    # Specified manually, because toolchains from most distributions don't support new extensioins
+                    # and this test should be accessible locally.
+                    "-march=rv32im_zicsr",
                     "-o",
                     asm_tmp.name,
                     self.base_dir + self.source_file,

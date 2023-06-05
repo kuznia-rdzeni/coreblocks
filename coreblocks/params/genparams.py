@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TypeVar, Type, Any
 from amaranth.utils import log2_int
 
-from .isa import ISA, gen_isa_string, Extension
+from .isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
 from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
@@ -105,9 +105,4 @@ class GenParams(DependentCache):
         self.max_rs_entries_bits = (self.max_rs_entries - 1).bit_length()
         self.start_pc = cfg.start_pc
 
-        toolchain_str_extensions = extensions
-        # Zmmul extension is not commonly available in toolchains yet, substitue it with M superset
-        if Extension.ZMMUL in toolchain_str_extensions:
-            toolchain_str_extensions ^= Extension.ZMMUL
-            toolchain_str_extensions |= Extension.M
-        self._toolchain_isa_str = gen_isa_string(toolchain_str_extensions, cfg.xlen, skip_internal=True)
+        self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
