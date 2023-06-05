@@ -34,6 +34,7 @@ class OpType(IntEnum):
     SINGLE_BIT_MANIPULATION = auto()
     ADDRESS_GENERATION = auto()
     SRET = auto()
+    SFENCEVMA = auto()
 
 
 #
@@ -82,6 +83,7 @@ optypes_by_extensions = {
     ],
     Extension.XINTSUPERVISOR: [
         OpType.SRET,
+        OpType.SFENCEVMA,
     ],
 }
 

@@ -143,6 +143,8 @@ class TestDecoder(TestCaseWithSimulator):
     DECODER_TESTS_XINTSUPERVISOR = [
         # SRET
         InstrTest(0x10200073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.SRET, op=OpType.SRET),
+        # SFENCE.VMA
+        InstrTest(0x12208073, Opcode.SYSTEM, Funct3.PRIV, Funct7.SFENCEVMA, rs1=1, rs2=2, op=OpType.SFENCEVMA),
     ]
 
     def setUp(self):
