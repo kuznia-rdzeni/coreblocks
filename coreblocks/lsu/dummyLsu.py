@@ -294,3 +294,6 @@ class LSUBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.LOAD, OpType.STORE}
+
+    def get_rs_entry_count(self) -> int:
+        return 1

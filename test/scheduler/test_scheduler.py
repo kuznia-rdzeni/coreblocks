@@ -27,7 +27,7 @@ class SchedulerTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        rs_layouts = self.gen_params.get(RSLayouts)
+        rs_layouts = self.gen_params.get(RSLayouts, rs_entries_bits=self.gen_params.max_rs_entries_bits)
         decode_layouts = self.gen_params.get(DecodeLayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
@@ -349,7 +349,7 @@ class TestScheduler(TestCaseWithSimulator):
         def rs_alloc_process(io: TestbenchIO, rs_id: int):
             @def_method_mock(lambda: io)
             def process():
-                random_entry = random.randrange(self.gen_params.rs_entries)
+                random_entry = random.randrange(self.gen_params.max_rs_entries)
                 expected = self.expected_rename_queue.popleft()
                 expected["rs_entry_id"] = random_entry
                 self.expected_rs_entry_queue[rs_id].append(expected)
