@@ -728,11 +728,11 @@ class CatTrans(Elaboratable):
 class ArgumentsToResultsZipper(Elaboratable):
     """Zips arguments used to call method with results, cutting critical path.
 
-    This module provide possibility to pass arguments from caller and connect it with results
-    from callee. Argumets are stored in 2-FIFO and results in Forwared. Because of this assymetry
-    callee should provide results as long as they aren't correctly received.
+    This module provides possibility to pass arguments from caller and connect it with results
+    from callee. Arguments are stored in 2-FIFO and results in Forwarder. Because of this asymmetry,
+    the callee should provide results as long as they aren't correctly received.
 
-    FIFO is used as rate-limiter, when FIFO is full there should be no new reqests issued.
+    FIFO is used as rate-limiter, so when FIFO reaches full capacity there should be no new requests issued.
 
     Example topology:
 
@@ -758,9 +758,9 @@ class ArgumentsToResultsZipper(Elaboratable):
     write_args: Method
         Method to write arguments with `args_layout` format to 2-FIFO.
     write_results: Method
-        Method to save results with `results_layout` in Forwarder.
+        Method to save results with `results_layout` in the Forwarder.
     read: Method
-        Reads latest entries from fifo and forwarder and return them as
+        Reads latest entries from the fifo and the forwarder and return them as
         record with two fields: 'args' and 'results'.
     """
 
@@ -811,19 +811,19 @@ class MemoryBank(Elaboratable):
     """MemoryBank module.
 
     Provides a transactional interface to synchronous Amaranth Memory with one
-    read port and one write port. It supports optionally writing with given granularity.
+    read and one write port. It supports optionally writing with given granularity.
 
     Attributes
     ----------
     read_req: Method
         The read request method. Accepts an `addr` from which data should be read.
-        Ready only if there is no response pending to be read or response is currently being read.
+        Only ready if there is there is a place to buffer response.
     read_resp: Method
         The read response method. Return `data_layout` Record which was saved on `addr` given by last
-        `read_req` method call. Ready only after `read_req` call.
+        `read_req` method call. Only ready after `read_req` call.
     write: Method
         The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
-        and optionaly `mask` if `granularity` is not None. `1` in mask means that apropriate part should be written.
+        and optionally `mask` if `granularity` is not None. `1` in mask means that appropriate part should be written.
     """
 
     def __init__(
@@ -838,11 +838,11 @@ class MemoryBank(Elaboratable):
             Number of elements stored in Memory.
         granularity: Optional[int]
             Granularity of write, forwarded to Amaranth. If `None` the whole record is always saved at once.
-            If not the width of `data_layout` is split into `granularity` parts, which can be saved independently.
+            If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
         safe_writes: bool
-            Set to `False` if an optimisation can be done to increase troughput of writes. This will cause that
-            writes will be reordered with respects to reads eg. in seqence "read A, write A X", read can return
-            "X" even when write was called later. By default `True` which disable optimisation.
+            Set to `False` if an optimisation can be done to increase throughput of writes. This will cause that
+            writes will be reordered with respect to reads eg. in sequence "read A, write A X", read can return
+            "X" even when write was called later. By default `True`, which disable optimisation.
         """
         self.data_layout = data_layout
         self.elem_count = elem_count
@@ -930,10 +930,10 @@ class Serializer(Elaboratable):
     """Module to serialize request-response methods.
 
     Provides a transactional interface to connect many client `Module`\\s (which request somethig using method call)
-    with a server `Module` which deliver method to request operation and method to get response.
+    with a server `Module` which provides method to request operation and method to get response.
 
     Requests are being serialized from many clients and forwarded to a server which can process only one request
-    at the time. Responses from server are deserialized and passed to proper clients. `Serializer` assumes, that
+    at the time. Responses from server are deserialized and passed to proper client. `Serializer` assumes, that
     responses from the server are in-order, so the order of responses is the same as order of requests.
 
 
@@ -960,9 +960,9 @@ class Serializer(Elaboratable):
         port_count: int
             Number of ports, which should be generated. `len(serialize_in)=len(serialize_out)=port_count`
         serialized_req_method: Method
-            Request method provided by server `Module`.
+            Request method provided by server's `Module`.
         serialized_resp_method: Method
-            Response method provided by server `Module`.
+            Response method provided by server's `Module`.
         depth: int
             Number of requests which can be forwarded to server, before server provides first response. Describe
             the resistance of `Serializer` to latency of server in case when server is fully pipelined.
