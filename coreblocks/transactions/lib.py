@@ -857,10 +857,10 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
 class PriorityOrderingTransProxyTrans(Elaboratable):
     """Proxy for ordering methods
 
-    This proxy allow to order called methods. It guarantees that if
-    there is a `k` method called (in any order), then theys will be
+    This proxy allows to order called methods. It guarantee that if
+    there is a `k` method called (in any order), then they will be
     connected to `k` first methods from ordered list and both arguments
-    and results of methods calls will be correctly forwarded.
+    and results of methods will be correctly forwarded.
 
     There is no fairness algorithm used, but there is a guarantee that always
     the biggest subset of available methods will be called.
