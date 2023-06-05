@@ -47,6 +47,7 @@ class TestFetch(TestCaseWithSimulator):
         self.assertEqual(decoded["illegal"], 0)
         self.assertEqual(decoded["exec_fn"]["op_type"], OpType.ARITHMETIC)
         self.assertEqual(decoded["exec_fn"]["funct3"], Funct3.ADD)
+        self.assertEqual(decoded["exec_fn"]["funct7"], 0)
         self.assertEqual(decoded["regs_l"]["rl_dst"], 4)
         self.assertEqual(decoded["regs_l"]["rl_s1"], 5)
         self.assertEqual(decoded["regs_l"]["rl_s2"], 0)

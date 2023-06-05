@@ -48,7 +48,7 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x02A28213, Opcode.OP_IMM, Funct3.ADD, rd=4, rs1=5, imm=42, op=OpType.ARITHMETIC),
         InstrTest(0x003100B3, Opcode.OP, Funct3.ADD, Funct7.ADD, rd=1, rs1=2, rs2=3, op=OpType.ARITHMETIC),
         InstrTest(0x40418133, Opcode.OP, Funct3.ADD, Funct7.SUB, rd=2, rs1=3, rs2=4, op=OpType.ARITHMETIC),
-        InstrTest(0x001230B7, Opcode.OP_IMM, Funct3.ADD, rd=1, imm=0x123 << 12, op=OpType.ARITHMETIC),
+        InstrTest(0x001230B7, Opcode.OP_IMM, Funct3.ADD, rd=1, rs1=0, imm=0x123 << 12, op=OpType.ARITHMETIC),
         # Compare
         InstrTest(0x07BF2A13, Opcode.OP_IMM, Funct3.SLT, rd=20, rs1=30, imm=123, op=OpType.COMPARE),
         InstrTest(0x0FFFBA93, Opcode.OP_IMM, Funct3.SLTU, rd=21, rs1=31, imm=0xFF, op=OpType.COMPARE),
@@ -104,13 +104,13 @@ class TestDecoder(TestCaseWithSimulator):
             op=OpType.FENCE,
         ),
         # ECALL
-        InstrTest(0x00000073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL, rd=0, rs1=0, op=OpType.ECALL),
+        InstrTest(0x00000073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL, op=OpType.ECALL),
         # EBREAK
-        InstrTest(0x00100073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK, rd=0, rs1=0, op=OpType.EBREAK),
+        InstrTest(0x00100073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK, op=OpType.EBREAK),
         # MRET
-        InstrTest(0x30200073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.MRET, rd=0, rs1=0, op=OpType.MRET),
+        InstrTest(0x30200073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.MRET, op=OpType.MRET),
         # WFI
-        InstrTest(0x10500073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI, rd=0, rs1=0, op=OpType.WFI),
+        InstrTest(0x10500073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI, op=OpType.WFI),
     ]
     DECODER_TESTS_ZIFENCEI = [
         InstrTest(0x0000100F, Opcode.MISC_MEM, Funct3.FENCEI, rd=0, rs1=0, imm=0, op=OpType.FENCEI),
@@ -126,6 +126,7 @@ class TestDecoder(TestCaseWithSimulator):
     DECODER_TESTS_ILLEGAL = [
         InstrTest(0xFFFFFFFF, Opcode.OP_IMM, illegal=1),
         InstrTest(0x003160FF, Opcode.OP, Funct3.OR, Funct7.OR, rd=1, rs1=2, rs2=3, op=OpType.LOGIC, illegal=1),
+        InstrTest(0x000000F3, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL, op=OpType.ECALL, illegal=1),
     ]
     DECODER_TESTS_M = [
         InstrTest(0x02310133, Opcode.OP, Funct3.MUL, Funct7.MULDIV, rd=2, rs1=2, rs2=3, op=OpType.MUL),
@@ -154,13 +155,16 @@ class TestDecoder(TestCaseWithSimulator):
 
             self.assertEqual((yield self.decoder.opcode), test.opcode)
 
-            self.assertEqual((yield self.decoder.funct3), test.funct3 if test.funct3 is not None else 0)
+            if test.funct3 is not None:
+                self.assertEqual((yield self.decoder.funct3), test.funct3)
             self.assertEqual((yield self.decoder.funct3_v), test.funct3 is not None)
 
-            self.assertEqual((yield self.decoder.funct7), test.funct7 if test.funct7 is not None else 0)
+            if test.funct7 is not None:
+                self.assertEqual((yield self.decoder.funct7), test.funct7)
             self.assertEqual((yield self.decoder.funct7_v), test.funct7 is not None)
 
-            self.assertEqual((yield self.decoder.funct12), test.funct12 if test.funct12 is not None else 0)
+            if test.funct12 is not None:
+                self.assertEqual((yield self.decoder.funct12), test.funct12)
             self.assertEqual((yield self.decoder.funct12_v), test.funct12 is not None)
 
             if test.rd is not None:
@@ -190,7 +194,7 @@ class TestDecoder(TestCaseWithSimulator):
             if test.csr is not None:
                 self.assertEqual((yield self.decoder.csr), test.csr)
 
-            self.assertEqual((yield self.decoder.op), test.op)
+            self.assertEqual((yield self.decoder.optype), test.op)
 
         with self.run_simulation(self.decoder) as sim:
             sim.add_process(process)

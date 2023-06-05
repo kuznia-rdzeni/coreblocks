@@ -113,7 +113,7 @@ class CoreMemoryModel:
         return seg.read(replace(req, addr=req.addr - seg.address_range.start))
 
     def _do_write(self, seg: MemorySegment, req: WriteRequest) -> WriteReply:
-        if SegmentFlags.READ not in seg.flags:
+        if SegmentFlags.WRITE not in seg.flags:
             raise RuntimeError("Tried to write to non-writable memory: %x" % req.addr)
 
         return seg.write(replace(req, addr=req.addr - seg.address_range.start))
