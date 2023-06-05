@@ -9,7 +9,7 @@ from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3
-from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey
+from coreblocks.params.keys import InstructionPrecommitKey
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
 
@@ -189,8 +189,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.gen_params = gen_params
         self.dependency_manager = gen_params.get(DependencyManager)
 
-        self.fetch_continue = Method(o=gen_params.get(FetchLayouts).branch_verify)
-
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
@@ -217,7 +215,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         reserved = Signal()
         ready_to_process = Signal()
         done = Signal()
-        accepted = Signal()
         rob_sfx_empty = Signal()
 
         current_result = Signal(self.gen_params.isa.xlen)
@@ -307,7 +304,6 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.get_result, done)
         def _():
-            m.d.comb += accepted.eq(1)
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
@@ -315,16 +311,12 @@ class CSRUnit(FuncBlock, Elaboratable):
                 "rob_id": instr.rob_id,
                 "rp_dst": instr.rp_dst,
                 "result": current_result,
-                "exception": 0,
+                "exception": 1,
             }
-
-        @def_method(m, self.fetch_continue, accepted)
-        def _():
-            return {"from_pc": instr.pc, "next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
 
         # Generate rob_sfx_empty signal from precommit
         @def_method(m, self.precommit)
-        def _(rob_id):
+        def _(rob_id: Value, side_fx: Value):
             m.d.comb += rob_sfx_empty.eq(instr.rob_id == rob_id)
 
         return m
@@ -334,7 +326,6 @@ class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
         unit = CSRUnit(gen_params)
-        connections.add_dependency(BranchResolvedKey(), unit.fetch_continue)
         connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 

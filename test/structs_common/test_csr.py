@@ -27,8 +27,6 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
         m.submodules.precommit = self.precommit = TestbenchIO(AdapterTrans(self.dut.precommit))
 
-        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(AdapterTrans(self.dut.fetch_continue))
-
         self.csr = {}
 
         def make_csr(number: int):
@@ -108,7 +106,6 @@ class TestCSRUnit(TestCaseWithSimulator):
             yield
 
     def process_test(self):
-        yield from self.dut.fetch_continue.enable()
         for _ in range(self.cycles):
             yield from self.random_wait()
 
@@ -128,7 +125,6 @@ class TestCSRUnit(TestCaseWithSimulator):
             yield from self.random_wait()
             res = yield from self.dut.accept.call()
 
-            self.assertTrue(self.dut.fetch_continue.done())
             self.assertEqual(res["rp_dst"], op["exp"]["exp_read"]["rp_dst"])
             if op["exp"]["exp_read"]["rp_dst"]:
                 self.assertEqual(res["result"], op["exp"]["exp_read"]["result"])

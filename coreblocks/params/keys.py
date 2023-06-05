@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 __all__ = [
     "WishboneDataKey",
     "InstructionPrecommitKey",
-    "BranchResolvedKey",
+    "VerifyBranchKey",
     "ExceptionReportKey",
     "GenericCSRRegistersKey",
 ]
@@ -28,7 +28,7 @@ class InstructionPrecommitKey(UnifierKey, unifier=MethodTryProduct):
 
 
 @dataclass(frozen=True)
-class BranchResolvedKey(UnifierKey, unifier=Collector):
+class VerifyBranchKey(SimpleKey[Method]):
     pass
 
 

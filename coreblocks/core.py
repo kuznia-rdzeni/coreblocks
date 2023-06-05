@@ -5,7 +5,7 @@ from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
@@ -64,7 +64,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
+            extra_methods_required=[InstructionPrecommitKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -117,13 +117,9 @@ class Core(Elaboratable):
 
         m.submodules.exception_cause_register = self.exception_cause_register
 
-        m.submodules.verify_branch = ConnectTrans(
-            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch
-        )
-
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
-        m.submodules.retirement = Retirement(
+        m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
             rob_peek=rob.peek,
             rob_retire=rob.retire,
@@ -132,9 +128,12 @@ class Core(Elaboratable):
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
             exception_cause_get=self.exception_cause_register.get,
+            frat_rename=frat.rename,
         )
 
         m.submodules.csr_generic = self.csr_generic
+
+        self.fetch.use_side_fx(self.retirement.side_fx)
 
         # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
         free_rf_reg = Signal(self.gen_params.phys_regs_bits, reset=1)

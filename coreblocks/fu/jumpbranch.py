@@ -110,35 +110,33 @@ class JumpBranch(Elaboratable):
 
 
 class JumpBranchFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen: GenParams, jb_fn=JumpBranchFn()):
+    def __init__(self, gen: GenParams, verify_branch: Method, jb_fn=JumpBranchFn()):
         self.gen = gen
 
         layouts = gen.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
-        self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
 
         self.jb_fn = jb_fn
+        self.verify_branch = verify_branch
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
-        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
 
         @def_method(m, self.accept)
         def _():
             return fifo_res.read(m)
 
-        @def_method(m, self.branch_result)
-        def _():
-            return fifo_branch.read(m)
-
         @def_method(m, self.issue)
         def _(arg):
+            next_pc = Signal(self.gen.isa.xlen)
+            exception = Signal()
+
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             m.d.comb += jb.fn.eq(decoder.decode_fn)
 
@@ -147,11 +145,14 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             m.d.comb += jb.in_pc.eq(arg.pc)
             m.d.comb += jb.in_imm.eq(arg.imm)
 
-            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=0)
+            m.d.comb += next_pc.eq(Mux(jb.taken, jb.jmp_addr, jb.reg_res))
 
             # skip writing next branch target for auipc
             with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):
-                fifo_branch.write(m, from_pc=jb.in_pc, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res))
+                verify = self.verify_branch(m, from_pc=jb.in_pc, next_pc=next_pc)
+                m.d.comb += exception.eq(verify["mispredict"])
+
+            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
 
         return m
 
@@ -161,9 +162,9 @@ class JumpComponent(FunctionalComponentParams):
         self.jb_fn = JumpBranchFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
         connections = gen_params.get(DependencyManager)
-        connections.add_dependency(BranchResolvedKey(), unit.branch_result)
+        verify_branch = connections.get_dependency(VerifyBranchKey())
+        unit = JumpBranchFuncUnit(gen_params, verify_branch, self.jb_fn)
         return unit
 
     def get_optypes(self) -> set[OpType]:

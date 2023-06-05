@@ -2,7 +2,7 @@ from collections import deque
 
 import random
 
-from amaranth import Elaboratable, Module
+from amaranth import Elaboratable, Module, Signal
 from amaranth.sim import Passive
 
 from coreblocks.transactions.core import Method
@@ -37,22 +37,24 @@ class MockedICache(Elaboratable, ICacheInterface):
 class TestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gp = gen_params
+        self.icache = MockedICache(self.gp)
+
+        self.fifo = FIFO(self.gp.get(FetchLayouts).raw_instr, depth=2)
+        self.fetch = Fetch(self.gp, self.icache, self.fifo.write)
+        self.enable_side_fx = Signal(reset=1)
+        self.fetch.use_side_fx(self.enable_side_fx)
 
     def elaborate(self, platform):
         m = Module()
 
-        self.icache = MockedICache(self.gp)
-
-        fifo = FIFO(self.gp.get(FetchLayouts).raw_instr, depth=2)
-        self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-        self.fetch = Fetch(self.gp, self.icache, fifo.write)
+        self.io_out = TestbenchIO(AdapterTrans(self.fifo.read))
         self.verify_branch = TestbenchIO(AdapterTrans(self.fetch.verify_branch))
 
         m.submodules.icache = self.icache
         m.submodules.fetch = self.fetch
         m.submodules.io_out = self.io_out
         m.submodules.verify_branch = self.verify_branch
-        m.submodules.fifo = fifo
+        m.submodules.fifo = self.fifo
 
         return m
 
@@ -63,6 +65,8 @@ class TestFetch(TestCaseWithSimulator):
         self.m = TestElaboratable(self.gp)
         self.instr_queue = deque()
         self.iterations = 500
+
+        self.enable_side_fx = self.m.enable_side_fx
 
         random.seed(422)
 
@@ -96,11 +100,20 @@ class TestFetch(TestCaseWithSimulator):
 
                 # Speculative fetch. Skip, because this instruction shouldn't be executed.
                 if addr != next_pc:
+                    self.instr_queue.append(
+                        {
+                            "data": data,
+                            "pc": addr,
+                            "is_branch": is_branch,
+                            "next_pc": addr + self.gp.isa.ilen_bytes * (1 + is_branch),
+                            "speculative": True,
+                        }
+                    )
                     continue
 
                 next_pc = addr + self.gp.isa.ilen_bytes
                 if is_branch:
-                    next_pc = random.randrange(2**self.gp.isa.ilen) & ~0b11
+                    next_pc = random.randrange(2**self.gp.isa.xlen) & ~0b11
 
                 self.instr_queue.append(
                     {
@@ -108,6 +121,7 @@ class TestFetch(TestCaseWithSimulator):
                         "pc": addr,
                         "is_branch": is_branch,
                         "next_pc": next_pc,
+                        "speculative": False,
                     }
                 )
 
@@ -122,21 +136,43 @@ class TestFetch(TestCaseWithSimulator):
         return issue_req_mock, accept_res_mock, cache_process
 
     def fetch_out_check(self):
+        skip = False
         for _ in range(self.iterations):
             while len(self.instr_queue) == 0:
                 yield
 
             instr = self.instr_queue.popleft()
+            if skip and instr["speculative"]:
+                continue
+
+            self.assertEqual((yield ~self.enable_side_fx), instr["speculative"])
+
             if instr["is_branch"]:
                 for _ in range(random.randrange(10)):
                     yield
                 yield from self.m.verify_branch.call(from_pc=instr["pc"], next_pc=instr["next_pc"])
+                for _ in range(random.randrange(10)):
+                    yield
+                yield self.enable_side_fx.eq(0)
+
+            if instr["speculative"]:
+                v = yield from self.m.io_out.call_try()
+                if v:
+                    self.assertEqual(v["pc"], instr["pc"])
+                    self.assertEqual(v["data"], instr["data"])
+                else:
+                    yield
+                    yield self.enable_side_fx.eq(1)
+                    skip = True
+                continue
+            else:
+                skip = False
 
             v = yield from self.m.io_out.call()
             self.assertEqual(v["pc"], instr["pc"])
             self.assertEqual(v["data"], instr["data"])
 
-    def test(self):
+    def test_fetch(self):
         issue_req_mock, accept_res_mock, cache_process = self.cache_processes()
 
         with self.run_simulation(self.m) as sim:

@@ -18,7 +18,8 @@ class Retirement(Elaboratable):
         free_rf_put: Method,
         rf_free: Method,
         precommit: Method,
-        exception_cause_get: Method
+        exception_cause_get: Method,
+        frat_rename: Method,
     ):
         self.gen_params = gen_params
         self.rob_peek = rob_peek
@@ -28,26 +29,33 @@ class Retirement(Elaboratable):
         self.rf_free = rf_free
         self.precommit = precommit
         self.exception_cause_get = exception_cause_get
+        self.rename = frat_rename
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
+        self.side_fx = Signal(reset=1)
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.instret_csr = self.instret_csr
 
-        with Transaction().body(m):
+        with Transaction(name='Precommit').body(m):
             # TODO: do we prefer single precommit call per instruction?
             # If so, the precommit method should send an acknowledge signal here.
             # Just calling once is not enough, because the insn might not be in relevant unit yet.
             rob_entry = self.rob_peek(m)
-            self.precommit(m, rob_id=rob_entry.rob_id)
+            self.precommit(m, rob_id=rob_entry.rob_id, side_fx=self.side_fx)
+
+        with m.If(~self.rob_peek.ready):
+            # empty ROB tells us we can proceed
+            m.d.sync += self.side_fx.eq(1)
 
         with Transaction().body(m):
             rob_entry = self.rob_retire(m)
 
             # TODO: Trigger InterruptCoordinator (handle exception) when rob_entry.exception is set.
             with m.If(rob_entry.exception):
+                m.d.sync += self.side_fx.eq(0)
                 mcause = self.gen_params.get(DependencyManager).get_dependency(GenericCSRRegistersKey()).mcause
                 cause = self.exception_cause_get(m).cause
                 entry = Signal(self.gen_params.isa.xlen)
@@ -56,13 +64,21 @@ class Retirement(Elaboratable):
                 mcause.write(m, entry)
 
             # set rl_dst -> rp_dst in R-RAT
-            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
+            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst, side_fx=self.side_fx)
 
-            self.rf_free(m, rat_out.old_rp_dst)
+            rp_freed = Signal(self.gen_params.phys_regs_bits)
+            with m.If(self.side_fx):
+                m.d.comb += rp_freed.eq(rat_out.old_rp_dst)
+            with m.Else():
+                m.d.comb += rp_freed.eq(rob_entry.rob_data.rp_dst)
+                # free the phys_reg with computed value and restore old reg into FRAT as well
+                self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
+
+            self.rf_free(m, rp_freed)
 
             # put old rp_dst to free RF list
-            with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
-                self.free_rf_put(m, rat_out.old_rp_dst)
+            with m.If(rp_freed):  # don't put rp0 to free list - reserved to no-return instructions
+                self.free_rf_put(m, rp_freed)
 
             self.instret_csr.increment(m)
 

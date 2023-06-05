@@ -270,7 +270,7 @@ class LSUDummy(FuncBlock, Elaboratable):
             }
 
         @def_method(m, self.precommit)
-        def _(rob_id: Value):
+        def _(rob_id: Value, side_fx: Value):
             # TODO: I/O reads
             with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
                 m.d.comb += internal.execute_store.eq(1)

@@ -121,7 +121,11 @@ class RATLayouts:
         ]
         self.rat_rename_out = [("rp_s1", gen_params.phys_regs_bits), ("rp_s2", gen_params.phys_regs_bits)]
 
-        self.rat_commit_in = [("rl_dst", gen_params.isa.reg_cnt_log), ("rp_dst", gen_params.phys_regs_bits)]
+        self.rat_commit_in = [
+            ("rl_dst", gen_params.isa.reg_cnt_log),
+            ("rp_dst", gen_params.phys_regs_bits),
+            ("side_fx", 1),
+        ]
         self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
 
 
@@ -185,6 +189,7 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         self.precommit = [
             ("rob_id", gen_params.rob_entries_bits),
+            ("side_fx", 1),
         ]
 
 
@@ -261,9 +266,13 @@ class FetchLayouts:
             ("pc", gen_params.isa.xlen),
         ]
 
-        self.branch_verify = [
+        self.branch_verify_in = [
             ("from_pc", gen_params.isa.xlen),
             ("next_pc", gen_params.isa.xlen),
+        ]
+
+        self.branch_verify_out = [
+            ("mispredict", 1),
         ]
 
 

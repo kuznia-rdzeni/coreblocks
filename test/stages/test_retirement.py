@@ -4,7 +4,7 @@ from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 
 from coreblocks.transactions.lib import FIFO, Adapter
 from coreblocks.structs_common.rat import RRAT
-from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
+from coreblocks.params import ROBLayouts, RATLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config
 
 from ..common import *
@@ -24,6 +24,7 @@ class RetirementTestCircuit(Elaboratable):
         lsu_layouts = self.gen_params.get(LSULayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
         exception_layouts = self.gen_params.get(ExceptionRegisterLayouts)
+        rat_layouts = self.gen_params.get(RATLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(
@@ -39,6 +40,7 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
         m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(Adapter(o=exception_layouts.get))
+        m.submodules.mock_frat_rename = self.mock_frat_rename = TestbenchIO(Adapter(i=rat_layouts.rat_rename_in))
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
         self.gen_params.get(DependencyManager).add_dependency(GenericCSRRegistersKey(), self.generic_csr)
 
@@ -51,6 +53,7 @@ class RetirementTestCircuit(Elaboratable):
             rf_free=self.mock_rf_free.adapter.iface,
             precommit=self.mock_precommit.adapter.iface,
             exception_cause_get=self.mock_exception_cause.adapter.iface,
+            frat_rename=self.mock_frat_rename.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -123,7 +126,7 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertEqual(reg_id, self.rf_free_q.popleft())
 
         @def_method_mock(lambda: retc.mock_precommit, sched_prio=2)
-        def precommit_process(rob_id):
+        def precommit_process(rob_id, side_fx):
             self.assertEqual(rob_id, self.precommit_q.popleft())
 
         @def_method_mock(lambda: retc.mock_exception_cause)
