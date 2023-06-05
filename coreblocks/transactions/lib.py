@@ -23,7 +23,8 @@ __all__ = [
     "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
-    "PriorityOrderingProxy",
+    "PriorityOrderingTransProxyTrans",
+    "PriorityOrderingProxyTrans",
 ]
 
 # FIFOs
@@ -618,6 +619,14 @@ class Collector(Elaboratable):
 # Example transactions
 
 
+def connect_methods(m: TModule, method1: Method, method2: Method):
+    data1 = Record.like(method1.data_out)
+    data2 = Record.like(method2.data_out)
+
+    m.d.top_comb += data1.eq(method1(m, data2))
+    m.d.top_comb += data2.eq(method2(m, data1))
+
+
 class ConnectTrans(Elaboratable):
     """Simple connecting transaction.
 
@@ -639,23 +648,11 @@ class ConnectTrans(Elaboratable):
         self.method1 = method1
         self.method2 = method2
 
-    def t_elaborate(self):
-        self.transaction = Transaction()
-
     def elaborate(self, platform):
         m = TModule()
 
-        try:
-            self.transaction
-        except AttributeError:
-            self.t_elaborate()
-
-        with self.transaction.body(m):
-            data1 = Record.like(self.method1.data_out)
-            data2 = Record.like(self.method2.data_out)
-
-            m.d.top_comb += data1.eq(self.method1(m, data2))
-            m.d.top_comb += data2.eq(self.method2(m, data1))
+        with Transaction().body(m):
+            connect_methods(m, self.method1, self.method2)
         return m
 
 
@@ -857,7 +854,7 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
     transactions[0].independent(*transactions[1:])
 
 
-class PriorityOrderingProxy(Elaboratable):
+class PriorityOrderingTransProxyTrans(Elaboratable):
     """Proxy for ordering methods
 
     This proxy allow to order called methods. It guarantees that if
@@ -870,38 +867,61 @@ class PriorityOrderingProxy(Elaboratable):
 
     WARNING: This scales up badly -- O(2^n) -- so it is discouraged to use
     that module with more than 6 inputs.
-
-    Parameters
-    ----------
-    m_ordered : list[Method]
-        A list of methods which will be called in order. So if `j`-th method
-        is called and `i<j` then `i`-th Method also is called.
-    m_unordered : list[Method]
-        Calls to this methods will be ordered.
     """
 
-    def __init__(self, methods_ordered: list[Method]):
-        self.m_ordered = methods_ordered
-        self._m_connects = [
-            Connect(self.m_ordered[0].data_in.layout, self.m_ordered[0].data_out.layout) for _ in self.m_ordered
-        ]
-        self.m_unordered = [connect.write for connect in self._m_connects]
-        self._m_unordered_read = [connect.read for connect in self._m_connects]
+    def __init__(self, methods_ordered: list[Method], methods_unordered: list[Method]):
+        """
+        Parameters
+        ----------
+        methods_ordered : list[Method]
+            A list of methods which will be called in order. So if `j`-th method
+            is called and `i<j` then `i`-th Method also is called.
+        methods_unordered : list[Method]
+            Methods whose calls should be ordered.
+        """
+        self._m_ordered = methods_ordered
+        self._m_unordered = methods_unordered
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.connects = ModuleConnector(*self._m_connects)
-
         with Transaction().body(m):
             with condition(m, priority=True) as branch:
-                for k in range(len(self.m_unordered), 0, -1):
-                    for comb_un in itertools.combinations(self._m_unordered_read, k):
+                for k in range(len(self._m_unordered), 0, -1):
+                    for comb_un in itertools.combinations(self._m_unordered, k):
                         with branch(1):  # sic!
-                            branch_trans = TransactionBase.get()
-                            for un, ord in zip(comb_un, self.m_ordered):
-                                trans_mod = ConnectTrans(un, ord)
-                                trans_mod.t_elaborate()
-                                m.submodules += trans_mod
-                                branch_trans.simultaneous(trans_mod.transaction)
+                            for un, ord in zip(comb_un, self._m_ordered):
+                                connect_methods(m, un, ord)
+        return m
+
+
+class PriorityOrderingProxyTrans(PriorityOrderingTransProxyTrans):
+    """Proxy for ordering methods
+
+    Gender changing wrapper for PriorityOrderingTransProxyTrans.
+
+    Attributes
+    ----------
+    m_unordered : list[Method]
+        Calls to these methods will be ordered.
+    """
+
+    def __init__(self, methods_ordered: list[Method]):
+        """
+        Parameters
+        ----------
+        methods_ordered : list[Method]
+            A list of methods which will be called in order. So if `j`-th method
+            is called and `i<j` then `i`-th Method also is called.
+        """
+        self._m_connects = [
+            Connect(methods_ordered[0].data_in.layout, methods_ordered[0].data_out.layout) for _ in methods_ordered
+        ]
+        _m_unordered_read = [connect.read for connect in self._m_connects]
+        super().__init__(methods_ordered, _m_unordered_read)
+        self.m_unordered = [connect.write for connect in self._m_connects]
+
+    def elaborate(self, platform):
+        m = super().elaborate(platform)
+        m.submodules.connects = ModuleConnector(*self._m_connects)
         return m

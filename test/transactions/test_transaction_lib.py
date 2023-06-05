@@ -486,8 +486,9 @@ class TestPriorityOrderingProxy(TestCaseWithSimulator):
         self.unordered_in = {}
         self.unordered_out = {}
         self.data_pairs = []
-        self.test_circuit = SimpleTestCircuit(PriorityOrderingProxy([tb.adapter.iface for tb in self.ordered]))
-        self.m = ModuleConnector(*self.ordered, test_circuit=self.test_circuit)
+        self.test_circuit = SimpleTestCircuit(PriorityOrderingProxyTrans([tb.adapter.iface for tb in self.ordered]))
+        ordered_connector = ModuleConnector(*self.ordered)
+        self.m = ModuleConnector(ordered=ordered_connector, test_circuit=self.test_circuit)
 
     def method_mock_generator(self, k):
         @def_method_mock(lambda: self.ordered[k])
