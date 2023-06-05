@@ -168,7 +168,7 @@ It uses combinatorial connection via its attributes.</p>
 </dd>
 <dt><strong>csr: Signal(gen.isa.csr_alen), out</strong></dt><dd><p>Address of Control and Source Register for <cite>CSR</cite> instructions.</p>
 </dd>
-<dt><strong>op: Signal(OpType), out</strong></dt><dd><p>Operation type of instruction, used to define functional unit to perform this kind of instructions.</p>
+<dt><strong>optype: Signal(OpType), out</strong></dt><dd><p>Operation type of instruction, used to define functional unit to perform this kind of instructions.</p>
 </dd>
 <dt><strong>illegal: Signal(1), out</strong></dt><dd><p>Signal if decoding of instruction was successful. If instruction do not fit into any supported
 instruction type for selected core generation parameters t then value is 1.</p>
@@ -349,7 +349,7 @@ the cache.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 21:34 2023-06-02.
+      <span class="lastupdated">Last updated on 07:02 2023-06-05.
       </span></p>
   </div>
 
