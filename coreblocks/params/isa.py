@@ -87,7 +87,6 @@ class Funct7(BitEnum, width=7):
     SFENCEVMA = 0b0001001
 
 
-
 class Funct12(BitEnum, width=12):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
