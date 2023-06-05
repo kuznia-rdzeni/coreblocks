@@ -21,7 +21,7 @@ class RSSelector(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        rs_layouts = self.gen_params.get(RSLayouts)
+        rs_layouts = self.gen_params.get(RSLayouts, rs_entries_bits=self.gen_params.max_rs_entries_bits)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
         # data structures
@@ -102,7 +102,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
     def create_rs_alloc_process(self, io: TestbenchIO, rs_id: int, rs_optypes: set[OpType], random_wait: int = 0):
         def mock():
-            random_entry = random.randrange(self.gen_params.rs_entries)
+            random_entry = random.randrange(self.gen_params.max_rs_entries)
             expected = self.instr_in.popleft()
             self.assertIn(expected["exec_fn"]["op_type"], rs_optypes)
             expected["rs_entry_id"] = random_entry

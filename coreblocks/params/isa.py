@@ -84,11 +84,14 @@ class Funct7(BitEnum, width=7):
     MAX = MIN = 0b0000101
     ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = 0b0110000
     ZEXTH = 0b0000100
+    SFENCEVMA = 0b0001001
+
 
 
 class Funct12(BitEnum, width=12):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
+    SRET = 0b000100000010
     MRET = 0b001100000010
     WFI = 0b000100000101
     CPOP = 0b011000000010
@@ -188,6 +191,10 @@ class Extension(IntFlag):
     ZBS = auto()
     #: Total store ordering
     ZTSO = auto()
+    #: Coreblocks internal categorizing extension: Machine-Mode Privilieged Instructions
+    XINTMACHINEMODE = auto()
+    #: Coreblocks internal categorizing extension: Supervisor Instructions
+    XINTSUPERVISOR = auto()
     #: General extension containing all basic operations
     G = I | M | A | F | D | ZICSR | ZIFENCEI
 
@@ -323,7 +330,7 @@ class ISA:
         self.csr_alen = 12
 
 
-def gen_isa_string(extensions: Extension, isa_xlen: int) -> str:
+def gen_isa_string(extensions: Extension, isa_xlen: int, *, skip_internal: bool = False) -> str:
     isa_str = "rv"
 
     isa_str += str(isa_xlen)
@@ -333,11 +340,18 @@ def gen_isa_string(extensions: Extension, isa_xlen: int) -> str:
         isa_str += "g"
         extensions ^= Extension.G
 
+    previous_multi_letter = False
     for ext in Extension:
         if ext in extensions:
             ext_name = str(ext.name).lower()
-            if ext_name[0] == "z" or ext_name[0] == "x":
-                ext_name = "_" + ext_name
+
+            if skip_internal and ext_name.startswith("xint"):
+                continue
+
+            if previous_multi_letter:
+                isa_str += "_"
+            previous_multi_letter = len(ext_name) > 1
+
             isa_str += ext_name
 
     return isa_str

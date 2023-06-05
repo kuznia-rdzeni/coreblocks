@@ -14,7 +14,9 @@ class RS(Elaboratable):
     ) -> None:
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
-        self.layouts = gen_params.get(RSLayouts)
+        self.rs_entries = rs_entries
+        self.rs_entries_bits = (rs_entries - 1).bit_length()
+        self.layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
         self.internal_layout = [
             ("rs_data", self.layouts.data_layout),
             ("rec_full", 1),
@@ -30,7 +32,6 @@ class RS(Elaboratable):
         self.ready_for = [list(op_list) for op_list in ready_for]
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
-        self.rs_entries = rs_entries
         self.data = Array(Record(self.internal_layout) for _ in range(self.rs_entries))
 
     def elaborate(self, platform):
