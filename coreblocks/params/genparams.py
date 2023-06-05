@@ -104,3 +104,5 @@ class GenParams(DependentCache):
         self.rob_entries_bits = cfg.rob_entries_bits
         self.max_rs_entries_bits = (self.max_rs_entries - 1).bit_length()
         self.start_pc = cfg.start_pc
+
+        self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
