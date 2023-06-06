@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.transactions.core import Transaction, TModule
+from coreblocks.transactions.core import Transaction, TModule, Method
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey, WishboneDataKey
@@ -58,15 +58,17 @@ class Core(Elaboratable):
         connections = gen_params.get(DependencyManager)
         connections.add_dependency(WishboneDataKey(), self.wb_master_data)
 
+        self.send_result = Method(i=gen_params.get(FuncUnitLayouts).send_result)
+
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
+            send_result=self.send_result,
             blocks=gen_params.func_units_config,
             extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
         )
 
         self.announcement = ResultAnnouncement(
-            gen=self.gen_params,
-            get_result=self.func_blocks_unifier.get_result,
+            gen_params=self.gen_params,
             rob_mark_done=self.ROB.mark_done,
             rs_write_val=self.func_blocks_unifier.update,
             rf_write_val=self.RF.write,
@@ -124,6 +126,8 @@ class Core(Elaboratable):
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
         )
+
+        self.send_result.proxy(m, self.announcement.send_result)
 
         m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)
 

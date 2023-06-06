@@ -211,7 +211,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         Used to inform LSU that new instruction is ready to be retired.
     """
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMaster, send_result: Method) -> None:
         """
         Parameters
         ----------
@@ -228,7 +228,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.insert = Method(i=self.lsu_layouts.rs_insert_in)
         self.select = Method(o=self.lsu_layouts.rs_select_out)
         self.update = Method(i=self.lsu_layouts.rs_update_in)
-        self.get_result = Method(o=self.fu_layouts.accept)
+        self.send_result = send_result
         self.precommit = Method(i=self.lsu_layouts.precommit)
 
         self.bus = bus
@@ -262,13 +262,12 @@ class LSUDummy(FuncBlock, Elaboratable):
                 m.d.sync += current_instr.s2_val.eq(value)
                 m.d.sync += current_instr.rp_s2.eq(0)
 
-        @def_method(m, self.get_result, result_ready)
-        def _():
+        with Transaction().body(m, request=result_ready):
             m.d.comb += internal.get_result_ack.eq(1)
             with m.If(current_instr.exec_fn.op_type == OpType.LOAD):
                 m.d.sync += current_instr.eq(0)
                 m.d.sync += reserved.eq(0)
-            return {"rob_id": current_instr.rob_id, "rp_dst": current_instr.rp_dst, "result": internal.loadedData}
+            self.send_result(m, rob_id=current_instr.rob_id, rp_dst=current_instr.rp_dst, result=internal.loadedData)
 
         @def_method(m, self.precommit)
         def _(rob_id: Value):
@@ -285,10 +284,10 @@ class LSUDummy(FuncBlock, Elaboratable):
 
 
 class LSUBlockComponent(BlockComponentParams):
-    def get_module(self, gen_params: GenParams) -> FuncBlock:
+    def get_module(self, gen_params: GenParams, send_result: Method) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
         wb_master = connections.get_dependency(WishboneDataKey())
-        unit = LSUDummy(gen_params, wb_master)
+        unit = LSUDummy(gen_params, wb_master, send_result)
         connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 

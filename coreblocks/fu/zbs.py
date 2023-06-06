@@ -4,7 +4,6 @@ from amaranth import *
 
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams
 from coreblocks.transactions import Method, TModule, def_method
-from coreblocks.transactions.lib import FIFO
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
@@ -89,12 +88,12 @@ class ZbsUnit(FuncUnit, Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    def __init__(self, gen_params: GenParams, zbs_fn=ZbsFunction()):
+    def __init__(self, gen_params: GenParams, send_result: Method, zbs_fn=ZbsFunction()):
         layouts = gen_params.get(FuncUnitLayouts)
 
         self.gen_params = gen_params
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.send_result = send_result
 
         self.zbs_fn = zbs_fn
 
@@ -102,12 +101,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
         m = TModule()
 
         m.submodules.zbs = zbs = Zbs(self.gen_params, function=self.zbs_fn)
-        m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.zbs_fn.get_decoder(self.gen_params)
-
-        @def_method(m, self.accept)
-        def _(arg):
-            return result_fifo.read(m)
 
         @def_method(m, self.issue)
         def _(arg):
@@ -117,7 +111,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
             m.d.comb += zbs.in1.eq(arg.s1_val)
             m.d.comb += zbs.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
-            result_fifo.write(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst)
+            self.send_result(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst)
 
         return m
 
@@ -126,8 +120,8 @@ class ZbsComponent(FunctionalComponentParams):
     def __init__(self):
         self.zbs_fn = ZbsFunction()
 
-    def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return ZbsUnit(gen_params, self.zbs_fn)
+    def get_module(self, gen_params: GenParams, send_result: Method) -> FuncUnit:
+        return ZbsUnit(gen_params, send_result, self.zbs_fn)
 
     def get_optypes(self) -> set[OpType]:
         return self.zbs_fn.get_op_types()

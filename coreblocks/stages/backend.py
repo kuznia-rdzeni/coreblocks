@@ -1,7 +1,8 @@
 from amaranth import *
 
 from coreblocks.params import GenParams
-from coreblocks.transactions import Method, Transaction, TModule
+from coreblocks.params.layouts import FuncUnitLayouts
+from coreblocks.transactions import Method, TModule, def_method
 
 __all__ = ["ResultAnnouncement"]
 
@@ -13,25 +14,15 @@ class ResultAnnouncement(Elaboratable):
     The RF stores the result value of the instruction. The value
     is also sent to RS in case if there is an instruction which waits for
     this value.
-
-    Method `get_result` gets already serialized instruction results, so in
-    case in which we have more than one FU, then their outputs should be connected by
-    `ManyToOneConnectTrans` to a FIFO.
     """
 
-    def __init__(
-        self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_write_val: Method, rf_write_val: Method
-    ):
+    def __init__(self, *, gen_params: GenParams, rob_mark_done: Method, rs_write_val: Method, rf_write_val: Method):
         """
         Parameters
         ----------
-        gen : GenParams
+        gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
-        get_result : Method
-            Method which is invoked to get results of next ready instruction,
-            which should be announced in core. This method assumes that results
-            from different FUs are already serialized.
         rob_mark_done : Method
             Method which is invoked to mark that instruction ended without exception.
             It uses layout with one field `rob_id`,
@@ -44,22 +35,21 @@ class ResultAnnouncement(Elaboratable):
             It uses layout with two fields `reg_id` and `reg_val`.
         """
 
-        self.m_get_result = get_result
+        layouts = gen_params.get(FuncUnitLayouts)
+
         self.m_rob_mark_done = rob_mark_done
         self.m_rs_write_val = rs_write_val
         self.m_rf_write_val = rf_write_val
-
-    def debug_signals(self):
-        return [self.m_get_result.debug_signals()]
+        self.send_result = Method(i=layouts.send_result)
 
     def elaborate(self, platform):
         m = TModule()
 
-        with Transaction().body(m):
-            result = self.m_get_result(m)
-            self.m_rob_mark_done(m, rob_id=result.rob_id)
-            self.m_rf_write_val(m, reg_id=result.rp_dst, reg_val=result.result)
-            with m.If(result.rp_dst != 0):
-                self.m_rs_write_val(m, tag=result.rp_dst, value=result.result)
+        @def_method(m, self.send_result)
+        def _(result, rob_id, rp_dst):
+            self.m_rob_mark_done(m, rob_id=rob_id)
+            self.m_rf_write_val(m, reg_id=rp_dst, reg_val=result)
+            with m.If(rp_dst != 0):
+                self.m_rs_write_val(m, tag=rp_dst, value=result)
 
         return m

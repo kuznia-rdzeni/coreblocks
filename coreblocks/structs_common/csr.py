@@ -196,7 +196,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.select = Method(o=self.csr_layouts.rs_select_out)
         self.insert = Method(i=self.csr_layouts.rs_insert_in)
         self.update = Method(i=self.csr_layouts.rs_update_in)
-        self.get_result = Method(o=self.fu_layouts.accept)
+        self.get_result = Method(o=self.fu_layouts.send_result)
         self.precommit = Method(i=self.csr_layouts.precommit)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}

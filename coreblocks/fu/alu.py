@@ -2,7 +2,6 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import FIFO
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
 from coreblocks.utils import OneHotSwitch
@@ -90,25 +89,20 @@ class Alu(Elaboratable):
 
 
 class AluFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, alu_fn=AluFn()):
+    def __init__(self, gen_params: GenParams, send_result: Method, alu_fn=AluFn()):
         self.gen_params = gen_params
         self.alu_fn = alu_fn
 
         layouts = gen_params.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.send_result = send_result
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.alu_fn)
-        m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.alu_fn.get_decoder(self.gen_params)
-
-        @def_method(m, self.accept)
-        def _():
-            return fifo.read(m)
 
         @def_method(m, self.issue)
         def _(arg):
@@ -118,7 +112,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
             m.d.comb += alu.in1.eq(arg.s1_val)
             m.d.comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
-            fifo.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst)
+            self.send_result(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst)
 
         return m
 
@@ -128,8 +122,8 @@ class ALUComponent(FunctionalComponentParams):
         self.zba_enable = zba_enable
         self.alu_fn = AluFn(zba_enable=zba_enable)
 
-    def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return AluFuncUnit(gen_params, self.alu_fn)
+    def get_module(self, gen_params: GenParams, send_result: Method) -> FuncUnit:
+        return AluFuncUnit(gen_params, send_result, self.alu_fn)
 
     def get_optypes(self) -> set[OpType]:
         return self.alu_fn.get_op_types()

@@ -88,7 +88,7 @@ class MulUnit(FuncUnit, Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    def __init__(self, gen: GenParams, mul_type: MulType, dsp_width: int = 32, mul_fn=MulFn()):
+    def __init__(self, gen: GenParams, send_result: Method, mul_type: MulType, dsp_width: int = 32, mul_fn=MulFn()):
         """
         Parameters
         ----------
@@ -102,14 +102,13 @@ class MulUnit(FuncUnit, Elaboratable):
         layouts = gen.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.send_result = send_result
 
         self.mul_fn = mul_fn
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.result_fifo = result_fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.params_fifo = params_fifo = FIFO(
             [
                 ("rob_id", self.gen.rob_entries_bits),
@@ -135,10 +134,6 @@ class MulUnit(FuncUnit, Elaboratable):
         # Prepared for RV64
         #
         # half_sign_bit = xlen // 2 - 1  # position of sign bit considering only half of input being used
-
-        @def_method(m, self.accept)
-        def _():
-            return result_fifo.read(m)
 
         @def_method(m, self.issue)
         def _(arg):
@@ -201,7 +196,7 @@ class MulUnit(FuncUnit, Elaboratable):
             sign_result = Mux(params.negative_res, -response.o, response.o)  # changing sign of result
             result = Mux(params.high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 
-            result_fifo.write(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst)
+            self.send_result(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst)
 
         return m
 
@@ -213,8 +208,8 @@ class MulComponent(FunctionalComponentParams):
     dsp_width: int = 32
     mul_fn = MulFn()
 
-    def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return MulUnit(gen_params, self.mul_unit_type, self.dsp_width)
+    def get_module(self, gen_params: GenParams, send_result: Method) -> FuncUnit:
+        return MulUnit(gen_params, send_result, self.mul_unit_type, self.dsp_width)
 
     def get_optypes(self) -> set[OpType]:
         return self.mul_fn.get_op_types()

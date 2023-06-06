@@ -6,7 +6,6 @@ from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from coreblocks.transactions import Method, TModule
 from coreblocks.utils.protocols import FuncUnit, FuncBlock
-from coreblocks.transactions.lib import Collector
 
 __all__ = ["RSFuncBlock", "RSBlockComponent"]
 
@@ -24,9 +23,6 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         RS select method.
     update: Method
         RS update method.
-    get_result: Method
-        Method used for getting single result out of one of the FUs. It uses
-        layout described by `FuncUnitLayouts`.
     """
 
     def __init__(self, gen_params: GenParams, func_units: Iterable[tuple[FuncUnit, set[OpType]]], rs_entries: int):
@@ -50,7 +46,6 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         self.insert = Method(i=self.rs_layouts.insert_in)
         self.select = Method(o=self.rs_layouts.select_out)
         self.update = Method(i=self.rs_layouts.update_in)
-        self.get_result = Method(o=self.fu_layouts.accept)
 
     def elaborate(self, platform):
         m = TModule()
@@ -71,12 +66,9 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             m.submodules[f"func_unit_{n}"] = func_unit
             m.submodules[f"wakeup_select_{n}"] = wakeup_select
 
-        m.submodules.collector = collector = Collector([func_unit.accept for func_unit, _ in self.func_units])
-
         self.insert.proxy(m, self.rs.insert)
         self.select.proxy(m, self.rs.select)
         self.update.proxy(m, self.rs.update)
-        self.get_result.proxy(m, collector.method)
 
         return m
 
@@ -86,8 +78,8 @@ class RSBlockComponent(BlockComponentParams):
     func_units: Collection[FunctionalComponentParams]
     rs_entries: int
 
-    def get_module(self, gen_params: GenParams) -> FuncBlock:
-        modules = list((u.get_module(gen_params), u.get_optypes()) for u in self.func_units)
+    def get_module(self, gen_params: GenParams, send_result: Method) -> FuncBlock:
+        modules = list((u.get_module(gen_params, send_result), u.get_optypes()) for u in self.func_units)
         rs_unit = RSFuncBlock(gen_params=gen_params, func_units=modules, rs_entries=self.rs_entries)
         return rs_unit
 
