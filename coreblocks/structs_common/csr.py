@@ -171,12 +171,9 @@ class CSRUnit(FuncBlock, Elaboratable):
         Method from standard RS interface. Puts instruction in reserved place.
     update: Method
         Method from standard RS interface. Receives announcements of computed register values.
-    get_result: Method
-        `accept` method from standard FU interface. Used to receive instruction result and pass it
-        to the next pipeline stage.
     """
 
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, send_result: Method):
         """
         Parameters
         ----------
@@ -196,7 +193,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.select = Method(o=self.csr_layouts.rs_select_out)
         self.insert = Method(i=self.csr_layouts.rs_insert_in)
         self.update = Method(i=self.csr_layouts.rs_update_in)
-        self.get_result = Method(o=self.fu_layouts.send_result)
+        self.send_result = send_result
         self.precommit = Method(i=self.csr_layouts.precommit)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
@@ -304,17 +301,12 @@ class CSRUnit(FuncBlock, Elaboratable):
                 m.d.sync += instr.s1_val.eq(value)
                 m.d.sync += instr.rp_s1.eq(0)
 
-        @def_method(m, self.get_result, done)
-        def _():
+        with Transaction().body(m, request=done):
             m.d.comb += accepted.eq(1)
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
-            return {
-                "rob_id": instr.rob_id,
-                "rp_dst": instr.rp_dst,
-                "result": current_result,
-            }
+            self.send_result(m, rob_id=instr.rob_id, rp_dst=instr.rp_dst, result=current_result)
 
         @def_method(m, self.fetch_continue, accepted)
         def _():
@@ -329,9 +321,9 @@ class CSRUnit(FuncBlock, Elaboratable):
 
 
 class CSRBlockComponent(BlockComponentParams):
-    def get_module(self, gen_params: GenParams) -> FuncBlock:
+    def get_module(self, gen_params: GenParams, send_result: Method) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
-        unit = CSRUnit(gen_params)
+        unit = CSRUnit(gen_params, send_result)
         connections.add_dependency(BranchResolvedKey(), unit.fetch_continue)
         connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
