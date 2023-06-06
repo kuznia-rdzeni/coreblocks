@@ -15,7 +15,6 @@ __all__ = [
     "RATLayouts",
     "LSULayouts",
     "CSRLayouts",
-    "IntCoordinatorLayouts",
     "ICacheLayouts",
 ]
 
@@ -136,19 +135,20 @@ class ROBLayouts:
 
         self.internal_layout = [
             ("rob_data", self.data_layout),
-            ("interrupt", 1),
             ("done", 1),
         ]
 
         self.peek_layout = self.retire_layout = [
             ("rob_data", self.data_layout),
             ("rob_id", gen_params.rob_entries_bits),
-            ("interrupt", 1),
         ]
 
-        self.can_flush_layout = [("can_flush", 1)]
+        self.empty = [("empty", 1)]
 
-        self.flush_layout = [("rp_dst", gen_params.phys_regs_bits)]
+        self.flush_layout = [
+            ("rp_dst", gen_params.phys_regs_bits),
+            ("pc", gen_params.isa.xlen),
+        ]
 
 
 class RSInterfaceLayouts:
@@ -343,11 +343,6 @@ class LSULayouts:
         retirement = gen_params.get(RetirementLayouts)
 
         self.precommit = retirement.precommit
-
-
-class IntCoordinatorLayouts:
-    def __init__(self, gen_params: GenParams):
-        self.trigger = [("pc", gen_params.isa.xlen)]
 
 
 class CSRLayouts:

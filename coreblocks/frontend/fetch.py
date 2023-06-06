@@ -1,7 +1,7 @@
 from amaranth import *
 from coreblocks.utils.fifo import BasicFifo
 from coreblocks.frontend.icache import ICacheInterface
-from ..transactions import def_method, Method, Transaction, TModule
+from ..transactions import def_method, Method, Transaction, TModule, Priority
 from ..params import GenParams, FetchLayouts
 
 
@@ -31,6 +31,7 @@ class Fetch(Elaboratable):
         layouts = self.gp.get(FetchLayouts)
         self.verify_branch = Method(i=layouts.branch_verify_in, o=layouts.branch_verify_out)
         self.stall = Method()
+        self.clear = Method()
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
@@ -46,8 +47,10 @@ class Fetch(Elaboratable):
 
         stalled = Signal()
         spin = Signal()
+        request_trans = Transaction(name="request")
+        response_trans = Transaction(name="response")
 
-        with Transaction().body(m, request=~stalled):
+        with request_trans.body(m, request=~stalled):
             self.icache.issue_req(m, addr=speculative_pc)
             self.fetch_target_queue.write(m, addr=speculative_pc, spin=spin)
 
@@ -58,7 +61,7 @@ class Fetch(Elaboratable):
             with m.If(~stalled):
                 m.d.sync += spin.eq(~spin)
 
-        with Transaction().body(m):
+        with response_trans.body(m):
             target = self.fetch_target_queue.read(m)
             res = self.icache.accept_res(m)
 
@@ -98,5 +101,14 @@ class Fetch(Elaboratable):
             m.d.sync += speculative_pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
             return self.pc
+
+        # rationale behind clear method in fetcher: what if the instruction
+        # in the internal fetcher FIFO isn't cleared and enters ROB during
+        # handling an interrupt, after ROB flushing stage? - we get an
+        # instruction from the interrupted instruction stream in the ROB
+        # that's not supposed to be there
+        self.clear.proxy(m, self.fetch_target_queue.clear)
+        self.clear.add_conflict(request_trans, priority=Priority.LEFT)
+        self.clear.add_conflict(response_trans, priority=Priority.LEFT)
 
         return m

@@ -53,6 +53,7 @@ class Core(Elaboratable):
             self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
 
         self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
+        self.connections.add_dependency(ClearKey(), self.fetch.clear)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -76,15 +77,28 @@ class Core(Elaboratable):
             rf_write_val=self.RF.write,
         )
 
+        self.retirement = Retirement(
+            self.gen_params,
+            rob_peek=self.ROB.peek,
+            rob_retire=self.ROB.retire,
+            r_rat_commit=self.RRAT.commit,
+            free_rf_put=self.free_rf_fifo.write,
+            rf_free=self.RF.free,
+            precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
+        )
+
         self.int_coordinator = InterruptCoordinator(
             gen_params=self.gen_params,
             r_rat_get_all=self.RRAT.get_all,
             f_rat_set_all=self.FRAT.set_all,
             pc_stall=self.fetch.stall,
             pc_verify_branch=self.fetch.verify_branch,
-            rob_can_flush=self.ROB.can_flush,
+            rob_empty=self.ROB.empty,
             rob_flush=self.ROB.flush,
+            rob_peek=self.ROB.peek,
             free_reg_put=self.free_rf_fifo.write,
+            retirement_stall=self.retirement.stall,
+            retirement_unstall=self.retirement.unstall,
         )
 
     def elaborate(self, platform):
@@ -98,7 +112,7 @@ class Core(Elaboratable):
 
         m.submodules.free_rf_fifo = free_rf_fifo = self.free_rf_fifo
         m.submodules.FRAT = frat = self.FRAT
-        m.submodules.RRAT = rrat = self.RRAT
+        m.submodules.RRAT = self.RRAT
         m.submodules.RF = rf = self.RF
         m.submodules.ROB = rob = self.ROB
 
@@ -138,16 +152,7 @@ class Core(Elaboratable):
 
         m.submodules.int_coordinator = self.int_coordinator
 
-        m.submodules.retirement = Retirement(
-            self.gen_params,
-            rob_peek=rob.peek,
-            rob_retire=rob.retire,
-            r_rat_commit=rrat.commit,
-            free_rf_put=free_rf_fifo.write,
-            rf_free=rf.free,
-            precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
-            int_coordinator=self.int_coordinator,
-        )
+        m.submodules.retirement = self.retirement
 
         m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)
 

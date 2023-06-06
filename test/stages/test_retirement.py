@@ -8,29 +8,12 @@ from coreblocks.params import (
     GenParams,
     LSULayouts,
     SchedulerLayouts,
-    IntCoordinatorLayouts,
 )
 from coreblocks.params.configurations import test_core_config
-from coreblocks.stages.int_coordinator import InterruptCoordinator
 
 from ..common import *
 from collections import deque
 import random
-
-
-class IntCoordinatorMock(InterruptCoordinator):
-    def __init__(self, gen_params: GenParams):
-        self.gp = gen_params
-
-    def elaborate(self, platform):
-        m = Module()
-        tm = TransactionModule(m)
-
-        int_layout = self.gp.get(IntCoordinatorLayouts).trigger
-        m.submodules.trigger_mock = self.trigger_mock = TestbenchIO(Adapter(i=int_layout))
-        self.allow_retirement = C(1)
-        self.trigger = self.trigger_mock.adapter.iface
-        return tm
 
 
 class RetirementTestCircuit(Elaboratable):
@@ -58,8 +41,6 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
-        m.submodules.mock_interrupt = self.mock_interrupt = IntCoordinatorMock(self.gen_params)
-
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
             rob_retire=self.mock_rob_retire.adapter.iface,
@@ -68,7 +49,6 @@ class RetirementTestCircuit(Elaboratable):
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
             precommit=self.mock_precommit.adapter.iface,
-            int_coordinator=self.mock_interrupt,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -93,6 +73,7 @@ class RetirementTest(TestCaseWithSimulator):
         for _ in range(self.cycles):
             rl = random.randrange(self.gen_params.isa.reg_cnt)
             rp = random.randrange(1, 2**self.gen_params.phys_regs_bits) if rl != 0 else 0
+            pc = random.randrange(0, 2**self.gen_params.isa.xlen)
             rob_id = random.randrange(2**self.gen_params.rob_entries_bits)
             if rl != 0:
                 if rat_state[rl] != 0:  # phys reg 0 shouldn't be marked as free
@@ -100,7 +81,7 @@ class RetirementTest(TestCaseWithSimulator):
                 self.rf_free_q.append(rat_state[rl])
                 rat_state[rl] = rp
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
-                self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id, "interrupt": 0})
+                self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp, "pc": pc}, "rob_id": rob_id})
                 self.precommit_q.append(rob_id)
             # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
@@ -144,10 +125,6 @@ class RetirementTest(TestCaseWithSimulator):
         def precommit_process(rob_id):
             self.assertEqual(rob_id, self.precommit_q.popleft())
 
-        @def_method_mock(lambda: retc.mock_interrupt.trigger_mock)
-        def interrupt_process(arg):
-            pass
-
         with self.run_simulation(retc) as sim:
             sim.add_sync_process(retire_process)
             sim.add_sync_process(peek_process)
@@ -155,4 +132,3 @@ class RetirementTest(TestCaseWithSimulator):
             sim.add_sync_process(rat_process)
             sim.add_sync_process(rf_free_process)
             sim.add_sync_process(precommit_process)
-            sim.add_sync_process(interrupt_process)

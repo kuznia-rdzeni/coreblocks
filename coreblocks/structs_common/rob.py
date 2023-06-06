@@ -13,15 +13,13 @@ class ReorderBuffer(Elaboratable):
         self.mark_done = Method(i=layouts.id_layout)
         self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
         self.retire = Method(o=layouts.retire_layout)
-        self.can_flush = Method(o=layouts.can_flush_layout)
+        self.empty = Method(o=layouts.empty, nonexclusive=True)
         self.flush = Method(o=layouts.flush_layout)
-        self.interrupt = Method()
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
     def free_entry(self, m, start_idx):
         m.d.sync += start_idx.eq(start_idx + 1)
         m.d.sync += self.data[start_idx].done.eq(0)
-        m.d.sync += self.data[start_idx].interrupt.eq(0)
 
     def elaborate(self, platform):
         m = TModule()
@@ -29,29 +27,25 @@ class ReorderBuffer(Elaboratable):
         start_idx = Signal(self.params.rob_entries_bits)
         end_idx = Signal(self.params.rob_entries_bits)
 
-        peek_possible = start_idx != end_idx
-        put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
         empty = start_idx == end_idx
+        put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
 
-        @def_method(m, self.peek, ready=peek_possible)
+        @def_method(m, self.peek, ready=~empty)
         def _():
             return {
                 "rob_data": self.data[start_idx].rob_data,
                 "rob_id": start_idx,
-                "interrupt": self.data[start_idx].interrupt,
             }
 
         @def_method(m, self.retire, ready=self.data[start_idx].done)
         def _():
             m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.data[start_idx].done.eq(0)
-            m.d.sync += self.data[start_idx].interrupt.eq(0)
             # TODO: because of a problem with mocking nonexclusive methods,
             # retire replicates functionality of peek
             return {
                 "rob_data": self.data[start_idx].rob_data,
                 "rob_id": start_idx,
-                "interrupt": self.data[start_idx].interrupt,
             }
 
         @def_method(m, self.put, ready=put_possible)
@@ -61,24 +55,27 @@ class ReorderBuffer(Elaboratable):
             m.d.sync += end_idx.eq(end_idx + 1)
             return end_idx
 
-        @def_method(m, self.can_flush)
+        @def_method(m, self.empty)
         def _():
-            return start_idx != end_idx
+            return empty
 
         self.flush.add_conflict(self.put, priority=Priority.LEFT)
         self.flush.add_conflict(self.retire, priority=Priority.LEFT)
 
+        # TODO: rework flushing so that it's handled by some other block
+        # or ROB itself (rather than interrupt coordinator). This should
+        # be easier when we switch to one-cycle ROB flushing method that
+        # just restores a pointer in free-RF-list since we won't have to
+        # recycle physical register ids back during flushing
         @def_method(m, self.flush)
         def _():
             m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.data[start_idx].done.eq(0)
-            m.d.sync += self.data[start_idx].interrupt.eq(0)
-            return self.data[start_idx].rob_data.rp_dst
-
-        # don't allow signaling an interrupt if ROB is empty to avoid corner cases
-        @def_method(m, self.interrupt, ready=~empty)
-        def _():
-            m.d.sync += self.data[start_idx].interrupt.eq(1)
+            entry = self.data[start_idx].rob_data
+            return {
+                "rp_dst": entry.rp_dst,
+                "pc": entry.pc,
+            }
 
         # TODO: There is a potential race condition when ROB is flushed.
         # If functional units aren't flushed, finished obsolete instructions
