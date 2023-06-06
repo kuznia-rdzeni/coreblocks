@@ -95,7 +95,7 @@ class SchedulerLayouts:
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
             ("rs_selected", gen_params.rs_number_bits),
-            ("rs_entry_id", gen_params.rs_entries_bits),
+            ("rs_entry_id", gen_params.max_rs_entries_bits),
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
@@ -140,11 +140,14 @@ class ROBLayouts:
             ("done", 1),
         ]
 
-        self.retire_layout = [("rob_data", self.data_layout), ("rob_id", gen_params.rob_entries_bits)]
+        self.peek_layout = self.retire_layout = [
+            ("rob_data", self.data_layout),
+            ("rob_id", gen_params.rob_entries_bits),
+        ]
 
 
 class RSInterfaceLayouts:
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
         common = gen_params.get(CommonLayouts)
         self.data_layout = [
             ("rp_s1", gen_params.phys_regs_bits),
@@ -161,16 +164,23 @@ class RSInterfaceLayouts:
             ("pc", gen_params.isa.xlen),
         ]
 
-        self.select_out = [("rs_entry_id", gen_params.rs_entries_bits)]
+        self.select_out = [("rs_entry_id", rs_entries_bits)]
 
-        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
+        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
 
         self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
 
 
-class RSLayouts:
+class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
-        rs_interface = gen_params.get(RSInterfaceLayouts)
+        self.precommit = [
+            ("rob_id", gen_params.rob_entries_bits),
+        ]
+
+
+class RSLayouts:
+    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
+        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits)
 
         self.data_layout = layout_subset(
             rs_interface.data_layout,
@@ -187,13 +197,13 @@ class RSLayouts:
             },
         )
 
-        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
+        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
 
         self.select_out = rs_interface.select_out
 
         self.update_in = rs_interface.update_in
 
-        self.take_in = [("rs_entry_id", gen_params.rs_entries_bits)]
+        self.take_in = [("rs_entry_id", rs_entries_bits)]
 
         self.take_out = layout_subset(
             rs_interface.data_layout,
@@ -208,7 +218,7 @@ class RSLayouts:
             },
         )
 
-        self.get_ready_list_out = [("ready_list", 2**gen_params.rs_entries_bits)]
+        self.get_ready_list_out = [("ready_list", 2**rs_entries_bits)]
 
 
 class ICacheLayouts:
@@ -242,6 +252,7 @@ class FetchLayouts:
         ]
 
         self.branch_verify = [
+            ("from_pc", gen_params.isa.xlen),
             ("next_pc", gen_params.isa.xlen),
         ]
 
@@ -295,7 +306,9 @@ class UnsignedMulUnitLayouts:
 
 class LSULayouts:
     def __init__(self, gen_params: GenParams):
-        rs_interface = gen_params.get(RSInterfaceLayouts)
+        self.rs_entries_bits = 0
+
+        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits)
         self.rs_data_layout = layout_subset(
             rs_interface.data_layout,
             fields={
@@ -310,19 +323,21 @@ class LSULayouts:
             },
         )
 
-        self.rs_insert_in = [("rs_data", self.rs_data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
+        self.rs_insert_in = [("rs_data", self.rs_data_layout), ("rs_entry_id", self.rs_entries_bits)]
 
         self.rs_select_out = rs_interface.select_out
 
         self.rs_update_in = rs_interface.update_in
 
-        self.commit = [
-            ("rob_id", gen_params.rob_entries_bits),
-        ]
+        retirement = gen_params.get(RetirementLayouts)
+
+        self.precommit = retirement.precommit
 
 
 class CSRLayouts:
     def __init__(self, gen_params: GenParams):
+        self.rs_entries_bits = 0
+
         self.read = [
             ("data", gen_params.isa.xlen),
             ("read", 1),
@@ -334,7 +349,7 @@ class CSRLayouts:
         self._fu_read = [("data", gen_params.isa.xlen)]
         self._fu_write = [("data", gen_params.isa.xlen)]
 
-        rs_interface = gen_params.get(RSInterfaceLayouts)
+        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits)
         self.rs_data_layout = layout_subset(
             rs_interface.data_layout,
             fields={
@@ -350,8 +365,12 @@ class CSRLayouts:
             },
         )
 
-        self.rs_insert_in = [("rs_data", self.rs_data_layout), ("rs_entry_id", gen_params.rs_entries_bits)]
+        self.rs_insert_in = [("rs_data", self.rs_data_layout), ("rs_entry_id", self.rs_entries_bits)]
 
         self.rs_select_out = rs_interface.select_out
 
         self.rs_update_in = rs_interface.update_in
+
+        retirement = gen_params.get(RetirementLayouts)
+
+        self.precommit = retirement.precommit

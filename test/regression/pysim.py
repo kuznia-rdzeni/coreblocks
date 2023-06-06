@@ -49,7 +49,7 @@ class PySimulation(SimulationBackend):
                     )
                 else:
                     if self.verbose:
-                        print(f"Wishbone '{bus_name}' bus read request: addr=0x{addr:x} sel={sel}")
+                        print(f"Wishbone '{bus_name}' bus read request: addr=0x{addr:x} sel={sel:b}")
                     resp = mem_model.read(
                         ReadRequest(
                             addr=addr,
@@ -59,6 +59,9 @@ class PySimulation(SimulationBackend):
                         )
                     )
                     resp_data = resp.data
+
+                    if self.verbose:
+                        print(f"Wishbone '{bus_name}' bus read response: data=0x{resp.data:x}")
 
                 ack = err = rty = 0
                 match resp.status:
@@ -86,7 +89,7 @@ class PySimulation(SimulationBackend):
 
         return f
 
-    async def run(self, mem_model: CoreMemoryModel) -> bool:
+    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> bool:
         wb_instr_bus = WishboneBus(self.gp.wb_params)
         wb_data_bus = WishboneBus(self.gp.wb_params)
         core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
@@ -99,7 +102,7 @@ class PySimulation(SimulationBackend):
         self.running = True
         self.cycle_cnt = 0
 
-        sim = PysimSimulator(m, traces_file=self.traces_file)
+        sim = PysimSimulator(m, max_cycles=timeout_cycles, traces_file=self.traces_file)
         sim.add_sync_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
         sim.add_sync_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
         sim.add_sync_process(self._waiter())

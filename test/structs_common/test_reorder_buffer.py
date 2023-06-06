@@ -48,16 +48,14 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 self.assertEqual(is_ready, 0)  # transaction should not be ready if there is nothing to retire
             else:
                 regs, rob_id_exp = self.retire_queue.get()
-                results = yield from self.m.retire.call()
+                results = yield from self.m.peek.call()
+                yield from self.m.retire.call()
                 phys_reg = results["rob_data"]["rp_dst"]
                 self.assertEqual(rob_id_exp, results["rob_id"])
                 self.assertIn(phys_reg, self.executed_list)
                 self.executed_list.remove(phys_reg)
 
                 yield Settle()
-                self.assertEqual(
-                    (yield self.m._dut.single_entry), len(self.executed_list) + len(self.to_execute_list) == 1
-                )
                 self.assertEqual(results["rob_data"], regs)
                 self.regs_left_queue.put(phys_reg)
 

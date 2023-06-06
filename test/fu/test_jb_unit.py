@@ -29,7 +29,13 @@ class JumpBranchWrapper(Elaboratable):
         def _(arg):
             res = self.jb.accept(m)
             br = self.jb.branch_result(m)
-            return {"next_pc": br.next_pc, "result": res.result, "rob_id": res.rob_id, "rp_dst": res.rp_dst}
+            return {
+                "from_pc": br.from_pc,
+                "next_pc": br.next_pc,
+                "result": res.result,
+                "rob_id": res.rob_id,
+                "rp_dst": res.rp_dst,
+            }
 
         return m
 
@@ -70,7 +76,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
     next_pc &= max_int
     res &= max_int
 
-    return {"result": res, "next_pc": next_pc}
+    return {"result": res, "from_pc": pc, "next_pc": next_pc}
 
 
 @staticmethod

@@ -155,7 +155,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             # skip writing next branch target for auipc
             with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):
-                fifo_branch.write(m, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res))
+                fifo_branch.write(m, from_pc=jb.in_pc, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res))
 
         return m
 
