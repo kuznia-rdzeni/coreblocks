@@ -11,7 +11,7 @@ from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.params.keys import MretKey
 from coreblocks.utils.protocols import FuncUnit
-from coreblocks.utils.fifo import BasicFifo
+from coreblocks.utils import assign, AssignType
 
 from coreblocks.fu.fu_decoder import DecoderManager
 
@@ -30,7 +30,7 @@ class IntRetFuncUnit(Elaboratable):
     def __init__(self, gen: GenParams, intret_fn=IntRetFn()):
         self.gen = gen
 
-        layouts = gen.get(FuncUnitLayouts)
+        self.layouts = layouts = gen.get(FuncUnitLayouts)
         self.connections = gen.get(DependencyManager)
 
         self.issue = Method(i=layouts.issue)
@@ -43,21 +43,34 @@ class IntRetFuncUnit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.fifo_mret = fifo_mret = BasicFifo(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = self.intret_fn.get_decoder(self.gen)
 
-        self.accept.proxy(m, fifo_mret.read)
-        self.clear.proxy(m, fifo_mret.clear)
+        instr = Record(self.layouts.accept)
+        pending_instr = Signal()
+        finished = Signal()
 
-        @def_method(m, self.issue)
+        @def_method(m, self.accept, ready=pending_instr & finished)
+        def _():
+            m.d.sync += pending_instr.eq(0)
+            return instr
+
+        @def_method(m, self.issue, ready=~pending_instr)
         def _(arg):
-            fifo_mret.write(m, rob_id=arg.rob_id, result=0, rp_dst=arg.rp_dst)
+            m.d.sync += assign(instr, arg, fields=AssignType.COMMON)
+            m.d.sync += pending_instr.eq(1)
+            m.d.sync += finished.eq(0)
+
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += pending_instr.eq(0)
 
         mret_trigger = self.connections.get_dependency(MretKey())
 
         @def_method(m, self.precommit)
         def _(rob_id):
-            mret_trigger(m)
+            with m.If(pending_instr & ~finished & (rob_id == instr.rob_id)):
+                m.d.sync += finished.eq(1)
+                mret_trigger(m)
 
         return m
 

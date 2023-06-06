@@ -1,7 +1,7 @@
 # fibonacci spiced with interrupt handler
 
     li x2, 1
-    li x4, 2971215073 # last fibonacci number to fit in 32 bits
+    li x4, 89 # small fibonacci number to keep execution time to a minimum
 loop:
     add x3, x2, x1
     mv x1, x2

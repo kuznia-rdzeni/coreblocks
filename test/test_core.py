@@ -274,7 +274,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
     ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
     [
         ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
-        ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
+        ("fibonacci_mem", "fibonacci_mem.asm", 1500, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
     ],
 )
@@ -302,19 +302,28 @@ class TestCoreBasicAsmSource(TestCoreAsmSourceBase):
 class TestCoreInterrupt(TestCoreAsmSourceBase):
     def setUp(self):
         self.source_file = "interrupt.asm"
-        self.main_cycle_count = 500
+        self.main_cycle_count = 2500
         self.configuration = basic_core_config
         self.gp = GenParams(self.configuration)
         random.seed(1500100900)
 
     def run_with_interrupt(self):
-        # wait 50 cycles, then trigger an interrupt
-        yield from self.tick(50)
-        yield from self.m.interrupt.call()
-        yield from self.tick(self.main_cycle_count)
+        main_cycles = 0
+        # wait for caches to fill up
+        yield from self.tick(100)
+        while main_cycles < self.main_cycle_count:
+            # run main code for some semi-random amount of cycles
+            c = random.randrange(100, 200)
+            main_cycles += c
+            yield from self.tick(c)
+            # trigger an interrupt
+            yield from self.m.interrupt.call()
+            # wait until ISR returns
+            while (yield self.m.core.int_coordinator.interrupt) != 0:
+                yield from self.tick()
 
-        self.assertEqual((yield from self.get_arch_reg_val(8)), 38)
-        self.assertEqual((yield from self.get_arch_reg_val(2)), 2971215073)
+        self.assertEqual((yield from self.get_arch_reg_val(8)), 38)  # interrupt executed
+        self.assertEqual((yield from self.get_arch_reg_val(2)), 89)  # last fibonacci number
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)

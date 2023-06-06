@@ -54,8 +54,9 @@ class InterruptCoordinator(Elaboratable):
                 with Transaction(name="WaitForInt").body(m, request=self.interrupt):
                     # We can only stall if rob is nonempty because we need PC of
                     # the next instruction (that didn't execute precommit).
-                    # The clue here is that to satisfy liveness condition we can't
-                    # just stall retirement without checking if ROB's empty and wait
+                    # The clue here is that to satisfy liveness condition (which basically says
+                    # that we need forward progress even if we have interrupt flag raised constantly)
+                    # we can't just stall retirement without checking if ROB's empty and wait
                     # for some instruction to arrive if it was (and hence might not be
                     # able proceed due to lack of aforementioned PC). See also:
                     # https://github.com/kuznia-rdzeni/coreblocks/pull/351#discussion_r1209887087
