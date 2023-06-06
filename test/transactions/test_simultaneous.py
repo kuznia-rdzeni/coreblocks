@@ -95,7 +95,7 @@ class UnsatisfiableTriangleTest(TestCaseWithSimulator):
         circ = SimpleTestCircuit(UnsatisfiableTriangleTestCircuit())
 
         with self.assertRaises(RuntimeError):
-            with self.run_simulation(circ) as _:
+            with self.run_simulation(circ):
                 pass
 
 
