@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686144127474,
+  "lastUpdate": 1686144914837,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -7294,6 +7294,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pazeraf@gmail.com",
+            "name": "Filip Pazera",
+            "username": "pa000"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "92439af1cd33c528137d1824e57dcbc25cfecc71",
+          "message": "Zbc functional unit (#294)",
+          "timestamp": "2023-06-07T15:15:23+02:00",
+          "tree_id": "b86c7b3dbdf4c1c28988f3374e5ae76d29224d48",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/92439af1cd33c528137d1824e57dcbc25cfecc71"
+        },
+        "date": 1686144913019,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
             "unit": "Instructions Per Cycle"
           }
         ]
