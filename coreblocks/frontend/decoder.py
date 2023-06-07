@@ -225,7 +225,6 @@ _instructions_by_optype = {
 
 
 class InstrDecoder(Elaboratable):
-    
     """
     Class performing instruction decoding into elementary components like opcodes, funct3 etc.
     It uses combinatorial connection via its attributes.
