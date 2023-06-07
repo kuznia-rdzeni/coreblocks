@@ -52,6 +52,14 @@ coreblocks.fu.shift\_unit module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.fu.zbc module
+------------------------
+
+.. automodule:: coreblocks.fu.zbc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.fu.zbs module
 ------------------------
 

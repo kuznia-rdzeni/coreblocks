@@ -407,6 +407,143 @@ module. It uses standard FuncUnitLayout.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.fu.zbc">
+<span id="coreblocks-fu-zbc-module"></span><h2>coreblocks.fu.zbc module<a class="headerlink" href="#module-coreblocks.fu.zbc" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ClMultiplier">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.zbc.</span></span><span class="sig-name descname"><span class="pre">ClMultiplier</span></span><a class="headerlink" href="#coreblocks.fu.zbc.ClMultiplier" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module for computing carry-less product</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>i1: Signal(unsigned(n)), in</strong></dt><dd><p>First factor.</p>
+</dd>
+<dt><strong>i2: Signal(unsigned(n)), in</strong></dt><dd><p>Second factor.</p>
+</dd>
+<dt><strong>result: Signal(unsigned(n * 2)), out</strong></dt><dd><p>Result.</p>
+</dd>
+<dt><strong>reset: Signal(1), in</strong></dt><dd><p>Setting this signal to 1 will start a new computation with provided inputs</p>
+</dd>
+<dt><strong>busy: Signal(1), out</strong></dt><dd><p>Set to 1 while a computation is in progress</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ClMultiplier.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bit_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recursion_depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbc.ClMultiplier.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>bit_width: int</strong></dt><dd><p>Bit width of inputs</p>
+</dd>
+<dt><strong>recursion_depth: int</strong></dt><dd><p>Depth of recursive submodules for parallel computation (assumes bit_width to be a power of 2)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ClMultiplier.iterative_module">
+<span class="sig-name descname"><span class="pre">iterative_module</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbc.ClMultiplier.iterative_module" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ClMultiplier.recursive_module">
+<span class="sig-name descname"><span class="pre">recursive_module</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbc.ClMultiplier.recursive_module" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcComponent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.zbc.</span></span><span class="sig-name descname"><span class="pre">ZbcComponent</span></span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcComponent" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams" title="coreblocks.params.fu_params.FunctionalComponentParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">FunctionalComponentParams</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcComponent.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">recursion_depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcComponent.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcComponent.get_module">
+<span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><span class="pre">FuncUnit</span></a></span></span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcComponent.get_module" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcComponent.get_optypes">
+<span class="sig-name descname"><span class="pre">get_optypes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcComponent.get_optypes" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcComponent.recursion_depth">
+<span class="sig-name descname"><span class="pre">recursion_depth</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.fu.zbc.ZbcComponent.recursion_depth" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcComponent.zbc_fn">
+<span class="sig-name descname"><span class="pre">zbc_fn</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;coreblocks.fu.zbc.ZbcFn</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#coreblocks.fu.zbc.ZbcComponent.zbc_fn" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.zbc.</span></span><span class="sig-name descname"><span class="pre">ZbcFn</span></span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.fu.fu_decoder.DecoderManager" title="coreblocks.fu.fu_decoder.DecoderManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">DecoderManager</span></code></a></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn.Fn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Fn</span></span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn.Fn" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></p>
+<p>An enumeration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn.Fn.CLMUL">
+<span class="sig-name descname"><span class="pre">CLMUL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn.Fn.CLMUL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn.Fn.CLMULH">
+<span class="sig-name descname"><span class="pre">CLMULH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn.Fn.CLMULH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn.Fn.CLMULR">
+<span class="sig-name descname"><span class="pre">CLMULR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn.Fn.CLMULR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn.get_instructions">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn.get_instructions" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcUnit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.zbc.</span></span><span class="sig-name descname"><span class="pre">ZbcUnit</span></span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcUnit" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module responsible for executing Zbc instructions (carry-less multiplication)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>issue: Method(i=FuncUnitLayouts.issue)</strong></dt><dd><p>Method used for requesting computation.</p>
+</dd>
+<dt><strong>accept: Method(i=FuncUnitLayouts.accept)</strong></dt><dd><p>Method used for getting result of requested computation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcUnit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">recursion_depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zbc_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.fu.zbc.ZbcFn" title="coreblocks.fu.zbc.ZbcFn"><span class="pre">ZbcFn</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcUnit.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.fu.zbs">
 <span id="coreblocks-fu-zbs-module"></span><h2>coreblocks.fu.zbs module<a class="headerlink" href="#module-coreblocks.fu.zbs" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -536,7 +673,7 @@ module. It uses standard FuncUnitLayout.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:32 2023-06-05.
+      <span class="lastupdated">Last updated on 13:16 2023-06-07.
       </span></p>
   </div>
 
