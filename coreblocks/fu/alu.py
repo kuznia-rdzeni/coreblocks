@@ -12,7 +12,7 @@ from enum import IntFlag, auto
 
 from coreblocks.utils.protocols import FuncUnit
 
-from coreblocks.utils.utils import popcount, count_leading_zeros, count_trailing_zeros
+from coreblocks.utils.utils import popcount, count_leading_zeros
 
 __all__ = ["AluFuncUnit", "ALUComponent"]
 
@@ -94,16 +94,18 @@ class AluFn(DecoderManager):
             * self.zbb_enable
         )
 
+
 class CLZSubmodule(Elaboratable):
     def __init__(self, gen_params: GenParams):
         xlen = gen_params.isa.xlen
         self.in_sig = Signal(xlen)
         self.out_sig = Signal(xlen)
-    
+
     def elaborate(self, platform) -> HasElaborate:
         m = Module()
         m.d.comb += self.out_sig.eq(count_leading_zeros(self.in_sig))
         return m
+
 
 class Alu(Elaboratable):
     def __init__(self, gen_params: GenParams, alu_fn=AluFn()):

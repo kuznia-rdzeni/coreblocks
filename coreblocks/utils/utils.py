@@ -285,6 +285,7 @@ def popcount(s: Value):
 
     return sum_layers[0][0 : bits_for(len(s))]
 
+
 def count_leading_zeros(s: Value) -> Value:
     def iter(s: Value, step: int) -> Value:
         # if no bits left - return empty value
@@ -301,14 +302,14 @@ def count_leading_zeros(s: Value) -> Value:
 
         # if there are lit bits in upperhalf - take result directly from recursive value
         # otherwise add 1 << (step - 1) to lower value and return
-        result = Mux(s[partition:].any(),  upper_value, lower_value | current_bit)
+        result = Mux(s[partition:].any(), upper_value, lower_value | current_bit)
 
         return result
 
     xlen_log = math.log2(float(len(s)))
     if xlen_log != math.floor(xlen_log):
-        raise NotImplementedError('CountLeadingZeros - only sizes aligned to power of 2 are supperted')
-    
+        raise NotImplementedError("CountLeadingZeros - only sizes aligned to power of 2 are supperted")
+
     xlen_log = int(xlen_log)
     value = iter(s, xlen_log)
 
@@ -320,12 +321,14 @@ def count_leading_zeros(s: Value) -> Value:
     result = Mux(s.any(), value, high_bit)
     return result
 
+
 def count_trailing_zeros(s: Value) -> Value:
     xlen_log = math.log2(float(len(s)))
     if xlen_log != math.floor(xlen_log):
-        raise NotImplementedError('CountTrailingZeros - only sizes aligned to power of 2 are supperted')
-    
+        raise NotImplementedError("CountTrailingZeros - only sizes aligned to power of 2 are supperted")
+
     return count_leading_zeros(s[::-1])
+
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]

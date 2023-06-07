@@ -157,7 +157,7 @@ class TestCountTrailingZeros(TestCaseWithSimulator):
 
         expected = 0
         if n == 0:
-            expected = 2 ** self.size
+            expected = 2**self.size
         else:
             while (n & 1) == 0:
                 expected += 1
