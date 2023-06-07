@@ -88,7 +88,7 @@ class InterruptCoordinator(Elaboratable):
                         m.next = "unstall"
             with m.State("unstall"):
                 with Transaction(name="IntUnstall").body(m):
-                    self.pc_verify_branch(m, next_pc=int_handler_addr)
+                    self.pc_verify_branch(m, next_pc=int_handler_addr, from_pc=0)
                     self.retirement_unstall(m)
                     m.next = "wait_for_iret"
             with m.State("wait_for_iret"):
@@ -99,7 +99,7 @@ class InterruptCoordinator(Elaboratable):
                     m.next = "iret_jump"
             with m.State("iret_jump"):
                 with Transaction(name="IretJump").body(m):
-                    self.pc_verify_branch(m, next_pc=return_pc)
+                    self.pc_verify_branch(m, next_pc=return_pc, from_pc=0)
                     m.next = "idle"
 
         # should be called by interrupt controller (CLIC?)
