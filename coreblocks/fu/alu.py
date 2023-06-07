@@ -5,7 +5,7 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import FIFO
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
-from coreblocks.utils import OneHotSwitch
+from coreblocks.utils import HasElaborate, OneHotSwitch
 
 from coreblocks.fu.fu_decoder import DecoderManager
 from enum import IntFlag, auto
@@ -94,6 +94,16 @@ class AluFn(DecoderManager):
             * self.zbb_enable
         )
 
+class CLZSubmodule(Elaboratable):
+    def __init__(self, gen_params: GenParams):
+        xlen = gen_params.isa.xlen
+        self.in_sig = Signal(xlen)
+        self.out_sig = Signal(xlen)
+    
+    def elaborate(self, platform) -> HasElaborate:
+        m = Module()
+        m.d.comb += self.out_sig.eq(count_leading_zeros(self.in_sig))
+        return m
 
 class Alu(Elaboratable):
     def __init__(self, gen_params: GenParams, alu_fn=AluFn()):
@@ -111,7 +121,6 @@ class Alu(Elaboratable):
         m = TModule()
 
         xlen = self.gen_params.isa.xlen
-        xlen_log = self.gen_params.isa.xlen_log
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(AluFn.Fn.ADD):
@@ -138,6 +147,8 @@ class Alu(Elaboratable):
                     m.d.comb += self.out.eq((self.in1 << 3) + self.in2)
 
             if self.zbb_enable:
+                m.submodules.clz = clz = CLZSubmodule(self.gen_params)
+
                 with OneHotCase(AluFn.Fn.ANDN):
                     m.d.comb += self.out.eq(self.in1 & ~self.in2)
                 with OneHotCase(AluFn.Fn.XNOR):
@@ -167,9 +178,11 @@ class Alu(Elaboratable):
                 with OneHotCase(AluFn.Fn.CPOP):
                     m.d.comb += self.out.eq(popcount(self.in1))
                 with OneHotCase(AluFn.Fn.CLZ):
-                    m.d.comb += self.out.eq(count_leading_zeros(self.in1, xlen_log))
+                    m.d.comb += clz.in_sig.eq(self.in1)
+                    m.d.comb += self.out.eq(clz.out_sig)
                 with OneHotCase(AluFn.Fn.CTZ):
-                    m.d.comb += self.out.eq(count_trailing_zeros(self.in1, xlen_log))
+                    m.d.comb += clz.in_sig.eq(self.in1[::-1])
+                    m.d.comb += self.out.eq(clz.out_sig)
                 with OneHotCase(AluFn.Fn.SEXTH):
                     m.d.comb += self.out.eq(Cat(self.in1[0:16], Repl(self.in1[15], xlen - 16)))
                 with OneHotCase(AluFn.Fn.SEXTB):

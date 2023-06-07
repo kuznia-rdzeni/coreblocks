@@ -84,7 +84,7 @@ class CLZTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.d.comb += self.sig_out.eq(count_leading_zeros(self.sig_in, self.xlen_log))
+        m.d.comb += self.sig_out.eq(count_leading_zeros(self.sig_in))
         # dummy signal
         s = Signal()
         m.d.sync += s.eq(1)
@@ -130,7 +130,7 @@ class CTZTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.d.comb += self.sig_out.eq(count_trailing_zeros(self.sig_in, self.xlen_log))
+        m.d.comb += self.sig_out.eq(count_trailing_zeros(self.sig_in))
         # dummy signal
         s = Signal()
         m.d.sync += s.eq(1)
@@ -140,7 +140,7 @@ class CTZTestCircuit(Elaboratable):
 
 @parameterized_class(
     ("name", "size"),
-    [("size" + str(1 << s), 1 << s) for s in range(0, 7)],
+    [("size" + str(s), s) for s in range(1, 7)],
 )
 class TestCountTrailingZeros(TestCaseWithSimulator):
     size: int
@@ -148,7 +148,7 @@ class TestCountTrailingZeros(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
         self.test_number = 40
-        self.m = CTZTestCircuit(self.size.bit_length())
+        self.m = CTZTestCircuit(self.size)
 
     def check(self, n):
         yield self.m.sig_in.eq(n)
@@ -156,11 +156,10 @@ class TestCountTrailingZeros(TestCaseWithSimulator):
         out_ctz = yield self.m.sig_out
 
         expected = 0
-
         if n == 0:
-            expected = self.size
+            expected = 2 ** self.size
         else:
-            while not (n & 1):
+            while (n & 1) == 0:
                 expected += 1
                 n >>= 1
 
