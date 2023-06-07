@@ -29,6 +29,10 @@ class BlockComponentParams(ABC):
     def get_optypes(self) -> set["OpType"]:
         raise NotImplementedError()
 
+    @abstractmethod
+    def get_rs_entry_count(self) -> int:
+        raise NotImplementedError()
+
 
 class FunctionalComponentParams(ABC):
     @abstractmethod
