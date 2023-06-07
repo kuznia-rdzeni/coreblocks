@@ -39,6 +39,7 @@ class OpType(IntEnum):
     UNARY_BIT_MANIPULATION_3 = auto()
     UNARY_BIT_MANIPULATION_4 = auto()
     UNARY_BIT_MANIPULATION_5 = auto()
+    CLMUL = auto()
     SRET = auto()
     SFENCEVMA = auto()
 
@@ -90,6 +91,9 @@ optypes_by_extensions = {
         OpType.UNARY_BIT_MANIPULATION_3,
         OpType.UNARY_BIT_MANIPULATION_4,
         OpType.UNARY_BIT_MANIPULATION_5,
+    ],
+    Extension.ZBC: [
+        OpType.CLMUL,
     ],
     Extension.XINTMACHINEMODE: [
         OpType.MRET,

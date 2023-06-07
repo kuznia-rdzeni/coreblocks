@@ -208,6 +208,11 @@ _instructions_by_optype = {
     OpType.UNARY_BIT_MANIPULATION_5: [
         Encoding(Opcode.OP_IMM, Funct3.CPOP, funct12=Funct12.CPOP),
     ],
+    OpType.CLMUL: [
+        Encoding(Opcode.OP, Funct3.CLMUL, Funct7.CLMUL),
+        Encoding(Opcode.OP, Funct3.CLMULH, Funct7.CLMUL),
+        Encoding(Opcode.OP, Funct3.CLMULR, Funct7.CLMUL),
+    ],
     OpType.SRET: [
         Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.SRET, rd_zero=True, rs1_zero=True),  # sret
     ],
