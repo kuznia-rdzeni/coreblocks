@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685959027695,
+  "lastUpdate": 1686144127474,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -6849,6 +6849,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 438,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 864,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5608,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pazeraf@gmail.com",
+            "name": "Filip Pazera",
+            "username": "pa000"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "92439af1cd33c528137d1824e57dcbc25cfecc71",
+          "message": "Zbc functional unit (#294)",
+          "timestamp": "2023-06-07T15:15:23+02:00",
+          "tree_id": "b86c7b3dbdf4c1c28988f3374e5ae76d29224d48",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/92439af1cd33c528137d1824e57dcbc25cfecc71"
+        },
+        "date": 1686144126284,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.91,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 21538,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
             "unit": "LUT"
           },
           {
