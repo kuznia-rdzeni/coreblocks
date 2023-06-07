@@ -177,6 +177,11 @@ _instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.SH2ADD, Funct7.SH2ADD),
         Encoding(Opcode.OP, Funct3.SH3ADD, Funct7.SH3ADD),
     ],
+    OpType.CLMUL: [
+        Encoding(Opcode.OP, Funct3.CLMUL, Funct7.CLMUL),
+        Encoding(Opcode.OP, Funct3.CLMULH, Funct7.CLMUL),
+        Encoding(Opcode.OP, Funct3.CLMULR, Funct7.CLMUL),
+    ],
     OpType.SRET: [
         Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.SRET, rd_zero=True, rs1_zero=True),  # sret
     ],

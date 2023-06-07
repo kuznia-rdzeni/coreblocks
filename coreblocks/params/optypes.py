@@ -33,6 +33,7 @@ class OpType(IntEnum):
     DIV_REM = auto()
     SINGLE_BIT_MANIPULATION = auto()
     ADDRESS_GENERATION = auto()
+    CLMUL = auto()
     SRET = auto()
     SFENCEVMA = auto()
 
@@ -76,6 +77,9 @@ optypes_by_extensions = {
     ],
     Extension.ZBA: [
         OpType.ADDRESS_GENERATION,
+    ],
+    Extension.ZBC: [
+        OpType.CLMUL,
     ],
     Extension.XINTMACHINEMODE: [
         OpType.MRET,

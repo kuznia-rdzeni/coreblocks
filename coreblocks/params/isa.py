@@ -64,9 +64,9 @@ class Opcode(BitEnum, width=5):
 
 class Funct3(BitEnum, width=3):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
-    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = 0b001
-    W = SLT = CSRRS = MULHSU = SH1ADD = 0b010
-    SLTU = CSRRC = MULHU = 0b011
+    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLMUL = 0b001
+    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = 0b010
+    SLTU = CSRRC = MULHU = CLMULH = 0b011
     BLT = BU = XOR = DIV = DIVW = SH2ADD = 0b100
     BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = 0b101
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = 0b110
@@ -81,6 +81,7 @@ class Funct7(BitEnum, width=7):
     BCLR = BEXT = 0b0100100
     BINV = 0b0110100
     BSET = 0b0010100
+    CLMUL = 0b0000101
     SFENCEVMA = 0b0001001
 
 
