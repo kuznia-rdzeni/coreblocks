@@ -152,6 +152,12 @@ class ROBLayouts:
             ("exception", 1),
         ]
 
+        self.order_comparator_i = [
+            ("first_rob_id", gen_params.rob_entries_bits),
+            ("second_rob_id", gen_params.rob_entries_bits),
+        ]
+        self.order_comparator_o = [("less", 1)]
+
 
 class RSInterfaceLayouts:
     def __init__(self, gen_params: GenParams):
@@ -378,3 +384,8 @@ class CSRLayouts:
         retirement = gen_params.get(RetirementLayouts)
 
         self.precommit = retirement.precommit
+
+
+class ExceptionRegisterLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.report = [("cause", 32), ("rob_id", gen_params.rob_entries_bits)]
