@@ -4,9 +4,8 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from amaranth.utils import bits_for
+from amaranth.utils import bits_for, log2_int
 from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate, ModuleLike
-import math
 
 __all__ = [
     "AssignType",
@@ -306,9 +305,10 @@ def count_leading_zeros(s: Value) -> Value:
 
         return result
 
-    xlen_log = math.log2(float(len(s)))
-    if xlen_log != math.floor(xlen_log):
-        raise NotImplementedError("CountLeadingZeros - only sizes aligned to power of 2 are supperted")
+    try:
+        xlen_log = log2_int(len(s))
+    except ValueError:
+        raise NotImplementedError("CountTrailingZeros - only sizes aligned to power of 2 are supperted")
 
     xlen_log = int(xlen_log)
     value = iter(s, xlen_log)
@@ -323,8 +323,9 @@ def count_leading_zeros(s: Value) -> Value:
 
 
 def count_trailing_zeros(s: Value) -> Value:
-    xlen_log = math.log2(float(len(s)))
-    if xlen_log != math.floor(xlen_log):
+    try:
+        log2_int(len(s))
+    except ValueError:
         raise NotImplementedError("CountTrailingZeros - only sizes aligned to power of 2 are supperted")
 
     return count_leading_zeros(s[::-1])
