@@ -308,7 +308,7 @@ def count_leading_zeros(s: Value) -> Value:
     try:
         xlen_log = log2_int(len(s))
     except ValueError:
-        raise NotImplementedError("CountTrailingZeros - only sizes aligned to power of 2 are supperted")
+        raise NotImplementedError("CountLeadingZeros - only sizes aligned to power of 2 are supperted")
 
     xlen_log = int(xlen_log)
     value = iter(s, xlen_log)
