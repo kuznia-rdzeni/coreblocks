@@ -109,7 +109,7 @@ class InterruptCoordinator(Elaboratable):
 
         # will get called by FU that handles interrupt return opcodes on precommit
         # (guaranteeing that it happens after all previous instructions have retired)
-        @def_method(m, self.iret, ready=self.interrupt)
+        @def_method(m, self.iret)
         def _():
             m.d.sync += self.interrupt.eq(0)
 
