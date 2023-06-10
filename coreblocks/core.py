@@ -5,13 +5,14 @@ from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import BranchResolvedKey, ExceptionRegisterKey, InstructionPrecommitKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.csr_generic import GenericCSRRegisters
+from coreblocks.structs_common.exception import ExceptionCauseRegister
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
@@ -72,6 +73,9 @@ class Core(Elaboratable):
             rf_write_val=self.RF.write,
         )
 
+        self.exception_cause_register = ExceptionCauseRegister(self.gen_params)
+        connections.add_dependency(ExceptionRegisterKey(), self.exception_cause_register)
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -126,6 +130,8 @@ class Core(Elaboratable):
         )
 
         m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)
+
+        m.submodules.exception_cause_register = self.exception_cause_register
 
         # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
         free_rf_reg = Signal(self.gen_params.phys_regs_bits, reset=1)

@@ -6,7 +6,7 @@ from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.transactions.core import Priority, TModule, def_method, Method
 
 
-class Cause(BitEnum, width=31):
+class Cause(BitEnum, width=4):
     INSTRUCTION_ADDRESS_MISALIGNED = 0
     INSTRUCTION_ACCESS_FAULT = 1
     ILLEGAL_INSTRUCTION = 2
