@@ -152,11 +152,7 @@ class ROBLayouts:
             ("exception", 1),
         ]
 
-        self.order_comparator_i = [
-            ("first_rob_id", gen_params.rob_entries_bits),
-            ("second_rob_id", gen_params.rob_entries_bits),
-        ]
-        self.order_comparator_o = [("less", 1)]
+        self.get_indices = [("start", gen_params.rob_entries_bits), ("end", gen_params.rob_entries_bits)]
 
 
 class RSInterfaceLayouts:

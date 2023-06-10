@@ -14,7 +14,7 @@ class ReorderBuffer(Elaboratable):
         self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
         self.retire = Method(o=layouts.retire_layout)
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
-        self.order_comparator = Method(i=layouts.order_comparator_i, o=layouts.order_comparator_o)
+        self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
 
     def elaborate(self, platform):
         m = TModule()
@@ -52,8 +52,8 @@ class ReorderBuffer(Elaboratable):
             m.d.sync += self.data[rob_id].done.eq(1)
             m.d.sync += self.data[rob_id].exception.eq(exception)
 
-        @def_method(m, self.order_comparator)
-        def _(first_rob_id: Vaue, second_rob_id: Value) -> Value:
-            return (first_rob_id - start_idx) < (second_rob_id - start_idx)
+        @def_method(m, self.get_indices)
+        def _():
+            return {"start": start_idx, "end": end_idx}
 
         return m

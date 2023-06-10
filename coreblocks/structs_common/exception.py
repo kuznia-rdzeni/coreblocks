@@ -62,7 +62,7 @@ class ExceptionCauseRegister(Elaboratable):
 
         self.clear.add_conflict(self.report, Priority.LEFT)
 
-        self.rob_order_comparator = Method()
+        self.rob_get_indices = Method()
 
     def elaborate(self, platform):
         m = TModule()
@@ -74,8 +74,8 @@ class ExceptionCauseRegister(Elaboratable):
             with m.If(self.valid & (self.rob_id == rob_id)):
                 m.d.comb += should_write.eq(should_update_prioriy(m, current_cause=self.cause, new_cause=cause))
             with m.Elif(self.valid):
-                cmp_result = self.rob_order_comparator(m, first_rob_id=rob_id, second_rob_id=self.rob_id)
-                m.d.comb += should_write.eq(cmp_result.less)
+                rob_start_idx = self.rob_get_indices(m).start
+                m.d.comb += should_write.eq((rob_id - rob_start_idx) < (self.rob_id - rob_start_idx))
             with m.Else():
                 m.d.comb += should_write.eq(1)
 
