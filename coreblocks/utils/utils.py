@@ -310,7 +310,6 @@ def count_leading_zeros(s: Value) -> Value:
     except ValueError:
         raise NotImplementedError("CountLeadingZeros - only sizes aligned to power of 2 are supperted")
 
-    xlen_log = int(xlen_log)
     value = iter(s, xlen_log)
 
     # 0 number edge case

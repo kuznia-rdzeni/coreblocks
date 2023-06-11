@@ -243,7 +243,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
 class ALUComponent(FunctionalComponentParams):
     def __init__(self, zba_enable=False, zbb_enable=False):
         self.zba_enable = zba_enable
-        self.zba_enable = zbb_enable
+        self.zbb_enable = zbb_enable
         self.alu_fn = AluFn(zba_enable=zba_enable, zbb_enable=zbb_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
