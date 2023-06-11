@@ -114,9 +114,6 @@ class TransactionConflictTestCircuit(Elaboratable):
         m.submodules.out = self.out = TestbenchIO(adapter)
         m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
         m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
         return tm
 
 
@@ -239,10 +236,6 @@ class TransactionPriorityTestCircuit(PriorityTestCircuit):
 
         self.make_relations(transaction1, transaction2)
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         return m
 
 
@@ -268,10 +261,6 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
             method2(m)
 
         self.make_relations(method1, method2)
-
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
 
         return m
 
@@ -333,10 +322,6 @@ class NestedTransactionsTestCircuit(SchedulingTestCircuit):
                 with Transaction().body(m, request=self.r2):
                     m.d.comb += self.t2.eq(1)
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         return tm
 
 
@@ -362,10 +347,6 @@ class NestedMethodsTestCircuit(SchedulingTestCircuit):
 
             with Transaction().body(m):
                 method2(m)
-
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
 
         return tm
 
@@ -417,10 +398,6 @@ class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
                 m.d.comb += self.t2.eq(1)
 
             t1.schedule_before(t2)
-
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
 
         return tm
 

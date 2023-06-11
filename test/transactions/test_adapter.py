@@ -19,10 +19,6 @@ class Echo(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         @def_method(m, self.action, ready=C(1))
         def _(arg):
             return arg
@@ -41,10 +37,6 @@ class Consumer(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
 
         @def_method(m, self.action, ready=C(1))
         def _(arg):

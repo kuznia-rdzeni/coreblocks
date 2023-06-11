@@ -27,9 +27,6 @@ class TestDefMethod(TestCaseWithSimulator):
 
             def_method(m, self.method)(self.method_definition)
 
-            # so that Amaranth allows us to use add_clock
-            dummy = Signal()
-            m.d.sync += dummy.eq(1)
             return m
 
     def do_test_definition(self, definer):
@@ -302,9 +299,6 @@ class QuadrupleCircuit(Elaboratable):
 
         m.submodules.quadruple = self.quadruple
         m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(self.quadruple.quadruple))
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
 
         return m
 
@@ -355,10 +349,6 @@ class ConditionalCallCircuit(Elaboratable):
             with m.If(arg):
                 self.out.adapter.iface(m)
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         return m
 
 
@@ -375,9 +365,6 @@ class ConditionalMethodCircuit1(Elaboratable):
         def _(arg):
             pass
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
         return m
 
 
@@ -396,9 +383,6 @@ class ConditionalMethodCircuit2(Elaboratable):
             def _(arg):
                 pass
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
         return m
 
 
@@ -412,9 +396,6 @@ class ConditionalTransactionCircuit1(Elaboratable):
         with Transaction().body(m, request=self.ready):
             self.tb.adapter.iface(m)
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
         return m
 
 
@@ -429,9 +410,6 @@ class ConditionalTransactionCircuit2(Elaboratable):
             with Transaction().body(m):
                 self.tb.adapter.iface(m)
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
         return m
 
 
@@ -508,9 +486,6 @@ class NonexclusiveMethodCircuit(Elaboratable):
         m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method))
         m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method))
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
         return m
 
 

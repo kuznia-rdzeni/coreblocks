@@ -18,10 +18,6 @@ class OneHotSwitchCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         with OneHotSwitch(m, self.input) as OneHotCase:
             for i in range(len(self.input)):
                 with OneHotCase(1 << i):
