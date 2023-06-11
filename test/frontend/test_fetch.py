@@ -7,10 +7,11 @@ from amaranth.sim import Passive
 
 from coreblocks.transactions.core import Method
 from coreblocks.transactions.lib import AdapterTrans, FIFO, Adapter
-from coreblocks.frontend.fetch import Fetch
+from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from coreblocks.frontend.icache import ICacheInterface
-from coreblocks.params import GenParams, FetchLayouts, ICacheLayouts
+from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
+from coreblocks.utils import ModuleConnector
 from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock
 
 
@@ -86,7 +87,7 @@ class TestFetch(TestCaseWithSimulator):
                 is_branch = random.random() < 0.15
 
                 # exclude branches and jumps
-                data = random.randrange(2**self.gp.isa.ilen) & ~0b1110000
+                data = random.randrange(2**self.gp.isa.ilen) & ~0b1111111
 
                 # randomize being a branch instruction
                 if is_branch:
@@ -138,6 +139,117 @@ class TestFetch(TestCaseWithSimulator):
 
     def test(self):
         issue_req_mock, accept_res_mock, cache_process = self.cache_processes()
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(issue_req_mock)
+            sim.add_sync_process(accept_res_mock)
+            sim.add_sync_process(cache_process)
+            sim.add_sync_process(self.fetch_out_check)
+
+
+class TestUnalignedFetch(TestCaseWithSimulator):
+    def setUp(self) -> None:
+        self.gp = GenParams(test_core_config.replace(start_pc=0x18, compressed=True))
+        self.instr_queue = deque()
+        self.instructions = 500
+
+        self.icache = MockedICache(self.gp)
+        fifo = FIFO(self.gp.get(FetchLayouts).raw_instr, depth=2)
+        self.io_out = TestbenchIO(AdapterTrans(fifo.read))
+        fetch = UnalignedFetch(self.gp, self.icache, fifo.write)
+        self.verify_branch = TestbenchIO(AdapterTrans(fetch.verify_branch))
+
+        self.m = ModuleConnector(self.icache, fifo, self.io_out, fetch, self.verify_branch)
+
+        self.mem = {}
+
+        random.seed(422)
+
+    def gen_instr_seq(self):
+        pc = self.gp.start_pc
+
+        for _ in range(self.instructions):
+            is_branch = random.random() < 0.15
+            is_rvc = random.random() < 0.5
+            branch_target = random.randrange(2**self.gp.isa.ilen) & ~0b1
+
+            if is_rvc:
+                data = (random.randrange(11) << 2) | 0b01  # C.ADDI
+                if is_branch:
+                    data = data | (0b101 << 13)  # make it C.J
+
+                self.mem[pc] = data
+            else:
+                data = random.randrange(2**self.gp.isa.ilen) & ~0b1111111
+                data |= 0b11  # 2 lowest bits must be set in 32-bit long instructions
+                if is_branch:
+                    data |= 0b1100000
+
+                self.mem[pc] = data & 0xFFFF
+                self.mem[pc + 2] = data >> 16
+
+            next_pc = pc + (2 if is_rvc else 4)
+            if is_branch:
+                next_pc = branch_target
+
+            self.instr_queue.append(
+                {
+                    "pc": pc,
+                    "is_branch": is_branch,
+                    "next_pc": next_pc,
+                }
+            )
+
+            pc = next_pc
+
+    def cache_processes(self):
+        input_q = deque()
+        output_q = deque()
+
+        def cache_process():
+            yield Passive()
+
+            while True:
+                while len(input_q) == 0:
+                    yield
+
+                while random.random() < 0.5:
+                    yield
+
+                req_addr = input_q.popleft()
+
+                def get_mem_or_random(addr):
+                    return self.mem[addr] if addr in self.mem else random.randrange(2**16)
+
+                data = (get_mem_or_random(req_addr + 2) << 16) | get_mem_or_random(req_addr)
+
+                output_q.append({"instr": data, "error": 0})
+
+        @def_method_mock(lambda: self.icache.issue_req_io, enable=lambda: len(input_q) < 2, sched_prio=1)
+        def issue_req_mock(addr):
+            input_q.append(addr)
+
+        @def_method_mock(lambda: self.icache.accept_res_io, enable=lambda: len(output_q) > 0)
+        def accept_res_mock():
+            return output_q.popleft()
+
+        return issue_req_mock, accept_res_mock, cache_process
+
+    def fetch_out_check(self):
+        while self.instr_queue:
+            instr = self.instr_queue.popleft()
+            if instr["is_branch"]:
+                for _ in range(random.randrange(10)):
+                    yield
+                yield from self.verify_branch.call(next_pc=instr["next_pc"])
+
+            v = yield from self.io_out.call()
+            self.assertEqual(v["pc"], instr["pc"])
+
+    def test(self):
+        issue_req_mock, accept_res_mock, cache_process = self.cache_processes()
+
+        self.gen_instr_seq()
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(issue_req_mock)

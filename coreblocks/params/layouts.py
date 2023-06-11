@@ -51,6 +51,7 @@ class SchedulerLayouts:
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
+            ("rvc", 1),
         ]
         self.reg_alloc_out = self.renaming_in = [
             ("opcode", Opcode),
@@ -61,6 +62,7 @@ class SchedulerLayouts:
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
+            ("rvc", 1),
         ]
         self.renaming_out = self.rob_allocate_in = [
             ("opcode", Opcode),
@@ -77,6 +79,7 @@ class SchedulerLayouts:
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
+            ("rvc", 1),
         ]
         self.rob_allocate_out = self.rs_select_in = [
             ("opcode", Opcode),
@@ -87,6 +90,7 @@ class SchedulerLayouts:
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
+            ("rvc", 1),
         ]
         self.rs_select_out = self.rs_insert_in = [
             ("opcode", Opcode),
@@ -99,6 +103,7 @@ class SchedulerLayouts:
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
+            ("rvc", 1),
         ]
         self.free_rf_layout = [("reg_id", gen_params.phys_regs_bits)]
 
@@ -162,6 +167,7 @@ class RSInterfaceLayouts:
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
+            ("rvc", 1),
         ]
 
         self.select_out = [("rs_entry_id", rs_entries_bits)]
@@ -194,6 +200,7 @@ class RSLayouts:
                 "s2_val",
                 "imm",
                 "pc",
+                "rvc",
             },
         )
 
@@ -215,6 +222,7 @@ class RSLayouts:
                 "exec_fn",
                 "imm",
                 "pc",
+                "rvc",
             },
         )
 
@@ -249,6 +257,7 @@ class FetchLayouts:
         self.raw_instr = [
             ("data", gen_params.isa.ilen),
             ("pc", gen_params.isa.xlen),
+            ("rvc", 1),
         ]
 
         self.branch_verify = [
@@ -268,6 +277,7 @@ class DecodeLayouts:
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
+            ("rvc", 1),
         ]
 
 
@@ -283,6 +293,7 @@ class FuncUnitLayouts:
             ("exec_fn", common.exec_fn),
             ("imm", gen_params.isa.xlen),
             ("pc", gen_params.isa.xlen),
+            ("rvc", 1),
         ]
 
         self.accept = [

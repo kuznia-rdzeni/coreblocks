@@ -100,6 +100,7 @@ full_core_config = CoreConfiguration(
         LSUBlockComponent(),
         CSRBlockComponent(),
     ),
+    compressed=True,
 )
 
 # Core configuration used in internal testbenches

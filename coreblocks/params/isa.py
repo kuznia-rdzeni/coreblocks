@@ -1,6 +1,9 @@
 from itertools import takewhile
 from enum import unique, Enum, IntFlag, auto
+from abc import abstractmethod, ABC
 from amaranth.hdl.ast import Const, ValueCastable
+from coreblocks.utils import ValueLike
+from amaranth import *
 
 __all__ = [
     "InstrType",
@@ -12,6 +15,15 @@ __all__ = [
     "FenceTarget",
     "FenceFm",
     "ISA",
+    "Registers",
+    "RTypeInstr",
+    "ITypeInstr",
+    "STypeInstr",
+    "BTypeInstr",
+    "UTypeInstr",
+    "JTypeInstr",
+    "IllegalInstr",
+    "EBreakInstr",
 ]
 
 
@@ -48,17 +60,20 @@ class BitEnum(ValueCastableHack, Enum):
 
 @unique
 class Opcode(BitEnum, width=5):
-    OP_IMM = 0b00100
-    LUI = 0b01101
-    AUIPC = 0b00101
-    OP = 0b01100
-    OP32 = 0b01110
-    JAL = 0b11011
-    JALR = 0b11001
-    BRANCH = 0b11000
     LOAD = 0b00000
-    STORE = 0b01000
+    LOAD_FP = 0b00001
     MISC_MEM = 0b00011
+    OP_IMM = 0b00100
+    AUIPC = 0b00101
+    OP_IMM_32 = 0b00110
+    STORE = 0b01000
+    STORE_FP = 0b01001
+    OP = 0b01100
+    LUI = 0b01101
+    OP32 = 0b01110
+    BRANCH = 0b11000
+    JALR = 0b11001
+    JAL = 0b11011
     SYSTEM = 0b11100
 
 
@@ -66,7 +81,7 @@ class Funct3(BitEnum, width=3):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
     BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLMUL = 0b001
     W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = 0b010
-    SLTU = CSRRC = MULHU = CLMULH = 0b011
+    D = SLTU = CSRRC = MULHU = CLMULH = 0b011
     BLT = BU = XOR = DIV = DIVW = SH2ADD = 0b100
     BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = 0b101
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = 0b110
@@ -91,6 +106,41 @@ class Funct12(BitEnum, width=12):
     SRET = 0b000100000010
     MRET = 0b001100000010
     WFI = 0b000100000101
+
+
+class Registers(BitEnum, width=5):
+    X0 = ZERO = 0b00000  # hardwired zero
+    X1 = RA = 0b00001  # return address
+    X2 = SP = 0b00010  # stack pointer
+    X3 = GP = 0b00011  # global pointer
+    X4 = TP = 0b00100  # thread pointer
+    X5 = T0 = 0b00101  # temporary register 0
+    X6 = T1 = 0b00110  # temporary register 1
+    X7 = T2 = 0b00111  # temporary register 2
+    X8 = S0 = FP = 0b01000  # saved register 0 / frame pointer
+    X9 = S1 = 0b01001  # saved register 1
+    X10 = A0 = 0b01010  # function argument 0 / return value 0
+    X11 = A1 = 0b01011  # function argument 1 / return value 1
+    X12 = A2 = 0b01100  # function argument 2
+    X13 = A3 = 0b01101  # function argument 3
+    X14 = A4 = 0b01110  # function argument 4
+    X15 = A5 = 0b01111  # function argument 5
+    X16 = A6 = 0b10000  # function argument 6
+    X17 = A7 = 0b10001  # function argument 7
+    X18 = S2 = 0b10010  # saved register 2
+    X19 = S3 = 0b10011  # saved register 3
+    X20 = S4 = 0b10100  # saved register 4
+    X21 = S5 = 0b10101  # saved register 5
+    X22 = S6 = 0b10110  # saved register 6
+    X23 = S7 = 0b10111  # saved register 7
+    X24 = S8 = 0b11000  # saved register 8
+    X25 = S9 = 0b11001  # saved register 9
+    X26 = S10 = 0b11010  # saved register 10
+    X27 = S11 = 0b11011  # saved register 11
+    X28 = T3 = 0b11100  # temporary register 3
+    X29 = T4 = 0b11101  # temporary register 4
+    X30 = T5 = 0b11110  # temporary register 5
+    X31 = T6 = 0b11111  # temporary register 6
 
 
 @unique
@@ -316,6 +366,121 @@ class ISA:
         self.ilen_log = self.ilen.bit_length() - 1
 
         self.csr_alen = 12
+
+    def has_extension(self, extension: Extension) -> bool:
+        return self.extensions & extension
+
+
+class RISCVInstr(ABC, ValueCastable):
+    @abstractmethod
+    def pack(self) -> Value:
+        pass
+
+    @ValueCastable.lowermethod
+    def as_value(self):
+        return self.pack()
+
+
+class RTypeInstr(RISCVInstr):
+    def __init__(
+        self,
+        opcode: ValueLike,
+        rd: ValueLike,
+        funct3: ValueLike,
+        rs1: ValueLike,
+        rs2: ValueLike,
+        funct7: ValueLike,
+    ):
+        self.opcode = Value.cast(opcode)
+        self.rd = Value.cast(rd)
+        self.funct3 = Value.cast(funct3)
+        self.rs1 = Value.cast(rs1)
+        self.rs2 = Value.cast(rs2)
+        self.funct7 = Value.cast(funct7)
+
+    def pack(self) -> Value:
+        return Cat(Repl(1, 2), self.opcode, self.rd, self.funct3, self.rs1, self.rs2, self.funct7)
+
+
+class ITypeInstr(RISCVInstr):
+    def __init__(self, opcode: ValueLike, rd: ValueLike, funct3: ValueLike, rs1: ValueLike, imm: ValueLike):
+        self.opcode = Value.cast(opcode)
+        self.rd = Value.cast(rd)
+        self.funct3 = Value.cast(funct3)
+        self.rs1 = Value.cast(rs1)
+        self.imm = Value.cast(imm)
+
+    def pack(self) -> Value:
+        return Cat(Repl(1, 2), self.opcode, self.rd, self.funct3, self.rs1, self.imm)
+
+
+class STypeInstr(RISCVInstr):
+    def __init__(self, opcode: ValueLike, imm: ValueLike, funct3: ValueLike, rs1: ValueLike, rs2: ValueLike):
+        self.opcode = Value.cast(opcode)
+        self.imm = Value.cast(imm)
+        self.funct3 = Value.cast(funct3)
+        self.rs1 = Value.cast(rs1)
+        self.rs2 = Value.cast(rs2)
+
+    def pack(self) -> Value:
+        return Cat(Repl(1, 2), self.opcode, self.imm[0:5], self.funct3, self.rs1, self.rs2, self.imm[5:12])
+
+
+class BTypeInstr(RISCVInstr):
+    def __init__(self, opcode: ValueLike, imm: ValueLike, funct3: ValueLike, rs1: ValueLike, rs2: ValueLike):
+        self.opcode = Value.cast(opcode)
+        self.imm = Value.cast(imm)
+        self.funct3 = Value.cast(funct3)
+        self.rs1 = Value.cast(rs1)
+        self.rs2 = Value.cast(rs2)
+
+    def pack(self) -> Value:
+        return Cat(
+            Repl(1, 2),
+            self.opcode,
+            self.imm[11],
+            self.imm[1:5],
+            self.funct3,
+            self.rs1,
+            self.rs2,
+            self.imm[5:11],
+            self.imm[12],
+        )
+
+
+class UTypeInstr(RISCVInstr):
+    def __init__(self, opcode: ValueLike, rd: ValueLike, imm: ValueLike):
+        self.opcode = Value.cast(opcode)
+        self.rd = Value.cast(rd)
+        self.imm = Value.cast(imm)
+
+    def pack(self) -> Value:
+        return Cat(Repl(1, 2), self.opcode, self.rd, self.imm[12:])
+
+
+class JTypeInstr(RISCVInstr):
+    def __init__(self, opcode: ValueLike, rd: ValueLike, imm: ValueLike):
+        self.opcode = Value.cast(opcode)
+        self.rd = Value.cast(rd)
+        self.imm = Value.cast(imm)
+
+    def pack(self) -> Value:
+        return Cat(Repl(1, 2), self.opcode, self.rd, self.imm[12:20], self.imm[11], self.imm[1:11], self.imm[20])
+
+
+class IllegalInstr(RISCVInstr):
+    def __init__(self):
+        pass
+
+    def pack(self) -> Value:
+        return Repl(1, 32)
+
+
+class EBreakInstr(ITypeInstr):
+    def __init__(self):
+        super().__init__(
+            opcode=Opcode.SYSTEM, rd=Registers.ZERO, funct3=Funct3.PRIV, rs1=Registers.ZERO, imm=Funct12.EBREAK
+        )
 
 
 def gen_isa_string(extensions: Extension, isa_xlen: int, *, skip_internal: bool = False) -> str:

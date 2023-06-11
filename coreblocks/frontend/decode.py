@@ -2,6 +2,7 @@ from amaranth import *
 from ..transactions import Method, Transaction, TModule
 from ..params import GenParams
 from .decoder import InstrDecoder
+from coreblocks.params import *
 
 
 class Decode(Elaboratable):
@@ -37,7 +38,8 @@ class Decode(Elaboratable):
 
         with Transaction().body(m):
             raw = self.get_raw(m)
-            m.d.comb += instr_decoder.instr.eq(raw.data)
+
+            m.d.top_comb += instr_decoder.instr.eq(raw.data)
 
             self.push_decoded(
                 m,
@@ -59,6 +61,7 @@ class Decode(Elaboratable):
                     "imm": instr_decoder.imm,
                     "csr": instr_decoder.csr,
                     "pc": raw.pc,
+                    "rvc": raw.rvc,
                 },
             )
 
