@@ -368,7 +368,7 @@ class ISA:
         self.csr_alen = 12
 
     def has_extension(self, extension: Extension) -> bool:
-        return self.extensions & extension
+        return (self.extensions & extension) > 0
 
 
 class RISCVInstr(ABC, ValueCastable):

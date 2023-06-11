@@ -121,7 +121,7 @@ class UnalignedFetch(Elaboratable):
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform) -> TModule:
         m = TModule()
 
         m.submodules.req_limiter = req_limiter = Semaphore(2)

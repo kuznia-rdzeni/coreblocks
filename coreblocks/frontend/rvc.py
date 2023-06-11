@@ -31,7 +31,7 @@ class InstrDecompress(Elaboratable):
     def decompr_reg(self, rvc_reg: Value) -> Value:
         return Cat(rvc_reg, C(0b01, 2))
 
-    def instr_mux(self, sel: Value, inputs: list[DecodedInstr]) -> DecodedInstr:
+    def instr_mux(self, sel: Value, inputs: list[DecodedInstr]) -> tuple[ValueLike, ValueLike]:
         if 2 ** len(sel) != len(inputs):
             raise RuntimeError(
                 f"Length of inputs ({len(inputs)}) is not equal to two to the power of length of sel ({len(sel)})"
@@ -176,9 +176,15 @@ class InstrDecompress(Elaboratable):
         rtype = self.instr_mux(self.instr_in[5:7], [sub, xor, or_, and_])
 
         if self.gen.isa.xlen != 32:
-            subw = RTypeInstr(opcode=Opcode.OP32, rd=rd_rs1, funct3=Funct3.SUB, rs1=rd_rs1, rs2=rs2, funct7=Funct3.SUB)
-            addw = RTypeInstr(opcode=Opcode.OP32, rd=rd_rs1, funct3=Funct3.ADD, rs1=rd_rs1, rs2=rs2, funct7=Funct3.ADD)
-            w = (self.instr_mux(self.instr_in[5], [subw, addw]), ~self.instr_in[6])  # TODO: check here mux
+            subw = (
+                RTypeInstr(opcode=Opcode.OP32, rd=rd_rs1, funct3=Funct3.SUB, rs1=rd_rs1, rs2=rs2, funct7=Funct3.SUB),
+                ~self.instr_in[6],
+            )
+            addw = (
+                RTypeInstr(opcode=Opcode.OP32, rd=rd_rs1, funct3=Funct3.ADD, rs1=rd_rs1, rs2=rs2, funct7=Funct3.ADD),
+                ~self.instr_in[6],
+            )
+            w = self.instr_mux(self.instr_in[5], [subw, addw])
 
             rtype = self.instr_mux(self.instr_in[12], [rtype, w])
 
@@ -186,7 +192,7 @@ class InstrDecompress(Elaboratable):
             addi,
             jal if self.gen.isa.xlen == 32 else addiw,
             li,
-            self.instr_mux(rd == Registers.SP, [liu, addi16sp]),  # TODO: check here mux
+            self.instr_mux(rd == Registers.SP, [liu, addi16sp]),
             self.instr_mux(self.instr_in[10:12], [srli, srai, andi, rtype]),
             j,
             beqz,
@@ -270,7 +276,9 @@ class InstrDecompress(Elaboratable):
         funct3 = self.instr_in[13:16]
         quadrant = self.instr_in[0:2]
 
-        quadrants = [self.instr_mux(funct3, q) for q in [self._quadrant_0(), self._quadrant_1(), self._quadrant_2()]]
+        quadrants: list[DecodedInstr] = [
+            self.instr_mux(funct3, q) for q in [self._quadrant_0(), self._quadrant_1(), self._quadrant_2()]
+        ]
 
         # Quadrant 3 is reserved for longer (>16bit) instructions
         quadrants.append((IllegalInstr(), 0))

@@ -126,7 +126,7 @@ class Semaphore(Elaboratable):
         self.clear.add_conflict(self.acquire, Priority.LEFT)
         self.clear.add_conflict(self.release, Priority.LEFT)
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform) -> TModule:
         m = TModule()
 
         m.d.comb += self.release_ready.eq(self.count > 0)
