@@ -325,10 +325,6 @@ class InstrDecoder(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        # XXX: we always assume the synchronous domain to be present.
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         extensions = self.gen.isa.extensions
         supported_encodings: set[Encoding] = set()
         encoding_to_optype: dict[Encoding, OpType] = dict()
