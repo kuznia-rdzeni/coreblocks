@@ -1,5 +1,5 @@
 
-def simulate_divide(a:int, b:int) -> tuple[int, int]:
+def stage4(a:int, b:int) -> tuple[int, int]:
     def stage(a:int, b:int) -> tuple[int, int]:
         if a >= b:
             return (a - b), 1
@@ -16,4 +16,4 @@ def simulate_divide(a:int, b:int) -> tuple[int, int]:
     return q, r0
 
 
-print(simulate_divide(1, -1))
+print(stage4(1, -1))

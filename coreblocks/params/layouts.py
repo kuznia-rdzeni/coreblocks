@@ -304,6 +304,18 @@ class UnsignedMulUnitLayouts:
         ]
 
 
+class DivUnitLayouts:
+    def __init__(self, gen: GenParams):
+        self.issue = [
+            ("dividend", gen.isa.xlen),
+            ("divisor", gen.isa.xlen),
+        ]
+
+        self.accept = [
+            ("quotient", gen.isa.xlen),
+            ("reminder", gen.isa.xlen),
+        ]
+
 class LSULayouts:
     def __init__(self, gen_params: GenParams):
         self.rs_entries_bits = 0

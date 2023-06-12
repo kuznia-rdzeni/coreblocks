@@ -4,8 +4,6 @@ from dataclasses import KW_ONLY, dataclass
 
 from amaranth import *
 
-from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
-from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
@@ -17,7 +15,7 @@ from coreblocks.fu.fu_decoder import DecoderManager
 
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
-
+from coreblocks.fu.divison.long_division import LongDivider
 
 class DivFn(DecoderManager):
     class Fn(IntFlag):
@@ -86,13 +84,10 @@ class DivUnit(FuncUnit, Elaboratable):
         m.submodules.decoder = decoder = self.div_fn.get_decoder(self.gen_params)
 
         # Selecting unsigned integer multiplication module
-        m.submodules.divider = divider = ShiftUnsignedMul(self.gen_params)
+        m.submodules.divider = divider = LongDivider(self.gen_params)
 
         xlen = self.gen_params.isa.xlen
         sign_bit = xlen - 1  # position of sign bit
-        # Prepared for RV64
-        #
-        # half_sign_bit = xlen // 2 - 1  # position of sign bit considering only half of input being used
 
         @def_method(m, self.accept)
         def _():
@@ -137,23 +132,20 @@ class DivUnit(FuncUnit, Elaboratable):
 
             params_fifo.write(m, rob_id=arg.rob_id, rp_dst=arg.rp_dst, negative_res=negative_res, high_res=rem_res)
 
-            divider.issue(m, i1=value1, i2=value2)
+            divider.issue(m, dividend=value1, divisor=value2)
 
         with Transaction().body(m):
             response = divider.accept(m)  # get result from unsigned multiplier
             params = params_fifo.read(m)
-            sign_result = Mux(params.negative_res, -response.o, response.o)  # changing sign of result
+            sign_result = Mux(params.negative_res, -response.quotient, response.quotient)  # changing sign of result
             result = Mux(params.high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 
             result_fifo.write(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst)
 
         return m
 
-
-@dataclass(frozen=True)
-class MulComponent(FunctionalComponentParams):
+class DivComponent(FunctionalComponentParams):
     _: KW_ONLY
-    dsp_width: int = 32
     div_fn = DivFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
