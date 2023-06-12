@@ -4,7 +4,9 @@ from ..common import TestCaseWithSimulator
 
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from coreblocks.frontend.decoder import InstrDecoder
+from coreblocks.frontend.decoder import InstrDecoder, Encoding, _instructions_by_optype
+from unittest import TestCase
+from typing import Optional
 
 
 class TestDecoder(TestCaseWithSimulator):
@@ -263,3 +265,34 @@ class TestDecoder(TestCaseWithSimulator):
     def test_zbb(self):
         for test in self.DECODER_TESTS_ZBB:
             self.do_test(test)
+
+
+class TestEncodingUniqueness(TestCase):
+    def test_uniqueness(self):
+        def instruction_code(instr: Encoding) -> tuple[int, int, int]:
+            def funct7_of_funct12(code: Optional[Funct12]) -> int:
+                if code is None:
+                    return 0
+                else:
+                    return int(code) & 0xFE0
+
+            op_code = int(instr.opcode)
+            funct3 = int(instr.funct3) if instr.funct3 is not None else 0
+            funct7 = int(instr.funct7) if instr.funct7 is not None else funct7_of_funct12(instr.funct12)
+
+            return (op_code, funct3, funct7)
+
+        for ext in _instructions_by_optype:
+            known_codes: set[tuple[int, int, int]] = set()
+
+            for instruction in _instructions_by_optype[OpType.UNARY_BIT_MANIPULATION_4]:
+                code = instruction_code(instruction)
+
+                self.assertNotIn(
+                    code,
+                    known_codes,
+                    f"Instruction is not unique: OpType={str(ext)} "
+                    f"Funct3={instruction.funct3} Funct7={instruction.funct7} Funct12={instruction.funct12}",
+                )
+
+                known_codes.add(code)
