@@ -274,7 +274,7 @@ class TestEncodingUniqueness(TestCase):
                 if code is None:
                     return 0
                 else:
-                    return int(code) & 0xFE0
+                    return (int(code) & 0xFE0) >> 5
 
             op_code = int(instr.opcode)
             funct3 = int(instr.funct3) if instr.funct3 is not None else 0
