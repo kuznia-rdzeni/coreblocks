@@ -285,7 +285,7 @@ class TestEncodingUniqueness(TestCase):
         for ext in _instructions_by_optype:
             known_codes: set[tuple[int, int, int]] = set()
 
-            for instruction in _instructions_by_optype[OpType.UNARY_BIT_MANIPULATION_4]:
+            for instruction in _instructions_by_optype[ext]:
                 code = instruction_code(instruction)
 
                 self.assertNotIn(
