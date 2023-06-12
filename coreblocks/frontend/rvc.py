@@ -49,7 +49,7 @@ class InstrDecompress(Elaboratable):
         addi4spn_imm = Cat(
             Repl(0, 2), self.instr_in[6], self.instr_in[5], self.instr_in[11:13], self.instr_in[7:11], Repl(0, 2)
         )
-        lsd_imm = Cat(Repl(0, 3), self.instr_in[10:13], self.instr_in[5:8], Repl(0, 4))
+        lsd_imm = Cat(Repl(0, 3), self.instr_in[10:13], self.instr_in[5:7], Repl(0, 4))
         lsw_imm = Cat(Repl(0, 2), self.instr_in[6], self.instr_in[10:13], self.instr_in[5], Repl(0, 5))
 
         addi4spn = (
@@ -187,6 +187,8 @@ class InstrDecompress(Elaboratable):
             w = self.instr_mux(self.instr_in[5], [subw, addw])
 
             rtype = self.instr_mux(self.instr_in[12], [rtype, w])
+        else:
+            rtype = (rtype[0], rtype[1] & ~self.instr_in[12])
 
         return [
             addi,
