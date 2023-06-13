@@ -146,11 +146,32 @@ class TestDecoder(TestCaseWithSimulator):
         # SFENCE.VMA
         InstrTest(0x12208073, Opcode.SYSTEM, Funct3.PRIV, Funct7.SFENCEVMA, rs1=1, rs2=2, op=OpType.SFENCEVMA),
     ]
+    DECODER_TESTS_ZBB = [
+        InstrTest(
+            0x60201013,
+            Opcode.OP_IMM,
+            Funct3.CPOP,
+            funct12=Funct12.CPOP,
+            rd=0,
+            rs1=0,
+            op=OpType.UNARY_BIT_MANIPULATION_5,
+        ),
+        InstrTest(0x40007033, Opcode.OP, Funct3.ANDN, Funct7.ANDN, rd=0, rs1=0, rs2=0, op=OpType.BIT_MANIPULATION),
+        InstrTest(
+            0x60411093,
+            Opcode.OP_IMM,
+            Funct3.SEXTB,
+            funct12=Funct12.SEXTB,
+            rd=1,
+            rs1=2,
+            op=OpType.UNARY_BIT_MANIPULATION_1,
+        ),
+    ]
 
     def setUp(self):
         gen = GenParams(
             test_core_config.replace(
-                _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR
+                _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR | Extension.ZBB
             )
         )
         self.decoder = InstrDecoder(gen)
@@ -237,4 +258,8 @@ class TestDecoder(TestCaseWithSimulator):
 
     def test_xintsupervisor(self):
         for test in self.DECODER_TESTS_XINTSUPERVISOR:
+            self.do_test(test)
+
+    def test_zbb(self):
+        for test in self.DECODER_TESTS_ZBB:
             self.do_test(test)
