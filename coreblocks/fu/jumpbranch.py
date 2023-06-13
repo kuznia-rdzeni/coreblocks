@@ -18,7 +18,6 @@ __all__ = ["JumpBranchFuncUnit", "JumpComponent"]
 
 
 class JumpBranchFn(DecoderManager):
-    @unique
     class Fn(IntFlag):
         JAL = auto()
         JALR = auto()
@@ -30,27 +29,26 @@ class JumpBranchFn(DecoderManager):
         BGE = auto()
         BGEU = auto()
 
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
+    def get_instructions(self) -> Sequence[tuple]:
         return [
-            (cls.Fn.BEQ, OpType.BRANCH, Funct3.BEQ),
-            (cls.Fn.BNE, OpType.BRANCH, Funct3.BNE),
-            (cls.Fn.BLT, OpType.BRANCH, Funct3.BLT),
-            (cls.Fn.BLTU, OpType.BRANCH, Funct3.BLTU),
-            (cls.Fn.BGE, OpType.BRANCH, Funct3.BGE),
-            (cls.Fn.BGEU, OpType.BRANCH, Funct3.BGEU),
-            (cls.Fn.JAL, OpType.JAL),
-            (cls.Fn.JALR, OpType.JALR, Funct3.JALR),
-            (cls.Fn.AUIPC, OpType.AUIPC),
+            (self.Fn.BEQ, OpType.BRANCH, Funct3.BEQ),
+            (self.Fn.BNE, OpType.BRANCH, Funct3.BNE),
+            (self.Fn.BLT, OpType.BRANCH, Funct3.BLT),
+            (self.Fn.BLTU, OpType.BRANCH, Funct3.BLTU),
+            (self.Fn.BGE, OpType.BRANCH, Funct3.BGE),
+            (self.Fn.BGEU, OpType.BRANCH, Funct3.BGEU),
+            (self.Fn.JAL, OpType.JAL),
+            (self.Fn.JALR, OpType.JALR, Funct3.JALR),
+            (self.Fn.AUIPC, OpType.AUIPC),
         ]
 
 
 class JumpBranch(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, fn=JumpBranchFn()):
         self.gen_params = gen_params
 
         xlen = gen_params.isa.xlen
-        self.fn = JumpBranchFn.get_function()
+        self.fn = fn.get_function()
         self.in1 = Signal(xlen)
         self.in2 = Signal(xlen)
         self.in_pc = Signal(xlen)
@@ -62,16 +60,21 @@ class JumpBranch(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        branch_target = Signal(self.gen_params.isa.xlen)
+
         # Spec: "The 12-bit B-immediate encodes signed offsets in multiples of 2,
         # and is added to the current pc to give the target address."
-        branch_target = self.in_pc + self.in_imm[:12].as_signed()
+        # Multiplies of 2 are converted to the real offset in the decode stage, so we have 13 bits.
+        m.d.comb += branch_target.eq(self.in_pc + self.in_imm[:13].as_signed())
+
         m.d.comb += self.reg_res.eq(self.in_pc + 4)
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(JumpBranchFn.Fn.JAL):
                 # Spec: "[...] the J-immediate encodes a signed offset in multiples of 2 bytes.
                 # The offset is sign-extended and added to the pc to form the jump target address."
-                m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm[:20].as_signed())
+                # Multiplies of 2 are converted to the real offset in the decode stage, so we have 21 bits.
+                m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm[:21].as_signed())
                 m.d.comb += self.taken.eq(1)
             with OneHotCase(JumpBranchFn.Fn.JALR):
                 # Spec: "The target address is obtained by adding the 12-bit signed I-immediate
@@ -110,10 +113,8 @@ class JumpBranch(Elaboratable):
         return m
 
 
-class JumpBranchFuncUnit(Elaboratable):
-    optypes = JumpBranchFn.get_op_types()
-
-    def __init__(self, gen: GenParams):
+class JumpBranchFuncUnit(FuncUnit, Elaboratable):
+    def __init__(self, gen: GenParams, jb_fn=JumpBranchFn()):
         self.gen = gen
 
         layouts = gen.get(FuncUnitLayouts)
@@ -122,13 +123,15 @@ class JumpBranchFuncUnit(Elaboratable):
         self.accept = Method(o=layouts.accept)
         self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
 
-    def elaborate(self, platform):
-        m = Module()
+        self.jb_fn = jb_fn
 
-        m.submodules.jb = jb = JumpBranch(self.gen)
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
-        m.submodules.decoder = decoder = JumpBranchFn.get_decoder(self.gen)
+        m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
 
         @def_method(m, self.accept)
         def _():
@@ -152,17 +155,20 @@ class JumpBranchFuncUnit(Elaboratable):
 
             # skip writing next branch target for auipc
             with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):
-                fifo_branch.write(m, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res))
+                fifo_branch.write(m, from_pc=jb.in_pc, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res))
 
         return m
 
 
 class JumpComponent(FunctionalComponentParams):
+    def __init__(self):
+        self.jb_fn = JumpBranchFn()
+
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = JumpBranchFuncUnit(gen_params)
+        unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
         connections = gen_params.get(DependencyManager)
         connections.add_dependency(BranchResolvedKey(), unit.branch_result)
         return unit
 
     def get_optypes(self) -> set[OpType]:
-        return JumpBranchFuncUnit.optypes
+        return self.jb_fn.get_op_types()

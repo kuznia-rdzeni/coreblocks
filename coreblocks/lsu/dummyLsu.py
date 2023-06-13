@@ -1,9 +1,10 @@
 from amaranth import *
 
-from coreblocks.transactions import Method, def_method, Transaction, Priority
+
+from coreblocks.transactions import Method, def_method, Transaction, TModule, Priority
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
-from coreblocks.utils import assign
+from coreblocks.utils import assign, ModuleLike
 from coreblocks.utils.protocols import FuncBlock
 
 
@@ -53,7 +54,7 @@ class LSUDummyInternals(Elaboratable):
         """Calculate Load/Store address as defined by RiscV spec"""
         return self.current_instr.s1_val + self.current_instr.imm
 
-    def prepare_bytes_mask(self, m: Module, addr: Signal) -> Signal:
+    def prepare_bytes_mask(self, m: ModuleLike, addr: Signal) -> Signal:
         mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
         mask = Signal(mask_len)
         with m.Switch(self.current_instr.exec_fn.funct3):
@@ -65,7 +66,7 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += mask.eq(0xF)
         return mask
 
-    def postprocess_load_data(self, m: Module, raw_data: Signal, addr: Signal):
+    def postprocess_load_data(self, m: ModuleLike, raw_data: Signal, addr: Signal):
         data = Signal.like(raw_data)
         with m.Switch(self.current_instr.exec_fn.funct3):
             with m.Case(Funct3.B, Funct3.BU):
@@ -86,7 +87,7 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += data.eq(raw_data)
         return data
 
-    def prepare_data_to_save(self, m: Module, raw_data: Signal, addr: Signal):
+    def prepare_data_to_save(self, m: ModuleLike, raw_data: Signal, addr: Signal):
         data = Signal.like(raw_data)
         with m.Switch(self.current_instr.exec_fn.funct3):
             with m.Case(Funct3.B):
@@ -97,7 +98,7 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += data.eq(raw_data)
         return data
 
-    def op_init(self, m: Module, op_initiated: Signal, is_store: bool):
+    def op_init(self, m: TModule, op_initiated: Signal, is_store: bool):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
 
@@ -115,7 +116,7 @@ class LSUDummyInternals(Elaboratable):
             self.bus.request(m, req)
             m.d.sync += op_initiated.eq(1)
 
-    def op_end(self, m: Module, op_initiated: Signal, is_store: bool):
+    def op_end(self, m: TModule, op_initiated: Signal, is_store: bool):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
 
@@ -144,7 +145,7 @@ class LSUDummyInternals(Elaboratable):
         def check_if_instr_is_load(current_instr: Record) -> Value:
             return current_instr.exec_fn.op_type == OpType.LOAD
 
-        m = Module()
+        m = TModule()
 
         instr_ready = check_if_instr_ready(self.current_instr, self.result_ready)
         instr_is_load = check_if_instr_is_load(self.current_instr)
@@ -209,7 +210,7 @@ class LSUDummyInternals(Elaboratable):
         return m
 
 
-class LSUDummy(Elaboratable):
+class LSUDummy(FuncBlock, Elaboratable):
     """
     Very simple LSU, which serializes all stores and loads.
     It isn't fully compliant with RiscV spec. Doesn't support checking if
@@ -234,9 +235,9 @@ class LSUDummy(Elaboratable):
         Used to inform LSU that new instruction have been retired.
     clear : Method
         Used to clear LSU on interrupt.
+    precommit : Method
+        Used to inform LSU that new instruction is ready to be retired.
     """
-
-    optypes = {OpType.LOAD, OpType.STORE}
 
     def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
         """
@@ -258,6 +259,7 @@ class LSUDummy(Elaboratable):
         self.get_result = Method(o=self.fu_layouts.accept)
         self.commit = Method(i=self.lsu_layouts.commit)
         self.clear = Method()
+        self.precommit = Method(i=self.lsu_layouts.precommit)
 
         self.clear.add_conflict(self.insert, Priority.LEFT)
         self.clear.add_conflict(self.select, Priority.LEFT)
@@ -267,7 +269,7 @@ class LSUDummy(Elaboratable):
         self.bus = bus
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         reserved = Signal()  # means that current_instr is reserved
         current_instr = Record(self.lsu_layouts.rs_data_layout + [("valid", 1)])
 
@@ -303,8 +305,9 @@ class LSUDummy(Elaboratable):
                 m.d.sync += reserved.eq(0)
             return {"rob_id": current_instr.rob_id, "rp_dst": current_instr.rp_dst, "result": internal.loadedData}
 
-        @def_method(m, self.commit)
+        @def_method(m, self.precommit)
         def _(rob_id: Value):
+            # TODO: I/O reads
             with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
                 m.d.sync += internal.execute_store.eq(1)
 
@@ -327,8 +330,11 @@ class LSUBlockComponent(BlockComponentParams):
         connections = gen_params.get(DependencyManager)
         wb_master = connections.get_dependency(WishboneDataKey())
         unit = LSUDummy(gen_params, wb_master)
-        connections.add_dependency(InstructionCommitKey(), unit.commit)
+        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 
     def get_optypes(self) -> set[OpType]:
-        return LSUDummy.optypes
+        return {OpType.LOAD, OpType.STORE}
+
+    def get_rs_entry_count(self) -> int:
+        return 1

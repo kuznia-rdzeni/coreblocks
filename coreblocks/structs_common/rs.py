@@ -1,7 +1,7 @@
 from typing import Iterable, Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
-from coreblocks.transactions import Method, def_method
+from coreblocks.transactions import Method, def_method, TModule
 from coreblocks.params import RSLayouts, GenParams, OpType
 from coreblocks.transactions.core import RecordDict
 
@@ -14,7 +14,9 @@ class RS(Elaboratable):
     ) -> None:
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
-        self.layouts = gen_params.get(RSLayouts)
+        self.rs_entries = rs_entries
+        self.rs_entries_bits = (rs_entries - 1).bit_length()
+        self.layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
         self.internal_layout = [
             ("rs_data", self.layouts.data_layout),
             ("rec_full", 1),
@@ -30,11 +32,10 @@ class RS(Elaboratable):
         self.ready_for = [list(op_list) for op_list in ready_for]
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
-        self.rs_entries = rs_entries
         self.data = Array(Record(self.internal_layout) for _ in range(self.rs_entries))
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform):
+        m = TModule()
 
         m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
 
@@ -49,7 +50,7 @@ class RS(Elaboratable):
         take_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
         take_possible = take_vector.any()
 
-        ready_lists = []
+        ready_lists: list[Value] = []
         for op_list in self.ready_for:
             op_vector = Cat(Cat(record.rs_data.exec_fn.op_type == op for op in op_list).any() for record in self.data)
             ready_lists.append(take_vector & op_vector)

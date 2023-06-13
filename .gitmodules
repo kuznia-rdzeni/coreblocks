@@ -1,3 +1,7 @@
 [submodule "test/external/riscv-tests/riscv-tests"]
 	path = test/external/riscv-tests/riscv-tests
 	url = https://github.com/riscv-software-src/riscv-tests.git
+[submodule "test/external/embench/embench-iot"]
+	path = test/external/embench/embench-iot
+	url = https://github.com/embench/embench-iot.git
+	ignore = dirty

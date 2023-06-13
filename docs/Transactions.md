@@ -30,7 +30,7 @@ class MyThing(Elaboratable):
     ...
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         ...
 
@@ -78,7 +78,9 @@ class MyOtherThing(Elaboratable):
         ...
 
     def elaborate(self, platform):
-        m = Module()
+        # A TModule needs to be used instead of an Amaranth module
+
+        m = TModule()
 
         ...
 

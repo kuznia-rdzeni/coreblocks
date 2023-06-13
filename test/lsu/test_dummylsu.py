@@ -103,6 +103,7 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
         m.submodules.commit_mock = self.commit = TestbenchIO(AdapterTrans(func_unit.commit))
         m.submodules.clear = self.clear = TestbenchIO(AdapterTrans(func_unit.clear))
+        m.submodules.precommit_mock = self.precommit = TestbenchIO(AdapterTrans(func_unit.precommit))
         self.io_in = WishboneInterfaceWrapper(self.bus.wbMaster)
         m.submodules.bus = self.bus
         return m
@@ -387,7 +388,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         self.announce_queue = deque()
         self.mem_data_queue = deque()
         self.get_result_data = deque()
-        self.commit_data = deque()
+        self.precommit_data = deque()
         self.generate_instr(2**7, 2**7)
 
     def random_wait(self):
@@ -421,6 +422,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             ret = yield from self.test_module.select.call()
             self.assertEqual(ret["rs_entry_id"], 0)
             yield from self.test_module.insert.call(rs_data=req, rs_entry_id=0)
+            self.precommit_data.appendleft(req["rob_id"])
             announc = self.announce_queue.pop()
             for j in range(2):
                 if announc[j] is not None:
@@ -432,21 +434,20 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         for i in range(self.tests_number):
             v = yield from self.test_module.get_result.call()
             rob_id = self.get_result_data.pop()
-            self.commit_data.appendleft(rob_id)
             self.assertEqual(v["rob_id"], rob_id)
             self.assertEqual(v["rp_dst"], 0)
             yield from self.random_wait()
 
-    def commiter(self):
+    def precommiter(self):
         for i in range(self.tests_number):
-            while len(self.commit_data) == 0:
+            while len(self.precommit_data) == 0:
                 yield
-            rob_id = self.commit_data.pop()
-            yield from self.test_module.commit.call(rob_id=rob_id)
+            rob_id = self.precommit_data.pop()
+            yield from self.test_module.precommit.call(rob_id=rob_id)
 
     def test(self):
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.get_resulter)
-            sim.add_sync_process(self.commiter)
+            sim.add_sync_process(self.precommiter)

@@ -59,7 +59,7 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
     gen: GenParams
 
     def setUp(self):
-        self.gen = GenParams(test_core_config.replace(isa_str="rv32im"))
+        self.gen = GenParams(test_core_config)
         self.m = UnsignedMultiplicationTestCircuit(self.gen, self.mul_unit)
 
         random.seed(1050)

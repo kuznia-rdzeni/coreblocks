@@ -2,10 +2,10 @@ from amaranth import *
 
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.transactions.core import Transaction
+from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import InstructionCommitKey, BranchResolvedKey, WishboneDataKey
+from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
@@ -61,7 +61,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[InstructionCommitKey(), BranchResolvedKey()],
+            extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -73,7 +73,7 @@ class Core(Elaboratable):
         )
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.d.comb += self.wb_master_instr.wbMaster.connect(self.wb_instr_bus)
         m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_data_bus)
@@ -117,11 +117,12 @@ class Core(Elaboratable):
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
         m.submodules.retirement = Retirement(
             self.gen_params,
+            rob_peek=rob.peek,
             rob_retire=rob.retire,
             r_rat_commit=rrat.commit,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
-            lsu_commit=self.func_blocks_unifier.get_extra_method(InstructionCommitKey()),
+            precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
         )
 
         m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)

@@ -64,30 +64,44 @@ class Opcode(BitEnum, width=5):
 
 class Funct3(BitEnum, width=3):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
-    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = 0b001
-    W = SLT = CSRRS = MULHSU = SH1ADD = 0b010
-    SLTU = CSRRC = MULHU = 0b011
-    BLT = BU = XOR = DIV = DIVW = SH2ADD = 0b100
-    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = 0b101
-    BLTU = OR = CSRRSI = REM = REMW = SH3ADD = 0b110
-    BGEU = AND = CSRRCI = REMU = REMUW = 0b111
+    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL = SEXTB = SEXTH = CLMUL = 0b001
+    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = 0b010
+    SLTU = CSRRC = MULHU = CLMULH = 0b011
+    BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = 0b100
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = 0b101
+    BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = 0b110
+    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = 0b111
 
 
 class Funct7(BitEnum, width=7):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
-    SA = SUB = 0b0100000
+    SA = SUB = ANDN = ORN = XNOR = 0b0100000
     MULDIV = 0b0000001
     SH1ADD = SH2ADD = SH3ADD = 0b0010000
     BCLR = BEXT = 0b0100100
-    BINV = 0b0110100
-    BSET = 0b0010100
+    BINV = REV8 = 0b0110100
+    BSET = ORCB = 0b0010100
+    MAX = MIN = CLMUL = 0b0000101
+    ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = 0b0110000
+    ZEXTH = 0b0000100
+    SFENCEVMA = 0b0001001
 
 
 class Funct12(BitEnum, width=12):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
+    SRET = 0b000100000010
     MRET = 0b001100000010
     WFI = 0b000100000101
+    CPOP = 0b011000000010
+    CLZ = 0b011000000000
+    CTZ = 0b011000000001
+    ORCB = 0b001010000111
+    REV8_32 = 0b011010011000
+    REV8_64 = 0b011010111000
+    SEXTB = 0b011000000100
+    SEXTH = 0b011000000101
+    ZEXTH = 0b000010000000
 
 
 @unique
@@ -176,6 +190,10 @@ class Extension(IntFlag):
     ZBS = auto()
     #: Total store ordering
     ZTSO = auto()
+    #: Coreblocks internal categorizing extension: Machine-Mode Privilieged Instructions
+    XINTMACHINEMODE = auto()
+    #: Coreblocks internal categorizing extension: Supervisor Instructions
+    XINTSUPERVISOR = auto()
     #: General extension containing all basic operations
     G = I | M | A | F | D | ZICSR | ZIFENCEI
 
@@ -198,7 +216,7 @@ _extension_requirements = {
 }
 
 # Extensions which implicitly imply another extensions (can be joined using | operator)
-_extension_implications = {
+extension_implications = {
     Extension.F: Extension.ZICSR,
     Extension.M: Extension.ZMMUL,
     Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
@@ -278,7 +296,7 @@ class ISA:
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
 
-        for ext, imply in _extension_implications.items():
+        for ext, imply in extension_implications.items():
             if ext in self.extensions:
                 self.extensions |= imply
 
@@ -309,3 +327,30 @@ class ISA:
         self.ilen_log = self.ilen.bit_length() - 1
 
         self.csr_alen = 12
+
+
+def gen_isa_string(extensions: Extension, isa_xlen: int, *, skip_internal: bool = False) -> str:
+    isa_str = "rv"
+
+    isa_str += str(isa_xlen)
+
+    # G extension alias should be defined first
+    if Extension.G in extensions:
+        isa_str += "g"
+        extensions ^= Extension.G
+
+    previous_multi_letter = False
+    for ext in Extension:
+        if ext in extensions:
+            ext_name = str(ext.name).lower()
+
+            if skip_internal and ext_name.startswith("xint"):
+                continue
+
+            if previous_multi_letter:
+                isa_str += "_"
+            previous_multi_letter = len(ext_name) > 1
+
+            isa_str += ext_name
+
+    return isa_str
