@@ -101,7 +101,6 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.insert_mock = self.insert = TestbenchIO(AdapterTrans(func_unit.insert))
         m.submodules.update_mock = self.update = TestbenchIO(AdapterTrans(func_unit.update))
         m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
-        m.submodules.commit_mock = self.commit = TestbenchIO(AdapterTrans(func_unit.commit))
         m.submodules.clear = self.clear = TestbenchIO(AdapterTrans(func_unit.clear))
         m.submodules.precommit_mock = self.precommit = TestbenchIO(AdapterTrans(func_unit.precommit))
         self.io_in = WishboneInterfaceWrapper(self.bus.wbMaster)

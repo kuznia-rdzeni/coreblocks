@@ -257,7 +257,6 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.select = Method(o=self.lsu_layouts.rs_select_out)
         self.update = Method(i=self.lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
-        self.commit = Method(i=self.lsu_layouts.commit)
         self.clear = Method()
         self.precommit = Method(i=self.lsu_layouts.precommit)
 
@@ -265,7 +264,6 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.clear.add_conflict(self.select, Priority.LEFT)
         self.clear.add_conflict(self.update, Priority.LEFT)
         self.clear.add_conflict(self.get_result, Priority.LEFT)
-        self.clear.add_conflict(self.commit, Priority.LEFT)
         self.bus = bus
 
     def elaborate(self, platform):
