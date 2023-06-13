@@ -88,12 +88,12 @@ class LongDivider(DividerBase):
 
             m.d.sync += ready.eq(0)
 
-        @def_method(m, self.accept, ready=(~ready & stage == 4))
+        @def_method(m, self.accept, ready=(~ready & (stage == 4)))
         def _(arg):
             m.d.sync += ready.eq(1)
             return {"quotient": quotient, "reminder": remainder}
 
-        with m.If(~ready):
+        with m.If(~ready & (stage < 4)):
             m.d.comb += divider.divisor.eq(divisor)
             m.d.comb += divider.dividend.eq((dividend >> ((3 - stage) * 8)) & 0xFF)
             m.d.comb += divider.inp.eq(remainder)

@@ -37,7 +37,7 @@ class DivisionUnitTest(GenericFunctionalTestUnit):
             DivComponent(),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=40,
+            number_of_tests=100,
             seed=1,
             method_name=method_name,
         )
