@@ -11,9 +11,9 @@ from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 
 
-def create_check_list(gp: GenParams, insert_list: list[dict]) -> list[dict]:
+def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dict]:
     check_list = [
-        {"rs_data": None, "rec_ready": 0, "rec_reserved": 0, "rec_full": 0} for _ in range(2**gp.rs_entries_bits)
+        {"rs_data": None, "rec_ready": 0, "rec_reserved": 0, "rec_full": 0} for _ in range(2**rs_entries_bits)
     ]
 
     for params in insert_list:
@@ -30,10 +30,13 @@ class TestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams, ready_for: Optional[Iterable[Iterable[OpType]]] = None) -> None:
         self.gp = gen_params
         self.ready_for = ready_for
+        # test config GenParams specifies only one RS - it has the max number of entries
+        self.rs_entries = self.gp.max_rs_entries
+        self.rs_entries_bits = self.gp.max_rs_entries_bits
 
     def elaborate(self, platform) -> Module:
         m = Module()
-        rs = RS(self.gp, 2**self.gp.rs_entries_bits, self.ready_for)
+        rs = RS(self.gp, 2**self.rs_entries_bits, self.ready_for)
 
         self.rs = rs
         self.io_select = TestbenchIO(AdapterTrans(rs.select))
@@ -76,9 +79,9 @@ class TestRSMethodInsert(TestCaseWithSimulator):
                     "pc": id,
                 },
             }
-            for id in range(2**self.gp.rs_entries_bits)
+            for id in range(2**self.m.rs_entries_bits)
         ]
-        self.check_list = create_check_list(self.gp, self.insert_list)
+        self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.simulation_process)
@@ -120,9 +123,9 @@ class TestRSMethodSelect(TestCaseWithSimulator):
                     "pc": id,
                 },
             }
-            for id in range(2**self.gp.rs_entries_bits - 1)
+            for id in range(2**self.m.rs_entries_bits - 1)
         ]
-        self.check_list = create_check_list(self.gp, self.insert_list)
+        self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.simulation_process)
@@ -183,9 +186,9 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
                     "pc": id,
                 },
             }
-            for id in range(2**self.gp.rs_entries_bits)
+            for id in range(2**self.m.rs_entries_bits)
         ]
-        self.check_list = create_check_list(self.gp, self.insert_list)
+        self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.simulation_process)
@@ -273,9 +276,9 @@ class TestRSMethodTake(TestCaseWithSimulator):
                     "pc": id,
                 },
             }
-            for id in range(2**self.gp.rs_entries_bits)
+            for id in range(2**self.m.rs_entries_bits)
         ]
-        self.check_list = create_check_list(self.gp, self.insert_list)
+        self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.simulation_process)
@@ -371,9 +374,9 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
                     "pc": id,
                 },
             }
-            for id in range(2**self.gp.rs_entries_bits)
+            for id in range(2**self.m.rs_entries_bits)
         ]
-        self.check_list = create_check_list(self.gp, self.insert_list)
+        self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.simulation_process)
@@ -423,9 +426,9 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
                     "imm": id,
                 },
             }
-            for id in range(self.gp.rs_entries)
+            for id in range(self.m.rs_entries)
         ]
-        self.check_list = create_check_list(self.gp, self.insert_list)
+        self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.simulation_process)
@@ -438,7 +441,7 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
 
         masks = [0b0011, 0b1100]
 
-        for i in range(self.gp.rs_entries + 1):
+        for i in range(self.m.rs.rs_entries + 1):
             # Check ready vectors' integrity
             for j in range(2):
                 ready_list = yield from self.m.io_get_ready_list[j].call_try()
@@ -448,7 +451,7 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
                     self.assertIsNone(ready_list)
 
             # Take a record
-            if i == self.gp.rs_entries:
+            if i == self.m.rs.rs_entries:
                 break
             yield from self.m.io_take.call(rs_entry_id=i)
             yield Settle()

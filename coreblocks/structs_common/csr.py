@@ -338,3 +338,6 @@ class CSRBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.CSR_REG, OpType.CSR_IMM}
+
+    def get_rs_entry_count(self) -> int:
+        return 1
