@@ -1,10 +1,10 @@
 from amaranth import *
 
-from coreblocks.fu.unsigned_multiplication.common import DSPMulUnit, MulBaseUnsigned
 from coreblocks.params import GenParams
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.fu.divison.common import DividerBase
+
 
 class RecursiveDivison(Elaboratable):
     def __init__(self, count: int, size: int):
@@ -43,15 +43,14 @@ class RecursiveDivison(Elaboratable):
         m.d.comb += rec_div.dividend.eq(self.dividend)
         m.d.comb += rec_div.divisor.eq(self.divisor)
 
-
         with m.If(concat >= self.divisor):
             m.d.comb += self.quotient[self.n - 1].eq(1)
             m.d.comb += rec_div.inp.eq(concat - self.divisor)
         with m.Else():
             m.d.comb += self.quotient[self.n - 1].eq(0)
             m.d.comb += rec_div.inp.eq(concat)
-        
-        m.d.comb += self.quotient[:(self.n - 1)].eq(rec_div.quotient)
+
+        m.d.comb += self.quotient[: (self.n - 1)].eq(rec_div.quotient)
         m.d.comb += self.remainder.eq(rec_div.remainder)
 
         return m
@@ -71,7 +70,7 @@ class LongDivider(DividerBase):
 
         ready = Signal(1, reset=1)
 
-        dividend = Signal(unsigned(xlen + 8))
+        dividend = Signal(unsigned(xlen))
         divisor = Signal(unsigned(xlen))
 
         quotient = Signal(unsigned(xlen))
@@ -88,24 +87,21 @@ class LongDivider(DividerBase):
             m.d.sync += stage.eq(0)
 
             m.d.sync += ready.eq(0)
-            
 
         @def_method(m, self.accept, ready=(~ready & stage == 4))
         def _(arg):
             m.d.sync += ready.eq(1)
             return {"quotient": quotient, "reminder": remainder}
 
-
         with m.If(~ready):
             m.d.comb += divider.divisor.eq(divisor)
-            m.d.comb += divider.dividend.eq(
-                (quotient << 8) | (dividend[xlen:] >> xlen)
-            )
+            m.d.comb += divider.dividend.eq((dividend >> ((3 - stage) * 8)) & 0xFF)
             m.d.comb += divider.inp.eq(remainder)
 
-            m.d.sync += dividend.eq(dividend << 8)
+            m.d.sync += dividend.eq(dividend)
+            m.d.sync += divisor.eq(divisor)
             m.d.sync += remainder.eq(divider.remainder)
-            m.d.sync += quotient.eq(divider.quotient)
+            m.d.sync += quotient.eq((quotient << 8) | (divider.quotient & 0xFF))
             # m.d.sync += quotient.eq(0)
 
             m.d.sync += stage.eq(stage + 1)
