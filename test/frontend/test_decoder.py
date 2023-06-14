@@ -320,17 +320,16 @@ class TestEncodingUniqueness(TestCase):
                 known_codes[code] = instruction
 
     def test_decoded_distinguishable(self):
-        code_type = tuple[Optional[int], Optional[int], Optional[int]]
+        code_type = tuple[Optional[int], Optional[int]]
 
         def instruction_code(instr: Encoding) -> code_type:
-            op_code = int(instr.opcode)
             funct3 = int(instr.funct3) if instr.funct3 is not None else None
             funct7 = int(instr.funct7) if instr.funct7 is not None else None
 
             if instr.funct12 is not None:
                 funct7 = (int(instr.funct12) & 0xFE0) >> 5
 
-            return (op_code, funct3, funct7)
+            return (funct3, funct7)
 
         for ext, instructions in _instructions_by_optype.items():
             for instruction in instructions:
