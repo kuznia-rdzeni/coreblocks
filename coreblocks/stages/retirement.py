@@ -43,7 +43,7 @@ class Retirement(Elaboratable):
         imm_stall_req = Signal()
         # if we just retired an instruction (means no precommit was made on the current one) and
         # stall_req is asserted that's when we should really stall
-        stall_cond = can_stall & (stall_req | imm_stall_req)
+        stall_cond = (can_stall & imm_stall_req) | stall_req
 
         @def_method(m, self.stall, ready=can_stall)
         def _():

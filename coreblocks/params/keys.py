@@ -7,8 +7,8 @@ from coreblocks.peripherals.wishbone import WishboneMaster
 __all__ = [
     "WishboneDataKey",
     "InstructionPrecommitKey",
-    "BranchResolvedKey",
     "MretKey",
+    "SetPCKey",
     "ClearKey",
 ]
 
@@ -24,12 +24,12 @@ class InstructionPrecommitKey(UnifierKey, unifier=MethodProduct):
 
 
 @dataclass(frozen=True)
-class BranchResolvedKey(UnifierKey, unifier=Collector):
+class MretKey(SimpleKey[Method]):
     pass
 
 
 @dataclass(frozen=True)
-class MretKey(SimpleKey[Method]):
+class SetPCKey(SimpleKey[Method]):
     pass
 
 

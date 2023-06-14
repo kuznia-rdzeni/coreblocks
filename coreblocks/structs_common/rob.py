@@ -17,10 +17,6 @@ class ReorderBuffer(Elaboratable):
         self.flush = Method(o=layouts.flush_layout)
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
-    def free_entry(self, m, start_idx):
-        m.d.sync += start_idx.eq(start_idx + 1)
-        m.d.sync += self.data[start_idx].done.eq(0)
-
     def elaborate(self, platform):
         m = TModule()
 

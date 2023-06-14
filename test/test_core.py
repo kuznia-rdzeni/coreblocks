@@ -302,8 +302,8 @@ class TestCoreBasicAsmSource(TestCoreAsmSourceBase):
 class TestCoreInterrupt(TestCoreAsmSourceBase):
     def setUp(self):
         self.source_file = "interrupt.asm"
-        self.main_cycle_count = 2500
-        self.configuration = basic_core_config
+        self.main_cycle_count = 3500
+        self.configuration = full_core_config
         self.gp = GenParams(self.configuration)
         random.seed(1500100900)
 
@@ -320,7 +320,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             yield from self.m.interrupt.call()
             # wait until ISR returns
             while (yield self.m.core.int_coordinator.interrupt) != 0:
-                yield from self.tick()
+                yield
 
         self.assertEqual((yield from self.get_arch_reg_val(8)), 38)  # interrupt executed
         self.assertEqual((yield from self.get_arch_reg_val(2)), 89)  # last fibonacci number

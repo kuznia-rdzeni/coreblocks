@@ -1,5 +1,7 @@
 # fibonacci spiced with interrupt handler
-
+    li x1, 0x100
+    csrrw x0, mtvec, x1
+    li x1, 0
     li x2, 1
     li x4, 89 # small fibonacci number to keep execution time to a minimum
 loop:
@@ -8,6 +10,7 @@ loop:
     mv x2, x3
     bne x2, x4, loop
 infloop:
+    nop
     j infloop
 
 int_handler:

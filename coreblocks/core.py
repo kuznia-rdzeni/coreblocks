@@ -5,7 +5,7 @@ from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.transactions.lib import ConnectAndTransformTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import InstructionPrecommitKey, BranchResolvedKey, WishboneDataKey, ClearKey
+from coreblocks.params.keys import InstructionPrecommitKey, WishboneDataKey, ClearKey, SetPCKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
@@ -54,6 +54,7 @@ class Core(Elaboratable):
 
         self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
         self.connections.add_dependency(ClearKey(), self.fetch.clear)
+        self.connections.add_dependency(SetPCKey(), self.fetch.verify_branch)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -65,7 +66,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
+            extra_methods_required=[InstructionPrecommitKey()],
         )
         self.connections.add_dependency(ClearKey(), self.func_blocks_unifier.clear)
 
@@ -140,12 +141,6 @@ class Core(Elaboratable):
             gen_params=self.gen_params,
         )
         self.connections.add_dependency(ClearKey(), scheduler.clear)
-
-        m.submodules.verify_branch = ConnectAndTransformTrans(
-            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()),
-            self.fetch.verify_branch,
-            o_fun=lambda _, rec: {},  # drop old_pc
-        )
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier

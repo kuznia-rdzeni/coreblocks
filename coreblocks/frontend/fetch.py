@@ -2,7 +2,8 @@ from amaranth import *
 from coreblocks.utils.fifo import BasicFifo
 from coreblocks.frontend.icache import ICacheInterface
 from ..transactions import def_method, Method, Transaction, TModule, Priority
-from ..params import GenParams, FetchLayouts
+from ..params import GenParams, FetchLayouts, DependencyManager
+from ..params.keys import SetPCKey
 
 
 class Fetch(Elaboratable):
@@ -96,7 +97,7 @@ class Fetch(Elaboratable):
         def _():
             m.d.sync += stalled.eq(1)
 
-        @def_method(m, self.verify_branch, ready=stalled)
+        @def_method(m, self.verify_branch)
         def _(from_pc: Value, next_pc: Value):
             m.d.sync += speculative_pc.eq(next_pc)
             m.d.sync += stalled.eq(0)

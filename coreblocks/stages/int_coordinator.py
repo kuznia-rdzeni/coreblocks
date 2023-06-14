@@ -3,6 +3,7 @@ from amaranth import *
 from coreblocks.params import *
 from coreblocks.transactions.core import Method, Transaction, def_method, TModule
 from coreblocks.params.keys import MretKey
+from coreblocks.structs_common.csr import CSRRegister
 
 
 class InterruptCoordinator(Elaboratable):
@@ -36,13 +37,17 @@ class InterruptCoordinator(Elaboratable):
         self.iret = Method()
         self.interrupt = Signal()
 
+        self.mepc = CSRRegister(0x341, self.gen_params, ro_bits=0b1)
+        self.mtvec = CSRRegister(0x305, self.gen_params, ro_bits=0b11)
+
         connections = self.gen_params.get(DependencyManager)
         connections.add_dependency(MretKey(), self.iret)
 
     def elaborate(self, platform):
         m = TModule()
-        return_pc = Signal(self.gen_params.isa.xlen)
-        int_handler_addr = C(0x100)
+
+        m.submodules.mepc = self.mepc
+        m.submodules.mtvec = self.mtvec
 
         connections = self.gen_params.get(DependencyManager)
         clear_blocks, unifiers = connections.get_dependency(keys.ClearKey())
@@ -75,7 +80,7 @@ class InterruptCoordinator(Elaboratable):
                     self.f_rat_set_all(m, self.r_rat_get_all(m))
                     clear_blocks(m)
                     next_instr = self.rob_peek(m)
-                    m.d.sync += return_pc.eq(next_instr.rob_data.pc)
+                    self.mepc.write(m, next_instr.rob_data.pc)
                     m.next = "flush_rob"
             with m.State("flush_rob"):
                 with Transaction(name="IntFlushRob").body(m):
@@ -88,6 +93,7 @@ class InterruptCoordinator(Elaboratable):
                         m.next = "unstall"
             with m.State("unstall"):
                 with Transaction(name="IntUnstall").body(m):
+                    int_handler_addr = self.mtvec.read(m).data
                     self.pc_verify_branch(m, next_pc=int_handler_addr, from_pc=0)
                     self.retirement_unstall(m)
                     m.next = "wait_for_iret"
@@ -99,6 +105,7 @@ class InterruptCoordinator(Elaboratable):
                     m.next = "iret_jump"
             with m.State("iret_jump"):
                 with Transaction(name="IretJump").body(m):
+                    return_pc = self.mepc.read(m).data
                     self.pc_verify_branch(m, next_pc=return_pc, from_pc=0)
                     m.next = "idle"
 

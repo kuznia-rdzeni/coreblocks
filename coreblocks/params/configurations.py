@@ -19,7 +19,6 @@ __all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_c
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=4),
     LSUBlockComponent(),
-    RSBlockComponent([IntRetComponent()], rs_entries=4),
 )
 
 
@@ -97,7 +96,9 @@ tiny_core_config = CoreConfiguration(
 # Core configuration with all supported components
 full_core_config = CoreConfiguration(
     func_units_config=(
-        RSBlockComponent([ALUComponent(zba_enable=True), ShiftUnitComponent(), JumpComponent()], rs_entries=4),
+        RSBlockComponent(
+            [ALUComponent(zba_enable=True), ShiftUnitComponent(), JumpComponent(), IntRetComponent()], rs_entries=4
+        ),
         RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=2),
         LSUBlockComponent(),
         CSRBlockComponent(),
