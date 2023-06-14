@@ -284,7 +284,7 @@ class TestTransactionPriorities(TestCaseWithSimulator):
             for r1, r2 in to_do:
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
-                yield
+                yield Settle()
                 self.assertNotEqual((yield m.t1), (yield m.t2))
                 if r1 == 1 and r2 == 1:
                     if priority == Priority.LEFT:
@@ -293,7 +293,7 @@ class TestTransactionPriorities(TestCaseWithSimulator):
                         self.assertTrue((yield m.t2))
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
     @parameterized.expand([(Priority.UNDEFINED,), (Priority.LEFT,), (Priority.RIGHT,)])
     def test_unsatisfiable(self, priority: Priority):
