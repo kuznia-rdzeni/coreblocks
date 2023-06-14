@@ -35,9 +35,6 @@ class WakeupTestCircuit(Elaboratable):
             gen_params=self.gen_params, get_ready=ready_mock.iface, take_row=take_row_mock.iface, issue=issue_mock.iface
         )
 
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         return m
 
 
