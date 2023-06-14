@@ -4,6 +4,7 @@ from amaranth import *
 
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams
 from coreblocks.transactions import Method, TModule, def_method
+from coreblocks.transactions.core import Priority
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.fifo import BasicFifo
 from coreblocks.utils.protocols import FuncUnit
@@ -121,6 +122,8 @@ class ZbsUnit(FuncUnit, Elaboratable):
             result_fifo.write(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst)
 
         self.clear.proxy(m, result_fifo.clear)
+        self.clear.add_conflict(self.issue, priority=Priority.LEFT)
+        self.clear.add_conflict(self.accept, priority=Priority.LEFT)
 
         return m
 

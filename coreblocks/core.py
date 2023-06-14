@@ -3,7 +3,6 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
-from coreblocks.transactions.lib import ConnectAndTransformTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import InstructionPrecommitKey, WishboneDataKey, ClearKey, SetPCKey
 from coreblocks.params.genparams import GenParams
@@ -95,7 +94,7 @@ class Core(Elaboratable):
             pc_stall=self.fetch.stall,
             pc_verify_branch=self.fetch.verify_branch,
             rob_empty=self.ROB.empty,
-            rob_flush=self.ROB.flush,
+            rob_flush=self.ROB.flush_one,
             rob_peek=self.ROB.peek,
             free_reg_put=self.free_rf_fifo.write,
             retirement_stall=self.retirement.stall,

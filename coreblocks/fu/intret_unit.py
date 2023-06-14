@@ -5,7 +5,7 @@ from enum import IntFlag, auto
 from typing import Sequence
 
 from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
+from coreblocks.transactions.core import Priority
 from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
@@ -71,6 +71,10 @@ class IntRetFuncUnit(Elaboratable):
             with m.If(pending_instr & ~finished & (rob_id == instr.rob_id)):
                 m.d.sync += finished.eq(1)
                 mret_trigger(m)
+
+        self.clear.add_conflict(self.issue, priority=Priority.LEFT)
+        self.clear.add_conflict(self.accept, priority=Priority.LEFT)
+        self.clear.add_conflict(self.precommit, priority=Priority.LEFT)
 
         return m
 

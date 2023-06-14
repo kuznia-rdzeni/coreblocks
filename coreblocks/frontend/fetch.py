@@ -2,8 +2,7 @@ from amaranth import *
 from coreblocks.utils.fifo import BasicFifo
 from coreblocks.frontend.icache import ICacheInterface
 from ..transactions import def_method, Method, Transaction, TModule, Priority
-from ..params import GenParams, FetchLayouts, DependencyManager
-from ..params.keys import SetPCKey
+from ..params import GenParams, FetchLayouts
 
 
 class Fetch(Elaboratable):

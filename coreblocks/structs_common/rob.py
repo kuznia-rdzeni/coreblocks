@@ -14,7 +14,7 @@ class ReorderBuffer(Elaboratable):
         self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
         self.retire = Method(o=layouts.retire_layout)
         self.empty = Method(o=layouts.empty, nonexclusive=True)
-        self.flush = Method(o=layouts.flush_layout)
+        self.flush_one = Method(o=layouts.flush_layout)
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
     def elaborate(self, platform):
@@ -55,15 +55,15 @@ class ReorderBuffer(Elaboratable):
         def _():
             return empty
 
-        self.flush.add_conflict(self.put, priority=Priority.LEFT)
-        self.flush.add_conflict(self.retire, priority=Priority.LEFT)
+        self.flush_one.add_conflict(self.put, priority=Priority.LEFT)
+        self.flush_one.add_conflict(self.retire, priority=Priority.LEFT)
 
         # TODO: rework flushing so that it's handled by some other block
         # or ROB itself (rather than interrupt coordinator). This should
         # be easier when we switch to one-cycle ROB flushing method that
         # just restores a pointer in free-RF-list since we won't have to
         # recycle physical register ids back during flushing
-        @def_method(m, self.flush)
+        @def_method(m, self.flush_one)
         def _():
             m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.data[start_idx].done.eq(0)

@@ -118,7 +118,7 @@ class RATLayouts:
         self.rat_commit_in = [("rl_dst", gen_params.isa.reg_cnt_log), ("rp_dst", gen_params.phys_regs_bits)]
         self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
 
-        self.rat_regs = [(f"x{i}", gen_params.phys_regs_bits) for i in range(gen_params.isa.reg_cnt)]
+        self.rat_regs = [(str(i), gen_params.phys_regs_bits) for i in range(1, gen_params.isa.reg_cnt)]
 
 
 class ROBLayouts:

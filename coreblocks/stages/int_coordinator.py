@@ -110,6 +110,7 @@ class InterruptCoordinator(Elaboratable):
                     m.next = "idle"
 
         # should be called by interrupt controller (CLIC?)
+        # currently we disallow nested interrupts
         @def_method(m, self.trigger, ready=~self.interrupt)
         def _():
             m.d.sync += self.interrupt.eq(1)

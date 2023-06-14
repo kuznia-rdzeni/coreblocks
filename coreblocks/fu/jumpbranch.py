@@ -5,7 +5,7 @@ from enum import IntFlag, auto
 from typing import Sequence
 
 from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
+from coreblocks.transactions.core import Priority
 from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
@@ -172,6 +172,10 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         def _():
             m.d.sync += branch_result.valid.eq(0)
             fifo_res.clear(m)
+
+        self.clear.add_conflict(self.issue, priority=Priority.LEFT)
+        self.clear.add_conflict(self.accept, priority=Priority.LEFT)
+        self.clear.add_conflict(self.precommit, priority=Priority.LEFT)
 
         return m
 

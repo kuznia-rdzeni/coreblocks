@@ -2,6 +2,7 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import *
+from coreblocks.transactions.core import Priority
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
 from coreblocks.utils import OneHotSwitch
@@ -122,6 +123,8 @@ class AluFuncUnit(FuncUnit, Elaboratable):
             fifo.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst)
 
         self.clear.proxy(m, fifo.clear)
+        self.clear.add_conflict(self.issue, priority=Priority.LEFT)
+        self.clear.add_conflict(self.accept, priority=Priority.LEFT)
 
         return m
 

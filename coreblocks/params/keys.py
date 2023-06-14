@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from coreblocks.params.dependencies import SimpleKey, UnifierKey
-from coreblocks.transactions.lib import MethodProduct, Collector, Method
+from coreblocks.transactions.lib import MethodProduct, Method
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 

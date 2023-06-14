@@ -10,7 +10,7 @@ from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
 from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
+from coreblocks.transactions.core import Priority
 from coreblocks.transactions.lib import *
 
 from coreblocks.fu.fu_decoder import DecoderManager
@@ -209,6 +209,9 @@ class MulUnit(FuncUnit, Elaboratable):
         def _():
             params_fifo.clear(m)
             result_fifo.clear(m)
+
+        self.clear.add_conflict(self.issue, priority=Priority.LEFT)
+        self.clear.add_conflict(self.accept, priority=Priority.LEFT)
 
         return m
 

@@ -23,8 +23,8 @@ class FRAT(Elaboratable):
 
         @def_method(m, self.set_all)
         def _(arg):
-            for i in range(self.gen_params.isa.reg_cnt):
-                m.d.sync += self.entries[i].eq(arg["x{}".format(i)])
+            for i in range(1, self.gen_params.isa.reg_cnt):
+                m.d.sync += self.entries[i].eq(arg[str(i)])
 
         @def_method(m, self.rename)
         def _(rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value):
@@ -61,11 +61,11 @@ class RRAT(Elaboratable):
         @def_method(m, self.get_all)
         def _():
             regs = {}
-            for i in range(self.gen_params.isa.reg_cnt):
+            for i in range(1, self.gen_params.isa.reg_cnt):
                 with m.If(commit_bypass.rl_dst == i):
-                    regs[f"x{i}"] = commit_bypass.rp_dst
+                    regs[str(i)] = commit_bypass.rp_dst
                 with m.Else():
-                    regs[f"x{i}"] = self.entries[i]
+                    regs[str(i)] = self.entries[i]
             return regs
 
         return m

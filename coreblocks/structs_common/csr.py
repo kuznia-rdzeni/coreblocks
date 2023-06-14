@@ -7,7 +7,7 @@ from coreblocks.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
+from coreblocks.params.layouts import FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import BitEnum, Funct3
 from coreblocks.params.keys import InstructionPrecommitKey, SetPCKey
 from coreblocks.params.optypes import OpType
