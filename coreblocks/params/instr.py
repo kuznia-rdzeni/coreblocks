@@ -121,7 +121,7 @@ class IllegalInstr(RISCVInstr):
         pass
 
     def pack(self) -> Value:
-        return Repl(1, 32)
+        return Repl(1, 32)  # Instructions with all bits set to 1 are reserved to be illegal.
 
 
 class EBreakInstr(ITypeInstr):

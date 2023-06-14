@@ -49,7 +49,7 @@ class Core(Elaboratable):
         else:
             self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
 
-        if gen_params.isa.has_extension(Extension.C):
+        if Extension.C in gen_params.isa.extensions:
             self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fifo_fetch.write)
         else:
             self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)

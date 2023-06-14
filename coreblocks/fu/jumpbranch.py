@@ -70,7 +70,7 @@ class JumpBranch(Elaboratable):
 
         m.d.comb += self.reg_res.eq(self.in_pc + 4)
 
-        if self.gen_params.isa.has_extension(Extension.C):
+        if Extension.C in self.gen_params.isa.extensions:
             with m.If(self.in_rvc):
                 m.d.comb += self.reg_res.eq(self.in_pc + 2)
 

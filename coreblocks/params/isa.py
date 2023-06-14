@@ -357,9 +357,6 @@ class ISA:
 
         self.csr_alen = 12
 
-    def has_extension(self, extension: Extension) -> bool:
-        return (self.extensions & extension) > 0
-
 
 def gen_isa_string(extensions: Extension, isa_xlen: int, *, skip_internal: bool = False) -> str:
     isa_str = "rv"

@@ -159,6 +159,8 @@ class UnalignedFetch(Elaboratable):
             resp_lower_half = cache_resp.instr[:16]
             resp_first_half = Mux(is_unaligned, resp_upper_half, resp_lower_half)
             resp_valid = ~flushing & (cache_resp.error == 0)
+            is_resp_upper_rvc = Signal()
+            m.d.top_comb += is_resp_upper_rvc.eq(is_instr_compressed(resp_upper_half))
 
             instr_lo_half = Signal(16)
             m.d.top_comb += instr_lo_half.eq(Mux(half_instr_buff_v, half_instr_buff, resp_first_half))
@@ -167,7 +169,9 @@ class UnalignedFetch(Elaboratable):
             is_rvc = is_instr_compressed(instr_lo_half)
 
             full_instr = Mux(half_instr_buff_v, Cat(half_instr_buff, resp_lower_half), cache_resp.instr)
-            instr = Mux(is_rvc, decompress.instr_out, full_instr)
+
+            instr = Signal(32)
+            m.d.top_comb += instr.eq(Mux(is_rvc, decompress.instr_out, full_instr))
 
             opcode = instr[2:7]
             # whether we have to wait for the retirement of this instruction before we make futher speculation
@@ -181,7 +185,7 @@ class UnalignedFetch(Elaboratable):
             #   instruction or we have just fetched another half,
             # - the instruction is aligned, so we fetched the whole,
             # - the instruction is unaligned, but it is a compressed instruction.
-            ready_to_dispatch = half_instr_buff_v | ~is_unaligned | is_instr_compressed(resp_upper_half)
+            ready_to_dispatch = half_instr_buff_v | ~is_unaligned | is_resp_upper_rvc
 
             # We have to store the upper half of the response if the current
             # response from the cache is valid and either:
@@ -192,7 +196,7 @@ class UnalignedFetch(Elaboratable):
                 resp_valid
                 & fetching_now
                 & (
-                    (is_unaligned & ~is_instr_compressed(resp_upper_half))
+                    (is_unaligned & ~is_resp_upper_rvc)
                     | (~is_unaligned & is_instr_compressed(resp_lower_half))
                     | half_instr_buff_v
                 )

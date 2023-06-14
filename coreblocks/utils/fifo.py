@@ -132,21 +132,16 @@ class Semaphore(Elaboratable):
         m.d.comb += self.release_ready.eq(self.count > 0)
         m.d.comb += self.acquire_ready.eq(self.count < self.max_count)
 
-        with m.If(self.release.run & ~self.acquire.run):
-            m.d.sync += self.count.eq(self.count - 1)
-        with m.If(self.acquire.run & ~self.release.run):
-            m.d.sync += self.count.eq(self.count + 1)
         with m.If(self.clear.run):
             m.d.sync += self.count.eq(0)
-
-        self.release.body(m, ready=self.release_ready)
-        self.acquire.body(m, ready=self.acquire_ready)
+        with m.Else():
+            m.d.sync += self.count.eq(self.count + self.acquire.run - self.release.run)
 
         @def_method(m, self.acquire, ready=self.acquire_ready)
         def _() -> None:
             pass
 
-        @def_method(m, self.release, self.release_ready)
+        @def_method(m, self.release, ready=self.release_ready)
         def _() -> None:
             pass
 

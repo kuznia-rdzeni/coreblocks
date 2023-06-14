@@ -1,6 +1,7 @@
 import unittest
 import os
 import functools
+import random
 from contextlib import contextmanager, nullcontext
 from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
 
@@ -210,6 +211,12 @@ class TestCaseWithSimulator(unittest.TestCase):
 
         for _ in range(cycle_cnt):
             yield
+
+    def random_wait(self, max_cycle_cnt):
+        """
+        Wait for a random amount of cycles in range [1, max_cycle_cnt)
+        """
+        yield from self.tick(random.randrange(max_cycle_cnt))
 
 
 class TestbenchIO(Elaboratable):
