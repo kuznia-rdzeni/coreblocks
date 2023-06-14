@@ -268,31 +268,78 @@ class TestDecoder(TestCaseWithSimulator):
 
 
 class TestEncodingUniqueness(TestCase):
-    def test_uniqueness(self):
-        def instruction_code(instr: Encoding) -> tuple[int, int, int]:
-            def funct7_of_funct12(code: Optional[Funct12]) -> int:
-                if code is None:
-                    return 0
-                else:
-                    return (int(code) & 0xFE0) >> 5
+    def test_encoding_uniqueness(self):
+        code_type = tuple[Optional[int], Optional[int], Optional[int], Optional[int]]
 
+        def instruction_code(instr: Encoding) -> code_type:
             op_code = int(instr.opcode)
-            funct3 = int(instr.funct3) if instr.funct3 is not None else 0
-            funct7 = int(instr.funct7) if instr.funct7 is not None else funct7_of_funct12(instr.funct12)
+            funct3 = int(instr.funct3) if instr.funct3 is not None else None
+            funct7 = int(instr.funct7) if instr.funct7 is not None else None
+            funct12_5bits = None
+
+            if instr.funct12 is not None:
+                funct7 = (int(instr.funct12) & 0xFE0) >> 5
+                funct12_5bits = int(instr.funct12) & 0x1F
+
+            return (op_code, funct3, funct7, funct12_5bits)
+
+        # prefixes of encoding
+        def code_prefixes(code: code_type) -> list[code_type]:
+            prefixes = []
+
+            for i in range(3, -1, -1):
+                if code[i] is not None:
+                    nt = tuple(list(code[:i]) + [None] * (4 - i))
+
+                    prefixes.append(nt)
+
+            return prefixes
+
+        # known_codes store insformation about already read encodings
+        # if value is Encoding -> there is instruction with given code
+        # if value is None -> there is an instruction with prefix equal to this code
+        known_codes: dict[code_type, Optional[Encoding]] = dict()
+
+        for instructions in _instructions_by_optype.values():
+            for instruction in instructions:
+                code = instruction_code(instruction)
+                prefixes = code_prefixes(code)
+
+                for prefix in prefixes:
+                    if prefix in known_codes:
+                        encoding = known_codes[prefix]
+
+                        # prefix of instruction can not be equal to code of any other isntruction
+                        self.assertIsNone(encoding, f"Instruction is not unique: I1 = {encoding} I2 = {instruction}")
+
+                    known_codes[prefix] = None
+
+                # current instruction can not be prefix of other instruction
+                self.assertNotIn(code, known_codes, f"Instruction is not unique: I = {instruction}")
+
+                known_codes[code] = instruction
+
+    def test_decoded_distinguishable(self):
+        code_type = tuple[Optional[int], Optional[int], Optional[int]]
+
+        def instruction_code(instr: Encoding) -> code_type:
+            op_code = int(instr.opcode)
+            funct3 = int(instr.funct3) if instr.funct3 is not None else None
+            funct7 = int(instr.funct7) if instr.funct7 is not None else None
+
+            if instr.funct12 is not None:
+                funct7 = (int(instr.funct12) & 0xFE0) >> 5
 
             return (op_code, funct3, funct7)
 
-        for ext in _instructions_by_optype:
-            known_codes: set[tuple[int, int, int]] = set()
+        for ext, instructions in _instructions_by_optype.items():
+            for instruction in instructions:
+                known_codes: set[code_type] = set()
 
-            for instruction in _instructions_by_optype[ext]:
                 code = instruction_code(instruction)
 
                 self.assertNotIn(
-                    code,
-                    known_codes,
-                    f"Instruction is not unique: OpType={str(ext)} "
-                    f"Funct3={instruction.funct3} Funct7={instruction.funct7} Funct12={instruction.funct12}",
+                    code, known_codes, f"Instruction is not unique within OpType: OpType={ext} I = {instruction}"
                 )
 
                 known_codes.add(code)
