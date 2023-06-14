@@ -119,9 +119,6 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def elaborate(self, platform):
         m = Module()
 
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         m.submodules.dut = self._dut
 
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
@@ -135,12 +132,26 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         return [io.debug_signals() for io in self._io.values()]
 
 
+class TestModule(Elaboratable):
+    def __init__(self, tested_module: HasElaborate, add_transaction_module):
+        self.tested_module = TransactionModule(tested_module) if add_transaction_module else tested_module
+        self.add_transaction_module = add_transaction_module
+
+    def elaborate(self, platform) -> HasElaborate:
+        m = Module()
+
+        # so that Amaranth allows us to use add_clock
+        _dummy = Signal()
+        m.d.sync += _dummy.eq(1)
+
+        m.submodules.tested_module = self.tested_module
+
+        return m
+
+
 class PysimSimulator(Simulator):
     def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
-        if add_transaction_module:
-            module = TransactionModule(module)
-
-        super().__init__(module)
+        super().__init__(TestModule(module, add_transaction_module))
 
         clk_period = 1e-6
         self.add_clock(clk_period)
