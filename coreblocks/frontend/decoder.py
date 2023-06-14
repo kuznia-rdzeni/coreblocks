@@ -177,6 +177,37 @@ _instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.SH2ADD, Funct7.SH2ADD),
         Encoding(Opcode.OP, Funct3.SH3ADD, Funct7.SH3ADD),
     ],
+    OpType.BIT_MANIPULATION: [
+        Encoding(Opcode.OP, Funct3.ANDN, Funct7.ANDN),
+        Encoding(Opcode.OP, Funct3.MAX, Funct7.MAX),
+        Encoding(Opcode.OP, Funct3.MAXU, Funct7.MAX),
+        Encoding(Opcode.OP, Funct3.MIN, Funct7.MIN),
+        Encoding(Opcode.OP, Funct3.MINU, Funct7.MIN),
+        Encoding(Opcode.OP, Funct3.ORN, Funct7.ORN),
+        Encoding(Opcode.OP, Funct3.ROL, Funct7.ROL),
+        Encoding(Opcode.OP, Funct3.ROR, Funct7.ROR),
+        Encoding(Opcode.OP_IMM, Funct3.ROR, Funct7.ROR),
+        Encoding(Opcode.OP, Funct3.XNOR, Funct7.XNOR),
+    ],
+    OpType.UNARY_BIT_MANIPULATION_1: [
+        Encoding(Opcode.OP_IMM, Funct3.ORCB, funct12=Funct12.ORCB),
+        Encoding(Opcode.OP_IMM, Funct3.REV8, funct12=Funct12.REV8_32),
+        Encoding(Opcode.OP_IMM, Funct3.SEXTB, funct12=Funct12.SEXTB),
+        Encoding(Opcode.OP_IMM, Funct3.ZEXTH, funct12=Funct12.ZEXTH),
+    ],
+    # Instructions SEXTH, SEXTHB, CPOP, CLZ and CTZ  cannot be distiguished by their Funct7 code
+    OpType.UNARY_BIT_MANIPULATION_2: [
+        Encoding(Opcode.OP_IMM, Funct3.SEXTH, funct12=Funct12.SEXTH),
+    ],
+    OpType.UNARY_BIT_MANIPULATION_3: [
+        Encoding(Opcode.OP_IMM, Funct3.CLZ, funct12=Funct12.CLZ),
+    ],
+    OpType.UNARY_BIT_MANIPULATION_4: [
+        Encoding(Opcode.OP_IMM, Funct3.CTZ, funct12=Funct12.CTZ),
+    ],
+    OpType.UNARY_BIT_MANIPULATION_5: [
+        Encoding(Opcode.OP_IMM, Funct3.CPOP, funct12=Funct12.CPOP),
+    ],
     OpType.CLMUL: [
         Encoding(Opcode.OP, Funct3.CLMUL, Funct7.CLMUL),
         Encoding(Opcode.OP, Funct3.CLMULH, Funct7.CLMUL),
