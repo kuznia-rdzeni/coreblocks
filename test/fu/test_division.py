@@ -1,3 +1,5 @@
+from parameterized import parameterized_class
+
 from coreblocks.params import Funct3, Funct7, OpType, GenParams
 from coreblocks.fu.division_unit import DivFn, DivComponent
 
@@ -27,17 +29,23 @@ ops = {
 }
 
 
+@parameterized_class(
+    ("name", "ipc"),
+    [("ipc" + str(s), s) for s in [3, 4, 5, 8]],
+)
 class DivisionUnitTest(GenericFunctionalTestUnit):
+    ipc: int
+
     def test_test(self):
         self.run_pipeline()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
             ops,
-            DivComponent(),
+            DivComponent(ipc=self.ipc),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=100,
+            number_of_tests=200,
             seed=1,
             method_name=method_name,
         )

@@ -7,19 +7,18 @@ from coreblocks.fu.divison.common import DividerBase
 
 
 class RecursiveDivison(Elaboratable):
-    def __init__(self, count: int, size: int):
+    def __init__(self, count: int, size: int, remainder_early_return: int = 0):
         self.size = size
         self.n = count
+        self.remainder_early_return = remainder_early_return
+
         self.divisor = Signal(unsigned(size))
         self.dividend = Signal(unsigned(size))
-
         self.inp = Signal(unsigned(size))
+
         self.quotient = Signal(unsigned(size))
         self.remainder = Signal(unsigned(size))
-        self.confirm = Signal(reset=0)
-
-        self.reset = Signal()
-        self.valid = Signal()
+        self.partial_reminder = Signal(unsigned(size))
 
     def elaborate(self, platform) -> TModule:
         if self.n == 0:
@@ -27,6 +26,7 @@ class RecursiveDivison(Elaboratable):
 
             m.d.comb += self.quotient.eq(0)
             m.d.comb += self.remainder.eq(self.inp)
+            m.d.comb += self.partial_reminder.eq(self.inp)
 
             return m
         else:
@@ -38,7 +38,9 @@ class RecursiveDivison(Elaboratable):
         concat = Signal(self.size)
         m.d.comb += concat.eq((self.inp << 1) | self.dividend[self.n - 1])
 
-        m.submodules.rec_div = rec_div = RecursiveDivison(self.n - 1, self.size)
+        m.submodules.rec_div = rec_div = RecursiveDivison(
+            self.n - 1, self.size, remainder_early_return=self.remainder_early_return - 1
+        )
 
         m.d.comb += rec_div.dividend.eq(self.dividend)
         m.d.comb += rec_div.divisor.eq(self.divisor)
@@ -53,20 +55,34 @@ class RecursiveDivison(Elaboratable):
         m.d.comb += self.quotient[: (self.n - 1)].eq(rec_div.quotient)
         m.d.comb += self.remainder.eq(rec_div.remainder)
 
+        if self.remainder_early_return == 0:
+            m.d.comb += self.partial_reminder.eq(self.inp)
+        else:
+            m.d.comb += self.partial_reminder.eq(rec_div.partial_reminder)
+
         return m
 
 
 class LongDivider(DividerBase):
-    def __init__(self, gen: GenParams, stages=2):
+    def __init__(self, gen: GenParams, ipc=4):
         super().__init__(gen)
-        self.stages = stages
-        self.divisor_depth = self.gen.isa.xlen // stages
+        xlen = self.gen.isa.xlen
+
+        self.ipc = ipc
+        self.divisor_depth = ipc
+        self.remainder_early_return = xlen % ipc
+
+        self.stages = xlen // ipc + (1 if self.remainder_early_return > 0 else 0)
+        self.odd_iteration = self.remainder_early_return != 0
 
     def elaborate(self, platform):
         m = TModule()
         xlen = self.gen.isa.xlen
+        xlen_log = self.gen.isa.xlen_log
 
-        m.submodules.divider = divider = RecursiveDivison(8, self.gen.isa.xlen)
+        m.submodules.divider = divider = RecursiveDivison(
+            self.ipc, xlen, remainder_early_return=self.remainder_early_return
+        )
 
         ready = Signal(1, reset=1)
 
@@ -76,7 +92,7 @@ class LongDivider(DividerBase):
         quotient = Signal(unsigned(xlen))
         remainder = Signal(unsigned(xlen))
 
-        stage = Signal(unsigned(xlen))
+        stage = Signal(unsigned(xlen_log + 1))
 
         @def_method(m, self.issue, ready=ready)
         def _(arg):
@@ -88,21 +104,28 @@ class LongDivider(DividerBase):
 
             m.d.sync += ready.eq(0)
 
-        @def_method(m, self.accept, ready=(~ready & (stage == 4)))
+        @def_method(m, self.accept, ready=(~ready & (stage == self.stages)))
         def _(arg):
             m.d.sync += ready.eq(1)
             return {"quotient": quotient, "reminder": remainder}
 
-        with m.If(~ready & (stage < 4)):
+        with m.If(~ready & (stage < self.stages)):
+            special_stage = (self.stages == stage + 1) & self.odd_iteration
+
             m.d.comb += divider.divisor.eq(divisor)
-            m.d.comb += divider.dividend.eq((dividend >> ((3 - stage) * 8)) & 0xFF)
+            m.d.comb += divider.dividend.eq(dividend[xlen - self.ipc :])
             m.d.comb += divider.inp.eq(remainder)
 
-            m.d.sync += dividend.eq(dividend)
-            m.d.sync += divisor.eq(divisor)
-            m.d.sync += remainder.eq(divider.remainder)
-            m.d.sync += quotient.eq((quotient << 8) | (divider.quotient & 0xFF))
-            # m.d.sync += quotient.eq(0)
+            m.d.sync += dividend.eq(dividend << self.ipc)
+
+            with m.If(special_stage):
+                m.d.sync += remainder.eq(divider.partial_reminder)
+                m.d.sync += quotient.eq(
+                    Cat(divider.quotient[self.ipc - self.remainder_early_return : self.ipc], quotient)
+                )
+            with m.Else():
+                m.d.sync += remainder.eq(divider.remainder)
+                m.d.sync += quotient.eq(Cat(divider.quotient[: self.ipc], quotient))
 
             m.d.sync += stage.eq(stage + 1)
 

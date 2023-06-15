@@ -1,3 +1,4 @@
+from dataclasses import KW_ONLY, dataclass
 from enum import IntFlag, auto
 from typing import Sequence, Tuple
 
@@ -37,8 +38,9 @@ def get_input(arg: Record) -> Tuple[Value, Value]:
 
 
 class DivUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, div_fn=DivFn()):
+    def __init__(self, gen_params: GenParams, ipc: int = 4, div_fn=DivFn()):
         self.gen_params = gen_params
+        self.ipc = ipc
 
         layouts = gen_params.get(FuncUnitLayouts)
 
@@ -62,7 +64,7 @@ class DivUnit(FuncUnit, Elaboratable):
         )
         m.submodules.decoder = decoder = self.div_fn.get_decoder(self.gen_params)
 
-        m.submodules.divider = divider = LongDivider(self.gen_params)
+        m.submodules.divider = divider = LongDivider(self.gen_params, self.ipc)
 
         xlen = self.gen_params.isa.xlen
         # sign_bit = xlen - 1  # position of sign bit
@@ -119,12 +121,14 @@ class DivUnit(FuncUnit, Elaboratable):
         return m
 
 
+@dataclass
 class DivComponent(FunctionalComponentParams):
-    def __init__(self) -> None:
-        self.div_fn = DivFn()
+    _: KW_ONLY
+    ipc: int = 8  # iterations per cycle
+    div_fn = DivFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return DivUnit(gen_params, self.div_fn)
+        return DivUnit(gen_params, self.ipc, self.div_fn)
 
     def get_optypes(self) -> set[OpType]:
         return self.div_fn.get_op_types()
