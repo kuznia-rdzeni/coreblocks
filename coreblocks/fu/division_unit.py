@@ -77,7 +77,7 @@ class DivUnit(FuncUnit, Elaboratable):
         def _(arg):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
-            
+
             flip_sign = Signal(1)  # if result is negative number
             rem_res = Signal(1)  # flag wheather we want result or reminder
 
