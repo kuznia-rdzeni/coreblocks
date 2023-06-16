@@ -523,13 +523,14 @@ class MethodTryProduct(Elaboratable):
         targets: list[Method],
         combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[tuple[Value, Record]]], RecordDict]]] = None,
     ):
-        """Method product.
+        """Method product with optional calling.
 
         Takes arbitrary, non-zero number of target methods, and constructs
         a method which tries to call all of the target methods using the same
-        argument. The return value of the resulting method is, by default,
-        empty. A combiner function can be passed, which can compute the return
-        value from the results of every target method.
+        argument. The methods which are not ready are not called. The return
+        value of the resulting method is, by default, empty. A combiner
+        function can be passed, which can compute the return value from the
+        results of every target method.
 
         Parameters
         ----------
