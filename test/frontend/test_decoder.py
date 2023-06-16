@@ -322,9 +322,39 @@ class TestEncodingUniqueness(TestCase):
     def test_decoded_distinguishable(self):
         code_type = tuple[Optional[int], Optional[int]]
 
+        collisions: dict[OpType, set[Encoding]] = {
+            OpType.ARITHMETIC: {
+                Encoding(Opcode.OP_IMM, Funct3.ADD),
+                Encoding(Opcode.LUI),
+            },
+            OpType.SHIFT: {
+                Encoding(Opcode.OP_IMM, Funct3.SLL, Funct7.SL),
+                Encoding(Opcode.OP_IMM, Funct3.SR, Funct7.SL),
+                Encoding(Opcode.OP_IMM, Funct3.SR, Funct7.SA),
+            },
+            OpType.LOGIC: {
+                Encoding(Opcode.OP_IMM, Funct3.XOR),
+                Encoding(Opcode.OP_IMM, Funct3.OR),
+                Encoding(Opcode.OP_IMM, Funct3.AND),
+            },
+            OpType.COMPARE: {
+                Encoding(Opcode.OP_IMM, Funct3.SLT),
+                Encoding(Opcode.OP_IMM, Funct3.SLTU),
+            },
+            OpType.SINGLE_BIT_MANIPULATION: {
+                Encoding(Opcode.OP_IMM, Funct3.BCLR, Funct7.BCLR),
+                Encoding(Opcode.OP_IMM, Funct3.BEXT, Funct7.BEXT),
+                Encoding(Opcode.OP_IMM, Funct3.BSET, Funct7.BSET),
+                Encoding(Opcode.OP_IMM, Funct3.BINV, Funct7.BINV),
+            },
+            OpType.BIT_MANIPULATION: {
+                Encoding(Opcode.OP_IMM, Funct3.ROR, Funct7.ROR),
+            },
+        }
+
         def instruction_code(instr: Encoding) -> code_type:
-            funct3 = int(instr.funct3) if instr.funct3 is not None else None
-            funct7 = int(instr.funct7) if instr.funct7 is not None else None
+            funct3 = int(instr.funct3) if instr.funct3 is not None else 0
+            funct7 = int(instr.funct7) if instr.funct7 is not None else 0
 
             if instr.funct12 is not None:
                 funct7 = (int(instr.funct12) & 0xFE0) >> 5
@@ -332,13 +362,21 @@ class TestEncodingUniqueness(TestCase):
             return (funct3, funct7)
 
         for ext, instructions in _instructions_by_optype.items():
+            known_codes: set[code_type] = set()
+            ext_collisions = collisions[ext] if ext in collisions else set()
+
             for instruction in instructions:
-                known_codes: set[code_type] = set()
+                if instruction in ext_collisions:
+                    continue
 
                 code = instruction_code(instruction)
 
                 self.assertNotIn(
-                    code, known_codes, f"Instruction is not unique within OpType: OpType={ext} I = {instruction}"
+                    code, known_codes, f"Instruction is not unique within OpType: OpType={ext} I={instruction}"
                 )
 
                 known_codes.add(code)
+
+            for instruction in ext_collisions:
+                code = instruction_code(instruction)
+                self.assertIn(code, known_codes, f"Instruction is not colliding: OpType={ext} I={instruction}")
