@@ -517,6 +517,57 @@ class MethodProduct(Elaboratable):
         return m
 
 
+class MethodTryProduct(Elaboratable):
+    def __init__(
+        self,
+        targets: list[Method],
+        combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[tuple[Value, Record]]], RecordDict]]] = None,
+    ):
+        """Method product.
+
+        Takes arbitrary, non-zero number of target methods, and constructs
+        a method which tries to call all of the target methods using the same
+        argument. The return value of the resulting method is, by default,
+        empty. A combiner function can be passed, which can compute the return
+        value from the results of every target method.
+
+        Parameters
+        ----------
+        targets: list[Method]
+            A list of methods to be called.
+        combiner: (int or method layout, function), optional
+            A pair of the output layout and the combiner function. The
+            combiner function takes two parameters: a `Module` and
+            a list of pairs. Each pair contains a bit which signals
+            that a given call succeeded, and the result of the call.
+
+        Attributes
+        ----------
+        method: Method
+            The product method.
+        """
+        if combiner is None:
+            combiner = ([], lambda _, __: {})
+        self.targets = targets
+        self.combiner = combiner
+        self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        @def_method(m, self.method)
+        def _(arg):
+            results: list[tuple[Value, Record]] = []
+            for target in self.targets:
+                success = Signal()
+                with Transaction().body(m):
+                    m.d.comb += success.eq(1)
+                    results.append((success, target(m, arg)))
+            return self.combiner[1](m, results)
+
+        return m
+
+
 class Collector(Elaboratable):
     """Single result collector.
 
