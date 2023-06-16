@@ -57,7 +57,7 @@ class DivUnit(FuncUnit, Elaboratable):
             [
                 ("rob_id", self.gen_params.rob_entries_bits),
                 ("rp_dst", self.gen_params.phys_regs_bits),
-                ("negative_res", 1),
+                ("flip_sign", 1),
                 ("rem_res", 1),
             ],
             2,
@@ -67,7 +67,7 @@ class DivUnit(FuncUnit, Elaboratable):
         m.submodules.divider = divider = LongDivider(self.gen_params, self.ipc)
 
         xlen = self.gen_params.isa.xlen
-        # sign_bit = xlen - 1  # position of sign bit
+        sign_bit = xlen - 1  # position of sign bit
 
         @def_method(m, self.accept)
         def _():
@@ -77,46 +77,52 @@ class DivUnit(FuncUnit, Elaboratable):
         def _(arg):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
-
-            value1 = Signal(xlen)  # input value for multiplier submodule
-            value2 = Signal(xlen)  # input value for multiplier submodule
-            negative_res = Signal(1)  # if result is negative number
+            
+            flip_sign = Signal(1)  # if result is negative number
             rem_res = Signal(1)  # flag wheather we want result or reminder
 
+            dividend = Signal(xlen)
+            divisor = Signal(xlen)
+
+            def _abs(s: Value) -> Value:
+                return Mux(s.as_signed() < 0, -s, s)
+
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
-                with OneHotCase(DivFn.Fn.DIV):
-                    m.d.comb += negative_res.eq(0)
+                with OneHotCase(DivFn.Fn.DIVU):
+                    m.d.comb += flip_sign.eq(0)
                     m.d.comb += rem_res.eq(0)
-                    m.d.comb += value1.eq(i1)
-                    m.d.comb += value2.eq(i2)
-                # with OneHotCase(DivFn.Fn.DIVU):
-                #    m.d.comb += negative_res.eq(i1[sign_bit] ^ i2[sign_bit])
-                #    m.d.comb += rem_res.eq(0)
-                #    m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
-                #    m.d.comb += value2.eq(Mux(i2[sign_bit], -i2, i2))
-                with OneHotCase(DivFn.Fn.REM):
-                    m.d.comb += negative_res.eq(0)
+                    m.d.comb += dividend.eq(i1)
+                    m.d.comb += divisor.eq(i2)
+                with OneHotCase(DivFn.Fn.DIV):
+                    # quotient is negative if divisor and dividend have different signs
+                    m.d.comb += flip_sign.eq(i1[sign_bit] ^ i2[sign_bit])
+                    m.d.comb += rem_res.eq(0)
+                    m.d.comb += dividend.eq(_abs(i1))
+                    m.d.comb += divisor.eq(_abs(i2))
+                with OneHotCase(DivFn.Fn.REMU):
+                    m.d.comb += flip_sign.eq(0)
                     m.d.comb += rem_res.eq(1)
-                    m.d.comb += value1.eq(i1)
-                    m.d.comb += value2.eq(i2)
-                # with OneHotCase(DivFn.Fn.REMU):
-                #    m.d.comb += negative_res.eq(i1[sign_bit] ^ i2[sign_bit])
-                #    m.d.comb += rem_res.eq(1)
-                #    m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
-                #    m.d.comb += value2.eq(Mux(i2[sign_bit], -i2, i2))
+                    m.d.comb += dividend.eq(i1)
+                    m.d.comb += divisor.eq(i2)
+                with OneHotCase(DivFn.Fn.REM):
+                    # sign of remainder is equal to sign of dividend
+                    m.d.comb += flip_sign.eq(i1[sign_bit])
+                    m.d.comb += rem_res.eq(1)
+                    m.d.comb += dividend.eq(_abs(i1))
+                    m.d.comb += divisor.eq(_abs(i2))
 
-            params_fifo.write(m, rob_id=arg.rob_id, rp_dst=arg.rp_dst, negative_res=negative_res, rem_res=rem_res)
+            params_fifo.write(m, rob_id=arg.rob_id, rp_dst=arg.rp_dst, flip_sign=flip_sign, rem_res=rem_res)
 
-            divider.issue(m, dividend=value1, divisor=value2)
+            divider.issue(m, dividend=dividend, divisor=divisor)
 
         with Transaction().body(m):
             response = divider.accept(m)
             params = params_fifo.read(m)
             result = Mux(params.rem_res, response.reminder, response.quotient)
-            # sign_result = Mux(params.negative_res, -result, result)  # changing sign of result
+            sign_result = Mux(params.flip_sign, -result, result)  # changing sign of result
             # result = Mux(params.high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 
-            result_fifo.write(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst)
+            result_fifo.write(m, rob_id=params.rob_id, result=sign_result, rp_dst=params.rp_dst)
 
         return m
 
