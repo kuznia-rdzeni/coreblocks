@@ -313,7 +313,7 @@ class DivUnitLayouts:
 
         self.accept = [
             ("quotient", gen.isa.xlen),
-            ("reminder", gen.isa.xlen),
+            ("remainder", gen.isa.xlen),
         ]
 
 

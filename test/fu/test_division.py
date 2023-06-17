@@ -1,7 +1,7 @@
 from parameterized import parameterized_class
 
 from coreblocks.params import Funct3, Funct7, OpType, GenParams
-from coreblocks.fu.division_unit import DivFn, DivComponent
+from coreblocks.fu.div_unit import DivFn, DivComponent
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 from coreblocks.params.configurations import test_core_config

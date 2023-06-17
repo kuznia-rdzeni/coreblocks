@@ -118,9 +118,8 @@ class DivUnit(FuncUnit, Elaboratable):
         with Transaction().body(m):
             response = divider.accept(m)
             params = params_fifo.read(m)
-            result = Mux(params.rem_res, response.reminder, response.quotient)
+            result = Mux(params.rem_res, response.remainder, response.quotient)
             sign_result = Mux(params.flip_sign, -result, result)  # changing sign of result
-            # result = Mux(params.high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 
             result_fifo.write(m, rob_id=params.rob_id, result=sign_result, rp_dst=params.rp_dst)
 
@@ -130,7 +129,7 @@ class DivUnit(FuncUnit, Elaboratable):
 @dataclass
 class DivComponent(FunctionalComponentParams):
     _: KW_ONLY
-    ipc: int = 8  # iterations per cycle
+    ipc: int = 4  # iterations per cycle
     div_fn = DivFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:

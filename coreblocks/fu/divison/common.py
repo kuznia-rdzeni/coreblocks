@@ -5,10 +5,10 @@ from coreblocks.transactions.core import Method
 
 
 class DividerBase(Elaboratable):
-    def __init__(self, gen: GenParams):
-        self.gen = gen
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
 
-        layout = gen.get(DivUnitLayouts)
+        layout = gen_params.get(DivUnitLayouts)
 
         self.issue = Method(i=layout.issue)
         self.accept = Method(o=layout.accept)
