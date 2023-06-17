@@ -106,10 +106,6 @@ class JumpBranch(Elaboratable):
                 m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_unsigned() >= self.in2.as_unsigned())
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         return m
 
 
