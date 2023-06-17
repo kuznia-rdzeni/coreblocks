@@ -118,7 +118,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
                     "pc": pc,
                 }
             )
-            self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst} | results)
+            self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": 0} | results)
 
     def run_pipeline(self):
         def random_wait():
