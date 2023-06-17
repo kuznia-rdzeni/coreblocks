@@ -1,6 +1,6 @@
 from itertools import takewhile
-from enum import unique, Enum, IntFlag, auto
-from amaranth.hdl.ast import Const, ValueCastable
+from amaranth.lib.enum import unique, Enum, IntEnum, auto
+import enum
 
 __all__ = [
     "InstrType",
@@ -25,29 +25,8 @@ class InstrType(Enum):
     J = 5
 
 
-class ValueCastableHack(int, ValueCastable):
-    @ValueCastable.lowermethod
-    def as_value(self):
-        raise NotImplementedError("width information lost!")
-
-
-class BitEnum(ValueCastableHack, Enum):
-    """
-    A helper class that defines Amaranth enums with a width
-    """
-
-    __width: int
-
-    def __init_subclass__(cls, *, width, **kwargs):
-        cls.__width = width
-
-    @ValueCastable.lowermethod
-    def as_value(self):
-        return Const(self.value, self.__width)
-
-
 @unique
-class Opcode(BitEnum, width=5):
+class Opcode(IntEnum, shape=5):
     OP_IMM = 0b00100
     LUI = 0b01101
     AUIPC = 0b00101
@@ -62,7 +41,7 @@ class Opcode(BitEnum, width=5):
     SYSTEM = 0b11100
 
 
-class Funct3(BitEnum, width=3):
+class Funct3(IntEnum, shape=3):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
     BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL = SEXTB = SEXTH = CLMUL = 0b001
     W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = 0b010
@@ -73,7 +52,7 @@ class Funct3(BitEnum, width=3):
     BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = 0b111
 
 
-class Funct7(BitEnum, width=7):
+class Funct7(IntEnum, shape=7):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = ANDN = ORN = XNOR = 0b0100000
     MULDIV = 0b0000001
@@ -87,7 +66,7 @@ class Funct7(BitEnum, width=7):
     SFENCEVMA = 0b0001001
 
 
-class Funct12(BitEnum, width=12):
+class Funct12(IntEnum, shape=12):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
     SRET = 0b000100000010
@@ -105,7 +84,7 @@ class Funct12(BitEnum, width=12):
 
 
 @unique
-class FenceTarget(BitEnum, width=4):
+class FenceTarget(IntEnum, shape=4):
     MEM_W = 0b0001
     MEM_R = 0b0010
     DEV_O = 0b0100
@@ -113,13 +92,13 @@ class FenceTarget(BitEnum, width=4):
 
 
 @unique
-class FenceFm(BitEnum, width=4):
+class FenceFm(IntEnum, shape=4):
     NONE = 0b0000
     TSO = 0b1000
 
 
 @unique
-class Extension(IntFlag):
+class Extension(enum.IntFlag):
     """
     Enum of available RISC-V extensions.
     """
