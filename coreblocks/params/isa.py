@@ -1,5 +1,5 @@
 from itertools import takewhile
-from amaranth.lib.enum import unique, Enum, IntEnum, auto
+from amaranth.lib.enum import unique, Enum, IntEnum, IntFlag, auto
 import enum
 
 __all__ = [
@@ -84,7 +84,7 @@ class Funct12(IntEnum, shape=12):
 
 
 @unique
-class FenceTarget(IntEnum, shape=4):
+class FenceTarget(IntFlag, shape=4):
     MEM_W = 0b0001
     MEM_R = 0b0010
     DEV_O = 0b0100
