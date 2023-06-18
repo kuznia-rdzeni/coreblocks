@@ -119,7 +119,9 @@ class DivUnit(FuncUnit, Elaboratable):
             response = divider.accept(m)
             params = params_fifo.read(m)
             result = Mux(params.rem_res, response.remainder, response.quotient)
-            sign_result = Mux(params.flip_sign, -result, result)  # changing sign of result
+            # change sign but only if it was requested and sign is not correct
+            flip_sig = Mux(params.flip_sign, ~result[sign_bit], 0)
+            sign_result = Mux(flip_sig, -result, result)
 
             result_fifo.write(m, rob_id=params.rob_id, result=sign_result, rp_dst=params.rp_dst)
 

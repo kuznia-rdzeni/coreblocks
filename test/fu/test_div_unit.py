@@ -18,19 +18,31 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: DivFn.Fn, xlen: in
 
     match fn:
         case DivFn.Fn.DIVU:
-            res = i1 // i2
+            if i2 == 0:
+                res = -1
+            else:
+                res = i1 // i2
         case DivFn.Fn.DIV:
-            res = abs(signed_i1) // abs(signed_i2)
-            # if signs are different negate the result
-            if signed_i1 * signed_i2 < 0:
-                res = int_to_signed(-res, xlen)
+            if signed_i2 == 0:
+                res = -1
+            else:
+                res = abs(signed_i1) // abs(signed_i2)
+                # if signs are different negate the result
+                if signed_i1 * signed_i2 < 0:
+                    res = int_to_signed(-res, xlen)
         case DivFn.Fn.REMU:
-            res = i1 % i2
+            if i2 == 0:
+                res = i1
+            else:
+                res = i1 % i2
         case DivFn.Fn.REM:
-            res = abs(signed_i1) % abs(signed_i2)
-            # if divisor is negative negate the result
-            if signed_i1 < 0:
-                res = int_to_signed(-res, xlen)
+            if signed_i2 == 0:
+                res = i1
+            else:
+                res = abs(signed_i1) % abs(signed_i2)
+                # if divisor is negative negate the result
+                if signed_i1 < 0:
+                    res = int_to_signed(-res, xlen)
 
     return {"result": res & mask}
 
