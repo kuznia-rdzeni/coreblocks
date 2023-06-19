@@ -129,7 +129,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
             )
 
             cause = None
-            if "exception" in results and results["exception"] != 0:
+            if "exception" in results:
                 cause = results["exception"]
                 results.pop("exception")
 

@@ -2,13 +2,13 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.genparams import GenParams
 
-from coreblocks.params.isa import BitEnum
+from coreblocks.params.isa import IntEnum
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.transactions.core import Priority, TModule, def_method, Method
 
 
-class Cause(BitEnum, width=4):
+class Cause(IntEnum, shape=4):
     INSTRUCTION_ADDRESS_MISALIGNED = 0
     INSTRUCTION_ACCESS_FAULT = 1
     ILLEGAL_INSTRUCTION = 2

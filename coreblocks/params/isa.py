@@ -43,8 +43,14 @@ class Opcode(IntEnum, shape=5):
 
 class Funct3(IntEnum, shape=3):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = _EINSTRACCESSFAULT = 0b000
-    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL = SEXTB = SEXTH = CLMUL = _EILLEGALINSTR = 0b001
-    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT =  0b010
+    BNE = (
+        H
+    ) = (
+        SLL
+    ) = (
+        FENCEI
+    ) = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL = SEXTB = SEXTH = CLMUL = _EILLEGALINSTR = 0b001
+    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT = 0b010
     SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = 0b011
     BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = 0b100
     BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = 0b101
