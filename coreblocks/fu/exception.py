@@ -8,7 +8,7 @@ from coreblocks.transactions.lib import FIFO
 
 from coreblocks.params import OpType, GenParams, FuncUnitLayouts, FunctionalComponentParams
 from coreblocks.utils import OneHotSwitch
-from coreblocks.params.keys import ExceptionRegisterKey
+from coreblocks.params.keys import ExceptionReportKey
 
 from coreblocks.fu.fu_decoder import DecoderManager
 from enum import IntFlag, auto
@@ -17,7 +17,7 @@ from coreblocks.utils.protocols import FuncUnit
 
 from coreblocks.structs_common.exception import Cause
 
-__all__ = ["ExceptionFuncUnit"]
+__all__ = ["ExceptionFuncUnit", "ExceptionUnitComponent"]
 
 
 class ExceptionUnitFn(DecoderManager):
@@ -52,7 +52,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
         self.accept = Method(o=layouts.accept)
 
         dm = gen_params.get(DependencyManager)
-        self.exception_register = dm.get_dependency(ExceptionRegisterKey())
+        self.report = dm.get_dependency(ExceptionReportKey())
 
     def elaborate(self, platform):
         m = TModule()
@@ -70,7 +70,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
 
             cause = Signal(Cause)
 
-            with OneHotSwitch(m, self.fn.get_function()) as OneHotCase:
+            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
                     m.d.comb += cause.eq(Cause.BREAKPOINT)
                 with OneHotCase(ExceptionUnitFn.Fn.ECALL):
@@ -85,19 +85,20 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                 with OneHotCase(ExceptionUnitFn.Fn.INSTR_PAGE_FAULT):
                     m.d.comb += cause.eq(Cause.INSTRUCTION_PAGE_FAULT)
 
-            self.exception_register.report(m, rob_id=arg.rob_id, cause=cause)
+            self.report(m, rob_id=arg.rob_id, cause=cause)
 
             fifo.write(m, result=0, exception=1, rob_id=arg.rob_id, rp_dst=arg.rp_dst)
 
         return m
 
 
-class ShiftUnitComponent(FunctionalComponentParams):
+class ExceptionUnitComponent(FunctionalComponentParams):
     def __init__(self):
         self.unit_fn = ExceptionUnitFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return ExceptionFuncUnit(gen_params, self.unit_fn)
+        unit = ExceptionFuncUnit(gen_params, self.unit_fn)
+        return unit
 
     def get_optypes(self) -> set[OpType]:
         return self.unit_fn.get_op_types()

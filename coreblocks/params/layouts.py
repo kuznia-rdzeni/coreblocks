@@ -388,4 +388,4 @@ class CSRLayouts:
 
 class ExceptionRegisterLayouts:
     def __init__(self, gen_params: GenParams):
-        self.report = [("cause", 32), ("rob_id", gen_params.rob_entries_bits)]
+        self.report = [("cause", 4), ("rob_id", gen_params.rob_entries_bits)]

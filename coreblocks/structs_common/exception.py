@@ -1,8 +1,10 @@
 from amaranth import *
+from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.genparams import GenParams
 
 from coreblocks.params.isa import BitEnum
 from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.transactions.core import Priority, TModule, def_method, Method
 
 
@@ -50,7 +52,7 @@ def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) ->
 
 
 class ExceptionCauseRegister(Elaboratable):
-    def __init__(self, gp: GenParams):
+    def __init__(self, gp: GenParams, rob_get_indices: Method):
         self.gp = gp
 
         self.cause = Signal(Cause)
@@ -58,11 +60,14 @@ class ExceptionCauseRegister(Elaboratable):
         self.valid = Signal()
 
         self.report = Method(i=gp.get(ExceptionRegisterLayouts).report)
+        dm = gp.get(DependencyManager)
+        dm.add_dependency(ExceptionReportKey(), self.report)
+
         self.clear = Method()
 
         self.clear.add_conflict(self.report, Priority.LEFT)
 
-        self.rob_get_indices = Method()
+        self.rob_get_indices = rob_get_indices
 
     def elaborate(self, platform):
         m = TModule()

@@ -35,7 +35,6 @@ class JumpBranchWrapper(Elaboratable):
                 "result": res.result,
                 "rob_id": res.rob_id,
                 "rp_dst": res.rp_dst,
-                "exception": 0,
             }
 
         return m

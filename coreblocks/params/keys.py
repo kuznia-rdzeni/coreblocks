@@ -1,16 +1,14 @@
 from dataclasses import dataclass
 
 from coreblocks.params.dependencies import SimpleKey, UnifierKey
-from coreblocks.transactions.lib import MethodProduct, Collector
+from coreblocks.transactions.lib import MethodProduct, Collector, Method
 from coreblocks.peripherals.wishbone import WishboneMaster
-from coreblocks.structs_common.exception import ExceptionCauseRegister
-
 
 __all__ = [
     "WishboneDataKey",
     "InstructionPrecommitKey",
     "BranchResolvedKey",
-    "ExceptionRegisterKey",
+    "ExceptionReportKey",
 ]
 
 
@@ -30,5 +28,5 @@ class BranchResolvedKey(UnifierKey, unifier=Collector):
 
 
 @dataclass(frozen=True)
-class ExceptionRegisterKey(SimpleKey[ExceptionCauseRegister]):
+class ExceptionReportKey(SimpleKey[Method]):
     pass
