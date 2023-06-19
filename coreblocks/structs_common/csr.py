@@ -314,6 +314,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                 "rob_id": instr.rob_id,
                 "rp_dst": instr.rp_dst,
                 "result": current_result,
+                "exception": 0,
             }
 
         @def_method(m, self.fetch_continue, accepted)
@@ -338,3 +339,6 @@ class CSRBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.CSR_REG, OpType.CSR_IMM}
+
+    def get_rs_entry_count(self) -> int:
+        return 1

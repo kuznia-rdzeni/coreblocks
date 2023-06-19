@@ -27,7 +27,11 @@ class ReorderBuffer(Elaboratable):
 
         @def_method(m, self.peek, ready=peek_possible)
         def _():
-            return {"rob_data": self.data[start_idx].rob_data, "rob_id": start_idx}
+            return {
+                "rob_data": self.data[start_idx].rob_data,
+                "rob_id": start_idx,
+                "exception": self.data[start_idx].exception,
+            }
 
         @def_method(m, self.retire, ready=self.data[start_idx].done)
         def _():
@@ -35,7 +39,11 @@ class ReorderBuffer(Elaboratable):
             m.d.sync += self.data[start_idx].done.eq(0)
             # TODO: because of a problem with mocking nonexclusive methods,
             # retire replicates functionality of peek
-            return {"rob_data": self.data[start_idx].rob_data, "rob_id": start_idx}
+            return {
+                "rob_data": self.data[start_idx].rob_data,
+                "rob_id": start_idx,
+                "exception": self.data[start_idx].exception,
+            }
 
         @def_method(m, self.put, ready=put_possible)
         def _(arg):

@@ -268,7 +268,12 @@ class LSUDummy(FuncBlock, Elaboratable):
             with m.If(current_instr.exec_fn.op_type == OpType.LOAD):
                 m.d.sync += current_instr.eq(0)
                 m.d.sync += reserved.eq(0)
-            return {"rob_id": current_instr.rob_id, "rp_dst": current_instr.rp_dst, "result": internal.loadedData}
+            return {
+                "rob_id": current_instr.rob_id,
+                "rp_dst": current_instr.rp_dst,
+                "result": internal.loadedData,
+                "exception": 0,
+            }
 
         @def_method(m, self.precommit)
         def _(rob_id: Value):
@@ -294,3 +299,6 @@ class LSUBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.LOAD, OpType.STORE}
+
+    def get_rs_entry_count(self) -> int:
+        return 1

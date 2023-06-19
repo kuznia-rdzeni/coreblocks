@@ -55,12 +55,12 @@ class TestFuDecoder(TestCaseWithSimulator):
                 returned = yield from self.handle_signals(decoder, exec_fn)
                 expected = self.expected_results(instructions, op_type_dependent, exec_fn)
 
-                yield self.assertEqual(returned, expected)
+                self.assertEqual(returned, expected)
 
         test_circuit = SimpleTestCircuit(decoder)
 
         with self.run_simulation(test_circuit) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
     def generate_random_instructions(self) -> Sequence[tuple]:
         random.seed(42)

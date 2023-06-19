@@ -33,6 +33,15 @@ class OpType(IntEnum):
     DIV_REM = auto()
     SINGLE_BIT_MANIPULATION = auto()
     ADDRESS_GENERATION = auto()
+    BIT_MANIPULATION = auto()
+    UNARY_BIT_MANIPULATION_1 = auto()
+    UNARY_BIT_MANIPULATION_2 = auto()
+    UNARY_BIT_MANIPULATION_3 = auto()
+    UNARY_BIT_MANIPULATION_4 = auto()
+    UNARY_BIT_MANIPULATION_5 = auto()
+    CLMUL = auto()
+    SRET = auto()
+    SFENCEVMA = auto()
     #: Internal Coreblocks OpType, specifing that instruction caused Exception before FU execution
     EXCEPTION = auto()
 
@@ -57,8 +66,6 @@ optypes_by_extensions = {
         OpType.FENCE,
         OpType.ECALL,
         OpType.EBREAK,
-        OpType.MRET,
-        OpType.WFI,
     ],
     Extension.ZIFENCEI: [
         OpType.FENCEI,
@@ -78,6 +85,25 @@ optypes_by_extensions = {
     ],
     Extension.ZBA: [
         OpType.ADDRESS_GENERATION,
+    ],
+    Extension.ZBB: [
+        OpType.BIT_MANIPULATION,
+        OpType.UNARY_BIT_MANIPULATION_1,
+        OpType.UNARY_BIT_MANIPULATION_2,
+        OpType.UNARY_BIT_MANIPULATION_3,
+        OpType.UNARY_BIT_MANIPULATION_4,
+        OpType.UNARY_BIT_MANIPULATION_5,
+    ],
+    Extension.ZBC: [
+        OpType.CLMUL,
+    ],
+    Extension.XINTMACHINEMODE: [
+        OpType.MRET,
+        OpType.WFI,
+    ],
+    Extension.XINTSUPERVISOR: [
+        OpType.SRET,
+        OpType.SFENCEVMA,
     ],
 }
 

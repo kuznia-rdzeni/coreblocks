@@ -58,6 +58,7 @@ class ResultAnnouncement(Elaboratable):
         with Transaction().body(m):
             result = self.m_get_result(m)
             self.m_rob_mark_done(m, rob_id=result.rob_id, exception=result.exception)
+
             with m.If(result.exception == 0):
                 self.m_rf_write_val(m, reg_id=result.rp_dst, reg_val=result.result)
                 with m.If(result.rp_dst != 0):

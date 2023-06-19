@@ -106,10 +106,6 @@ class JumpBranch(Elaboratable):
                 m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_unsigned() >= self.in2.as_unsigned())
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         return m
 
 
@@ -151,7 +147,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             m.d.comb += jb.in_pc.eq(arg.pc)
             m.d.comb += jb.in_imm.eq(arg.imm)
 
-            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst)
+            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=0)
 
             # skip writing next branch target for auipc
             with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):
