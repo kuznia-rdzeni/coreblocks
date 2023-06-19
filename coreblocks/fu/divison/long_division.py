@@ -6,7 +6,7 @@ from coreblocks.transactions.core import def_method
 from coreblocks.fu.divison.common import DividerBase
 
 """
-Alogorithm - multi-cycle array divider
+Algorithm - multi-cycle array divider
 Method described here: https://yuhei1-horibe.medium.com/designing-divider-213fbd32beb2
 """
 
@@ -45,9 +45,9 @@ class RecursiveDivison(Elaboratable):
         Calculated partial reminder
     """
 
-    def __init__(self, count: int, size: int, partial_remainder_count: int = 0):
+    def __init__(self, step_count: int, size: int, partial_remainder_count: int = 0):
         self.size = size
-        self.n = count
+        self.step_count = step_count
         self.partial_remainder_count = partial_remainder_count
 
         self.divisor = Signal(unsigned(size))
@@ -59,7 +59,7 @@ class RecursiveDivison(Elaboratable):
         self.partial_reminder = Signal(unsigned(size))
 
     def elaborate(self, platform) -> TModule:
-        if self.n == 0:
+        if self.step_count == 0:
             # default case
             m = TModule()
 
@@ -76,26 +76,26 @@ class RecursiveDivison(Elaboratable):
 
         # adding bit from dividend
         concat = Signal(self.size)
-        m.d.comb += concat.eq(Cat(self.dividend[self.n - 1], self.input_remainder))
+        m.d.comb += concat.eq(Cat(self.dividend[self.step_count - 1], self.input_remainder))
 
         # recursive module
         m.submodules.rec_div = rec_div = RecursiveDivison(
-            self.n - 1, self.size, partial_remainder_count=self.partial_remainder_count - 1
+            self.step_count - 1, self.size, partial_remainder_count=self.partial_remainder_count - 1
         )
 
         m.d.comb += rec_div.dividend.eq(self.dividend)
         m.d.comb += rec_div.divisor.eq(self.divisor)
 
-        # Signle step as described in article
+        # Single step as described in article
         with m.If(concat >= self.divisor):
-            m.d.comb += self.quotient[self.n - 1].eq(1)
+            m.d.comb += self.quotient[self.step_count - 1].eq(1)
             m.d.comb += rec_div.input_remainder.eq(concat - self.divisor)
         with m.Else():
-            m.d.comb += self.quotient[self.n - 1].eq(0)
+            m.d.comb += self.quotient[self.step_count - 1].eq(0)
             m.d.comb += rec_div.input_remainder.eq(concat)
 
         # wiring up rest of result from recursive module
-        m.d.comb += self.quotient[: (self.n - 1)].eq(rec_div.quotient)
+        m.d.comb += self.quotient[: (self.step_count - 1)].eq(rec_div.quotient)
         m.d.comb += self.remainder.eq(rec_div.remainder)
 
         # partial remainder
@@ -154,7 +154,7 @@ class LongDivider(DividerBase):
 
         stage = Signal(unsigned(xlen_log + 1))
 
-        # reseting
+        # resetting
         @def_method(m, self.issue, ready=ready)
         def _(arg):
             m.d.sync += dividend.eq(arg.dividend)
@@ -181,10 +181,10 @@ class LongDivider(DividerBase):
             m.d.comb += divider.input_remainder.eq(remainder)
 
             # dividend is a shift register
-            # so in each iterations upper bits are fed into recursive divider
+            # so in each iteration upper bits are fed into recursive divider
             m.d.sync += dividend.eq(dividend << self.ipc)
 
-            # if we are in the last stage and uneven amaount of bits needs to be handled
+            # if we are in the last stage and uneven amount of bits needs to be handled
             with m.If(special_stage):
                 m.d.sync += remainder.eq(divider.partial_reminder)
                 m.d.sync += quotient.eq(

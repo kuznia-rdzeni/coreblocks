@@ -79,7 +79,7 @@ class DivUnit(FuncUnit, Elaboratable):
             i1, i2 = get_input(arg)
 
             flip_sign = Signal(1)  # if result is negative number
-            rem_res = Signal(1)  # flag wheather we want result or reminder
+            rem_res = Signal(1)  # flag whether we want quotient or remainder
 
             dividend = Signal(xlen)
             divisor = Signal(xlen)
