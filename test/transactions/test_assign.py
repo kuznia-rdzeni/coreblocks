@@ -35,7 +35,7 @@ def reclayout2datalayout(layout):
 
 
 def mkstruct(layout):
-    return data.View(reclayout2datalayout(layout))
+    return Signal(reclayout2datalayout(layout))
 
 
 params_mk = [
