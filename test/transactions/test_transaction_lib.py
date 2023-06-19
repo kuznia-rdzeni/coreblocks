@@ -138,10 +138,6 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        # dummy signal
-        s = Signal()
-        m.d.sync += s.eq(1)
-
         get_results = []
         for i in range(self.count):
             input = TestbenchIO(Adapter(o=self.lay))
@@ -252,10 +248,6 @@ class MethodTransformerTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-
-        # dummy signal
-        s = Signal()
-        m.d.sync += s.eq(1)
 
         layout = data_layout(self.iosize)
 
@@ -399,10 +391,6 @@ class MethodProductTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-
-        # dummy signal
-        s = Signal()
-        m.d.sync += s.eq(1)
 
         layout = data_layout(self.iosize)
 
