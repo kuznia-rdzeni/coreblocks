@@ -224,14 +224,73 @@ to the next pipeline stage.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.PrivilegeLevel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr.</span></span><span class="sig-name descname"><span class="pre">PrivilegeLevel</span></span><a class="headerlink" href="#coreblocks.structs_common.csr.PrivilegeLevel" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
+<p>An enumeration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.PrivilegeLevel.MACHINE">
+<span class="sig-name descname"><span class="pre">MACHINE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.structs_common.csr.PrivilegeLevel.MACHINE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.PrivilegeLevel.SUPERVISOR">
+<span class="sig-name descname"><span class="pre">SUPERVISOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.structs_common.csr.PrivilegeLevel.SUPERVISOR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr.PrivilegeLevel.USER">
+<span class="sig-name descname"><span class="pre">USER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.structs_common.csr.PrivilegeLevel.USER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="coreblocks.structs_common.csr.csr_access_privilege">
-<span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr.</span></span><span class="sig-name descname"><span class="pre">csr_access_privilege</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csr_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple[&lt;unknown&gt;.PrivilegeLevel,</span> <span class="pre">bool]</span></span></span><a class="headerlink" href="#coreblocks.structs_common.csr.csr_access_privilege" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr.</span></span><span class="sig-name descname"><span class="pre">csr_access_privilege</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csr_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.structs_common.csr.PrivilegeLevel" title="coreblocks.structs_common.csr.PrivilegeLevel"><span class="pre">coreblocks.structs_common.csr.PrivilegeLevel</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.structs_common.csr.csr_access_privilege" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </div>
 <div class="section" id="module-coreblocks.structs_common.csr_generic">
 <span id="coreblocks-structs-common-csr-generic-module"></span><h2>coreblocks.structs_common.csr_generic module<a class="headerlink" href="#module-coreblocks.structs_common.csr_generic" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.CSRAddress">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr_generic.</span></span><span class="sig-name descname"><span class="pre">CSRAddress</span></span><a class="headerlink" href="#coreblocks.structs_common.csr_generic.CSRAddress" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
+<p>An enumeration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.CSRAddress.CYCLE">
+<span class="sig-name descname"><span class="pre">CYCLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3072</span></em><a class="headerlink" href="#coreblocks.structs_common.csr_generic.CSRAddress.CYCLE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.CSRAddress.CYCLEH">
+<span class="sig-name descname"><span class="pre">CYCLEH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3200</span></em><a class="headerlink" href="#coreblocks.structs_common.csr_generic.CSRAddress.CYCLEH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.CSRAddress.INSTRET">
+<span class="sig-name descname"><span class="pre">INSTRET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3074</span></em><a class="headerlink" href="#coreblocks.structs_common.csr_generic.CSRAddress.INSTRET" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.CSRAddress.INSTRETH">
+<span class="sig-name descname"><span class="pre">INSTRETH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3202</span></em><a class="headerlink" href="#coreblocks.structs_common.csr_generic.CSRAddress.INSTRETH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.CSRAddress.TIME">
+<span class="sig-name descname"><span class="pre">TIME</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3073</span></em><a class="headerlink" href="#coreblocks.structs_common.csr_generic.CSRAddress.TIME" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.CSRAddress.TIMEH">
+<span class="sig-name descname"><span class="pre">TIMEH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3201</span></em><a class="headerlink" href="#coreblocks.structs_common.csr_generic.CSRAddress.TIMEH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.DoubleCounterCSR">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.csr_generic.</span></span><span class="sig-name descname"><span class="pre">DoubleCounterCSR</span></span><a class="headerlink" href="#coreblocks.structs_common.csr_generic.DoubleCounterCSR" title="Permalink to this definition"></a></dt>
@@ -248,7 +307,7 @@ Groups two <cite>CSRRegisters</cite> to form counter with double <cite>isa.xlen<
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.DoubleCounterCSR.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params:</span> <span class="pre">~coreblocks.params.genparams.GenParams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_addr:</span> <span class="pre">~&lt;unknown&gt;.CSRAddress</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_addr:</span> <span class="pre">~typing.Optional[~&lt;unknown&gt;.CSRAddress]</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.structs_common.csr_generic.DoubleCounterCSR.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.structs_common.csr_generic.CSRAddress" title="coreblocks.structs_common.csr_generic.CSRAddress"><span class="pre">CSRAddress</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.structs_common.csr_generic.CSRAddress" title="coreblocks.structs_common.csr_generic.CSRAddress"><span class="pre">CSRAddress</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.structs_common.csr_generic.DoubleCounterCSR.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -363,7 +422,7 @@ low_addr CSR is available to the counter.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 07:49 2023-06-14.
+      <span class="lastupdated">Last updated on 11:23 2023-06-19.
       </span></p>
   </div>
 
