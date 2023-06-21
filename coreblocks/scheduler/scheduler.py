@@ -107,7 +107,7 @@ class Renaming(Elaboratable):
                 },
             )
 
-            m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "csr", "pc", "rvc"})
+            m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "csr", "pc"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
             m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
             m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
@@ -320,7 +320,6 @@ class RSInsertion(Elaboratable):
                     "imm": instr.imm,
                     "csr": instr.csr,
                     "pc": instr.pc,
-                    "rvc": instr.rvc,
                 },
             }
 

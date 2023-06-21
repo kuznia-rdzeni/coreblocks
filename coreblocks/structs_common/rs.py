@@ -93,7 +93,6 @@ class RS(Elaboratable):
                 "exec_fn": record.rs_data.exec_fn,
                 "imm": record.rs_data.imm,
                 "pc": record.rs_data.pc,
-                "rvc": record.rs_data.rvc,
             }
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):

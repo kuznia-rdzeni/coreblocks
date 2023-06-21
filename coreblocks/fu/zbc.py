@@ -204,7 +204,7 @@ class ZbcUnit(Elaboratable):
             return {"rob_id": params.rob_id, "rp_dst": params.rp_dst, "result": reversed_result}
 
         @def_method(m, self.issue)
-        def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc, rvc):
+        def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc):
             m.d.comb += decoder.exec_fn.eq(exec_fn)
 
             i1 = s1_val

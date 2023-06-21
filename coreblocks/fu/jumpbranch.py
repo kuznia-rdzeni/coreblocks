@@ -152,7 +152,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             m.d.top_comb += jb.in_pc.eq(arg.pc)
             m.d.top_comb += jb.in_imm.eq(arg.imm)
 
-            m.d.top_comb += jb.in_rvc.eq(arg.rvc)
+            m.d.top_comb += jb.in_rvc.eq(arg.exec_fn.funct7)
 
             fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst)
 

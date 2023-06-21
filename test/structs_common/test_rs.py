@@ -77,7 +77,6 @@ class TestRSMethodInsert(TestCaseWithSimulator):
                     "s2_val": id,
                     "imm": id,
                     "pc": id,
-                    "rvc": id % 2,
                 },
             }
             for id in range(2**self.m.rs_entries_bits)
@@ -122,7 +121,6 @@ class TestRSMethodSelect(TestCaseWithSimulator):
                     "s2_val": id,
                     "imm": id,
                     "pc": id,
-                    "rvc": id % 2,
                 },
             }
             for id in range(2**self.m.rs_entries_bits - 1)
@@ -186,7 +184,6 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
                     "s2_val": id,
                     "imm": id,
                     "pc": id,
-                    "rvc": id % 2,
                 },
             }
             for id in range(2**self.m.rs_entries_bits)
@@ -239,7 +236,6 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
             "s1_val": 0,
             "s2_val": 0,
             "pc": 40,
-            "rvc": 0,
         }
 
         for index in range(2):
@@ -278,7 +274,6 @@ class TestRSMethodTake(TestCaseWithSimulator):
                     "s2_val": id,
                     "imm": id,
                     "pc": id,
-                    "rvc": id % 2,
                 },
             }
             for id in range(2**self.m.rs_entries_bits)
@@ -335,7 +330,6 @@ class TestRSMethodTake(TestCaseWithSimulator):
             "s2_val": 0,
             "imm": 1,
             "pc": 40,
-            "rvc": 1,
         }
 
         for index in range(2):
@@ -378,7 +372,6 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
                     "s2_val": id,
                     "imm": id,
                     "pc": id,
-                    "rvc": id % 2,
                 },
             }
             for id in range(2**self.m.rs_entries_bits)
@@ -431,7 +424,6 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
                     "s1_val": id,
                     "s2_val": id,
                     "imm": id,
-                    "rvc": id % 2,
                 },
             }
             for id in range(self.m.rs_entries)
