@@ -33,7 +33,10 @@ def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) ->
     with m.If(new_cause == Cause.BREAKPOINT):
         m.d.comb += _update.eq(1)
 
-    with m.If((new_cause == Cause.INSTRUCTION_PAGE_FAULT) | (new_cause == Cause.INSTRUCTION_ACCESS_FAULT)):
+    with m.If(
+        ((new_cause == Cause.INSTRUCTION_PAGE_FAULT) | (new_cause == Cause.INSTRUCTION_ACCESS_FAULT))
+        & (current_cause != Cause.BREAKPOINT)
+    ):
         m.d.comb += _update.eq(1)
 
     with m.If(
@@ -63,6 +66,8 @@ class ExceptionCauseRegister(Elaboratable):
         dm = gp.get(DependencyManager)
         dm.add_dependency(ExceptionReportKey(), self.report)
 
+        self.get = Method(o=gp.get(ExceptionRegisterLayouts).get)
+
         self.clear = Method()
 
         self.clear.add_conflict(self.report, Priority.LEFT)
@@ -89,6 +94,10 @@ class ExceptionCauseRegister(Elaboratable):
                 m.d.sync += self.cause.eq(cause)
 
             m.d.sync += self.valid.eq(1)
+
+        @def_method(m, self.get)
+        def _():
+            return {"rob_id": self.rob_id, "cause": self.cause}
 
         @def_method(m, self.clear)
         def _():
