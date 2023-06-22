@@ -20,6 +20,7 @@ __all__ = [
     "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
+    "MethodTryProduct",
 ]
 
 # FIFOs
