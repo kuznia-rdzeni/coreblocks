@@ -1,13 +1,15 @@
+from contextlib import contextmanager
 from typing import Callable, Tuple, Optional
 from amaranth import *
 from .core import *
-from .core import SignalBundle, RecordDict
+from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
 from ..utils import ValueLike, assign, AssignType
 
 __all__ = [
     "FIFO",
     "Forwarder",
+    "Connect",
     "Collector",
     "ClickIn",
     "ClickOut",
@@ -20,6 +22,7 @@ __all__ = [
     "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
+    "condition",
 ]
 
 # FIFOs
@@ -137,6 +140,58 @@ class Forwarder(Elaboratable):
         @def_method(m, self.read, ready=reg_valid | self.write.run)
         def _():
             m.d.sync += reg_valid.eq(0)
+            return read_value
+
+        return m
+
+
+class Connect(Elaboratable):
+    """Forwarding by transaction simultaneity
+
+    Provides a means to connect two transactions with forwarding
+    by means of the transaction simultaneity mechanism. It provides
+    two methods: `read`, and `write`, which always execute simultaneously.
+    Typical use case is for moving data from `write` to `read`, but
+    data flow in the reverse direction is also possible.
+
+    Attributes
+    ----------
+    read: Method
+        The read method. Accepts a (possibly empty) `Record`, returns
+        a `Record`.
+    write: Method
+        The write method. Accepts a `Record`, returns a (possibly empty)
+        `Record`.
+    """
+
+    def __init__(self, layout: MethodLayout = (), rev_layout: MethodLayout = ()):
+        """
+        Parameters
+        ----------
+        layout: record layout
+            The format of records forwarded.
+        rev_layout: record layout
+            The format of records forwarded in the reverse direction.
+        """
+        self.read = Method(o=layout, i=rev_layout)
+        self.write = Method(i=layout, o=rev_layout)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        read_value = Record.like(self.read.data_out)
+        rev_read_value = Record.like(self.write.data_out)
+
+        self.write.simultaneous(self.read)
+
+        @def_method(m, self.write)
+        def _(arg):
+            m.d.av_comb += read_value.eq(arg)
+            return rev_read_value
+
+        @def_method(m, self.read)
+        def _(arg):
+            m.d.av_comb += rev_read_value.eq(arg)
             return read_value
 
         return m
@@ -299,7 +354,7 @@ class AdapterTrans(AdapterBase):
         data_in = Signal.like(self.data_in)
         m.d.comb += data_in.eq(self.data_in)
 
-        with Transaction().body(m, request=self.en):
+        with Transaction(name=f"AdapterTrans_{self.iface.name}").body(m, request=self.en):
             data_out = self.iface(m, data_in)
             m.d.top_comb += self.data_out.eq(data_out)
             m.d.comb += self.done.eq(1)
@@ -325,7 +380,7 @@ class Adapter(AdapterBase):
         Data passed as argument to the defined method.
     """
 
-    def __init__(self, *, i: MethodLayout = (), o: MethodLayout = ()):
+    def __init__(self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = ()):
         """
         Parameters
         ----------
@@ -334,7 +389,7 @@ class Adapter(AdapterBase):
         o: record layout
             The output layout of the defined method.
         """
-        super().__init__(Method(i=i, o=o))
+        super().__init__(Method(name=name, i=i, o=o))
         self.data_in = Record.like(self.iface.data_out)
         self.data_out = Record.like(self.iface.data_in)
 
@@ -709,3 +764,83 @@ class CatTrans(Elaboratable):
             m.d.comb += ddata.eq(Cat(sdata1, sdata2))
 
         return m
+
+
+# Conditions using simultaneous transactions
+
+
+@contextmanager
+def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
+    """Conditions using simultaneous transactions.
+
+    This context manager allows to easily define conditions utilizing
+    nested transactions and the simultaneous transactions mechanism.
+    It is similar to Amaranth's `If`, but allows to call different and
+    possibly overlapping method sets in each branch. Each of the branches is
+    defined using a separate nested transaction.
+
+    Inside the condition body, branches can be added, which are guarded
+    by Boolean conditions. A branch is considered for execution if its
+    condition is true and the called methods can be run. A catch-all,
+    default branch can be added, which can be executed only if none of
+    the other branches execute. Note that the default branch can run
+    even if some of the conditions are true, but their branches can't
+    execute for other reasons.
+
+    Parameters
+    ----------
+    m : TModule
+        A module where the condition is defined.
+    nonblocking : bool
+        States that the condition should not block the containing method
+        or transaction from running, even when every branch cannot run.
+        If `nonblocking` is false and every branch cannot run (because of
+        a false condition or disabled called methods), the whole method
+        or transaction will be stopped from running.
+    priority : bool
+        States that the conditions are not mutually exclusive and should
+        be tested in order. This influences the scheduling order of generated
+        transactions.
+
+    Examples
+    --------
+    .. highlight:: python
+    .. code-block:: python
+
+        with condition(m) as branch:
+            with branch(cond1):
+                ...
+            with branch(cond2):
+                ...
+            with branch():  # default, optional
+                ...
+    """
+    this = TransactionBase.get()
+    transactions = list[Transaction]()
+    last = False
+
+    @contextmanager
+    def branch(cond: Optional[ValueLike] = None):
+        nonlocal last
+        if last:
+            raise RuntimeError("Condition clause added after catch-all")
+        req = cond if cond is not None else 1
+        name = f"{this.name}_cond{len(transactions)}"
+        with (transaction := Transaction(name=name)).body(m, request=req):
+            yield
+        if transactions and priority:
+            transactions[-1].schedule_before(transaction)
+        if cond is None:
+            last = True
+            if not priority:
+                for transaction0 in transactions:
+                    transaction0.schedule_before(transaction)
+        transactions.append(transaction)
+
+    yield branch
+
+    if nonblocking and not last:
+        with branch():
+            pass
+
+    this.simultaneous_alternatives(*transactions)
