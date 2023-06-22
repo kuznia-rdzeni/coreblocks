@@ -1,7 +1,8 @@
+from itertools import product
 import random
 from operator import and_
 from functools import reduce
-from typing import TypeAlias
+from typing import Optional, TypeAlias
 from amaranth.sim import Settle
 from parameterized import parameterized
 
@@ -455,3 +456,73 @@ class TestMethodProduct(TestCaseWithSimulator):
             sim.add_sync_process(method_process)
             for k in range(targets):
                 sim.add_sync_process(target_process(k))
+
+
+class ConditionTestCircuit(Elaboratable):
+    def __init__(self, target: Method, *, nonblocking: bool, priority: bool, catchall: bool):
+        self.target = target
+        self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)])
+        self.nonblocking = nonblocking
+        self.priority = priority
+        self.catchall = catchall
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        @def_method(m, self.source)
+        def _(cond1, cond2, cond3):
+            with condition(m, nonblocking=self.nonblocking, priority=self.priority) as branch:
+                with branch(cond1):
+                    self.target(m, cond=1)
+                with branch(cond2):
+                    self.target(m, cond=2)
+                with branch(cond3):
+                    self.target(m, cond=3)
+                if self.catchall:
+                    with branch():
+                        self.target(m, cond=0)
+
+        return m
+
+
+class ConditionTest(TestCaseWithSimulator):
+    @parameterized.expand(product([False, True], [False, True], [False, True]))
+    def test_condition(self, nonblocking: bool, priority: bool, catchall: bool):
+        target = TestbenchIO(Adapter(i=[("cond", 2)]))
+
+        circ = SimpleTestCircuit(
+            ConditionTestCircuit(target.adapter.iface, nonblocking=nonblocking, priority=priority, catchall=catchall)
+        )
+        m = ModuleConnector(test_circuit=circ, target=target)
+
+        selection: Optional[int]
+
+        @def_method_mock(lambda: target)
+        def target_process(cond):
+            nonlocal selection
+            selection = cond
+
+        def process():
+            nonlocal selection
+            for c1, c2, c3 in product([0, 1], [0, 1], [0, 1]):
+                selection = None
+                res = yield from circ.source.call_try(cond1=c1, cond2=c2, cond3=c3)
+
+                if catchall or nonblocking:
+                    self.assertIsNotNone(res)
+
+                if res is None:
+                    self.assertIsNone(selection)
+                    self.assertFalse(catchall or nonblocking)
+                    self.assertEqual((c1, c2, c3), (0, 0, 0))
+                elif selection is None:
+                    self.assertTrue(nonblocking)
+                    self.assertEqual((c1, c2, c3), (0, 0, 0))
+                elif priority:
+                    self.assertEqual(selection, c1 + 2 * c2 * (1 - c1) + 3 * c3 * (1 - c2) * (1 - c1))
+                else:
+                    self.assertIn(selection, [c1, 2 * c2, 3 * c3])
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(target_process)
+            sim.add_sync_process(process)

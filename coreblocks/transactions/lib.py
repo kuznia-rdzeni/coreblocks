@@ -22,6 +22,7 @@ __all__ = [
     "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
+    "condition",
 ]
 
 # FIFOs
