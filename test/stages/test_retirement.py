@@ -1,3 +1,4 @@
+from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.stages.retirement import *
 
 from coreblocks.transactions.lib import FIFO, Adapter
@@ -21,6 +22,7 @@ class RetirementTestCircuit(Elaboratable):
         rf_layouts = self.gen_params.get(RFLayouts)
         lsu_layouts = self.gen_params.get(LSULayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
+        exception_layouts = self.gen_params.get(ExceptionRegisterLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(
@@ -35,6 +37,8 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
+        m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(Adapter(o=exception_layouts.get))
+
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
             rob_retire=self.mock_rob_retire.adapter.iface,
@@ -43,6 +47,7 @@ class RetirementTestCircuit(Elaboratable):
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
             precommit=self.mock_precommit.adapter.iface,
+            exception_cause_get=self.mock_exception_cause.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))

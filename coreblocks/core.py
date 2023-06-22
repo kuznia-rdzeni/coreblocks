@@ -5,7 +5,7 @@ from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
@@ -75,6 +75,9 @@ class Core(Elaboratable):
             rf_write_val=self.RF.write,
         )
 
+        self.csr_generic = GenericCSRRegisters(self.gen_params)
+        connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -128,9 +131,10 @@ class Core(Elaboratable):
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
+            exception_cause_get=self.exception_cause_register.get,
         )
 
-        m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)
+        m.submodules.csr_generic = self.csr_generic
 
         # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
         free_rf_reg = Signal(self.gen_params.phys_regs_bits, reset=1)

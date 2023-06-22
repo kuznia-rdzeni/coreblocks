@@ -1,4 +1,6 @@
 from amaranth import *
+from coreblocks.params.dependencies import DependencyManager
+from coreblocks.params.keys import GenericCSRRegistersKey
 
 from coreblocks.transactions.core import Method, Transaction, TModule
 from coreblocks.params.genparams import GenParams
@@ -15,7 +17,8 @@ class Retirement(Elaboratable):
         r_rat_commit: Method,
         free_rf_put: Method,
         rf_free: Method,
-        precommit: Method
+        precommit: Method,
+        exception_cause_get: Method
     ):
         self.gen_params = gen_params
         self.rob_peek = rob_peek
@@ -24,6 +27,7 @@ class Retirement(Elaboratable):
         self.free_rf_put = free_rf_put
         self.rf_free = rf_free
         self.precommit = precommit
+        self.exception_cause_get = exception_cause_get
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
@@ -43,6 +47,13 @@ class Retirement(Elaboratable):
             rob_entry = self.rob_retire(m)
 
             # TODO: Trigger InterruptCoordinator (handle exception) when rob_entry.exception is set.
+            with m.If(rob_entry.exception):
+                mcause = self.gen_params.get(DependencyManager).get_dependency(GenericCSRRegistersKey()).mcause
+                cause = self.exception_cause_get(m).cause
+                entry = Signal(self.gen_params.isa.xlen)
+                # MSB is exception bit
+                m.d.comb += entry.eq(cause | (1 << (self.gen_params.isa.xlen - 1)))
+                mcause.write(m, entry)
 
             # set rl_dst -> rp_dst in R-RAT
             rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
