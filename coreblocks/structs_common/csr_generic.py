@@ -1,14 +1,14 @@
 from amaranth import *
+from amaranth.lib.enum import IntEnum
 
 from typing import Optional
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.isa import BitEnum
 from coreblocks.structs_common.csr import CSRRegister, TModule
 from coreblocks.transactions.core import Method, Transaction, def_method
 
 
-class CSRAddress(BitEnum, width=12):
+class CSRAddress(IntEnum, shape=12):
     CYCLE = 0xC00
     TIME = 0xC01
     INSTRET = 0xC02
