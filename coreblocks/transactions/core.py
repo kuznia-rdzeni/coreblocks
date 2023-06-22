@@ -339,7 +339,9 @@ class TransactionManager(Elaboratable):
             for sim_elem in elem.simultaneous_list:
                 for tr1, tr2 in product(method_map.transactions_for(elem), method_map.transactions_for(sim_elem)):
                     if tr1 in independents[tr2]:
-                        raise RuntimeError("Unsatisfiable simultaneity constraints")
+                        raise RuntimeError(
+                            f"Unsatisfiable simultaneity constraints for '{elem.name}' and '{sim_elem.name}'"
+                        )
                     simultaneous.add(frozenset({tr1, tr2}))
 
         # step 2: transitivity computation
@@ -723,14 +725,17 @@ class TransactionBase(Owned):
             but mutually exclusive, with this `Transaction` or `Method`.
         """
         self.simultaneous(*others)
-        others[0].independent(*others[1:])
+        others[0]._independent(*others[1:])
 
-    def independent(self, *others: TransactionOrMethod) -> None:
+    def _independent(self, *others: TransactionOrMethod) -> None:
         """Adds independence relations.
 
         This `Transaction` or `Method`, together with all the given
         `Transaction`\\s or `Method`\\s, will never be considered (pairwise)
         for simultaneous execution.
+
+        Warning: this function is an implementation detail, do not use in
+        user code.
 
         Parameters
         ----------
