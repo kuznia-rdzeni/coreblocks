@@ -1256,6 +1256,43 @@ If not present, output is not transformed.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.transactions.lib.MethodTryProduct">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.lib.</span></span><span class="sig-name descname"><span class="pre">MethodTryProduct</span></span><a class="headerlink" href="#coreblocks.transactions.lib.MethodTryProduct" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.transactions.lib.MethodTryProduct.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">coreblocks.transactions.core.Method</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">combiner</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping[str,</span> <span class="pre">'RecordDict']]]]</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.lib.MethodTryProduct.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Method product with optional calling.</p>
+<p>Takes arbitrary, non-zero number of target methods, and constructs
+a method which tries to call all of the target methods using the same
+argument. The methods which are not ready are not called. The return
+value of the resulting method is, by default, empty. A combiner
+function can be passed, which can compute the return value from the
+results of every target method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>targets: list[Method]</strong></dt><dd><p>A list of methods to be called.</p>
+</dd>
+<dt><strong>combiner: (int or method layout, function), optional</strong></dt><dd><p>A pair of the output layout and the combiner function. The
+combiner function takes two parameters: a <cite>Module</cite> and
+a list of pairs. Each pair contains a bit which signals
+that a given call succeeded, and the result of the call.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>method: Method</strong></dt><dd><p>The product method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="coreblocks.transactions.lib.condition">
 <span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.lib.</span></span><span class="sig-name descname"><span class="pre">condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.TModule" title="coreblocks.transactions.core.TModule"><span class="pre">TModule</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonblocking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.lib.condition" title="Permalink to this definition"></a></dt>
@@ -1823,7 +1860,7 @@ Assigned combinationally to the <cite>ready</cite> attribute.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 18:57 2023-06-22.
+      <span class="lastupdated">Last updated on 11:04 2023-06-23.
       </span></p>
   </div>
 
