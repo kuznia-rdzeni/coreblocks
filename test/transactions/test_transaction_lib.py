@@ -784,9 +784,7 @@ class ConditionTest(TestCaseWithSimulator):
 class TestRoutingBlock(TestCaseWithSimulator):
     @staticmethod
     def prepare_any_to_any_circuit(input_count, output_count, layout):
-        test_circuit = AnyToAnySimpleRoutingBlock(output_count, layout)
-        for i in range(input_count):
-            test_circuit.get_new_send_method()
+        test_circuit = AnyToAnySimpleRoutingBlock(input_count, output_count, layout)
         m = SimpleTestCircuit(test_circuit)
         return m
 

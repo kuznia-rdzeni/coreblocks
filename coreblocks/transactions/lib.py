@@ -1191,69 +1191,24 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
     this.simultaneous_alternatives(*transactions)
 
 
-class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
-    """Routing by any-to-any connections
-
-    Routing block which create a any-to-any connection between inputs and
-    outputs and next forwards input data to proper output based on address.
-
-    - Connection complexity: O(n^2)
-    - All connections are combinational
-    - Routing is done based on address, so to don't have combinational loop
-      to each send method only one user should be connected.
-    """
-
-    def __init__(self, outputs_count: int, data_layout: LayoutLike):
-        """
-        Parameters
-        ----------
-        outputs_count: int
-            Number of receiver methods which should be generated.
-        data_layout: LayoutLike
-            Layout of data which should be transferend from sender to reciver.
-        """
-        self.outputs_count = outputs_count
-        self.data_layout = data_layout
-        self.addr_width = bits_for(self.outputs_count - 1)
-
-        self.send_layout: LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
-
-        self.send = []
-        self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
-
-        self._connectors = [Connect(self.data_layout) for _ in range(self.outputs_count)]
-
-    def get_new_send_method(self):
-        """
-        Generator of new send methods so that it will be harder to
-        connect two users to the same `send` methods by mistake.
-        """
-        self.send.append(Method(i=self.send_layout))
-        return self.send[-1]
-
-    def elaborate(self, platform):
-        if not self.send:
-            raise ValueError("Sender lists empty")
-        m = TModule()
-
-        m.submodules.connectors = ModuleConnector(*self._connectors)
-
-        for sender in self.send:
-
-            @def_method(m, sender)
-            def _(addr, data):
-                with condition(m, nonblocking=False) as branch:
-                    for i in range(self.outputs_count):
-                        with branch(addr == i):
-                            self._connectors[i].write(m, data)
-
-        for i in range(self.outputs_count):
-            self.receive[i].proxy(m, self._connectors[i].read)
-
-        return m
-
-
 def def_one_caller_wrapper(method_to_wrap: Method, wrapper: Method) -> TModule:
+    """
+    Function used to a wrap method that can only have one caller. After wrapping
+    many callers can call the wrapper. Results are buffered and passed to the
+    wrapped method from one source.
+
+    Parameters
+    ----------
+    method_to_wrap : Method
+        Method that can only be called by a single caller.
+    wrapper : Method
+        Method to be defined as a wrapper over `method_to_wrap`.
+
+    Returns
+    -------
+    TModule
+        Module with created amaranth connections.
+    """
     if len(method_to_wrap.data_out):
         raise ValueError("def_one_caller_wrapper support only wrapping of methods which don't return data.")
 
@@ -1270,10 +1225,106 @@ def def_one_caller_wrapper(method_to_wrap: Method, wrapper: Method) -> TModule:
     return m
 
 
+class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
+    """Routing by any-to-any connections
+
+    Routing block which create a any-to-any connection between inputs and
+    outputs and next forwards input data to proper output based on address.
+
+    - Connection complexity: O(n^2)
+    - All connections are combinational
+    - Routing is done based on an address, so to don't have combinational loop
+      there is a buffering of inputs on each send method
+
+    Attributes
+    ----------
+    send : list[Method]
+        List of methods used to send `data` to the receiver with `addr`.
+    receive : list[Method]
+        Methods used to receive data based on addresses. k-th method
+        from the list returns data for address `k`.
+    """
+
+    def __init__(self, inputs_count: int, outputs_count: int, data_layout: LayoutLike):
+        """
+        Parameters
+        ----------
+        outputs_count: int
+            Number of receiver methods which should be generated.
+        data_layout: LayoutLike
+            Layout of data which should be transferend from sender to reciver.
+        """
+        self.inputs_count = inputs_count
+        self.outputs_count = outputs_count
+        self.data_layout = data_layout
+        self.addr_width = bits_for(self.outputs_count - 1)
+
+        self.send_layout: LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
+
+        self.send = [Method(i=self.send_layout) for _ in range(self.inputs_count)]
+        self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
+
+        self._connectors = [Connect(self.data_layout) for _ in range(self.outputs_count)]
+
+    def elaborate(self, platform):
+        if not self.send:
+            raise ValueError("Sender lists empty")
+        m = TModule()
+
+        m.submodules.connectors = ModuleConnector(*self._connectors)
+
+        _internal_send = [Method(i=self.send_layout) for _ in range(self.inputs_count)]
+
+        sender_wrappers = []
+        for i in range(self.inputs_count):
+
+            @def_method(m, _internal_send[i])
+            def _(addr, data):
+                with condition(m, nonblocking=False) as branch:
+                    for i in range(self.outputs_count):
+                        with branch(addr == i):
+                            self._connectors[i].write(m, data)
+
+            sender_wrappers.append(def_one_caller_wrapper(_internal_send[i], self.send[i]))
+        m.submodules.sender_wrappers = ModuleConnector(*sender_wrappers)
+
+        for i in range(self.outputs_count):
+            self.receive[i].proxy(m, self._connectors[i].read)
+
+        return m
+
+
 class _OmegaRoutingSwitch(Elaboratable):
+    """An internal building block of OmegaRoutingNetwork
+
+    This switch has `_ports_count=2` inputs and outputs and based
+    on the most significant bit of the address it routes data either
+    to the upper (if MSB = 0) or the lower (MSB = 1) output.
+
+    The output address is shifted 1 bit to the left, so that the bit, based on which
+    this switch was routing, is removed and the original second MSB bit
+    is now the MSB.
+
+    Attributes
+    ----------
+    _ports_count : int
+        Implementation defined constant to describe the number of input and output ports.
+    reads : list[Method], len(reads) == _ports_count
+        Methods used to read data from upper output (0-th method) and
+        lower output (1-st method)
+    writes : list[Method], len(writes) == _ports_count
+        Methods used to insert data into the switch.
+    """
+
     _ports_count = 2
 
     def __init__(self, send_layout: LayoutLike):
+        """
+        Parameters
+        ----------
+        send_layout : LayoutLike
+            Layout with two fields: `addr` and `data`.
+        """
         self.send_layout = send_layout
 
         # 0 - "up" port; 1 - "down" port
@@ -1302,15 +1353,40 @@ class _OmegaRoutingSwitch(Elaboratable):
 
 
 class OmegaRoutingNetwork(Elaboratable, RoutingBlock):
-    def __init__(self, outputs_count: int, data_layout: LayoutLike):
-        self.outputs_count = outputs_count
+    """Omega routing network
+
+    A network consisting of grid of small switches, each of which routes data either
+    "up" or "down", based on one bit of the address. Connecting switches in the correct
+    way allows us to construct a routing network with log(n) depth.
+
+    Currently, the implementation supports only power of two number of ports.
+
+    Attributes
+    ----------
+    send : list[Method]
+        List of methods used to send `data` to the receiver with `addr`.
+    receive : list[Method]
+        Methods used to receive data based on addresses. k-th method
+        from the list returns data for address `k`.
+    """
+
+    def __init__(self, ports_count: int, data_layout: LayoutLike):
+        """
+        Parameters
+        ----------
+        ports_count : int
+            The number of input and output ports to create.
+        data_layout : LayoutLike
+            Layout of data which are being transfered by network.
+        """
+        self.outputs_count = ports_count
         self.data_layout = data_layout
 
         self.addr_width = self.stages = bits_for(self.outputs_count - 1)
         self.switch_port_count = _OmegaRoutingSwitch._ports_count
-        self.switches_in_stage = outputs_count // self.switch_port_count
+        self.switches_in_stage = self.outputs_count // self.switch_port_count
 
-        if self.outputs_count % self.switch_port_count:
+        if self.outputs_count.bit_count() > 1:
             raise ValueError("OmegaRoutingNetwork don't support odd number of outputs.")
 
         self.send_layout: LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
