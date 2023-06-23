@@ -285,7 +285,7 @@ class TestAluFuncUnit(TestCaseWithSimulator):
                     "imm": data2 if data2_is_imm else 0,
                 }
             )
-            self.responses.append({"rob_id": rob_id, "result": result, "rp_dst": rp_dst})
+            self.responses.append({"rob_id": rob_id, "result": result, "rp_dst": rp_dst, "exception": 0})
 
     def test_randomized(self):
         def random_wait():
