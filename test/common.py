@@ -151,6 +151,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
             else:
                 tb = TestbenchIO(AdapterTrans(container))
                 return tb, tb
+
         m = Module()
 
         m.submodules.dut = self._dut

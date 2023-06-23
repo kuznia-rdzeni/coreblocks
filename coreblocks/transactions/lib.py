@@ -1450,7 +1450,9 @@ class OmegaRoutingNetwork(Elaboratable, RoutingBlock):
             @def_method(m, self.receive[self.outputs_count - i - 1])
             def _():
                 return {"data": (switches[-1][i // self.switch_port_count].reads[i % self.switch_port_count](m)).data}
+
         return m
+
 
 class PriorityOrderingTransProxyTrans(Elaboratable):
     """Proxy for ordering methods
@@ -1480,14 +1482,8 @@ class PriorityOrderingTransProxyTrans(Elaboratable):
         self._m_ordered = methods_ordered
         self._m_unordered = methods_unordered
 
-
     def elaborate(self, platform):
         m = TModule()
-
-
-
-
-
 
         with Transaction().body(m):
             with condition(m, priority=True) as branch:

@@ -856,6 +856,8 @@ class TestRoutingBlock(TestCaseWithSimulator):
             for i in range(output_count):
                 sim.add_sync_process(create_receiver_process(i))
             sim.add_sync_process(checker)
+
+
 class TestPriorityOrderingProxy(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
