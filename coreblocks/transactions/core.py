@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Sequence, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
@@ -7,8 +7,8 @@ from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
 from amaranth import tracer
+from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
-from itertools import count, chain
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
 from coreblocks.utils.utils import OneHotSwitchDynamic
@@ -307,10 +307,106 @@ class TransactionManager(Elaboratable):
 
         return (args, runs)
 
+    def _simultaneous(self):
+        method_map = MethodMap(self.transactions)
+
+        # remove orderings between simultaneous methods/transactions
+        # TODO: can it be done after transitivity, possibly catching more cases?
+        for elem in method_map.methods_and_transactions:
+            all_sims = frozenset(elem.simultaneous_list)
+            elem.relations = list(
+                filterfalse(
+                    lambda relation: not relation["conflict"]
+                    and relation["priority"] != Priority.UNDEFINED
+                    and relation["end"] in all_sims,
+                    elem.relations,
+                )
+            )
+
+        # step 1: simultaneous and independent sets generation
+        independents = defaultdict[Transaction, set[Transaction]](set)
+
+        for elem in method_map.methods_and_transactions:
+            indeps = frozenset[Transaction]().union(
+                *(frozenset(method_map.transactions_for(ind)) for ind in chain([elem], elem.independent_list))
+            )
+            for transaction1, transaction2 in product(indeps, indeps):
+                independents[transaction1].add(transaction2)
+
+        simultaneous = set[frozenset[Transaction]]()
+
+        for elem in method_map.methods_and_transactions:
+            for sim_elem in elem.simultaneous_list:
+                for tr1, tr2 in product(method_map.transactions_for(elem), method_map.transactions_for(sim_elem)):
+                    if tr1 in independents[tr2]:
+                        raise RuntimeError(
+                            f"Unsatisfiable simultaneity constraints for '{elem.name}' and '{sim_elem.name}'"
+                        )
+                    simultaneous.add(frozenset({tr1, tr2}))
+
+        # step 2: transitivity computation
+        tr_simultaneous = set[frozenset[Transaction]]()
+
+        def conflicting(group: frozenset[Transaction]):
+            return any(tr1 != tr2 and tr1 in independents[tr2] for tr1 in group for tr2 in group)
+
+        q = deque[frozenset[Transaction]](simultaneous)
+
+        while q:
+            new_group = q.popleft()
+            if new_group in tr_simultaneous or conflicting(new_group):
+                continue
+            q.extend(new_group | other_group for other_group in simultaneous if new_group & other_group)
+            tr_simultaneous.add(new_group)
+
+        # step 3: maximal group selection
+        def maximal(group: frozenset[Transaction]):
+            return not any(group.issubset(group2) and group != group2 for group2 in tr_simultaneous)
+
+        final_simultaneous = set(filter(maximal, tr_simultaneous))
+
+        # step 4: convert transactions to methods
+        joined_transactions = set[Transaction]().union(*final_simultaneous)
+
+        self.transactions = list(filter(lambda t: t not in joined_transactions, self.transactions))
+        methods = dict[Transaction, Method]()
+
+        for transaction in joined_transactions:
+            # TODO: some simpler way?
+            method = Method(name=transaction.name)
+            method.owner = transaction.owner
+            method.ready = transaction.request
+            method.run = transaction.grant
+            method.defined = transaction.defined
+            method.method_uses = transaction.method_uses
+            method.relations = transaction.relations
+            method.def_order = transaction.def_order
+            methods[transaction] = method
+
+        for elem in method_map.methods_and_transactions:
+            # I guess method/transaction unification is really needed
+            for relation in elem.relations:
+                if relation["end"] in methods:
+                    relation["end"] = methods[relation["end"]]
+
+        # step 5: construct merged transactions
+        m = TModule()
+        m._MustUse__silence = True  # type: ignore
+
+        for group in final_simultaneous:
+            name = "_".join([t.name for t in group])
+            with Transaction(manager=self, name=name).body(m):
+                for transaction in group:
+                    methods[transaction](m)
+
+        return m
+
     def elaborate(self, platform):
         # In the following, various problems in the transaction set-up are detected.
         # The exception triggers an unused Elaboratable warning.
         with silence_mustuse(self):
+            merge_manager = self._simultaneous()
+
             method_map = MethodMap(self.transactions)
             relations = [
                 Relation(**relation, start=elem)
@@ -320,6 +416,7 @@ class TransactionManager(Elaboratable):
             cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
 
         m = Module()
+        m.submodules.merge_manager = merge_manager
 
         m.submodules._transactron_schedulers = ModuleConnector(
             *[self.cc_scheduler(method_map, cgr, cc, porder) for cc in _graph_ccs(rgr)]
@@ -561,6 +658,8 @@ class TransactionBase(Owned):
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
+        self.simultaneous_list: list[TransactionOrMethod] = []
+        self.independent_list: list[TransactionOrMethod] = []
 
     def add_conflict(self, end: TransactionOrMethod, priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
@@ -597,6 +696,55 @@ class TransactionBase(Owned):
         if method in self.method_uses:
             raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction '{self.name}'")
         self.method_uses[method] = (arg, enable)
+
+    def simultaneous(self, *others: TransactionOrMethod) -> None:
+        """Adds simultaneity relations.
+
+        The given `Transaction`\\s or `Method``\\s will execute simultaneously
+        (in the same clock cycle) with this `Transaction` or `Method`.
+
+        Parameters
+        ----------
+        *others: Transaction or Method
+            The `Transaction`\\s or `Method`\\s to be executed simultaneously.
+        """
+        self.simultaneous_list += others
+
+    def simultaneous_alternatives(self, *others: TransactionOrMethod) -> None:
+        """Adds exclusive simultaneity relations.
+
+        Each of the given `Transaction`\\s or `Method``\\s will execute
+        simultaneously (in the same clock cycle) with this `Transaction` or
+        `Method`. However, each of the given `Transaction`\\s or `Method`\\s
+        will be separately considered for execution.
+
+        Parameters
+        ----------
+        *others: Transaction or Method
+            The `Transaction`\\s or `Method`\\s to be executed simultaneously,
+            but mutually exclusive, with this `Transaction` or `Method`.
+        """
+        self.simultaneous(*others)
+        others[0]._independent(*others[1:])
+
+    def _independent(self, *others: TransactionOrMethod) -> None:
+        """Adds independence relations.
+
+        This `Transaction` or `Method`, together with all the given
+        `Transaction`\\s or `Method`\\s, will never be considered (pairwise)
+        for simultaneous execution.
+
+        Warning: this function is an implementation detail, do not use in
+        user code.
+
+        Parameters
+        ----------
+        *others: Transaction or Method
+            The `Transaction`\\s or `Method`\\s which, together with this
+            `Transaction` or `Method`, need to be independently considered
+            for execution.
+        """
+        self.independent_list += others
 
     @contextmanager
     def context(self, m: TModule) -> Iterator[Self]:
@@ -710,6 +858,7 @@ class Transaction(TransactionBase):
         if self.defined:
             raise RuntimeError(f"Transaction '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
+
         m.d.av_comb += self.request.eq(request)
         with self.context(m):
             with m.AvoidedIf(self.grant):
@@ -786,7 +935,7 @@ class Method(TransactionBase):
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal(name=self.name + "_ready")
-        self.run = Signal(name=self.name + "run")
+        self.run = Signal(name=self.name + "_run")
         self.data_in = Record(i)
         self.data_out = Record(o)
         self.nonexclusive = nonexclusive
@@ -827,10 +976,10 @@ class Method(TransactionBase):
         method : Method
             Method for which this method is a proxy for.
         """
-        m.d.av_comb += self.ready.eq(1)
-        m.d.top_comb += self.data_out.eq(method.data_out)
-        self.use_method(method, arg=self.data_in, enable=self.run)
-        self.defined = True
+
+        @def_method(m, self)
+        def _(arg):
+            return method(m, arg)
 
     @contextmanager
     def body(self, m: TModule, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
@@ -877,6 +1026,7 @@ class Method(TransactionBase):
         if self.defined:
             raise RuntimeError(f"Method '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
+
         try:
             m.d.av_comb += self.ready.eq(ready)
             m.d.top_comb += self.data_out.eq(out)
@@ -935,7 +1085,6 @@ class Method(TransactionBase):
             with Transaction.body(m):
                 ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
         """
-        enable_sig = Signal(name=self.name + "_enable")
         arg_rec = Record.like(self.data_in)
 
         if arg is not None and kwargs:
@@ -944,6 +1093,7 @@ class Method(TransactionBase):
         if arg is None:
             arg = kwargs
 
+        enable_sig = Signal(name=self.name + "_enable")
         m.d.av_comb += enable_sig.eq(enable)
         m.d.top_comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)

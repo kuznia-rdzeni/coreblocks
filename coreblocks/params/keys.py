@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from coreblocks.params.dependencies import SimpleKey, UnifierKey
-from coreblocks.transactions.lib import MethodProduct, Collector
+from coreblocks.transactions.lib import MethodTryProduct, Collector
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 
@@ -17,7 +17,7 @@ class WishboneDataKey(SimpleKey[WishboneMaster]):
 
 
 @dataclass(frozen=True)
-class InstructionPrecommitKey(UnifierKey, unifier=MethodProduct):
+class InstructionPrecommitKey(UnifierKey, unifier=MethodTryProduct):
     pass
 
 

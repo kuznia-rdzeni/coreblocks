@@ -1,9 +1,10 @@
+from itertools import product
 import random
 import itertools
 from operator import and_
 from functools import reduce
-from typing import TypeAlias
 from amaranth.sim import Settle, Passive
+from typing import Optional, TypeAlias
 from parameterized import parameterized
 from collections import deque
 
@@ -23,7 +24,17 @@ from ..common import (
 )
 
 
-FIFO_Like: TypeAlias = FIFO | Forwarder
+class RevConnect(Elaboratable):
+    def __init__(self, layout: LayoutLike):
+        self.connect = Connect(rev_layout=layout)
+        self.read = self.connect.write
+        self.write = self.connect.read
+
+    def elaborate(self, platform):
+        return self.connect
+
+
+FIFO_Like: TypeAlias = FIFO | Forwarder | Connect | RevConnect
 
 
 class TestFifoBase(TestCaseWithSimulator):
@@ -58,6 +69,16 @@ class TestFIFO(TestFifoBase):
     @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
     def test_fifo(self, writer_rand, reader_rand):
         self.do_test_fifo(FIFO, writer_rand=writer_rand, reader_rand=reader_rand, fifo_kwargs=dict(depth=4))
+
+
+class TestConnect(TestFifoBase):
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(Connect, writer_rand=writer_rand, reader_rand=reader_rand)
+
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_rev_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(RevConnect, writer_rand=writer_rand, reader_rand=reader_rand)
 
 
 class TestForwarder(TestFifoBase):
@@ -228,10 +249,6 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        # dummy signal
-        s = Signal()
-        m.d.sync += s.eq(1)
-
         get_results = []
         for i in range(self.count):
             input = TestbenchIO(Adapter(o=self.lay))
@@ -342,10 +359,6 @@ class MethodTransformerTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-
-        # dummy signal
-        s = Signal()
-        m.d.sync += s.eq(1)
 
         layout = data_layout(self.iosize)
 
@@ -490,10 +503,6 @@ class MethodProductTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        # dummy signal
-        s = Signal()
-        m.d.sync += s.eq(1)
-
         layout = data_layout(self.iosize)
 
         methods = []
@@ -629,3 +638,143 @@ class TestSerializer(TestCaseWithSimulator):
             for i in range(port_count):
                 sim.add_sync_process(requestor(i))
                 sim.add_sync_process(responder(i))
+
+class TestMethodTryProduct(TestCaseWithSimulator):
+    @parameterized.expand([(1, False), (2, False), (5, True)])
+    def test_method_try_product(self, targets: int, add_combiner: bool):
+        random.seed(14)
+
+        iosize = 8
+        m = MethodTryProductTestCircuit(iosize, targets, add_combiner)
+
+        method_en = [False] * targets
+
+        def target_process(k: int):
+            @def_method_mock(lambda: m.target[k], enable=lambda: method_en[k])
+            def process(data):
+                return {"data": data + k}
+
+            return process
+
+        def method_process():
+            for i in range(2**targets):
+                for k in range(targets):
+                    method_en[k] = bool(i & (1 << k))
+
+                active_targets = sum(method_en)
+
+                yield
+
+                data = random.randint(0, (1 << iosize) - 1)
+                val = yield from m.method.call(data=data)
+                if add_combiner:
+                    adds = sum(k * method_en[k] for k in range(targets))
+                    self.assertEqual(val, {"data": (active_targets * data + adds) & ((1 << iosize) - 1)})
+                else:
+                    self.assertEqual(val, {})
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(method_process)
+            for k in range(targets):
+                sim.add_sync_process(target_process(k))
+
+
+class MethodTryProductTestCircuit(Elaboratable):
+    def __init__(self, iosize: int, targets: int, add_combiner: bool):
+        self.iosize = iosize
+        self.targets = targets
+        self.add_combiner = add_combiner
+        self.target: list[TestbenchIO] = []
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        layout = data_layout(self.iosize)
+
+        methods = []
+
+        for k in range(self.targets):
+            tgt = TestbenchIO(Adapter(i=layout, o=layout))
+            methods.append(tgt.adapter.iface)
+            self.target.append(tgt)
+            m.submodules += tgt
+
+        combiner = None
+        if self.add_combiner:
+            combiner = (layout, lambda _, vs: {"data": sum(Mux(s, r, 0) for (s, r) in vs)})
+
+        m.submodules.product = product = MethodTryProduct(methods, combiner)
+
+        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.method))
+
+        return m
+
+
+class ConditionTestCircuit(Elaboratable):
+    def __init__(self, target: Method, *, nonblocking: bool, priority: bool, catchall: bool):
+        self.target = target
+        self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)])
+        self.nonblocking = nonblocking
+        self.priority = priority
+        self.catchall = catchall
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        @def_method(m, self.source)
+        def _(cond1, cond2, cond3):
+            with condition(m, nonblocking=self.nonblocking, priority=self.priority) as branch:
+                with branch(cond1):
+                    self.target(m, cond=1)
+                with branch(cond2):
+                    self.target(m, cond=2)
+                with branch(cond3):
+                    self.target(m, cond=3)
+                if self.catchall:
+                    with branch():
+                        self.target(m, cond=0)
+
+        return m
+
+
+class ConditionTest(TestCaseWithSimulator):
+    @parameterized.expand(product([False, True], [False, True], [False, True]))
+    def test_condition(self, nonblocking: bool, priority: bool, catchall: bool):
+        target = TestbenchIO(Adapter(i=[("cond", 2)]))
+
+        circ = SimpleTestCircuit(
+            ConditionTestCircuit(target.adapter.iface, nonblocking=nonblocking, priority=priority, catchall=catchall)
+        )
+        m = ModuleConnector(test_circuit=circ, target=target)
+
+        selection: Optional[int]
+
+        @def_method_mock(lambda: target)
+        def target_process(cond):
+            nonlocal selection
+            selection = cond
+
+        def process():
+            nonlocal selection
+            for c1, c2, c3 in product([0, 1], [0, 1], [0, 1]):
+                selection = None
+                res = yield from circ.source.call_try(cond1=c1, cond2=c2, cond3=c3)
+
+                if catchall or nonblocking:
+                    self.assertIsNotNone(res)
+
+                if res is None:
+                    self.assertIsNone(selection)
+                    self.assertFalse(catchall or nonblocking)
+                    self.assertEqual((c1, c2, c3), (0, 0, 0))
+                elif selection is None:
+                    self.assertTrue(nonblocking)
+                    self.assertEqual((c1, c2, c3), (0, 0, 0))
+                elif priority:
+                    self.assertEqual(selection, c1 + 2 * c2 * (1 - c1) + 3 * c3 * (1 - c2) * (1 - c1))
+                else:
+                    self.assertIn(selection, [c1, 2 * c2, 3 * c3])
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(target_process)
+            sim.add_sync_process(process)
