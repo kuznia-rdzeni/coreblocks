@@ -15,6 +15,7 @@ __all__ = [
     "flatten_signals",
     "align_to_power_of_two",
     "bits_from_int",
+    "layout_subset",
     "ModuleConnector",
     "silence_mustuse",
 ]

@@ -11,7 +11,7 @@ from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
-from coreblocks.utils._typing import LayoutLike, ModuleLike, HasElaborate
+from coreblocks.utils._typing import LayoutLike, ModuleLike
 from coreblocks.utils import ModuleConnector
 from ..common import (
     SimpleTestCircuit,
@@ -486,16 +486,23 @@ class TestRoutingBlock(TestCaseWithSimulator):
         m = SimpleTestCircuit(test_circuit)
         return m
 
-    common_sizes = [(1,1), (2,2), (8,8)]
-    non_symetric_sizes = [(4,3), (3,5)]
+    common_sizes = [(2, 2), (8, 8)]
+    any_to_any_sizes = [(1, 1), (4, 3), (3, 5)]
 
     constructors = [prepare_omega_circuit, prepare_any_to_any_circuit]
 
-    common_test_configurations = [size+(func,) for size, func in itertools.product(common_sizes,constructors)]
-    non_symetric_configurations = [size+(func,) for size, func in itertools.product(non_symetric_sizes, [prepare_any_to_any_circuit])]
+    common_test_configurations = [size + (func,) for size, func in itertools.product(common_sizes, constructors)]
+    any_to_any_configurations = [
+        size + (func,) for size, func in itertools.product(any_to_any_sizes, [prepare_any_to_any_circuit])
+    ]
 
-    @parameterized.expand(common_test_configurations)
-    def test_routing_block(self, input_count: int, output_count: int, prepare_test_circuit : Callable[[int, int, LayoutLike], SimpleTestCircuit]):
+    @parameterized.expand(common_test_configurations + any_to_any_configurations)
+    def test_routing_block(
+        self,
+        input_count: int,
+        output_count: int,
+        prepare_test_circuit: Callable[[int, int, LayoutLike], SimpleTestCircuit],
+    ):
         test_number = 100
         data_size = 5
         layout = data_layout(data_size)
