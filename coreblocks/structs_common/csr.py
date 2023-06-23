@@ -9,9 +9,10 @@ from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3
-from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey
+from coreblocks.params.keys import BranchResolvedKey, ExceptionReportKey, InstructionPrecommitKey
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
+from coreblocks.structs_common.exception import Cause
 
 
 class PrivilegeLevel(IntEnum, shape=2):
@@ -218,6 +219,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         ready_to_process = Signal()
         done = Signal()
         accepted = Signal()
+        exception = Signal()
         rob_sfx_empty = Signal()
 
         current_result = Signal(self.gen_params.isa.xlen)
@@ -268,7 +270,11 @@ class CSRUnit(FuncBlock, Elaboratable):
                                 m.d.comb += read_val.eq(read(m))
                                 m.d.sync += current_result.eq(read_val)
 
-                            if not read_only:
+                            if read_only:
+                                with m.If(should_write_csr):
+                                    # Write to read only
+                                    m.d.sync += exception.eq(1)
+                            else:
                                 with m.If(should_write_csr & ~done):
                                     write_val = Signal(self.gen_params.isa.xlen)
                                     with m.Switch(instr.exec_fn.funct3):
@@ -280,8 +286,13 @@ class CSRUnit(FuncBlock, Elaboratable):
                                             m.d.comb += write_val.eq(read_val & (~instr.s1_val))
                                     write(m, write_val)
 
+                        with m.Else():
+                            # Missing privilege
+                            m.d.sync += exception.eq(1)
+
                 with m.Default():
-                    pass  # TODO : invalid csr number handling
+                    # Invalid CSR number
+                    m.d.sync += exception.eq(1)
 
             m.d.sync += done.eq(1)
 
@@ -311,11 +322,17 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
+
+            with m.If(exception):
+                report = self.dependency_manager.get_dependency(ExceptionReportKey())
+                report(m, rob_id=instr.rob_id, cause=Cause.ILLEGAL_INSTRUCTION)
+            m.d.sync += exception.eq(0)
+
             return {
                 "rob_id": instr.rob_id,
                 "rp_dst": instr.rp_dst,
                 "result": current_result,
-                "exception": 0,
+                "exception": exception,
             }
 
         @def_method(m, self.fetch_continue, accepted)
