@@ -458,6 +458,77 @@ class TestMethodProduct(TestCaseWithSimulator):
                 sim.add_sync_process(target_process(k))
 
 
+class TestMethodTryProduct(TestCaseWithSimulator):
+    @parameterized.expand([(1, False), (2, False), (5, True)])
+    def test_method_try_product(self, targets: int, add_combiner: bool):
+        random.seed(14)
+
+        iosize = 8
+        m = MethodTryProductTestCircuit(iosize, targets, add_combiner)
+
+        method_en = [False] * targets
+
+        def target_process(k: int):
+            @def_method_mock(lambda: m.target[k], enable=lambda: method_en[k])
+            def process(data):
+                return {"data": data + k}
+
+            return process
+
+        def method_process():
+            for i in range(2**targets):
+                for k in range(targets):
+                    method_en[k] = bool(i & (1 << k))
+
+                active_targets = sum(method_en)
+
+                yield
+
+                data = random.randint(0, (1 << iosize) - 1)
+                val = yield from m.method.call(data=data)
+                if add_combiner:
+                    adds = sum(k * method_en[k] for k in range(targets))
+                    self.assertEqual(val, {"data": (active_targets * data + adds) & ((1 << iosize) - 1)})
+                else:
+                    self.assertEqual(val, {})
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(method_process)
+            for k in range(targets):
+                sim.add_sync_process(target_process(k))
+
+
+class MethodTryProductTestCircuit(Elaboratable):
+    def __init__(self, iosize: int, targets: int, add_combiner: bool):
+        self.iosize = iosize
+        self.targets = targets
+        self.add_combiner = add_combiner
+        self.target: list[TestbenchIO] = []
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        layout = data_layout(self.iosize)
+
+        methods = []
+
+        for k in range(self.targets):
+            tgt = TestbenchIO(Adapter(i=layout, o=layout))
+            methods.append(tgt.adapter.iface)
+            self.target.append(tgt)
+            m.submodules += tgt
+
+        combiner = None
+        if self.add_combiner:
+            combiner = (layout, lambda _, vs: {"data": sum(Mux(s, r, 0) for (s, r) in vs)})
+
+        m.submodules.product = product = MethodTryProduct(methods, combiner)
+
+        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.method))
+
+        return m
+
+
 class ConditionTestCircuit(Elaboratable):
     def __init__(self, target: Method, *, nonblocking: bool, priority: bool, catchall: bool):
         self.target = target
