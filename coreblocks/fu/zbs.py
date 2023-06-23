@@ -117,7 +117,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
             m.d.comb += zbs.in1.eq(arg.s1_val)
             m.d.comb += zbs.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
-            result_fifo.write(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst)
+            result_fifo.write(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst, exception=0)
 
         return m
 

@@ -235,7 +235,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
             m.d.comb += alu.in1.eq(arg.s1_val)
             m.d.comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
-            fifo.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst)
+            fifo.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
 
         return m
 

@@ -138,11 +138,18 @@ class ROBLayouts:
         self.internal_layout = [
             ("rob_data", self.data_layout),
             ("done", 1),
+            ("exception", 1),
+        ]
+
+        self.mark_done_layout = [
+            ("rob_id", gen_params.rob_entries_bits),
+            ("exception", 1),
         ]
 
         self.peek_layout = self.retire_layout = [
             ("rob_data", self.data_layout),
             ("rob_id", gen_params.rob_entries_bits),
+            ("exception", 1),
         ]
 
 
@@ -289,6 +296,7 @@ class FuncUnitLayouts:
             ("rob_id", gen_params.rob_entries_bits),
             ("result", gen_params.isa.xlen),
             ("rp_dst", gen_params.phys_regs_bits),
+            ("exception", 1),
         ]
 
 
