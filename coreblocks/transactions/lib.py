@@ -1016,9 +1016,6 @@ class MemoryBank(Elaboratable):
             m.d.sync += prev_read_addr.eq(addr)
             zipper.write_args(m, valid=1)
 
-        if self.safe_writes:
-            self.read_req.schedule_before(self.write)
-
         @def_method(m, self.write, ~write_pending)
         def _(arg):
             if self.safe_writes:
@@ -1108,6 +1105,7 @@ class Serializer(Elaboratable):
         self.clear.proxy(m, pending_requests.clear)
 
         return m
+
 
 # Conditions using simultaneous transactions
 

@@ -639,6 +639,7 @@ class TestSerializer(TestCaseWithSimulator):
                 sim.add_sync_process(requestor(i))
                 sim.add_sync_process(responder(i))
 
+
 class TestMethodTryProduct(TestCaseWithSimulator):
     @parameterized.expand([(1, False), (2, False), (5, True)])
     def test_method_try_product(self, targets: int, add_combiner: bool):
