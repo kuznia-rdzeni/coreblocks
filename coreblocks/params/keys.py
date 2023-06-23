@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from coreblocks.params.dependencies import SimpleKey, UnifierKey
-from coreblocks.transactions.lib import MethodProduct, Collector, Method
+from coreblocks.transactions.lib import MethodTryProduct, Collector, Method
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ class WishboneDataKey(SimpleKey[WishboneMaster]):
 
 
 @dataclass(frozen=True)
-class InstructionPrecommitKey(UnifierKey, unifier=MethodProduct):
+class InstructionPrecommitKey(UnifierKey, unifier=MethodTryProduct):
     pass
 
 
