@@ -46,7 +46,6 @@ class SchedulerLayouts:
         common = gen_params.get(CommonLayouts)
         self.reg_alloc_in = [
             ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen_params.isa.xlen),
@@ -55,7 +54,6 @@ class SchedulerLayouts:
         ]
         self.reg_alloc_out = self.renaming_in = [
             ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
@@ -65,7 +63,6 @@ class SchedulerLayouts:
         ]
         self.renaming_out = self.rob_allocate_in = [
             ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             (
                 "regs_l",
@@ -81,7 +78,6 @@ class SchedulerLayouts:
         ]
         self.rob_allocate_out = self.rs_select_in = [
             ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
@@ -91,7 +87,6 @@ class SchedulerLayouts:
         ]
         self.rs_select_out = self.rs_insert_in = [
             ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
@@ -271,8 +266,6 @@ class DecodeLayouts:
     def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)
         self.decoded_instr = [
-            ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen_params.isa.xlen),

@@ -42,8 +42,6 @@ class Decode(Elaboratable):
             self.push_decoded(
                 m,
                 {
-                    "opcode": instr_decoder.opcode,
-                    "illegal": instr_decoder.illegal,
                     "exec_fn": {
                         "op_type": instr_decoder.optype,
                         # imm muxing in FUs depend on unused functs set to 0
