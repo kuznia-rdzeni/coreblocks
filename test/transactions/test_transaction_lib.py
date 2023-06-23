@@ -780,6 +780,7 @@ class ConditionTest(TestCaseWithSimulator):
             sim.add_sync_process(target_process)
             sim.add_sync_process(process)
 
+
 class TestRoutingBlock(TestCaseWithSimulator):
     @staticmethod
     def prepare_any_to_any_circuit(input_count, output_count, layout):
