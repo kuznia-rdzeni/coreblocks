@@ -68,14 +68,11 @@ class Fetch(Elaboratable):
 
             with m.If(spin == target.spin):
                 instr = Signal(self.gp.isa.ilen)
+                fetch_error = Signal()
 
-                with m.If(res.error != 0):
-                    # TODO: this should ideally bypass decoder and push a decoded 'trigger ibus
-                    # error' instruction instead.  For now push UNIMP, which happens to be 0x0000
-                    # in RV32C, and should throw 'illegal instruction' exception.
-                    # If we do not support C, it should throw the same exception anyway.
-                    m.d.comb += instr.eq(0x0000)
-
+                with m.If(res.error):
+                    # TODO: Raise different code for page fault when supported
+                    m.d.comb += fetch_error.eq(1)
                 with m.Else():
                     with m.If(is_branch | is_system):
                         stall()
@@ -83,7 +80,7 @@ class Fetch(Elaboratable):
                     m.d.sync += self.pc.eq(target.addr)
                     m.d.comb += instr.eq(res.instr)
 
-                self.cont(m, data=instr, pc=target.addr)
+                self.cont(m, data=instr, pc=target.addr, access_fault=fetch_error)
 
         @def_method(m, self.verify_branch, ready=stalled)
         def _(from_pc: Value, next_pc: Value):

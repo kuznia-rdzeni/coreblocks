@@ -62,6 +62,17 @@ class TestFetch(TestCaseWithSimulator):
         self.assertEqual(decoded["regs_l"]["rl_s1"], 2)
         self.assertEqual(decoded["regs_l"]["rl_s2"], 3)
 
+        # testing an illegal
+        yield from self.test_module.io_in.call(data=0x0)
+        decoded = yield from self.test_module.io_out.call()
+
+        self.assertEqual(decoded["exec_fn"]["op_type"], OpType.EXCEPTION)
+        self.assertEqual(decoded["exec_fn"]["funct3"], Funct3._EILLEGALINSTR)
+        self.assertEqual(decoded["exec_fn"]["funct7"], 0)
+        self.assertEqual(decoded["regs_l"]["rl_dst"], 0)
+        self.assertEqual(decoded["regs_l"]["rl_s1"], 0)
+        self.assertEqual(decoded["regs_l"]["rl_s2"], 0)
+
     def test(self):
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.decode_test_proc)
