@@ -1,61 +1,16 @@
 from amaranth import *
-from amaranth.sim import Settle, Passive
+from amaranth.sim import Settle, Passive, Active
 
 from coreblocks.utils.fifo import BasicFifo, MultiportFifo
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.utils._typing import LayoutLike
 
-from test.common import TestCaseWithSimulator, TestbenchIO, data_layout
+from test.common import TestCaseWithSimulator, TestbenchIO, data_layout, SimpleTestCircuit
 from collections import deque
 from parameterized import parameterized_class
 import random
 from typing import Callable
-
-
-# class FifoTestCircuit(Elaboratable):
-#    def __init__(self, depth, init, fifo_constructor):
-#        self.depth = depth
-#        self.init = init
-#        self.fifo_constructor = fifo_constructor
-#
-#    def elaborate(self, platform):
-#        m = Module()
-#        tm = TransactionModule(m)
-#
-#        m.submodules.fifo = self.fifo = self.fifo_constructor(layout=data_layout(8), depth=self.depth, init=self.init)
-#
-#        m.submodules.fifo_read = self.fifo_read = TestbenchIO(AdapterTrans(self.fifo.get_read()))
-#        m.submodules.fifo_write = self.fifo_write = TestbenchIO(AdapterTrans(self.fifo.get_write()))
-#        m.submodules.fifo_clear = self.fifo_clear = TestbenchIO(AdapterTrans(self.fifo.clear))
-#
-#        return tm
-
-
-class FifoTestCircuit(Elaboratable):
-    def __init__(self, depth, port_count, fifo_count, fifo_constructor):
-        self.depth = depth
-        self.port_count = port_count
-        self.fifo_count = fifo_count
-        self.fifo_constructor = fifo_constructor
-
-    def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.fifo = self.fifo = self.fifo_constructor(
-            layout=data_layout(8), depth=self.depth, fifo_count=self.fifo_count, port_count=self.port_count
-        )
-
-        self.fifo_reads = []
-        self.fifo_writes = []
-        for i in range(self.port_count):
-            self.fifo_reads.append(TestbenchIO(AdapterTrans(self.fifo.get_read())))
-            self.fifo_writes.append(TestbenchIO(AdapterTrans(self.fifo.get_write())))
-            setattr(m.submodules, f"fifo_read_{i}", self.fifo_reads[i])
-            setattr(m.submodules, f"fifo_write_{i}", self.fifo_writes[i])
-        m.submodules.fifo_clear = self.fifo_clear = TestbenchIO(AdapterTrans(self.fifo.clear))
-
-        return m
 
 
 params_dinit = [
@@ -86,26 +41,25 @@ class TestBasicFifo(TestCaseWithSimulator):
     depth: int
     port_count: int
     fifo_count: int
-    fifo_constructor: Callable[[LayoutLike, int, int], Elaboratable]
+    fifo_constructor: Callable[[LayoutLike, int, int, int], Elaboratable]
 
     def test_randomized(self):
-        fifoc = FifoTestCircuit(
-            depth=self.depth,
-            port_count=self.port_count,
-            fifo_count=self.fifo_count,
-            fifo_constructor=self.fifo_constructor,
-        )
+        layout = data_layout(8)
+        width = len(Record(layout))
+        fifoc = SimpleTestCircuit( self.fifo_constructor(layout, self.depth, self.port_count, self.fifo_count))
         writed: list[tuple[int, int, int]] = []  # (cycle_id, port_id, value)
         readed = []
         clears = []
 
         dones = [False for _ in range(self.port_count)]
 
-        cycles = 256
-        random.seed(44)
+        packet_counter = 0
+        cycles = 100
+        random.seed(42)
 
         def source_generator(port_id: int):
             def source():
+                nonlocal packet_counter
                 cycle = 0
                 for _ in range(cycles):
                     cycle += 1
@@ -113,23 +67,26 @@ class TestBasicFifo(TestCaseWithSimulator):
                         cycle += 1
                         yield  # random delay
 
-                    if port_id == 0 and random.random() < 0.005:
-                        if (yield from fifoc.fifo_clear.call_try()) is None:
+                    if port_id == 0 and random.random() < 0.05:
+                        if (yield from fifoc.clear.call_try()) is None:
                             assert "Clearing failed"
-                        clears.append((cycle, port_id))
+                        clears.append(cycle)
                         cycle += 1
+                        packet_counter = 0
 
-                    v = random.randrange(2**fifoc.fifo.width)
+                    v = random.randrange(2**width)
                     yield Settle()
-                    while (yield from fifoc.fifo_writes[port_id].call_try(data=v)) is None:
+                    while (yield from fifoc.write_methods[port_id].call_try(data=v)) is None:
                         cycle += 1
                     writed.append((cycle, port_id, v))
+                    packet_counter += 1
                 dones[port_id] = True
 
             return source
 
         def target_generator(port_id: int):
             def target():
+                nonlocal packet_counter
                 yield Passive()
                 cycle = 0
                 while True:
@@ -138,42 +95,66 @@ class TestBasicFifo(TestCaseWithSimulator):
                         cycle += 1
                         yield
 
-                    v = yield from fifoc.fifo_reads[port_id].call_try()
+                    v = yield from fifoc.read_methods[port_id].call_try()
                     if v is not None:
                         readed.append((cycle, port_id, v["data"]))
+                        packet_counter-=1
+                    if packet_counter==0:
+                        yield Passive()
+                    else:
+                        yield Active()
 
             return target
 
         def checker():
-            while not all(dones):
+            while not all(dones) or packet_counter>0:
                 yield
             readed.sort()
             writed.sort()
             INF_INT = 1000000000
-            clears.append((INF_INT, -1))
-            #            print(readed)
-            #            print(writed)
+            clears.append(INF_INT)
 
             write_it = 0
             clear_it = 0
-            for i, (cycle, port_id, val) in enumerate(readed):
-                while cycle > clears[clear_it][0]:
-                    while writed[write_it][0] < clears[clear_it][0]:
-                        # print(writed[write_it],clears[clear_it])
-                        write_it += 1
-                    if write_it >= len(writed):
-                        break
-                    clear_it += 1
-                # print(clears)
-                # print("odczytana:",val, "zapisana:",writed[write_it], "cykl_odczytu:", cycle, "port", port_id)
-                self.assertEqual(val, writed[write_it][2])
-                write_it += 1
+            # check property:
+            # If value `val` was inserted in `write_cycle` and readed in `read_cycle` then
+            # every value `x` inserted in `x_write_cycle` < `write_cycle` should be read
+            # in `x_read_cycle` <= `read_cycle`.
+            def find_read_idx(cycle, val):
+                for i, (rc, _, vr) in enumerate(readed):
+                    if rc>clears[0]:
+                        return None
+                    if vr == val and rc>cycle:
+                        return i
+                raise RuntimeError()
+            paired = {}
+            first_cleared = INF_INT
+            for idx, entry  in enumerate(writed):
+                (write_cycle, port, val) = entry
+                while write_cycle>clears[0]:
+                    clears.pop(0)
+                    first_cleared = INF_INT
+                if write_cycle > first_cleared:
+                    continue
+                earlier_writes = list(filter(lambda x: x[0]<write_cycle, writed))
+                read_idx = find_read_idx(write_cycle, val)
+                if read_idx is not None:
+                    read_entry = readed[read_idx]
+                    readed.pop(read_idx)
+                    paired[entry] = read_entry
+                    for x_entry in earlier_writes:
+                        (x_write_cycle, x_port, x) = x_entry
+                        try:
+                            rx_entry = paired[x_entry]
+                            self.assertLessEqual(rx_entry[0], read_entry[0])
+                        except KeyError:
+                            pass
+                else:
+                    first_cleared = write_cycle
+            self.assertEqual(0, len(readed))
 
-        with self.run_simulation(fifoc) as sim:
+        with self.run_simulation(fifoc, 4000) as sim:
             sim.add_sync_process(checker)
-            #            sim.add_sync_process(source_generator(0))
-            #            sim.add_sync_process(source_generator(1))
-            #            sim.add_sync_process(target_generator(0))
             for i in range(self.port_count):
                 sim.add_sync_process(source_generator(i))
                 sim.add_sync_process(target_generator(i))
