@@ -1,10 +1,9 @@
 from amaranth import *
 from coreblocks.transactions import Method, def_method, Priority, TModule, Transaction
-from amaranth.utils import log2_int
 from coreblocks.transactions._utils import MethodLayout
 import coreblocks.transactions.lib as tlib
-from coreblocks.utils._typing import ValueLike, ModuleLike
-from coreblocks.utils.utils import popcount, count_leading_zeros
+from coreblocks.utils._typing import ValueLike
+from coreblocks.utils.utils import popcount
 
 
 class BasicFifo(Elaboratable):
@@ -181,7 +180,6 @@ class _InternalMultiportFifo(Elaboratable):
         m.d.top_comb += write_grants.eq(Cat(method.run for method in self.write_methods))
         m.d.top_comb += write_grants_count.eq(popcount(write_grants))
 
-
         with m.FSM():
             for i in range(self.fifo_count):
                 with m.State(f"current_write_{i}"):
@@ -211,6 +209,7 @@ class _InternalMultiportFifo(Elaboratable):
 
         return m
 
+
 class MultiportFifo(Elaboratable):
     def __init__(self, layout: MethodLayout, depth: int, port_count: int, fifo_count: int) -> None:
         self._internal_fifo = _InternalMultiportFifo(layout, depth, port_count, fifo_count)
@@ -232,7 +231,3 @@ class MultiportFifo(Elaboratable):
         m.submodules.write_proxy = self._write_proxy
 
         return m
-
-
-
-

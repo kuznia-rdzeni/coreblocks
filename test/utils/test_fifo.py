@@ -2,12 +2,9 @@ from amaranth import *
 from amaranth.sim import Settle, Passive, Active
 
 from coreblocks.utils.fifo import BasicFifo, MultiportFifo
-from coreblocks.transactions import TransactionModule
-from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.utils._typing import LayoutLike
 
-from test.common import TestCaseWithSimulator, TestbenchIO, data_layout, SimpleTestCircuit
-from collections import deque
+from test.common import TestCaseWithSimulator, data_layout, SimpleTestCircuit
 from parameterized import parameterized_class
 import random
 from typing import Callable
@@ -46,7 +43,7 @@ class TestBasicFifo(TestCaseWithSimulator):
     def test_randomized(self):
         layout = data_layout(8)
         width = len(Record(layout))
-        fifoc = SimpleTestCircuit( self.fifo_constructor(layout, self.depth, self.port_count, self.fifo_count))
+        fifoc = SimpleTestCircuit(self.fifo_constructor(layout, self.depth, self.port_count, self.fifo_count))
         writed: list[tuple[int, int, int]] = []  # (cycle_id, port_id, value)
         readed = []
         clears = []
@@ -98,8 +95,8 @@ class TestBasicFifo(TestCaseWithSimulator):
                     v = yield from fifoc.read_methods[port_id].call_try()
                     if v is not None:
                         readed.append((cycle, port_id, v["data"]))
-                        packet_counter-=1
-                    if packet_counter==0:
+                        packet_counter -= 1
+                    if packet_counter == 0:
                         yield Passive()
                     else:
                         yield Active()
@@ -107,36 +104,35 @@ class TestBasicFifo(TestCaseWithSimulator):
             return target
 
         def checker():
-            while not all(dones) or packet_counter>0:
+            while not all(dones) or packet_counter > 0:
                 yield
             readed.sort()
             writed.sort()
-            INF_INT = 1000000000
-            clears.append(INF_INT)
+            inf_int = 1000000000
+            clears.append(inf_int)
 
-            write_it = 0
-            clear_it = 0
             # check property:
             # If value `val` was inserted in `write_cycle` and readed in `read_cycle` then
             # every value `x` inserted in `x_write_cycle` < `write_cycle` should be read
             # in `x_read_cycle` <= `read_cycle`.
             def find_read_idx(cycle, val):
                 for i, (rc, _, vr) in enumerate(readed):
-                    if rc>clears[0]:
+                    if rc > clears[0]:
                         return None
-                    if vr == val and rc>cycle:
+                    if vr == val and rc > cycle:
                         return i
                 raise RuntimeError()
+
             paired = {}
-            first_cleared = INF_INT
-            for idx, entry  in enumerate(writed):
+            first_cleared = inf_int
+            for idx, entry in enumerate(writed):
                 (write_cycle, port, val) = entry
-                while write_cycle>clears[0]:
+                while write_cycle > clears[0]:
                     clears.pop(0)
-                    first_cleared = INF_INT
+                    first_cleared = inf_int
                 if write_cycle > first_cleared:
                     continue
-                earlier_writes = list(filter(lambda x: x[0]<write_cycle, writed))
+                earlier_writes = list(filter(lambda x: x[0] < write_cycle, writed))
                 read_idx = find_read_idx(write_cycle, val)
                 if read_idx is not None:
                     read_entry = readed[read_idx]
