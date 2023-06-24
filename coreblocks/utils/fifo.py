@@ -108,8 +108,44 @@ class BasicFifo(Elaboratable):
         return m
 
 
-class _InternalMultiportFifo(Elaboratable):
+class SortedMultiportFifo(Elaboratable):
+    """Multiport fifo with methods called in order
+    
+    This class implements multiport fifo, it assumes that both read and write methods
+    are called in order. So if the `i`-th method is being called and `j<i` then the user
+    should also call the `j`-th method.
+
+    If the above assumption is fulfilled, then the following properties hold:
+    - If `x` has been written to fifo in cycle `i` and `y` in cycle `j` where `i<j`, then
+        `k<=m` where `k` is the cycle in which `x` was read and `m` is the cycle in which `y` was read
+    - The use of internal memory is balanced and optimal, so if only `n` first read/write methods is being
+        active, then this means, that there are only `n` elements/free slots in the fifo. If there is more
+        elements/free slots in the fifo than methods then all methods are active.
+
+    WARNING: You probably don't want to use this class directly. See `MultiportFifo` instead.
+
+    Attributes
+    ----------
+    read_methods : list[Method]
+        List of methods to call in list order to read data from fifo.
+    write_methods : list[Method]
+        List of methods for writing data. The methods should be called in list order.
+    clear : Method
+        Clear the fifo.
+    """
     def __init__(self, layout: MethodLayout, depth: int, port_count: int, fifo_count: int) -> None:
+        """
+        Parameters
+        ----------
+        layout : LayoutLike
+            Layout of the data to be stored in the fifo
+        depth : int
+            Number of elements to store in the fifo. Must be divisible by `fifo_count`.
+        fifo_count : int
+            Number of internal fifos to store data in.
+        port_count : int
+            Number of read/write methods to create. Must be `ports_count <= fifo_count`.
+        """
         self.layout = layout
         self.width = len(Record(self.layout))
         self.depth = depth
@@ -211,8 +247,25 @@ class _InternalMultiportFifo(Elaboratable):
 
 
 class MultiportFifo(Elaboratable):
+    """ Multiport fifo
+    
+    Wrapper over SortedMultiportFifo that provides user friendly interface. Methods can be
+    called in any order and calls will be correctly sorted and passed to SortedMultiportFifo.
+
+    Attributes
+    ----------
+    read_methods : list[Method]
+        List of read methods which can be called in any order.
+    write_methods : list[Method]
+        List of write methods which can be called in any order.
+    clear : Method
+        Proxy for the SortedMultiportFifo `clear` method.
+    """
     def __init__(self, layout: MethodLayout, depth: int, port_count: int, fifo_count: int) -> None:
-        self._internal_fifo = _InternalMultiportFifo(layout, depth, port_count, fifo_count)
+        """
+        See: SortedMultiportFifo
+        """
+        self._internal_fifo = SortedMultiportFifo(layout, depth, port_count, fifo_count)
         self._read_proxy = tlib.PriorityOrderingProxyTrans(self._internal_fifo.read_methods)
         self._write_proxy = tlib.PriorityOrderingProxyTrans(self._internal_fifo.write_methods)
 
