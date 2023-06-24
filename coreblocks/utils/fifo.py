@@ -110,7 +110,7 @@ class BasicFifo(Elaboratable):
 
 class SortedMultiportFifo(Elaboratable):
     """Multiport fifo with methods called in order
-    
+
     This class implements multiport fifo, it assumes that both read and write methods
     are called in order. So if the `i`-th method is being called and `j<i` then the user
     should also call the `j`-th method.
@@ -133,6 +133,7 @@ class SortedMultiportFifo(Elaboratable):
     clear : Method
         Clear the fifo.
     """
+
     def __init__(self, layout: MethodLayout, depth: int, port_count: int, fifo_count: int) -> None:
         """
         Parameters
@@ -247,8 +248,8 @@ class SortedMultiportFifo(Elaboratable):
 
 
 class MultiportFifo(Elaboratable):
-    """ Multiport fifo
-    
+    """Multiport fifo
+
     Wrapper over SortedMultiportFifo that provides user friendly interface. Methods can be
     called in any order and calls will be correctly sorted and passed to SortedMultiportFifo.
 
@@ -261,6 +262,7 @@ class MultiportFifo(Elaboratable):
     clear : Method
         Proxy for the SortedMultiportFifo `clear` method.
     """
+
     def __init__(self, layout: MethodLayout, depth: int, port_count: int, fifo_count: int) -> None:
         """
         See: SortedMultiportFifo
