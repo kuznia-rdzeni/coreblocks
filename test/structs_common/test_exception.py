@@ -5,29 +5,11 @@ from coreblocks.structs_common.exception import ExceptionCauseRegister, Cause
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 from coreblocks.transactions.lib import Adapter
+from coreblocks.utils.utils import ModuleConnector
 
 from ..common import *
 
 import random
-
-
-class ExceptionCauseTestCircuit(Elaboratable):
-    def __init__(self, gen_params):
-        self.gen_params = gen_params
-
-    def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.rob_idx = self.rob_idx = TestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
-
-        m.submodules.dut = self.dut = ExceptionCauseRegister(
-            self.gen_params, rob_get_indices=self.rob_idx.adapter.iface
-        )
-
-        m.submodules.report = self.report = TestbenchIO(AdapterTrans(self.dut.report))
-        m.submodules.get = self.get = TestbenchIO(AdapterTrans(self.dut.get))
-
-        return m
 
 
 class TestExceptionCauseRegister(TestCaseWithSimulator):
@@ -66,36 +48,42 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
 
         return False
 
-    def process_test(self):
-        saved_entry = None
-
-        yield from self.dut.rob_idx.enable()
-        for _ in range(self.cycles):
-            rob_rand = random.randint(0, self.rob_max)
-            yield from self.dut.rob_idx.set_inputs({"start": rob_rand, "end": 0})
-            yield Settle()
-
-            cause = random.choice(list(Cause))
-            report_rob = random.randint(0, self.rob_max)
-            report_arg = {"cause": cause, "rob_id": report_rob}
-
-            yield from self.dut.report.call(report_arg)
-
-            new_state = yield from self.dut.get.call()
-
-            if self.should_update(report_arg, saved_entry, rob_rand):
-                self.assertDictEqual(new_state, report_arg)
-                saved_entry = report_arg
-            elif saved_entry is not None:
-                self.assertDictEqual(new_state, saved_entry)
-
     def test_randomized(self):
         self.gp = GenParams(test_core_config)
         random.seed(2)
 
         self.cycles = 256
 
-        self.dut = ExceptionCauseTestCircuit(self.gp)
+        self.rob_idx_mock = TestbenchIO(Adapter(o=self.gp.get(ROBLayouts).get_indices))
+        self.dut = SimpleTestCircuit(ExceptionCauseRegister(self.gp, self.rob_idx_mock.adapter.iface))
+        m = ModuleConnector(self.dut, rob_idx_mock=self.rob_idx_mock)
 
-        with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.process_test)
+        self.rob_id = 0
+
+        def process_test():
+            saved_entry = None
+
+            for _ in range(self.cycles):
+                self.rob_id = random.randint(0, self.rob_max)
+
+                cause = random.choice(list(Cause))
+                report_rob = random.randint(0, self.rob_max)
+                report_arg = {"cause": cause, "rob_id": report_rob}
+
+                yield from self.dut.report.call(report_arg)
+
+                new_state = yield from self.dut.get.call()
+
+                if self.should_update(report_arg, saved_entry, self.rob_id):
+                    self.assertDictEqual(new_state, report_arg)
+                    saved_entry = report_arg
+                elif saved_entry is not None:
+                    self.assertDictEqual(new_state, saved_entry)
+
+        @def_method_mock(lambda: self.rob_idx_mock)
+        def process_rob_idx_mock():
+            return {"start": self.rob_id, "end": 0}
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(process_test)
+            sim.add_sync_process(process_rob_idx_mock)
