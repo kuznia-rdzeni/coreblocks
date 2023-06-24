@@ -2,7 +2,7 @@ from amaranth import *
 from coreblocks.transactions import Method, def_method, Priority, TModule, Transaction
 from amaranth.utils import log2_int
 from coreblocks.transactions._utils import MethodLayout
-from coreblocks.transactions.lib import MethodProduct, PriorityOrderingProxy
+import coreblocks.transactions.lib as tlib
 from coreblocks.utils._typing import ValueLike, ModuleLike
 from coreblocks.utils.utils import popcount
 
@@ -186,7 +186,8 @@ class MultiportFifo(Elaboratable):
 
         read_ready_list = [Signal() for _ in range(self.port_count)]
         read_grants = Signal(len(self._read_methods))
-        read_grants_count = popcount(m, read_grants)
+        read_grants_count = Signal.like(read_grants)
+        m.d.comb += read_grants_count.eq(popcount(read_grants))
         read_outs = [Record(self.layout) for _ in self._read_methods]
         ordered_read_outs = self.order(m, Array(read_outs), read_grants)
         ordered_read_ready = self.order(m, Array(read_ready_list), read_grants)
@@ -217,7 +218,8 @@ class MultiportFifo(Elaboratable):
 
         write_ready_list = [Signal() for _ in range(self.port_count)]
         write_granttts = Signal(len(self._write_methods), reset=0)
-        write_granttts_count = popcount(m, write_granttts)
+        write_granttts_count = Signal.like(write_granttts)
+        m.d.comb += write_granttts_count.eq(popcount(write_granttts))
         write_ins = [Record(self.layout) for _ in self._write_methods]
         ordered_write_ins = self.order(m, Array(write_ins), write_granttts, data_direction_from_out=False)
         ordered_write_ready = self.order(m, Array(write_ready_list), write_granttts)
@@ -248,7 +250,7 @@ class MultiportFifo(Elaboratable):
 
         @def_method(m, self.clear)
         def _():
-            m.submodules.clear_product = clear_product = MethodProduct([sub_fifo.clear for sub_fifo in sub_fifos])
+            m.submodules.clear_product = clear_product = tlib.MethodProduct([sub_fifo.clear for sub_fifo in sub_fifos])
             clear_product.method(m)
             m.d.comb += clear_signal.eq(1)
 

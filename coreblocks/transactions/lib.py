@@ -6,7 +6,7 @@ from amaranth.utils import *
 from .core import *
 from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
-from ..utils.fifo import BasicFifo
+from coreblocks.utils.fifo import BasicFifo
 from ..utils import ValueLike, assign, AssignType, ModuleConnector
 from ..utils.protocols import RoutingBlock
 from ..utils._typing import LayoutLike
