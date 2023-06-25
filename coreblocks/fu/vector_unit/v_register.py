@@ -1,22 +1,26 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method
+from coreblocks.transactions import *
 from coreblocks.transactions.lib import MemoryBank, Forwarder
 from coreblocks.params import *
+from coreblocks.utils.fifo import BasicFifo
 from coreblocks.params.vector_params import VectorParameters
 from coreblocks.fu.vector_unit.v_layouts import RegisterLayouts
 from coreblocks.fu.vector_unit.utils import EEW
 
-__all__ = ["VectorRegisterFragment"]
+__all__ = ["VectorRegisterBank"]
 
 
-class VectorRegisterFragment(Elaboratable):
+class VectorRegisterBank(Elaboratable):
+    """
+    Jeden bank VRF z jednym portem do odczytu i jendym do zapisu. Elementy w banku mają długość ELEN.
+    """
     def __init__(self, *, gen_params: GenParams, v_params: VectorParameters):
         self.gen_params = gen_params
         self.v_params = v_params
 
         self.layouts = RegisterLayouts(self.gen_params, self.v_params)
 
-        self.bank = MemoryBank(data_layout=self.layouts.read_resp, elem_count=self.v_params.elems_in_bank)
+        self.bank = MemoryBank(data_layout=self.layouts.read_resp, elem_count=self.v_params.elems_in_bank, granularity=self.v_params.bytes_in_elen, safe_writes = False)
 
         self.eew = Signal(EEW)
         # improvement: move to async memory
@@ -31,21 +35,16 @@ class VectorRegisterFragment(Elaboratable):
 
         self.initialize.add_conflict(self.end_write)
 
-    def expand_mask(self, m: Module, mask: Signal) -> Signal:
-        signals = [Signal(self.v_params.elen)]
-        for i in reversed(range(self.v_params.bytes_in_elen)):
-            s = Signal(self.v_params.elen)
-            Method.comb += s.eq(signals[-1] << 8 | Mux(mask[i], 0xFF, 0x00))
-            signals.append(s)
-        return signals[-1]
+    def expand_mask(self, mask: Value) -> Value:
+        return Cat(Mux(mask[i], 0xFF, 0x00) for i in reversed(range(self.v_params.bytes_in_elen)))
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
 
         write_ready = Signal()
         read_ready = Signal()
 
-        mask_forward = Forwarder([("data", self.v_params.bytes_in_elen)])
+        mask_forward = BasicFifo([("data", self.v_params.bytes_in_elen)], 2)
         m.submodules.mask_forward = mask_forward
         m.submodules.bank = self.bank
 
@@ -57,10 +56,10 @@ class VectorRegisterFragment(Elaboratable):
         @def_method(m, self.read_resp)
         def _():
             out = self.bank.read_resp(m)
-            out_masked = Signal.like(out)
             mask = mask_forward.read(m)
-            expanded_mask = self.expand_mask(m, mask.data)
-            Method.comb += out_masked.eq(out | expanded_mask)
+            out_masked = Signal.like(out)
+            expanded_mask = self.expand_mask(mask.data)
+            m.d.top_comb += out_masked.eq(out | expanded_mask)
             return {"data": out_masked}
 
         @def_method(m, self.write, ready=write_ready)

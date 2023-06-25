@@ -49,8 +49,8 @@ class FlexibleAdder(Elaboratable):
         self.out_data = Signal(self.out_width_bits)
         self.out_carry = Signal()
 
-    def elaborate(self, platform) -> Module:
-        m = Module()
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
 
         with m.If(self.substract & (self.out_width == self.eew)):
             self.in2_trans = (~self.in2) + 1
@@ -109,6 +109,6 @@ class BasicFlexibleAlu(Elaboratable):
         self.in2 = Signal(self.v_params.elen)
 
     def elaborate(self, platform) -> Module:
-        m = Module()
+        m = TModule()
         # TODO Implement under separate PR
         return m
