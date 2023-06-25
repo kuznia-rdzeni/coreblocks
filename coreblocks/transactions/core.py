@@ -70,7 +70,10 @@ class MethodMap:
         def rec(transaction: Transaction, source: TransactionBase):
             for method in source.method_uses.keys():
                 if not method.defined:
-                    raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
+                    raise RuntimeError(
+                        f"Trying to use method '{method.name}' which is not defined yet."
+                        + "Are you sure that it was added to proper submodule?"
+                    )
                 if method in self.methods_by_transaction[transaction]:
                     raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)

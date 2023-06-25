@@ -138,7 +138,9 @@ def method_def_helper(method, func: Callable[..., T], arg=None, /, **kwargs) -> 
     elif kw_parameters <= kwargs.keys():
         return func(**kwargs)
     else:
-        raise TypeError(f"Invalid method definition/mock for {method}: {func}")
+        raise TypeError(
+            f"Invalid method definition/mock for {method}: {func} Probably there is some problem with layout."
+        )
 
 
 def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:

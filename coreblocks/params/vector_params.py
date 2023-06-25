@@ -4,16 +4,15 @@ __all__ = ["VectorParameters"]
 
 
 class VectorParameters:
-    def __init__(self, *, vlen: int, elen: int, vrp_count=40):
+    def __init__(self, *, vlen: int, elen: int, vrp_count: int = 40, register_bank_count: int = 4):
         self.elen = elen
         self.vlen = vlen
         self.vrp_count = vrp_count
         self.vrp_count_bits = log2_int(self.vrp_count)
+        self.register_bank_count = register_bank_count
 
         self.bytes_in_vlen = self.vlen // 8
         self.bytes_in_elen = elen // 8
-
-        self.register_bank_count = 4
 
         accepted_elens = {8, 16, 32, 64}
         if self.elen not in accepted_elens:

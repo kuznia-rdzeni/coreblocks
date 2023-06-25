@@ -2,6 +2,7 @@ from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 from coreblocks.params import *
+from coreblocks.utils import *
 from coreblocks.params.vector_params import VectorParameters
 from coreblocks.fu.vector_unit.v_layouts import VRFFragmentLayouts
 from coreblocks.fu.vector_unit.v_register import VectorRegisterBank
@@ -17,37 +18,41 @@ class VRFFragment(Elaboratable):
         self.layout = VRFFragmentLayouts(self.gen_params, self.v_params)
 
         self.read_ports_count = 3
-        self.read_req_list = [Method(i=self.layout.read_req) for _ in range(self.read_ports_count)]
-        self.read_resp_list = [
+        self.read_req = [Method(i=self.layout.read_req) for _ in range(self.read_ports_count)]
+        self.read_resp = [
             Method(i=self.layout.read_resp_i, o=self.layout.read_resp_o) for _ in range(self.read_ports_count)
         ]
-        self.write = Method()
+        self.write = Method(i=self.layout.write)
 
         self.regs = [
             VectorRegisterBank(gen_params=self.gen_params, v_params=self.v_params)
             for _ in range(self.v_params.vrp_count)
         ]
 
-        self.clear = MethodProduct([reg.clear for reg in self.regs])
+        self.clear_module = MethodProduct([reg.clear for reg in self.regs])
+        self.clear = self.clear_module.method
 
     def elaborate(self, platform):
         m = TModule()
 
+        m.submodules.regs = ModuleConnector(*self.regs)
+        m.submodules.clear_product = self.clear_module
+
         @def_method(m, self.write)
         def _(vrp_id, addr, data, mask):
-            with condition_switch(m, vrp_id, self.v_params.vrp_count) as j:
+            for j in condition_switch(m, vrp_id, self.v_params.vrp_count, nonblocking=False):
                 self.regs[j].write(m, data=data, addr=addr, mask=mask)
 
-        for i in range(self.read_ports_count):
+        @loop_def_method(m, self.read_req)
+        def _(_, vrp_id, addr):
+            for j in condition_switch(m, vrp_id, self.v_params.vrp_count, nonblocking=False):
+                self.regs[j].read_req(m, addr=addr)
 
-            @def_method(m, self.read_req_list[i])
-            def _(vrp_id, elen_id):
-                with condition_switch(m, vrp_id, self.v_params.vrp_count) as j:
-                    self.regs[j].read_req(m, addr=elen_id)
-
-            @def_method(m, self.read_resp_list[i])
-            def _(vrp_id):
-                with condition_switch(m, vrp_id, self.v_params.vrp_count) as j:
-                    return self.regs[j].read_resp(m)
+        @loop_def_method(m, self.read_resp)
+        def _(_, vrp_id):
+            out = Record(self.layout.read_resp_o)
+            for j in condition_switch(m, vrp_id, self.v_params.vrp_count, nonblocking=False):
+                m.d.comb += assign(out, self.regs[j].read_resp(m), fields=AssignType.ALL)
+            return out
 
         return m

@@ -932,6 +932,8 @@ class MemoryBank(Elaboratable):
     Provides a transactional interface to synchronous Amaranth Memory with one
     read and one write port. It supports optionally writing with given granularity.
 
+    Reads aren't transparent.
+
     Attributes
     ----------
     read_req: Method
@@ -985,7 +987,7 @@ class MemoryBank(Elaboratable):
 
         mem = Memory(width=self.width, depth=self.elem_count)
         m.submodules.read_port = read_port = mem.read_port()
-        m.submodules.write_port = write_port = mem.write_port()
+        m.submodules.write_port = write_port = mem.write_port(granularity=self.granularity)
         read_output_valid = Signal()
         prev_read_addr = Signal(self.addr_width)
         write_pending = Signal()
@@ -1196,7 +1198,6 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
     this.simultaneous_alternatives(*transactions)
 
 
-@contextmanager
 def condition_switch(
     m: TModule, variable: Signal, branch_number: int, *, nonblocking: bool = True, priority: bool = True
 ):

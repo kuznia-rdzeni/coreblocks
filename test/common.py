@@ -1,6 +1,7 @@
 import unittest
 import os
 import functools
+import inspect
 from contextlib import contextmanager, nullcontext
 from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast, Type, TypeGuard
 
@@ -47,6 +48,24 @@ def get_outputs(field: Record) -> TestGen[RecordIntDict]:
         else:  # field is a Record
             result[name] = yield from get_outputs(val)
     return result
+
+
+def make_dict(*args):
+    frame = inspect.getouterframes(inspect.currentframe())[1].frame
+    print(inspect.getsource(frame))
+    print(frame.f_lineno)
+    frame = inspect.getargvalues(inspect.getouterframes(inspect.currentframe())[1].frame)
+    d = {}
+    print(frame)
+    for a in args:
+        for k, v in frame.locals.items():
+            if v == a:
+                d[k] = v
+                break
+        else:
+            raise ValueError("Magic don't work.")
+    print("created dict", d)
+    return d
 
 
 def neg(x: int, xlen: int) -> int:
