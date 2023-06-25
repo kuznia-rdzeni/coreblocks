@@ -4,7 +4,7 @@ from parameterized import parameterized_class
 
 from coreblocks.params import *
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
-from coreblocks.transactions.lib import Method, def_method
+from coreblocks.transactions import Method, def_method, TModule
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
 from coreblocks.utils.protocols import FuncUnit
@@ -21,7 +21,7 @@ class JumpBranchWrapper(Elaboratable):
         self.accept = Method(o=gen_params.get(FuncUnitLayouts).accept + gen_params.get(FetchLayouts).branch_verify)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.jb_unit = self.jb
 
@@ -29,7 +29,14 @@ class JumpBranchWrapper(Elaboratable):
         def _(arg):
             res = self.jb.accept(m)
             br = self.jb.branch_result(m)
-            return {"next_pc": br.next_pc, "result": res.result, "rob_id": res.rob_id, "rp_dst": res.rp_dst}
+            return {
+                "from_pc": br.from_pc,
+                "next_pc": br.next_pc,
+                "result": res.result,
+                "rob_id": res.rob_id,
+                "rp_dst": res.rp_dst,
+                "exception": 0,
+            }
 
         return m
 
@@ -45,12 +52,12 @@ class JumpBranchWrapperComponent(FunctionalComponentParams):
 @staticmethod
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> Dict[str, int]:
     max_int = 2**xlen - 1
-    branch_target = pc + signed_to_int(i_imm & 0xFFF, 12)
+    branch_target = pc + signed_to_int(i_imm & 0x1FFF, 13)
     next_pc = 0
     res = pc + 4
 
     if fn == JumpBranchFn.Fn.JAL:
-        next_pc = pc + signed_to_int(i_imm & 0xFFFFF, 20)  # truncate to first 20 bits
+        next_pc = pc + signed_to_int(i_imm & 0x1FFFFF, 21)  # truncate to first 21 bits
     if fn == JumpBranchFn.Fn.JALR:
         # truncate to first 12 bits and set 0th bit to 0
         next_pc = (i1 + signed_to_int(i_imm & 0xFFF, 12)) & ~0x1
@@ -70,7 +77,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
     next_pc &= max_int
     res &= max_int
 
-    return {"result": res, "next_pc": next_pc}
+    return {"result": res, "from_pc": pc, "next_pc": next_pc}
 
 
 @staticmethod

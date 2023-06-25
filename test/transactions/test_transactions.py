@@ -108,15 +108,12 @@ class TransactionConflictTestCircuit(Elaboratable):
         self.scheduler = scheduler
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         tm = TransactionModule(m, TransactionManager(self.scheduler))
         adapter = Adapter(i=data_layout(32), o=data_layout(32))
         m.submodules.out = self.out = TestbenchIO(adapter)
         m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
         m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
         return tm
 
 
@@ -226,7 +223,7 @@ class PriorityTestCircuit(SchedulingTestCircuit):
 
 class TransactionPriorityTestCircuit(PriorityTestCircuit):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         transaction1 = Transaction()
         transaction2 = Transaction()
@@ -239,16 +236,12 @@ class TransactionPriorityTestCircuit(PriorityTestCircuit):
 
         self.make_relations(transaction1, transaction2)
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         return m
 
 
 class MethodPriorityTestCircuit(PriorityTestCircuit):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         method1 = Method()
         method2 = Method()
@@ -268,10 +261,6 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
             method2(m)
 
         self.make_relations(method1, method2)
-
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
 
         return m
 
@@ -295,7 +284,7 @@ class TestTransactionPriorities(TestCaseWithSimulator):
             for r1, r2 in to_do:
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
-                yield
+                yield Settle()
                 self.assertNotEqual((yield m.t1), (yield m.t2))
                 if r1 == 1 and r2 == 1:
                     if priority == Priority.LEFT:
@@ -304,7 +293,7 @@ class TestTransactionPriorities(TestCaseWithSimulator):
                         self.assertTrue((yield m.t2))
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
     @parameterized.expand([(Priority.UNDEFINED,), (Priority.LEFT,), (Priority.RIGHT,)])
     def test_unsatisfiable(self, priority: Priority):
@@ -324,7 +313,7 @@ class TestTransactionPriorities(TestCaseWithSimulator):
 
 class NestedTransactionsTestCircuit(SchedulingTestCircuit):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         tm = TransactionModule(m)
 
         with tm.transaction_context():
@@ -333,16 +322,12 @@ class NestedTransactionsTestCircuit(SchedulingTestCircuit):
                 with Transaction().body(m, request=self.r2):
                     m.d.comb += self.t2.eq(1)
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         return tm
 
 
 class NestedMethodsTestCircuit(SchedulingTestCircuit):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         tm = TransactionModule(m)
 
         method1 = Method()
@@ -362,10 +347,6 @@ class NestedMethodsTestCircuit(SchedulingTestCircuit):
 
             with Transaction().body(m):
                 method2(m)
-
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
 
         return tm
 
@@ -398,7 +379,7 @@ class TestNested(TestCaseWithSimulator):
 
 class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
         tm = TransactionModule(m)
 
         method = Method()
@@ -417,10 +398,6 @@ class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
                 m.d.comb += self.t2.eq(1)
 
             t1.schedule_before(t2)
-
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
 
         return tm
 

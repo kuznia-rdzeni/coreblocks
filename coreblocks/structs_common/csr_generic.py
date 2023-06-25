@@ -1,14 +1,14 @@
 from amaranth import *
+from amaranth.lib.enum import IntEnum
 
 from typing import Optional
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.isa import BitEnum
-from coreblocks.structs_common.csr import CSRRegister
+from coreblocks.structs_common.csr import CSRRegister, TModule
 from coreblocks.transactions.core import Method, Transaction, def_method
 
 
-class CSRAddress(BitEnum, width=12):
+class CSRAddress(IntEnum, shape=12):
     CYCLE = 0xC00
     TIME = 0xC01
     INSTRET = 0xC02
@@ -48,7 +48,7 @@ class DoubleCounterCSR(Elaboratable):
         self.register_high = CSRRegister(high_addr, gen_params) if high_addr is not None else None
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.register_low = self.register_low
         if self.register_high is not None:
@@ -73,7 +73,7 @@ class GenericCSRRegisters(Elaboratable):
         self.csr_time = DoubleCounterCSR(gp, CSRAddress.TIME, CSRAddress.TIMEH)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.csr_cycle = self.csr_cycle
         m.submodules.csr_time = self.csr_time

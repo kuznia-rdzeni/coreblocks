@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.transactions import Method, def_method
+from coreblocks.transactions import Method, def_method, TModule
 from coreblocks.transactions.lib import AdapterTrans
 
 
@@ -17,11 +17,7 @@ class Echo(Elaboratable):
         self.action = Method(i=self.layout_in, o=self.layout_out)
 
     def elaborate(self, platform):
-        m = Module()
-
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
+        m = TModule()
 
         @def_method(m, self.action, ready=C(1))
         def _(arg):
@@ -40,11 +36,7 @@ class Consumer(Elaboratable):
         self.action = Method(i=self.layout_in, o=self.layout_out)
 
     def elaborate(self, platform):
-        m = Module()
-
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
+        m = TModule()
 
         @def_method(m, self.action, ready=C(1))
         def _(arg):
@@ -61,7 +53,7 @@ class TestElaboratable(Elaboratable):
         self.io_consume = TestbenchIO(AdapterTrans(self.consumer.action))
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.echo = self.echo
         m.submodules.io_echo = self.io_echo

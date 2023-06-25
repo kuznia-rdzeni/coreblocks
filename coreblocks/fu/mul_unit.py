@@ -107,7 +107,7 @@ class MulUnit(FuncUnit, Elaboratable):
         self.mul_fn = mul_fn
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.result_fifo = result_fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.params_fifo = params_fifo = FIFO(
@@ -201,7 +201,7 @@ class MulUnit(FuncUnit, Elaboratable):
             sign_result = Mux(params.negative_res, -response.o, response.o)  # changing sign of result
             result = Mux(params.high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 
-            result_fifo.write(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst)
+            result_fifo.write(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst, exception=0)
 
         return m
 

@@ -4,8 +4,8 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
-
+from amaranth.utils import bits_for, log2_int
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate, ModuleLike
 
 __all__ = [
     "AssignType",
@@ -15,13 +15,17 @@ __all__ = [
     "flatten_signals",
     "align_to_power_of_two",
     "bits_from_int",
+    "layout_subset",
     "ModuleConnector",
     "silence_mustuse",
+    "popcount",
+    "count_leading_zeros",
+    "count_trailing_zeros",
 ]
 
 
 @contextmanager
-def OneHotSwitch(m: Module, test: Value):
+def OneHotSwitch(m: ModuleLike, test: Value):
     """One-hot switch.
 
     This function allows one-hot matching in the style similar to the standard
@@ -46,7 +50,6 @@ def OneHotSwitch(m: Module, test: Value):
     test : Signal
         The signal being tested.
     """
-    count = len(test)
 
     @contextmanager
     def case(n: Optional[int] = None):
@@ -58,7 +61,7 @@ def OneHotSwitch(m: Module, test: Value):
             i = (n & -n).bit_length() - 1
             if n - (1 << i) != 0:
                 raise ValueError("%d not in one-hot representation" % n)
-            with m.Case("-" * (count - i - 1) + "1" + "-" * i):
+            with m.Case(n):
                 yield
 
     with m.Switch(test):
@@ -66,16 +69,16 @@ def OneHotSwitch(m: Module, test: Value):
 
 
 @overload
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
     ...
 
 
 @overload
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: Literal[False] = False) -> Iterable[int]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[False] = False) -> Iterable[int]:
     ...
 
 
-def OneHotSwitchDynamic(m: Module, test: Value, *, default: bool = False) -> Iterable[Optional[int]]:
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: bool = False) -> Iterable[Optional[int]]:
     """Dynamic one-hot switch.
 
     This function allows simple one-hot matching on signals which can have
@@ -272,6 +275,62 @@ def assign(
         yield lhs_val.eq(rhs_val)
 
 
+def popcount(s: Value):
+    sum_layers = [s[i] for i in range(len(s))]
+
+    while len(sum_layers) > 1:
+        if len(sum_layers) % 2:
+            sum_layers.append(C(0))
+        sum_layers = [a + b for a, b in zip(sum_layers[::2], sum_layers[1::2])]
+
+    return sum_layers[0][0 : bits_for(len(s))]
+
+
+def count_leading_zeros(s: Value) -> Value:
+    def iter(s: Value, step: int) -> Value:
+        # if no bits left - return empty value
+        if step == 0:
+            return C(0)
+
+        # boudaries of upper and lower halfs of the value
+        partition = 2 ** (step - 1)
+        current_bit = 1 << (step - 1)
+
+        # recursive call
+        upper_value = iter(s[partition:], step - 1)
+        lower_value = iter(s[:partition], step - 1)
+
+        # if there are lit bits in upperhalf - take result directly from recursive value
+        # otherwise add 1 << (step - 1) to lower value and return
+        result = Mux(s[partition:].any(), upper_value, lower_value | current_bit)
+
+        return result
+
+    try:
+        xlen_log = log2_int(len(s))
+    except ValueError:
+        raise NotImplementedError("CountLeadingZeros - only sizes aligned to power of 2 are supperted")
+
+    value = iter(s, xlen_log)
+
+    # 0 number edge case
+    # if s == 0 then iter() returns value off by 1
+    # this switch negates this effect
+    high_bit = 1 << xlen_log
+
+    result = Mux(s.any(), value, high_bit)
+    return result
+
+
+def count_trailing_zeros(s: Value) -> Value:
+    try:
+        log2_int(len(s))
+    except ValueError:
+        raise NotImplementedError("CountTrailingZeros - only sizes aligned to power of 2 are supperted")
+
+    return count_leading_zeros(s[::-1])
+
+
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]
 
@@ -290,6 +349,9 @@ def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
     elif isinstance(signals, Record):
         for x in signals.fields.values():
             yield from flatten_signals(x)
+    elif isinstance(signals, data.View):
+        for x, _ in data.Layout.cast(data.Layout.of(signals)):
+            yield from flatten_signals(signals[x])
     else:
         yield signals
 

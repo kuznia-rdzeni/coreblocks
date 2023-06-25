@@ -2,7 +2,7 @@ import unittest
 import os
 import functools
 from contextlib import contextmanager, nullcontext
-from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
+from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast, Type, TypeGuard
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -12,7 +12,7 @@ from amaranth.sim.core import Command
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike
+from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike, ModuleConnector
 from .gtkw_extension import write_vcd_ext
 
 
@@ -21,6 +21,7 @@ RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
+_T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 
 
 def data_layout(val: int) -> LayoutLike:
@@ -105,77 +106,138 @@ def signed_to_int(x: int, xlen: int) -> int:
     return x | -(x & (2 ** (xlen - 1)))
 
 
+def guard_nested_collection(cont: Any, t: Type[T]) -> TypeGuard[_T_nested_collection[T]]:
+    if isinstance(cont, (list, dict)):
+        if isinstance(cont, dict):
+            cont = cont.values()
+        return all([guard_nested_collection(elem, t) for elem in cont])
+    elif isinstance(cont, t):
+        return True
+    else:
+        return False
+
+
 _T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
 
 
 class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def __init__(self, dut: _T_HasElaborate):
         self._dut = dut
-        self._io = dict[str, TestbenchIO]()
+        self._io: dict[str, _T_nested_collection[TestbenchIO]] = {}
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         return self._io[name]
 
     def elaborate(self, platform):
-        m = Module()
+        def transform_methods_to_testbenchios(
+            container: _T_nested_collection[Method],
+        ) -> tuple[_T_nested_collection["TestbenchIO"], Union[ModuleConnector, "TestbenchIO"]]:
+            if isinstance(container, list):
+                tb_list = []
+                mc_list = []
+                for elem in container:
+                    tb, mc = transform_methods_to_testbenchios(elem)
+                    tb_list.append(tb)
+                    mc_list.append(mc)
+                return tb_list, ModuleConnector(*mc_list)
+            elif isinstance(container, dict):
+                tb_dict = {}
+                mc_dict = {}
+                for name, elem in container.items():
+                    tb, mc = transform_methods_to_testbenchios(elem)
+                    tb_dict[name] = tb
+                    mc_dict[name] = mc
+                return tb_dict, ModuleConnector(*mc_dict)
+            else:
+                tb = TestbenchIO(AdapterTrans(container))
+                return tb, tb
 
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
+        m = Module()
 
         m.submodules.dut = self._dut
 
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
-            if isinstance(attr, Method):
-                self._io[name] = TestbenchIO(AdapterTrans(attr))
-                m.submodules[name] = self._io[name]
+            if guard_nested_collection(attr, Method) and attr:
+                tb_cont, mc = transform_methods_to_testbenchios(attr)
+                self._io[name] = tb_cont
+                m.submodules[name] = mc
 
         return m
 
     def debug_signals(self):
-        return [io.debug_signals() for io in self._io.values()]
+        return [auto_debug_signals(io) for io in self._io.values()]
 
 
-class TestCaseWithSimulator(unittest.TestCase):
-    @contextmanager
-    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
-        if add_transaction_module:
-            module = TransactionModule(module)
+class TestModule(Elaboratable):
+    def __init__(self, tested_module: HasElaborate, add_transaction_module):
+        self.tested_module = TransactionModule(tested_module) if add_transaction_module else tested_module
+        self.add_transaction_module = add_transaction_module
 
-        test_name = unittest.TestCase.id(self)
+    def elaborate(self, platform) -> HasElaborate:
+        m = Module()
+
+        # so that Amaranth allows us to use add_clock
+        _dummy = Signal()
+        m.d.sync += _dummy.eq(1)
+
+        m.submodules.tested_module = self.tested_module
+
+        return m
+
+
+class PysimSimulator(Simulator):
+    def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
+        super().__init__(TestModule(module, add_transaction_module))
+
         clk_period = 1e-6
+        self.add_clock(clk_period)
 
         if isinstance(module, HasDebugSignals):
             extra_signals = module.debug_signals
         else:
             extra_signals = functools.partial(auto_debug_signals, module)
 
-        # up to this place we use plain python test functionality, no `elaborate` is called
-        sim = Simulator(module)
-        sim.add_clock(clk_period)
-        yield sim
-
-        if "__COREBLOCKS_DUMP_TRACES" in os.environ:
+        if traces_file:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
-
             # Signal handling is hacky and accesses Simulator internals.
             # TODO: try to merge with Amaranth.
             if isinstance(extra_signals, Callable):
                 extra_signals = extra_signals()
-            clocks = [d.clk for d in cast(Any, sim)._fragment.domains.values()]
+            clocks = [d.clk for d in cast(Any, self)._fragment.domains.values()]
 
-            ctx = write_vcd_ext(
-                cast(Any, sim)._engine,
-                f"{traces_dir}/{test_name}.vcd",
-                f"{traces_dir}/{test_name}.gtkw",
+            self.ctx = write_vcd_ext(
+                cast(Any, self)._engine,
+                f"{traces_dir}/{traces_file}.vcd",
+                f"{traces_dir}/{traces_file}.gtkw",
                 traces=[clocks, extra_signals],
             )
         else:
-            ctx = nullcontext()
+            self.ctx = nullcontext()
 
-        with ctx:
-            sim.run_until(clk_period * max_cycles)
-            self.assertFalse(sim.advance(), "Simulation time limit exceeded")
+        self.deadline = clk_period * max_cycles
+
+    def run(self) -> bool:
+        with self.ctx:
+            self.run_until(self.deadline)
+
+        return not self.advance()
+
+
+class TestCaseWithSimulator(unittest.TestCase):
+    @contextmanager
+    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
+        traces_file = None
+        if "__COREBLOCKS_DUMP_TRACES" in os.environ:
+            traces_file = unittest.TestCase.id(self)
+
+        sim = PysimSimulator(
+            module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
+        )
+        yield sim
+        res = sim.run()
+
+        self.assertTrue(res, "Simulation time limit exceeded")
 
     def tick(self, cycle_cnt=1):
         """
@@ -255,7 +317,7 @@ class TestbenchIO(Elaboratable):
 
     def call(self, data: RecordIntDict = {}, /, **kwdata: int | RecordIntDict) -> TestGen[RecordIntDictRet]:
         if data and kwdata:
-            raise TypeError("call_try() takes either a single dict or keyword arguments")
+            raise TypeError("call() takes either a single dict or keyword arguments")
         if not data:
             data = kwdata
         yield from self.call_init(data)

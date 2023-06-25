@@ -2,7 +2,7 @@ from typing import Sequence
 
 from amaranth import *
 
-from coreblocks.transactions import Method, Transaction
+from coreblocks.transactions import Method, Transaction, TModule
 from coreblocks.transactions.lib import FIFO, Forwarder
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from coreblocks.utils import assign, AssignType
@@ -42,7 +42,7 @@ class RegAllocation(Elaboratable):
         self.get_free_reg = get_free_reg
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         free_reg = Signal(self.gen_params.phys_regs_bits)
         data_out = Record(self.output_layout)
@@ -91,7 +91,7 @@ class Renaming(Elaboratable):
         self.rename = rename
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         data_out = Record(self.output_layout)
 
@@ -148,7 +148,7 @@ class ROBAllocation(Elaboratable):
         self.rob_put = rob_put
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         data_out = Record(self.output_layout)
 
@@ -224,7 +224,7 @@ class RSSelection(Elaboratable):
         # Module de facto performs two stages. First it gets an instruction and decodes its `OpType` into
         # one-hot signal. Second, it selects first available RS which supports this instruction type.
         # In the future, we can try to move FIFO here in order to avoid using `Forwarder`.
-        m = Module()
+        m = TModule()
         m.submodules.forwarder = forwarder = Forwarder(self.input_layout)
 
         lookup = Signal(OpType)  # lookup of currently processed optype
@@ -296,7 +296,7 @@ class RSInsertion(Elaboratable):
         self.rf_read2 = rf_read2
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         # This transaction will not be stalled by single RS because insert methods do not use conditional calling,
         # therefore we can use single transaction here.
@@ -320,14 +320,16 @@ class RSInsertion(Elaboratable):
                     "imm": instr.imm,
                     "csr": instr.csr,
                     "pc": instr.pc,
-                },
-                "rs_entry_id": instr.rs_entry_id,
+                }
             }
 
             for i, rs_insert in enumerate(self.rs_insert):
                 # connect only matching fields
                 arg = Record.like(rs_insert.data_in)
                 m.d.comb += assign(arg, data, fields=AssignType.COMMON)
+                # this assignment truncates signal width from max rs_entry_bits to target RS specific width
+                m.d.comb += arg.rs_entry_id.eq(instr.rs_entry_id)
+
                 with m.If(instr.rs_selected == i):
                     rs_insert(m, arg)
 
@@ -399,7 +401,7 @@ class Scheduler(Elaboratable):
         self.rs = reservation_stations
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(self.layouts.reg_alloc_out, 2)
         m.submodules.reg_alloc = RegAllocation(

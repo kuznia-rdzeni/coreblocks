@@ -10,7 +10,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
 from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
 
-from typing import Optional
+from typing import Optional, cast
 import random
 import subprocess
 import tempfile
@@ -29,12 +29,12 @@ from riscvmodel.insn import (
     InstructionJAL,
 )
 from riscvmodel.model import Model
-from riscvmodel.isa import InstructionRType, get_insns
+from riscvmodel.isa import Instruction, InstructionRType, get_insns
 from riscvmodel.variant import RV32I
 
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams, instr_mem: list[int] = [], data_mem: Optional[list[int]] = None):
+    def __init__(self, gen_params: GenParams, instr_mem: list[int] = [0], data_mem: Optional[list[int]] = None):
         self.gp = gen_params
         self.instr_mem = instr_mem
         if data_mem is None:
@@ -195,7 +195,8 @@ class TestCoreRandomized(TestCoreBase):
         self.instr_count = 300
         random.seed(42)
 
-        instructions = get_insns(cls=InstructionRType, variant=RV32I)
+        # cast is there to avoid stubbing riscvmodel
+        instructions = cast(list[type[Instruction]], get_insns(cls=InstructionRType, variant=RV32I))
         instructions += [
             InstructionADDI,
             InstructionSLTI,
@@ -267,7 +268,9 @@ class TestCoreAsmSource(TestCoreBase):
                 [
                     "riscv64-unknown-elf-as",
                     "-mabi=ilp32",
-                    "-march=rv32im_zicsr",  # TODO: take from gp.isa_str when binutils will be updated to support zmmul
+                    # Specified manually, because toolchains from most distributions don't support new extensioins
+                    # and this test should be accessible locally.
+                    "-march=rv32im_zicsr",
                     "-o",
                     asm_tmp.name,
                     self.base_dir + self.source_file,

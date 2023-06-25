@@ -1,16 +1,21 @@
+import itertools
+from contextlib import contextmanager
 from typing import Callable, Tuple, Optional
 from amaranth import *
 from amaranth.utils import *
 from .core import *
-from .core import SignalBundle, RecordDict
+from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
-from ..utils import ValueLike, assign, AssignType
 from ..utils.fifo import BasicFifo
+from ..utils import ValueLike, assign, AssignType, ModuleConnector
+from ..utils.protocols import RoutingBlock
+from ..utils._typing import LayoutLike
 
 __all__ = [
     "FIFO",
     "MemoryBank",
     "Forwarder",
+    "Connect",
     "Collector",
     "ClickIn",
     "ClickOut",
@@ -24,6 +29,12 @@ __all__ = [
     "MethodFilter",
     "MethodProduct",
     "Serializer",
+    "MethodTryProduct",
+    "condition",
+    "AnyToAnySimpleRoutingBlock",
+    "OmegaRoutingNetwork",
+    "PriorityOrderingTransProxyTrans",
+    "PriorityOrderingProxyTrans",
 ]
 
 # FIFOs
@@ -68,7 +79,7 @@ class FIFO(Elaboratable):
         self.write = Method(i=layout)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.fifo = fifo = self.fifoType(width=self.width, depth=self.depth)
 
@@ -77,70 +88,12 @@ class FIFO(Elaboratable):
         @def_method(m, self.write, ready=fifo.w_rdy)
         def _(arg):
             m.d.comb += fifo.w_en.eq(1)
-            Method.comb += fifo.w_data.eq(arg)
+            m.d.top_comb += fifo.w_data.eq(arg)
 
         @def_method(m, self.read, ready=fifo.r_rdy)
         def _():
             m.d.comb += fifo.r_en.eq(1)
             return fifo.r_data
-
-        return m
-
-
-class MemoryBank(Elaboratable):
-    def __init__(self, *, data_layout: MethodLayout, elem_count: int, granularity: Optional[int] = None):
-        self.data_layout = data_layout
-        self.elem_count = elem_count
-        self.granularity = granularity
-        self.width = len(Record(self.data_layout))
-        self.addr_width = bits_for(self.elem_count - 1)
-
-        self.read_req_layout = [("addr", self.addr_width)]
-        if self.granularity is None:
-            self.write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
-        else:
-            self.write_layout = [
-                ("addr", self.addr_width),
-                ("data", self.data_layout),
-                ("mask", self.width // self.granularity),
-            ]
-
-        self.read_req = Method(i=self.read_req_layout)
-        self.read_resp = Method(o=self.data_layout)
-        self.write = Method(i=self.write_layout)
-
-        self.read_resp.schedule_before(self.read_req)
-
-    def elaborate(self, platform) -> Module:
-        m = Module()
-
-        mem = Memory(width=self.width, depth=self.elem_count)
-        m.submodules.read_port = read_port = mem.read_port()
-        m.submodules.write_port = write_port = mem.write_port()
-        read_output_valid = Signal()
-        prev_read_addr = Signal(self.addr_width)
-        m.d.comb += read_port.addr.eq(prev_read_addr)
-
-        # read_resp has to be defined before read_req, to handle read_output_valid signal correctly
-        @def_method(m, self.read_resp, ready=read_output_valid)
-        def _():
-            m.d.sync += read_output_valid.eq(0)
-            return read_port.data
-
-        @def_method(m, self.read_req, ready=~read_output_valid | self.read_resp.run)
-        def _(addr):
-            m.d.sync += read_output_valid.eq(1)
-            m.d.comb += read_port.addr.eq(addr)
-            m.d.sync += prev_read_addr.eq(addr)
-
-        @def_method(m, self.write)
-        def _(arg):
-            m.d.comb += write_port.addr.eq(arg.addr)
-            m.d.comb += write_port.data.eq(arg.data)
-            if self.granularity is None:
-                m.d.comb += write_port.en.eq(1)
-            else:
-                m.d.comb += write_port.en.eq(arg.mask)
 
         return m
 
@@ -184,7 +137,7 @@ class Forwarder(Elaboratable):
         self.clear.add_conflict(self.write, Priority.LEFT)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         reg = Record.like(self.read.data_out)
         reg_valid = Signal()
@@ -195,12 +148,12 @@ class Forwarder(Elaboratable):
 
         @def_method(m, self.write, ready=~reg_valid)
         def _(arg):
-            Method.comb += read_value.eq(arg)  # for forwarding
+            m.d.av_comb += read_value.eq(arg)  # for forwarding
             m.d.sync += reg.eq(arg)
             m.d.sync += reg_valid.eq(1)
 
         with m.If(reg_valid):
-            m.d.comb += read_value.eq(reg)  # write method is not ready
+            m.d.av_comb += read_value.eq(reg)  # write method is not ready
 
         @def_method(m, self.read, ready=reg_valid | self.write.run)
         def _():
@@ -210,6 +163,58 @@ class Forwarder(Elaboratable):
         @def_method(m, self.clear)
         def _():
             m.d.sync += reg_valid.eq(0)
+
+        return m
+
+
+class Connect(Elaboratable):
+    """Forwarding by transaction simultaneity
+
+    Provides a means to connect two transactions with forwarding
+    by means of the transaction simultaneity mechanism. It provides
+    two methods: `read`, and `write`, which always execute simultaneously.
+    Typical use case is for moving data from `write` to `read`, but
+    data flow in the reverse direction is also possible.
+
+    Attributes
+    ----------
+    read: Method
+        The read method. Accepts a (possibly empty) `Record`, returns
+        a `Record`.
+    write: Method
+        The write method. Accepts a `Record`, returns a (possibly empty)
+        `Record`.
+    """
+
+    def __init__(self, layout: MethodLayout = (), rev_layout: MethodLayout = ()):
+        """
+        Parameters
+        ----------
+        layout: record layout
+            The format of records forwarded.
+        rev_layout: record layout
+            The format of records forwarded in the reverse direction.
+        """
+        self.read = Method(o=layout, i=rev_layout)
+        self.write = Method(i=layout, o=rev_layout)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        read_value = Record.like(self.read.data_out)
+        rev_read_value = Record.like(self.write.data_out)
+
+        self.write.simultaneous(self.read)
+
+        @def_method(m, self.write)
+        def _(arg):
+            m.d.av_comb += read_value.eq(arg)
+            return rev_read_value
+
+        @def_method(m, self.read)
+        def _(arg):
+            m.d.av_comb += rev_read_value.eq(arg)
+            return read_value
 
         return m
 
@@ -248,7 +253,7 @@ class ClickIn(Elaboratable):
         self.dat = Record(layout)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         btn1 = Signal()
         btn2 = Signal()
@@ -304,7 +309,7 @@ class ClickOut(Elaboratable):
         self.dat = Record(layout)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         btn1 = Signal()
         btn2 = Signal()
@@ -365,15 +370,15 @@ class AdapterTrans(AdapterBase):
         self.data_out = Record.like(iface.data_out)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         # this forces data_in signal to appear in VCD dumps
         data_in = Signal.like(self.data_in)
         m.d.comb += data_in.eq(self.data_in)
 
-        with Transaction().body(m, request=self.en):
+        with Transaction(name=f"AdapterTrans_{self.iface.name}").body(m, request=self.en):
             data_out = self.iface(m, data_in)
-            Transaction.comb += self.data_out.eq(data_out)
+            m.d.top_comb += self.data_out.eq(data_out)
             m.d.comb += self.done.eq(1)
 
         return m
@@ -397,7 +402,7 @@ class Adapter(AdapterBase):
         Data passed as argument to the defined method.
     """
 
-    def __init__(self, *, i: MethodLayout = (), o: MethodLayout = ()):
+    def __init__(self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = ()):
         """
         Parameters
         ----------
@@ -406,12 +411,12 @@ class Adapter(AdapterBase):
         o: record layout
             The output layout of the defined method.
         """
-        super().__init__(Method(i=i, o=o))
+        super().__init__(Method(name=name, i=i, o=o))
         self.data_in = Record.like(self.iface.data_out)
         self.data_out = Record.like(self.iface.data_in)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         # this forces data_in signal to appear in VCD dumps
         data_in = Signal.like(self.data_in)
@@ -419,7 +424,7 @@ class Adapter(AdapterBase):
 
         @def_method(m, self.iface, ready=self.en)
         def _(arg):
-            Method.comb += self.data_out.eq(arg)
+            m.d.top_comb += self.data_out.eq(arg)
             m.d.comb += self.done.eq(1)
             return data_in
 
@@ -448,8 +453,8 @@ class MethodTransformer(Elaboratable):
         self,
         target: Method,
         *,
-        i_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], RecordDict]]] = None,
-        o_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], RecordDict]]] = None,
+        i_transform: Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
+        o_transform: Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
     ):
         """
         Parameters
@@ -476,7 +481,7 @@ class MethodTransformer(Elaboratable):
         self.o_fun = o_transform[1]
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         @def_method(m, self.method)
         def _(arg):
@@ -504,7 +509,7 @@ class MethodFilter(Elaboratable):
     """
 
     def __init__(
-        self, target: Method, condition: Callable[[Module, Record], ValueLike], default: Optional[RecordDict] = None
+        self, target: Method, condition: Callable[[TModule, Record], ValueLike], default: Optional[RecordDict] = None
     ):
         """
         Parameters
@@ -527,7 +532,7 @@ class MethodFilter(Elaboratable):
         self.default = default
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         ret = Record.like(self.target.data_out)
         m.d.comb += assign(ret, self.default, fields=AssignType.ALL)
@@ -545,7 +550,7 @@ class MethodProduct(Elaboratable):
     def __init__(
         self,
         targets: list[Method],
-        combiner: Optional[Tuple[MethodLayout, Callable[[Module, list[Record]], RecordDict]]] = None,
+        combiner: Optional[Tuple[MethodLayout, Callable[[TModule, list[Record]], RecordDict]]] = None,
     ):
         """Method product.
 
@@ -577,13 +582,65 @@ class MethodProduct(Elaboratable):
         self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         @def_method(m, self.method)
         def _(arg):
             results = []
             for target in self.targets:
                 results.append(target(m, arg))
+            return self.combiner[1](m, results)
+
+        return m
+
+
+class MethodTryProduct(Elaboratable):
+    def __init__(
+        self,
+        targets: list[Method],
+        combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[tuple[Value, Record]]], RecordDict]]] = None,
+    ):
+        """Method product with optional calling.
+
+        Takes arbitrary, non-zero number of target methods, and constructs
+        a method which tries to call all of the target methods using the same
+        argument. The methods which are not ready are not called. The return
+        value of the resulting method is, by default, empty. A combiner
+        function can be passed, which can compute the return value from the
+        results of every target method.
+
+        Parameters
+        ----------
+        targets: list[Method]
+            A list of methods to be called.
+        combiner: (int or method layout, function), optional
+            A pair of the output layout and the combiner function. The
+            combiner function takes two parameters: a `Module` and
+            a list of pairs. Each pair contains a bit which signals
+            that a given call succeeded, and the result of the call.
+
+        Attributes
+        ----------
+        method: Method
+            The product method.
+        """
+        if combiner is None:
+            combiner = ([], lambda _, __: {})
+        self.targets = targets
+        self.combiner = combiner
+        self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        @def_method(m, self.method)
+        def _(arg):
+            results: list[tuple[Value, Record]] = []
+            for target in self.targets:
+                success = Signal()
+                with Transaction().body(m):
+                    m.d.comb += success.eq(1)
+                    results.append((success, target(m, arg)))
             return self.combiner[1](m, results)
 
         return m
@@ -618,7 +675,7 @@ class Collector(Elaboratable):
                 raise Exception("Not all methods have this same layout")
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout)
 
@@ -632,6 +689,14 @@ class Collector(Elaboratable):
 
 
 # Example transactions
+
+
+def connect_methods(m: TModule, method1: Method, method2: Method):
+    data1 = Record.like(method1.data_out)
+    data2 = Record.like(method2.data_out)
+
+    m.d.top_comb += data1.eq(method1(m, data2))
+    m.d.top_comb += data2.eq(method2(m, data1))
 
 
 class ConnectTrans(Elaboratable):
@@ -656,15 +721,10 @@ class ConnectTrans(Elaboratable):
         self.method2 = method2
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         with Transaction().body(m):
-            data1 = Record.like(self.method1.data_out)
-            data2 = Record.like(self.method2.data_out)
-
-            Transaction.comb += data1.eq(self.method1(m, data2))
-            Transaction.comb += data2.eq(self.method2(m, data1))
-
+            connect_methods(m, self.method1, self.method2)
         return m
 
 
@@ -683,8 +743,8 @@ class ConnectAndTransformTrans(Elaboratable):
         method1: Method,
         method2: Method,
         *,
-        i_fun: Optional[Callable[[Module, Record], RecordDict]] = None,
-        o_fun: Optional[Callable[[Module, Record], RecordDict]] = None,
+        i_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
+        o_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
     ):
         """
         Parameters
@@ -704,7 +764,7 @@ class ConnectAndTransformTrans(Elaboratable):
         self.o_fun = o_fun or (lambda _, x: x)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.transformer = transformer = MethodTransformer(
             self.method2,
@@ -738,7 +798,7 @@ class ManyToOneConnectTrans(Elaboratable):
         self.count = len(self.get_results)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         for i in range(self.count):
             m.submodules[f"ManyToOneConnectTrans_input_{i}"] = ConnectTrans(self.m_put_result, self.get_results[i])
@@ -770,7 +830,7 @@ class CatTrans(Elaboratable):
         self.dst = dst
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         with Transaction().body(m):
             sdata1 = self.src1(m)
@@ -783,7 +843,224 @@ class CatTrans(Elaboratable):
         return m
 
 
+class ArgumentsToResultsZipper(Elaboratable):
+    """Zips arguments used to call method with results, cutting critical path.
+
+    This module provides possibility to pass arguments from caller and connect it with results
+    from callee. Arguments are stored in 2-FIFO and results in Forwarder. Because of this asymmetry,
+    the callee should provide results as long as they aren't correctly received.
+
+    FIFO is used as rate-limiter, so when FIFO reaches full capacity there should be no new requests issued.
+
+    Example topology:
+
+    ```{mermaid}
+    graph LR
+        Caller;
+        Caller -- write_arguments --> 2-FIFO;
+        Caller -- invoke --> Callee["Callee \n (1+ cycle delay)"];
+        Callee -- write_results --> Forwarder;
+        Forwarder -- read --> Zip;
+        2-FIFO -- read --> Zip;
+        Zip -- read --> User;
+
+        subgraph ArgumentsToResultsZipper
+            Forwarder;
+            2-FIFO;
+            Zip;
+        end
+    ```
+
+    Attributes
+    ----------
+    write_args: Method
+        Method to write arguments with `args_layout` format to 2-FIFO.
+    write_results: Method
+        Method to save results with `results_layout` in the Forwarder.
+    read: Method
+        Reads latest entries from the fifo and the forwarder and return them as
+        record with two fields: 'args' and 'results'.
+    """
+
+    def __init__(self, args_layout: MethodLayout, results_layout: MethodLayout):
+        """
+        Parameters
+        ----------
+        args_layout: record layout
+            The format of arguments.
+        results_layout: record layout
+            The format of results.
+        """
+        self.results_layout = results_layout
+        self.args_layout = args_layout
+        self.output_layout = [("args", self.args_layout), ("results", results_layout)]
+
+        self.write_args = Method(i=self.args_layout)
+        self.write_results = Method(i=self.results_layout)
+        self.read = Method(o=self.output_layout)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        fifo = FIFO(self.args_layout, depth=2)
+        forwarder = Forwarder(self.results_layout)
+
+        m.submodules.fifo = fifo
+        m.submodules.forwarder = forwarder
+
+        @def_method(m, self.write_args)
+        def _(arg):
+            fifo.write(m, arg)
+
+        @def_method(m, self.write_results)
+        def _(arg):
+            forwarder.write(m, arg)
+
+        @def_method(m, self.read)
+        def _():
+            args = fifo.read(m)
+            results = forwarder.read(m)
+            return {"args": args, "results": results}
+
+        return m
+
+
+class MemoryBank(Elaboratable):
+    """MemoryBank module.
+
+    Provides a transactional interface to synchronous Amaranth Memory with one
+    read and one write port. It supports optionally writing with given granularity.
+
+    Attributes
+    ----------
+    read_req: Method
+        The read request method. Accepts an `addr` from which data should be read.
+        Only ready if there is there is a place to buffer response.
+    read_resp: Method
+        The read response method. Return `data_layout` Record which was saved on `addr` given by last
+        `read_req` method call. Only ready after `read_req` call.
+    write: Method
+        The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
+        and optionally `mask` if `granularity` is not None. `1` in mask means that appropriate part should be written.
+    """
+
+    def __init__(
+        self, *, data_layout: MethodLayout, elem_count: int, granularity: Optional[int] = None, safe_writes: bool = True
+    ):
+        """
+        Parameters
+        ----------
+        data_layout: record layout
+            The format of records stored in the Memory.
+        elem_count: int
+            Number of elements stored in Memory.
+        granularity: Optional[int]
+            Granularity of write, forwarded to Amaranth. If `None` the whole record is always saved at once.
+            If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
+        safe_writes: bool
+            Set to `False` if an optimisation can be done to increase throughput of writes. This will cause that
+            writes will be reordered with respect to reads eg. in sequence "read A, write A X", read can return
+            "X" even when write was called later. By default `True`, which disable optimisation.
+        """
+        self.data_layout = data_layout
+        self.elem_count = elem_count
+        self.granularity = granularity
+        self.width = len(Record(self.data_layout))
+        self.addr_width = bits_for(self.elem_count - 1)
+        self.safe_writes = safe_writes
+
+        self.read_req_layout = [("addr", self.addr_width)]
+        self.write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
+        if self.granularity is not None:
+            self.write_layout.append(("mask", self.width // self.granularity))
+
+        self.read_req = Method(i=self.read_req_layout)
+        self.read_resp = Method(o=self.data_layout)
+        self.write = Method(i=self.write_layout)
+        self._internal_read_resp_trans = None
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        mem = Memory(width=self.width, depth=self.elem_count)
+        m.submodules.read_port = read_port = mem.read_port()
+        m.submodules.write_port = write_port = mem.write_port()
+        read_output_valid = Signal()
+        prev_read_addr = Signal(self.addr_width)
+        write_pending = Signal()
+        write_req = Signal()
+        write_args = Record(self.write_layout)
+        write_args_prev = Record(self.write_layout)
+        m.d.comb += read_port.addr.eq(prev_read_addr)
+
+        zipper = ArgumentsToResultsZipper([("valid", 1)], self.data_layout)
+        m.submodules.zipper = zipper
+
+        self._internal_read_resp_trans = Transaction()
+        with self._internal_read_resp_trans.body(m, request=read_output_valid):
+            m.d.sync += read_output_valid.eq(0)
+            zipper.write_results(m, read_port.data)
+
+        write_trans = Transaction()
+        with write_trans.body(m, request=write_req | (~read_output_valid & write_pending)):
+            if self.safe_writes:
+                with m.If(write_pending):
+                    m.d.comb += assign(write_args, write_args_prev, fields=AssignType.ALL)
+            m.d.sync += write_pending.eq(0)
+            m.d.comb += write_port.addr.eq(write_args.addr)
+            m.d.comb += write_port.data.eq(write_args.data)
+            if self.granularity is None:
+                m.d.comb += write_port.en.eq(1)
+            else:
+                m.d.comb += write_port.en.eq(write_args.mask)
+
+        @def_method(m, self.read_resp)
+        def _():
+            output = zipper.read(m)
+            return output.results
+
+        @def_method(m, self.read_req, ~write_pending)
+        def _(addr):
+            m.d.sync += read_output_valid.eq(1)
+            m.d.comb += read_port.addr.eq(addr)
+            m.d.sync += prev_read_addr.eq(addr)
+            zipper.write_args(m, valid=1)
+
+        @def_method(m, self.write, ~write_pending)
+        def _(arg):
+            if self.safe_writes:
+                with m.If((arg.addr == read_port.addr) & (read_output_valid | self.read_req.run)):
+                    m.d.sync += write_pending.eq(1)
+                    m.d.sync += assign(write_args_prev, arg, fields=AssignType.ALL)
+                with m.Else():
+                    m.d.comb += write_req.eq(1)
+            else:
+                m.d.comb += write_req.eq(1)
+            m.d.comb += assign(write_args, arg, fields=AssignType.ALL)
+
+        return m
+
+
 class Serializer(Elaboratable):
+    """Module to serialize request-response methods.
+
+    Provides a transactional interface to connect many client `Module`\\s (which request somethig using method call)
+    with a server `Module` which provides method to request operation and method to get response.
+
+    Requests are being serialized from many clients and forwarded to a server which can process only one request
+    at the time. Responses from server are deserialized and passed to proper client. `Serializer` assumes, that
+    responses from the server are in-order, so the order of responses is the same as order of requests.
+
+
+    Attributes
+    ----------
+    serialize_in: list[Method]
+        List of request methods. Data layouts are the same as for `serialized_req_method`.
+    serialize_out: list[Method]
+        List of response methods. Data layouts are the same as for `serialized_resp_method`.
+        `i`-th response method provides responses for requests from `i`-th `serialize_in` method.
+    """
+
     def __init__(
         self,
         *,
@@ -792,6 +1069,19 @@ class Serializer(Elaboratable):
         serialized_resp_method: Method,
         depth: int = 4,
     ):
+        """
+        Parameters
+        ----------
+        port_count: int
+            Number of ports, which should be generated. `len(serialize_in)=len(serialize_out)=port_count`
+        serialized_req_method: Method
+            Request method provided by server's `Module`.
+        serialized_resp_method: Method
+            Response method provided by server's `Module`.
+        depth: int
+            Number of requests which can be forwarded to server, before server provides first response. Describe
+            the resistance of `Serializer` to latency of server in case when server is fully pipelined.
+        """
         self.port_count = port_count
         self.serialized_req_method = serialized_req_method
         self.serialized_resp_method = serialized_resp_method
@@ -804,8 +1094,8 @@ class Serializer(Elaboratable):
         self.serialize_in = [Method.like(self.serialized_req_method) for _ in range(self.port_count)]
         self.serialize_out = [Method.like(self.serialized_resp_method) for _ in range(self.port_count)]
 
-    def elaborate(self, platform):
-        m = Module()
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
 
         pending_requests = BasicFifo(self.id_layout, self.depth)
         m.submodules.pending_requests = pending_requests
@@ -824,4 +1114,414 @@ class Serializer(Elaboratable):
 
         self.clear.proxy(m, pending_requests.clear)
 
+        return m
+
+
+# Conditions using simultaneous transactions
+
+
+@contextmanager
+def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
+    """Conditions using simultaneous transactions.
+
+    This context manager allows to easily define conditions utilizing
+    nested transactions and the simultaneous transactions mechanism.
+    It is similar to Amaranth's `If`, but allows to call different and
+    possibly overlapping method sets in each branch. Each of the branches is
+    defined using a separate nested transaction.
+
+    Inside the condition body, branches can be added, which are guarded
+    by Boolean conditions. A branch is considered for execution if its
+    condition is true and the called methods can be run. A catch-all,
+    default branch can be added, which can be executed only if none of
+    the other branches execute. Note that the default branch can run
+    even if some of the conditions are true, but their branches can't
+    execute for other reasons.
+
+    Parameters
+    ----------
+    m : TModule
+        A module where the condition is defined.
+    nonblocking : bool
+        States that the condition should not block the containing method
+        or transaction from running, even when every branch cannot run.
+        If `nonblocking` is false and every branch cannot run (because of
+        a false condition or disabled called methods), the whole method
+        or transaction will be stopped from running.
+    priority : bool
+        States that the conditions are not mutually exclusive and should
+        be tested in order. This influences the scheduling order of generated
+        transactions.
+
+    Examples
+    --------
+    .. highlight:: python
+    .. code-block:: python
+
+        with condition(m) as branch:
+            with branch(cond1):
+                ...
+            with branch(cond2):
+                ...
+            with branch():  # default, optional
+                ...
+    """
+    this = TransactionBase.get()
+    transactions = list[Transaction]()
+    last = False
+
+    @contextmanager
+    def branch(cond: Optional[ValueLike] = None):
+        nonlocal last
+        if last:
+            raise RuntimeError("Condition clause added after catch-all")
+        req = cond if cond is not None else 1
+        name = f"{this.name}_cond{len(transactions)}"
+        with (transaction := Transaction(name=name)).body(m, request=req):
+            yield
+        if transactions and priority:
+            transactions[-1].schedule_before(transaction)
+        if cond is None:
+            last = True
+            if not priority:
+                for transaction0 in transactions:
+                    transaction0.schedule_before(transaction)
+        transactions.append(transaction)
+
+    yield branch
+
+    if nonblocking and not last:
+        with branch():
+            pass
+
+    this.simultaneous_alternatives(*transactions)
+
+
+def def_one_caller_wrapper(method_to_wrap: Method, wrapper: Method) -> TModule:
+    """
+    Function used to a wrap method that can only have one caller. After wrapping
+    many callers can call the wrapper. Results are buffered and passed to the
+    wrapped method from one source.
+
+    Parameters
+    ----------
+    method_to_wrap : Method
+        Method that can only be called by a single caller.
+    wrapper : Method
+        Method to be defined as a wrapper over `method_to_wrap`.
+
+    Returns
+    -------
+    TModule
+        Module with created amaranth connections.
+    """
+    if len(method_to_wrap.data_out):
+        raise ValueError("def_one_caller_wrapper support only wrapping of methods which don't return data.")
+
+    m = TModule()
+    buffer = FIFO(method_to_wrap.data_in.layout, 2)
+    m.submodules += buffer
+
+    @def_method(m, wrapper)
+    def _(arg):
+        buffer.write(m, arg)
+
+    m.submodules += ConnectTrans(buffer.read, method_to_wrap)
+
+    return m
+
+
+class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
+    """Routing by any-to-any connections
+
+    Routing block which create a any-to-any connection between inputs and
+    outputs and next forwards input data to proper output based on address.
+
+    - Connection complexity: O(n^2)
+    - All connections are combinational
+    - Routing is done based on an address, so to don't have combinational loop
+      there is a buffering of inputs on each send method
+
+    Attributes
+    ----------
+    send : list[Method]
+        List of methods used to send `data` to the receiver with `addr`.
+    receive : list[Method]
+        Methods used to receive data based on addresses. k-th method
+        from the list returns data for address `k`.
+    """
+
+    def __init__(self, inputs_count: int, outputs_count: int, data_layout: LayoutLike):
+        """
+        Parameters
+        ----------
+        outputs_count: int
+            Number of receiver methods which should be generated.
+        data_layout: LayoutLike
+            Layout of data which should be transferend from sender to reciver.
+        """
+        self.inputs_count = inputs_count
+        self.outputs_count = outputs_count
+        self.data_layout = data_layout
+        self.addr_width = bits_for(self.outputs_count - 1)
+
+        self.send_layout: LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
+
+        self.send = [Method(i=self.send_layout) for _ in range(self.inputs_count)]
+        self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
+
+        self._connectors = [Connect(self.data_layout) for _ in range(self.outputs_count)]
+
+    def elaborate(self, platform):
+        if not self.send:
+            raise ValueError("Sender lists empty")
+        m = TModule()
+
+        m.submodules.connectors = ModuleConnector(*self._connectors)
+
+        _internal_send = [Method(i=self.send_layout) for _ in range(self.inputs_count)]
+
+        sender_wrappers = []
+        for i in range(self.inputs_count):
+
+            @def_method(m, _internal_send[i])
+            def _(addr, data):
+                with condition(m, nonblocking=False) as branch:
+                    for i in range(self.outputs_count):
+                        with branch(addr == i):
+                            self._connectors[i].write(m, data)
+
+            sender_wrappers.append(def_one_caller_wrapper(_internal_send[i], self.send[i]))
+        m.submodules.sender_wrappers = ModuleConnector(*sender_wrappers)
+
+        for i in range(self.outputs_count):
+            self.receive[i].proxy(m, self._connectors[i].read)
+
+        return m
+
+
+class _OmegaRoutingSwitch(Elaboratable):
+    """An internal building block of OmegaRoutingNetwork
+
+    This switch has `_ports_count=2` inputs and outputs and based
+    on the most significant bit of the address it routes data either
+    to the upper (if MSB = 0) or the lower (MSB = 1) output.
+
+    The output address is shifted 1 bit to the left, so that the bit, based on which
+    this switch was routing, is removed and the original second MSB bit
+    is now the MSB.
+
+    Attributes
+    ----------
+    _ports_count : int
+        Implementation defined constant to describe the number of input and output ports.
+    reads : list[Method], len(reads) == _ports_count
+        Methods used to read data from upper output (0-th method) and
+        lower output (1-st method)
+    writes : list[Method], len(writes) == _ports_count
+        Methods used to insert data into the switch.
+    """
+
+    _ports_count = 2
+
+    def __init__(self, send_layout: LayoutLike):
+        """
+        Parameters
+        ----------
+        send_layout : LayoutLike
+            Layout with two fields: `addr` and `data`.
+        """
+        self.send_layout = send_layout
+
+        # 0 - "up" port; 1 - "down" port
+        self.reads = [Method(o=self.send_layout) for _ in range(self._ports_count)]
+        self.writes = [Method(i=self.send_layout) for _ in range(self._ports_count)]
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        buffers = [FIFO(self.send_layout, 2) for _ in range(self._ports_count)]
+        m.submodules.buffers = ModuleConnector(*buffers)
+
+        for method in self.writes:
+
+            @def_method(m, method)
+            def _(addr, data):
+                new_addr = addr << 1
+                with m.If(addr[-1]):
+                    buffers[0].write(m, addr=new_addr, data=data)
+                with m.Else():
+                    buffers[1].write(m, addr=new_addr, data=data)
+
+        for i in range(self._ports_count):
+            self.reads[i].proxy(m, buffers[i].read)
+        return m
+
+
+class OmegaRoutingNetwork(Elaboratable, RoutingBlock):
+    """Omega routing network
+
+    A network consisting of grid of small switches, each of which routes data either
+    "up" or "down", based on one bit of the address. Connecting switches in the correct
+    way allows us to construct a routing network with log(n) depth.
+
+    Currently, the implementation supports only power of two number of ports.
+
+    Attributes
+    ----------
+    send : list[Method]
+        List of methods used to send `data` to the receiver with `addr`.
+    receive : list[Method]
+        Methods used to receive data based on addresses. k-th method
+        from the list returns data for address `k`.
+    """
+
+    def __init__(self, ports_count: int, data_layout: LayoutLike):
+        """
+        Parameters
+        ----------
+        ports_count : int
+            The number of input and output ports to create.
+        data_layout : LayoutLike
+            Layout of data which are being transfered by network.
+        """
+        self.outputs_count = ports_count
+        self.data_layout = data_layout
+
+        self.addr_width = self.stages = bits_for(self.outputs_count - 1)
+        self.switch_port_count = _OmegaRoutingSwitch._ports_count
+        self.switches_in_stage = self.outputs_count // self.switch_port_count
+
+        if self.outputs_count.bit_count() > 1:
+            raise ValueError("OmegaRoutingNetwork don't support odd number of outputs.")
+
+        self.send_layout: LayoutLike = [("addr", self.addr_width), ("data", self.data_layout)]
+
+        self.send = [Method(i=self.send_layout) for _ in range(self.outputs_count)]
+        self.receive = [Method(o=self.data_layout) for _ in range(self.outputs_count)]
+
+    def _connect_stages(
+        self, from_stage: list[_OmegaRoutingSwitch], to_stage: list[_OmegaRoutingSwitch]
+    ) -> Elaboratable:
+        # flatten list in format 00112233
+        froms = []
+        for switch in from_stage:
+            froms += switch.reads
+
+        # flatten list in format 01230123
+        tos = []
+        for i in range(self.switch_port_count):
+            for switch in to_stage:
+                tos.append(switch.writes[i])
+
+        assert len(froms) == len(tos)
+        connections = [ConnectTrans(froms[i], tos[i]) for i in range(len(froms))]
+        return ModuleConnector(*connections)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        _internal_send = [Method(i=self.send_layout) for _ in range(self.outputs_count)]
+
+        switches: list[list[_OmegaRoutingSwitch]] = []
+        switches_connectors = []
+        for i in range(self.stages):
+            switches.append([_OmegaRoutingSwitch(self.send_layout) for _ in range(self.switches_in_stage)])
+            switches_connectors.append(ModuleConnector(*switches[i]))
+        m.submodules.switches = ModuleConnector(*switches_connectors)
+
+        stages_connectors = []
+        for i in range(1, self.stages):
+            stages_connectors.append(self._connect_stages(switches[i - 1], switches[i]))
+        m.submodules.stages_connectors = ModuleConnector(*stages_connectors)
+
+        sender_wrappers = []
+        for i in range(self.outputs_count):
+
+            @def_method(m, _internal_send[i])
+            def _(arg):
+                switches[0][i // self.switch_port_count].writes[i % self.switch_port_count](m, arg)
+
+            sender_wrappers.append(def_one_caller_wrapper(_internal_send[i], self.send[i]))
+        m.submodules.sender_wrappers = ModuleConnector(*sender_wrappers)
+
+        for i in range(self.outputs_count):
+
+            @def_method(m, self.receive[self.outputs_count - i - 1])
+            def _():
+                return {"data": (switches[-1][i // self.switch_port_count].reads[i % self.switch_port_count](m)).data}
+
+        return m
+
+
+class PriorityOrderingTransProxyTrans(Elaboratable):
+    """Proxy for ordering methods
+
+    This proxy allows to order called methods. It guarantee that if
+    there is a `k` method called (in any order), then they will be
+    connected to `k` first methods from ordered list and both arguments
+    and results of methods will be correctly forwarded.
+
+    There is no fairness algorithm used, but there is a guarantee that always
+    the biggest subset of available methods will be called.
+
+    WARNING: This scales up badly -- O(2^n) -- so it is discouraged to use
+    that module with more than 6 inputs.
+    """
+
+    def __init__(self, methods_ordered: list[Method], methods_unordered: list[Method]):
+        """
+        Parameters
+        ----------
+        methods_ordered : list[Method]
+            A list of methods which will be called in order. So if `j`-th method
+            is called and `i<j` then `i`-th Method also is called.
+        methods_unordered : list[Method]
+            Methods whose calls should be ordered.
+        """
+        self._m_ordered = methods_ordered
+        self._m_unordered = methods_unordered
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        with Transaction().body(m):
+            with condition(m, priority=True) as branch:
+                for k in range(len(self._m_unordered), 0, -1):
+                    for comb_un in itertools.combinations(self._m_unordered, k):
+                        with branch(1):  # sic!
+                            for un, ord in zip(comb_un, self._m_ordered):
+                                connect_methods(m, un, ord)
+        return m
+
+
+class PriorityOrderingProxyTrans(PriorityOrderingTransProxyTrans):
+    """Proxy for ordering methods
+
+    Gender changing wrapper for PriorityOrderingTransProxyTrans.
+
+    Attributes
+    ----------
+    m_unordered : list[Method]
+        Calls to these methods will be ordered.
+    """
+
+    def __init__(self, methods_ordered: list[Method]):
+        """
+        Parameters
+        ----------
+        methods_ordered : list[Method]
+            A list of methods which will be called in order. So if `j`-th method
+            is called and `i<j` then `i`-th Method also is called.
+        """
+        self._m_connects = [
+            Connect(methods_ordered[0].data_in.layout, methods_ordered[0].data_out.layout) for _ in methods_ordered
+        ]
+        _m_unordered_read = [connect.read for connect in self._m_connects]
+        super().__init__(methods_ordered, _m_unordered_read)
+        self.m_unordered = [connect.write for connect in self._m_connects]
+
+    def elaborate(self, platform):
+        m = super().elaborate(platform)
+        m.submodules.connects = ModuleConnector(*self._m_connects)
         return m

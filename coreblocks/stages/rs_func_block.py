@@ -4,8 +4,7 @@ from dataclasses import dataclass
 from coreblocks.params import *
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
-from coreblocks.transactions import Method
-from coreblocks.utils.debug_signals import auto_debug_signals, SignalBundle
+from coreblocks.transactions import Method, TModule
 from coreblocks.utils.protocols import FuncUnit, FuncBlock
 from coreblocks.transactions.lib import Collector
 
@@ -42,10 +41,11 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             Number of entries in RS.
         """
         self.gen_params = gen_params
-        self.rs_layouts = gen_params.get(RSLayouts)
+        self.rs_entries = rs_entries
+        self.rs_entries_bits = (rs_entries - 1).bit_length()
+        self.rs_layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.func_units = list(func_units)
-        self.rs_entries = rs_entries
 
         self.insert = Method(i=self.rs_layouts.insert_in)
         self.select = Method(o=self.rs_layouts.select_out)
@@ -53,7 +53,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         self.get_result = Method(o=self.fu_layouts.accept)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.rs = self.rs = RS(
             gen_params=self.gen_params,
@@ -80,17 +80,6 @@ class RSFuncBlock(FuncBlock, Elaboratable):
 
         return m
 
-    def debug_signals(self) -> SignalBundle:
-        # TODO: enhanced auto_debug_signals would allow to remove this method
-        return {
-            "insert": self.insert.debug_signals(),
-            "select": self.select.debug_signals(),
-            "update": self.update.debug_signals(),
-            "get_result": self.get_result.debug_signals(),
-            "rs": self.rs,
-            "func_units": {i: auto_debug_signals(b) for i, b in enumerate(self.func_units)},
-        }
-
 
 @dataclass(frozen=True)
 class RSBlockComponent(BlockComponentParams):
@@ -104,3 +93,6 @@ class RSBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return optypes_supported(self.func_units)
+
+    def get_rs_entry_count(self) -> int:
+        return self.rs_entries

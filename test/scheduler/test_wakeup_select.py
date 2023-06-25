@@ -20,7 +20,7 @@ from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO
 class WakeupTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
-        self.layouts = gen_params.get(RSLayouts)
+        self.layouts = gen_params.get(RSLayouts, rs_entries_bits=gen_params.max_rs_entries_bits)
 
     def elaborate(self, platform):
         m = Module()
@@ -34,9 +34,6 @@ class WakeupTestCircuit(Elaboratable):
         m.submodules.wakeup_select = WakeupSelect(
             gen_params=self.gen_params, get_ready=ready_mock.iface, take_row=take_row_mock.iface, issue=issue_mock.iface
         )
-
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
 
         return m
 
@@ -78,7 +75,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
     def process(self):
         inserted_count = 0
         issued_count = 0
-        rs: list[Optional[RecordIntDict]] = [None for _ in range(self.m.gen_params.rs_entries)]
+        rs: list[Optional[RecordIntDict]] = [None for _ in range(self.m.gen_params.max_rs_entries)]
 
         yield from self.m.take_row_mock.enable()
         yield from self.m.issue_mock.enable()

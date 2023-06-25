@@ -3,9 +3,8 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams
-from coreblocks.transactions import Method
+from coreblocks.transactions import Method, TModule, def_method
 from coreblocks.transactions.lib import FIFO
-from coreblocks.transactions.core import def_method
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
@@ -61,7 +60,7 @@ class Zbs(Elaboratable):
         self.result = Signal(self.xlen)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         xlen_log = self.gen_params.isa.xlen_log
 
@@ -100,7 +99,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
         self.zbs_fn = zbs_fn
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         m.submodules.zbs = zbs = Zbs(self.gen_params, function=self.zbs_fn)
         m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
@@ -118,7 +117,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
             m.d.comb += zbs.in1.eq(arg.s1_val)
             m.d.comb += zbs.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
-            result_fifo.write(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst)
+            result_fifo.write(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst, exception=0)
 
         return m
 
