@@ -35,24 +35,19 @@ class VRFFragment(Elaboratable):
 
         @def_method(m, self.write)
         def _(vrp_id, addr, data, mask):
-            with condition(vrp_id) as branch:
-                for j in range(self.v_params.vrp_count):
-                    with branch(j):
-                        self.regs[j].write(m, data=data, addr=addr, mask=mask)
+            with condition_switch(m, vrp_id, self.v_params.vrp_count) as j:
+                self.regs[j].write(m, data=data, addr=addr, mask=mask)
 
         for i in range(self.read_ports_count):
 
             @def_method(m, self.read_req_list[i])
             def _(vrp_id, elen_id):
-                with condition(vrp_id) as branch:
-                    for j in range(self.v_params.vrp_count):
-                        with branch(j):
-                            self.regs[j].read_req(m, addr=elen_id)
+                with condition_switch(m, vrp_id, self.v_params.vrp_count) as j:
+                    self.regs[j].read_req(m, addr=elen_id)
 
             @def_method(m, self.read_resp_list[i])
             def _(vrp_id):
-                with condition(vrp_id) as branch:
-                    for j in range(self.v_params.vrp_count):
-                        with branch(j):
-                            return self.regs[j].read_resp(m)
+                with condition_switch(m, vrp_id, self.v_params.vrp_count) as j:
+                    return self.regs[j].read_resp(m)
+
         return m

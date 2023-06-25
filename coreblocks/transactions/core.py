@@ -4,10 +4,11 @@ from contextlib import contextmanager
 from enum import Enum, auto
 from typing import ClassVar, NoReturn, TypeAlias, TypedDict, Union, Optional, Tuple
 from graphlib import TopologicalSorter
-from typing_extensions import Self
+from typing_extensions import Concatenate, Self, ParamSpec
 from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
+from functools import partial
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
@@ -29,6 +30,7 @@ __all__ = [
     "eager_deterministic_cc_scheduler",
     "trivial_roundrobin_cc_scheduler",
     "def_method",
+    "loop_def_method",
 ]
 
 
@@ -38,6 +40,7 @@ PriorityOrder: TypeAlias = dict["Transaction", int]
 TransactionScheduler: TypeAlias = Callable[["MethodMap", TransactionGraph, TransactionGraphCC, PriorityOrder], Module]
 RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 TransactionOrMethod: TypeAlias = Union["Transaction", "Method"]
+P = ParamSpec("P")
 
 
 class Priority(Enum):
@@ -1172,5 +1175,21 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
 
         if ret_out is not None:
             m.d.top_comb += assign(out, ret_out, fields=AssignType.ALL)
+
+    return decorator
+
+
+def loop_def_method(m: TModule, methods_list: list[Method], ready_list: Optional[list[ValueLike] | Callable] = None):
+    if ready_list is None:
+        ready_list = [C(1) for _ in methods_list]
+    if isinstance(ready_list, Callable):
+        ready_list = [ready_list(i) for i in range(len(methods_list))]
+    if len(methods_list) != len(ready_list):
+        raise ValueError("There is different number of methods and ready signals passed.")
+
+    def decorator(func: Callable[Concatenate[int, P], Optional[RecordDict]]):
+        for i in range(len(methods_list)):
+            partial_f = partial(func, i)
+            def_method(m, methods_list[i], ready_list[i])(partial_f)
 
     return decorator

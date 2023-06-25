@@ -31,6 +31,7 @@ __all__ = [
     "Serializer",
     "MethodTryProduct",
     "condition",
+    "condition_switch",
     "AnyToAnySimpleRoutingBlock",
     "OmegaRoutingNetwork",
     "PriorityOrderingTransProxyTrans",
@@ -1100,17 +1101,15 @@ class Serializer(Elaboratable):
         pending_requests = BasicFifo(self.id_layout, self.depth)
         m.submodules.pending_requests = pending_requests
 
-        for i in range(self.port_count):
+        @loop_def_method(m, self.serialize_in)
+        def _(i, arg):
+            pending_requests.write(m, {"id": i})
+            self.serialized_req_method(m, arg)
 
-            @def_method(m, self.serialize_in[i])
-            def _(arg):
-                pending_requests.write(m, {"id": i})
-                self.serialized_req_method(m, arg)
-
-            @def_method(m, self.serialize_out[i], ready=(pending_requests.head.id == i))
-            def _():
-                pending_requests.read(m)
-                return self.serialized_resp_method(m)
+        @loop_def_method(m, self.serialize_out, ready_list=lambda i: pending_requests.head.id == i)
+        def _(_):
+            pending_requests.read(m)
+            return self.serialized_resp_method(m)
 
         self.clear.proxy(m, pending_requests.clear)
 
@@ -1197,6 +1196,19 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
     this.simultaneous_alternatives(*transactions)
 
 
+@contextmanager
+def condition_switch(
+    m: TModule, variable: Signal, branch_number: int, *, nonblocking: bool = True, priority: bool = True
+):
+    """
+    Syntax sugar to easy define condition which compares given signal to first `branch_number` integers.
+    """
+    with condition(m, nonblocking=nonblocking, priority=priority) as branch:
+        for i in range(branch_number):
+            with branch(variable == i):
+                yield i
+
+
 def def_one_caller_wrapper(method_to_wrap: Method, wrapper: Method) -> TModule:
     """
     Function used to a wrap method that can only have one caller. After wrapping
@@ -1281,17 +1293,14 @@ class AnyToAnySimpleRoutingBlock(Elaboratable, RoutingBlock):
 
         _internal_send = [Method(i=self.send_layout) for _ in range(self.inputs_count)]
 
-        sender_wrappers = []
-        for i in range(self.inputs_count):
+        @loop_def_method(m, _internal_send)
+        def _(i, addr, data):
+            with condition(m, nonblocking=False) as branch:
+                for i in range(self.outputs_count):
+                    with branch(addr == i):
+                        self._connectors[i].write(m, data)
 
-            @def_method(m, _internal_send[i])
-            def _(addr, data):
-                with condition(m, nonblocking=False) as branch:
-                    for i in range(self.outputs_count):
-                        with branch(addr == i):
-                            self._connectors[i].write(m, data)
-
-            sender_wrappers.append(def_one_caller_wrapper(_internal_send[i], self.send[i]))
+        sender_wrappers = [def_one_caller_wrapper(_internal_send[i], self.send[i]) for i in range(self.inputs_count)]
         m.submodules.sender_wrappers = ModuleConnector(*sender_wrappers)
 
         for i in range(self.outputs_count):
@@ -1343,15 +1352,13 @@ class _OmegaRoutingSwitch(Elaboratable):
         buffers = [FIFO(self.send_layout, 2) for _ in range(self._ports_count)]
         m.submodules.buffers = ModuleConnector(*buffers)
 
-        for method in self.writes:
-
-            @def_method(m, method)
-            def _(addr, data):
-                new_addr = addr << 1
-                with m.If(addr[-1]):
-                    buffers[0].write(m, addr=new_addr, data=data)
-                with m.Else():
-                    buffers[1].write(m, addr=new_addr, data=data)
+        @loop_def_method(m, self.writes)
+        def _(_, addr, data):
+            new_addr = addr << 1
+            with m.If(addr[-1]):
+                buffers[0].write(m, addr=new_addr, data=data)
+            with m.Else():
+                buffers[1].write(m, addr=new_addr, data=data)
 
         for i in range(self._ports_count):
             self.reads[i].proxy(m, buffers[i].read)
@@ -1435,21 +1442,17 @@ class OmegaRoutingNetwork(Elaboratable, RoutingBlock):
             stages_connectors.append(self._connect_stages(switches[i - 1], switches[i]))
         m.submodules.stages_connectors = ModuleConnector(*stages_connectors)
 
-        sender_wrappers = []
-        for i in range(self.outputs_count):
+        @loop_def_method(m, _internal_send)
+        def _(i: int, arg):
+            switches[0][i // self.switch_port_count].writes[i % self.switch_port_count](m, arg)
 
-            @def_method(m, _internal_send[i])
-            def _(arg):
-                switches[0][i // self.switch_port_count].writes[i % self.switch_port_count](m, arg)
-
-            sender_wrappers.append(def_one_caller_wrapper(_internal_send[i], self.send[i]))
+        sender_wrappers = [def_one_caller_wrapper(_internal_send[i], self.send[i]) for i in range(self.outputs_count)]
         m.submodules.sender_wrappers = ModuleConnector(*sender_wrappers)
 
-        for i in range(self.outputs_count):
-
-            @def_method(m, self.receive[self.outputs_count - i - 1])
-            def _():
-                return {"data": (switches[-1][i // self.switch_port_count].reads[i % self.switch_port_count](m)).data}
+        @loop_def_method(m, self.receive)
+        def _(i: int):
+            i = self.outputs_count - i - 1
+            return {"data": (switches[-1][i // self.switch_port_count].reads[i % self.switch_port_count](m)).data}
 
         return m
 

@@ -14,13 +14,19 @@ class VectorRegisterBank(Elaboratable):
     """
     Jeden bank VRF z jednym portem do odczytu i jendym do zapisu. Elementy w banku mają długość ELEN.
     """
+
     def __init__(self, *, gen_params: GenParams, v_params: VectorParameters):
         self.gen_params = gen_params
         self.v_params = v_params
 
         self.layouts = RegisterLayouts(self.gen_params, self.v_params)
 
-        self.bank = MemoryBank(data_layout=self.layouts.read_resp, elem_count=self.v_params.elems_in_bank, granularity=self.v_params.bytes_in_elen, safe_writes = False)
+        self.bank = MemoryBank(
+            data_layout=self.layouts.read_resp,
+            elem_count=self.v_params.elems_in_bank,
+            granularity=self.v_params.bytes_in_elen,
+            safe_writes=False,
+        )
 
         self.eew = Signal(EEW)
         # improvement: move to async memory
