@@ -92,8 +92,9 @@ class FlexibleAdder(Elaboratable):
 
         return m
 
+
 class FlexibleElementwiseFunction(Elaboratable):
-    def __init__(self, out_width : EEW, op : Callable[[ValueLike, ValueLike], ValueLike]):
+    def __init__(self, out_width: EEW, op: Callable[[ValueLike, ValueLike], ValueLike]):
         self.out_width = out_width
         self.op = op
         self.out_width_bits: int = eew_to_bits(out_width)
@@ -115,8 +116,8 @@ class FlexibleElementwiseFunction(Elaboratable):
 
             m.d.top_comb += appl_down.eew.eq(self.eew)
             m.d.top_comb += appl_up.eew.eq(self.eew)
-            m.d.top_comb += appl_down.in1.eq(self.in1 & (2**smaller_out_width_bits-1))
-            m.d.top_comb += appl_down.in2.eq(self.in2 & (2**smaller_out_width_bits-1))
+            m.d.top_comb += appl_down.in1.eq(self.in1 & (2**smaller_out_width_bits - 1))
+            m.d.top_comb += appl_down.in2.eq(self.in2 & (2**smaller_out_width_bits - 1))
             m.d.top_comb += appl_up.in1.eq(self.in1 >> smaller_out_width_bits)
             m.d.top_comb += appl_up.in2.eq(self.in2 >> smaller_out_width_bits)
 
@@ -128,12 +129,13 @@ class FlexibleElementwiseFunction(Elaboratable):
         return m
 
 
-def compress_mask(val : Value) -> Value:
+def compress_mask(val: Value) -> Value:
     """
     Zakładamy że wartości są z ElementwiseFunction i setif... ustawijaą jeden, możemy więc wyciągnąć
     po prostu bity, bowiem jeśli element był służszy to mamy gwarancję, że na wyższych bitach będą zera.
     """
     return val[::8]
+
 
 class BasicFlexibleAlu(Elaboratable):
     """

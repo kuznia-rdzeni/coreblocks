@@ -35,5 +35,6 @@ def bits_to_eew(bits: int) -> EEW:
     else:
         raise ValueError(f"Not known EEW: {bits}")
 
-def eew_div_2(eew : EEW) -> EEW:
+
+def eew_div_2(eew: EEW) -> EEW:
     return bits_to_eew(eew_to_bits(eew) // 2)

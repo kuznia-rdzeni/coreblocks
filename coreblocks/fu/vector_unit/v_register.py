@@ -37,7 +37,7 @@ class VectorRegisterBank(Elaboratable):
         self.read_resp = Method.like(self.bank.read_resp, name="read_resp")
         self.write = Method(i=self.layouts.write)
         self.write_scalar = Method()
-        self.write_mask =Method()
+        self.write_mask = Method()
         self.initialize = Method(i=self.layouts.initialize)
         self.clear = Method()
 

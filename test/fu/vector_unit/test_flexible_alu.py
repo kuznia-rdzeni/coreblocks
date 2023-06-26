@@ -3,14 +3,13 @@ from collections import deque
 
 from amaranth import *
 from amaranth.sim import *
-from typing import Callable, Any
+from typing import Callable
 from parameterized import parameterized
 
 from ...common import TestCaseWithSimulator
 
 from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.flexible_alu import FlexibleAdder, FlexibleElementwiseFunction
-from coreblocks.utils._typing import ValueLike
 
 
 def split_flex(n: int, elen: int, eew: EEW):
@@ -33,7 +32,7 @@ def glue_flex(elems: list[int], elen: int, eew: EEW) -> int:
 def op_flex(op: Callable, in1: int, in2: int, elen: int, eew: EEW) -> int:
     out_elems = []
     for elem1, elem2 in zip(split_flex(in1, elen, eew), split_flex(in2, elen, eew)):
-        out_elems.append(op(elem1,elem2))
+        out_elems.append(op(elem1, elem2))
     return glue_flex(out_elems, elen, eew)
 
 
@@ -78,11 +77,10 @@ class TestFlexibleAdder(TestCaseWithSimulator):
             sim.add_process(process)
 
     def test_add(self):
-        self.check_fn(False, lambda in1, in2, eew: op_flex(lambda x,y: x+y, in1, in2, self.elen, eew))
+        self.check_fn(False, lambda in1, in2, eew: op_flex(lambda x, y: x + y, in1, in2, self.elen, eew))
 
     def test_substract(self):
-        self.check_fn(True, lambda in1, in2, eew: op_flex(lambda x,y: x-y, in1, in2, self.elen, eew))
-
+        self.check_fn(True, lambda in1, in2, eew: op_flex(lambda x, y: x - y, in1, in2, self.elen, eew))
 
 
 class TestFlexibleElementwiseFunction(TestCaseWithSimulator):
@@ -109,13 +107,14 @@ class TestFlexibleElementwiseFunction(TestCaseWithSimulator):
                 for eew in {EEW.w8, EEW.w16, EEW.w32}:
                     in1 = random.randrange(2**self.elen - 1)
                     in2 = random.randrange(2**self.elen - 1)
-                    returned_out = yield from self.yield_signals( C(in1, self.elen), C(in2, self.elen), eew)
+                    returned_out = yield from self.yield_signals(C(in1, self.elen), C(in2, self.elen), eew)
                     mask = 2**self.elen - 1
-                    correct_out = op_flex(op, in1 & mask, in2 & mask,self.elen, eew) & mask
+                    correct_out = op_flex(op, in1 & mask, in2 & mask, self.elen, eew) & mask
                     self.assertEqual(returned_out, correct_out)
+
         return process
 
-    @parameterized.expand([(lambda x,y: x << ((y% 2**4) if isinstance(y, int) else y[:4]),), (lambda x,y: x+y,)])
+    @parameterized.expand([(lambda x, y: x << ((y % 2**4) if isinstance(y, int) else y[:4]),), (lambda x, y: x + y,)])
     def test_random(self, op):
         self.circ = FlexibleElementwiseFunction(self.eew, op)
         with self.run_simulation(self.circ) as sim:
