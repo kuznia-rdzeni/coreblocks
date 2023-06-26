@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687773318310,
+  "lastUpdate": 1687773542571,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -8080,6 +8080,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "crc32",
             "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "324526@uwr.edu.pl",
+            "name": "Wojciech Pokój",
+            "username": "wojpok"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "75b1161f734c1be0ca8063d2b648defdb7cf1cfa",
+          "message": "Encoding uniqueness (#388)",
+          "timestamp": "2023-06-26T11:40:52+02:00",
+          "tree_id": "1e6bf18541a503ca50c508443053e6fda5baaf4e",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/75b1161f734c1be0ca8063d2b648defdb7cf1cfa"
+        },
+        "date": 1687773541292,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
             "unit": "Instructions Per Cycle"
           },
           {
