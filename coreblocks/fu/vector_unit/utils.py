@@ -1,6 +1,6 @@
 from enum import IntEnum, auto
 
-__all__ = ["EEW", "eew_to_bits", "bits_to_eew"]
+__all__ = ["EEW", "eew_to_bits", "bits_to_eew", "eew_div_2"]
 
 
 class EEW(IntEnum):
@@ -34,3 +34,6 @@ def bits_to_eew(bits: int) -> EEW:
         return EEW.w64
     else:
         raise ValueError(f"Not known EEW: {bits}")
+
+def eew_div_2(eew : EEW) -> EEW:
+    return bits_to_eew(eew_to_bits(eew) // 2)

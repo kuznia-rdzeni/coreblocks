@@ -1,17 +1,15 @@
-from typing import Sequence
+from typing import Sequence, Callable
 from amaranth import *
+from enum import IntFlag, auto
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
-
 from coreblocks.params import *
-
+from coreblocks.utils._typing import ValueLike
 from coreblocks.fu.fu_decoder import DecoderManager
-from enum import IntFlag, auto
-
 from coreblocks.fu.vector_unit.utils import *
 
-__all__ = ["FlexibleAdder"]
+__all__ = ["FlexibleAdder", "FlexibleElementwiseFunction"]
 
 
 class FlexibleAluFn(DecoderManager):
@@ -52,10 +50,11 @@ class FlexibleAdder(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
+        self.in2_trans = Signal.like(self.in2)
         with m.If(self.substract & (self.out_width == self.eew)):
-            self.in2_trans = (~self.in2) + 1
+            m.d.comb += self.in2_trans.eq((~self.in2) + 1)
         with m.Else():
-            self.in2_trans = self.in2
+            m.d.comb += self.in2_trans.eq(self.in2)
 
         if self.out_width == EEW.w8:
             result = self.in1 + self.in2_trans
@@ -93,6 +92,48 @@ class FlexibleAdder(Elaboratable):
 
         return m
 
+class FlexibleElementwiseFunction(Elaboratable):
+    def __init__(self, out_width : EEW, op : Callable[[ValueLike, ValueLike], ValueLike]):
+        self.out_width = out_width
+        self.op = op
+        self.out_width_bits: int = eew_to_bits(out_width)
+        self.eew = Signal(EEW)
+        self.in1 = Signal(self.out_width_bits)
+        self.in2 = Signal(self.out_width_bits)
+        self.out_data = Signal(self.out_width_bits)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        if self.out_width == EEW.w8:
+            m.d.comb += self.out_data.eq(self.op(self.in1, self.in2))
+        else:
+            smaller_out_width_bits = self.out_width_bits // 2
+
+            m.submodules.applicator_down = appl_down = FlexibleElementwiseFunction(eew_div_2(self.out_width), self.op)
+            m.submodules.applicator_up = appl_up = FlexibleElementwiseFunction(eew_div_2(self.out_width), self.op)
+
+            m.d.top_comb += appl_down.eew.eq(self.eew)
+            m.d.top_comb += appl_up.eew.eq(self.eew)
+            m.d.top_comb += appl_down.in1.eq(self.in1 & (2**smaller_out_width_bits-1))
+            m.d.top_comb += appl_down.in2.eq(self.in2 & (2**smaller_out_width_bits-1))
+            m.d.top_comb += appl_up.in1.eq(self.in1 >> smaller_out_width_bits)
+            m.d.top_comb += appl_up.in2.eq(self.in2 >> smaller_out_width_bits)
+
+            with m.If(self.eew == self.out_width):
+                m.d.comb += self.out_data.eq(self.op(self.in1, self.in2))
+            with m.Else():
+                m.d.comb += self.out_data.eq((appl_up.out_data << smaller_out_width_bits) | appl_down.out_data)
+
+        return m
+
+
+def compress_mask(val : Value) -> Value:
+    """
+    Zakładamy że wartości są z ElementwiseFunction i setif... ustawijaą jeden, możemy więc wyciągnąć
+    po prostu bity, bowiem jeśli element był służszy to mamy gwarancję, że na wyższych bitach będą zera.
+    """
+    return val[::8]
 
 class BasicFlexibleAlu(Elaboratable):
     """
@@ -103,12 +144,12 @@ class BasicFlexibleAlu(Elaboratable):
         self.gen_params = gen_params
         self.v_params = v_params
 
-        self.fn = FlexibleAluFn.get_function()
+        self.fn = FlexibleAluFn().get_function()
         self.eew = Signal(EEW)
         self.in1 = Signal(self.v_params.elen)
         self.in2 = Signal(self.v_params.elen)
 
-    def elaborate(self, platform) -> Module:
+    def elaborate(self, platform) -> TModule:
         m = TModule()
         # TODO Implement under separate PR
         return m
