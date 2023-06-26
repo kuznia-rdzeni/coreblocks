@@ -55,6 +55,7 @@ class Encoding:
     funct7: Optional[Funct7] = None
     funct12: Optional[Funct12] = None
     _ = KW_ONLY
+    funct6: Optional[Funct6] = None
     instr_type_override: Optional[InstrType] = None
     rd_zero: bool = False
     rs1_zero: bool = False
@@ -221,6 +222,65 @@ _instructions_by_optype = {
             Opcode.SYSTEM, Funct3.PRIV, Funct7.SFENCEVMA, rd_zero=True, instr_type_override=InstrType.R
         ),  # sfence.vma
     ],
+    OpType.V_ARITHMETIC : [
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VADD),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSUB),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VAND),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VOR),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VXOR),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSLL),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSRL),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSRA),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMSEQ),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMSNE),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMSLTU),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMSLT),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMSLEU),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMSLE),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMINU),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMIN),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMAXU),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMAX),
+    ],
+    OpType.V_ARITHMETIC_IMM : [
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VADD),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VRSUB),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VAND),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VOR),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VXOR),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSLL),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSRL),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSRA),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSEQ),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSNE),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSLEU),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSLE),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSGTU),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSGT),
+    ],
+    OpType.V_ARITHMETIC_SCALAR : [
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VADD),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSUB),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VRSUB),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VAND),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VOR),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VXOR),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSLL),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSRL),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSRA),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMSEQ),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMSNE),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMSLTU),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMSLT),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMSLEU),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMSLE),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMSGTU),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMSGT),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMINU),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMIN),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMAXU),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMAX),
+    ],
 }
 
 
@@ -301,6 +361,7 @@ class InstrDecoder(Elaboratable):
         self.opcode = Signal(Opcode)
         self.funct3 = Signal(Funct3)
         self.funct3_v = Signal()
+        self.funct6 = Signal(Funct6)
         self.funct7 = Signal(Funct7)
         self.funct7_v = Signal()
         self.funct12 = Signal(Funct12)
@@ -308,14 +369,17 @@ class InstrDecoder(Elaboratable):
 
         # Destination register
         self.rd = Signal(gen.isa.reg_cnt_log)
+        self.rd_rf = Signal(RegisterType,reset = RegisterType.X)
         self.rd_v = Signal()
 
         # First source register
         self.rs1 = Signal(gen.isa.reg_cnt_log)
+        self.rs1_rf = Signal(RegisterType, reset = RegisterType.X)
         self.rs1_v = Signal()
 
         # Second source register
         self.rs2 = Signal(gen.isa.reg_cnt_log)
+        self.rs2_rf = Signal(RegisterType, reset = RegisterType.X)
         self.rs2_v = Signal()
 
         # Immediate
@@ -380,7 +444,7 @@ class InstrDecoder(Elaboratable):
                 m.d.comb += instruction_type.eq(InstrType.I)
             with m.Case(Opcode.LUI, Opcode.AUIPC):
                 m.d.comb += instruction_type.eq(InstrType.U)
-            with m.Case(Opcode.OP):
+            with m.Case(Opcode.OP, Opcode.OP_V):
                 m.d.comb += instruction_type.eq(InstrType.R)
             with m.Case(Opcode.JAL):
                 m.d.comb += instruction_type.eq(InstrType.J)
@@ -394,6 +458,7 @@ class InstrDecoder(Elaboratable):
         m.d.comb += [
             self._extract(12, self.funct3),
             self._extract(25, self.funct7),
+            self._extract(26, self.funct6),
             self._extract(20, self.funct12),
         ]
 
@@ -413,6 +478,7 @@ class InstrDecoder(Elaboratable):
                 (opcode == enc.opcode if enc.opcode is not None else 1)
                 & (self.funct3 == enc.funct3 if enc.funct3 is not None else 1)
                 & (self.funct7 == enc.funct7 if enc.funct7 is not None else 1)
+                & (self.funct6 == enc.funct6 if enc.funct6 is not None else 1)
                 & (self.funct12 == enc.funct12 if enc.funct12 is not None else 1)
                 & (self.rd == 0 if enc.rd_zero else 1)
                 & (self.rs1 == 0 if enc.rs1_zero else 1)
@@ -426,7 +492,7 @@ class InstrDecoder(Elaboratable):
                 m.d.comb += rs1_invalid.eq(enc.rs1_zero)
 
                 m.d.comb += self.funct3_v.eq(enc.funct3 is not None)
-                m.d.comb += self.funct7_v.eq(enc.funct7 is not None)
+                m.d.comb += self.funct7_v.eq((enc.funct7 is not None) | (enc.funct6 is not None))
                 m.d.comb += self.funct12_v.eq(enc.funct12 is not None)
 
         # Destination and source registers validity
@@ -486,11 +552,24 @@ class InstrDecoder(Elaboratable):
 
         # CSR with immediate correction
 
-        with m.If(self.optype == OpType.CSR_IMM):
+        with m.If((self.optype == OpType.CSR_IMM) | (self.optype == OpType.V_ARITHMETIC_IMM)):
             m.d.comb += [
                 self.imm.eq(uimm5),
                 self.rs1_v.eq(0),
             ]
+
+        # Register types
+        with m.If((self.optype == OpType.V_ARITHMETIC) | (self.optype == OpType.V_ARITHMETIC_IMM)):
+            m.d.comb += [
+                    self.rs1_rf.eq(RegisterType.V),
+                    self.rs2_rf.eq(RegisterType.V),
+                    self.rd_rf.eq(RegisterType.V),
+                    ]
+        with m.If(self.optype == OpType.V_ARITHMETIC_SCALAR):
+            m.d.comb += [
+                    self.rs2_rf.eq(RegisterType.V),
+                    self.rd_rf.eq(RegisterType.V),
+                    ]
 
         # Instruction simplification
 

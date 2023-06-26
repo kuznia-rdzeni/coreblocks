@@ -6,12 +6,14 @@ __all__ = [
     "InstrType",
     "Opcode",
     "Funct3",
+    "Funct6",
     "Funct7",
     "Funct12",
     "Extension",
     "FenceTarget",
     "FenceFm",
     "ISA",
+    "RegisterType",
 ]
 
 
@@ -27,30 +29,72 @@ class InstrType(Enum):
 
 @unique
 class Opcode(IntEnum, shape=5):
-    OP_IMM = 0b00100
-    LUI = 0b01101
-    AUIPC = 0b00101
-    OP = 0b01100
-    OP32 = 0b01110
-    JAL = 0b11011
-    JALR = 0b11001
-    BRANCH = 0b11000
     LOAD = 0b00000
-    STORE = 0b01000
     MISC_MEM = 0b00011
+    OP_IMM = 0b00100
+    AUIPC = 0b00101
+    STORE = 0b01000
+    OP = 0b01100
+    LUI = 0b01101
+    OP32 = 0b01110
+    OP_V = 0b1010111
+    BRANCH = 0b11000
+    JALR = 0b11001
+    JAL = 0b11011
     SYSTEM = 0b11100
 
 
 class Funct3(IntEnum, shape=3):
-    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
-    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL = SEXTB = SEXTH = CLMUL = 0b001
-    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = 0b010
-    SLTU = CSRRC = MULHU = CLMULH = 0b011
-    BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = 0b100
-    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = 0b101
-    BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = 0b110
-    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = 0b111
+    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = OPIVV = 0b000
+    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL = SEXTB = SEXTH = CLMUL = OPFVV = 0b001
+    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = OPMVV = 0b010
+    SLTU = CSRRC = MULHU = CLMULH = OPIVI = 0b011
+    BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = OPIVX = 0b100
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = OPFVF = 0b101
+    BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = OPMVX = 0b110
+    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = OPCFG = 0b111
 
+class Funct6(IntEnum, shape=6):
+    VADD     = 0b000000
+    VSUB     = 0b000010
+    VRSUB    = 0b000011
+    VMINU    = 0b000100
+    VMIN     = 0b000101
+    VMAXU    = 0b000110
+    VMAX     = 0b000111
+    VAND     = 0b001001
+    VOR      = 0b001010
+    VXOR     = 0b001011
+    VRGATHER = 0b001100
+    VSLIDEUP = VRGATHEREI16 = 0b001110
+    VSLIDEDOWN=0b001111
+    VADC     = 0b010000
+    VMADC    = 0b010001
+    VSBC     = 0b010010
+    VMSBC    = 0b010011
+    VMERGE   = 0b010111
+    VMSEQ    = 0b011000
+    VMSNE    = 0b011001
+    VMSLTU   = 0b011010
+    VMSLT    = 0b011011
+    VMSLEU   = 0b011100
+    VMSLE    = 0b011101
+    VMSGTU   = 0b011110
+    VMSGT    = 0b011111
+    VSADDU   = 0b100000
+    VSADD    = 0b100001
+    VSSUBU   = 0b100010
+    VSSUB    = 0b100011
+    VSLL     = 0b100101
+    VSMUL    = 0b100111
+    VSRL     = 0b101000
+    VSRA     = 0b101001
+    VSSRL    = 0b101010
+    VSSRA    = 0b101011
+    VNSRL    = 0b101100
+    VNSRA    = 0b101101
+    VNCLIPU  = 0b101110
+    VNCLIP   = 0b101111
 
 class Funct7(IntEnum, shape=7):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
@@ -95,6 +139,11 @@ class FenceTarget(IntFlag, shape=4):
 class FenceFm(IntEnum, shape=4):
     NONE = 0b0000
     TSO = 0b1000
+
+@unique
+class RegisterType(IntEnum, shape=1):
+    X = 0b0
+    V = 0b1
 
 
 @unique

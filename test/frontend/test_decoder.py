@@ -167,6 +167,9 @@ class TestDecoder(TestCaseWithSimulator):
             op=OpType.UNARY_BIT_MANIPULATION_1,
         ),
     ]
+    DECODER_TESTS_V = [
+        InstrTest()
+    ]
 
     def setUp(self):
         gen = GenParams(

@@ -1,4 +1,4 @@
-from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode
+from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode, RegisterType
 from coreblocks.utils.utils import layout_subset
 
 __all__ = [
@@ -29,8 +29,11 @@ class CommonLayouts:
 
         self.regs_l = [
             ("rl_s1", gen_params.isa.reg_cnt_log),
+            ("rl_s1_rf", RegisterType),
             ("rl_s2", gen_params.isa.reg_cnt_log),
+            ("rl_s2_rf", RegisterType),
             ("rl_dst", gen_params.isa.reg_cnt_log),
+            ("rl_dst_rf", RegisterType),
         ]
 
         self.regs_p = [

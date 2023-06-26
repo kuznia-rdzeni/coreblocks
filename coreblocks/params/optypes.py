@@ -42,6 +42,10 @@ class OpType(IntEnum):
     CLMUL = auto()
     SRET = auto()
     SFENCEVMA = auto()
+    V_ARITHMETIC = auto()
+    V_ARITHMETIC_IMM = auto()
+    V_ARITHMETIC_SCALAR = auto()
+
 
 
 #
@@ -102,6 +106,11 @@ optypes_by_extensions = {
     Extension.XINTSUPERVISOR: [
         OpType.SRET,
         OpType.SFENCEVMA,
+    ],
+    Extension.V: [
+        OpType.V_ARITHMETIC,
+        OpType.V_ARITHMETIC_IMM,
+        OpType.V_ARITHMETIC_SCALAR,
     ],
 }
 
