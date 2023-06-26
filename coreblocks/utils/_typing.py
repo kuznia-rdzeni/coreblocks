@@ -15,6 +15,7 @@ from typing import (
 )
 from enum import Enum
 from amaranth import *
+from amaranth.lib.data import View
 from amaranth.hdl.ast import ShapeCastable, Statement, ValueCastable
 from amaranth.hdl.dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, _ModuleBuilderDomain, FSM
 from amaranth.hdl.rec import Direction, Layout
@@ -28,7 +29,7 @@ LayoutLike = Layout | Sequence[Tuple[str, ShapeLike | "LayoutLike"] | Tuple[str,
 SwitchKey: TypeAlias = str | int | Enum
 
 # Internal Coreblocks types
-SignalBundle: TypeAlias = Signal | Record | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
+SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
 LayoutList = list[Tuple[str, ShapeLike | "LayoutList"]]
 
 

@@ -348,6 +348,9 @@ def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
     elif isinstance(signals, Record):
         for x in signals.fields.values():
             yield from flatten_signals(x)
+    elif isinstance(signals, data.View):
+        for x, _ in data.Layout.cast(data.Layout.of(signals)):
+            yield from flatten_signals(signals[x])
     else:
         yield signals
 

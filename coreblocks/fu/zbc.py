@@ -201,7 +201,7 @@ class ZbcUnit(Elaboratable):
             result = Mux(params.high_res, output[xlen:], output[:xlen])
             reversed_result = Mux(params.rev_res, result[::-1], result)
 
-            return {"rob_id": params.rob_id, "rp_dst": params.rp_dst, "result": reversed_result}
+            return {"rob_id": params.rob_id, "rp_dst": params.rp_dst, "result": reversed_result, "exception": 0}
 
         @def_method(m, self.issue)
         def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc):
