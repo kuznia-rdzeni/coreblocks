@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687871843173,
+  "lastUpdate": 1687872470465,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -8311,6 +8311,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "crc32",
             "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cc5cc1740a758a11b8485627453afa85bb633ce8",
+          "message": "MemoryBank and Serializer (#304)",
+          "timestamp": "2023-06-27T15:09:19+02:00",
+          "tree_id": "9e0498ff5b040e236aac06dfdee35afacf6e68fe",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cc5cc1740a758a11b8485627453afa85bb633ce8"
+        },
+        "date": 1687872469103,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
             "unit": "Instructions Per Cycle"
           }
         ]
