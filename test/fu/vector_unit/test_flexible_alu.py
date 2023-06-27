@@ -51,7 +51,7 @@ class TestFlexibleAdder(TestCaseWithSimulator):
             self.test_inputs.append((random.randint(0, max_int), random.randint(0, max_int)))
 
     def yield_signals(self, substract, in1, in2, op_eew):
-        yield self.alu.substract.eq(substract)
+        yield self.alu.subtract.eq(substract)
         yield self.alu.in1.eq(in1)
         yield self.alu.in2.eq(in2)
         yield self.alu.eew.eq(op_eew)
