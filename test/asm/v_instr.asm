@@ -1,4 +1,4 @@
-# Page 1
+# 0b00xxxx
 vadd.vv v1, v2, v3
 vadd.vv v1, v2, v3, v0.t
 vadd.vi v0, v4, 11
@@ -34,7 +34,7 @@ vrgatherei16.vv v1, v2, v3
 vslidedown.vx v1, v2, x3
 vslidedown.vi v1, v2, 2
 
-# Page 2
+# 0b01xxxx
 vadc.vvm v1, v2, v3, v0
 vadc.vxm v1, v2, x3, v0
 vadc.vim v1, v2, 3, v0
@@ -71,3 +71,46 @@ vmsgtu.vx v1, v2, x3
 vmsgtu.vi v1, v2, 3
 vmsgt.vx v1, v2, x3
 vmsgt.vi v1, v2, 3
+
+# 0b10xxxx
+vsaddu.vv v1, v2, v3
+vsaddu.vx v1, v2, x3
+vsaddu.vi v1, v2, 3
+vsadd.vv v1, v2, v3
+vsadd.vx v1, v2, x3
+vsadd.vi v1, v2, 3
+vssubu.vv v1, v2, v3
+vssubu.vx v1, v2, x3
+vssub.vv v1, v2, v3
+vssub.vx v1, v2, x3
+vsll.vv v1, v2, v3
+vsll.vx v1, v2, x3
+vsll.vi v1, v2, 3
+vsmul.vv v1, v2, v3
+vsmul.vx v1, v2, x3
+vmv1r.v v0, v8
+vmv2r.v v0, v8
+vmv4r.v v0, v8
+vmv8r.v v0, v8
+vsrl.vv v1, v2, v3
+vsrl.vx v1, v2, x3
+vsrl.vi v1, v2, 3
+vsra.vv v1, v2, v3
+vsra.vx v1, v2, x3
+vsra.vi v1, v2, 3
+vnsrl.wv v1, v2, v3
+vnsrl.wx v1, v2, x3
+vnsrl.wi v1, v2, 3
+vnsra.wv v1, v2, v3
+vnsra.wx v1, v2, x3
+vnsra.wi v1, v2, 3
+vnclipu.wv v1, v2, v3
+vnclipu.wx v1, v2, x3
+vnclipu.wi v1, v2, 3
+vnclip.wv v1, v2, v3
+vnclip.wx v1, v2, x3
+vnclip.wi v1, v2, 3
+
+#0b11xxxx
+vwredsumu.vs v1, v2, v3
+vwredsum.vs v1, v2, v3
