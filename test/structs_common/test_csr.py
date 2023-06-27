@@ -2,9 +2,8 @@ from amaranth import *
 
 from coreblocks.transactions.lib import Adapter
 from coreblocks.structs_common.csr import CSRUnit, CSRRegister
-from coreblocks.structs_common.exception import Cause
 from coreblocks.params import GenParams
-from coreblocks.params.isa import Funct3
+from coreblocks.params.isa import Funct3, ExceptionCause
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import ExceptionReportKey
@@ -192,7 +191,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             self.assertEqual(res["exception"], 1)
             report = yield from self.dut.exception_report.call_result()
             assert report is not None
-            self.assertDictEqual({"rob_id": rob_id, "cause": Cause.ILLEGAL_INSTRUCTION}, report)
+            self.assertDictEqual({"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION}, report)
 
     def test_exception(self):
         self.gp = GenParams(test_core_config)

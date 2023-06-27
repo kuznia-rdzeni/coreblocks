@@ -8,11 +8,10 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
-from coreblocks.params.isa import Funct3
+from coreblocks.params.isa import Funct3, ExceptionCause
 from coreblocks.params.keys import BranchResolvedKey, ExceptionReportKey, InstructionPrecommitKey
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
-from coreblocks.structs_common.exception import Cause
 
 
 class PrivilegeLevel(IntEnum, shape=2):
@@ -325,7 +324,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             with m.If(exception):
                 report = self.dependency_manager.get_dependency(ExceptionReportKey())
-                report(m, rob_id=instr.rob_id, cause=Cause.ILLEGAL_INSTRUCTION)
+                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION)
             m.d.sync += exception.eq(0)
 
             return {
