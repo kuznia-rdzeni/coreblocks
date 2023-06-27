@@ -1,16 +1,16 @@
 # fibonacci spiced with interrupt handler
+# TODO: register collisions, memory handling, various interrupt frequency
     li x1, 0x100
     csrrw x0, mtvec, x1
     li x1, 0
     li x2, 1
-    li x4, 89 # small fibonacci number to keep execution time to a minimum
+    li x4, 2971215073
 loop:
     add x3, x2, x1
     mv x1, x2
     mv x2, x3
     bne x2, x4, loop
 infloop:
-    nop
     j infloop
 
 int_handler:

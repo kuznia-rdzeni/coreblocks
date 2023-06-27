@@ -15,6 +15,7 @@ class ReorderBuffer(Elaboratable):
         self.retire = Method(o=layouts.retire_layout)
         self.empty = Method(o=layouts.empty, nonexclusive=True)
         self.flush_one = Method(o=layouts.flush_layout)
+        self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
     def elaborate(self, platform):
@@ -79,5 +80,9 @@ class ReorderBuffer(Elaboratable):
         @def_method(m, self.mark_done)
         def _(rob_id: Value):
             m.d.sync += self.data[rob_id].done.eq(1)
+
+        @def_method(m, self.get_indices)
+        def _():
+            return {"start": start_idx, "end": end_idx}
 
         return m

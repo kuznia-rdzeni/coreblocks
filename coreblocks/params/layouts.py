@@ -150,6 +150,8 @@ class ROBLayouts:
             ("pc", gen_params.isa.xlen),
         ]
 
+        self.get_indices = [("start", gen_params.rob_entries_bits), ("end", gen_params.rob_entries_bits)]
+
 
 class RSInterfaceLayouts:
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
@@ -180,6 +182,10 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         self.precommit = [
             ("rob_id", gen_params.rob_entries_bits),
+        ]
+
+        self.stall = [
+            ("stalled", 1),
         ]
 
 

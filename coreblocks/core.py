@@ -81,6 +81,7 @@ class Core(Elaboratable):
             self.gen_params,
             rob_peek=self.ROB.peek,
             rob_retire=self.ROB.retire,
+            rob_get_indices=self.ROB.get_indices,
             r_rat_commit=self.RRAT.commit,
             free_rf_put=self.free_rf_fifo.write,
             rf_free=self.RF.free,
