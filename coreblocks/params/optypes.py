@@ -42,6 +42,8 @@ class OpType(IntEnum):
     CLMUL = auto()
     SRET = auto()
     SFENCEVMA = auto()
+    #: Internal Coreblocks OpType, specifing that instruction caused Exception before FU execution
+    EXCEPTION = auto()
 
 
 #

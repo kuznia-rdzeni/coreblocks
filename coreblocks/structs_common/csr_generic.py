@@ -9,6 +9,7 @@ from coreblocks.transactions.core import Method, Transaction, def_method
 
 
 class CSRAddress(IntEnum, shape=12):
+    MCAUSE = 0x342
     CYCLE = 0xC00
     TIME = 0xC01
     INSTRET = 0xC02
@@ -72,11 +73,14 @@ class GenericCSRRegisters(Elaboratable):
         # TODO: CYCLE should be alias to TIME
         self.csr_time = DoubleCounterCSR(gp, CSRAddress.TIME, CSRAddress.TIMEH)
 
+        self.mcause = CSRRegister(CSRAddress.MCAUSE, gp)
+
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.csr_cycle = self.csr_cycle
         m.submodules.csr_time = self.csr_time
+        m.submodules.mcause = self.mcause
 
         with Transaction().body(m):
             self.csr_cycle.increment(m)
