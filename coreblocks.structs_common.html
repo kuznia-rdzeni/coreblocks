@@ -280,6 +280,11 @@ to the next pipeline stage.</p>
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.CSRAddress.MCAUSE">
+<span class="sig-name descname"><span class="pre">MCAUSE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">834</span></em><a class="headerlink" href="#coreblocks.structs_common.csr_generic.CSRAddress.MCAUSE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.structs_common.csr_generic.CSRAddress.TIME">
 <span class="sig-name descname"><span class="pre">TIME</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3073</span></em><a class="headerlink" href="#coreblocks.structs_common.csr_generic.CSRAddress.TIME" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -336,6 +341,25 @@ low_addr CSR is available to the counter.</p>
 <dd></dd></dl>
 
 </dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.structs_common.exception">
+<span id="coreblocks-structs-common-exception-module"></span><h2>coreblocks.structs_common.exception module<a class="headerlink" href="#module-coreblocks.structs_common.exception" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.structs_common.exception.ExceptionCauseRegister">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.exception.</span></span><span class="sig-name descname"><span class="pre">ExceptionCauseRegister</span></span><a class="headerlink" href="#coreblocks.structs_common.exception.ExceptionCauseRegister" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.structs_common.exception.ExceptionCauseRegister.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rob_get_indices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.structs_common.exception.ExceptionCauseRegister.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="coreblocks.structs_common.exception.should_update_prioriy">
+<span class="sig-prename descclassname"><span class="pre">coreblocks.structs_common.exception.</span></span><span class="sig-name descname"><span class="pre">should_update_prioriy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.TModule" title="coreblocks.transactions.core.TModule"><span class="pre">TModule</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_cause</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_cause</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.structs_common.exception.should_update_prioriy" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </div>
 <div class="section" id="module-coreblocks.structs_common.rat">
@@ -422,7 +446,7 @@ low_addr CSR is available to the counter.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:41 2023-06-26.
+      <span class="lastupdated">Last updated on 10:13 2023-06-27.
       </span></p>
   </div>
 

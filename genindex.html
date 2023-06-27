@@ -132,6 +132,10 @@
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.alu.AluFuncUnit.__init__">(coreblocks.fu.alu.AluFuncUnit method)</a>
 </li>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionFuncUnit.__init__">(coreblocks.fu.exception.ExceptionFuncUnit method)</a>
+</li>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionUnitComponent.__init__">(coreblocks.fu.exception.ExceptionUnitComponent method)</a>
+</li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.Decoder.__init__">(coreblocks.fu.fu_decoder.Decoder method)</a>
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.jumpbranch.JumpBranchFuncUnit.__init__">(coreblocks.fu.jumpbranch.JumpBranchFuncUnit method)</a>
@@ -179,6 +183,10 @@
         <li><a href="coreblocks.params.html#coreblocks.params.isa.ISA.__init__">(coreblocks.params.isa.ISA method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.BranchResolvedKey.__init__">(coreblocks.params.keys.BranchResolvedKey method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.keys.ExceptionReportKey.__init__">(coreblocks.params.keys.ExceptionReportKey method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.keys.GenericCSRRegistersKey.__init__">(coreblocks.params.keys.GenericCSRRegistersKey method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.InstructionPrecommitKey.__init__">(coreblocks.params.keys.InstructionPrecommitKey method)</a>
 </li>
@@ -251,6 +259,8 @@
         <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.DoubleCounterCSR.__init__">(coreblocks.structs_common.csr_generic.DoubleCounterCSR method)</a>
 </li>
         <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.GenericCSRRegisters.__init__">(coreblocks.structs_common.csr_generic.GenericCSRRegisters method)</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.exception.ExceptionCauseRegister.__init__">(coreblocks.structs_common.exception.ExceptionCauseRegister method)</a>
 </li>
         <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.FRAT.__init__">(coreblocks.structs_common.rat.FRAT method)</a>
 </li>
@@ -453,10 +463,10 @@
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.BINV">(coreblocks.params.isa.Funct7 attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.BIT_MANIPULATION">BIT_MANIPULATION (coreblocks.params.optypes.OpType attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.utils.html#coreblocks.utils.utils.bits_from_int">bits_from_int() (in module coreblocks.utils.utils)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.fu_params.BlockComponentParams">BlockComponentParams (class in coreblocks.params.fu_params)</a>
@@ -484,6 +494,8 @@
 </li>
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.keys.BranchResolvedKey">BranchResolvedKey (class in coreblocks.params.keys)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.BREAKPOINT">BREAKPOINT (coreblocks.params.isa.ExceptionCause attribute)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.zbs.ZbsFunction.Fn.BSET">BSET (coreblocks.fu.zbs.ZbsFunction.Fn attribute)</a>
 
@@ -630,6 +642,13 @@
 
       <ul>
         <li><a href="coreblocks.fu.html#module-coreblocks.fu.alu">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.fu.exception
+
+      <ul>
+        <li><a href="coreblocks.fu.html#module-coreblocks.fu.exception">module</a>
 </li>
       </ul></li>
       <li>
@@ -870,6 +889,13 @@
 
       <ul>
         <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.csr_generic">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.structs_common.exception
+
+      <ul>
+        <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.exception">module</a>
 </li>
       </ul></li>
       <li>
@@ -1126,8 +1152,6 @@
         <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.ECALL">(coreblocks.params.optypes.OpType attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.TModule.Elif">Elif() (coreblocks.transactions.core.TModule method)</a>
 
       <ul>
@@ -1142,7 +1166,27 @@
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.embedded">embedded (coreblocks.params.configurations.CoreConfiguration attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey.empty_valid">empty_valid (coreblocks.params.dependencies.DependencyKey attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.ENVIRONMENT_CALL_FROM_M">ENVIRONMENT_CALL_FROM_M (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.ENVIRONMENT_CALL_FROM_S">ENVIRONMENT_CALL_FROM_S (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.ENVIRONMENT_CALL_FROM_U">ENVIRONMENT_CALL_FROM_U (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.EXCEPTION">EXCEPTION (coreblocks.params.optypes.OpType attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause">ExceptionCause (class in coreblocks.params.isa)</a>
+</li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.exception.ExceptionCauseRegister">ExceptionCauseRegister (class in coreblocks.structs_common.exception)</a>
+</li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionFuncUnit">ExceptionFuncUnit (class in coreblocks.fu.exception)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.keys.ExceptionReportKey">ExceptionReportKey (class in coreblocks.params.keys)</a>
+</li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionUnitComponent">ExceptionUnitComponent (class in coreblocks.fu.exception)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Extension">Extension (class in coreblocks.params.isa)</a>
 </li>
@@ -1228,6 +1272,8 @@
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.GenericCSRRegisters">GenericCSRRegisters (class in coreblocks.structs_common.csr_generic)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.keys.GenericCSRRegistersKey">GenericCSRRegistersKey (class in coreblocks.params.keys)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.genparams.GenParams">GenParams (class in coreblocks.params.genparams)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.core.TransactionContext.get">get() (coreblocks.transactions.core.TransactionContext class method)</a>
@@ -1263,6 +1309,8 @@
       <li><a href="coreblocks.fu.html#coreblocks.fu.alu.ALUComponent.get_module">get_module() (coreblocks.fu.alu.ALUComponent method)</a>
 
       <ul>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionUnitComponent.get_module">(coreblocks.fu.exception.ExceptionUnitComponent method)</a>
+</li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.jumpbranch.JumpComponent.get_module">(coreblocks.fu.jumpbranch.JumpComponent method)</a>
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulComponent.get_module">(coreblocks.fu.mul_unit.MulComponent method)</a>
@@ -1291,6 +1339,8 @@
       <li><a href="coreblocks.fu.html#coreblocks.fu.alu.ALUComponent.get_optypes">get_optypes() (coreblocks.fu.alu.ALUComponent method)</a>
 
       <ul>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionUnitComponent.get_optypes">(coreblocks.fu.exception.ExceptionUnitComponent method)</a>
+</li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.jumpbranch.JumpComponent.get_optypes">(coreblocks.fu.jumpbranch.JumpComponent method)</a>
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulComponent.get_optypes">(coreblocks.fu.mul_unit.MulComponent method)</a>
@@ -1368,10 +1418,12 @@
         <li><a href="coreblocks.transactions.html#coreblocks.transactions.TModule.If">(coreblocks.transactions.TModule method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.ILLEGAL_INSTRUCTION">ILLEGAL_INSTRUCTION (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.Direction.IN">IN (coreblocks.transactions.graph.Direction attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.Direction.INOUT">INOUT (coreblocks.transactions.graph.Direction attribute)</a>
 </li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.FuncBlock.insert">insert (coreblocks.utils.protocols.FuncBlock attribute)</a>
@@ -1387,6 +1439,12 @@
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.CSRAddress.INSTRETH">INSTRETH (coreblocks.structs_common.csr_generic.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.InstrType">InstrType (class in coreblocks.params.isa)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.INSTRUCTION_ACCESS_FAULT">INSTRUCTION_ACCESS_FAULT (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED">INSTRUCTION_ADDRESS_MISALIGNED (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.INSTRUCTION_PAGE_FAULT">INSTRUCTION_PAGE_FAULT (coreblocks.params.isa.ExceptionCause attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.keys.InstructionPrecommitKey">InstructionPrecommitKey (class in coreblocks.params.keys)</a>
 </li>
@@ -1454,6 +1512,12 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.LOAD_ACCESS_FAULT">LOAD_ACCESS_FAULT (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.LOAD_ADDRESS_MISALIGNED">LOAD_ADDRESS_MISALIGNED (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.LOAD_PAGE_FAULT">LOAD_PAGE_FAULT (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey.lock_on_get">lock_on_get (coreblocks.params.dependencies.DependencyKey attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.LOGIC">LOGIC (coreblocks.params.optypes.OpType attribute)</a>
@@ -1481,6 +1545,8 @@
 </li>
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.MAXU">MAXU (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.CSRAddress.MCAUSE">MCAUSE (coreblocks.structs_common.csr_generic.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.FenceTarget.MEM_R">MEM_R (coreblocks.params.isa.FenceTarget attribute)</a>
 </li>
@@ -1535,6 +1601,8 @@
         <li><a href="coreblocks.fu.html#module-coreblocks.fu">coreblocks.fu</a>
 </li>
         <li><a href="coreblocks.fu.html#module-coreblocks.fu.alu">coreblocks.fu.alu</a>
+</li>
+        <li><a href="coreblocks.fu.html#module-coreblocks.fu.exception">coreblocks.fu.exception</a>
 </li>
         <li><a href="coreblocks.fu.html#module-coreblocks.fu.fu_decoder">coreblocks.fu.fu_decoder</a>
 </li>
@@ -1603,6 +1671,8 @@
         <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.csr">coreblocks.structs_common.csr</a>
 </li>
         <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.csr_generic">coreblocks.structs_common.csr_generic</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.exception">coreblocks.structs_common.exception</a>
 </li>
         <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.rat">coreblocks.structs_common.rat</a>
 </li>
@@ -1967,10 +2037,12 @@
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.shift_unit.ShiftUnitComponent">ShiftUnitComponent (class in coreblocks.fu.shift_unit)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.fu.unsigned_multiplication.html#coreblocks.fu.unsigned_multiplication.shift.ShiftUnsignedMul">ShiftUnsignedMul (class in coreblocks.fu.unsigned_multiplication.shift)</a>
 </li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.exception.should_update_prioriy">should_update_prioriy() (in module coreblocks.structs_common.exception)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.utils.html#coreblocks.utils.utils.silence_mustuse">silence_mustuse() (in module coreblocks.utils.utils)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.SimpleWBCacheRefiller">SimpleWBCacheRefiller (class in coreblocks.frontend.icache)</a>
@@ -2017,6 +2089,12 @@
         <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.STORE">(coreblocks.params.optypes.OpType attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.STORE_ACCESS_FAULT">STORE_ACCESS_FAULT (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.STORE_ADDRESS_MISALIGNED">STORE_ADDRESS_MISALIGNED (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.STORE_PAGE_FAULT">STORE_PAGE_FAULT (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.SUB">SUB (coreblocks.params.isa.Funct3 attribute)</a>
 
       <ul>
@@ -2296,7 +2374,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:41 2023-06-26.
+      <span class="lastupdated">Last updated on 10:13 2023-06-27.
       </span></p>
   </div>
 

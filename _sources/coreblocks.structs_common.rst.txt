@@ -20,6 +20,14 @@ coreblocks.structs\_common.csr\_generic module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.structs\_common.exception module
+-------------------------------------------
+
+.. automodule:: coreblocks.structs_common.exception
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.structs\_common.rat module
 -------------------------------------
 
