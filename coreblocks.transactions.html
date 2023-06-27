@@ -1139,6 +1139,52 @@ transactions. Equivalent to a set of <cite>ConnectTrans</cite>.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.transactions.lib.MemoryBank">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.lib.</span></span><span class="sig-name descname"><span class="pre">MemoryBank</span></span><a class="headerlink" href="#coreblocks.transactions.lib.MemoryBank" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>MemoryBank module.</p>
+<p>Provides a transactional interface to synchronous Amaranth Memory with one
+read and one write port. It supports optionally writing with given granularity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read_req: Method</strong></dt><dd><p>The read request method. Accepts an <cite>addr</cite> from which data should be read.
+Only ready if there is there is a place to buffer response.</p>
+</dd>
+<dt><strong>read_resp: Method</strong></dt><dd><p>The read response method. Return <cite>data_layout</cite> Record which was saved on <cite>addr</cite> given by last
+<cite>read_req</cite> method call. Only ready after <cite>read_req</cite> call.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>The write method. Accepts <cite>addr</cite> where data should be saved, <cite>data</cite> in form of <cite>data_layout</cite>
+and optionally <cite>mask</cite> if <cite>granularity</cite> is not None. <cite>1</cite> in mask means that appropriate part should be written.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.transactions.lib.MemoryBank.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elem_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">granularity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_writes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.lib.MemoryBank.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data_layout: record layout</strong></dt><dd><p>The format of records stored in the Memory.</p>
+</dd>
+<dt><strong>elem_count: int</strong></dt><dd><p>Number of elements stored in Memory.</p>
+</dd>
+<dt><strong>granularity: Optional[int]</strong></dt><dd><p>Granularity of write, forwarded to Amaranth. If <cite>None</cite> the whole record is always saved at once.
+If not, the width of <cite>data_layout</cite> is split into <cite>granularity</cite> parts, which can be saved independently.</p>
+</dd>
+<dt><strong>safe_writes: bool</strong></dt><dd><p>Set to <cite>False</cite> if an optimisation can be done to increase throughput of writes. This will cause that
+writes will be reordered with respect to reads eg. in sequence “read A, write A X”, read can return
+“X” even when write was called later. By default <cite>True</cite>, which disable optimisation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.transactions.lib.MethodFilter">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.lib.</span></span><span class="sig-name descname"><span class="pre">MethodFilter</span></span><a class="headerlink" href="#coreblocks.transactions.lib.MethodFilter" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -1285,6 +1331,49 @@ that a given call succeeded, and the result of the call.</p>
 <dt class="field-even">Attributes</dt>
 <dd class="field-even"><dl class="simple">
 <dt><strong>method: Method</strong></dt><dd><p>The product method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.transactions.lib.Serializer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.transactions.lib.</span></span><span class="sig-name descname"><span class="pre">Serializer</span></span><a class="headerlink" href="#coreblocks.transactions.lib.Serializer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module to serialize request-response methods.</p>
+<p>Provides a transactional interface to connect many client <cite>Module</cite>s (which request somethig using method call)
+with a server <cite>Module</cite> which provides method to request operation and method to get response.</p>
+<p>Requests are being serialized from many clients and forwarded to a server which can process only one request
+at the time. Responses from server are deserialized and passed to proper client. <cite>Serializer</cite> assumes, that
+responses from the server are in-order, so the order of responses is the same as order of requests.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>serialize_in: list[Method]</strong></dt><dd><p>List of request methods. Data layouts are the same as for <cite>serialized_req_method</cite>.</p>
+</dd>
+<dt><strong>serialize_out: list[Method]</strong></dt><dd><p>List of response methods. Data layouts are the same as for <cite>serialized_resp_method</cite>.
+<cite>i</cite>-th response method provides responses for requests from <cite>i</cite>-th <cite>serialize_in</cite> method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.transactions.lib.Serializer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serialized_req_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">serialized_resp_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.transactions.lib.Serializer.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>port_count: int</strong></dt><dd><p>Number of ports, which should be generated. <cite>len(serialize_in)=len(serialize_out)=port_count</cite></p>
+</dd>
+<dt><strong>serialized_req_method: Method</strong></dt><dd><p>Request method provided by server’s <cite>Module</cite>.</p>
+</dd>
+<dt><strong>serialized_resp_method: Method</strong></dt><dd><p>Response method provided by server’s <cite>Module</cite>.</p>
+</dd>
+<dt><strong>depth: int</strong></dt><dd><p>Number of requests which can be forwarded to server, before server provides first response. Describe
+the resistance of <cite>Serializer</cite> to latency of server in case when server is fully pipelined.</p>
 </dd>
 </dl>
 </dd>
@@ -1860,7 +1949,7 @@ Assigned combinationally to the <cite>ready</cite> attribute.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 10:13 2023-06-27.
+      <span class="lastupdated">Last updated on 13:10 2023-06-27.
       </span></p>
   </div>
 
