@@ -72,7 +72,7 @@ class Funct6(IntEnum, shape=6):
     VMADC    = 0b010001
     VSBC     = 0b010010
     VMSBC    = 0b010011
-    VMERGE   = 0b010111
+    VMERGE   = VMV = 0b010111
     VMSEQ    = 0b011000
     VMSNE    = 0b011001
     VMSLTU   = 0b011010
@@ -86,7 +86,7 @@ class Funct6(IntEnum, shape=6):
     VSSUBU   = 0b100010
     VSSUB    = 0b100011
     VSLL     = 0b100101
-    VSMUL    = 0b100111
+    VSMUL    = VMV1R = VMV2R = VMV4R = VMV8R = 0b100111
     VSRL     = 0b101000
     VSRA     = 0b101001
     VSSRL    = 0b101010
@@ -95,6 +95,8 @@ class Funct6(IntEnum, shape=6):
     VNSRA    = 0b101101
     VNCLIPU  = 0b101110
     VNCLIP   = 0b101111
+    VWREDSUMU= 0b110000
+    VWREDSUM = 0b110001
 
 class Funct7(IntEnum, shape=7):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
