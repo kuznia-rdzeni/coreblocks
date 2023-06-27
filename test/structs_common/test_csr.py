@@ -1,10 +1,10 @@
 from amaranth import *
 
 from coreblocks.structs_common.csr import CSRUnit, CSRRegister
-from coreblocks.params import GenParams
-from coreblocks.params.isa import Funct3
+from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder import OpType
+from coreblocks.transactions.lib import Adapter
 
 from ..common import *
 
@@ -19,6 +19,12 @@ class CSRUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        fetch_layouts = self.gen_params.get(FetchLayouts)
+        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(
+            Adapter(i=fetch_layouts.branch_verify_in, o=fetch_layouts.branch_verify_out)
+        )
+        self.gen_params.get(DependencyManager).add_dependency(SetPCKey(), self.fetch_continue.adapter.iface)
+
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
         m.submodules.select = self.select = TestbenchIO(AdapterTrans(self.dut.select))
@@ -26,8 +32,6 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
         m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
         m.submodules.precommit = self.precommit = TestbenchIO(AdapterTrans(self.dut.precommit))
-
-        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(AdapterTrans(self.dut.fetch_continue))
 
         self.csr = {}
 

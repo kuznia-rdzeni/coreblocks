@@ -37,6 +37,8 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.retire_layout))
 
+        m.submodules.mock_rob_get_indices = self.mock_rob_get_indices = TestbenchIO(Adapter(o=rob_layouts.get_indices))
+
         m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
 
         m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
@@ -49,6 +51,7 @@ class RetirementTestCircuit(Elaboratable):
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
             precommit=self.mock_precommit.adapter.iface,
+            rob_get_indices=self.mock_rob_get_indices.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))

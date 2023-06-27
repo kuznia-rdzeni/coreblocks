@@ -306,7 +306,9 @@ class FuncUnitLayouts:
             ("rp_dst", gen_params.phys_regs_bits),
         ]
 
-        self.precommit = [("rob_id", gen_params.rob_entries_bits)]
+        retirement = gen_params.get(RetirementLayouts)
+
+        self.precommit = retirement.precommit
 
 
 class UnsignedMulUnitLayouts:

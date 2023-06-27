@@ -1,6 +1,6 @@
 import random
 from collections import deque
-from typing import Dict, Callable, Any
+from typing import Dict, Callable, Any, Optional
 
 from amaranth import Elaboratable, Module
 
@@ -25,16 +25,19 @@ class FunctionalTestCircuit(Elaboratable):
 
     def __init__(self, gen: GenParams, func_unit: FunctionalComponentParams):
         self.gen = gen
-        self.func_unit = func_unit
+        self.func_unit_comp = func_unit
+        self.func_unit = self.func_unit_comp.get_module(self.gen)
+        self.issue = TestbenchIO(AdapterTrans(self.func_unit.issue))
+        self.accept = TestbenchIO(AdapterTrans(self.func_unit.accept))
 
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen)
+        m.submodules.func_unit = self.func_unit
 
         # mocked input and output
-        m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
+        m.submodules.issue_method = self.issue
+        m.submodules.accept_method = self.accept
 
         return m
 
@@ -120,24 +123,35 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
             )
             self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst} | results)
 
-    def run_pipeline(self):
-        def random_wait():
-            for i in range(random.randint(0, 10)):
-                yield
+    def random_wait(self):
+        for i in range(random.randint(0, 10)):
+            yield
 
+    def get_basic_processes(self):
         def consumer():
             while self.responses:
                 expected = self.responses.pop()
                 result = yield from self.m.accept.call()
                 self.assertDictEqual(expected, result)
-                yield from random_wait()
+                yield from self.random_wait()
 
         def producer():
             while self.requests:
                 req = self.requests.pop()
                 yield from self.m.issue.call(req)
-                yield from random_wait()
+                yield from self.random_wait()
+
+        return {
+            "consumer": consumer,
+            "producer": producer,
+        }
+
+    def run_pipeline(self, custom_procs: Optional[Dict] = None):
+        if custom_procs is not None:
+            procs = custom_procs
+        else:
+            procs = self.get_basic_processes()
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(producer)
-            sim.add_sync_process(consumer)
+            for _, proc in procs.items():
+                sim.add_sync_process(proc)

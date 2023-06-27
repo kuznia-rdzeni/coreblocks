@@ -139,7 +139,10 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         m.submodules.fifo_res = fifo_res = BasicFifo(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
 
-        @def_method(m, self.accept)
+        # ready signal ensures sequential execution of issue -> precommit -> accept
+        # in cases where op != AUIPC, and sequential execution of issue -> accept
+        # in case where op == AUIPC
+        @def_method(m, self.accept, ready=~branch_result.valid)
         def _():
             return fifo_res.read(m)
 
