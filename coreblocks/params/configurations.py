@@ -112,3 +112,6 @@ test_core_config = CoreConfiguration(
     phys_regs_bits=7,
     _implied_extensions=Extension.I,
 )
+
+# Core configuration with vector extension
+vector_core_config = CoreConfiguration(_implied_extensions = Extension.V)
