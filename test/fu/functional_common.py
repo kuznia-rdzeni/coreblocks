@@ -6,8 +6,11 @@ from amaranth import Elaboratable, Module
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
+from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.fu_params import FunctionalComponentParams
-from coreblocks.transactions.lib import AdapterTrans
+from coreblocks.params.keys import ExceptionReportKey
+from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.transactions.lib import AdapterTrans, Adapter
 from test.common import TestbenchIO, TestCaseWithSimulator
 
 
@@ -29,6 +32,11 @@ class FunctionalTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = Module()
+
+        m.submodules.report_mock = self.report_mock = TestbenchIO(
+            Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
+        )
+        self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
 
         m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen)
 
@@ -91,6 +99,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         random.seed(self.seed)
         self.requests = deque()
         self.responses = deque()
+        self.exceptions = deque()
 
         max_int = 2**self.gen.isa.xlen - 1
         functions = list(self.ops.keys())
@@ -118,7 +127,15 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
                     "pc": pc,
                 }
             )
-            self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": 0} | results)
+
+            cause = None
+            if "exception" in results:
+                cause = results["exception"]
+                results.pop("exception")
+
+            self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": int(cause is not None)} | results)
+            if cause is not None:
+                self.exceptions.append({"rob_id": rob_id, "cause": cause})
 
     def run_pipeline(self):
         def random_wait():
@@ -138,6 +155,14 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
                 yield from self.m.issue.call(req)
                 yield from random_wait()
 
+        def exception_consumer():
+            while self.exceptions:
+                expected = self.exceptions.pop()
+                result = yield from self.m.report_mock.call()
+                self.assertDictEqual(expected, result)
+                yield from random_wait()
+
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
+            sim.add_sync_process(exception_consumer)

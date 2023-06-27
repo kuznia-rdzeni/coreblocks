@@ -8,6 +8,7 @@ __all__ = [
     "Funct3",
     "Funct7",
     "Funct12",
+    "ExceptionCause",
     "Extension",
     "FenceTarget",
     "FenceFm",
@@ -42,10 +43,11 @@ class Opcode(IntEnum, shape=5):
 
 
 class Funct3(IntEnum, shape=3):
-    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
-    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL = SEXTB = SEXTH = CLMUL = 0b001
-    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = 0b010
-    SLTU = CSRRC = MULHU = CLMULH = 0b011
+    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = _EINSTRACCESSFAULT = 0b000
+    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL \
+            = SEXTB = SEXTH = CLMUL = _EILLEGALINSTR = 0b001  # fmt: skip
+    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT = 0b010
+    SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = 0b011
     BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = 0b100
     BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = 0b101
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = 0b110
@@ -95,6 +97,24 @@ class FenceTarget(IntFlag, shape=4):
 class FenceFm(IntEnum, shape=4):
     NONE = 0b0000
     TSO = 0b1000
+
+
+@unique
+class ExceptionCause(IntEnum, shape=4):
+    INSTRUCTION_ADDRESS_MISALIGNED = 0
+    INSTRUCTION_ACCESS_FAULT = 1
+    ILLEGAL_INSTRUCTION = 2
+    BREAKPOINT = 3
+    LOAD_ADDRESS_MISALIGNED = 4
+    LOAD_ACCESS_FAULT = 5
+    STORE_ADDRESS_MISALIGNED = 6
+    STORE_ACCESS_FAULT = 7
+    ENVIRONMENT_CALL_FROM_U = 8
+    ENVIRONMENT_CALL_FROM_S = 9
+    ENVIRONMENT_CALL_FROM_M = 11
+    INSTRUCTION_PAGE_FAULT = 12
+    LOAD_PAGE_FAULT = 13
+    STORE_PAGE_FAULT = 15
 
 
 @unique

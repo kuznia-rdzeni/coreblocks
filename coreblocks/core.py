@@ -5,13 +5,14 @@ from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.csr_generic import GenericCSRRegisters
+from coreblocks.structs_common.exception import ExceptionCauseRegister
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
@@ -58,6 +59,8 @@ class Core(Elaboratable):
         connections = gen_params.get(DependencyManager)
         connections.add_dependency(WishboneDataKey(), self.wb_master_data)
 
+        self.exception_cause_register = ExceptionCauseRegister(self.gen_params, rob_get_indices=self.ROB.get_indices)
+
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
@@ -71,6 +74,9 @@ class Core(Elaboratable):
             rs_write_val=self.func_blocks_unifier.update,
             rf_write_val=self.RF.write,
         )
+
+        self.csr_generic = GenericCSRRegisters(self.gen_params)
+        connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
 
     def elaborate(self, platform):
         m = TModule()
@@ -109,6 +115,8 @@ class Core(Elaboratable):
             gen_params=self.gen_params,
         )
 
+        m.submodules.exception_cause_register = self.exception_cause_register
+
         m.submodules.verify_branch = ConnectTrans(
             self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch
         )
@@ -123,9 +131,10 @@ class Core(Elaboratable):
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
+            exception_cause_get=self.exception_cause_register.get,
         )
 
-        m.submodules.csr_generic = GenericCSRRegisters(self.gen_params)
+        m.submodules.csr_generic = self.csr_generic
 
         # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
         free_rf_reg = Signal(self.gen_params.phys_regs_bits, reset=1)
