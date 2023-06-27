@@ -25,6 +25,7 @@ class InstrType(Enum):
     B = 3
     U = 4
     J = 5
+    S1I = 6 # Imm in RS1 
 
 
 @unique
@@ -37,7 +38,7 @@ class Opcode(IntEnum, shape=5):
     OP = 0b01100
     LUI = 0b01101
     OP32 = 0b01110
-    OP_V = 0b1010111
+    OP_V = 0b10101
     BRANCH = 0b11000
     JALR = 0b11001
     JAL = 0b11011

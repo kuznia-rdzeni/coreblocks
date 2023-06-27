@@ -40,7 +40,7 @@ class TestDecoder(TestCaseWithSimulator):
             self.rs1 = rs1
             self.rs1_rf = rs1_rf
             self.rs2 = rs2
-            self.rs2 = rs2_rf
+            self.rs2_rf = rs2_rf
             self.imm = imm
             self.succ = succ
             self.pred = pred
@@ -173,7 +173,7 @@ class TestDecoder(TestCaseWithSimulator):
             op=OpType.UNARY_BIT_MANIPULATION_1,
         ),
     ]
-    DECODER_TESTS_V = [
+    DECODER_TESTS_V_INTEGERS = [
         InstrTest(0x022180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VADD * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vadd.vv v1, v2, v3
         InstrTest(0x002180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VADD * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vadd.vv v1, v2, v3, v0.t
         InstrTest(0x0245b057, Opcode.OP_V, Funct3.OPIVI, Funct6.VADD * 2, rd_rf=RegisterType.V, rd= 0, rs2_rf=RegisterType.V, rs2= 4, imm=11, op=OpType.V_ARITHMETIC_IMM), #vadd.vi v0, v4, 11
@@ -284,6 +284,12 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0xc22180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VWREDSUMU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vwredsumu.vs v1, v2, v3
         InstrTest(0xc62180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VWREDSUM * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC),#vwredsum.vs v1, v2, v3
     ]
+    DECODER_TESTS_V_CONTROL = [
+        InstrTest(0x8020f057, Opcode.OP_V, Funct3.OPCFG, rd=0, rs1=1, rs2=2, op=OpType.V_CONTROL), #vsetvl x0, x1, x2
+        InstrTest(0x0d307057, Opcode.OP_V, Funct3.OPCFG, rd=0, rs1=0, csr=0b11010011, op=OpType.V_CONTROL), #vsetvli x0, x0, e32,m8,ta,ma
+        InstrTest(0xcd3470d7, Opcode.OP_V, Funct3.OPCFG, rd=1, imm=8, csr=0b110011010011,op=OpType.V_CONTROL), #vsetivli x1, 8, e32,m8,ta,ma
+    ]
+
 
     def setUp(self):
         gen = GenParams(

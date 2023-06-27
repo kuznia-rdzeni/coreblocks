@@ -1,3 +1,4 @@
+# INTEGER
 # 0b00xxxx
 vadd.vv v1, v2, v3
 vadd.vv v1, v2, v3, v0.t
@@ -114,3 +115,8 @@ vnclip.wi v1, v2, 3
 #0b11xxxx
 vwredsumu.vs v1, v2, v3
 vwredsum.vs v1, v2, v3
+
+# CONTROL
+vsetvl x0, x1, x2
+vsetvli x0, x0, e32,m8,ta,ma
+vsetivli x1, 8, e32,m8,ta,ma
