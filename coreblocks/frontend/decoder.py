@@ -17,11 +17,11 @@ __all__ = ["InstrDecoder"]
 
 # Lists which fields are used by which Instruction's types
 
-_rd_itypes = [InstrType.R, InstrType.I, InstrType.U, InstrType.J, InstrType.S1I]
+_rd_itypes = [InstrType.R, InstrType.I, InstrType.U, InstrType.J, InstrType.S1I, InstrType.S1IS2, InstrType.S1U]
 
 _rs1_itypes = [InstrType.R, InstrType.I, InstrType.S, InstrType.B]
 
-_rs2_itypes = [InstrType.R, InstrType.S, InstrType.B]
+_rs2_itypes = [InstrType.R, InstrType.S, InstrType.B, InstrType.S1IS2]
 
 
 @dataclass(frozen=True)
@@ -151,9 +151,9 @@ _instructions_by_optype = {
         Encoding(Opcode.SYSTEM, Funct3.CSRRC),  # csrrc
     ],
     OpType.CSR_IMM: [
-        Encoding(Opcode.SYSTEM, Funct3.CSRRWI, instr_type_override=InstrType.S1I),  # csrrwi
-        Encoding(Opcode.SYSTEM, Funct3.CSRRSI, instr_type_override=InstrType.S1I),  # csrrsi
-        Encoding(Opcode.SYSTEM, Funct3.CSRRCI, instr_type_override=InstrType.S1I),  # csrrci
+        Encoding(Opcode.SYSTEM, Funct3.CSRRWI, instr_type_override=InstrType.S1U),  # csrrwi
+        Encoding(Opcode.SYSTEM, Funct3.CSRRSI, instr_type_override=InstrType.S1U),  # csrrsi
+        Encoding(Opcode.SYSTEM, Funct3.CSRRCI, instr_type_override=InstrType.S1U),  # csrrci
     ],
     OpType.MUL: [
         Encoding(Opcode.OP, Funct3.MUL, Funct7.MULDIV),  # mul
@@ -245,28 +245,35 @@ _instructions_by_optype = {
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMIN),
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMAXU),
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMAX),
-        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VADC),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, Funct7(int(Funct6.VADC)*2)), # Funct6.VADC * 2 + 1 is reserved by standard
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMADC),
-        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSBC),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, Funct7(int(Funct6.VSBC)*2)), # Funct6.VSBC * 2 + 1 is reserved by standard
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VMSBC),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSADDU),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSADD),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSSUBU),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSSUB),
+        Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSMUL),
     ],
     OpType.V_ARITHMETIC_IMM : [
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VADD),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VRSUB),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VAND),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VOR),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VXOR),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSLL),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSRL),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSRA),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSEQ),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSNE),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSLEU),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSLE),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSGTU),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSGT),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VADC),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMADC),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VADD, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VRSUB, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VAND, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VOR, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VXOR, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSLL, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSRL, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSRA, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSEQ, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSNE, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSLEU, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSLE, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSGTU, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMSGT, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, Funct7(int(Funct6.VADC)*2), instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMADC, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSADDU, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSADD, instr_type_override = InstrType.S1IS2),
     ],
     OpType.V_ARITHMETIC_SCALAR : [
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VADD),
@@ -290,10 +297,15 @@ _instructions_by_optype = {
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMIN),
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMAXU),
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMAX),
-        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VADC),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, Funct7(int(Funct6.VADC)*2)),
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMADC),
-        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSBC),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, Funct7(int(Funct6.VSBC)*2)),
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMSBC),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSADDU),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSADD),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSSUBU),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSSUB),
+        Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSMUL),
     ],
     OpType.V_ARITHMETIC_NARROWING :[
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VNSRL),
@@ -302,10 +314,10 @@ _instructions_by_optype = {
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VNCLIPU),
     ],
     OpType.V_ARITHMETIC_NARROWING_IMM :[
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VNSRL),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VNSRA),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VNCLIP),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VNCLIPU),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VNSRL, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VNSRA, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VNCLIP, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VNCLIPU, instr_type_override = InstrType.S1IS2),
     ],
     OpType.V_ARITHMETIC_NARROWING_SCALAR :[
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VNSRL),
@@ -319,11 +331,11 @@ _instructions_by_optype = {
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VRGATHEREI16),
     ],
     OpType.V_PERMUTATION_IMM : [
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMV),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMV1R),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VRGATHER),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSLIDEUP),
-        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSLIDEDOWN),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMV, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMV1R, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VRGATHER, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSLIDEUP, instr_type_override = InstrType.S1IS2),
+        Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSLIDEDOWN, instr_type_override = InstrType.S1IS2),
     ],
     OpType.V_PERMUTATION_SCALAR : [
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VMV),
@@ -564,7 +576,7 @@ class InstrDecoder(Elaboratable):
         # Vector control instruction corrections
 
         high_bits = Signal(2)
-        m.d.top_comb += self._extract(30, high_bits)
+        m.d.comb += self._extract(30, high_bits)
         with m.If(self.optype == OpType.V_CONTROL):
             with m.Switch(high_bits):
                 with m.Case(0x0, 0x1):
@@ -583,6 +595,7 @@ class InstrDecoder(Elaboratable):
         uimm20 = Signal(unsigned(20))
         jimm20 = Signal(signed(21))
         uimm5 = Signal(unsigned(5))
+        imm5 = Signal(signed(5))
 
         instr = self.instr
 
@@ -593,6 +606,7 @@ class InstrDecoder(Elaboratable):
             self._extract(12, uimm20),
             jimm20.eq(Cat(0, instr[21:31], instr[20], instr[12:20], instr[31])),
             self._extract(15, uimm5),
+            self._extract(15, imm5),
         ]
 
         with m.If((opcode == Opcode.OP_IMM) & ((self.funct3 == Funct3.SLL) | (self.funct3 == Funct3.SR))):
@@ -609,9 +623,14 @@ class InstrDecoder(Elaboratable):
                 m.d.comb += self.imm.eq(uimm20 << (self.gen.isa.xlen - 20))
             with m.Case(InstrType.J):
                 m.d.comb += self.imm.eq(jimm20)
-            with m.Case(InstrType.S1I):
+            with m.Case(InstrType.S1U):
                 m.d.comb += [
                     self.imm.eq(uimm5),
+                    self.rs1_v.eq(0),
+                ]
+            with m.Case(InstrType.S1I, InstrType.S1IS2):
+                m.d.comb += [
+                    self.imm.eq(imm5),
                     self.rs1_v.eq(0),
                 ]
 
@@ -629,17 +648,14 @@ class InstrDecoder(Elaboratable):
         m.d.comb += self._extract(20, self.csr)
 
         # Register types
-        with m.If((self.optype == OpType.V_ARITHMETIC) | (self.optype == OpType.V_ARITHMETIC_IMM)):
+        with m.If((self.opcode == Opcode.OP_V)):
             m.d.comb += [
                     self.rs1_rf.eq(RegisterType.V),
                     self.rs2_rf.eq(RegisterType.V),
                     self.rd_rf.eq(RegisterType.V),
                     ]
-        with m.If(self.optype == OpType.V_ARITHMETIC_SCALAR):
-            m.d.comb += [
-                    self.rs2_rf.eq(RegisterType.V),
-                    self.rd_rf.eq(RegisterType.V),
-                    ]
+        with m.If((self.opcode == Opcode.OP_V) & ((self.optype == OpType.V_ARITHMETIC_SCALAR) | (self.optype == OpType.V_PERMUTATION_SCALAR) | (self.optype == OpType.V_ARITHMETIC_NARROWING_SCALAR))):
+            m.d.comb += self.rs1_rf.eq(RegisterType.X)
 
         # Instruction simplification
 

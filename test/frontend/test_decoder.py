@@ -174,40 +174,40 @@ class TestDecoder(TestCaseWithSimulator):
         ),
     ]
     DECODER_TESTS_V_INTEGERS = [
-        InstrTest(0x022180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VADD * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vadd.vv v1, v2, v3
-        InstrTest(0x002180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VADD * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vadd.vv v1, v2, v3, v0.t
-        InstrTest(0x0245b057, Opcode.OP_V, Funct3.OPIVI, Funct6.VADD * 2, rd_rf=RegisterType.V, rd= 0, rs2_rf=RegisterType.V, rs2= 4, imm=11, op=OpType.V_ARITHMETIC_IMM), #vadd.vi v0, v4, 11
-        InstrTest(0x0283cfd7, Opcode.OP_V, Funct3.OPIVX, Funct6.VADD * 2, rd_rf=RegisterType.V, rd= 3, rs2_rf=RegisterType.V, rs2= 8, rs1_rf=RegisterType.X, rs1=7, op=OpType.V_ARITHMETIC_SCALAR), #vadd.vx v31, v8, x7
-        InstrTest(0x0083cfd7, Opcode.OP_V, Funct3.OPIVX, Funct6.VADD * 2 + 1, rd_rf=RegisterType.V, rd= 3, rs2_rf=RegisterType.V, rs2= 8, rs1_rf=RegisterType.X, rs1=7, op=OpType.V_ARITHMETIC_SCALAR), #vadd.vx v31, v8, x7, v0.t
-        InstrTest(0x0a818257, Opcode.OP_V, Funct3.OPIVV, Funct6.VSUB * 2, rd_rf=RegisterType.V, rd= 4, rs2_rf=RegisterType.V, rs2= 8, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vsub.vv v4, v8, v3
-        InstrTest(0x0a30c157, Opcode.OP_V, Funct3.OPIVX, Funct6.VSUB * 2, rd_rf=RegisterType.V, rd= 2, rs2_rf=RegisterType.V, rs2= 3, rs1_rf=RegisterType.V, rs1=1, op=OpType.V_ARITHMETIC), #vsub.vx v2, v3, x1
-        InstrTest(0x0e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VRSUB * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vrsub.vx v1, v2, x3
-        InstrTest(0x0e23b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VRSUB * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=7, op=OpType.V_ARITHMETIC_IMM), #vrsub.vi v1, v2, 7
-        InstrTest(0x122180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMINU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vminu.vv v1, v2, v3
-        InstrTest(0x1221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMINU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vminu.vx v1, v2, x3
-        InstrTest(0x162180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMIN * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmin.vv v1, v2, v3
-        InstrTest(0x1621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMIN * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmin.vx v1, v2, x3
-        InstrTest(0x1a2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMAXU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmaxu.vv v1, v2, v3
-        InstrTest(0x1a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMAXU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmaxu.vx v1, v2, x3
-        InstrTest(0x1e2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMAX * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmax.vv v1, v2, v3
-        InstrTest(0x1e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMAX * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmax.vx v1, v2, x3
-        InstrTest(0x262180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VAND * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vand.vv v1, v2, v3
-        InstrTest(0x2621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VAND * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vand.vx v1, v2, x3
-        InstrTest(0x2627b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VAND * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=15, op=OpType.V_ARITHMETIC_IMM), #vand.vi v1, v2, 15
-        InstrTest(0x2a2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VOR * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vor.vv v1, v2, v3
-        InstrTest(0x2a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VOR * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vor.vx v1, v2, x3
-        InstrTest(0x2a2830d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VOR * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=-16, op=OpType.V_ARITHMETIC_IMM), #vor.vi v1, v2, -16
-        InstrTest(0x2e2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VXOR * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vxor.vv v1, v2, v3
-        InstrTest(0x2e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VXOR * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vxor.vx v1, v2, x3
-        InstrTest(0x2e2030d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VXOR * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=0, op=OpType.V_ARITHMETIC_IMM), #vxor.vi v1, v2, 0
-        InstrTest(0x322180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VRGATHER * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vrgather.vv v1, v2, v3
-        InstrTest(0x3221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VRGATHER * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vrgather.vx v1, v2, x3
-        InstrTest(0x322230d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VRGATHER * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=4, op=OpType.V_ARITHMETIC_IMM), #vrgather.vi v1, v2, 4
-        InstrTest(0x3a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSLIDEUP * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vslideup.vx v1, v2, x3
-        InstrTest(0x3a2130d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSLIDEUP * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=2, op=OpType.V_ARITHMETIC_IMM), #vslideup.vi v1, v2, 2
-        InstrTest(0x3a2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VRGATHEREI16 * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vrgatherei16.vv v1, v2, v3
-        InstrTest(0x3e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSLIDEDOWN * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vslidedown.vx v1, v2, x3
-        InstrTest(0x3e2130d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSLIDEDOWN * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=2, op=OpType.V_ARITHMETIC_IMM), #vslidedown.vi v1, v2, 2
+        InstrTest(0x022180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VADD * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vadd.vv v1, v2, v3
+        InstrTest(0x002180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VADD * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vadd.vv v1, v2, v3, v0.t
+        InstrTest(0x0245b057, Opcode.OP_V, Funct3.OPIVI, Funct6.VADD * 2 + 1, rd_rf=RegisterType.V, rd= 0, rs2_rf=RegisterType.V, rs2= 4, imm=11, op=OpType.V_ARITHMETIC_IMM), #vadd.vi v0, v4, 11
+        InstrTest(0x0283cfd7, Opcode.OP_V, Funct3.OPIVX, Funct6.VADD * 2 + 1, rd_rf=RegisterType.V, rd= 31, rs2_rf=RegisterType.V, rs2= 8, rs1_rf=RegisterType.X, rs1=7, op=OpType.V_ARITHMETIC_SCALAR), #vadd.vx v31, v8, x7
+        InstrTest(0x0083cfd7, Opcode.OP_V, Funct3.OPIVX, Funct6.VADD * 2, rd_rf=RegisterType.V, rd= 31, rs2_rf=RegisterType.V, rs2= 8, rs1_rf=RegisterType.X, rs1=7, op=OpType.V_ARITHMETIC_SCALAR), #vadd.vx v31, v8, x7, v0.t
+        InstrTest(0x0a818257, Opcode.OP_V, Funct3.OPIVV, Funct6.VSUB * 2 + 1, rd_rf=RegisterType.V, rd= 4, rs2_rf=RegisterType.V, rs2= 8, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vsub.vv v4, v8, v3
+        InstrTest(0x0a30c157, Opcode.OP_V, Funct3.OPIVX, Funct6.VSUB * 2 + 1, rd_rf=RegisterType.V, rd= 2, rs2_rf=RegisterType.V, rs2= 3, rs1_rf=RegisterType.X, rs1=1, op=OpType.V_ARITHMETIC_SCALAR), #vsub.vx v2, v3, x1
+        InstrTest(0x0e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VRSUB * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vrsub.vx v1, v2, x3
+        InstrTest(0x0e23b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VRSUB * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=7, op=OpType.V_ARITHMETIC_IMM), #vrsub.vi v1, v2, 7
+        InstrTest(0x122180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMINU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vminu.vv v1, v2, v3
+        InstrTest(0x1221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMINU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vminu.vx v1, v2, x3
+        InstrTest(0x162180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMIN * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmin.vv v1, v2, v3
+        InstrTest(0x1621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMIN * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmin.vx v1, v2, x3
+        InstrTest(0x1a2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMAXU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmaxu.vv v1, v2, v3
+        InstrTest(0x1a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMAXU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmaxu.vx v1, v2, x3
+        InstrTest(0x1e2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMAX * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmax.vv v1, v2, v3
+        InstrTest(0x1e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMAX * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmax.vx v1, v2, x3
+        InstrTest(0x262180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VAND * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vand.vv v1, v2, v3
+        InstrTest(0x2621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VAND * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vand.vx v1, v2, x3
+        InstrTest(0x2627b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VAND * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=15, op=OpType.V_ARITHMETIC_IMM), #vand.vi v1, v2, 15
+        InstrTest(0x2a2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VOR * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vor.vv v1, v2, v3
+        InstrTest(0x2a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VOR * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vor.vx v1, v2, x3
+        InstrTest(0x2a2830d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VOR * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=-16, op=OpType.V_ARITHMETIC_IMM), #vor.vi v1, v2, -16
+        InstrTest(0x2e2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VXOR * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vxor.vv v1, v2, v3
+        InstrTest(0x2e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VXOR * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vxor.vx v1, v2, x3
+        InstrTest(0x2e2030d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VXOR * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=0, op=OpType.V_ARITHMETIC_IMM), #vxor.vi v1, v2, 0
+        InstrTest(0x322180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VRGATHER * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_PERMUTATION), #vrgather.vv v1, v2, v3
+        InstrTest(0x3221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VRGATHER * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_PERMUTATION_SCALAR), #vrgather.vx v1, v2, x3
+        InstrTest(0x322230d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VRGATHER * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=4, op=OpType.V_PERMUTATION_IMM), #vrgather.vi v1, v2, 4
+        InstrTest(0x3a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSLIDEUP * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_PERMUTATION_SCALAR), #vslideup.vx v1, v2, x3
+        InstrTest(0x3a2130d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSLIDEUP * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=2, op=OpType.V_PERMUTATION_IMM), #vslideup.vi v1, v2, 2
+        InstrTest(0x3a2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VRGATHEREI16 * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_PERMUTATION), #vrgatherei16.vv v1, v2, v3
+        InstrTest(0x3e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSLIDEDOWN * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_PERMUTATION_SCALAR), #vslidedown.vx v1, v2, x3
+        InstrTest(0x3e2130d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSLIDEDOWN * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=2, op=OpType.V_PERMUTATION_IMM), #vslidedown.vi v1, v2, 2
         InstrTest(0x402180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VADC * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vadc.vvm v1, v2, v3, v0
         InstrTest(0x4021c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VADC * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vadc.vxm v1, v2, x3, v0
         InstrTest(0x4021b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VADC * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=3, op=OpType.V_ARITHMETIC_IMM), #vadc.vim v1, v2, 3, v0
@@ -218,71 +218,71 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x4821c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSBC * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vsbc.vxm v1, v2, x3, v0
         InstrTest(0x4c2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSBC * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmsbc.vvm v1, v2, v3, v0
         InstrTest(0x4c21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSBC * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsbc.vxm v1, v2, x3, v0
-        InstrTest(0x5c2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMERGE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmerge.vvm v1, v2, v3, v0
-        InstrTest(0x5c21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMERGE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmerge.vxm v1, v2, x3, v0
-        InstrTest(0x5c21b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMERGE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=3, op=OpType.V_ARITHMETIC_IMM), #vmerge.vim v1, v2, 3, v0
-        InstrTest(0x5e0180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMV * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2=0, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmv.v.v v1, v3
-        InstrTest(0x5e01c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMV * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2=0, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmv.v.x v1, x3
-        InstrTest(0x5e01b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMV * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2=0, imm=3, op=OpType.V_ARITHMETIC_IMM), #vmv.v.i v1, 3
-        InstrTest(0x622180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSEQ * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmseq.vv v1, v2, v3
-        InstrTest(0x6221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSEQ * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmseq.vx v1, v2, x3
-        InstrTest(0x6221b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSEQ * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=3, op=OpType.V_ARITHMETIC_IMM), #vmseq.vi v1, v2, 3
-        InstrTest(0x662180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSNE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmsne.vv v1, v2, v3
-        InstrTest(0x6621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSNE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsne.vx v1, v2, x3
-        InstrTest(0x6621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSNE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=3, op=OpType.V_ARITHMETIC_IMM), #vmsne.vi v1, v2, 3
-        InstrTest(0x6a2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSLTU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmsltu.vv v1, v2, v3
-        InstrTest(0x6a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSLTU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsltu.vx v1, v2, x3
-        InstrTest(0x6e2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSLT * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmslt.vv v1, v2, v3
-        InstrTest(0x6e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSLT * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=33, op=OpType.V_ARITHMETIC_SCALAR), #vmslt.vx v1, v2, x3
-        InstrTest(0x722180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSLEU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmsleu.vv v1, v2, v3
-        InstrTest(0x7221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSLEU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsleu.vx v1, v2, x3
-        InstrTest(0x7221b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSLEU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=3, op=OpType.V_ARITHMETIC_IMM), #vmsleu.vi v1, v2, 3
-        InstrTest(0x762180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSLE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmsle.vv v1, v2, v3
-        InstrTest(0x7621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSLE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsle.vx v1, v2, x3
-        InstrTest(0x7621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSLE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vmsle.vi v1, v2, 3
-        InstrTest(0x7a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSGTU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsgtu.vx v1, v2, x3
-        InstrTest(0x7a21b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSGTU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vmsgtu.vi v1, v2, 3
-        InstrTest(0x7e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSGT * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsgt.vx v1, v2, x3
-        InstrTest(0x7e21b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSGT * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vmsgt.vi v1, v2, 3
-        InstrTest(0x822180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSADDU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vsaddu.vv v1, v2, v3
-        InstrTest(0x8221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSADDU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vsaddu.vx v1, v2, x3
-        InstrTest(0x8221b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSADDU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vsaddu.vi v1, v2, 3
-        InstrTest(0x862180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSADD * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vsadd.vv v1, v2, v3
-        InstrTest(0x8621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSADD * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vsadd.vx v1, v2, x3
-        InstrTest(0x8621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSADD * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vsadd.vi v1, v2, 3
-        InstrTest(0x8a2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSSUBU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vssubu.vv v1, v2, v3
-        InstrTest(0x8a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSSUBU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vssubu.vx v1, v2, x3
-        InstrTest(0x8e2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSSUB * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vssub.vv v1, v2, v3
-        InstrTest(0x8e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSSUB * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vssub.vx v1, v2, x3
-        InstrTest(0x962180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSLL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vsll.vv v1, v2, v3
-        InstrTest(0x9621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSLL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vsll.vx v1, v2, x3
-        InstrTest(0x9621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSLL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vsll.vi v1, v2, 3
-        InstrTest(0x9e2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSMUL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vsmul.vv v1, v2, v3
-        InstrTest(0x9e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSMUL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vsmul.vx v1, v2, x3
-        InstrTest(0x9e803057, Opcode.OP_V, Funct3.OPIVI, Funct6.VMV1R * 2 + 1, rd_rf=RegisterType.V, rd= 0,  rs2_rf=RegisterType.V, rs2=8, imm=0, op=OpType.V_ARITHMETIC_IMM), #vmv1r.v v0, v8
-        InstrTest(0x9e80b057, Opcode.OP_V, Funct3.OPIVI, Funct6.VMV2R * 2 + 1, rd_rf=RegisterType.V, rd= 0,  rs2_rf=RegisterType.V, rs2=8, imm=1, op=OpType.V_ARITHMETIC_IMM), #vmv2r.v v0, v8
-        InstrTest(0x9e81b057, Opcode.OP_V, Funct3.OPIVI, Funct6.VMV4R * 2 + 1, rd_rf=RegisterType.V, rd= 0,  rs2_rf=RegisterType.V, rs2=8, imm=3, op=OpType.V_ARITHMETIC_IMM), #vmv4r.v v0, v8
-        InstrTest(0x9e83b057, Opcode.OP_V, Funct3.OPIVI, Funct6.VMV8R * 2 + 1, rd_rf=RegisterType.V, rd= 0,  rs2_rf=RegisterType.V, rs2=8, imm=7, op=OpType.V_ARITHMETIC_IMM), #vmv8r.v v0, v8
-        InstrTest(0xa22180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSRL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC), #vsrl.vv v1, v2, v3
-        InstrTest(0xa221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSRL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vsrl.vx v1, v2, x3
-        InstrTest(0xa221b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSRL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vsrl.vi v1, v2, 3
-        InstrTest(0xa62180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSRA * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC), #vsra.vv v1, v2, v3
-        InstrTest(0xa621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSRA * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vsra.vx v1, v2, x3
-        InstrTest(0xa621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSRA * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vsra.vi v1, v2, 3
-        InstrTest(0xb22180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VNSRL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vnsrl.wv v1, v2, v3
-        InstrTest(0xb221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VNSRL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vnsrl.wx v1, v2, x3
-        InstrTest(0xb221b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VNSRL * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC_IMM), #vnsrl.wi v1, v2, 3
-        InstrTest(0xb62180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VNSRA * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC), #vnsra.wv v1, v2, v3
-        InstrTest(0xb621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VNSRA * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vnsra.wx v1, v2, x3
-        InstrTest(0xb621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VNSRA * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC_IMM), #vnsra.wi v1, v2, 3
-        InstrTest(0xba2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VNCLIPU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC), #vnclipu.wv v1, v2, v3
-        InstrTest(0xba21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VNCLIPU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vnclipu.wx v1, v2, x3
-        InstrTest(0xba21b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VNCLIPU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC_IMM), #vnclipu.wi v1, v2, 3
-        InstrTest(0xbe2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VNCLIP * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC), #vnclip.wv v1, v2, v3
-        InstrTest(0xbe21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VNCLIP * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vnclip.wx v1, v2, x3
-        InstrTest(0xbe21b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VNCLIP * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC_IMM), #vnclip.wi v1, v2, 3
-        InstrTest(0xc22180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VWREDSUMU * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vwredsumu.vs v1, v2, v3
-        InstrTest(0xc62180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VWREDSUM * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC),#vwredsum.vs v1, v2, v3
+        InstrTest(0x5c2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMERGE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_PERMUTATION), #vmerge.vvm v1, v2, v3, v0
+        InstrTest(0x5c21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMERGE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_PERMUTATION_SCALAR), #vmerge.vxm v1, v2, x3, v0
+        InstrTest(0x5c21b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMERGE * 2, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=3, op=OpType.V_PERMUTATION_IMM), #vmerge.vim v1, v2, 3, v0
+        InstrTest(0x5e0180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMV * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2=0, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_PERMUTATION), #vmv.v.v v1, v3
+        InstrTest(0x5e01c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMV * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2=0, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_PERMUTATION_SCALAR), #vmv.v.x v1, x3
+        InstrTest(0x5e01b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMV * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2=0, imm=3, op=OpType.V_PERMUTATION_IMM), #vmv.v.i v1, 3
+        InstrTest(0x622180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSEQ * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmseq.vv v1, v2, v3
+        InstrTest(0x6221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSEQ * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmseq.vx v1, v2, x3
+        InstrTest(0x6221b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSEQ * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=3, op=OpType.V_ARITHMETIC_IMM), #vmseq.vi v1, v2, 3
+        InstrTest(0x662180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSNE * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmsne.vv v1, v2, v3
+        InstrTest(0x6621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSNE * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsne.vx v1, v2, x3
+        InstrTest(0x6621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSNE * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=3, op=OpType.V_ARITHMETIC_IMM), #vmsne.vi v1, v2, 3
+        InstrTest(0x6a2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSLTU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmsltu.vv v1, v2, v3
+        InstrTest(0x6a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSLTU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsltu.vx v1, v2, x3
+        InstrTest(0x6e2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSLT * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmslt.vv v1, v2, v3
+        InstrTest(0x6e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSLT * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmslt.vx v1, v2, x3
+        InstrTest(0x722180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSLEU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmsleu.vv v1, v2, v3
+        InstrTest(0x7221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSLEU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsleu.vx v1, v2, x3
+        InstrTest(0x7221b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSLEU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm=3, op=OpType.V_ARITHMETIC_IMM), #vmsleu.vi v1, v2, 3
+        InstrTest(0x762180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VMSLE * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vmsle.vv v1, v2, v3
+        InstrTest(0x7621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSLE * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsle.vx v1, v2, x3
+        InstrTest(0x7621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSLE * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vmsle.vi v1, v2, 3
+        InstrTest(0x7a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSGTU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsgtu.vx v1, v2, x3
+        InstrTest(0x7a21b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSGTU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vmsgtu.vi v1, v2, 3
+        InstrTest(0x7e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VMSGT * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vmsgt.vx v1, v2, x3
+        InstrTest(0x7e21b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VMSGT * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vmsgt.vi v1, v2, 3
+        InstrTest(0x822180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSADDU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vsaddu.vv v1, v2, v3
+        InstrTest(0x8221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSADDU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vsaddu.vx v1, v2, x3
+        InstrTest(0x8221b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSADDU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vsaddu.vi v1, v2, 3
+        InstrTest(0x862180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSADD * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vsadd.vv v1, v2, v3
+        InstrTest(0x8621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSADD * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vsadd.vx v1, v2, x3
+        InstrTest(0x8621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSADD * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vsadd.vi v1, v2, 3
+        InstrTest(0x8a2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSSUBU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vssubu.vv v1, v2, v3
+        InstrTest(0x8a21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSSUBU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vssubu.vx v1, v2, x3
+        InstrTest(0x8e2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSSUB * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vssub.vv v1, v2, v3
+        InstrTest(0x8e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSSUB * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1=3, op=OpType.V_ARITHMETIC_SCALAR), #vssub.vx v1, v2, x3
+        InstrTest(0x962180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSLL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vsll.vv v1, v2, v3
+        InstrTest(0x9621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSLL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vsll.vx v1, v2, x3
+        InstrTest(0x9621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSLL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vsll.vi v1, v2, 3
+        InstrTest(0x9e2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSMUL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC), #vsmul.vv v1, v2, v3
+        InstrTest(0x9e21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSMUL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vsmul.vx v1, v2, x3
+        InstrTest(0x9e803057, Opcode.OP_V, Funct3.OPIVI, Funct6.VMV1R * 2 + 1, rd_rf=RegisterType.V, rd= 0,  rs2_rf=RegisterType.V, rs2=8, imm=0, op=OpType.V_PERMUTATION_IMM), #vmv1r.v v0, v8
+        InstrTest(0x9e80b057, Opcode.OP_V, Funct3.OPIVI, Funct6.VMV2R * 2 + 1, rd_rf=RegisterType.V, rd= 0,  rs2_rf=RegisterType.V, rs2=8, imm=1, op=OpType.V_PERMUTATION_IMM), #vmv2r.v v0, v8
+        InstrTest(0x9e81b057, Opcode.OP_V, Funct3.OPIVI, Funct6.VMV4R * 2 + 1, rd_rf=RegisterType.V, rd= 0,  rs2_rf=RegisterType.V, rs2=8, imm=3, op=OpType.V_PERMUTATION_IMM), #vmv4r.v v0, v8
+        InstrTest(0x9e83b057, Opcode.OP_V, Funct3.OPIVI, Funct6.VMV8R * 2 + 1, rd_rf=RegisterType.V, rd= 0,  rs2_rf=RegisterType.V, rs2=8, imm=7, op=OpType.V_PERMUTATION_IMM), #vmv8r.v v0, v8
+        InstrTest(0xa22180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSRL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC), #vsrl.vv v1, v2, v3
+        InstrTest(0xa221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSRL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vsrl.vx v1, v2, x3
+        InstrTest(0xa221b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSRL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vsrl.vi v1, v2, 3
+        InstrTest(0xa62180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VSRA * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC), #vsra.vv v1, v2, v3
+        InstrTest(0xa621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VSRA * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_SCALAR), #vsra.vx v1, v2, x3
+        InstrTest(0xa621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VSRA * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_IMM), #vsra.vi v1, v2, 3
+        InstrTest(0xb22180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VNSRL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_ARITHMETIC_NARROWING), #vnsrl.wv v1, v2, v3
+        InstrTest(0xb221c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VNSRL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_NARROWING_SCALAR), #vnsrl.wx v1, v2, x3
+        InstrTest(0xb221b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VNSRL * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_NARROWING_IMM), #vnsrl.wi v1, v2, 3
+        InstrTest(0xb62180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VNSRA * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC_NARROWING), #vnsra.wv v1, v2, v3
+        InstrTest(0xb621c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VNSRA * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_NARROWING_SCALAR), #vnsra.wx v1, v2, x3
+        InstrTest(0xb621b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VNSRA * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_NARROWING_IMM), #vnsra.wi v1, v2, 3
+        InstrTest(0xba2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VNCLIPU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC_NARROWING), #vnclipu.wv v1, v2, v3
+        InstrTest(0xba21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VNCLIPU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_NARROWING_SCALAR), #vnclipu.wx v1, v2, x3
+        InstrTest(0xba21b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VNCLIPU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_NARROWING_IMM), #vnclipu.wi v1, v2, 3
+        InstrTest(0xbe2180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VNCLIP * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_ARITHMETIC_NARROWING), #vnclip.wv v1, v2, v3
+        InstrTest(0xbe21c0d7, Opcode.OP_V, Funct3.OPIVX, Funct6.VNCLIP * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.X, rs1= 3, op=OpType.V_ARITHMETIC_NARROWING_SCALAR), #vnclip.wx v1, v2, x3
+        InstrTest(0xbe21b0d7, Opcode.OP_V, Funct3.OPIVI, Funct6.VNCLIP * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, imm= 3, op=OpType.V_ARITHMETIC_NARROWING_IMM), #vnclip.wi v1, v2, 3
+        InstrTest(0xc22180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VWREDSUMU * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1=3, op=OpType.V_REDUCTION), #vwredsumu.vs v1, v2, v3
+        InstrTest(0xc62180d7, Opcode.OP_V, Funct3.OPIVV, Funct6.VWREDSUM * 2 + 1, rd_rf=RegisterType.V, rd= 1, rs2_rf=RegisterType.V, rs2= 2, rs1_rf=RegisterType.V, rs1= 3, op=OpType.V_REDUCTION),#vwredsum.vs v1, v2, v3
     ]
     DECODER_TESTS_V_CONTROL = [
         InstrTest(0x8020f057, Opcode.OP_V, Funct3.OPCFG, rd=0, rs1=1, rs2=2, op=OpType.V_CONTROL), #vsetvl x0, x1, x2
@@ -294,7 +294,7 @@ class TestDecoder(TestCaseWithSimulator):
     def setUp(self):
         gen = GenParams(
             test_core_config.replace(
-                _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR | Extension.ZBB
+                _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR | Extension.ZBB | Extension.V
             )
         )
         self.decoder = InstrDecoder(gen)
@@ -304,6 +304,8 @@ class TestDecoder(TestCaseWithSimulator):
         def process():
             yield self.decoder.instr.eq(test.encoding)
             yield Settle()
+            # For pprint in gtkwave
+            yield Delay(1e-7)
 
             self.assertEqual((yield self.decoder.illegal), test.illegal)
             if test.illegal:
@@ -388,4 +390,12 @@ class TestDecoder(TestCaseWithSimulator):
 
     def test_zbb(self):
         for test in self.DECODER_TESTS_ZBB:
+            self.do_test(test)
+
+    def test_v_integer(self):
+        for test in self.DECODER_TESTS_V_INTEGERS:
+            self.do_test(test)
+
+    def test_v_control(self):
+        for test in self.DECODER_TESTS_V_CONTROL:
             self.do_test(test)

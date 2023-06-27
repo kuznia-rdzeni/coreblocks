@@ -25,7 +25,9 @@ class InstrType(Enum):
     B = 3
     U = 4
     J = 5
-    S1I = 6 # Imm in RS1 
+    S1U = 6 # Unsigned imm in RS1 
+    S1I = 7 # Imm in RS1 
+    S1IS2 = 8 # Imm in RS1, valid RS2
 
 
 @unique
