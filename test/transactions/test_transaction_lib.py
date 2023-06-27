@@ -1,15 +1,18 @@
 from itertools import product
 import random
+import itertools
 from operator import and_
 from functools import reduce
+from amaranth.sim import Settle, Passive
 from typing import Optional, TypeAlias
-from amaranth.sim import Settle
 from parameterized import parameterized
+from collections import deque
 
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
+from coreblocks.utils import *
 from coreblocks.utils._typing import LayoutLike, ModuleLike
 from coreblocks.utils import ModuleConnector
 from ..common import (
@@ -125,6 +128,113 @@ class TestForwarder(TestFifoBase):
             # forwarding now works again
             for x in range(4):
                 yield from forward_check(x)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(process)
+
+
+class TestMemoryBank(TestCaseWithSimulator):
+    test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
+
+    parametrized_input = [tc + sf for tc, sf in itertools.product(test_conf, [(True,), (False,)])]
+
+    @parameterized.expand(parametrized_input)
+    def test_mem(self, max_addr, writer_rand, reader_req_rand, reader_resp_rand, seed, safe_writes):
+        test_count = 200
+
+        data_width = 6
+        m = SimpleTestCircuit(
+            MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, safe_writes=safe_writes)
+        )
+
+        data_dict: dict[int, int] = dict((i, 0) for i in range(max_addr))
+        read_req_queue = deque()
+        addr_queue = deque()
+
+        random.seed(seed)
+
+        def random_wait(rand: int):
+            yield from self.tick(random.randrange(rand) + 1)
+
+        def writer():
+            for i in range(test_count):
+                d = random.randrange(2**data_width)
+                a = random.randrange(max_addr)
+                yield from m.write.call(data=d, addr=a)
+                for i in range(2):
+                    yield Settle()
+                data_dict[a] = d
+                yield from random_wait(writer_rand)
+
+        def reader_req():
+            for i in range(test_count):
+                a = random.randrange(max_addr)
+                yield from m.read_req.call(addr=a)
+                for i in range(1):
+                    yield Settle()
+                if safe_writes:
+                    d = data_dict[a]
+                    read_req_queue.append(d)
+                else:
+                    addr_queue.append((i, a))
+                yield from random_wait(reader_req_rand)
+
+        def reader_resp():
+            for i in range(test_count):
+                while not read_req_queue:
+                    yield from random_wait(reader_resp_rand)
+                d = read_req_queue.popleft()
+                self.assertEqual((yield from m.read_resp.call()), {"data": d})
+                yield from random_wait(reader_resp_rand)
+
+        def internal_reader_resp():
+            assert m._dut._internal_read_resp_trans is not None
+            yield Passive()
+            while True:
+                if addr_queue:
+                    instr, a = addr_queue[0]
+                else:
+                    yield
+                    continue
+                d = data_dict[a]
+                # check when internal method has been run to capture
+                # memory state for tests purposes
+                if (yield m._dut._internal_read_resp_trans.grant):
+                    addr_queue.popleft()
+                    read_req_queue.append(d)
+                yield
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(reader_req)
+            sim.add_sync_process(reader_resp)
+            sim.add_sync_process(writer)
+            if not safe_writes:
+                sim.add_sync_process(internal_reader_resp)
+
+    def test_pipelined(self):
+        data_width = 6
+        max_addr = 9
+        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, safe_writes=False))
+
+        random.seed(14)
+
+        def process():
+            a = 3
+            d1 = random.randrange(2**data_width)
+            yield from m.write.call_init(data=d1, addr=a)
+            yield from m.read_req.call_init(addr=a)
+            yield
+            d2 = random.randrange(2**data_width)
+            yield from m.write.call_init(data=d2, addr=a)
+            yield from m.read_resp.call_init()
+            yield
+            yield from m.write.disable()
+            yield from m.read_req.disable()
+            ret_d1 = (yield from m.read_resp.call_result())["data"]
+            self.assertEqual(d1, ret_d1)
+            yield
+            ret_d2 = (yield from m.read_resp.call_result())["data"]
+            self.assertEqual(d2, ret_d2)
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
@@ -456,6 +566,78 @@ class TestMethodProduct(TestCaseWithSimulator):
             sim.add_sync_process(method_process)
             for k in range(targets):
                 sim.add_sync_process(target_process(k))
+
+
+class TestSerializer(TestCaseWithSimulator):
+    def test_serial(self):
+        test_count = 100
+
+        port_count = 2
+        data_width = 5
+
+        requestor_rand = 4
+
+        layout = [("field", data_width)]
+
+        self.req_method = TestbenchIO(Adapter(i=layout))
+        self.resp_method = TestbenchIO(Adapter(o=layout))
+
+        self.test_circuit = SimpleTestCircuit(
+            Serializer(
+                port_count=port_count,
+                serialized_req_method=self.req_method.adapter.iface,
+                serialized_resp_method=self.resp_method.adapter.iface,
+            )
+        )
+        m = ModuleConnector(test_circuit=self.test_circuit, req_method=self.req_method, resp_method=self.resp_method)
+
+        random.seed(14)
+
+        serialized_data = deque()
+        port_data = [deque() for _ in range(port_count)]
+
+        got_request = False
+
+        def random_wait(rand: int):
+            yield from self.tick(random.randrange(rand) + 1)
+
+        @def_method_mock(lambda: self.req_method, enable=lambda: not got_request)
+        def serial_req_mock(field):
+            nonlocal got_request
+            serialized_data.append(field)
+            got_request = True
+
+        @def_method_mock(lambda: self.resp_method, enable=lambda: got_request)
+        def serial_resp_mock():
+            nonlocal got_request
+            got_request = False
+            return {"field": serialized_data[-1]}
+
+        def requestor(i: int):
+            def f():
+                for _ in range(test_count):
+                    d = random.randrange(2**data_width)
+                    yield from self.test_circuit.serialize_in[i].call(field=d)
+                    port_data[i].append(d)
+                    yield from random_wait(requestor_rand)
+
+            return f
+
+        def responder(i: int):
+            def f():
+                for _ in range(test_count):
+                    data_out = yield from self.test_circuit.serialize_out[i].call()
+                    self.assertEqual(port_data[i].popleft(), data_out["field"])
+                    yield from random_wait(requestor_rand)
+
+            return f
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(serial_req_mock)
+            sim.add_sync_process(serial_resp_mock)
+            for i in range(port_count):
+                sim.add_sync_process(requestor(i))
+                sim.add_sync_process(responder(i))
 
 
 class TestMethodTryProduct(TestCaseWithSimulator):

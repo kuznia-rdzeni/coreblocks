@@ -1,13 +1,16 @@
 from contextlib import contextmanager
 from typing import Callable, Tuple, Optional
 from amaranth import *
+from amaranth.utils import *
 from .core import *
 from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
 from ..utils import ValueLike, assign, AssignType
+from ..utils.fifo import BasicFifo
 
 __all__ = [
     "FIFO",
+    "MemoryBank",
     "Forwarder",
     "Connect",
     "Collector",
@@ -22,6 +25,7 @@ __all__ = [
     "MethodTransformer",
     "MethodFilter",
     "MethodProduct",
+    "Serializer",
     "MethodTryProduct",
     "condition",
 ]
@@ -119,6 +123,11 @@ class Forwarder(Elaboratable):
         """
         self.read = Method(o=layout)
         self.write = Method(i=layout)
+        self.clear = Method()
+        self.head = Record.like(self.read.data_out)
+
+        self.clear.add_conflict(self.read, Priority.LEFT)
+        self.clear.add_conflict(self.write, Priority.LEFT)
 
     def elaborate(self, platform):
         m = TModule()
@@ -126,6 +135,7 @@ class Forwarder(Elaboratable):
         reg = Record.like(self.read.data_out)
         reg_valid = Signal()
         read_value = Record.like(self.read.data_out)
+        m.d.comb += self.head.eq(read_value)
 
         self.write.schedule_before(self.read)  # to avoid combinational loops
 
@@ -142,6 +152,10 @@ class Forwarder(Elaboratable):
         def _():
             m.d.sync += reg_valid.eq(0)
             return read_value
+
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += reg_valid.eq(0)
 
         return m
 
@@ -815,6 +829,280 @@ class CatTrans(Elaboratable):
             self.dst(m, ddata)
 
             m.d.comb += ddata.eq(Cat(sdata1, sdata2))
+
+        return m
+
+
+class ArgumentsToResultsZipper(Elaboratable):
+    """Zips arguments used to call method with results, cutting critical path.
+
+    This module provides possibility to pass arguments from caller and connect it with results
+    from callee. Arguments are stored in 2-FIFO and results in Forwarder. Because of this asymmetry,
+    the callee should provide results as long as they aren't correctly received.
+
+    FIFO is used as rate-limiter, so when FIFO reaches full capacity there should be no new requests issued.
+
+    Example topology:
+
+    ```{mermaid}
+    graph LR
+        Caller;
+        Caller -- write_arguments --> 2-FIFO;
+        Caller -- invoke --> Callee["Callee \n (1+ cycle delay)"];
+        Callee -- write_results --> Forwarder;
+        Forwarder -- read --> Zip;
+        2-FIFO -- read --> Zip;
+        Zip -- read --> User;
+
+        subgraph ArgumentsToResultsZipper
+            Forwarder;
+            2-FIFO;
+            Zip;
+        end
+    ```
+
+    Attributes
+    ----------
+    write_args: Method
+        Method to write arguments with `args_layout` format to 2-FIFO.
+    write_results: Method
+        Method to save results with `results_layout` in the Forwarder.
+    read: Method
+        Reads latest entries from the fifo and the forwarder and return them as
+        record with two fields: 'args' and 'results'.
+    """
+
+    def __init__(self, args_layout: MethodLayout, results_layout: MethodLayout):
+        """
+        Parameters
+        ----------
+        args_layout: record layout
+            The format of arguments.
+        results_layout: record layout
+            The format of results.
+        """
+        self.results_layout = results_layout
+        self.args_layout = args_layout
+        self.output_layout = [("args", self.args_layout), ("results", results_layout)]
+
+        self.write_args = Method(i=self.args_layout)
+        self.write_results = Method(i=self.results_layout)
+        self.read = Method(o=self.output_layout)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        fifo = FIFO(self.args_layout, depth=2)
+        forwarder = Forwarder(self.results_layout)
+
+        m.submodules.fifo = fifo
+        m.submodules.forwarder = forwarder
+
+        @def_method(m, self.write_args)
+        def _(arg):
+            fifo.write(m, arg)
+
+        @def_method(m, self.write_results)
+        def _(arg):
+            forwarder.write(m, arg)
+
+        @def_method(m, self.read)
+        def _():
+            args = fifo.read(m)
+            results = forwarder.read(m)
+            return {"args": args, "results": results}
+
+        return m
+
+
+class MemoryBank(Elaboratable):
+    """MemoryBank module.
+
+    Provides a transactional interface to synchronous Amaranth Memory with one
+    read and one write port. It supports optionally writing with given granularity.
+
+    Attributes
+    ----------
+    read_req: Method
+        The read request method. Accepts an `addr` from which data should be read.
+        Only ready if there is there is a place to buffer response.
+    read_resp: Method
+        The read response method. Return `data_layout` Record which was saved on `addr` given by last
+        `read_req` method call. Only ready after `read_req` call.
+    write: Method
+        The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
+        and optionally `mask` if `granularity` is not None. `1` in mask means that appropriate part should be written.
+    """
+
+    def __init__(
+        self, *, data_layout: MethodLayout, elem_count: int, granularity: Optional[int] = None, safe_writes: bool = True
+    ):
+        """
+        Parameters
+        ----------
+        data_layout: record layout
+            The format of records stored in the Memory.
+        elem_count: int
+            Number of elements stored in Memory.
+        granularity: Optional[int]
+            Granularity of write, forwarded to Amaranth. If `None` the whole record is always saved at once.
+            If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
+        safe_writes: bool
+            Set to `False` if an optimisation can be done to increase throughput of writes. This will cause that
+            writes will be reordered with respect to reads eg. in sequence "read A, write A X", read can return
+            "X" even when write was called later. By default `True`, which disable optimisation.
+        """
+        self.data_layout = data_layout
+        self.elem_count = elem_count
+        self.granularity = granularity
+        self.width = len(Record(self.data_layout))
+        self.addr_width = bits_for(self.elem_count - 1)
+        self.safe_writes = safe_writes
+
+        self.read_req_layout = [("addr", self.addr_width)]
+        self.write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
+        if self.granularity is not None:
+            self.write_layout.append(("mask", self.width // self.granularity))
+
+        self.read_req = Method(i=self.read_req_layout)
+        self.read_resp = Method(o=self.data_layout)
+        self.write = Method(i=self.write_layout)
+        self._internal_read_resp_trans = None
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        mem = Memory(width=self.width, depth=self.elem_count)
+        m.submodules.read_port = read_port = mem.read_port()
+        m.submodules.write_port = write_port = mem.write_port()
+        read_output_valid = Signal()
+        prev_read_addr = Signal(self.addr_width)
+        write_pending = Signal()
+        write_req = Signal()
+        write_args = Record(self.write_layout)
+        write_args_prev = Record(self.write_layout)
+        m.d.comb += read_port.addr.eq(prev_read_addr)
+
+        zipper = ArgumentsToResultsZipper([("valid", 1)], self.data_layout)
+        m.submodules.zipper = zipper
+
+        self._internal_read_resp_trans = Transaction()
+        with self._internal_read_resp_trans.body(m, request=read_output_valid):
+            m.d.sync += read_output_valid.eq(0)
+            zipper.write_results(m, read_port.data)
+
+        write_trans = Transaction()
+        with write_trans.body(m, request=write_req | (~read_output_valid & write_pending)):
+            if self.safe_writes:
+                with m.If(write_pending):
+                    m.d.comb += assign(write_args, write_args_prev, fields=AssignType.ALL)
+            m.d.sync += write_pending.eq(0)
+            m.d.comb += write_port.addr.eq(write_args.addr)
+            m.d.comb += write_port.data.eq(write_args.data)
+            if self.granularity is None:
+                m.d.comb += write_port.en.eq(1)
+            else:
+                m.d.comb += write_port.en.eq(write_args.mask)
+
+        @def_method(m, self.read_resp)
+        def _():
+            output = zipper.read(m)
+            return output.results
+
+        @def_method(m, self.read_req, ~write_pending)
+        def _(addr):
+            m.d.sync += read_output_valid.eq(1)
+            m.d.comb += read_port.addr.eq(addr)
+            m.d.sync += prev_read_addr.eq(addr)
+            zipper.write_args(m, valid=1)
+
+        @def_method(m, self.write, ~write_pending)
+        def _(arg):
+            if self.safe_writes:
+                with m.If((arg.addr == read_port.addr) & (read_output_valid | self.read_req.run)):
+                    m.d.sync += write_pending.eq(1)
+                    m.d.sync += assign(write_args_prev, arg, fields=AssignType.ALL)
+                with m.Else():
+                    m.d.comb += write_req.eq(1)
+            else:
+                m.d.comb += write_req.eq(1)
+            m.d.comb += assign(write_args, arg, fields=AssignType.ALL)
+
+        return m
+
+
+class Serializer(Elaboratable):
+    """Module to serialize request-response methods.
+
+    Provides a transactional interface to connect many client `Module`\\s (which request somethig using method call)
+    with a server `Module` which provides method to request operation and method to get response.
+
+    Requests are being serialized from many clients and forwarded to a server which can process only one request
+    at the time. Responses from server are deserialized and passed to proper client. `Serializer` assumes, that
+    responses from the server are in-order, so the order of responses is the same as order of requests.
+
+
+    Attributes
+    ----------
+    serialize_in: list[Method]
+        List of request methods. Data layouts are the same as for `serialized_req_method`.
+    serialize_out: list[Method]
+        List of response methods. Data layouts are the same as for `serialized_resp_method`.
+        `i`-th response method provides responses for requests from `i`-th `serialize_in` method.
+    """
+
+    def __init__(
+        self,
+        *,
+        port_count: int,
+        serialized_req_method: Method,
+        serialized_resp_method: Method,
+        depth: int = 4,
+    ):
+        """
+        Parameters
+        ----------
+        port_count: int
+            Number of ports, which should be generated. `len(serialize_in)=len(serialize_out)=port_count`
+        serialized_req_method: Method
+            Request method provided by server's `Module`.
+        serialized_resp_method: Method
+            Response method provided by server's `Module`.
+        depth: int
+            Number of requests which can be forwarded to server, before server provides first response. Describe
+            the resistance of `Serializer` to latency of server in case when server is fully pipelined.
+        """
+        self.port_count = port_count
+        self.serialized_req_method = serialized_req_method
+        self.serialized_resp_method = serialized_resp_method
+
+        self.depth = depth
+
+        self.id_layout = [("id", log2_int(self.port_count))]
+
+        self.clear = Method()
+        self.serialize_in = [Method.like(self.serialized_req_method) for _ in range(self.port_count)]
+        self.serialize_out = [Method.like(self.serialized_resp_method) for _ in range(self.port_count)]
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        pending_requests = BasicFifo(self.id_layout, self.depth)
+        m.submodules.pending_requests = pending_requests
+
+        for i in range(self.port_count):
+
+            @def_method(m, self.serialize_in[i])
+            def _(arg):
+                pending_requests.write(m, {"id": i})
+                self.serialized_req_method(m, arg)
+
+            @def_method(m, self.serialize_out[i], ready=(pending_requests.head.id == i))
+            def _():
+                pending_requests.read(m)
+                return self.serialized_resp_method(m)
+
+        self.clear.proxy(m, pending_requests.clear)
 
         return m
 
