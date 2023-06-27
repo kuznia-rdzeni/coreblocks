@@ -1,7 +1,7 @@
 from typing import Sequence
 from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
-from coreblocks.params.isa import Funct3
+from coreblocks.params.isa import Funct3, ExceptionCause
 
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import FIFO
@@ -14,8 +14,6 @@ from coreblocks.fu.fu_decoder import DecoderManager
 from enum import IntFlag, auto
 
 from coreblocks.utils.protocols import FuncUnit
-
-from coreblocks.structs_common.exception import Cause
 
 __all__ = ["ExceptionFuncUnit", "ExceptionUnitComponent"]
 
@@ -68,22 +66,22 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
         def _(arg):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
 
-            cause = Signal(Cause)
+            cause = Signal(ExceptionCause)
 
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
-                    m.d.comb += cause.eq(Cause.BREAKPOINT)
+                    m.d.comb += cause.eq(ExceptionCause.BREAKPOINT)
                 with OneHotCase(ExceptionUnitFn.Fn.ECALL):
                     # TODO: Switch privilege level when implemented
-                    m.d.comb += cause.eq(Cause.ENVIRONMENT_CALL_FROM_M)
+                    m.d.comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_M)
                 with OneHotCase(ExceptionUnitFn.Fn.INSTR_ACCESS_FAULT):
-                    m.d.comb += cause.eq(Cause.INSTRUCTION_ACCESS_FAULT)
+                    m.d.comb += cause.eq(ExceptionCause.INSTRUCTION_ACCESS_FAULT)
                 with OneHotCase(ExceptionUnitFn.Fn.ILLEGAL_INSTRUCTION):
-                    m.d.comb += cause.eq(Cause.ILLEGAL_INSTRUCTION)
+                    m.d.comb += cause.eq(ExceptionCause.ILLEGAL_INSTRUCTION)
                 with OneHotCase(ExceptionUnitFn.Fn.BREAKPOINT):
-                    m.d.comb += cause.eq(Cause.BREAKPOINT)
+                    m.d.comb += cause.eq(ExceptionCause.BREAKPOINT)
                 with OneHotCase(ExceptionUnitFn.Fn.INSTR_PAGE_FAULT):
-                    m.d.comb += cause.eq(Cause.INSTRUCTION_PAGE_FAULT)
+                    m.d.comb += cause.eq(ExceptionCause.INSTRUCTION_PAGE_FAULT)
 
             self.report(m, rob_id=arg.rob_id, cause=cause)
 

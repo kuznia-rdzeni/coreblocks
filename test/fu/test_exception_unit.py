@@ -5,7 +5,7 @@ from parameterized import parameterized_class
 from coreblocks.params import *
 from coreblocks.fu.exception import ExceptionUnitFn, ExceptionUnitComponent
 from coreblocks.params.configurations import test_core_config
-from coreblocks.structs_common.exception import Cause
+from coreblocks.params.isa import ExceptionCause
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
@@ -14,15 +14,15 @@ from test.fu.functional_common import GenericFunctionalTestUnit
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ExceptionUnitFn.Fn, xlen: int) -> Dict[str, int]:
     cause = None
     if fn == ExceptionUnitFn.Fn.EBREAK or fn == ExceptionUnitFn.Fn.BREAKPOINT:
-        cause = Cause.BREAKPOINT
+        cause = ExceptionCause.BREAKPOINT
     if fn == ExceptionUnitFn.Fn.ECALL:
-        cause = Cause.ENVIRONMENT_CALL_FROM_M
+        cause = ExceptionCause.ENVIRONMENT_CALL_FROM_M
     if fn == ExceptionUnitFn.Fn.INSTR_ACCESS_FAULT:
-        cause = Cause.INSTRUCTION_ACCESS_FAULT
+        cause = ExceptionCause.INSTRUCTION_ACCESS_FAULT
     if fn == ExceptionUnitFn.Fn.INSTR_PAGE_FAULT:
-        cause = Cause.INSTRUCTION_PAGE_FAULT
+        cause = ExceptionCause.INSTRUCTION_PAGE_FAULT
     if fn == ExceptionUnitFn.Fn.ILLEGAL_INSTRUCTION:
-        cause = Cause.ILLEGAL_INSTRUCTION
+        cause = ExceptionCause.ILLEGAL_INSTRUCTION
 
     return {"result": 0} | {"exception": cause} if cause is not None else {}
 

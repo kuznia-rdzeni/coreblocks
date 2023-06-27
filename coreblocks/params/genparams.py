@@ -105,6 +105,4 @@ class GenParams(DependentCache):
         self.max_rs_entries_bits = (self.max_rs_entries - 1).bit_length()
         self.start_pc = cfg.start_pc
 
-        self.supported_exception_cause_bits = 4
-
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)

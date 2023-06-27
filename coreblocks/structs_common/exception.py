@@ -2,27 +2,10 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.genparams import GenParams
 
-from coreblocks.params.isa import IntEnum
+from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.transactions.core import Priority, TModule, def_method, Method
-
-
-class Cause(IntEnum, shape=4):
-    INSTRUCTION_ADDRESS_MISALIGNED = 0
-    INSTRUCTION_ACCESS_FAULT = 1
-    ILLEGAL_INSTRUCTION = 2
-    BREAKPOINT = 3
-    LOAD_ADDRESS_MISALIGNED = 4
-    LOAD_ACCESS_FAULT = 5
-    STORE_ADDRESS_MISALIGNED = 6
-    STORE_ACCESS_FAULT = 7
-    ENVIRONMENT_CALL_FROM_U = 8
-    ENVIRONMENT_CALL_FROM_S = 9
-    ENVIRONMENT_CALL_FROM_M = 11
-    INSTRUCTION_PAGE_FAULT = 12
-    LOAD_PAGE_FAULT = 13
-    STORE_PAGE_FAULT = 15
 
 
 def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) -> Value:
@@ -30,24 +13,24 @@ def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) ->
     _update = Signal()
 
     # All breakpoint kinds have the highest priority in conflicting cases
-    with m.If(new_cause == Cause.BREAKPOINT):
+    with m.If(new_cause == ExceptionCause.BREAKPOINT):
         m.d.comb += _update.eq(1)
 
     with m.If(
-        ((new_cause == Cause.INSTRUCTION_PAGE_FAULT) | (new_cause == Cause.INSTRUCTION_ACCESS_FAULT))
-        & (current_cause != Cause.BREAKPOINT)
+        ((new_cause == ExceptionCause.INSTRUCTION_PAGE_FAULT) | (new_cause == ExceptionCause.INSTRUCTION_ACCESS_FAULT))
+        & (current_cause != ExceptionCause.BREAKPOINT)
     ):
         m.d.comb += _update.eq(1)
 
     with m.If(
-        (new_cause == Cause.LOAD_ADDRESS_MISALIGNED)
-        & ((current_cause == Cause.LOAD_ACCESS_FAULT) | (current_cause == Cause.LOAD_PAGE_FAULT))
+        (new_cause == ExceptionCause.LOAD_ADDRESS_MISALIGNED)
+        & ((current_cause == ExceptionCause.LOAD_ACCESS_FAULT) | (current_cause == ExceptionCause.LOAD_PAGE_FAULT))
     ):
         m.d.comb += _update.eq(1)
 
     with m.If(
-        (new_cause == Cause.STORE_ADDRESS_MISALIGNED)
-        & ((current_cause == Cause.STORE_ACCESS_FAULT) | (current_cause == Cause.STORE_PAGE_FAULT))
+        (new_cause == ExceptionCause.STORE_ADDRESS_MISALIGNED)
+        & ((current_cause == ExceptionCause.STORE_ACCESS_FAULT) | (current_cause == ExceptionCause.STORE_PAGE_FAULT))
     ):
         m.d.comb += _update.eq(1)
 
@@ -58,7 +41,7 @@ class ExceptionCauseRegister(Elaboratable):
     def __init__(self, gp: GenParams, rob_get_indices: Method):
         self.gp = gp
 
-        self.cause = Signal(Cause)
+        self.cause = Signal(ExceptionCause)
         self.rob_id = Signal(gp.rob_entries_bits)
         self.valid = Signal()
 

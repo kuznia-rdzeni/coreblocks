@@ -1,4 +1,5 @@
 from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode
+from coreblocks.params.isa import ExceptionCause
 from coreblocks.utils.utils import layout_subset
 
 __all__ = [
@@ -389,6 +390,6 @@ class CSRLayouts:
 class ExceptionRegisterLayouts:
     def __init__(self, gen_params: GenParams):
         self.get = self.report = [
-            ("cause", gen_params.supported_exception_cause_bits),
+            ("cause", ExceptionCause),
             ("rob_id", gen_params.rob_entries_bits),
         ]

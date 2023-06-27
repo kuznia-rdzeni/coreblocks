@@ -8,6 +8,7 @@ __all__ = [
     "Funct3",
     "Funct7",
     "Funct12",
+    "ExceptionCause",
     "Extension",
     "FenceTarget",
     "FenceFm",
@@ -101,6 +102,24 @@ class FenceTarget(IntFlag, shape=4):
 class FenceFm(IntEnum, shape=4):
     NONE = 0b0000
     TSO = 0b1000
+
+
+@unique
+class ExceptionCause(IntEnum, shape=4):
+    INSTRUCTION_ADDRESS_MISALIGNED = 0
+    INSTRUCTION_ACCESS_FAULT = 1
+    ILLEGAL_INSTRUCTION = 2
+    BREAKPOINT = 3
+    LOAD_ADDRESS_MISALIGNED = 4
+    LOAD_ACCESS_FAULT = 5
+    STORE_ADDRESS_MISALIGNED = 6
+    STORE_ACCESS_FAULT = 7
+    ENVIRONMENT_CALL_FROM_U = 8
+    ENVIRONMENT_CALL_FROM_S = 9
+    ENVIRONMENT_CALL_FROM_M = 11
+    INSTRUCTION_PAGE_FAULT = 12
+    LOAD_PAGE_FAULT = 13
+    STORE_PAGE_FAULT = 15
 
 
 @unique

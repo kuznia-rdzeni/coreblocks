@@ -1,8 +1,9 @@
 from amaranth import *
 from coreblocks.params.layouts import ROBLayouts
 
-from coreblocks.structs_common.exception import ExceptionCauseRegister, Cause
+from coreblocks.structs_common.exception import ExceptionCauseRegister
 from coreblocks.params import GenParams
+from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.configurations import test_core_config
 from coreblocks.transactions.lib import Adapter
 from coreblocks.utils.utils import ModuleConnector
@@ -28,21 +29,27 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
         # result shouldn't be updated - first happened)
         if new_arg["rob_id"] == old_arg["rob_id"]:
             return (
-                new_arg["cause"] == Cause.BREAKPOINT
+                new_arg["cause"] == ExceptionCause.BREAKPOINT
                 or (
                     (
-                        new_arg["cause"] == Cause.INSTRUCTION_ACCESS_FAULT
-                        or new_arg["cause"] == Cause.INSTRUCTION_PAGE_FAULT
+                        new_arg["cause"] == ExceptionCause.INSTRUCTION_ACCESS_FAULT
+                        or new_arg["cause"] == ExceptionCause.INSTRUCTION_PAGE_FAULT
                     )
-                    and old_arg["cause"] != Cause.BREAKPOINT
+                    and old_arg["cause"] != ExceptionCause.BREAKPOINT
                 )
                 or (
-                    (old_arg["cause"] == Cause.STORE_ACCESS_FAULT or old_arg["cause"] == Cause.STORE_PAGE_FAULT)
-                    and new_arg["cause"] == Cause.STORE_ADDRESS_MISALIGNED
+                    (
+                        old_arg["cause"] == ExceptionCause.STORE_ACCESS_FAULT
+                        or old_arg["cause"] == ExceptionCause.STORE_PAGE_FAULT
+                    )
+                    and new_arg["cause"] == ExceptionCause.STORE_ADDRESS_MISALIGNED
                 )
                 or (
-                    (old_arg["cause"] == Cause.LOAD_ACCESS_FAULT or old_arg["cause"] == Cause.LOAD_PAGE_FAULT)
-                    and new_arg["cause"] == Cause.LOAD_ADDRESS_MISALIGNED
+                    (
+                        old_arg["cause"] == ExceptionCause.LOAD_ACCESS_FAULT
+                        or old_arg["cause"] == ExceptionCause.LOAD_PAGE_FAULT
+                    )
+                    and new_arg["cause"] == ExceptionCause.LOAD_ADDRESS_MISALIGNED
                 )
             )
 
@@ -66,7 +73,7 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
             for _ in range(self.cycles):
                 self.rob_id = random.randint(0, self.rob_max)
 
-                cause = random.choice(list(Cause))
+                cause = random.choice(list(ExceptionCause))
                 report_rob = random.randint(0, self.rob_max)
                 report_arg = {"cause": cause, "rob_id": report_rob}
 
