@@ -12,11 +12,31 @@ __all__ = ["VectorRegisterBank"]
 
 
 class VectorRegisterBank(Elaboratable):
-    """
-    Jeden bank VRF z jednym portem do odczytu i jendym do zapisu. Elementy w banku mają długość ELEN.
+    """ Bank of vector register file
 
-    Jeśli czytamy wiele eew, to są ułożone w little endian
-    maska też jest w little-endian: 0x1 - LSbajt 0x8 - MSbajt
+    This module implements a one bank of vector register file. It has one input
+    port and one output port. Each element in the bank always has ELEN bits. When
+    EEW indicates that there are more elements in an ELEN word, then they are ordered
+    on little endian, so the first element is on the first byte.
+
+    Masks are also in little-endian form, so the first bit is for the first element,
+    the second bit for the second element, and so on.
+
+    Attrubutes
+    ----------
+    read_req : Method
+        Method to issue a read request, with the `MemoryBank.read_req` layout.
+    read_resp : Method
+        Method to receive a read response for a previously issued request. It returns
+        ELEN bits for each request. Any byte, that hasn't been written before
+        will be returned in mask agnostic way, so overwritten with 1's.
+    write : Method
+        Method for writing data to register. Mask has `ELEN//8` bits and each bit
+        indicates if the corresponding byte is valid.
+    initialise : Method
+        Method to initialise the content of the bank before writing new data into it.
+    clear : Method
+        Clear register and all internal buffers.
     """
 
     def __init__(self, *, gen_params: GenParams, v_params: VectorParameters):
@@ -38,16 +58,16 @@ class VectorRegisterBank(Elaboratable):
         self.write = Method(i=self.layouts.write)
         self.write_scalar = Method()
         self.write_mask = Method()
-        self.initialize = Method(i=self.layouts.initialize)
+        self.initialise = Method(i=self.layouts.initialize)
         self.clear = Method()
 
-        self.initialize.add_conflict(self.read_req, Priority.LEFT)
-        self.initialize.add_conflict(self.read_resp, Priority.LEFT)
-        self.initialize.add_conflict(self.write, Priority.LEFT)
+        self.initialise.add_conflict(self.read_req, Priority.LEFT)
+        self.initialise.add_conflict(self.read_resp, Priority.LEFT)
+        self.initialise.add_conflict(self.write, Priority.LEFT)
         self.clear.add_conflict(self.read_req, Priority.LEFT)
         self.clear.add_conflict(self.read_resp, Priority.LEFT)
         self.clear.add_conflict(self.write, Priority.LEFT)
-        self.clear.add_conflict(self.initialize, Priority.LEFT)
+        self.clear.add_conflict(self.initialise, Priority.LEFT)
 
     def expand_mask(self, mask: Value) -> Value:
         return Cat(Mux(mask[i], 0xFF, 0x00) for i in range(self.v_params.bytes_in_elen))
@@ -79,7 +99,7 @@ class VectorRegisterBank(Elaboratable):
             mask_part = self.byte_mask.word_select(addr, self.v_params.bytes_in_elen)
             m.d.sync += mask_part.eq(mask_part | mask)
 
-        @def_method(m, self.initialize)
+        @def_method(m, self.initialise)
         def _(eew: Signal):
             m.d.sync += self.byte_mask.eq(0)
             m.d.sync += self.eew.eq(eew)

@@ -11,6 +11,27 @@ __all__ = ["VRFFragment"]
 
 
 class VRFFragment(Elaboratable):
+    """Fragment of vector register file
+
+    This module provides a fragment of vector register file, which can be used
+    in an architecture with a decentralised vector register file (e.g. fragments associated with lanes)
+    or can be glued together to form a centralised one.
+
+    If two `read_req` are issued at the same time to the same physical vector register and the same address, then
+    this will take two cycles, because there is no support yet for detecting such collisions.
+
+    Attributes
+    ----------
+    write : Method
+        Method to write to the physical vector register. Use the `VRFFragmentLayouts.write` layout.
+    read_req : list[Method]
+        Methods that can be used to issue read requests to physical vector registers.
+    read_resp : list[Method]
+        Methods to receive the last issued read for the given physical vector register. This will
+        always returns the last results, regardless of which `read_req` method was used to issue the request.
+        So it is possible to issue a request using `read_req[0]` and receive results from it using
+        `read_resp[1]`.
+    """
     def __init__(self, *, gen_params: GenParams, v_params: VectorParameters):
         self.gen_params = gen_params
         self.v_params = v_params
