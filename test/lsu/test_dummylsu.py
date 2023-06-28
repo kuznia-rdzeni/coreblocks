@@ -367,12 +367,14 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             self.assertEqual(v["rob_id"], rob_id)
             self.assertEqual(v["rp_dst"], 0)
             yield from self.random_wait()
+            self.precommit_data.pop()  # retire
 
     def precommiter(self):
-        for i in range(self.tests_number):
+        yield Passive()
+        while True:
             while len(self.precommit_data) == 0:
                 yield
-            rob_id = self.precommit_data.pop()
+            rob_id = self.precommit_data[-1]  # precommit is called continously until instruction is retired
             yield from self.test_module.precommit.call(rob_id=rob_id)
 
     def test(self):
