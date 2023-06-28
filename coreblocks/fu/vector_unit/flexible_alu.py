@@ -36,7 +36,7 @@ class FlexibleAluFn(DecoderManager):
 
 
 class FlexibleAdder(Elaboratable):
-    """ Adder with support for different operand lengths
+    """Adder with support for different operand lengths
 
     This adder processes `out_width` bits in each cycle and it interprets them either
     as an operand with `out_width` bits or as a `k` operands each with
@@ -62,6 +62,7 @@ class FlexibleAdder(Elaboratable):
     out_carry : Signal()
         Carry bit
     """
+
     def __init__(self, out_width: EEW):
         """
         Parameters
@@ -126,7 +127,7 @@ class FlexibleAdder(Elaboratable):
 
 
 class FlexibleElementwiseFunction(Elaboratable):
-    """ Generic implementation of element-wise functions with support for different operands lengths
+    """Generic implementation of element-wise functions with support for different operands lengths
 
     This module provides a generic way to create a block which will process `out_bits`
     in each cycle by interpreting them as a single element of width `out_bits` or as a
@@ -154,6 +155,7 @@ class FlexibleElementwiseFunction(Elaboratable):
     out_data : Signal(out_width_bits)
         Results of the application `op` on `in1` and `in2`.
     """
+
     def __init__(self, out_width: EEW, op: Callable[[ValueLike, ValueLike], ValueLike]):
         """
         Parameters
@@ -197,8 +199,8 @@ class FlexibleElementwiseFunction(Elaboratable):
         return m
 
 
-def compress_mask(m : TModule, val: Value, eew : Value) -> Value:
-    """ Compress masks created with `FlexibleElementwiseFunction`
+def compress_mask(m: TModule, val: Value, eew: Value) -> Value:
+    """Compress masks created with `FlexibleElementwiseFunction`
 
     This function takes `val` with `out_width_bits` from `FlexibleElementwiseFunction` and
     assumes that mask bits are set on the first bit of each output element. As an output it
@@ -215,11 +217,11 @@ def compress_mask(m : TModule, val: Value, eew : Value) -> Value:
     eew : Value(EEW)
         EEW used to generate `val`
     """
-    result = Signal(len(val)//8)
+    result = Signal(len(val) // 8)
     with m.Switch(eew):
         for i in EEW:
             with m.Case(EEW(i)):
-                m.d.top_comb += result.eq(val[::eew_to_bits(EEW(i))])
+                m.d.top_comb += result.eq(val[:: eew_to_bits(EEW(i))])
     return result
 
 

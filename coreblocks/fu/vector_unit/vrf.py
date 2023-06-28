@@ -32,6 +32,7 @@ class VRFFragment(Elaboratable):
         So it is possible to issue a request using `read_req[0]` and receive results from it using
         `read_resp[1]`.
     """
+
     def __init__(self, *, gen_params: GenParams, v_params: VectorParameters):
         self.gen_params = gen_params
         self.v_params = v_params

@@ -12,7 +12,7 @@ __all__ = ["VectorRegisterBank"]
 
 
 class VectorRegisterBank(Elaboratable):
-    """ Bank of vector register file
+    """Bank of vector register file
 
     This module implements a one bank of vector register file. It has one input
     port and one output port. Each element in the bank always has ELEN bits. When

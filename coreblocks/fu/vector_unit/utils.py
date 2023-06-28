@@ -4,7 +4,7 @@ __all__ = ["EEW", "eew_to_bits", "bits_to_eew", "eew_div_2"]
 
 
 class EEW(IntEnum):
-    """ Representation of possible EEW
+    """Representation of possible EEW
 
     This enum represents EEWs as defined by the V extension, that
     we are able to support in our core.
@@ -13,6 +13,7 @@ class EEW(IntEnum):
     compress the representation as much as possible. So it dosn't
     take much HW resources to represent an EEW.
     """
+
     w8 = auto()
     w16 = auto()
     w32 = auto()
@@ -20,7 +21,7 @@ class EEW(IntEnum):
 
 
 def eew_to_bits(eew: EEW) -> int:
-    """ Convert EEW to number of bits
+    """Convert EEW to number of bits
 
     This function takes an eew in the form of enum and converts it to an
     integer representing the width in bits of an element for the given eew.
@@ -48,7 +49,7 @@ def eew_to_bits(eew: EEW) -> int:
 
 
 def bits_to_eew(bits: int) -> EEW:
-    """ Convert width in bits to EEW
+    """Convert width in bits to EEW
 
     Parameters
     ----------
@@ -73,7 +74,7 @@ def bits_to_eew(bits: int) -> EEW:
 
 
 def eew_div_2(eew: EEW) -> EEW:
-    """ Reduce EEW by 2
+    """Reduce EEW by 2
 
     This function is a shortcut to easily reduce the EEW width by a factor of 2.
 
