@@ -116,11 +116,12 @@ class SortedMultiportFifo(Elaboratable):
     should also call the `j`-th method.
 
     If the above assumption is fulfilled, then the following properties hold:
+
     - If `x` has been written to fifo in cycle `i` and `y` in cycle `j` where `i<j`, then
-        `k<=m` where `k` is the cycle in which `x` was read and `m` is the cycle in which `y` was read
+      `k<=m` where `k` is the cycle in which `x` was read and `m` is the cycle in which `y` was read
     - The use of internal memory is balanced and optimal, so if only `n` first read/write methods is being
-        active, then this means, that there are only `n` elements/free slots in the fifo. If there is more
-        elements/free slots in the fifo than methods then all methods are active.
+      active, then this means, that there are only `n` elements/free slots in the fifo. If there is more
+      elements/free slots in the fifo than methods then all methods are active.
 
     WARNING: You probably don't want to use this class directly. See `MultiportFifo` instead.
 
