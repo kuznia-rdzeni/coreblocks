@@ -154,6 +154,13 @@ class LongDivider(DividerBase):
 
         stage = Signal(unsigned(xlen_log + 1))
 
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += remainder.eq(0)
+            m.d.sync += quotient.eq(0)
+            m.d.sync += stage.eq(0)
+            m.d.sync += ready.eq(1)
+
         # resetting
         @def_method(m, self.issue, ready=ready)
         def _(arg):
@@ -172,7 +179,7 @@ class LongDivider(DividerBase):
             return {"quotient": quotient, "remainder": remainder}
 
         # performing calculations
-        with m.If(~ready & (stage < self.stages)):
+        with m.If(~ready & (stage != self.stages)):
             special_stage = (self.stages == stage + 1) & self.odd_iteration
 
             # assigning inputs to recursive divider

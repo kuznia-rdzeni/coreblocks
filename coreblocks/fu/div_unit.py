@@ -13,6 +13,7 @@ from coreblocks.transactions.lib import *
 from coreblocks.fu.fu_decoder import DecoderManager
 
 from coreblocks.utils import OneHotSwitch
+from coreblocks.utils.fifo import BasicFifo
 from coreblocks.utils.protocols import FuncUnit
 from coreblocks.fu.divison.long_division import LongDivider
 
@@ -46,13 +47,14 @@ class DivUnit(FuncUnit, Elaboratable):
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
+        self.clear = Method()
 
         self.div_fn = div_fn
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
+        m.submodules.result_fifo = result_fifo = BasicFifo(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.params_fifo = params_fifo = FIFO(
             [
                 ("rob_id", self.gen_params.rob_entries_bits),
@@ -68,6 +70,11 @@ class DivUnit(FuncUnit, Elaboratable):
 
         xlen = self.gen_params.isa.xlen
         sign_bit = xlen - 1  # position of sign bit
+
+        @def_method(m, self.clear)
+        def _():
+            result_fifo.clear(m)
+            divider.clear(m)
 
         @def_method(m, self.accept)
         def _():

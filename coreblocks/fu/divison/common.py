@@ -12,3 +12,4 @@ class DividerBase(Elaboratable):
 
         self.issue = Method(i=layout.issue)
         self.accept = Method(o=layout.accept)
+        self.clear = Method()
