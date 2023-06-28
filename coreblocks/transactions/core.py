@@ -1144,7 +1144,7 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
     .. highlight:: python
     .. code-block:: python
 
-        m = Module()
+        m = TModule()
         my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=[("res",8)])
         @def_method(m, my_sum_method)
         def _(arg1, arg2):
@@ -1183,6 +1183,71 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
 
 
 def loop_def_method(m: TModule, methods_list: list[Method], ready_list: Optional[list[ValueLike] | Callable] = None):
+    """Decorator for defining similar methods
+
+    This decorator is a wrapper over `def_method, which allows you to easily
+    define multiple similar methods in a loop.
+
+    The function over which this decorator is applied, should always expect
+    at least one argument, as the index of the method will be passed as the
+    first argument to the function.
+
+    This is a syntax sugar equivalent to:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        for i in range(len(my_methods)):
+            @def_method(m, my_methods[i])
+            def _(arg):
+                ...
+
+    Parameters
+    ----------
+    m: TModule
+        Module in which operations on signals should be executed.
+    methods_list: list[Method]
+        The list of methods whose body is going to be defined.
+    ready_list: list[Signal] | Callable[[int], Value] | None
+        Either a list of signals to indicate whether the methods are ready to execute
+        or a `Callable` that takes the index in the form of an `int` of the currently defined method
+        and produce a `Value` describing whether the method is ready to be run.
+        The default is `None`, which generates `Const(1)` for each method, so that method is always ready.
+        Assigned combinationally to the `ready` attribute.
+
+    Examples
+    --------
+    Define three methods with the same body:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        m = TModule()
+        my_sum_methods = [Method(i=[("arg1",8),("arg2",8)], o=[("res",8)]) for _ in range(3)]
+        @loop_def_method(m, my_sum_methods)
+        def _(_, arg1, arg2):
+            return arg1 + arg2
+
+    Define three methods with the different but similar body:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        m = TModule()
+        my_sum_methods = [Method(i=[("arg1",8),("arg2",8)], o=[("res",8)]) for _ in range(3)]
+        @loop_def_method(m, my_sum_methods)
+        def _(index : int, arg1, arg2):
+            return arg1 + arg2 + index
+
+    Define three methods with different ready signals, each of them generated using `Callable`:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        @loop_def_method(m, my_filter_read_methods, ready_list=lambda i: fifo.head == i)
+        def _(_):
+            return fifo.read(m)
+    """
     if ready_list is None:
         ready_list = [C(1) for _ in methods_list]
     if isinstance(ready_list, Callable):
