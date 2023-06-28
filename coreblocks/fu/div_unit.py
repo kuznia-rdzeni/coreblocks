@@ -130,7 +130,7 @@ class DivUnit(FuncUnit, Elaboratable):
             flip_sig = Mux(params.flip_sign, ~result[sign_bit], 0)
             sign_result = Mux(flip_sig, -result, result)
 
-            result_fifo.write(m, rob_id=params.rob_id, result=sign_result, rp_dst=params.rp_dst)
+            result_fifo.write(m, rob_id=params.rob_id, result=sign_result, rp_dst=params.rp_dst, exception=0)
 
         return m
 
