@@ -89,20 +89,20 @@
                     WishboneMaster_result[&quot;result&quot;]
                 end
                 subgraph WishboneMaster1[&quot;wb_master_data WishboneMaster&quot;]
-                    WishboneMaster1_result[&quot;result&quot;]
                     WishboneMaster1_request[&quot;request&quot;]
+                    WishboneMaster1_result[&quot;result&quot;]
                 end
                 subgraph FIFO[&quot;fifo_fetch FIFO&quot;]
-                    FIFO_write[&quot;write&quot;]
                     FIFO_read[&quot;read&quot;]
+                    FIFO_write[&quot;write&quot;]
                 end
                 subgraph BasicFifo[&quot;free_rf_fifo BasicFifo&quot;]
                     BasicFifo_write[&quot;write&quot;]
                     BasicFifo_read[&quot;read&quot;]
                 end
                 subgraph SimpleWBCacheRefiller[&quot;icache_refiller SimpleWBCacheRefiller&quot;]
-                    SimpleWBCacheRefiller_start_refill[&quot;start_refill&quot;]
                     SimpleWBCacheRefiller_accept_refill[&quot;accept_refill&quot;]
+                    SimpleWBCacheRefiller_start_refill[&quot;start_refill&quot;]
                     SimpleWBCacheRefiller_SimpleWBCacheRefiller[&quot;SimpleWBCacheRefiller&quot;]
                 end
                 subgraph ICache[&quot;icache ICache&quot;]
@@ -112,8 +112,8 @@
                     ICache_ICache1[&quot;ICache&quot;]
                     ICache_ICache2[&quot;ICache&quot;]
                     subgraph FIFO1[&quot;req_fifo FIFO&quot;]
-                        FIFO1_write[&quot;write&quot;]
                         FIFO1_read[&quot;read&quot;]
+                        FIFO1_write[&quot;write&quot;]
                     end
                     subgraph Forwarder[&quot;res_fwd Forwarder&quot;]
                         Forwarder_read[&quot;read&quot;]
@@ -121,8 +121,8 @@
                     end
                 end
                 subgraph Fetch[&quot;fetch Fetch&quot;]
-                    Fetch_Fetch[&quot;Fetch&quot;]
                     Fetch_verify_branch[&quot;verify_branch&quot;]
+                    Fetch_Fetch[&quot;Fetch&quot;]
                     Fetch_Fetch1[&quot;Fetch&quot;]
                     subgraph BasicFifo1[&quot;fetch_target_queue BasicFifo&quot;]
                         BasicFifo1_write[&quot;write&quot;]
@@ -137,15 +137,15 @@
                 end
                 subgraph RegisterFile[&quot;RF RegisterFile&quot;]
                     RegisterFile_read2[&quot;read2&quot;]
+                    RegisterFile_write[&quot;write&quot;]
                     RegisterFile_free[&quot;free&quot;]
                     RegisterFile_read1[&quot;read1&quot;]
-                    RegisterFile_write[&quot;write&quot;]
                 end
                 subgraph ReorderBuffer[&quot;ROB ReorderBuffer&quot;]
-                    ReorderBuffer_put[&quot;put&quot;]
                     ReorderBuffer_peek[&quot;peek&quot;]
                     ReorderBuffer_retire[&quot;retire&quot;]
                     ReorderBuffer_mark_done[&quot;mark_done&quot;]
+                    ReorderBuffer_put[&quot;put&quot;]
                 end
                 subgraph ExceptionCauseRegister[&quot;exception_cause_register ExceptionCauseRegister&quot;]
                     ExceptionCauseRegister_get[&quot;get&quot;]
@@ -170,10 +170,10 @@
                         MethodProduct_method[&quot;method&quot;]
                     end
                     subgraph RSFuncBlock[&quot;rs_block_0 RSFuncBlock&quot;]
-                        RSFuncBlock_update[&quot;update&quot;]
-                        RSFuncBlock_get_result[&quot;get_result&quot;]
                         RSFuncBlock_select[&quot;select&quot;]
                         RSFuncBlock_insert[&quot;insert&quot;]
+                        RSFuncBlock_get_result[&quot;get_result&quot;]
+                        RSFuncBlock_update[&quot;update&quot;]
                         subgraph RS[&quot;rs RS&quot;]
                             RS_update[&quot;update&quot;]
                             RS_select[&quot;select&quot;]
@@ -187,31 +187,31 @@
                             AluFuncUnit_accept[&quot;accept&quot;]
                             AluFuncUnit_issue[&quot;issue&quot;]
                             subgraph FIFO2[&quot;fifo FIFO&quot;]
-                                FIFO2_write[&quot;write&quot;]
                                 FIFO2_read[&quot;read&quot;]
+                                FIFO2_write[&quot;write&quot;]
                             end
                         end
                         subgraph WakeupSelect[&quot;wakeup_select_0 WakeupSelect&quot;]
                             WakeupSelect_WakeupSelect[&quot;WakeupSelect&quot;]
                         end
                         subgraph ShiftFuncUnit[&quot;func_unit_1 ShiftFuncUnit&quot;]
-                            ShiftFuncUnit_accept[&quot;accept&quot;]
                             ShiftFuncUnit_issue[&quot;issue&quot;]
+                            ShiftFuncUnit_accept[&quot;accept&quot;]
                             subgraph FIFO3[&quot;fifo FIFO&quot;]
-                                FIFO3_read[&quot;read&quot;]
                                 FIFO3_write[&quot;write&quot;]
+                                FIFO3_read[&quot;read&quot;]
                             end
                         end
                         subgraph WakeupSelect1[&quot;wakeup_select_1 WakeupSelect&quot;]
                             WakeupSelect1_WakeupSelect[&quot;WakeupSelect&quot;]
                         end
                         subgraph JumpBranchFuncUnit[&quot;func_unit_2 JumpBranchFuncUnit&quot;]
-                            JumpBranchFuncUnit_issue[&quot;issue&quot;]
                             JumpBranchFuncUnit_accept[&quot;accept&quot;]
                             JumpBranchFuncUnit_branch_result[&quot;branch_result&quot;]
+                            JumpBranchFuncUnit_issue[&quot;issue&quot;]
                             subgraph FIFO4[&quot;fifo_res FIFO&quot;]
-                                FIFO4_read[&quot;read&quot;]
                                 FIFO4_write[&quot;write&quot;]
+                                FIFO4_read[&quot;read&quot;]
                             end
                             subgraph FIFO5[&quot;fifo_branch FIFO&quot;]
                                 FIFO5_read[&quot;read&quot;]
@@ -243,9 +243,9 @@
                     subgraph LSUDummy[&quot;rs_block_1 LSUDummy&quot;]
                         LSUDummy_select[&quot;select&quot;]
                         LSUDummy_update[&quot;update&quot;]
+                        LSUDummy_get_result[&quot;get_result&quot;]
                         LSUDummy_insert[&quot;insert&quot;]
                         LSUDummy_precommit[&quot;precommit&quot;]
-                        LSUDummy_get_result[&quot;get_result&quot;]
                         subgraph LSUDummyInternals[&quot;internal LSUDummyInternals&quot;]
                             LSUDummyInternals_LSUDummyInternals[&quot;LSUDummyInternals&quot;]
                             LSUDummyInternals_LSUDummyInternals1[&quot;LSUDummyInternals&quot;]
@@ -268,8 +268,8 @@
                             CSRRegister_write[&quot;write&quot;]
                         end
                         subgraph CSRRegister1[&quot;register_high CSRRegister&quot;]
-                            CSRRegister1_write[&quot;write&quot;]
                             CSRRegister1_read[&quot;read&quot;]
+                            CSRRegister1_write[&quot;write&quot;]
                         end
                     end
                     subgraph DoubleCounterCSR1[&quot;csr_time DoubleCounterCSR&quot;]
@@ -310,15 +310,15 @@
                         Renaming_Renaming[&quot;Renaming&quot;]
                     end
                     subgraph FIFO9[&quot;reg_alloc_out_buf FIFO&quot;]
-                        FIFO9_write[&quot;write&quot;]
                         FIFO9_read[&quot;read&quot;]
+                        FIFO9_write[&quot;write&quot;]
                     end
                     subgraph ROBAllocation[&quot;rob_alloc ROBAllocation&quot;]
                         ROBAllocation_ROBAllocation[&quot;ROBAllocation&quot;]
                     end
                     subgraph FIFO10[&quot;rs_select_out_buf FIFO&quot;]
-                        FIFO10_write[&quot;write&quot;]
                         FIFO10_read[&quot;read&quot;]
+                        FIFO10_write[&quot;write&quot;]
                     end
                     subgraph RSSelection[&quot;rs_selector RSSelection&quot;]
                         RSSelection_RSSelection[&quot;RSSelection&quot;]
@@ -346,8 +346,8 @@
                             CSRRegister5_write[&quot;write&quot;]
                         end
                         subgraph CSRRegister6[&quot;register_high CSRRegister&quot;]
-                            CSRRegister6_write[&quot;write&quot;]
                             CSRRegister6_read[&quot;read&quot;]
+                            CSRRegister6_write[&quot;write&quot;]
                         end
                     end
                 end
@@ -367,18 +367,18 @@
 Core_InitFreeRFFifo --&gt; BasicFifo_write
 Retirement_Retirement1 --&gt; BasicFifo_write
 SimpleWBCacheRefiller_SimpleWBCacheRefiller --&gt; WishboneMaster_request
-ICache_ICache2 --&gt; Forwarder_write
+ICache_ICache1 --&gt; Forwarder_write
 ICache_ICache --&gt; SimpleWBCacheRefiller_start_refill
-SimpleWBCacheRefiller_accept_refill --&gt; ICache_ICache1
-WishboneMaster_result --&gt; ICache_ICache1
-Fetch_Fetch --&gt; ICache_issue_req
-Fetch_Fetch --&gt; FIFO1_write
-Fetch_Fetch --&gt; BasicFifo1_write
-BasicFifo1_read --&gt; Fetch_Fetch1
-ICache_accept_res --&gt; Fetch_Fetch1
-FIFO1_read --&gt; Fetch_Fetch1
-Forwarder_read --&gt; Fetch_Fetch1
-Fetch_Fetch1 --&gt; FIFO_write
+SimpleWBCacheRefiller_accept_refill --&gt; ICache_ICache2
+WishboneMaster_result --&gt; ICache_ICache2
+Fetch_Fetch1 --&gt; ICache_issue_req
+Fetch_Fetch1 --&gt; FIFO1_write
+Fetch_Fetch1 --&gt; BasicFifo1_write
+BasicFifo1_read --&gt; Fetch_Fetch
+ICache_accept_res --&gt; Fetch_Fetch
+FIFO1_read --&gt; Fetch_Fetch
+Forwarder_read --&gt; Fetch_Fetch
+Fetch_Fetch --&gt; FIFO_write
 AdapterTrans_AdapterTrans_write --&gt; FIFO_write
 FIFO_read --&gt; Decode_Decode
 Decode_Decode --&gt; FIFO6_write
@@ -391,15 +391,15 @@ Renaming_Renaming --&gt; FIFO8_write
 FIFO8_read --&gt; ROBAllocation_ROBAllocation
 ROBAllocation_ROBAllocation --&gt; ReorderBuffer_put
 ROBAllocation_ROBAllocation --&gt; FIFO9_write
-FIFO9_read --&gt; RSSelection_RSSelection
-RSSelection_RSSelection --&gt; Forwarder3_write
+FIFO9_read --&gt; RSSelection_RSSelection1
+RSSelection_RSSelection1 --&gt; Forwarder3_write
+Forwarder3_read --&gt; RSSelection_RSSelection
 Forwarder3_read --&gt; RSSelection_RSSelection2
-Forwarder3_read --&gt; RSSelection_RSSelection1
-RSFuncBlock_select --&gt; RSSelection_RSSelection2
-RS_select --&gt; RSSelection_RSSelection2
+RSFuncBlock_select --&gt; RSSelection_RSSelection
+RS_select --&gt; RSSelection_RSSelection
+RSSelection_RSSelection --&gt; FIFO10_write
 RSSelection_RSSelection2 --&gt; FIFO10_write
-RSSelection_RSSelection1 --&gt; FIFO10_write
-RSSelection_RSSelection1 &lt;--&gt; LSUDummy_select
+RSSelection_RSSelection2 &lt;--&gt; LSUDummy_select
 FIFO10_read --&gt; RSInsertion_RSInsertion
 RegisterFile_read1 --&gt; RSInsertion_RSInsertion
 RegisterFile_read2 --&gt; RSInsertion_RSInsertion
@@ -440,12 +440,12 @@ ShiftFuncUnit_accept --&gt; ConnectTrans3_ConnectTrans
 FIFO3_read --&gt; ConnectTrans3_ConnectTrans
 JumpBranchFuncUnit_accept --&gt; ConnectTrans4_ConnectTrans
 FIFO4_read --&gt; ConnectTrans4_ConnectTrans
-LSUDummyInternals_LSUDummyInternals4 --&gt; WishboneMaster1_request
-LSUDummyInternals_LSUDummyInternals5 --&gt; WishboneMaster1_request
-LSUDummyInternals_LSUDummyInternals1 --&gt; WishboneMaster1_request
 LSUDummyInternals_LSUDummyInternals3 --&gt; WishboneMaster1_request
+LSUDummyInternals_LSUDummyInternals --&gt; WishboneMaster1_request
+LSUDummyInternals_LSUDummyInternals1 --&gt; WishboneMaster1_request
+LSUDummyInternals_LSUDummyInternals5 --&gt; WishboneMaster1_request
+WishboneMaster1_result --&gt; LSUDummyInternals_LSUDummyInternals4
 WishboneMaster1_result --&gt; LSUDummyInternals_LSUDummyInternals2
-WishboneMaster1_result --&gt; LSUDummyInternals_LSUDummyInternals
 ConnectTrans_ConnectTrans --&gt; Forwarder1_write
 ConnectTrans1_ConnectTrans --&gt; Forwarder1_write
 RSFuncBlock_get_result --&gt; ConnectTrans_ConnectTrans
@@ -484,7 +484,7 @@ GenericCSRRegisters_GenericCSRRegisters --&gt; CSRRegister3_write
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 13:10 2023-06-27.
+      <span class="lastupdated">Last updated on 10:22 2023-06-28.
       </span></p>
   </div>
 
