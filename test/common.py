@@ -50,24 +50,6 @@ def get_outputs(field: Record) -> TestGen[RecordIntDict]:
     return result
 
 
-def make_dict(*args):
-    frame = inspect.getouterframes(inspect.currentframe())[1].frame
-    print(inspect.getsource(frame))
-    print(frame.f_lineno)
-    frame = inspect.getargvalues(inspect.getouterframes(inspect.currentframe())[1].frame)
-    d = {}
-    print(frame)
-    for a in args:
-        for k, v in frame.locals.items():
-            if v == a:
-                d[k] = v
-                break
-        else:
-            raise ValueError("Magic don't work.")
-    print("created dict", d)
-    return d
-
-
 def neg(x: int, xlen: int) -> int:
     """
     Computes the negation of a number in the U2 system.
