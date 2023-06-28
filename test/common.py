@@ -1,7 +1,6 @@
 import unittest
 import os
 import functools
-import inspect
 from contextlib import contextmanager, nullcontext
 from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast, Type, TypeGuard
 
