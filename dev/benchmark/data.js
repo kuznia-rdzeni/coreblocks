@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687948172667,
+  "lastUpdate": 1687948791227,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -8424,6 +8424,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "slre",
             "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f58fd958bde32881d6f8b40fc1c2e9039147022b",
+          "message": "DummyLSU: Delay pushing store result until execution (#398)",
+          "timestamp": "2023-06-28T12:21:39+02:00",
+          "tree_id": "2d8b2665595b553e7b59752bd8b8bb050ce1532f",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f58fd958bde32881d6f8b40fc1c2e9039147022b"
+        },
+        "date": 1687948789830,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.28757457429729644,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2950910250985018,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24334628411853151,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20199456436288493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2142909720634896,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.34326885628975723,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15129959734328294,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.383974924819342,
             "unit": "Instructions Per Cycle"
           }
         ]
