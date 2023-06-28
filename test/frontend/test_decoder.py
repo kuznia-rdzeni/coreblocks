@@ -417,6 +417,9 @@ class TestEncodingUniqueness(TestCase):
                 funct7 = (int(instr.funct12) & 0xFE0) >> 5
                 funct12_5bits = int(instr.funct12) & 0x1F
 
+            if instr.funct6 is not None:
+                funct7 = int(instr.funct6) * 2
+
             return (op_code, funct3, funct7, funct12_5bits)
 
         # prefixes of encoding
@@ -494,6 +497,9 @@ class TestEncodingUniqueness(TestCase):
 
             if instr.funct12 is not None:
                 funct7 = (int(instr.funct12) & 0xFE0) >> 5
+
+            if instr.funct6 is not None:
+                funct7 = int(instr.funct6) * 2
 
             return (funct3, funct7)
 
