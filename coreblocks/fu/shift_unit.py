@@ -102,7 +102,7 @@ class ShiftFuncUnit(FuncUnit, Elaboratable):
             m.d.comb += shift_alu.in1.eq(arg.s1_val)
             m.d.comb += shift_alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
-            fifo.write(m, rob_id=arg.rob_id, result=shift_alu.out, rp_dst=arg.rp_dst)
+            fifo.write(m, rob_id=arg.rob_id, result=shift_alu.out, rp_dst=arg.rp_dst, exception=0)
 
         return m
 

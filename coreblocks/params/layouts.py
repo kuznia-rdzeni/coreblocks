@@ -1,4 +1,5 @@
 from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode
+from coreblocks.params.isa import ExceptionCause
 from coreblocks.utils.utils import layout_subset
 
 __all__ = [
@@ -138,12 +139,21 @@ class ROBLayouts:
         self.internal_layout = [
             ("rob_data", self.data_layout),
             ("done", 1),
+            ("exception", 1),
+        ]
+
+        self.mark_done_layout = [
+            ("rob_id", gen_params.rob_entries_bits),
+            ("exception", 1),
         ]
 
         self.peek_layout = self.retire_layout = [
             ("rob_data", self.data_layout),
             ("rob_id", gen_params.rob_entries_bits),
+            ("exception", 1),
         ]
+
+        self.get_indices = [("start", gen_params.rob_entries_bits), ("end", gen_params.rob_entries_bits)]
 
 
 class RSInterfaceLayouts:
@@ -289,6 +299,7 @@ class FuncUnitLayouts:
             ("rob_id", gen_params.rob_entries_bits),
             ("result", gen_params.isa.xlen),
             ("rp_dst", gen_params.phys_regs_bits),
+            ("exception", 1),
         ]
 
 
@@ -387,3 +398,11 @@ class CSRLayouts:
         retirement = gen_params.get(RetirementLayouts)
 
         self.precommit = retirement.precommit
+
+
+class ExceptionRegisterLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.get = self.report = [
+            ("cause", ExceptionCause),
+            ("rob_id", gen_params.rob_entries_bits),
+        ]
