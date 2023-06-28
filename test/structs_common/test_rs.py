@@ -1,14 +1,17 @@
 from typing import Iterable, Optional
+from collections import deque
 from amaranth import Elaboratable, Module
 from amaranth.sim import Settle
 
 from coreblocks.transactions.lib import AdapterTrans
+from coreblocks.transactions import TModule
 
-from ..common import TestCaseWithSimulator, TestbenchIO, get_outputs
+from ..common import *
 
-from coreblocks.structs_common.rs import RS
+from coreblocks.structs_common.rs import RS, FifoRS
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
+from coreblocks.utils.protocols import RSLayoutProtocol
 
 
 def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dict]:
@@ -457,3 +460,45 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
             yield Settle()
 
             masks = [mask & ~(1 << i) for mask in masks]
+
+class TestLayout(RSLayoutProtocol):
+    def __init__(self, *, rs_entries_bits = None):
+        self.data_layout : SimpleLayout = [("foo", 7), ("bar", 7), ("rp_s1", 1), ("rp_s2", 1), ("s1_val", 1), ("s2_val", 1), ("exec_fn", [("op_type", 1)])]
+        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", 1)]
+        self.select_out = [("rs_entry_id", 1)]
+        self.update_in = [("tag", 8), ("value", 8)]
+        self.take_in = [("rs_entry_id", 1)]
+        self.take_out = [("rs_data", self.data_layout)]
+        self.get_ready_list_out = [("ready_list", 8)]
+
+class TestFifoRS(TestCaseWithSimulator):
+    def rec_ready_setter(self):
+        def f(self_dut : FifoRS, m : TModule):
+            for record in self_dut.data:
+                m.d.comb += record.rec_ready.eq(record.rec_full.bool())
+        return f
+        
+    def setUp(self):
+        self.gp = GenParams(test_core_config)
+        self.layouts = TestLayout()
+        self.circ = SimpleTestCircuit(FifoRS(self.gp, 7, layout_class = TestLayout, custom_rec_ready_setter = self.rec_ready_setter()))
+        self.test_number = 40
+        self.data_queue = deque()
+
+    def inserter(self):
+        for _ in range(self.test_number):
+            yield from self.circ.select.call()
+            data = generate_based_on_layout(self.layouts.data_layout)
+            yield from self.circ.insert.call(rs_data=data, rs_entry_id=0)
+            self.data_queue.append(data)
+
+    def consumer(self):
+        for _ in range(self.test_number):
+            data = (yield from self.circ.take.call(rs_entry_id=0))["rs_data"]
+            data_expected = self.data_queue.popleft()
+            self.assertEqual(data, data_expected)
+
+    def test(self):
+        with self.run_simulation(self.circ, 2000) as sim:
+            sim.add_sync_process(self.inserter)
+            sim.add_sync_process(self.consumer)

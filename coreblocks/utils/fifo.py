@@ -3,7 +3,7 @@ from coreblocks.transactions import Method, def_method, Priority, TModule, Trans
 from coreblocks.transactions._utils import MethodLayout
 import coreblocks.transactions.lib as tlib
 from coreblocks.utils._typing import ValueLike
-from coreblocks.utils.utils import popcount
+from coreblocks.utils.utils import popcount, mod_incr
 
 
 class BasicFifo(Elaboratable):
@@ -61,12 +61,6 @@ class BasicFifo(Elaboratable):
         self.write_methods = [self.write]
 
     def elaborate(self, platform):
-        def mod_incr(sig: Value, mod: int) -> Value:
-            # perform (sig+1)%mod operation
-            if mod == 2 ** len(sig):
-                return sig + 1
-            return Mux(sig == mod - 1, 0, sig + 1)
-
         m = TModule()
 
         m.submodules.buff_rdport = self.buff_rdport = self.buff.read_port(

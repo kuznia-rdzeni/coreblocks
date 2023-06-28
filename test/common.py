@@ -1,8 +1,9 @@
+import random
 import unittest
 import os
 import functools
 from contextlib import contextmanager, nullcontext
-from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast, Type, TypeGuard
+from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast, Type, TypeGuard, Tuple
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -12,7 +13,7 @@ from amaranth.sim.core import Command
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike, ModuleConnector
+from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike, ModuleConnector, LayoutList
 from .gtkw_extension import write_vcd_ext
 
 
@@ -22,6 +23,7 @@ RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
+SimpleLayout = list[ Tuple[str, Union[int, "SimpleLayout"]]]
 
 
 def data_layout(val: int) -> LayoutLike:
@@ -35,6 +37,18 @@ def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
         else:
             yield getattr(field, name).eq(value)
 
+def generate_based_on_layout(layout : SimpleLayout, *, max_bits : Optional[int]= None):
+    d = {}
+    for elem in layout:
+        if isinstance(elem[1], int):
+            if max_bits is None:
+                max_val = 2**elem[1] 
+            else:
+                max_val = 2**min(max_bits, elem[1])
+            d[elem[0]] = random.randrange(max_val)
+        else:
+            d[elem[0]] = generate_based_on_layout(elem[1])
+    return d
 
 def get_outputs(field: Record) -> TestGen[RecordIntDict]:
     # return dict of all signal values in a record because amaranth's simulator can't read all

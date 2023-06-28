@@ -21,7 +21,14 @@ __all__ = [
     "popcount",
     "count_leading_zeros",
     "count_trailing_zeros",
+    "mod_incr",
 ]
+
+def mod_incr(sig: Value, mod: int) -> Value:
+    # perform (sig+1)%mod operation
+    if mod == 2 ** len(sig):
+        return sig + 1
+    return Mux(sig == mod - 1, 0, sig + 1)
 
 
 @contextmanager
