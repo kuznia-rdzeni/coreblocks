@@ -73,7 +73,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
                 rob_id = random.randrange(self.gen_params.rob_entries_bits)
                 pc = random.randrange(2**32)
-                csr = random.randrange(2**self.gen_params.isa.csr_alen)
+                imm2 = random.randrange(2**self.gen_params.imm2_width)
 
                 instr = {
                     "opcode": opcode,
@@ -90,7 +90,7 @@ class TestRSSelect(TestCaseWithSimulator):
                     },
                     "rob_id": rob_id,
                     "imm": immediate,
-                    "csr": csr,
+                    "imm2": imm2,
                     "pc": pc,
                 }
 

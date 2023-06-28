@@ -1,22 +1,24 @@
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Type, Generic, TypeVar
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
 from coreblocks.transactions import Method, def_method, TModule
-from coreblocks.params import RSLayouts, GenParams, OpType
+from coreblocks.params import RSLayouts, GenParams, OpType, RSInterfaceLayouts
 from coreblocks.transactions.core import RecordDict
+from coreblocks.utils.protocols import RSLayoutProtocol
 
 __all__ = ["RS"]
 
 
-class RS(Elaboratable):
+T = TypeVar('T', bound=RSLayoutProtocol)
+class RS(Elaboratable, Generic[T]):
     def __init__(
-        self, gen_params: GenParams, rs_entries: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None
+            self, gen_params: GenParams, rs_entries: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None, layout_class : Type[T] = RSLayouts
     ) -> None:
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
         self.rs_entries = rs_entries
         self.rs_entries_bits = (rs_entries - 1).bit_length()
-        self.layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
+        self.layouts = gen_params.get(layout_class, rs_entries_bits=self.rs_entries_bits)
         self.internal_layout = [
             ("rs_data", self.layouts.data_layout),
             ("rec_full", 1),
@@ -100,5 +102,33 @@ class RS(Elaboratable):
             @def_method(m, get_ready_list, ready=ready_list.any())
             def _() -> RecordDict:
                 return {"ready_list": ready_list}
+
+        return m
+
+
+class RSStub(Elaboratable):
+    def __init__(self, gen_params : GenParams, update : Method, instr_out : Method):
+        self.gen_params = gen_params
+        self.update = update
+        self.instr_out = instr_out
+
+        self.layouts = gen_params.get(RSInterfaceLayouts, rs_entries_bits=0)
+
+        self.insert = Method(i=self.layouts.insert_in)
+        self.select = Method(o=self.layouts.select_out)
+        self.update = Method(i=self.layouts.update_in)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        @def_method(m, self.select)
+        def _(arg):
+            return 0
+
+        @def_method(m, self.insert)
+        def _(rs_entry_id, rs_data):
+            self.instr_out(m, rs_data)
+
+        self.update.proxy(m, self.update)
 
         return m

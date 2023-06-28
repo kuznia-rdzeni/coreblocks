@@ -98,7 +98,7 @@ class TestCSRUnit(TestCaseWithSimulator):
                 "s1_val": exp["rs1"]["value"] if value_available and not imm_op else 0,
                 "rp_dst": rd,
                 "imm": imm,
-                "csr": csr,
+                "imm2": csr,
             },
             "exp": exp,
         }

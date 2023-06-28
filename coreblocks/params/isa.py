@@ -384,6 +384,12 @@ class ISA:
 
         self.csr_alen = 12
 
+        if self.extensions & Extension.V:
+            self.v_zimmlen = 11
+        else:
+            self.v_zimmlen = 0
+
+
 
 def gen_isa_string(extensions: Extension, isa_xlen: int, *, skip_internal: bool = False) -> str:
     isa_str = "rv"

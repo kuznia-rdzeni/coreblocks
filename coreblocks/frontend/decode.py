@@ -60,7 +60,7 @@ class Decode(Elaboratable):
                         "rl_s2_rf": Mux(instr_decoder.rs2_v, instr_decoder.rs2_rf, 0),
                     },
                     "imm": instr_decoder.imm,
-                    "csr": instr_decoder.csr,
+                    "imm2": instr_decoder.imm2,
                     "pc": raw.pc,
                 },
             )

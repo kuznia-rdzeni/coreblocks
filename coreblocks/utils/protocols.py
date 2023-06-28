@@ -1,6 +1,6 @@
 from typing import Protocol
 from coreblocks.transactions import Method
-from ._typing import HasElaborate
+from ._typing import HasElaborate, LayoutLike
 
 
 __all__ = ["FuncUnit", "FuncBlock", "Unifier", "RoutingBlock"]
@@ -28,3 +28,12 @@ class FuncBlock(HasElaborate, Protocol):
 class RoutingBlock(HasElaborate, Protocol):
     send: list[Method]
     receive: list[Method]
+
+class RSLayoutProtocol(Protocol):
+    data_layout : LayoutLike
+    select_out : LayoutLike
+    insert_in : LayoutLike
+    update_in : LayoutLike
+    take_in : LayoutLike
+    take_out : LayoutLike
+    get_ready_list_out : LayoutLike

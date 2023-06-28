@@ -1,6 +1,7 @@
 from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode, RegisterType
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.utils.utils import layout_subset
+from coreblocks.utils._typing import LayoutLike, LayoutList
 
 __all__ = [
     "SchedulerLayouts",
@@ -53,7 +54,7 @@ class SchedulerLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
+            ("imm2", gen_params.imm2_width),
             ("pc", gen_params.isa.xlen),
         ]
         self.reg_alloc_out = self.renaming_in = [
@@ -63,7 +64,7 @@ class SchedulerLayouts:
             ("regs_l", common.regs_l),
             ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
             ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
+            ("imm2", gen_params.imm2_width),
             ("pc", gen_params.isa.xlen),
         ]
         self.renaming_out = self.rob_allocate_in = [
@@ -79,7 +80,7 @@ class SchedulerLayouts:
             ),
             ("regs_p", common.regs_p),
             ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
+            ("imm2", gen_params.imm2_width),
             ("pc", gen_params.isa.xlen),
         ]
         self.rob_allocate_out = self.rs_select_in = [
@@ -89,7 +90,7 @@ class SchedulerLayouts:
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
             ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
+            ("imm2", gen_params.imm2_width),
             ("pc", gen_params.isa.xlen),
         ]
         self.rs_select_out = self.rs_insert_in = [
@@ -101,7 +102,7 @@ class SchedulerLayouts:
             ("rs_selected", gen_params.rs_number_bits),
             ("rs_entry_id", gen_params.max_rs_entries_bits),
             ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
+            ("imm2", gen_params.imm2_width),
             ("pc", gen_params.isa.xlen),
         ]
         self.free_rf_layout = [("reg_id", gen_params.phys_regs_bits)]
@@ -162,7 +163,7 @@ class ROBLayouts:
 class RSInterfaceLayouts:
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
         common = gen_params.get(CommonLayouts)
-        self.data_layout = [
+        self.data_layout : LayoutList = [
             ("rp_s1", gen_params.phys_regs_bits),
             ("rp_s2", gen_params.phys_regs_bits),
             ("rp_s1_reg", gen_params.phys_regs_bits),
@@ -173,15 +174,15 @@ class RSInterfaceLayouts:
             ("s1_val", gen_params.isa.xlen),
             ("s2_val", gen_params.isa.xlen),
             ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
+            ("imm2", gen_params.imm2_width),
             ("pc", gen_params.isa.xlen),
         ]
 
-        self.select_out = [("rs_entry_id", rs_entries_bits)]
+        self.select_out : LayoutLike = [("rs_entry_id", rs_entries_bits)]
 
-        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
+        self.insert_in : LayoutLike = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
 
-        self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
+        self.update_in : LayoutLike = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
 
 
 class RetirementLayouts:
@@ -195,7 +196,7 @@ class RSLayouts:
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
         rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits)
 
-        self.data_layout = layout_subset(
+        self.data_layout : LayoutLike = layout_subset(
             rs_interface.data_layout,
             fields={
                 "rp_s1",
@@ -210,15 +211,15 @@ class RSLayouts:
             },
         )
 
-        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
+        self.insert_in : LayoutLike = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
 
-        self.select_out = rs_interface.select_out
+        self.select_out : LayoutLike = rs_interface.select_out
 
-        self.update_in = rs_interface.update_in
+        self.update_in : LayoutLike = rs_interface.update_in
 
-        self.take_in = [("rs_entry_id", rs_entries_bits)]
+        self.take_in : LayoutLike  = [("rs_entry_id", rs_entries_bits)]
 
-        self.take_out = layout_subset(
+        self.take_out :LayoutLike = layout_subset(
             rs_interface.data_layout,
             fields={
                 "s1_val",
@@ -231,7 +232,7 @@ class RSLayouts:
             },
         )
 
-        self.get_ready_list_out = [("ready_list", 2**rs_entries_bits)]
+        self.get_ready_list_out : LayoutLike = [("ready_list", 2**rs_entries_bits)]
 
 
 class ICacheLayouts:
@@ -279,7 +280,7 @@ class DecodeLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
+            ("imm2", gen_params.imm2_width),
             ("pc", gen_params.isa.xlen),
         ]
 
@@ -374,7 +375,7 @@ class CSRLayouts:
                 "exec_fn",
                 "s1_val",
                 "imm",
-                "csr",
+                "imm2",
                 "pc",
             },
         )

@@ -2,6 +2,8 @@ from amaranth.utils import *
 from coreblocks.params import *
 from coreblocks.params.vector_params import VectorParameters
 from coreblocks.fu.vector_unit.utils import EEW
+from coreblocks.utils._typing import LayoutLike
+from coreblocks.utils import layout_subset
 
 
 class VectorRegisterBankLayouts:
@@ -31,3 +33,41 @@ class VRFFragmentLayouts:
             ("data", v_params.elen),
             ("mask", v_params.bytes_in_elen),
         ]
+
+class VectorRSLayout(RSLayouts):
+    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
+        super().__init__(gen_params, rs_entries_bits=rs_entries_bits)
+        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits)
+
+        self.data_layout : LayoutLike = layout_subset(
+            rs_interface.data_layout,
+            fields={
+                "rp_s1",
+                "rp_s2",
+                "rp_dst",
+                "rob_id",
+                "exec_fn",
+                "s1_val",
+                "s2_val",
+                "imm",
+                "imm2",
+                "pc",
+            },
+        )
+
+        self.take_out :LayoutLike = layout_subset(
+            rs_interface.data_layout,
+            fields={
+                "s1_val",
+                "s2_val",
+                "rp_dst",
+                "rob_id",
+                "exec_fn",
+                "imm",
+                "pc",
+            },
+        )
+
+class VectorStatusUnitLayouts:
+    def __init__(self, gen_params : GenParams):
+        self.issue = layout_subset
