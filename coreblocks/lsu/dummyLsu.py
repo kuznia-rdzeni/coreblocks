@@ -165,8 +165,6 @@ class LSUDummyInternals(Elaboratable):
                     m.d.sync += self.loadedData.eq(0)
                     m.next = "Start"
             with m.State("StoreWaitForExec"):
-                with m.If(self.get_result_ack):
-                    m.d.sync += self.result_ready.eq(0)
                 with m.If(self.execute_store):
                     self.op_init(m, op_initiated, True)
                     m.next = "StoreInit"
