@@ -58,7 +58,6 @@ class OpType(IntEnum):
     V_REDUCTION = auto()
 
 
-
 #
 # Operation types grouped by extensions
 # Note that this list provides 1:1 mappings and extension implications (like M->Zmmul) need to be resolved externally.
@@ -122,9 +121,9 @@ optypes_by_extensions = {
         OpType.V_ARITHMETIC,
         OpType.V_ARITHMETIC_IMM,
         OpType.V_ARITHMETIC_SCALAR,
-        OpType.V_ARITHMETIC_NARROWING, 
-        OpType.V_ARITHMETIC_NARROWING_IMM, 
-        OpType.V_ARITHMETIC_NARROWING_SCALAR, 
+        OpType.V_ARITHMETIC_NARROWING,
+        OpType.V_ARITHMETIC_NARROWING_IMM,
+        OpType.V_ARITHMETIC_NARROWING_SCALAR,
         OpType.V_PERMUTATION,
         OpType.V_PERMUTATION_IMM,
         OpType.V_PERMUTATION_SCALAR,

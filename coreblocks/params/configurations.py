@@ -120,4 +120,4 @@ test_core_config = CoreConfiguration(
 )
 
 # Core configuration with vector extension
-vector_core_config = CoreConfiguration(_implied_extensions = Extension.V)
+vector_core_config = CoreConfiguration(_implied_extensions=Extension.V)

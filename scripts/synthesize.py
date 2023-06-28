@@ -17,7 +17,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.core import Core
 from coreblocks.transactions import TransactionModule
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneBus
-from coreblocks.params.configurations import basic_core_config, vector_core_config
+from coreblocks.params.configurations import vector_core_config
 from constants.ecp5_platforms import make_ecp5_platform
 
 
