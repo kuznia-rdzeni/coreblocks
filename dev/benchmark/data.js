@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687872470465,
+  "lastUpdate": 1687948172667,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -7349,6 +7349,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 5623,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f58fd958bde32881d6f8b40fc1c2e9039147022b",
+          "message": "DummyLSU: Delay pushing store result until execution (#398)",
+          "timestamp": "2023-06-28T12:21:39+02:00",
+          "tree_id": "2d8b2665595b553e7b59752bd8b8bb050ce1532f",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f58fd958bde32881d6f8b40fc1c2e9039147022b"
+        },
+        "date": 1687948171317,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 61.3,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 21078,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 438,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 888,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5621,
             "unit": "LUT"
           }
         ]
