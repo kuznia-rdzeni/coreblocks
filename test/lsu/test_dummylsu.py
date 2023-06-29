@@ -4,12 +4,16 @@ from typing import Optional
 
 from amaranth.sim import Settle, Passive
 
+from coreblocks.transactions.lib import Adapter
 from coreblocks.params import OpType, GenParams
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import *
+from coreblocks.params.keys import ExceptionReportKey
+from coreblocks.params.dependencies import DependencyManager
+from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator, int_to_signed, signed_to_int
+from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock, int_to_signed, signed_to_int
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
@@ -57,7 +61,7 @@ def shift_mask_based_on_addr(mask: int, addr: int) -> int:
     return mask
 
 
-def check_instr(addr: int, op: tuple[OpType, Funct3]) -> bool:
+def check_align(addr: int, op: tuple[OpType, Funct3]) -> bool:
     rest = addr % 4
     if op[1] in {Funct3.B, Funct3.BU}:
         return True
@@ -81,6 +85,13 @@ class DummyLSUTestCircuit(Elaboratable):
         )
 
         self.bus = WishboneMaster(wb_params)
+
+        m.submodules.exception_report = self.exception_report = TestbenchIO(
+            Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
+        )
+
+        self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
+
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus)
 
         m.submodules.select_mock = self.select = TestbenchIO(AdapterTrans(func_unit.select))
@@ -103,6 +114,9 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             "LW": (OpType.LOAD, Funct3.W),
         }
         for i in range(self.tests_number):
+            misaligned = False
+            bus_err = False
+
             # generate new instructions till we generate correct one
             while True:
                 # generate opcode
@@ -111,7 +125,15 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 rp_s1, s1_val, ann_data, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
                 imm = generate_imm(max_imm_val)
                 addr += imm
-                if check_instr(addr, op):
+
+                if random.random() < 0.1:
+                    bus_err = True
+
+                if check_align(addr, op):
+                    break
+
+                if random.random() < 0.9:
+                    misaligned = True
                     break
 
             self.announce_queue.append(ann_data)
@@ -140,7 +162,23 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                     "mask": mask,
                     "sign": signess,
                     "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+                    "misaligned": misaligned,
+                    "err": bus_err,
                 }
+            )
+
+            if misaligned or bus_err:
+                self.exception_queue.append(
+                    {
+                        "rob_id": rob_id,
+                        "cause": ExceptionCause.LOAD_ADDRESS_MISALIGNED
+                        if misaligned
+                        else ExceptionCause.LOAD_ACCESS_FAULT,
+                    }
+                )
+
+            self.exception_result.append(
+                misaligned or bus_err,
             )
 
     def setUp(self) -> None:
@@ -152,6 +190,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         self.announce_queue = deque()
         self.mem_data_queue = deque()
         self.returned_data = deque()
+        self.exception_queue = deque()
+        self.exception_result = deque()
         self.generate_instr(2**7, 2**7)
 
     def random_wait(self):
@@ -164,6 +204,9 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         while True:
             yield from self.test_module.io_in.slave_wait()
             generated_data = self.mem_data_queue.pop()
+
+            if generated_data["misaligned"]:
+                continue
 
             mask = generated_data["mask"]
             sign = generated_data["sign"]
@@ -179,8 +222,9 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             data = (resp_data >> (data_shift * 8)) & data_mask
             if sign:
                 data = int_to_signed(signed_to_int(data, size), 32)
-            self.returned_data.append(data)
-            yield from self.test_module.io_in.slave_respond(resp_data)
+            if not generated_data["err"]:
+                self.returned_data.append(data)
+            yield from self.test_module.io_in.slave_respond(resp_data, err=generated_data["err"])
             yield Settle()
 
     def inserter(self):
@@ -197,14 +241,23 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     def consumer(self):
         for i in range(self.tests_number):
             v = yield from self.test_module.get_result.call()
-            self.assertEqual(v["result"], self.returned_data.pop())
+            exc = self.exception_result.pop()
+            if not exc:
+                self.assertEqual(v["result"], self.returned_data.pop())
+            self.assertEqual(v["exception"], exc)
+
             yield from self.random_wait()
 
     def test(self):
+        @def_method_mock(lambda: self.test_module.exception_report)
+        def exception_consumer(arg):
+            self.assertDictEqual(arg, self.exception_queue.pop())
+
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.consumer)
+            sim.add_sync_process(exception_consumer)
 
 
 class TestDummyLSULoadsCycles(TestCaseWithSimulator):
@@ -257,8 +310,13 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         self.assertEqual(v["result"], data)
 
     def test(self):
+        @def_method_mock(lambda: self.test_module.exception_report)
+        def exception_consumer(arg):
+            self.assertTrue(False)
+
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.one_instr_test)
+            sim.add_sync_process(exception_consumer)
 
 
 class TestDummyLSUStores(TestCaseWithSimulator):
@@ -276,7 +334,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 rp_s1, s1_val, ann_data1, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
                 imm = generate_imm(max_imm_val)
                 addr += imm
-                if check_instr(addr, op):
+                if check_align(addr, op):
                     break
 
             rp_s2, s2_val, ann_data2, data = generate_register(0xFFFFFFFF, self.gp.phys_regs_bits)
@@ -378,8 +436,13 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             yield from self.test_module.precommit.call(rob_id=rob_id)
 
     def test(self):
+        @def_method_mock(lambda: self.test_module.exception_report)
+        def exception_consumer(arg):
+            self.assertTrue(False)
+
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.get_resulter)
             sim.add_sync_process(self.precommiter)
+            sim.add_sync_process(exception_consumer)
