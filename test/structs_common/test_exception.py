@@ -74,8 +74,8 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
                 self.rob_id = random.randint(0, self.rob_max)
 
                 cause = random.choice(list(ExceptionCause))
-                report_rob = random.randint(0, self.rob_max)
-                report_arg = {"cause": cause, "rob_id": report_rob}
+                rob_id = random.randint(0, self.rob_max)
+                report_arg = make_dict(cause, rob_id)
 
                 yield from self.dut.report.call(report_arg)
 

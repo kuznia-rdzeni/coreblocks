@@ -1,3 +1,6 @@
+import inspect
+import dis
+import re
 import unittest
 import os
 import functools
@@ -23,6 +26,31 @@ RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 
+def make_dict(*args):
+    frame = inspect.currentframe()
+    frame = frame.f_back
+    caller = get_fragment(frame.f_code, frame.f_lasti)
+    m =re.match("make_dict\(([^\)]*)\)", caller)
+    vars = m.groups()[0].split(",")
+    d = {}
+    for k,v in zip(vars,args):
+        d[k] = v
+    return d
+
+def last_call(code, lasti):
+    for instr in reversed(list(dis.get_instructions(code, show_caches=True))):
+        if instr.offset <= lasti:
+            return instr
+
+def get_fragment(code, lasti):
+    instr = last_call(code, lasti)
+    first_instr = list(dis.get_instructions(code, show_caches=True))[0]
+    line_in_func = instr.positions.lineno -  first_instr.positions.lineno
+    end_line_in_func = instr.positions.end_lineno - first_instr.positions.lineno
+    str_code = inspect.getsource(code).split("\n")[line_in_func:end_line_in_func+1]
+    str_code[0] = str_code[0][instr.positions.col_offset:]
+    str_code[-1] = str_code[-1][:instr.positions.end_col_offset]
+    return "".join(str_code)
 
 def data_layout(val: int) -> LayoutLike:
     return [("data", val)]
