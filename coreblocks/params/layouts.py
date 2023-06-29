@@ -28,21 +28,27 @@ class CommonLayouts:
             ("funct3", Funct3),
             ("funct7", Funct7),
         ]
+        self.l_register_entry = self.get_reg_description_layout(gen_params.isa.reg_cnt_log)
+        self.p_register_entry = self.get_reg_description_layout(gen_params.phys_regs_bits)
 
         self.regs_l = [
-            ("rl_s1", gen_params.isa.reg_cnt_log),
-            ("rl_s1_rf", RegisterType),
-            ("rl_s2", gen_params.isa.reg_cnt_log),
-            ("rl_s2_rf", RegisterType),
-            ("rl_dst", gen_params.isa.reg_cnt_log),
-            ("rl_dst_rf", RegisterType),
+            ("s1", self.l_register_entry),
+            ("s2", self.l_register_entry),
+            ("dst",self.l_register_entry),
         ]
 
         self.regs_p = [
-            ("rp_dst", gen_params.phys_regs_bits),
-            ("rp_s1", gen_params.phys_regs_bits),
-            ("rp_s2", gen_params.phys_regs_bits),
+            ("s1", self.p_register_entry),
+            ("s2", self.p_register_entry),
+            ("dst", self.p_register_entry),
         ]
+
+    def get_reg_description_layout(self, width : int):
+        reg_desc = [
+            ("id", width),
+            ("type", RegisterType)
+        ]
+        return reg_desc
 
 
 class SchedulerLayouts:
@@ -62,7 +68,7 @@ class SchedulerLayouts:
             ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
-            ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
+            ("regs_p", [("dst", common.p_register_entry)]),
             ("imm", gen_params.isa.xlen),
             ("imm2", gen_params.imm2_width),
             ("pc", gen_params.isa.xlen),
@@ -74,8 +80,7 @@ class SchedulerLayouts:
             (
                 "regs_l",
                 [
-                    ("rl_dst", gen_params.isa.reg_cnt_log),
-                    ("rl_dst_v", 1),
+                    ("dst", common.l_register_entry),
                 ],
             ),
             ("regs_p", common.regs_p),
@@ -131,9 +136,10 @@ class RATLayouts:
 
 class ROBLayouts:
     def __init__(self, gen_params: GenParams):
+        common = gen_params.get(CommonLayouts)
         self.data_layout = [
-            ("rl_dst", gen_params.isa.reg_cnt_log),
-            ("rp_dst", gen_params.phys_regs_bits),
+            ("rl_dst", common.l_register_entry),
+            ("rp_dst",common.p_register_entry),
         ]
 
         self.id_layout = [
@@ -164,11 +170,11 @@ class RSInterfaceLayouts:
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
         common = gen_params.get(CommonLayouts)
         self.data_layout : LayoutList = [
-            ("rp_s1", gen_params.phys_regs_bits),
-            ("rp_s2", gen_params.phys_regs_bits),
+            ("rp_s1", common.p_register_entry),
+            ("rp_s2", common.p_register_entry),
             ("rp_s1_reg", gen_params.phys_regs_bits),
             ("rp_s2_reg", gen_params.phys_regs_bits),
-            ("rp_dst", gen_params.phys_regs_bits),
+            ("rp_dst", common.p_register_entry),
             ("rob_id", gen_params.rob_entries_bits),
             ("exec_fn", common.exec_fn),
             ("s1_val", gen_params.isa.xlen),
@@ -292,7 +298,7 @@ class FuncUnitLayouts:
         self.issue = [
             ("s1_val", gen_params.isa.xlen),
             ("s2_val", gen_params.isa.xlen),
-            ("rp_dst", gen_params.phys_regs_bits),
+            ("rp_dst", common.p_register_entry),
             ("rob_id", gen_params.rob_entries_bits),
             ("exec_fn", common.exec_fn),
             ("imm", gen_params.isa.xlen),
@@ -302,7 +308,7 @@ class FuncUnitLayouts:
         self.accept = [
             ("rob_id", gen_params.rob_entries_bits),
             ("result", gen_params.isa.xlen),
-            ("rp_dst", gen_params.phys_regs_bits),
+            ("rp_dst", common.p_register_entry),
             ("exception", 1),
         ]
 

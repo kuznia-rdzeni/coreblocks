@@ -60,7 +60,7 @@ class ResultAnnouncement(Elaboratable):
             self.m_rob_mark_done(m, rob_id=result.rob_id, exception=result.exception)
 
             with m.If(result.exception == 0):
-                self.m_rf_write_val(m, reg_id=result.rp_dst, reg_val=result.result)
+                self.m_rf_write_val(m, reg_id=result.rp_dst.id, reg_val=result.result)
                 with m.If(result.rp_dst != 0):
                     self.m_rs_write_val(m, tag=result.rp_dst, value=result.result)
 

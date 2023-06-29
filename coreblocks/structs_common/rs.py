@@ -96,20 +96,16 @@ class RS(Elaboratable, Generic[T]):
             if self.insert_hook is not None:
                 self.insert_hook(m, rs_entry_id)
 
+        self.define_update_method(m)
+
         @def_method(m, self.take, ready=take_possible)
         def _(rs_entry_id: Value) -> RecordDict:
             record = self.data[rs_entry_id]
             m.d.sync += record.rec_reserved.eq(0)
             m.d.sync += record.rec_full.eq(0)
-            return {
-                "s1_val": record.rs_data.s1_val,
-                "s2_val": record.rs_data.s2_val,
-                "rp_dst": record.rs_data.rp_dst,
-                "rob_id": record.rs_data.rob_id,
-                "exec_fn": record.rs_data.exec_fn,
-                "imm": record.rs_data.imm,
-                "pc": record.rs_data.pc,
-            }
+            record_out = Record(self.layouts.take_out)
+            m.d.comb += assign(record_out, record.rs_data, fields=AssignType.COMMON)
+            return record_out
 
         @loop_def_method(m, self.get_ready_list, ready_list=lambda i: ready_lists[i].any())
         def _(i) -> RecordDict:
@@ -149,7 +145,7 @@ class FifoRS(RS[T]):
             m.d.sync += record.rec_reserved.eq(0)
             m.d.sync += record.rec_full.eq(0)
             record_out = Record(self.layouts.take_out)
-            m.d.comb += assign(record_out, record, fields=AssignType.COMMON)
+            m.d.comb += assign(record_out, record.rs_data, fields=AssignType.COMMON)
             return record_out
 
         ready_lists: list[Value] = []

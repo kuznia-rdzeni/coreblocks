@@ -4,11 +4,11 @@ import random
 from amaranth import *
 from amaranth.sim import Settle, Passive
 
-from coreblocks.params import GenParams, RSLayouts, SchedulerLayouts, OpType, Opcode, Funct3, Funct7
+from coreblocks.params import GenParams, RSLayouts, SchedulerLayouts, OpType, Opcode, Funct3, Funct7, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config
 from coreblocks.scheduler.scheduler import RSSelection
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
-from test.common import TestCaseWithSimulator, TestbenchIO
+from test.common import *
 
 _rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
 _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}
@@ -51,6 +51,7 @@ class TestRSSelect(TestCaseWithSimulator):
         self.m = RSSelector(self.gen_params)
         self.expected_out = deque()
         self.instr_in = deque()
+        self.maxDiff = None
         random.seed(1789)
 
     def random_wait(self, n: int):
@@ -60,39 +61,7 @@ class TestRSSelect(TestCaseWithSimulator):
     def create_instr_input_process(self, instr_count: int, optypes: set[OpType], random_wait: int = 0):
         def process():
             for i in range(instr_count):
-                rp_dst = random.randrange(self.gen_params.phys_regs_bits)
-                rp_s1 = random.randrange(self.gen_params.phys_regs_bits)
-                rp_s2 = random.randrange(self.gen_params.phys_regs_bits)
-
-                op_type = random.choice(list(optypes))
-                funct3 = random.choice(list(Funct3))
-                funct7 = random.choice(list(Funct7))
-
-                opcode = random.choice(list(Opcode))
-                immediate = random.randrange(2**32)
-
-                rob_id = random.randrange(self.gen_params.rob_entries_bits)
-                pc = random.randrange(2**32)
-                imm2 = random.randrange(2**self.gen_params.imm2_width)
-
-                instr = {
-                    "opcode": opcode,
-                    "illegal": 0,
-                    "exec_fn": {
-                        "op_type": op_type,
-                        "funct3": funct3,
-                        "funct7": funct7,
-                    },
-                    "regs_p": {
-                        "rp_dst": rp_dst,
-                        "rp_s1": rp_s1,
-                        "rp_s2": rp_s2,
-                    },
-                    "rob_id": rob_id,
-                    "imm": immediate,
-                    "imm2": imm2,
-                    "pc": pc,
-                }
+                instr = generate_instr(self.gen_params, SchedulerLayouts(self.gen_params).rs_select_in, optypes=optypes)
 
                 self.instr_in.append(instr)
                 yield from self.m.instr_in.call(instr)
