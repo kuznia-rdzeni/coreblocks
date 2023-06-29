@@ -115,7 +115,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         }
         for i in range(self.tests_number):
             misaligned = False
-            bus_err = False
+            bus_err = random.random() < 0.1
 
             # generate new instructions till we generate correct one
             while True:
@@ -125,9 +125,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 rp_s1, s1_val, ann_data, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
                 imm = generate_imm(max_imm_val)
                 addr += imm
-
-                if random.random() < 0.1:
-                    bus_err = True
 
                 if check_align(addr, op):
                     break
