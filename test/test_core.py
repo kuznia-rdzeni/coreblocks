@@ -3,7 +3,7 @@ from amaranth import Elaboratable, Module
 from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.utils import align_to_power_of_two
 
-from .common import TestCaseWithSimulator, TestbenchIO
+from .common import TestCaseWithSimulator, TestbenchIO, int_to_signed, signed_to_int
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
@@ -31,6 +31,7 @@ from riscvmodel.insn import (
 from riscvmodel.model import Model
 from riscvmodel.isa import Instruction, InstructionRType, get_insns
 from riscvmodel.variant import RV32I
+from riscvmodel.types import Immediate
 
 
 class TestElaboratable(Elaboratable):
@@ -116,6 +117,16 @@ class TestCoreBase(TestCaseWithSimulator):
 
     def push_instr(self, opcode):
         yield from self.m.io_in.call(data=opcode)
+
+    def push_arch_reg_val(self, reg_id, val):
+        addi_imm = signed_to_int(val & 0xfff, 12)
+        lui_imm = (val & 0xfffff000) >> 12
+        # handle addi sign extension, see: https://stackoverflow.com/a/59546567
+        if val & 0x800:
+            lui_imm = (lui_imm + 1) & (0xfffff)
+
+        yield from self.push_instr(InstructionLUI(reg_id, lui_imm).encode())
+        yield from self.push_instr(InstructionADDI(reg_id, reg_id, addi_imm).encode())
 
     def compare_core_states(self, sw_core):
         for i in range(self.gp.isa.reg_cnt):
@@ -298,22 +309,29 @@ class TestCoreBasicAsmSource(TestCoreAsmSourceBase):
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_and_check)
 
-
+@parameterized_class(
+    ("source_file", "main_cycle_count", "limit", "expected_regvals", "lo", "hi"),
+    [
+        ("interrupt.asm", 800, 24157817, {2: 24157817, 8: 38, 31: 0xde}, 100, 200),
+        ("interrupt.asm", 250, 89, {2: 89, 8: 38, 31: 0xde}, 30, 50),
+    ]
+)
 class TestCoreInterrupt(TestCoreAsmSourceBase):
     def setUp(self):
-        self.source_file = "interrupt.asm"
-        self.main_cycle_count = 800
         self.configuration = full_core_config
         self.gp = GenParams(self.configuration)
         random.seed(1500100900)
 
     def run_with_interrupt(self):
         main_cycles = 0
-        # wait for caches to fill up
-        yield from self.tick(100)
+
+        # set up fibonacci max number
+        yield from self.push_arch_reg_val(4, self.limit)
+        # wait for caches to fill up so that mtvec is written
+        yield from self.tick(150)
         while main_cycles < self.main_cycle_count:
             # run main code for some semi-random amount of cycles
-            c = random.randrange(100, 200)
+            c = random.randrange(self.lo, self.hi)
             main_cycles += c
             yield from self.tick(c)
             # trigger an interrupt
@@ -324,8 +342,8 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             while (yield self.m.core.int_coordinator.interrupt) != 0:
                 yield
 
-        self.assertEqual((yield from self.get_arch_reg_val(8)), 38)  # interrupt executed
-        self.assertEqual((yield from self.get_arch_reg_val(2)), 2971215073)  # last fibonacci number
+        for reg_id, val in self.expected_regvals.items():
+            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)

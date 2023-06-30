@@ -31,7 +31,6 @@ class Fetch(Elaboratable):
         layouts = self.gp.get(FetchLayouts)
         self.verify_branch = Method(i=layouts.branch_verify_in, o=layouts.branch_verify_out)
         self.stall = Method()
-        self.clear = Method()
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
@@ -40,26 +39,26 @@ class Fetch(Elaboratable):
         m = TModule()
 
         m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(
-            layout=[("addr", self.gp.isa.xlen), ("spin", 1)], depth=2
+            layout=[("addr", self.gp.isa.xlen), ("tag", 2)], depth=2
         )
 
         speculative_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
 
         stalled = Signal()
-        spin = Signal()
+        tag = Signal(2)
         request_trans = Transaction(name="request")
         response_trans = Transaction(name="response")
 
         with request_trans.body(m, request=~stalled):
             self.icache.issue_req(m, addr=speculative_pc)
-            self.fetch_target_queue.write(m, addr=speculative_pc, spin=spin)
+            self.fetch_target_queue.write(m, addr=speculative_pc, tag=tag)
 
             m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
 
         def stall():
             m.d.sync += stalled.eq(1)
             with m.If(~stalled):
-                m.d.sync += spin.eq(~spin)
+                m.d.sync += tag.eq(tag + 1)
 
         with response_trans.body(m):
             target = self.fetch_target_queue.read(m)
@@ -71,7 +70,7 @@ class Fetch(Elaboratable):
             is_branch = res.instr[4:7] == 0b110
             is_system = res.instr[2:7] == 0b11100
 
-            with m.If(spin == target.spin):
+            with m.If(tag == target.tag):
                 instr = Signal(self.gp.isa.ilen)
 
                 with m.If(res.error != 0):
@@ -84,31 +83,28 @@ class Fetch(Elaboratable):
                 with m.Else():
                     with m.If(is_branch | is_system):
                         stall()
-
                     m.d.sync += self.pc.eq(target.addr)
                     m.d.comb += instr.eq(res.instr)
 
                 self.cont(m, data=instr, pc=target.addr)
 
         self.verify_branch.add_conflict(self.stall)
+        self.verify_branch.add_conflict(response_trans, priority=Priority.LEFT)
+        self.verify_branch.add_conflict(request_trans, priority=Priority.LEFT)
 
         @def_method(m, self.stall)
         def _():
-            m.d.sync += stalled.eq(1)
+            stall()
 
         @def_method(m, self.verify_branch)
         def _(from_pc: Value, next_pc: Value):
             m.d.sync += speculative_pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
+            # makes sure that all responses that arrived during the stall are discarded
+            # on arrival (not necessarily branches - this can happen on arbitrary
+            # instructions during interrupt processing so we need to make sure no stray
+            # instructions from main program flow make their way into the core)
+            m.d.sync += tag.eq(tag + 1)
             return self.pc
-
-        # rationale behind clear method in fetcher: what if the instruction
-        # in the internal fetcher FIFO isn't cleared and enters ROB during
-        # handling an interrupt, after ROB flushing stage? - we get an
-        # instruction from the interrupted instruction stream in the ROB
-        # that's not supposed to be there
-        self.clear.proxy(m, self.fetch_target_queue.clear)
-        self.clear.add_conflict(request_trans, priority=Priority.LEFT)
-        self.clear.add_conflict(response_trans, priority=Priority.LEFT)
 
         return m

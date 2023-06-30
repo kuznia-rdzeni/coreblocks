@@ -1,10 +1,10 @@
 # fibonacci spiced with interrupt handler
 # TODO: register collisions, memory handling, various interrupt frequency
+    li x31, 0xde  # branch guard
     li x1, 0x100
     csrrw x0, mtvec, x1
     li x1, 0
     li x2, 1
-    li x4, 2971215073
 loop:
     add x3, x2, x1
     mv x1, x2
@@ -30,3 +30,4 @@ do_ops:
 
 .org 0x100
     j int_handler
+    li x31, 0xae  # should never happen

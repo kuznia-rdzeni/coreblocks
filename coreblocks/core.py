@@ -52,7 +52,6 @@ class Core(Elaboratable):
             self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
 
         self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
-        self.connections.add_dependency(ClearKey(), self.fetch.clear)
         self.connections.add_dependency(SetPCKey(), self.fetch.verify_branch)
 
         self.FRAT = FRAT(gen_params=self.gen_params)

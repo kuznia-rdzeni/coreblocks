@@ -66,7 +66,6 @@ class InterruptCoordinator(Elaboratable):
                     # able proceed due to lack of aforementioned PC). See also:
                     # https://github.com/kuznia-rdzeni/coreblocks/pull/351#discussion_r1209887087
                     with m.If(~self.rob_empty(m)):
-                        self.pc_stall(m)
                         with m.If(self.retirement_stall(m)):
                             m.next = "clear"
                         with m.Else():
@@ -83,6 +82,9 @@ class InterruptCoordinator(Elaboratable):
                 # nonexclusivity comes into play here) and also to make sure that the fetcher
                 # is stopped before attempting to clear it with clear_blocks
                 with Transaction(name="IntClearAll").body(m):
+                    # stall fetcher *after* retirement has been stalled
+                    # so that no spurious unstall occurs
+                    self.pc_stall(m)
                     self.f_rat_set_all(m, self.r_rat_get_all(m))
                     clear_blocks(m)
                     next_instr = self.rob_peek(m)
