@@ -8,6 +8,9 @@ on:
 
 jobs:
   synthesis:
+    strategy:
+      matrix:
+        config: [basic, full]
     name: Synthesis benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -26,7 +29,7 @@ jobs:
           pip3 install -r requirements-dev.txt
 
       - name: Synthesize
-        run: PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose
+        run: PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --config ${{ matrix.config }}
 
       - name: Print synthesis information
         run: cat ./build/top.tim
@@ -40,7 +43,7 @@ jobs:
         uses: benchmark-action/github-action-benchmark@v1
         if: github.ref == 'refs/heads/master'
         with:
-          name: Fmax and LCs
+          name: Fmax and LCs (${{ matrix.config }})
           tool: 'customBiggerIsBetter'
           output-file-path: './benchmark.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
