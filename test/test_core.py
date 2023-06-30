@@ -309,11 +309,16 @@ class TestCoreBasicAsmSource(TestCoreAsmSourceBase):
             sim.add_sync_process(self.run_and_check)
 
 
+# test interrupts with varying triggering frequency (parametrizable amount of cycles between
+# returning from an interrupt and triggering it again with 'lo' and 'hi' parameters)
 @parameterized_class(
     ("source_file", "main_cycle_count", "limit", "expected_regvals", "lo", "hi"),
     [
+        ("interrupt.asm", 800, 2971215073, {2: 2971215073, 8: 38, 31: 0xDE}, 300, 500),
         ("interrupt.asm", 800, 24157817, {2: 24157817, 8: 38, 31: 0xDE}, 100, 200),
-        ("interrupt.asm", 250, 89, {2: 89, 8: 38, 31: 0xDE}, 30, 50),
+        ("interrupt.asm", 280, 89, {2: 89, 8: 38, 31: 0xDE}, 30, 50),
+        # 10-15 is the smallest feasible cycle count between interrupts to provide forward progress
+        ("interrupt.asm", 200, 21, {2: 21, 8: 38, 31: 0xDE}, 10, 15),
     ],
 )
 class TestCoreInterrupt(TestCoreAsmSourceBase):
@@ -323,6 +328,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
     expected_regvals: dict[int, int]
     lo: int
     hi: int
+
     def setUp(self):
         self.configuration = full_core_config
         self.gp = GenParams(self.configuration)
@@ -333,8 +339,8 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
         # set up fibonacci max number
         yield from self.push_arch_reg_val(4, self.limit)
-        # wait for caches to fill up so that mtvec is written
-        yield from self.tick(150)
+        # wait for caches to fill up so that mtvec is written - very important
+        yield from self.tick(200)
         while main_cycles < self.main_cycle_count:
             # run main code for some semi-random amount of cycles
             c = random.randrange(self.lo, self.hi)
