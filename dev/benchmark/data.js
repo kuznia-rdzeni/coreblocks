@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688146015362,
+  "lastUpdate": 1688146540651,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -8488,6 +8488,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "crc32",
             "value": 0.383974924819342,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "24831d688ef84c9a22b1e1d28f9f2f6995faa0e7",
+          "message": "Synthesize different core versions (#407)",
+          "timestamp": "2023-06-30T19:16:15+02:00",
+          "tree_id": "d1155c0f1fa5af0e559571c62e4e008b2e852372",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/24831d688ef84c9a22b1e1d28f9f2f6995faa0e7"
+        },
+        "date": 1688146538644,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.34326885628975723,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2142909720634896,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20199456436288493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28757457429729644,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24334628411853151,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.383974924819342,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2950910250985018,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15129959734328294,
             "unit": "Instructions Per Cycle"
           }
         ]
