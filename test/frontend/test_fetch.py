@@ -127,14 +127,15 @@ class TestFetch(TestCaseWithSimulator):
                 yield
 
             instr = self.instr_queue.popleft()
+            # important to wait for a particular instruction before calling verify_branch
+            v = yield from self.m.io_out.call()
+            self.assertEqual(v["pc"], instr["pc"])
+            self.assertEqual(v["data"], instr["data"])
+
             if instr["is_branch"]:
                 for _ in range(random.randrange(10)):
                     yield
                 yield from self.m.verify_branch.call(from_pc=instr["pc"], next_pc=instr["next_pc"])
-
-            v = yield from self.m.io_out.call()
-            self.assertEqual(v["pc"], instr["pc"])
-            self.assertEqual(v["data"], instr["data"])
 
     def test(self):
         issue_req_mock, accept_res_mock, cache_process = self.cache_processes()
