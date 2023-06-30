@@ -38,12 +38,8 @@ class IntRetFuncUnit(Elaboratable):
         self.clear = Method()
         self.precommit = Method(i=layouts.precommit)
 
-        self.intret_fn = intret_fn
-
     def elaborate(self, platform):
         m = TModule()
-
-        m.submodules.decoder = self.intret_fn.get_decoder(self.gen)
 
         instr = Record(self.layouts.accept)
         pending_instr = Signal()

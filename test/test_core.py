@@ -312,19 +312,19 @@ class TestCoreBasicAsmSource(TestCoreAsmSourceBase):
 # test interrupts with varying triggering frequency (parametrizable amount of cycles between
 # returning from an interrupt and triggering it again with 'lo' and 'hi' parameters)
 @parameterized_class(
-    ("source_file", "main_cycle_count", "limit", "expected_regvals", "lo", "hi"),
+    ("source_file", "main_cycle_count", "start_regvals", "expected_regvals", "lo", "hi"),
     [
-        ("interrupt.asm", 800, 2971215073, {2: 2971215073, 8: 38, 31: 0xDE}, 300, 500),
-        ("interrupt.asm", 800, 24157817, {2: 24157817, 8: 38, 31: 0xDE}, 100, 200),
-        ("interrupt.asm", 280, 89, {2: 89, 8: 38, 31: 0xDE}, 30, 50),
+        ("interrupt.asm", 800, {4: 2971215073, 8: 29}, {2: 2971215073, 7: 29, 31: 0xDE}, 300, 500),
+        ("interrupt.asm", 800, {4: 24157817, 8: 199}, {2: 24157817, 7: 199, 31: 0xDE}, 100, 200),
+        ("interrupt.asm", 350, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
         # 10-15 is the smallest feasible cycle count between interrupts to provide forward progress
-        ("interrupt.asm", 200, 21, {2: 21, 8: 38, 31: 0xDE}, 10, 15),
+        ("interrupt.asm", 300, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 10, 15),
     ],
 )
 class TestCoreInterrupt(TestCoreAsmSourceBase):
     source_file: str
     main_cycle_count: int
-    limit: int
+    start_regvals: dict[int, int]
     expected_regvals: dict[int, int]
     lo: int
     hi: int
@@ -336,9 +336,11 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
     def run_with_interrupt(self):
         main_cycles = 0
+        int_count = 0
 
-        # set up fibonacci max number
-        yield from self.push_arch_reg_val(4, self.limit)
+        # set up fibonacci max numbers
+        for reg_id, val in self.start_regvals.items():
+            yield from self.push_arch_reg_val(reg_id, val)
         # wait for caches to fill up so that mtvec is written - very important
         yield from self.tick(200)
         while main_cycles < self.main_cycle_count:
@@ -353,7 +355,9 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             # wait until ISR returns
             while (yield self.m.core.int_coordinator.interrupt) != 0:
                 yield
+            int_count += 1
 
+        self.assertEqual((yield from self.get_arch_reg_val(30)), int_count)
         for reg_id, val in self.expected_regvals.items():
             self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
 
