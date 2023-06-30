@@ -8,7 +8,7 @@ from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsign
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params.fu_params import FunctionalComponentParams
-from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
+from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, CommonLayouts
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -113,7 +113,7 @@ class MulUnit(FuncUnit, Elaboratable):
         m.submodules.params_fifo = params_fifo = FIFO(
             [
                 ("rob_id", self.gen.rob_entries_bits),
-                ("rp_dst", self.gen.phys_regs_bits),
+                ("rp_dst", self.gen.get(CommonLayouts).p_register_entry),
                 ("negative_res", 1),
                 ("high_res", 1),
             ],

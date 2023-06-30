@@ -188,7 +188,7 @@ class RSInterfaceLayouts:
 
         self.insert_in : LayoutLike = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
 
-        self.update_in : LayoutLike = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
+        self.update_in : LayoutLike = [("tag", common.p_register_entry), ("value", gen_params.isa.xlen)]
 
 
 class RetirementLayouts:

@@ -11,7 +11,7 @@ from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.transactions.lib import AdapterTrans, Adapter
-from test.common import TestbenchIO, TestCaseWithSimulator
+from test.common import TestbenchIO, TestCaseWithSimulator, generate_register_entry
 
 
 class FunctionalTestCircuit(Elaboratable):
@@ -94,6 +94,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         self.gen = gen
 
     def setUp(self):
+        self.maxDiff = None
         self.m = FunctionalTestCircuit(self.gen, self.func_unit)
 
         random.seed(self.seed)
@@ -111,7 +112,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
             data2_is_imm = random.randint(0, 1)
             op = random.choice(functions)
             rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
-            rp_dst = random.randint(0, 2**self.gen.phys_regs_bits - 1)
+            rp_dst = generate_register_entry(self.gen.phys_regs_bits)
             exec_fn = self.ops[op]
             pc = random.randint(0, max_int) & ~0b11
             results = self.expected(data1, data2, data_imm, pc, op, self.gen.isa.xlen)

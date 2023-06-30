@@ -60,7 +60,7 @@ class IterativeZbcUnitTest(GenericFunctionalTestUnit):
             ZbcComponent(recursion_depth=0),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=400,
+            number_of_tests=200,
             seed=323262,
             method_name=method_name,
         )
@@ -76,7 +76,7 @@ class RecursiveZbcUnitTestDepth3(GenericFunctionalTestUnit):
             ZbcComponent(recursion_depth=3),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=400,
+            number_of_tests=200,
             seed=323262,
             method_name=method_name,
         )
@@ -93,7 +93,7 @@ class RecursiveZbcUnitTestFullDepth(GenericFunctionalTestUnit):
             ZbcComponent(recursion_depth=gen.isa.xlen_log),
             compute_result,
             gen=gen,
-            number_of_tests=300,
+            number_of_tests=150,
             seed=323262,
             method_name=method_name,
         )

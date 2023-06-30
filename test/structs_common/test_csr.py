@@ -79,7 +79,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         op = random.choice(ops)
         imm_op = op == Funct3.CSRRWI or op == Funct3.CSRRCI or op == Funct3.CSRRSI
 
-        rd = random.randint(0, 15)
+        rd = generate_register_entry(4)
         rs1 = 0 if imm_op else random.randint(0, 15)
         imm = random.randint(0, 2**self.gp.isa.xlen - 1)
         rs1_val = random.randint(0, 2**self.gp.isa.xlen - 1) if rs1 else 0
@@ -130,7 +130,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             self.assertTrue(self.dut.fetch_continue.done())
             self.assertEqual(res["rp_dst"], op["exp"]["exp_read"]["rp_dst"])
-            if op["exp"]["exp_read"]["rp_dst"]:
+            if op["exp"]["exp_read"]["rp_dst"]["id"]:
                 self.assertEqual(res["result"], op["exp"]["exp_read"]["result"])
             self.assertEqual((yield self.dut.csr[op["exp"]["exp_write"]["csr"]].value), op["exp"]["exp_write"]["value"])
 

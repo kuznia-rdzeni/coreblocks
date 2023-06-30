@@ -56,7 +56,7 @@ class Retirement(Elaboratable):
                 mcause.write(m, entry)
 
             # set rl_dst -> rp_dst in R-RAT
-            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
+            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst.id, rp_dst=rob_entry.rob_data.rp_dst.id)
 
             self.rf_free(m, rat_out.old_rp_dst)
 
