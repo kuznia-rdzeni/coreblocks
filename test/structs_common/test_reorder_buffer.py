@@ -76,7 +76,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
         self.executed_list = []
         self.retire_queue = deque()
         for i in range(2**gp.phys_regs_bits):
-            self.regs_left_queue.append({"id":i, "type":RegisterType.X})
+            self.regs_left_queue.append({"id": i, "type": RegisterType.X})
 
         self.log_regs_bits = gp.isa.reg_cnt_log
 
@@ -119,7 +119,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
 
-        self.gp = GenParams( test_core_config.replace(phys_regs_bits=4, rob_entries_bits=5))
+        self.gp = GenParams(test_core_config.replace(phys_regs_bits=4, rob_entries_bits=5))
         self.test_steps = 2**self.gp.rob_entries_bits
         self.m = SimpleTestCircuit(ReorderBuffer(self.gp))
         self.to_execute_list = []

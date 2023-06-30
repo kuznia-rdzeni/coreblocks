@@ -390,7 +390,6 @@ class ISA:
             self.v_zimmlen = 0
 
 
-
 def gen_isa_string(extensions: Extension, isa_xlen: int, *, skip_internal: bool = False) -> str:
     isa_str = "rv"
 

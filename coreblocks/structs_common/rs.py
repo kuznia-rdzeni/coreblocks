@@ -11,11 +11,19 @@ from coreblocks.utils.utils import mod_incr, assign, AssignType
 __all__ = ["RS", "FifoRS"]
 
 
-T = TypeVar('T', bound=RSLayoutProtocol)
+T = TypeVar("T", bound=RSLayoutProtocol)
+
+
 class RS(Elaboratable, Generic[T]):
     def __init__(
-            self, gen_params: GenParams, rs_entries: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None, *, layout_class : Type[T] = RSLayouts, insert_hook : Optional[Method] = None,
-            custom_rec_ready_setter : Optional[Callable[[Self, TModule], None]] = None
+        self,
+        gen_params: GenParams,
+        rs_entries: int,
+        ready_for: Optional[Iterable[Iterable[OpType]]] = None,
+        *,
+        layout_class: Type[T] = RSLayouts,
+        insert_hook: Optional[Method] = None,
+        custom_rec_ready_setter: Optional[Callable[[Self, TModule], None]] = None
     ) -> None:
         self.insert_hook = insert_hook
         self.custom_rec_ready_setter = custom_rec_ready_setter
@@ -41,7 +49,7 @@ class RS(Elaboratable, Generic[T]):
 
         self.data = Array(Record(self.internal_layout) for _ in range(self.rs_entries))
 
-    def define_update_method(self, m : TModule):
+    def define_update_method(self, m: TModule):
         @def_method(m, self.update)
         def _(tag: Value, value: Value) -> None:
             for record in self.data:
@@ -113,9 +121,10 @@ class RS(Elaboratable, Generic[T]):
 
         return m
 
+
 class FifoRS(RS[T]):
     def __init__(
-            self, gen_params: GenParams, rs_entries: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None, **kwargs
+        self, gen_params: GenParams, rs_entries: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None, **kwargs
     ) -> None:
         super().__init__(gen_params, rs_entries, ready_for, **kwargs)
         self.first_empty = Signal(self.rs_entries_bits)
@@ -127,9 +136,9 @@ class FifoRS(RS[T]):
         @def_method(m, self.select)
         def _():
             # ignore rs_entry_id because we always insert data to first empty slot
-            return 
+            return
 
-        @def_method(m, self.insert, ready= mod_incr(self.first_empty, self.rs_entries)!=self.oldest_full)
+        @def_method(m, self.insert, ready=mod_incr(self.first_empty, self.rs_entries) != self.oldest_full)
         def _(rs_entry_id, rs_data):
             m.d.sync += self.data[self.first_empty].rs_data.eq(rs_data)
             m.d.sync += self.data[self.first_empty].rec_full.eq(1)
@@ -151,7 +160,9 @@ class FifoRS(RS[T]):
         ready_lists: list[Value] = []
         for op_list in self.ready_for:
             op_correct = Cat(self.data[self.oldest_full].rs_data.exec_fn.op_type == op for op in op_list).any()
-            ready_lists.append(self.data[self.oldest_full].rec_ready & self.data[self.oldest_full].rec_full & op_correct)
+            ready_lists.append(
+                self.data[self.oldest_full].rec_ready & self.data[self.oldest_full].rec_full & op_correct
+            )
 
         @loop_def_method(m, self.get_ready_list, ready_list=lambda i: ready_lists[i].any())
         def _(i) -> RecordDict:
@@ -159,8 +170,9 @@ class FifoRS(RS[T]):
 
         return m
 
+
 class RSStub(Elaboratable):
-    def __init__(self, gen_params : GenParams, update : Method, instr_out : Method):
+    def __init__(self, gen_params: GenParams, update: Method, instr_out: Method):
         self.gen_params = gen_params
         self.update = update
         self.instr_out = instr_out

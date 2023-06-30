@@ -24,6 +24,7 @@ __all__ = [
     "mod_incr",
 ]
 
+
 def mod_incr(sig: Value, mod: int) -> Value:
     # perform (sig+1)%mod operation
     if mod == 2 ** len(sig):

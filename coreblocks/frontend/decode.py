@@ -57,11 +57,11 @@ class Decode(Elaboratable):
                             "type": Mux(instr_decoder.rd_v, instr_decoder.rd_rf, 0),
                         },
                         "s1": {
-                            "id":Mux(instr_decoder.rs1_v, instr_decoder.rs1, 0),
+                            "id": Mux(instr_decoder.rs1_v, instr_decoder.rs1, 0),
                             "type": Mux(instr_decoder.rs1_v, instr_decoder.rs1_rf, 0),
                         },
                         "s2": {
-                            "id":Mux(instr_decoder.rs2_v, instr_decoder.rs2, 0),
+                            "id": Mux(instr_decoder.rs2_v, instr_decoder.rs2, 0),
                             "type": Mux(instr_decoder.rs2_v, instr_decoder.rs2_rf, 0),
                         },
                     },

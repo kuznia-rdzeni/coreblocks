@@ -22,17 +22,23 @@ def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dic
     for params in insert_list:
         entry_id = params["rs_entry_id"]
         check_list[entry_id]["rs_data"] = params["rs_data"]
-        check_list[entry_id]["rec_ready"] = 1 if params["rs_data"]["rp_s1"]["id"] | params["rs_data"]["rp_s2"]["id"] == 0 else 0
+        check_list[entry_id]["rec_ready"] = (
+            1 if params["rs_data"]["rp_s1"]["id"] | params["rs_data"]["rp_s2"]["id"] == 0 else 0
+        )
         check_list[entry_id]["rec_full"] = 1
         check_list[entry_id]["rec_reserved"] = 1
 
     return check_list
 
 
-def generate_insert_input(gen_params : GenParams, rs_entries_bits : int, gen_over : Callable[[int],dict] = lambda _: {}):
+def generate_insert_input(gen_params: GenParams, rs_entries_bits: int, gen_over: Callable[[int], dict] = lambda _: {}):
     insert_list = []
     for id in range(2**rs_entries_bits):
-        instr = generate_instr(gen_params, RSLayouts(gen_params, rs_entries_bits = gen_params.max_rs_entries_bits).data_layout, overwriting=gen_over(id))
+        instr = generate_instr(
+            gen_params,
+            RSLayouts(gen_params, rs_entries_bits=gen_params.max_rs_entries_bits).data_layout,
+            overwriting=gen_over(id),
+        )
         rec = {}
         rec["rs_entry_id"] = id
         rec["rs_data"] = instr
@@ -69,6 +75,7 @@ class TestElaboratable(Elaboratable):
 
         return m
 
+
 class TestRSMethodInsert(TestCaseWithSimulator):
     def setUp(self):
         self.maxDiff = None
@@ -99,11 +106,14 @@ class TestRSMethodInsert(TestCaseWithSimulator):
 class TestRSMethodSelect(TestCaseWithSimulator):
     def setUp(self):
         self.maxDiff = None
+
     def test_select(self):
         self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp)
         self.insert_list = generate_insert_input(self.gp, self.gp.max_rs_entries_bits)[:-1]
-        self.insert_list = generate_insert_input(self.gp, self.gp.max_rs_entries_bits, gen_over = lambda id: {"rp_s1":{"id":id*2}, "rp_s2":{"id":id*2}})[:-1]
+        self.insert_list = generate_insert_input(
+            self.gp, self.gp.max_rs_entries_bits, gen_over=lambda id: {"rp_s1": {"id": id * 2}, "rp_s2": {"id": id * 2}}
+        )[:-1]
         self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
@@ -145,10 +155,15 @@ class TestRSMethodSelect(TestCaseWithSimulator):
 class TestRSMethodUpdate(TestCaseWithSimulator):
     def setUp(self):
         self.maxDiff = None
+
     def test_update(self):
         self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp)
-        self.insert_list = generate_insert_input(self.gp, self.gp.max_rs_entries_bits, gen_over = lambda id: {"rp_s1":{"id":id*2}, "rp_s2":{"id":id*2+1}})
+        self.insert_list = generate_insert_input(
+            self.gp,
+            self.gp.max_rs_entries_bits,
+            gen_over=lambda id: {"rp_s1": {"id": id * 2}, "rp_s2": {"id": id * 2 + 1}},
+        )
         self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
@@ -184,10 +199,14 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         # Insert new insturction to entries 0 and 1, check if update of multiple tags works
         tag = 4
         value_spx = 3030
-        data = generate_instr(self.gp, RSLayouts(self.gp, rs_entries_bits = self.gp.max_rs_entries_bits).data_layout, overwriting= {
-            "rp_s1": {"id":tag},
-            "rp_s2": {"id":tag},
-        })
+        data = generate_instr(
+            self.gp,
+            RSLayouts(self.gp, rs_entries_bits=self.gp.max_rs_entries_bits).data_layout,
+            overwriting={
+                "rp_s1": {"id": tag},
+                "rp_s2": {"id": tag},
+            },
+        )
 
         for index in range(2):
             yield from self.m.io_insert.call(rs_entry_id=index, rs_data=data)
@@ -208,7 +227,9 @@ class TestRSMethodTake(TestCaseWithSimulator):
     def test_take(self):
         self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp)
-        self.insert_list = generate_insert_input(self.gp, self.gp.max_rs_entries_bits, gen_over = lambda id: {"rp_s1":{"id":id*2}, "rp_s2":{"id":id*2}})
+        self.insert_list = generate_insert_input(
+            self.gp, self.gp.max_rs_entries_bits, gen_over=lambda id: {"rp_s1": {"id": id * 2}, "rp_s2": {"id": id * 2}}
+        )
         self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
@@ -249,10 +270,14 @@ class TestRSMethodTake(TestCaseWithSimulator):
         # Insert two new ready instructions and take them
         tag = 0
         value_spx = 3030
-        entry_data = generate_instr(self.gp, RSLayouts(self.gp, rs_entries_bits = self.gp.max_rs_entries_bits).data_layout, overwriting= {
-            "rp_s1": {"id":tag},
-            "rp_s2": {"id":tag},
-        })
+        entry_data = generate_instr(
+            self.gp,
+            RSLayouts(self.gp, rs_entries_bits=self.gp.max_rs_entries_bits).data_layout,
+            overwriting={
+                "rp_s1": {"id": tag},
+                "rp_s2": {"id": tag},
+            },
+        )
 
         for index in range(2):
             yield from self.m.io_insert.call(rs_entry_id=index, rs_data=entry_data)
@@ -277,7 +302,11 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
     def test_get_ready_list(self):
         self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp)
-        self.insert_list = generate_insert_input(self.gp, self.gp.max_rs_entries_bits, gen_over = lambda id: {"rp_s1":{"id":id//2}, "rp_s2":{"id":id//2}})
+        self.insert_list = generate_insert_input(
+            self.gp,
+            self.gp.max_rs_entries_bits,
+            gen_over=lambda id: {"rp_s1": {"id": id // 2}, "rp_s2": {"id": id // 2}},
+        )
         self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
@@ -310,7 +339,11 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
     def test_two_get_ready_lists(self):
         self.gp = GenParams(test_core_config)
         self.m = TestElaboratable(self.gp, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]])
-        self.insert_list = generate_insert_input(self.gp, self.gp.max_rs_entries_bits, gen_over = lambda id: {"rp_s1":{"id":0}, "rp_s2":{"id":0}, "exec_fn":{"op_type":OpType(id+1)}})
+        self.insert_list = generate_insert_input(
+            self.gp,
+            self.gp.max_rs_entries_bits,
+            gen_over=lambda id: {"rp_s1": {"id": 0}, "rp_s2": {"id": 0}, "exec_fn": {"op_type": OpType(id + 1)}},
+        )
         self.check_list = create_check_list(self.m.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
@@ -341,9 +374,18 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
 
             masks = [mask & ~(1 << i) for mask in masks]
 
+
 class TestLayout(RSLayoutProtocol):
-    def __init__(self, *, rs_entries_bits = None):
-        self.data_layout : SimpleLayout = [("foo", 7), ("bar", 7), ("rp_s1", 1), ("rp_s2", 1), ("s1_val", 1), ("s2_val", 1), ("exec_fn", [("op_type", 1)])]
+    def __init__(self, *, rs_entries_bits=None):
+        self.data_layout: SimpleLayout = [
+            ("foo", 7),
+            ("bar", 7),
+            ("rp_s1", 1),
+            ("rp_s2", 1),
+            ("s1_val", 1),
+            ("s2_val", 1),
+            ("exec_fn", [("op_type", 1)]),
+        ]
         self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", 1)]
         self.select_out = [("rs_entry_id", 1)]
         self.update_in = [("tag", 8), ("value", 8)]
@@ -351,17 +393,21 @@ class TestLayout(RSLayoutProtocol):
         self.take_out = self.data_layout
         self.get_ready_list_out = [("ready_list", 8)]
 
+
 class TestFifoRS(TestCaseWithSimulator):
     def rec_ready_setter(self):
-        def f(self_dut : FifoRS, m : TModule):
+        def f(self_dut: FifoRS, m: TModule):
             for record in self_dut.data:
                 m.d.comb += record.rec_ready.eq(record.rec_full.bool())
+
         return f
-        
+
     def setUp(self):
         self.gp = GenParams(test_core_config)
         self.layouts = TestLayout()
-        self.circ = SimpleTestCircuit(FifoRS(self.gp, 7, layout_class = TestLayout, custom_rec_ready_setter = self.rec_ready_setter()))
+        self.circ = SimpleTestCircuit(
+            FifoRS(self.gp, 7, layout_class=TestLayout, custom_rec_ready_setter=self.rec_ready_setter())
+        )
         self.test_number = 40
         self.data_queue = deque()
 
@@ -374,7 +420,7 @@ class TestFifoRS(TestCaseWithSimulator):
 
     def consumer(self):
         for _ in range(self.test_number):
-            data = (yield from self.circ.take.call(rs_entry_id=0))
+            data = yield from self.circ.take.call(rs_entry_id=0)
             data_expected = self.data_queue.popleft()
             self.assertEqual(data, data_expected)
 
