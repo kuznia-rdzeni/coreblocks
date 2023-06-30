@@ -35,26 +35,12 @@ class VRFFragmentLayouts:
         ]
 
 
-class VectorRSLayout(RSLayouts):
+class VectorXRSLayout(RSLayouts):
+    """ Layout to describe scalar RS in vector func block """
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
         super().__init__(gen_params, rs_entries_bits=rs_entries_bits)
         rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits)
 
-        #            ("rp_s1", gen_params.phys_regs_bits),
-        #            ("rp_s1_rf", RegisterType),
-        #            ("rp_s2", gen_params.phys_regs_bits),
-        #            ("rp_s2_rf", RegisterType),
-        #            ("rp_s1_reg", gen_params.phys_regs_bits),
-        #            ("rp_s2_reg", gen_params.phys_regs_bits),
-        #            ("rp_dst", gen_params.phys_regs_bits),
-        #            ("rp_dst_rf", RegisterType),
-        #            ("rob_id", gen_params.rob_entries_bits),
-        #            ("exec_fn", common.exec_fn),
-        #            ("s1_val", gen_params.isa.xlen),
-        #            ("s2_val", gen_params.isa.xlen),
-        #            ("imm", gen_params.isa.xlen),
-        #            ("imm2", gen_params.imm2_width),
-        #            ("pc", gen_params.isa.xlen),
         self.data_layout: LayoutLike = layout_subset(
             rs_interface.data_layout,
             fields={
@@ -67,22 +53,11 @@ class VectorRSLayout(RSLayouts):
                 "s2_val",
                 "imm",
                 "imm2",
-                "pc",
             },
         )
 
-        self.take_out: LayoutLike = layout_subset(
-            rs_interface.data_layout,
-            fields={
-                "s1_val",
-                "s2_val",
-                "rp_dst",
-                "rob_id",
-                "exec_fn",
-                "imm",
-                "pc",
-            },
-        )
+        self.insert_in: LayoutLike = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
+        self.take_out: LayoutLike = self.data_layout
 
 
 class VectorStatusUnitLayouts:
