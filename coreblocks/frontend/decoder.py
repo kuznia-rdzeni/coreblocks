@@ -193,7 +193,7 @@ _instructions_by_optype = {
         Encoding(Opcode.OP_IMM, Funct3.ORCB, funct12=Funct12.ORCB),
         Encoding(Opcode.OP_IMM, Funct3.REV8, funct12=Funct12.REV8_32),
         Encoding(Opcode.OP_IMM, Funct3.SEXTB, funct12=Funct12.SEXTB),
-        Encoding(Opcode.OP_IMM, Funct3.ZEXTH, funct12=Funct12.ZEXTH),
+        Encoding(Opcode.OP, Funct3.ZEXTH, funct12=Funct12.ZEXTH),
     ],
     # Instructions SEXTH, SEXTHB, CPOP, CLZ and CTZ  cannot be distiguished by their Funct7 code
     OpType.UNARY_BIT_MANIPULATION_2: [

@@ -1,7 +1,7 @@
 from itertools import takewhile
-from enum import unique, Enum, IntFlag, auto
 
-from amaranth.hdl.ast import Const, ValueCastable
+from amaranth.lib.enum import unique, Enum, IntEnum, IntFlag, auto
+import enum
 
 __all__ = [
     "InstrType",
@@ -9,6 +9,7 @@ __all__ = [
     "Funct3",
     "Funct7",
     "Funct12",
+    "ExceptionCause",
     "Extension",
     "FenceTarget",
     "FenceFm",
@@ -27,29 +28,8 @@ class InstrType(Enum):
     J = 5
 
 
-class ValueCastableHack(int, ValueCastable):
-    @ValueCastable.lowermethod
-    def as_value(self):
-        raise NotImplementedError("width information lost!")
-
-
-class BitEnum(ValueCastableHack, Enum):
-    """
-    A helper class that defines Amaranth enums with a width
-    """
-
-    __width: int
-
-    def __init_subclass__(cls, *, width, **kwargs):
-        cls.__width = width
-
-    @ValueCastable.lowermethod
-    def as_value(self):
-        return Const(self.value, self.__width)
-
-
 @unique
-class Opcode(BitEnum, width=5):
+class Opcode(IntEnum, shape=5):
     LOAD = 0b00000
     LOAD_FP = 0b00001
     MISC_MEM = 0b00011
@@ -67,18 +47,19 @@ class Opcode(BitEnum, width=5):
     SYSTEM = 0b11100
 
 
-class Funct3(BitEnum, width=3):
-    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = 0b000
-    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL = SEXTB = SEXTH = CLMUL = 0b001
-    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = 0b010
-    D = SLTU = CSRRC = MULHU = CLMULH = 0b011
+class Funct3(IntEnum, shape=3):
+    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = _EINSTRACCESSFAULT = 0b000
+    BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL \
+            = SEXTB = SEXTH = CLMUL = _EILLEGALINSTR = 0b001  # fmt: skip
+    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT = 0b010
+    D = SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = 0b011
     BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = 0b100
     BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = 0b101
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = 0b110
     BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = 0b111
 
 
-class Funct7(BitEnum, width=7):
+class Funct7(IntEnum, shape=7):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = ANDN = ORN = XNOR = 0b0100000
     MULDIV = 0b0000001
@@ -92,7 +73,7 @@ class Funct7(BitEnum, width=7):
     SFENCEVMA = 0b0001001
 
 
-class Funct12(BitEnum, width=12):
+class Funct12(IntEnum, shape=12):
     ECALL = 0b000000000000
     EBREAK = 0b000000000001
     SRET = 0b000100000010
@@ -109,7 +90,7 @@ class Funct12(BitEnum, width=12):
     ZEXTH = 0b000010000000
 
 
-class Registers(BitEnum, width=5):
+class Registers(IntEnum, shape=5):
     X0 = ZERO = 0b00000  # hardwired zero
     X1 = RA = 0b00001  # return address
     X2 = SP = 0b00010  # stack pointer
@@ -145,7 +126,7 @@ class Registers(BitEnum, width=5):
 
 
 @unique
-class FenceTarget(BitEnum, width=4):
+class FenceTarget(IntFlag, shape=4):
     MEM_W = 0b0001
     MEM_R = 0b0010
     DEV_O = 0b0100
@@ -153,13 +134,31 @@ class FenceTarget(BitEnum, width=4):
 
 
 @unique
-class FenceFm(BitEnum, width=4):
+class FenceFm(IntEnum, shape=4):
     NONE = 0b0000
     TSO = 0b1000
 
 
 @unique
-class Extension(IntFlag):
+class ExceptionCause(IntEnum, shape=4):
+    INSTRUCTION_ADDRESS_MISALIGNED = 0
+    INSTRUCTION_ACCESS_FAULT = 1
+    ILLEGAL_INSTRUCTION = 2
+    BREAKPOINT = 3
+    LOAD_ADDRESS_MISALIGNED = 4
+    LOAD_ACCESS_FAULT = 5
+    STORE_ADDRESS_MISALIGNED = 6
+    STORE_ACCESS_FAULT = 7
+    ENVIRONMENT_CALL_FROM_U = 8
+    ENVIRONMENT_CALL_FROM_S = 9
+    ENVIRONMENT_CALL_FROM_M = 11
+    INSTRUCTION_PAGE_FAULT = 12
+    LOAD_PAGE_FAULT = 13
+    STORE_PAGE_FAULT = 15
+
+
+@unique
+class Extension(enum.IntFlag):
     """
     Enum of available RISC-V extensions.
     """

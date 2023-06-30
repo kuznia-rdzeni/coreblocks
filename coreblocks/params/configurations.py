@@ -10,6 +10,7 @@ from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.fu.jumpbranch import JumpComponent
 from coreblocks.fu.mul_unit import MulComponent, MulType
+from coreblocks.fu.exception import ExceptionUnitComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
 from coreblocks.structs_common.csr import CSRBlockComponent
 
@@ -96,7 +97,12 @@ tiny_core_config = CoreConfiguration(
 full_core_config = CoreConfiguration(
     func_units_config=(
         RSBlockComponent(
-            [ALUComponent(zba_enable=True, zbb_enable=True), ShiftUnitComponent(zbb_enable=True), JumpComponent()],
+            [
+                ALUComponent(zba_enable=True, zbb_enable=True),
+                ShiftUnitComponent(zbb_enable=True),
+                JumpComponent(),
+                ExceptionUnitComponent(),
+            ],
             rs_entries=4,
         ),
         RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=2),

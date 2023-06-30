@@ -154,7 +154,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             m.d.top_comb += jb.in_rvc.eq(arg.exec_fn.funct7)
 
-            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst)
+            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=0)
 
             # skip writing next branch target for auipc
             with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):

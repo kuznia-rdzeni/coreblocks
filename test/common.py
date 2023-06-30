@@ -3,7 +3,7 @@ import os
 import functools
 import random
 from contextlib import contextmanager, nullcontext
-from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast
+from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast, Type, TypeGuard
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -13,7 +13,7 @@ from amaranth.sim.core import Command
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike
+from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike, ModuleConnector
 from .gtkw_extension import write_vcd_ext
 
 
@@ -22,6 +22,7 @@ RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
+_T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 
 
 def data_layout(val: int) -> LayoutLike:
@@ -106,31 +107,66 @@ def signed_to_int(x: int, xlen: int) -> int:
     return x | -(x & (2 ** (xlen - 1)))
 
 
+def guard_nested_collection(cont: Any, t: Type[T]) -> TypeGuard[_T_nested_collection[T]]:
+    if isinstance(cont, (list, dict)):
+        if isinstance(cont, dict):
+            cont = cont.values()
+        return all([guard_nested_collection(elem, t) for elem in cont])
+    elif isinstance(cont, t):
+        return True
+    else:
+        return False
+
+
 _T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
 
 
 class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def __init__(self, dut: _T_HasElaborate):
         self._dut = dut
-        self._io = dict[str, TestbenchIO]()
+        self._io: dict[str, _T_nested_collection[TestbenchIO]] = {}
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         return self._io[name]
 
     def elaborate(self, platform):
+        def transform_methods_to_testbenchios(
+            container: _T_nested_collection[Method],
+        ) -> tuple[_T_nested_collection["TestbenchIO"], Union[ModuleConnector, "TestbenchIO"]]:
+            if isinstance(container, list):
+                tb_list = []
+                mc_list = []
+                for elem in container:
+                    tb, mc = transform_methods_to_testbenchios(elem)
+                    tb_list.append(tb)
+                    mc_list.append(mc)
+                return tb_list, ModuleConnector(*mc_list)
+            elif isinstance(container, dict):
+                tb_dict = {}
+                mc_dict = {}
+                for name, elem in container.items():
+                    tb, mc = transform_methods_to_testbenchios(elem)
+                    tb_dict[name] = tb
+                    mc_dict[name] = mc
+                return tb_dict, ModuleConnector(*mc_dict)
+            else:
+                tb = TestbenchIO(AdapterTrans(container))
+                return tb, tb
+
         m = Module()
 
         m.submodules.dut = self._dut
 
         for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
-            if isinstance(attr, Method):
-                self._io[name] = TestbenchIO(AdapterTrans(attr))
-                m.submodules[name] = self._io[name]
+            if guard_nested_collection(attr, Method) and attr:
+                tb_cont, mc = transform_methods_to_testbenchios(attr)
+                self._io[name] = tb_cont
+                m.submodules[name] = mc
 
         return m
 
     def debug_signals(self):
-        return [io.debug_signals() for io in self._io.values()]
+        return [auto_debug_signals(io) for io in self._io.values()]
 
 
 class TestModule(Elaboratable):
