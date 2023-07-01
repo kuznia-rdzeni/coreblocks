@@ -104,7 +104,6 @@ class RS(Elaboratable):
         @def_method(m, self.clear)
         def _() -> None:
             for entry in self.data:
-                m.d.sync += entry.rs_data.eq(0)
                 m.d.sync += entry.rec_full.eq(0)
                 m.d.sync += entry.rec_reserved.eq(0)
 

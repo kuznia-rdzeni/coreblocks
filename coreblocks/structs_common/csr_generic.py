@@ -9,6 +9,8 @@ from coreblocks.transactions.core import Method, Transaction, def_method
 
 
 class CSRAddress(BitEnum, width=12):
+    MTVEC = 0x305
+    MEPC = 0x341
     CYCLE = 0xC00
     TIME = 0xC01
     INSTRET = 0xC02

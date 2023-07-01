@@ -4,6 +4,7 @@ from coreblocks.params import *
 from coreblocks.transactions.core import Method, Transaction, def_method, TModule
 from coreblocks.params.keys import MretKey
 from coreblocks.structs_common.csr import CSRRegister
+from coreblocks.structs_common.csr_generic import CSRAddress
 
 
 class InterruptCoordinator(Elaboratable):
@@ -37,8 +38,8 @@ class InterruptCoordinator(Elaboratable):
         self.iret = Method()
         self.interrupt = Signal()
 
-        self.mepc = CSRRegister(0x341, self.gen_params, ro_bits=0b1)
-        self.mtvec = CSRRegister(0x305, self.gen_params, ro_bits=0b11)
+        self.mepc = CSRRegister(CSRAddress.MEPC, self.gen_params, ro_bits=0b1)
+        self.mtvec = CSRRegister(CSRAddress.MTVEC, self.gen_params, ro_bits=0b11)
 
         connections = self.gen_params.get(DependencyManager)
         connections.add_dependency(MretKey(), self.iret)
@@ -102,10 +103,6 @@ class InterruptCoordinator(Elaboratable):
                 with Transaction(name="IretStallFetch").body(m, request=~self.interrupt):
                     # note: this approach works only because we stall fetching when
                     # we encounter a system instruction (which includes MRET)
-                    self.pc_stall(m)
-                    m.next = "iret_jump"
-            with m.State("iret_jump"):
-                with Transaction(name="IretJump").body(m):
                     return_pc = self.mepc.read(m).data
                     self.pc_verify_branch(m, next_pc=return_pc, from_pc=0)
                     m.next = "idle"
