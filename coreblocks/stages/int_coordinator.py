@@ -65,14 +65,7 @@ class InterruptCoordinator(Elaboratable):
                     # for some instruction to arrive if it was (and hence might not be
                     # able proceed due to lack of aforementioned PC). See also:
                     # https://github.com/kuznia-rdzeni/coreblocks/pull/351#discussion_r1209887087
-                    with m.If(~self.rob_empty(m)):
-                        with m.If(self.retirement_stall(m)):
-                            m.next = "clear"
-                        with m.Else():
-                            m.next = "stall_retirement_wait"
-            with m.State("stall_retirement_wait"):
-                with Transaction(name="WaitForRetirementStall").body(m):
-                    with m.If(self.retirement_stall(m)):
+                    with m.If(~self.rob_empty(m) & self.retirement_stall(m)):
                         m.next = "clear"
             with m.State("clear"):
                 # rationale for methods below being in a separate state (as opposed
