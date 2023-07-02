@@ -7,6 +7,7 @@ from coreblocks.params import *
 from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_layouts import *
 
+__all__ = ["SuperscalarFreeRF"]
 
 class SuperscalarFreeRF(Elaboratable):
     def __init__(self, entries_count : int, outputs_count : int):
@@ -20,12 +21,12 @@ class SuperscalarFreeRF(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        self.used = Signal(self.entries_count)
+        self.used = Signal(self.entries_count, reset = 2**self.entries_count - 1)
 
         m.submodules.priority_encoder = encoder = MultiPriorityEncoder(self.entries_count, self.outputs_count)
         m.d.top_comb += encoder.input.eq(self.used)
 
-        free_count = Signal(log2_int(self.entries_count))
+        free_count = Signal(log2_int(self.entries_count, False))
         m.d.top_comb += free_count.eq(count_trailing_zeros(~Cat(encoder.valids)))
 
         regs = [Signal.like(encoder.outputs[j]) for j in range(self.outputs_count)]
@@ -34,8 +35,8 @@ class SuperscalarFreeRF(Elaboratable):
         @def_method(m, self.allocate)
         def _(reg_count):
             with condition(m, nonblocking = False) as branch:
-                with branch(reg_count <= free_count):
-                    mask = (2 << reg_count) - 1
+                with branch((reg_count <= free_count) & (reg_count > 0)):
+                    mask = (1 << reg_count) - 1
                     for j in range(self.outputs_count):
                         used_bit = Signal()
                         m.d.comb += used_bit.eq(self.used.bit_select(encoder.outputs[j], 1))

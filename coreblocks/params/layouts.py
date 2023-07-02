@@ -1,4 +1,4 @@
-from amaranth.utils import log2_int
+from amaranth.utils import *
 from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode, RegisterType
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.utils.utils import layout_subset
@@ -135,15 +135,15 @@ class RATLayouts:
 class SuperscalarFreeRFLayouts:
     def __init__(self, entries_count : int, outputs_count : int):
         self.allocate_in = [
-            ("reg_count", log2_int(outputs_count)),
+            ("reg_count", bits_for(outputs_count)),
         ]
 
         self.allocate_out = [
-            (f"reg{i}", log2_int(entries_count)) for i in range(outputs_count)
+            (f"reg{i}", log2_int(entries_count, False)) for i in range(outputs_count)
         ]
 
         self.deallocate_in = [
-            (f"reg", log2_int(entries_count)),
+            (f"reg", log2_int(entries_count, False)),
         ]
 
 
