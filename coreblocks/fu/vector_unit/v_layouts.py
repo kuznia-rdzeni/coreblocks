@@ -59,3 +59,18 @@ class VectorXRSLayout(RSLayouts):
 
         self.insert_in: LayoutLike = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
         self.take_out: LayoutLike = self.data_layout
+
+class VectorFrontendLayouts:
+    def __init__(self, gen_params : GenParams, v_params : VectorParameters):
+        common = gen_params.get(CommonLayouts)
+        self.verification_in = self.verification_out = [
+            ("rp_s1", common.p_register_entry),
+            ("rp_s2", common.p_register_entry),
+            ("rp_dst", common.p_register_entry),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("exec_fn", common.exec_fn),
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
+            ("imm", gen_params.isa.xlen),
+            ("imm2", gen_params.imm2_width),
+        ]

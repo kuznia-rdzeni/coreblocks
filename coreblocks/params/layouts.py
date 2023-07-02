@@ -147,6 +147,7 @@ class ROBLayouts:
             ("rob_data", self.data_layout),
             ("done", 1),
             ("exception", 1),
+            ("block_interrupts", 1),
         ]
 
         self.mark_done_layout = [
@@ -161,6 +162,8 @@ class ROBLayouts:
         ]
 
         self.get_indices = [("start", gen_params.rob_entries_bits), ("end", gen_params.rob_entries_bits)]
+
+        self.block_interrupts = [("rob_id", gen_params.rob_entries_bits)]
 
 
 class RSInterfaceLayouts:
