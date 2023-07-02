@@ -26,6 +26,7 @@ __all__ = [
 ]
 
 
+
 def mod_incr(sig: Value, mod: int) -> Value:
     """
     Perform `(sig+1) % mod` operation.

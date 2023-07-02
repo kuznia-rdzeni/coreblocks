@@ -1,6 +1,11 @@
+from coreblocks.transactions import TModule
 from enum import IntEnum, auto
+from amaranth.utils import *
+from amaranth import *
+from coreblocks.params import VectorParameters, GenParams
+from coreblocks.utils._typing import ValueLike
 
-__all__ = ["SEW", "EEW", "EMUL", "LMUL", "eew_to_bits", "bits_to_eew", "eew_div_2"]
+__all__ = ["SEW", "EEW", "EMUL", "LMUL", "eew_to_bits", "bits_to_eew", "eew_div_2", "get_vlmax"]
 
 
 class SEW(IntEnum):
@@ -95,4 +100,28 @@ def eew_div_2(eew: EEW) -> EEW:
     """
     return bits_to_eew(eew_to_bits(eew) // 2)
 
+def lmul_to_float(lmul : LMUL) -> float:
+    match lmul:
+        case LMUL.m1:
+            return 1
+        case LMUL.m2:
+            return 2
+        case LMUL.m4:
+            return 4
+        case LMUL.m8:
+            return 8
+        case LMUL.mf2:
+            return 0.5
+        case LMUL.mf4:
+            return 0.25
+        case LMUL.mf8:
+            return 0.125
 
+def get_vlmax(m : TModule, sew : Value, lmul : Value, gen_params : GenParams, v_params : VectorParameters) -> Signal:
+    sig = Signal(gen_params.isa.xlen)
+    with m.Switch((sew << len(sew)) | lmul):
+        for s in SEW:
+            for lm in LMUL:
+                with m.Case((s << log2_int(len(SEW))) | lm):
+                    m.d.comb += sig.eq(int(v_params.vlen//eew_to_bits(s)/lmul_to_float(lm)))
+    return sig
