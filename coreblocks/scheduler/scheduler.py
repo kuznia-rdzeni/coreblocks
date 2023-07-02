@@ -49,7 +49,7 @@ class RegAllocation(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            with m.If((instr.regs_l.dst.id != 0) & (instr.regs_l.dst.type==RegisterType.X)):
+            with m.If((instr.regs_l.dst.id != 0) & (instr.regs_l.dst.type == RegisterType.X)):
                 reg_id = self.get_free_reg(m)
                 m.d.comb += free_reg.eq(reg_id)
             with m.Else():
@@ -102,9 +102,9 @@ class Renaming(Elaboratable):
         with Transaction().body(m):
             instr = self.get_instr(m)
 
-            rl_dst_to_rename = Signal().like(instr.regs_l.dst.id, reset = 0)
-            rp_dst_to_rename = Signal().like(instr.regs_p.dst.id, reset = 0)
-            with m.If(instr.regs_l.dst.type==RegisterType.X):
+            rl_dst_to_rename = Signal().like(instr.regs_l.dst.id, reset=0)
+            rp_dst_to_rename = Signal().like(instr.regs_p.dst.id, reset=0)
+            with m.If(instr.regs_l.dst.type == RegisterType.X):
                 m.d.comb += rl_dst_to_rename.eq(instr.regs_l.dst.id)
                 m.d.comb += rp_dst_to_rename.eq(instr.regs_p.dst.id)
 

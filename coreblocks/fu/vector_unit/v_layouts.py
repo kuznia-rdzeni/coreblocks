@@ -36,7 +36,8 @@ class VRFFragmentLayouts:
 
 
 class VectorXRSLayout(RSLayouts):
-    """ Layout to describe scalar RS in vector func block """
+    """Layout to describe scalar RS in vector func block"""
+
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
         super().__init__(gen_params, rs_entries_bits=rs_entries_bits)
         rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits)

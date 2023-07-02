@@ -5,33 +5,42 @@ from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import VectorXRSLayout
 from amaranth.utils import bits_for
-import copy
+
 
 def get_reg_id(instr, name):
     return instr["rs_data"][name]["id"]
+
+
 def get_reg_type(instr, name):
     return instr["rs_data"][name]["type"]
 
+
 def set_reg_id(instr, name, new_id):
-    instr["rs_data"][name]["id"]=new_id
+    instr["rs_data"][name]["id"] = new_id
+
 
 def set_s_val(instr, val_name, val):
     instr["rs_data"][val_name] = val
 
-class TestVXRS(TestCaseWithSimulator):
 
+class TestVXRS(TestCaseWithSimulator):
     def setUp(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries = 8
-        self.circ  = SimpleTestCircuit(VXRS(self.gen_params, self.rs_entries))
+        self.circ = SimpleTestCircuit(VXRS(self.gen_params, self.rs_entries))
 
     def generate_input(self):
-        input =[]
+        input = []
         for i in range(self.rs_entries):
-            data = generate_instr(self.gen_params, VectorXRSLayout(self.gen_params, rs_entries_bits = bits_for(self.rs_entries-1)).data_layout,support_vector=True, overwriting={"rp_s1":{"id":i*2}, "rp_s2":{"id":i*2+1}})
-            instr={}
-            instr ["rs_data"] = data
-            instr ["rs_entry_id"] = i
+            data = generate_instr(
+                self.gen_params,
+                VectorXRSLayout(self.gen_params, rs_entries_bits=bits_for(self.rs_entries - 1)).data_layout,
+                support_vector=True,
+                overwriting={"rp_s1": {"id": i * 2}, "rp_s2": {"id": i * 2 + 1}},
+            )
+            instr = {}
+            instr["rs_data"] = data
+            instr["rs_entry_id"] = i
             input.append(instr)
         return input
 
@@ -41,8 +50,8 @@ class TestVXRS(TestCaseWithSimulator):
 
     def update_register(self, instr, name, val_name):
         if get_reg_id(instr, name) == 0 or get_reg_type(instr, name) == RegisterType.V:
-            return 
-        val = random.randrange(2**32-1)
+            return
+        val = random.randrange(2**32 - 1)
         yield from self.circ.update.call(tag=instr["rs_data"][name], value=val)
         set_reg_id(instr, name, 0)
         set_s_val(instr, val_name, val)
@@ -53,10 +62,10 @@ class TestVXRS(TestCaseWithSimulator):
         s1_type = get_reg_type(instr, "rp_s1")
         s2_type = get_reg_type(instr, "rp_s2")
         yield Settle()
-        if s1_type==RegisterType.X and s1_id !=0:
+        if s1_type == RegisterType.X and s1_id != 0:
             self.assertEqual((yield record.rec_ready), 0)
             return
-        if s2_type==RegisterType.X and s2_id !=0:
+        if s2_type == RegisterType.X and s2_id != 0:
             self.assertEqual((yield record.rec_ready), 0)
             return
         self.assertEqual((yield record.rec_ready), 1)
@@ -73,6 +82,7 @@ class TestVXRS(TestCaseWithSimulator):
                 yield from self.update_register(instr, "rp_s2", "s2_val")
                 yield from self.assert_ready(self.circ._dut.data[id], instr)
                 yield from self.circ.take.call(rs_entry_id=0)
+
         return f
 
     def test_readiness(self):

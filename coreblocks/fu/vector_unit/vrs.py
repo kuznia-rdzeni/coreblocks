@@ -5,7 +5,8 @@ from coreblocks.structs_common.rs import FifoRS
 from coreblocks.params import *
 from coreblocks.fu.vector_unit.v_layouts import *
 
-__all__=["VXRS"]
+__all__ = ["VXRS"]
+
 
 class VXRS(FifoRS):
     def __init__(
@@ -16,8 +17,8 @@ class VXRS(FifoRS):
     ) -> None:
         super().__init__(gen_params, rs_entries, ready_for, layout_class=VectorXRSLayout)
 
-    def generate_rec_ready_setters(self, m : TModule):
+    def generate_rec_ready_setters(self, m: TModule):
         for record in self.data:
             is_rs1_ready = (record.rs_data.rp_s1.type == RegisterType.X).implies(~record.rs_data.rp_s1.id.bool())
             is_rs2_ready = (record.rs_data.rp_s2.type == RegisterType.X).implies(~record.rs_data.rp_s2.id.bool())
-            m.d.comb += record.rec_ready.eq( is_rs1_ready & is_rs2_ready & record.rec_full.bool())
+            m.d.comb += record.rec_ready.eq(is_rs1_ready & is_rs2_ready & record.rec_full.bool())
