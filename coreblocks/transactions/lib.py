@@ -1111,7 +1111,7 @@ class Serializer(Elaboratable):
 
 
 @contextmanager
-def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
+def condition(m: TModule, *, nonblocking: bool = False, priority: bool = True):
     """Conditions using simultaneous transactions.
 
     This context manager allows to easily define conditions utilizing
