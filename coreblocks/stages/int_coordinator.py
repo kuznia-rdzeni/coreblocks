@@ -22,8 +22,7 @@ class InterruptCoordinator(Elaboratable):
     6. Wait for interrupt return method to get called
     7. Jump back to the main program flow
 
-    In the current implementation nested interrupts are disallowed and liveness
-    condition is not satisfied.
+    In the current implementation nested interrupts are disallowed.
     """
 
     def __init__(
