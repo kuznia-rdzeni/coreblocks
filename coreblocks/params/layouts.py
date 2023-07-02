@@ -1,3 +1,4 @@
+from amaranth.utils import log2_int
 from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode, RegisterType
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.utils.utils import layout_subset
@@ -18,6 +19,7 @@ __all__ = [
     "LSULayouts",
     "CSRLayouts",
     "ICacheLayouts",
+    "SuperscalarFreeRFLayouts",
 ]
 
 
@@ -129,6 +131,20 @@ class RATLayouts:
 
         self.rat_commit_in = [("rl_dst", gen_params.isa.reg_cnt_log), ("rp_dst", gen_params.phys_regs_bits)]
         self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
+
+class SuperscalarFreeRFLayouts:
+    def __init__(self, entries_count : int, outputs_count : int):
+        self.allocate_in = [
+            ("reg_count", log2_int(outputs_count)),
+        ]
+
+        self.allocate_out = [
+            (f"reg{i}", log2_int(entries_count)) for i in range(outputs_count)
+        ]
+
+        self.deallocate_in = [
+            (f"reg", log2_int(entries_count)),
+        ]
 
 
 class ROBLayouts:
