@@ -14,7 +14,7 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
 from ..common import TestCaseWithSimulator, TestbenchIO
-from test.common import signed_to_int
+from test.common import *
 
 
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: int) -> dict[str, int]:
@@ -271,7 +271,7 @@ class TestAluFuncUnit(TestCaseWithSimulator):
             data2 = random.randint(0, max_int)
             data2_is_imm = random.randint(0, 1)
             rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
-            rp_dst = random.randint(0, 2**self.gen.phys_regs_bits - 1)
+            rp_dst = generate_register_entry(self.gen.phys_regs_bits)
             exec_fn = {"op_type": OpType.ARITHMETIC, "funct3": Funct3.ADD, "funct7": Funct7.ADD}
             result = (data1 + data2) & max_int
 

@@ -4,7 +4,7 @@ from amaranth import *
 
 from coreblocks.transactions import Method, Transaction, TModule
 from coreblocks.transactions.lib import FIFO, Forwarder
-from coreblocks.params import SchedulerLayouts, GenParams, OpType
+from coreblocks.params import SchedulerLayouts, GenParams, OpType, RegisterType
 from coreblocks.utils import assign, AssignType
 from coreblocks.utils.protocols import FuncBlock
 
@@ -49,12 +49,16 @@ class RegAllocation(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            with m.If(instr.regs_l.rl_dst != 0):
+            with m.If((instr.regs_l.dst.id != 0) & (instr.regs_l.dst.type == RegisterType.X)):
                 reg_id = self.get_free_reg(m)
                 m.d.comb += free_reg.eq(reg_id)
+            with m.Else():
+                # For X0 this will assign 0, for any other type it will copy logical id
+                m.d.comb += free_reg.eq(instr.regs_l.dst.id)
 
             m.d.comb += assign(data_out, instr)
-            m.d.comb += data_out.regs_p.rp_dst.eq(free_reg)
+            m.d.comb += data_out.regs_p.dst.id.eq(free_reg)
+            m.d.comb += data_out.regs_p.dst.type.eq(instr.regs_l.dst.type)
             self.push_instr(m, data_out)
 
         return m
@@ -97,21 +101,39 @@ class Renaming(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
+
+            rl_dst_to_rename = Signal().like(instr.regs_l.dst.id, reset=0)
+            rp_dst_to_rename = Signal().like(instr.regs_p.dst.id, reset=0)
+            with m.If(instr.regs_l.dst.type == RegisterType.X):
+                m.d.comb += rl_dst_to_rename.eq(instr.regs_l.dst.id)
+                m.d.comb += rp_dst_to_rename.eq(instr.regs_p.dst.id)
+
             renamed_regs = self.rename(
                 m,
                 {
-                    "rl_s1": instr.regs_l.rl_s1,
-                    "rl_s2": instr.regs_l.rl_s2,
-                    "rl_dst": instr.regs_l.rl_dst,
-                    "rp_dst": instr.regs_p.rp_dst,
+                    "rl_s1": instr.regs_l.s1.id,
+                    "rl_s2": instr.regs_l.s2.id,
+                    "rl_dst": rl_dst_to_rename,
+                    "rp_dst": rp_dst_to_rename,
                 },
             )
 
-            m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "csr", "pc"})
+            m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "imm2", "pc"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
-            m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
-            m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
-            m.d.comb += data_out.regs_p.rp_s2.eq(renamed_regs.rp_s2)
+            m.d.comb += data_out.regs_p.dst.eq(instr.regs_p.dst)
+
+            with m.If(instr.regs_l.s1.type == RegisterType.X):
+                m.d.comb += data_out.regs_p.s1.id.eq(renamed_regs.rp_s1)
+            with m.Else():
+                m.d.comb += data_out.regs_p.s1.id.eq(instr.regs_l.s1.id)
+            m.d.comb += data_out.regs_p.s1.type.eq(instr.regs_l.s1.type)
+
+            with m.If(instr.regs_l.s2.type == RegisterType.X):
+                m.d.comb += data_out.regs_p.s2.id.eq(renamed_regs.rp_s2)
+            with m.Else():
+                m.d.comb += data_out.regs_p.s2.id.eq(instr.regs_l.s2.id)
+            m.d.comb += data_out.regs_p.s2.type.eq(instr.regs_l.s2.type)
+
             self.push_instr(m, data_out)
 
         return m
@@ -158,8 +180,8 @@ class ROBAllocation(Elaboratable):
             rob_id = self.rob_put(
                 m,
                 {
-                    "rl_dst": instr.regs_l.rl_dst,
-                    "rp_dst": instr.regs_p.rp_dst,
+                    "rl_dst": instr.regs_l.dst,
+                    "rp_dst": instr.regs_p.dst,
                 },
             )
 
@@ -302,23 +324,23 @@ class RSInsertion(Elaboratable):
         # therefore we can use single transaction here.
         with Transaction().body(m):
             instr = self.get_instr(m)
-            source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
-            source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
+            source1 = self.rf_read1(m, {"reg_id": instr.regs_p.s1.id})
+            source2 = self.rf_read2(m, {"reg_id": instr.regs_p.s2.id})
 
             data = {
                 # when operand value is valid the convention is to set operand source to 0
                 "rs_data": {
-                    "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
-                    "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
-                    "rp_s1_reg": instr.regs_p.rp_s1,
-                    "rp_s2_reg": instr.regs_p.rp_s2,
-                    "rp_dst": instr.regs_p.rp_dst,
+                    "rp_s1": Mux(source1.valid, 0, instr.regs_p.s1),
+                    "rp_s2": Mux(source2.valid, 0, instr.regs_p.s2),
+                    "rp_s1_reg": instr.regs_p.s1.id,
+                    "rp_s2_reg": instr.regs_p.s2.id,
+                    "rp_dst": instr.regs_p.dst,
                     "rob_id": instr.rob_id,
                     "exec_fn": instr.exec_fn,
                     "s1_val": Mux(source1.valid, source1.reg_val, 0),
                     "s2_val": Mux(source2.valid, source2.reg_val, 0),
                     "imm": instr.imm,
-                    "csr": instr.csr,
+                    "imm2": instr.imm2,
                     "pc": instr.pc,
                 }
             }

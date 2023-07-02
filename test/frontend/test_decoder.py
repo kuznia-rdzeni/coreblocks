@@ -28,7 +28,7 @@ class TestDecoder(TestCaseWithSimulator):
             succ=None,
             pred=None,
             fm=None,
-            csr=None,
+            imm2=None,
             op=None,
             illegal=0,
         ):
@@ -47,7 +47,7 @@ class TestDecoder(TestCaseWithSimulator):
             self.succ = succ
             self.pred = pred
             self.fm = fm
-            self.csr = csr
+            self.imm2 = imm2
             self.op = op
             self.illegal = illegal
 
@@ -120,12 +120,12 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x0000100F, Opcode.MISC_MEM, Funct3.FENCEI, rd=0, rs1=0, imm=0, op=OpType.FENCEI),
     ]
     DECODER_TESTS_ZICSR = [
-        InstrTest(0x001A9A73, Opcode.SYSTEM, Funct3.CSRRW, rd=20, rs1=21, csr=0x01, op=OpType.CSR_REG),
-        InstrTest(0x002B2AF3, Opcode.SYSTEM, Funct3.CSRRS, rd=21, rs1=22, csr=0x02, op=OpType.CSR_REG),
-        InstrTest(0x004BBB73, Opcode.SYSTEM, Funct3.CSRRC, rd=22, rs1=23, csr=0x04, op=OpType.CSR_REG),
-        InstrTest(0x001FDA73, Opcode.SYSTEM, Funct3.CSRRWI, rd=20, imm=0x1F, csr=0x01, op=OpType.CSR_IMM),
-        InstrTest(0x0027EAF3, Opcode.SYSTEM, Funct3.CSRRSI, rd=21, imm=0xF, csr=0x02, op=OpType.CSR_IMM),
-        InstrTest(0x00407B73, Opcode.SYSTEM, Funct3.CSRRCI, rd=22, imm=0x0, csr=0x04, op=OpType.CSR_IMM),
+        InstrTest(0x001A9A73, Opcode.SYSTEM, Funct3.CSRRW, rd=20, rs1=21, imm2=0x01, op=OpType.CSR_REG),
+        InstrTest(0x002B2AF3, Opcode.SYSTEM, Funct3.CSRRS, rd=21, rs1=22, imm2=0x02, op=OpType.CSR_REG),
+        InstrTest(0x004BBB73, Opcode.SYSTEM, Funct3.CSRRC, rd=22, rs1=23, imm2=0x04, op=OpType.CSR_REG),
+        InstrTest(0x001FDA73, Opcode.SYSTEM, Funct3.CSRRWI, rd=20, imm=0x1F, imm2=0x01, op=OpType.CSR_IMM),
+        InstrTest(0x0027EAF3, Opcode.SYSTEM, Funct3.CSRRSI, rd=21, imm=0xF, imm2=0x02, op=OpType.CSR_IMM),
+        InstrTest(0x00407B73, Opcode.SYSTEM, Funct3.CSRRCI, rd=22, imm=0x0, imm2=0x04, op=OpType.CSR_IMM),
     ]
     DECODER_TESTS_ILLEGAL = [
         InstrTest(0xFFFFFFFF, Opcode.OP_IMM, illegal=1),
@@ -1566,10 +1566,10 @@ class TestDecoder(TestCaseWithSimulator):
     DECODER_TESTS_V_CONTROL = [
         InstrTest(0x8020F057, Opcode.OP_V, Funct3.OPCFG, rd=0, rs1=1, rs2=2, op=OpType.V_CONTROL),  # vsetvl x0, x1, x2
         InstrTest(
-            0x0D307057, Opcode.OP_V, Funct3.OPCFG, rd=0, rs1=0, csr=0b11010011, op=OpType.V_CONTROL
+            0x0D307057, Opcode.OP_V, Funct3.OPCFG, rd=0, rs1=0, imm2=0b11010011, op=OpType.V_CONTROL
         ),  # vsetvli x0, x0, e32,m8,ta,ma
         InstrTest(
-            0xCD3470D7, Opcode.OP_V, Funct3.OPCFG, rd=1, imm=8, csr=0b110011010011, op=OpType.V_CONTROL
+            0xCD3470D7, Opcode.OP_V, Funct3.OPCFG, rd=1, imm=8, imm2=0b110011010011, op=OpType.V_CONTROL
         ),  # vsetivli x1, 8, e32,m8,ta,ma
     ]
 
@@ -1638,8 +1638,8 @@ class TestDecoder(TestCaseWithSimulator):
             if test.fm is not None:
                 self.assertEqual((yield self.decoder.fm), test.fm)
 
-            if test.csr is not None:
-                self.assertEqual((yield self.decoder.csr), test.csr)
+            if test.imm2 is not None:
+                self.assertEqual((yield self.decoder.imm2), test.imm2)
 
             self.assertEqual((yield self.decoder.optype), test.op)
 

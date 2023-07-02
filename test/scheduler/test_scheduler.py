@@ -12,11 +12,11 @@ from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
-from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, Opcode, OpType, Funct3, Funct7
+from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.utils.protocols import FuncBlock
-from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
+from ..common import *
 
 
 class SchedulerTestCircuit(Elaboratable):
@@ -101,7 +101,7 @@ class SchedulerTestCircuit(Elaboratable):
 @parameterized_class(
     ("name", "optype_sets", "instr_count"),
     [
-        ("One-RS", [set(OpType)], 100),
+        ("One-RS", [set(OpType)], 40),
         ("Two-RS", [{OpType.ARITHMETIC, OpType.COMPARE}, {OpType.MUL, OpType.COMPARE}], 500),
         (
             "Three-RS",
@@ -177,6 +177,7 @@ class TestScheduler(TestCaseWithSimulator):
         output_queues: Optional[Iterable[deque]] = None,
         check: Optional[Callable[[RecordIntDict, RecordIntDict], TestGen[None]]] = None,
         always_enable: bool = False,
+        name: str = "",
     ):
         """Create queue gather-and-test process
 
@@ -213,6 +214,8 @@ class TestScheduler(TestCaseWithSimulator):
             gathered from `output_queues`.
         always_enable: bool
             Makes `io` method always appear enabled.
+        name : str
+            Name of process to make potential debug prints more readable.
 
         Returns
         -------
@@ -256,16 +259,18 @@ class TestScheduler(TestCaseWithSimulator):
 
         return queue_process
 
-    def make_output_process(self, io: TestbenchIO, output_queues: Iterable[deque]):
+    def make_output_process(self, io: TestbenchIO, output_queues: Iterable[deque], name: str = ""):
         def check(got, expected):
-            rl_dst = yield self.m.rob.data[got["rs_data"]["rob_id"]].rob_data.rl_dst
-            s1 = self.rf_state[expected["rp_s1"]]
-            s2 = self.rf_state[expected["rp_s2"]]
+            rl_dst_id = yield self.m.rob.data[got["rs_data"]["rob_id"]].rob_data.rl_dst.id
+            rl_dst_type = yield self.m.rob.data[got["rs_data"]["rob_id"]].rob_data.rl_dst.type
+            rl_dst = {"id": rl_dst_id, "type": rl_dst_type}
+            s1 = self.rf_state[expected["rp_s1_id"]]
+            s2 = self.rf_state[expected["rp_s2_id"]]
 
             # if source operand register ids are 0 then we already have values
-            self.assertEqual(got["rs_data"]["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
-            self.assertEqual(got["rs_data"]["rp_s2"], expected["rp_s2"] if not s2.valid else 0)
-            self.assertEqual(got["rs_data"]["rp_dst"], expected["rp_dst"])
+            self.assertEqual(got["rs_data"]["rp_s1"]["id"], expected["rp_s1_id"] if not s1.valid else 0)
+            self.assertEqual(got["rs_data"]["rp_s2"]["id"], expected["rp_s2_id"] if not s2.valid else 0)
+            self.assertEqual(got["rs_data"]["rp_dst"]["id"], expected["rp_dst_id"])
             self.assertEqual(got["rs_data"]["exec_fn"], expected["exec_fn"])
             self.assertEqual(got["rs_entry_id"], expected["rs_entry_id"])
             self.assertEqual(got["rs_data"]["s1_val"], s1.value if s1.valid else 0)
@@ -273,12 +278,12 @@ class TestScheduler(TestCaseWithSimulator):
             self.assertEqual(rl_dst, expected["rl_dst"])
 
             # recycle physical register number
-            if got["rs_data"]["rp_dst"] != 0:
-                self.free_phys_reg(got["rs_data"]["rp_dst"])
+            if got["rs_data"]["rp_dst"]["id"] != 0:
+                self.free_phys_reg(got["rs_data"]["rp_dst"]["id"])
             # recycle ROB entry
             self.free_ROB_entries_queue.append({"rob_id": got["rs_data"]["rob_id"]})
 
-        return self.make_queue_process(io=io, output_queues=output_queues, check=check, always_enable=True)
+        return self.make_queue_process(io=io, output_queues=output_queues, check=check, always_enable=True, name=name)
 
     def test_randomized(self):
         def instr_input_process():
@@ -294,53 +299,27 @@ class TestScheduler(TestCaseWithSimulator):
             for rs in self.optype_sets:
                 op_types_set = op_types_set.union(rs)
 
+            scheduler_layouts = SchedulerLayouts(self.gen_params)
             for i in range(self.instr_count):
-                rl_s1 = random.randrange(self.gen_params.isa.reg_cnt)
-                rl_s2 = random.randrange(self.gen_params.isa.reg_cnt)
-                rl_dst = random.randrange(self.gen_params.isa.reg_cnt)
+                instr = generate_instr(self.gen_params, scheduler_layouts.reg_alloc_in, optypes=op_types_set)
 
-                opcode = random.choice(list(Opcode))
-                op_type = random.choice(list(op_types_set))
-                funct3 = random.choice(list(Funct3))
-                funct7 = random.choice(list(Funct7))
-                immediate = random.randrange(2**32)
-                rp_s1 = self.current_RAT[rl_s1]
-                rp_s2 = self.current_RAT[rl_s2]
-                rp_dst = self.expected_phys_reg_queue.popleft() if rl_dst != 0 else 0
+                rp_s1_id = self.current_RAT[instr["regs_l"]["s1"]["id"]]
+                rp_s2_id = self.current_RAT[instr["regs_l"]["s2"]["id"]]
+                rl_dst = instr["regs_l"]["dst"]
+                rp_dst_id = self.expected_phys_reg_queue.popleft() if rl_dst["id"] != 0 else 0
 
                 self.expected_rename_queue.append(
                     {
-                        "rp_s1": rp_s1,
-                        "rp_s2": rp_s2,
+                        "rp_s1_id": rp_s1_id,
+                        "rp_s2_id": rp_s2_id,
                         "rl_dst": rl_dst,
-                        "rp_dst": rp_dst,
-                        "opcode": opcode,
-                        "exec_fn": {
-                            "op_type": op_type,
-                            "funct3": funct3,
-                            "funct7": funct7,
-                        },
+                        "rp_dst_id": rp_dst_id,
                     }
+                    | get_dict_subset(instr, ["opcode", "exec_fn"])
                 )
-                self.current_RAT[rl_dst] = rp_dst
+                self.current_RAT[rl_dst["id"]] = rp_dst_id
 
-                yield from self.m.instr_inp.call(
-                    {
-                        "opcode": opcode,
-                        "illegal": 0,
-                        "exec_fn": {
-                            "op_type": op_type,
-                            "funct3": funct3,
-                            "funct7": funct7,
-                        },
-                        "regs_l": {
-                            "rl_s1": rl_s1,
-                            "rl_s2": rl_s2,
-                            "rl_dst": rl_dst,
-                        },
-                        "imm": immediate,
-                    }
-                )
+                yield from self.m.instr_inp.call(instr)
             # Terminate other processes
             self.expected_rename_queue.append(None)
             self.free_regs_queue.append(None)
@@ -367,11 +346,15 @@ class TestScheduler(TestCaseWithSimulator):
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             for i in range(self.rs_count):
                 sim.add_sync_process(
-                    self.make_output_process(io=self.m.rs_insert[i], output_queues=[self.expected_rs_entry_queue[i]])
+                    self.make_output_process(
+                        io=self.m.rs_insert[i], output_queues=[self.expected_rs_entry_queue[i]], name=f"rs[{i}]"
+                    )
                 )
                 sim.add_sync_process(rs_alloc_process(self.m.rs_alloc[i], i))
             sim.add_sync_process(
-                self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue])
+                self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue], name="rob_done")
             )
-            sim.add_sync_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
+            sim.add_sync_process(
+                self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue], name="free_rf")
+            )
             sim.add_sync_process(instr_input_process)

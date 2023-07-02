@@ -1,8 +1,23 @@
+import random
 import unittest
 import os
 import functools
 from contextlib import contextmanager, nullcontext
-from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Optional, Any, cast, Type, TypeGuard
+from typing import (
+    Callable,
+    Generic,
+    Mapping,
+    Union,
+    Generator,
+    TypeVar,
+    Optional,
+    Any,
+    cast,
+    Type,
+    TypeGuard,
+    Tuple,
+    Iterable,
+)
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
@@ -12,16 +27,26 @@ from amaranth.sim.core import Command
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike, ModuleConnector
+from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode
+from coreblocks.utils import (
+    ValueLike,
+    HasElaborate,
+    HasDebugSignals,
+    auto_debug_signals,
+    LayoutLike,
+    ModuleConnector,
+)
 from .gtkw_extension import write_vcd_ext
 
 
 T = TypeVar("T")
+U = TypeVar("U")
 RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
+SimpleLayout = list[Tuple[str, Union[int, "SimpleLayout"]]]
 
 
 def data_layout(val: int) -> LayoutLike:
@@ -34,6 +59,116 @@ def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
             yield from set_inputs(value, getattr(field, name))
         else:
             yield getattr(field, name).eq(value)
+
+
+def generate_based_on_layout(layout: SimpleLayout, *, max_bits: Optional[int] = None):
+    d = {}
+    for elem in layout:
+        if isinstance(elem[1], int):
+            if max_bits is None:
+                max_val = 2 ** elem[1]
+            else:
+                max_val = 2 ** min(max_bits, elem[1])
+            d[elem[0]] = random.randrange(max_val)
+        else:
+            d[elem[0]] = generate_based_on_layout(elem[1])
+    return d
+
+
+def generate_register_entry(max_bits: int, *, support_vector=False):
+    rp = random.randrange(max_bits)
+    if support_vector:
+        rp_rf = random.choice(list(RegisterType))
+    else:
+        rp_rf = RegisterType.X
+    return {"id": rp, "type": rp_rf}
+
+
+def generate_register_set(max_bits: int, *, support_vector=False):
+    return {
+        "s1": generate_register_entry(max_bits, support_vector=support_vector),
+        "s2": generate_register_entry(max_bits, support_vector=support_vector),
+        "dst": generate_register_entry(max_bits, support_vector=support_vector),
+    }
+
+
+def generate_exec_fn(optypes: Optional[Iterable[OpType]] = None):
+    if optypes is None:
+        optypes = list(OpType)
+    return {
+        "op_type": random.choice(list(optypes)),
+        "funct3": random.choice(list(Funct3)),
+        "funct7": random.choice(list(Funct7)),
+    }
+
+
+def overwrite_dict_values(base: dict, overwriting: Mapping) -> dict:
+    copy = base
+    for k, v in overwriting.items():
+        if k in copy and isinstance(v, Mapping):
+            overwrite_dict_values(copy[k], v)
+        else:
+            copy[k] = v
+    return copy
+
+
+def generate_instr(
+    gen_params: GenParams,
+    layout: LayoutLike,
+    *,
+    max_bits: Optional[int] = None,
+    support_vector=False,
+    optypes: Optional[Iterable[OpType]] = None,
+    max_imm: int = 2**32,
+    generate_illegal: bool = False,
+    non_uniform_s2_val=True,
+    overwriting: dict = {},
+):
+    rec = {}
+    if max_bits is None:
+        reg_phys_width = gen_params.phys_regs_bits
+    else:
+        reg_phys_width = max_bits
+
+    for field in layout:
+        if "regs_l" in field[0]:
+            if max_bits is None:
+                width = gen_params.isa.reg_cnt_log
+            else:
+                width = max_bits
+            rec["regs_l"] = generate_register_set(width, support_vector=support_vector)
+        if "regs_p" in field[0]:
+            rec["regs_p"] = generate_register_set(reg_phys_width, support_vector=support_vector)
+        for label in ["rp_dst", "rp_s1", "rp_s2"]:
+            if label in field[0]:
+                rec[label] = generate_register_entry(reg_phys_width, support_vector=support_vector)
+        if "exec_fn" in field[0]:
+            rec["exec_fn"] = generate_exec_fn(optypes)
+        if "opcode" in field[0]:
+            rec["opcode"] = random.choice(list(Opcode))
+        if "imm" in field[0]:
+            rec["imm"] = random.randrange(max_imm)
+        if "imm2" in field[0]:
+            rec["imm2"] = random.randrange(2**gen_params.imm2_width)
+        if "rob_id" in field[0]:
+            rec["rob_id"] = random.randrange(2**gen_params.rob_entries_bits)
+        if "pc" in field[0]:
+            rec["pc"] = random.randrange(2**32)
+        if "illegal" in field[0]:
+            rec["illegal"] = random.randrange(2) if generate_illegal else 0
+        if "s1_val" in field[0]:
+            rec["s1_val"] = random.randrange(2**gen_params.isa.xlen)
+        if "s2_val" in field[0]:
+            if non_uniform_s2_val and random.random() < 0.5:
+                s2_val = 0
+            else:
+                s2_val = random.randrange(2**gen_params.isa.xlen)
+            rec["s2_val"] = s2_val
+    return overwrite_dict_values(rec, overwriting)
+
+
+def get_dict_subset(base: Mapping[T, U], keys: Iterable[T]) -> dict[T, U]:
+    return {k: base[k] for k in keys}
 
 
 def get_outputs(field: Record) -> TestGen[RecordIntDict]:

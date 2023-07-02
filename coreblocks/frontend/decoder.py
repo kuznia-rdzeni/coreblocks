@@ -400,7 +400,7 @@ class InstrDecoder(Elaboratable):
         Predecessor for `FENCE` instructions.
     fm: Signal(FenceFm), out
         Fence mode for `FENCE` instructions.
-    csr: Signal(gen.isa.csr_alen), out
+    imm2: Signal(gen.imm2_width), out
         Address of Control and Source Register for `CSR` instructions.
     optype: Signal(OpType), out
         Operation type of instruction, used to define functional unit to perform this kind of instructions.
@@ -463,8 +463,8 @@ class InstrDecoder(Elaboratable):
         self.pred = Signal(FenceTarget)
         self.fm = Signal(FenceFm)
 
-        # CSR address
-        self.csr = Signal(gen.isa.csr_alen)
+        # CSR address or vtype for vector instruction
+        self.imm2 = Signal(gen.imm2_width)
 
         # Operation type
         self.optype = Signal(OpType)
@@ -647,7 +647,7 @@ class InstrDecoder(Elaboratable):
 
         # CSR address and constant for vector control instructions
 
-        m.d.comb += self._extract(20, self.csr)
+        m.d.comb += self._extract(20, self.imm2)
 
         # Register types
         with m.If((self.opcode == Opcode.OP_V)):
