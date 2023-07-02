@@ -86,3 +86,12 @@ class VectorFrontendLayouts:
 
         self.get_vill = [("vill",1)]
         self.get_vstart = [("vstart", v_params.vstart_bits)]
+
+class VRATLayouts:
+    def __init__(self, gen_params : GenParams, v_params : VectorParameters):
+        self.translate = [
+            ("s1_l", gen_params.isa.reg_cnt_log),
+            ("s2_l", gen_params.isa.reg_cnt_log),
+            ("dst_l", gen_params.isa.reg_cnt_log),
+            ("dst_p", gen_params.isa.reg_cnt_log),
+        ]

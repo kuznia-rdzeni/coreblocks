@@ -98,3 +98,5 @@ class VectorInputVerificator(Elaboratable):
         @def_method(m, self.clear)
         def _():
             fifo.clear(m)
+
+        return m

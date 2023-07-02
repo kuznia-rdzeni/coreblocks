@@ -23,6 +23,7 @@ __all__ = [
     "count_leading_zeros",
     "count_trailing_zeros",
     "mod_incr",
+    "MultiPriorityEncoder",
 ]
 
 
@@ -434,3 +435,40 @@ def silence_mustuse(elaboratable: Elaboratable):
     except Exception:
         elaboratable._MustUse__silence = True  # type: ignore
         raise
+
+
+class MultiPriorityEncoder(Elaboratable):
+    def __init__(self, input_width : int, output_count : int):
+        self.input_width = input_width
+        self.output_count = output_count
+
+        self.input = Signal(self.input_width)
+        self.outputs = [Signal(range(self.input_width)) for _ in range(self.output_count)]
+        self.valids = [Signal() for _ in range(self.output_count)]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        current_outputs = [Signal(range(self.input_width)) for _ in range(self.output_count)]
+        current_valids = [Signal() for _ in range(self.output_count)]
+        for j in reversed(range(self.input_width)):
+            new_current_outputs = [Signal(range(self.input_width)) for _ in range(self.output_count)]
+            new_current_valids = [Signal() for _ in range(self.output_count)]
+            with m.If(self.input[j]):
+                m.d.comb += new_current_outputs[0].eq(j)
+                m.d.comb += new_current_valids[0].eq(1)
+                for k in range(self.output_count-1):
+                    m.d.comb += new_current_outputs[k+1].eq(current_outputs[k])
+                    m.d.comb += new_current_valids[k+1].eq(current_valids[k])
+            with m.Else():
+                for k in range(self.output_count):
+                    m.d.comb += new_current_outputs[k].eq(current_outputs[k])
+                    m.d.comb += new_current_valids[k].eq(current_valids[k])
+            current_outputs = new_current_outputs
+            current_valids = new_current_valids
+
+        for k in range(self.output_count):
+            m.d.comb += self.outputs[k].eq(current_outputs[k])
+            m.d.comb += self.valids[k].eq(current_valids[k])
+
+        return m
