@@ -49,13 +49,16 @@ class RegAllocation(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            with m.If(instr.regs_l.dst.id != 0):
+            with m.If((instr.regs_l.dst.id != 0) & (instr.regs_l.dst.type==RegisterType.X)):
                 reg_id = self.get_free_reg(m)
                 m.d.comb += free_reg.eq(reg_id)
+            with m.Else():
+                # For X0 this will assign 0, for any other type it will copy logical id
+                m.d.comb += free_reg.eq(instr.regs_l.dst.id)
 
             m.d.comb += assign(data_out, instr)
             m.d.comb += data_out.regs_p.dst.id.eq(free_reg)
-            m.d.comb += data_out.regs_p.dst.type.eq(RegisterType.X)
+            m.d.comb += data_out.regs_p.dst.type.eq(instr.regs_l.dst.type)
             self.push_instr(m, data_out)
 
         return m
@@ -98,23 +101,39 @@ class Renaming(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
+
+            rl_dst_to_rename = Signal().like(instr.regs_l.dst.id, reset = 0)
+            rp_dst_to_rename = Signal().like(instr.regs_p.dst.id, reset = 0)
+            with m.If(instr.regs_l.dst.type==RegisterType.X):
+                m.d.comb += rl_dst_to_rename.eq(instr.regs_l.dst.id)
+                m.d.comb += rp_dst_to_rename.eq(instr.regs_p.dst.id)
+
             renamed_regs = self.rename(
                 m,
                 {
                     "rl_s1": instr.regs_l.s1.id,
                     "rl_s2": instr.regs_l.s2.id,
-                    "rl_dst": instr.regs_l.dst.id,
-                    "rp_dst": instr.regs_p.dst.id,
+                    "rl_dst": rl_dst_to_rename,
+                    "rp_dst": rp_dst_to_rename,
                 },
             )
 
             m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "imm2", "pc"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
             m.d.comb += data_out.regs_p.dst.eq(instr.regs_p.dst)
-            m.d.comb += data_out.regs_p.s1.id.eq(renamed_regs.rp_s1)
-            m.d.comb += data_out.regs_p.s1.type.eq(RegisterType.X)
-            m.d.comb += data_out.regs_p.s2.id.eq(renamed_regs.rp_s2)
-            m.d.comb += data_out.regs_p.s2.type.eq(RegisterType.X)
+
+            with m.If(instr.regs_l.s1.type == RegisterType.X):
+                m.d.comb += data_out.regs_p.s1.id.eq(renamed_regs.rp_s1)
+            with m.Else():
+                m.d.comb += data_out.regs_p.s1.id.eq(instr.regs_l.s1.id)
+            m.d.comb += data_out.regs_p.s1.type.eq(instr.regs_l.s1.type)
+
+            with m.If(instr.regs_l.s2.type == RegisterType.X):
+                m.d.comb += data_out.regs_p.s2.id.eq(renamed_regs.rp_s2)
+            with m.Else():
+                m.d.comb += data_out.regs_p.s2.id.eq(instr.regs_l.s2.id)
+            m.d.comb += data_out.regs_p.s2.type.eq(instr.regs_l.s2.type)
+
             self.push_instr(m, data_out)
 
         return m
