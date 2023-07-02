@@ -128,60 +128,6 @@ class Renaming(Elaboratable):
         return m
 
 
-class ROBAllocation(Elaboratable):
-    """
-    Module performing "ReOrder Buffer entry allocation" step of scheduling process.
-    """
-
-    def __init__(self, *, get_instr: Method, push_instr: Method, rob_put: Method, gen_params: GenParams):
-        """
-        Parameters
-        ----------
-        get_instr: Method
-            Method providing instructions with physical register IDs present for all used registers.
-            Uses `SchedulerLayouts.rob_allocate_in`.
-        push_instr: Method
-            Method used for pushing the serviced instruction to the next step.
-            Uses `SchedulerLayouts.rob_allocate_out`.
-        rob_put: Method
-            Method used for getting a free entry in the ROB. Uses `ROBLayouts.data_layout`
-            and `ROBLayouts.id_layout`.
-        gen_params: GenParams
-            Core generation parameters.
-        """
-        self.gen_params = gen_params
-        layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.rob_allocate_in
-        self.output_layout = layouts.rob_allocate_out
-
-        self.get_instr = get_instr
-        self.push_instr = push_instr
-        self.rob_put = rob_put
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        data_out = Record(self.output_layout)
-
-        with Transaction().body(m):
-            instr = self.get_instr(m)
-
-            rob_id = self.rob_put(
-                m,
-                {
-                    "rl_dst": instr.regs_l.rl_dst,
-                    "rp_dst": instr.regs_p.rp_dst,
-                },
-            )
-
-            m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
-            m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
-
-            self.push_instr(m, data_out)
-
-        return m
-
-
 class RSSelection(Elaboratable):
     """
     Module performing "Reservation Station selection" step of scheduling process.

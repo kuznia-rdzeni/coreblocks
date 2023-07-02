@@ -314,7 +314,7 @@ class TestCoreBasicAsmSource(TestCoreAsmSourceBase):
     [
         ("interrupt.asm", 800, {4: 2971215073, 8: 29}, {2: 2971215073, 7: 29, 31: 0xDE}, 300, 500),
         ("interrupt.asm", 800, {4: 24157817, 8: 199}, {2: 24157817, 7: 199, 31: 0xDE}, 100, 200),
-        ("interrupt.asm", 350, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
+        ("interrupt.asm", 400, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
         # 10-15 is the smallest feasible cycle count between interrupts to provide forward progress
         ("interrupt.asm", 300, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 10, 15),
     ],

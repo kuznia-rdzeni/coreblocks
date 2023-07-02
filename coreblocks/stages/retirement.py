@@ -49,7 +49,8 @@ class Retirement(Elaboratable):
 
         rob_indices = Record.like(self.rob_get_indices.data_out)
         # did we already send precommit for instruction at the start of the ROB?
-        precommit_sent = rob_indices.start == last_precommit_id
+        precommit_sent = Signal()
+        m.d.comb += precommit_sent.eq(rob_indices.start == last_precommit_id)
 
         # logic for allowing to execute precommit and retire: there's no stall or there is a
         # stall but we already broadcasted precommit for an instruction at the start of the ROB

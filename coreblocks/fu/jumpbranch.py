@@ -132,7 +132,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         m = TModule()
 
         branch_result = Record(
-            self.gen.get(FetchLayouts).branch_verify_in + [("rob_id", self.gen.rob_entries_bits), ("valid", 1)]
+            self.gen.get(FetchLayouts).branch_verify_in
+            + [("rob_id", self.gen.rob_entries_bits), ("valid", 1), ("can_retire", 1)]
         )
 
         m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
@@ -142,8 +143,10 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         # ready signal ensures sequential execution of issue -> precommit -> accept
         # in cases where op != AUIPC, and sequential execution of issue -> accept
         # in case where op == AUIPC
-        @def_method(m, self.accept, ready=~branch_result.valid)
+        @def_method(m, self.accept, ready=branch_result.valid & branch_result.can_retire)
         def _():
+            m.d.sync += branch_result.valid.eq(0)
+            m.d.sync += branch_result.can_retire.eq(0)
             return fifo_res.read(m)
 
         @def_method(m, self.issue, ready=~branch_result.valid)
@@ -163,12 +166,14 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 m.d.sync += branch_result.rob_id.eq(arg.rob_id)
                 m.d.sync += branch_result.from_pc.eq(jb.in_pc)
                 m.d.sync += branch_result.next_pc.eq(Mux(jb.taken, jb.jmp_addr, jb.reg_res))
-                m.d.sync += branch_result.valid.eq(1)
+            with m.Else():
+                m.d.sync += branch_result.can_retire.eq(1)
+            m.d.sync += branch_result.valid.eq(1)
 
         @def_method(m, self.precommit)
         def _(rob_id):
             with m.If(branch_result.valid & (rob_id == branch_result.rob_id)):
-                m.d.sync += branch_result.valid.eq(0)
+                m.d.sync += branch_result.can_retire.eq(1)
                 self.verify_branch(m, from_pc=branch_result.from_pc, next_pc=branch_result.next_pc)
 
         @def_method(m, self.clear)

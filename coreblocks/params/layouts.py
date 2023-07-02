@@ -63,17 +63,7 @@ class SchedulerLayouts:
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
-        self.renaming_out = self.rob_allocate_in = [
-            ("opcode", Opcode),
-            ("illegal", 1),
-            ("exec_fn", common.exec_fn),
-            ("regs_p", common.regs_p),
-            ("rob_id", gen_params.rob_entries_bits),
-            ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
-            ("pc", gen_params.isa.xlen),
-        ]
-        self.rob_allocate_out = self.rs_select_in = [
+        self.renaming_out = self.rs_select_in = [
             ("opcode", Opcode),
             ("illegal", 1),
             ("exec_fn", common.exec_fn),

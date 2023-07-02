@@ -8,6 +8,24 @@ from coreblocks.structs_common.csr_generic import CSRAddress
 
 
 class InterruptCoordinator(Elaboratable):
+    """
+    Module responsible for sequencing interrupt handling. It contains a state
+    machine that executes the following steps:
+    1. Wait for interrupt method to get called
+    2. Wait for ROB to be nonempty (to always have PC of instruction to come
+       back to from the ISR) and wait for retirement to stall
+    3. Save interrupt return address into MEPC, clear all state in the pipeline
+       that could be holding instructions and restore FRAT from RRAT
+    4. Flush instructions from ROB, making sure physical registers get recycled
+       into Free-RF FIFO
+    5. Jump to the ISR and unstall retirement
+    6. Wait for interrupt return method to get called
+    7. Jump back to the main program flow
+
+    In the current implementation nested interrupts are disallowed and liveness
+    condition is not satisfied.
+    """
+
     def __init__(
         self,
         *,
@@ -58,23 +76,9 @@ class InterruptCoordinator(Elaboratable):
         with m.FSM("idle"):
             with m.State("idle"):
                 with Transaction(name="WaitForInt").body(m, request=self.interrupt):
-                    # We can only stall if rob is nonempty because we need PC of
-                    # the next instruction (that didn't execute precommit).
-                    # The clue here is that to satisfy liveness condition (which basically says
-                    # that we need forward progress even if we have interrupt flag raised constantly)
-                    # we can't just stall retirement without checking if ROB's empty and wait
-                    # for some instruction to arrive if it was (and hence might not be
-                    # able proceed due to lack of aforementioned PC). See also:
-                    # https://github.com/kuznia-rdzeni/coreblocks/pull/351#discussion_r1209887087
                     with m.If(~self.rob_empty(m) & self.retirement_stall(m)):
                         m.next = "clear"
             with m.State("clear"):
-                # rationale for methods below being in a separate state (as opposed
-                # to in the "idle" state) is to possibly shorten the scheduling critical
-                # path (rob_empty influences retirement_stall which influences transactions
-                # in retirement which might influence rob_peek - not sure how its
-                # nonexclusivity comes into play here) and also to make sure that the fetcher
-                # is stopped before attempting to clear it with clear_blocks
                 with Transaction(name="IntClearAll").body(m):
                     # stall fetcher *after* retirement has been stalled
                     # so that no spurious unstall occurs
@@ -96,6 +100,7 @@ class InterruptCoordinator(Elaboratable):
             with m.State("unstall"):
                 with Transaction(name="IntUnstall").body(m):
                     int_handler_addr = self.mtvec.read(m).data
+                    # TODO: do something with placeholder from_pc
                     self.pc_verify_branch(m, next_pc=int_handler_addr, from_pc=0)
                     self.retirement_unstall(m)
                     m.next = "wait_for_iret"
@@ -104,6 +109,7 @@ class InterruptCoordinator(Elaboratable):
                     # note: this approach works only because we stall fetching when
                     # we encounter a system instruction (which includes MRET)
                     return_pc = self.mepc.read(m).data
+                    # TODO: do something with placeholder from_pc
                     self.pc_verify_branch(m, next_pc=return_pc, from_pc=0)
                     m.next = "idle"
 

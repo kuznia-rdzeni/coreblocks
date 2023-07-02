@@ -100,11 +100,6 @@ class Fetch(Elaboratable):
         def _(from_pc: Value, next_pc: Value):
             m.d.sync += speculative_pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
-            # makes sure that all responses that arrived during the stall are discarded
-            # on arrival (not necessarily branches - this can happen on arbitrary
-            # instructions during interrupt processing so we need to make sure no stray
-            # instructions from main program flow make their way into the core)
-            m.d.sync += tag.eq(tag + 1)
             return self.pc
 
         return m
