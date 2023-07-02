@@ -1,24 +1,34 @@
 from enum import IntEnum, auto
 
-__all__ = ["EEW", "eew_to_bits", "bits_to_eew", "eew_div_2"]
+__all__ = ["SEW", "EEW", "EMUL", "LMUL", "eew_to_bits", "bits_to_eew", "eew_div_2"]
 
 
-class EEW(IntEnum):
-    """Representation of possible EEW
+class SEW(IntEnum):
+    """Representation of possible SEW
 
-    This enum represents EEWs as defined by the V extension, that
+    This enum represents SEWs as defined by the V extension, that
     we are able to support in our core.
 
     Possible values are represented by the small integer numbers to
     compress the representation as much as possible. So it dosn't
-    take much HW resources to represent an EEW.
+    take much HW resources to represent an SEW.
     """
 
-    w8 = auto()
-    w16 = auto()
-    w32 = auto()
-    w64 = auto()
+    w8 = 0
+    w16 = 1
+    w32 = 2
+    w64 = 3
+EEW = SEW
 
+class LMUL(IntEnum):
+    m1 = 0
+    m2 = 1
+    m4 = 2
+    m8 = 3
+    mf2 = 7 # multiply fractional 2 --> LMUL=1/2
+    mf4 = 6
+    mf8 = 5
+EMUL = LMUL
 
 def eew_to_bits(eew: EEW) -> int:
     """Convert EEW to number of bits
@@ -84,3 +94,5 @@ def eew_div_2(eew: EEW) -> EEW:
         EEW to be divided by 2.
     """
     return bits_to_eew(eew_to_bits(eew) // 2)
+
+

@@ -1,5 +1,5 @@
 # Zweryfikować czy wspieramy dane SEW i LMUL, czyli:
-#   - SEW < ELEN
+#   - SEW <= ELEN
 #   - LMUL >= 8/ELEN
 # Jeśli nie to ustawić vill
 
@@ -36,13 +36,14 @@ from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.utils.fifo import BasicFifo
 
 class VectorInputVerificator(Elaboratable):
-    def __init__(self, gen_params : GenParams, v_params : VectorParameters, rob_block_interrupts : Method, put_instr : Method, get_vill : Method, get_vstart : Method):
+    def __init__(self, gen_params : GenParams, v_params : VectorParameters, rob_block_interrupts : Method, put_instr : Method, get_vill : Method, get_vstart : Method, retire : Method):
         self.gen_params = gen_params
         self.v_params = v_params
         self.rob_block_interrupts = rob_block_interrupts
         self.put_instr = put_instr
         self.get_vill = get_vill
         self.get_vstart = get_vstart
+        self.retire = retire
 
         self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
         self.vill = Signal()
@@ -51,6 +52,7 @@ class VectorInputVerificator(Elaboratable):
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
 
         self.issue = Method(i=self.layouts.verification_in)
+        self.clear = Method()
 
     def check_instr(self, m : TModule, instr) -> Value:
         # TODO add checking if instruction is whole-register move, load or store (don't use vtype)
@@ -86,8 +88,13 @@ class VectorInputVerificator(Elaboratable):
                     self.rob_block_interrupts(m, rob_id = instr.rob_id)
                 with branch(raise_illegal == 1):
                     self.report(m, rob_id = instr.rob_id, cuse = ExceptionCause.ILLEGAL_INSTRUCTION)
+                    self.retire(m, rob_id = instr.rob_id, exception = 1)
 
         with Transaction(name = "vstart_getter").body(m):
             m.d.comb += self.vstart.eq(self.get_vstart(m).vstart)
         with Transaction(name = "vill_getter").body(m):
             m.d.comb += self.vill.eq(self.get_vill(m).vill)
+
+        @def_method(m, self.clear)
+        def _():
+            fifo.clear(m)

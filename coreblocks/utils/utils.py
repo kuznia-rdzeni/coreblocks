@@ -16,6 +16,7 @@ __all__ = [
     "align_to_power_of_two",
     "bits_from_int",
     "layout_subset",
+    "layout_difference",
     "ModuleConnector",
     "silence_mustuse",
     "popcount",
@@ -343,6 +344,9 @@ def count_trailing_zeros(s: Value) -> Value:
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]
+
+def layout_difference(layout: LayoutList, *, fields: set[str]) -> LayoutList:
+    return [item for item in layout if item[0] not in fields]
 
 
 def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
