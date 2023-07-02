@@ -59,8 +59,3 @@ class VectorXRSLayout(RSLayouts):
 
         self.insert_in: LayoutLike = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
         self.take_out: LayoutLike = self.data_layout
-
-
-class VectorStatusUnitLayouts:
-    def __init__(self, gen_params: GenParams):
-        self.issue = layout_subset

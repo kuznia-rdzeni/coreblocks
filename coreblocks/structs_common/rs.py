@@ -123,6 +123,14 @@ class RS(Elaboratable, Generic[T]):
 
 
 class FifoRS(RS[T]):
+    """ Fifo RS
+
+    Implementation of RS interface, which ignores `rs_entry_id` and instead of that
+    operates as fifo, so new elements are added to the end of the RS, and an element
+    can be take iff it is ready and is on the head.
+    """
+    # TODO: Instead of creating separate class maybe it will be enough to add proper
+    # selection and taken logic to normal RS?
     def __init__(
         self, gen_params: GenParams, rs_entries: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None, **kwargs
     ) -> None:
@@ -167,33 +175,5 @@ class FifoRS(RS[T]):
         @loop_def_method(m, self.get_ready_list, ready_list=lambda i: ready_lists[i].any())
         def _(i) -> RecordDict:
             return {"ready_list": ready_lists[i]}
-
-        return m
-
-
-class RSStub(Elaboratable):
-    def __init__(self, gen_params: GenParams, update: Method, instr_out: Method):
-        self.gen_params = gen_params
-        self.update = update
-        self.instr_out = instr_out
-
-        self.layouts = gen_params.get(RSInterfaceLayouts, rs_entries_bits=0)
-
-        self.insert = Method(i=self.layouts.insert_in)
-        self.select = Method(o=self.layouts.select_out)
-        self.update = Method(i=self.layouts.update_in)
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        @def_method(m, self.select)
-        def _(arg):
-            return 0
-
-        @def_method(m, self.insert)
-        def _(rs_entry_id, rs_data):
-            self.instr_out(m, rs_data)
-
-        self.update.proxy(m, self.update)
 
         return m

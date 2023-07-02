@@ -26,7 +26,9 @@ __all__ = [
 
 
 def mod_incr(sig: Value, mod: int) -> Value:
-    # perform (sig+1)%mod operation
+    """
+    Perform `(sig+1) % mod` operation.
+    """
     if mod == 2 ** len(sig):
         return sig + 1
     return Mux(sig == mod - 1, 0, sig + 1)
