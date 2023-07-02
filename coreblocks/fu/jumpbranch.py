@@ -143,7 +143,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         # ready signal ensures sequential execution of issue -> precommit -> accept
         # in cases where op != AUIPC, and sequential execution of issue -> accept
         # in case where op == AUIPC
-        @def_method(m, self.accept, ready=branch_result.valid & branch_result.can_retire)
+        @def_method(m, self.accept, ready=branch_result.can_retire)
         def _():
             m.d.sync += branch_result.valid.eq(0)
             m.d.sync += branch_result.can_retire.eq(0)
@@ -179,11 +179,13 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         @def_method(m, self.clear)
         def _():
             m.d.sync += branch_result.valid.eq(0)
+            m.d.sync += branch_result.can_retire.eq(0)
             fifo_res.clear(m)
 
         self.clear.add_conflict(self.issue, priority=Priority.LEFT)
         self.clear.add_conflict(self.accept, priority=Priority.LEFT)
         self.clear.add_conflict(self.precommit, priority=Priority.LEFT)
+        self.accept.add_conflict(self.precommit, priority=Priority.LEFT)
 
         return m
 
