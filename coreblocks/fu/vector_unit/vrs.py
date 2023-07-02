@@ -9,11 +9,12 @@ __all__ = ["VXRS"]
 
 
 class VXRS(FifoRS):
-    """ Vector extension RS to wait for scalars
+    """Vector extension RS to wait for scalars
 
     This is a RS, which extends the FifoRS with `rec_ready` signals to
     specialise it for the usage as RS that wait only for scalars values.
     """
+
     def __init__(
         self,
         gen_params: GenParams,

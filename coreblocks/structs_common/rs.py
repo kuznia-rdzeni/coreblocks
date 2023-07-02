@@ -3,7 +3,7 @@ from typing_extensions import Self
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
 from coreblocks.transactions import Method, def_method, TModule, loop_def_method
-from coreblocks.params import RSLayouts, GenParams, OpType, RSInterfaceLayouts
+from coreblocks.params import RSLayouts, GenParams, OpType
 from coreblocks.transactions.core import RecordDict
 from coreblocks.utils.protocols import RSLayoutProtocol
 from coreblocks.utils.utils import mod_incr, assign, AssignType
@@ -123,12 +123,13 @@ class RS(Elaboratable, Generic[T]):
 
 
 class FifoRS(RS[T]):
-    """ Fifo RS
+    """Fifo RS
 
     Implementation of RS interface, which ignores `rs_entry_id` and instead of that
     operates as fifo, so new elements are added to the end of the RS, and an element
     can be take iff it is ready and is on the head.
     """
+
     # TODO: Instead of creating separate class maybe it will be enough to add proper
     # selection and taken logic to normal RS?
     def __init__(
