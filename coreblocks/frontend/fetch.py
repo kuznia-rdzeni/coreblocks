@@ -200,16 +200,16 @@ class UnalignedFetch(Elaboratable):
             )
             m.d.sync += half_instr_buff.eq(resp_upper_half)
 
-            # TODO: find a better way to fail when there's a fetch error.
-            with m.If(resp_valid & ready_to_dispatch):
-                with m.If(unsafe_instr):
+            with m.If((resp_valid & ready_to_dispatch) | (cache_resp.error & ~stalled)):
+                with m.If(unsafe_instr | cache_resp.error):
                     m.d.sync += stalled.eq(1)
                     m.d.sync += flushing.eq(1)
 
                 m.d.sync += self.pc.eq(current_pc)
-                m.d.sync += current_pc.eq(current_pc + Mux(is_rvc, C(2, 3), C(4, 3)))
+                with m.If(~cache_resp.error):
+                    m.d.sync += current_pc.eq(current_pc + Mux(is_rvc, C(2, 3), C(4, 3)))
 
-                self.cont(m, data=instr, pc=current_pc, rvc=is_rvc)
+                self.cont(m, data=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
 
         @def_method(m, self.verify_branch, ready=(stalled & ~flushing))
         def _(from_pc: Value, next_pc: Value):
