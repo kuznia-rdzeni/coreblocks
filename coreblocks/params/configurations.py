@@ -109,7 +109,7 @@ full_core_config = CoreConfiguration(
         RSBlockComponent(
             [
                 MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
-                DivComponent(ipc=4),
+                DivComponent(ipc=3),
             ],
             rs_entries=2,
         ),
