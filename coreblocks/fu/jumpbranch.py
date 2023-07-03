@@ -160,7 +160,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
             # generated for a conditional branch that is not taken."
             exception = Signal()
-            with m.If((decoder.decode_fn != JumpBranchFn.Fn.AUIPC) & jb.taken & (jb.jmp_addr & 0b11 != 0)):
+            jmp_addr_misaligned = (jb.jmp_addr & (0b1 if Extension.C in self.gen.isa.extensions else 0b11)) != 0
+            with m.If((decoder.decode_fn != JumpBranchFn.Fn.AUIPC) & jb.taken & jmp_addr_misaligned):
                 m.d.comb += exception.eq(1)
                 report = self.dm.get_dependency(ExceptionReportKey())
                 report(m, rob_id=arg.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED)
