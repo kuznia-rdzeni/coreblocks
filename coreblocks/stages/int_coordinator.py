@@ -23,6 +23,28 @@ class InterruptCoordinator(Elaboratable):
     7. Jump back to the main program flow
 
     In the current implementation nested interrupts are disallowed.
+
+    Attributes
+    ----------
+    trigger: Method
+        Starts the interrupt processing state machine. Note that an unspecified
+        but bounded amount of cycles can happen between calling this method and
+        actual processing taking place due to constraints on precise instruction
+        retirement (instructions which started executing side effects must get
+        retired first).
+    iret: Method
+        Interrupt return. Triggers return from an ISR to an address held in `mepc`
+        Can be called only after `trigger` has been called. Should be called by
+        instructions that cause interrupt return - currently only MRET.
+    interrupt: Signal
+        Flag which indicates that interrupt processing has been requested. Raised
+        by calling `trigger`, deasserted by calling `iret` (usually through MRET
+        instruction in ISR).
+    mepc: CSRRegister
+        CSR register which holds the ISR return address.
+    mtvec: CSRRegister
+        CSR register which holds the interrupt vector. Currently this only
+        supports having one ISR.
     """
 
     def __init__(
