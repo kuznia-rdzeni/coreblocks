@@ -1,4 +1,4 @@
-from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode
+from coreblocks.params import GenParams, OpType, Funct7, Funct3
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.utils.utils import layout_subset
 
@@ -45,8 +45,6 @@ class SchedulerLayouts:
     def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)
         self.reg_alloc_in = [
-            ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen_params.isa.xlen),
@@ -54,8 +52,6 @@ class SchedulerLayouts:
             ("pc", gen_params.isa.xlen),
         ]
         self.reg_alloc_out = self.renaming_in = [
-            ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
@@ -64,8 +60,6 @@ class SchedulerLayouts:
             ("pc", gen_params.isa.xlen),
         ]
         self.renaming_out = self.rob_allocate_in = [
-            ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             (
                 "regs_l",
@@ -80,8 +74,6 @@ class SchedulerLayouts:
             ("pc", gen_params.isa.xlen),
         ]
         self.rob_allocate_out = self.rs_select_in = [
-            ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
@@ -90,8 +82,6 @@ class SchedulerLayouts:
             ("pc", gen_params.isa.xlen),
         ]
         self.rs_select_out = self.rs_insert_in = [
-            ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
@@ -259,6 +249,7 @@ class FetchLayouts:
         self.raw_instr = [
             ("data", gen_params.isa.ilen),
             ("pc", gen_params.isa.xlen),
+            ("access_fault", 1),
             ("rvc", 1),
         ]
 
@@ -272,8 +263,6 @@ class DecodeLayouts:
     def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)
         self.decoded_instr = [
-            ("opcode", Opcode),
-            ("illegal", 1),
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("imm", gen_params.isa.xlen),

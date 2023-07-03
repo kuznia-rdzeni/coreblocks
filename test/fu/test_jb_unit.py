@@ -77,7 +77,13 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
     next_pc &= max_int
     res &= max_int
 
-    return {"result": res, "from_pc": pc, "next_pc": next_pc}
+    exception = None
+    if next_pc & 0b11 != 0:
+        exception = ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED
+
+    return {"result": res, "from_pc": pc, "next_pc": next_pc} | (
+        {"exception": exception} if exception is not None else {}
+    )
 
 
 @staticmethod

@@ -69,14 +69,12 @@ class Fetch(Elaboratable):
 
             with m.If(spin == target.spin):
                 instr = Signal(self.gp.isa.ilen)
+                fetch_error = Signal()
 
-                with m.If(res.error != 0):
-                    # TODO: this should ideally bypass decoder and push a decoded 'trigger ibus
-                    # error' instruction instead.  For now push UNIMP, which happens to be 0x0000
-                    # in RV32C, and should throw 'illegal instruction' exception.
-                    # If we do not support C, it should throw the same exception anyway.
-                    m.d.comb += instr.eq(0x0000)
-
+                with m.If(res.error):
+                    # TODO: Raise different code for page fault when supported
+                    stall()
+                    m.d.comb += fetch_error.eq(1)
                 with m.Else():
                     with m.If(unsafe_instr):
                         stall()
@@ -84,7 +82,7 @@ class Fetch(Elaboratable):
                     m.d.sync += self.pc.eq(target.addr)
                     m.d.comb += instr.eq(res.instr)
 
-                self.cont(m, data=instr, pc=target.addr, rvc=0)
+                self.cont(m, data=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
 
         @def_method(m, self.verify_branch, ready=stalled)
         def _(from_pc: Value, next_pc: Value):
@@ -203,16 +201,16 @@ class UnalignedFetch(Elaboratable):
             )
             m.d.sync += half_instr_buff.eq(resp_upper_half)
 
-            # TODO: find a better way to fail when there's a fetch error.
-            with m.If(resp_valid & ready_to_dispatch):
-                with m.If(unsafe_instr):
+            with m.If((resp_valid & ready_to_dispatch) | (cache_resp.error & ~stalled)):
+                with m.If(unsafe_instr | cache_resp.error):
                     m.d.sync += stalled.eq(1)
                     m.d.sync += flushing.eq(1)
 
                 m.d.sync += self.pc.eq(current_pc)
-                m.d.sync += current_pc.eq(current_pc + Mux(is_rvc, C(2, 3), C(4, 3)))
+                with m.If(~cache_resp.error):
+                    m.d.sync += current_pc.eq(current_pc + Mux(is_rvc, C(2, 3), C(4, 3)))
 
-                self.cont(m, data=instr, pc=current_pc, rvc=is_rvc)
+                self.cont(m, data=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
 
         @def_method(m, self.verify_branch, ready=(stalled & ~flushing))
         def _(from_pc: Value, next_pc: Value):

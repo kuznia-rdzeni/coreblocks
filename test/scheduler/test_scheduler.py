@@ -12,7 +12,7 @@ from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
-from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, Opcode, OpType, Funct3, Funct7
+from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.utils.protocols import FuncBlock
@@ -299,7 +299,6 @@ class TestScheduler(TestCaseWithSimulator):
                 rl_s2 = random.randrange(self.gen_params.isa.reg_cnt)
                 rl_dst = random.randrange(self.gen_params.isa.reg_cnt)
 
-                opcode = random.choice(list(Opcode))
                 op_type = random.choice(list(op_types_set))
                 funct3 = random.choice(list(Funct3))
                 funct7 = random.choice(list(Funct7))
@@ -314,7 +313,6 @@ class TestScheduler(TestCaseWithSimulator):
                         "rp_s2": rp_s2,
                         "rl_dst": rl_dst,
                         "rp_dst": rp_dst,
-                        "opcode": opcode,
                         "exec_fn": {
                             "op_type": op_type,
                             "funct3": funct3,
@@ -326,8 +324,6 @@ class TestScheduler(TestCaseWithSimulator):
 
                 yield from self.m.instr_inp.call(
                     {
-                        "opcode": opcode,
-                        "illegal": 0,
                         "exec_fn": {
                             "op_type": op_type,
                             "funct3": funct3,
