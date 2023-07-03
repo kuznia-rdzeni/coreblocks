@@ -508,6 +508,6 @@ class InstrDecoder(Elaboratable):
 
         # Illegal instruction detection
 
-        m.d.comb += self.illegal.eq(self.optype == OpType.UNKNOWN)
+        m.d.comb += self.illegal.eq((self.optype == OpType.UNKNOWN) | (self.instr[0:2] != 0b11))
 
         return m
