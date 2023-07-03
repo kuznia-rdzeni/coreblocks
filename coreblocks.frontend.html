@@ -222,6 +222,32 @@ It has layout as described by <cite>FetchLayout</cite>.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch.UnalignedFetch">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.fetch.</span></span><span class="sig-name descname"><span class="pre">UnalignedFetch</span></span><a class="headerlink" href="#coreblocks.frontend.fetch.UnalignedFetch" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Simple fetch unit that works with unaligned and RVC instructions.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch.UnalignedFetch.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">icache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.frontend.icache.ICacheInterface" title="coreblocks.frontend.icache.ICacheInterface"><span class="pre">ICacheInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.transactions.html#coreblocks.transactions.core.Method" title="coreblocks.transactions.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.UnalignedFetch.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Instance of GenParams with parameters which should be used to generate
+fetch unit.</p>
+</dd>
+<dt><strong>icache</strong><span class="classifier">ICacheInterface</span></dt><dd><p>Instruction Cache</p>
+</dd>
+<dt><strong>cont</strong><span class="classifier">Method</span></dt><dd><p>Method which should be invoked to send fetched data to the next step.
+It has layout as described by <cite>FetchLayout</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-coreblocks.frontend.icache">
 <span id="coreblocks-frontend-icache-module"></span><h2>coreblocks.frontend.icache module<a class="headerlink" href="#module-coreblocks.frontend.icache" title="Permalink to this heading"></a></h2>
@@ -332,6 +358,35 @@ the cache.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.frontend.rvc">
+<span id="coreblocks-frontend-rvc-module"></span><h2>coreblocks.frontend.rvc module<a class="headerlink" href="#module-coreblocks.frontend.rvc" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.rvc.InstrDecompress">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.rvc.</span></span><span class="sig-name descname"><span class="pre">InstrDecompress</span></span><a class="headerlink" href="#coreblocks.frontend.rvc.InstrDecompress" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.rvc.InstrDecompress.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.rvc.InstrDecompress.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.rvc.InstrDecompress.decompr_reg">
+<span class="sig-name descname"><span class="pre">decompr_reg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rvc_reg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.frontend.rvc.InstrDecompress.decompr_reg" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.rvc.InstrDecompress.instr_mux">
+<span class="sig-name descname"><span class="pre">instr_mux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.frontend.rvc.InstrDecompress.instr_mux" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="coreblocks.frontend.rvc.is_instr_compressed">
+<span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.rvc.</span></span><span class="sig-name descname"><span class="pre">is_instr_compressed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.frontend.rvc.is_instr_compressed" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.frontend">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.frontend" title="Permalink to this heading"></a></h2>
 </div>
@@ -349,7 +404,7 @@ the cache.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 07:55 2023-07-03.
+      <span class="lastupdated">Last updated on 08:06 2023-07-03.
       </span></p>
   </div>
 

@@ -36,6 +36,14 @@ coreblocks.frontend.icache module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.frontend.rvc module
+------------------------------
+
+.. automodule:: coreblocks.frontend.rvc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

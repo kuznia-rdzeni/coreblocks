@@ -44,6 +44,14 @@ coreblocks.params.icache\_params module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.params.instr module
+------------------------------
+
+.. automodule:: coreblocks.params.instr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.params.isa module
 ----------------------------
 
