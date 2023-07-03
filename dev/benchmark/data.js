@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688394857223,
+  "lastUpdate": 1688396138123,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -1535,6 +1535,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "minver",
             "value": 0.24125798497454903,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6bf3b70c715c000e46e9eeedf1548bf566e0d831",
+          "message": "Remove wiki deploy (#423)",
+          "timestamp": "2023-07-03T16:20:17+02:00",
+          "tree_id": "b28e80060e450568692689ddf53fba345b30ed20",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6bf3b70c715c000e46e9eeedf1548bf566e0d831"
+        },
+        "date": 1688396136361,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.2828491744495354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.1537547475379883,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24125798497454903,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29335309567662415,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.383974924819342,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20126447714429588,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21250038417801273,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.36743626977565014,
             "unit": "Instructions Per Cycle"
           }
         ]
