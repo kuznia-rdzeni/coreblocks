@@ -261,6 +261,11 @@ extension_implications = {
     Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
 }
 
+# Extensions (not aliases) that only imply other sub-extensions, but don't add any new OpTypes.
+extension_only_implies = {
+    Extension.B,
+}
+
 
 class ISA:
     """
