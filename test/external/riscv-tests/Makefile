@@ -4,6 +4,7 @@ ENV_DIR := environment/custom
 
 include riscv-tests/isa/rv32ui/Makefrag
 include riscv-tests/isa/rv32um/Makefrag
+include riscv-tests/isa/rv32uc/Makefrag
 
 RISCV_PREFIX ?= riscv64-unknown-elf-
 RISCV_GCC ?= $(RISCV_PREFIX)gcc
@@ -18,8 +19,9 @@ endef
 
 $(eval $(call compile_template,rv32ui,-mabi=ilp32 -march=rv32i_zifencei))
 $(eval $(call compile_template,rv32um,-mabi=ilp32 -march=rv32im_zifencei))
+$(eval $(call compile_template,rv32uc,-mabi=ilp32 -march=rv32ic_zifencei))
 
-all: $(addprefix test-rv32ui-,${rv32ui_sc_tests}) $(addprefix test-rv32um-,${rv32um_sc_tests})
+all: $(addprefix test-rv32ui-,${rv32ui_sc_tests}) $(addprefix test-rv32um-,${rv32um_sc_tests}) $(addprefix test-rv32uc-,${rv32uc_sc_tests})
 
 clean:
 	rm test-*

@@ -259,6 +259,7 @@ class FetchLayouts:
         self.raw_instr = [
             ("data", gen_params.isa.ilen),
             ("pc", gen_params.isa.xlen),
+            ("rvc", 1),
         ]
 
         self.branch_verify = [

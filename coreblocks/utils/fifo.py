@@ -100,3 +100,54 @@ class BasicFifo(Elaboratable):
             m.d.sync += self.write_idx.eq(0)
 
         return m
+
+
+class Semaphore(Elaboratable):
+    """Semaphore"""
+
+    def __init__(self, max_count: int) -> None:
+        """
+        Parameters
+        ----------
+        size: int
+            Size of the semaphore.
+
+        """
+        self.max_count = max_count
+
+        self.acquire = Method()
+        self.release = Method()
+        self.clear = Method()
+
+        self.acquire_ready = Signal()
+        self.release_ready = Signal()
+
+        self.count = Signal(self.max_count.bit_length())
+
+        self.clear.add_conflict(self.acquire, Priority.LEFT)
+        self.clear.add_conflict(self.release, Priority.LEFT)
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        m.d.comb += self.release_ready.eq(self.count > 0)
+        m.d.comb += self.acquire_ready.eq(self.count < self.max_count)
+
+        with m.If(self.clear.run):
+            m.d.sync += self.count.eq(0)
+        with m.Else():
+            m.d.sync += self.count.eq(self.count + self.acquire.run - self.release.run)
+
+        @def_method(m, self.acquire, ready=self.acquire_ready)
+        def _() -> None:
+            pass
+
+        @def_method(m, self.release, ready=self.release_ready)
+        def _() -> None:
+            pass
+
+        @def_method(m, self.clear)
+        def _() -> None:
+            pass
+
+        return m
