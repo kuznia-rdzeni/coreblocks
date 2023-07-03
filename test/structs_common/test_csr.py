@@ -50,7 +50,7 @@ class CSRUnitTestCircuit(Elaboratable):
             make_csr(i)
 
         if not self.only_legal:
-            make_csr(0xC00)
+            make_csr(0xC00)  # read-only csr
 
         return m
 

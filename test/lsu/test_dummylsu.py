@@ -129,7 +129,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 if check_align(addr, op):
                     break
 
-                if random.random() < 0.9:
+                if random.random() < 0.1:
                     misaligned = True
                     break
 
