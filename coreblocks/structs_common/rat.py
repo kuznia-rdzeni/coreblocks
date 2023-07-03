@@ -33,6 +33,9 @@ class FRAT(Elaboratable):
 
 
 class RRAT(Elaboratable):
+    """
+    Assumption about uniques
+    """
     def __init__(self, *, gen_params: GenParams, superscalarity : int = 1):
         self.gen_params = gen_params
         self.superscalarity = superscalarity

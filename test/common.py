@@ -3,6 +3,7 @@ import unittest
 import os
 import functools
 from contextlib import contextmanager, nullcontext
+from collections import defaultdict
 from typing import (
     Callable,
     Generic,
@@ -60,6 +61,15 @@ def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
         else:
             yield getattr(field, name).eq(value)
 
+def get_unique_generator():
+    history = defaultdict(set)
+    def f(cycle, generator):
+        data = generator()
+        while data in history[cycle]:
+            data = generator()
+        history[cycle].add(data)
+        return data
+    return f
 
 def generate_based_on_layout(layout: SimpleLayout, *, max_bits: Optional[int] = None):
     d = {}
