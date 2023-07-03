@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688390525443,
+  "lastUpdate": 1688390670565,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -1343,6 +1343,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "slre",
             "value": 0.21250038417801273,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "18ec74480a04c0f89879ce6fe518c0b18dac7fd9",
+          "message": "Fix isa string generation (#424)",
+          "timestamp": "2023-07-03T15:04:01+02:00",
+          "tree_id": "6390a018b0e22dfec7501a130e1b4a9ddd70313a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/18ec74480a04c0f89879ce6fe518c0b18dac7fd9"
+        },
+        "date": 1688390668537,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.36743626977565014,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21250038417801273,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.2828491744495354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20126447714429588,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.383974924819342,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24125798497454903,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.1537547475379883,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29335309567662415,
             "unit": "Instructions Per Cycle"
           }
         ]
