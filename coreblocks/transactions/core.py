@@ -415,10 +415,6 @@ class TransactionManager(Elaboratable):
             ]
             cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
 
-            for method, transactions in method_map.transactions_by_method.items():
-                if method.single_caller and len(transactions) > 1:
-                    raise RuntimeError(f"Single-caller method '{method.name}' called more than once")
-
         m = Module()
         m.submodules.merge_manager = merge_manager
 
@@ -438,6 +434,9 @@ class TransactionManager(Elaboratable):
             if len(method_args[method]) == 1:
                 m.d.comb += method.data_in.eq(method_args[method][0])
             else:
+                if method.single_caller:
+                    raise RuntimeError(f"Single-caller method '{method.name}' called more than once")
+
                 runs = Cat(method_runs[method])
                 for i in OneHotSwitchDynamic(m, runs):
                     m.d.comb += method.data_in.eq(method_args[method][i])
