@@ -45,7 +45,7 @@ class Record(ValueCastable):
     def like(other: Record, *, name=..., name_suffix=..., src_loc_at=...) -> Record:
         ...
     
-    def __init__(self, layout, *, name=..., fields=..., src_loc_at=...) -> None:
+    def __init__(self, layout: LayoutLike, *, name=..., fields=..., src_loc_at=...) -> None:
         ...
 
     def __bool__(self) -> NoReturn:

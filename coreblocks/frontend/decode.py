@@ -2,6 +2,7 @@ from amaranth import *
 from ..transactions import Method, Transaction, TModule
 from ..params import GenParams
 from .decoder import InstrDecoder
+from coreblocks.params import *
 
 
 class Decode(Elaboratable):
@@ -37,7 +38,19 @@ class Decode(Elaboratable):
 
         with Transaction().body(m):
             raw = self.get_raw(m)
-            m.d.comb += instr_decoder.instr.eq(raw.data)
+
+            m.d.top_comb += instr_decoder.instr.eq(raw.data)
+
+            # Jump-branch unit requires information if the instruction was
+            # decoded from a compressed instruction. To avoid adding a new signal
+            # to the pipeline, we pack it in funct7 - it is not used in jb unit anyway.
+            # This is a temporary hack and should be removed when we onboard the new
+            # amaranth data lib and make use of it.
+            is_jb_unit_instr = (
+                (instr_decoder.optype == OpType.JAL)
+                | (instr_decoder.optype == OpType.JALR)
+                | (instr_decoder.optype == OpType.BRANCH)
+            )
 
             self.push_decoded(
                 m,
@@ -47,8 +60,9 @@ class Decode(Elaboratable):
                     "exec_fn": {
                         "op_type": instr_decoder.optype,
                         # imm muxing in FUs depend on unused functs set to 0
+                        # todo: this is a bit awkward and needs a refactor in the future
                         "funct3": Mux(instr_decoder.funct3_v, instr_decoder.funct3, 0),
-                        "funct7": Mux(instr_decoder.funct7_v, instr_decoder.funct7, 0),
+                        "funct7": Mux(instr_decoder.funct7_v, instr_decoder.funct7, Mux(is_jb_unit_instr, raw.rvc, 0)),
                     },
                     "regs_l": {
                         # read/writes to phys reg 0 make no effect

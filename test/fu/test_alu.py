@@ -44,6 +44,58 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: in
             res = (i1 << 2) + val2
         case AluFn.Fn.SH3ADD:
             res = (i1 << 3) + val2
+        case AluFn.Fn.ANDN:
+            res = i1 & ~val2
+        case AluFn.Fn.XNOR:
+            res = ~(i1 ^ val2)
+        case AluFn.Fn.ORN:
+            res = i1 | ~val2
+        case AluFn.Fn.MAX:
+            res = max(signed_to_int(i1, xlen), signed_to_int(val2, xlen))
+        case AluFn.Fn.MAXU:
+            res = max(i1, val2)
+        case AluFn.Fn.MIN:
+            res = min(signed_to_int(i1, xlen), signed_to_int(val2, xlen))
+        case AluFn.Fn.MINU:
+            res = min(i1, val2)
+        case AluFn.Fn.CPOP:
+            res = i1.bit_count()
+        case AluFn.Fn.SEXTH:
+            bit = (i1 >> 15) & 1
+            if bit:
+                res = i1 | (mask ^ 0xFFFF)
+            else:
+                res = i1 & 0xFFFF
+        case AluFn.Fn.SEXTB:
+            bit = (i1 >> 7) & 1
+            if bit:
+                res = i1 | (mask ^ 0xFF)
+            else:
+                res = i1 & 0xFF
+        case AluFn.Fn.ZEXTH:
+            res = i1 & 0xFFFF
+        case AluFn.Fn.ORCB:
+            i1 |= i1 >> 1
+            i1 |= i1 >> 2
+            i1 |= i1 >> 4
+
+            i1 &= 0x010101010101010101
+
+            for i in range(8):
+                res |= i1 << i
+        case AluFn.Fn.REV8:
+            for i in range(xlen // 8):
+                res = (res << 8) | (i1 & 0xFF)
+                i1 >>= 8  # Haskell screams in pain
+        case AluFn.Fn.CLZ:
+            res = xlen - i1.bit_length()
+        case AluFn.Fn.CTZ:
+            if i1 == 0:
+                res = xlen.bit_length()
+            else:
+                while (i1 & 1) == 0:
+                    res += 1
+                    i1 >>= 1
 
     return {"result": res & mask}
 
@@ -94,6 +146,81 @@ ops = {
         "funct3": Funct3.SH3ADD,
         "funct7": Funct7.SH3ADD,
     },
+    AluFn.Fn.ANDN: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.ANDN,
+        "funct7": Funct7.ANDN,
+    },
+    AluFn.Fn.XNOR: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.XNOR,
+        "funct7": Funct7.XNOR,
+    },
+    AluFn.Fn.ORN: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.ORN,
+        "funct7": Funct7.ORN,
+    },
+    AluFn.Fn.MAX: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.MAX,
+        "funct7": Funct7.MAX,
+    },
+    AluFn.Fn.MAXU: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.MAXU,
+        "funct7": Funct7.MAX,
+    },
+    AluFn.Fn.MIN: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.MIN,
+        "funct7": Funct7.MIN,
+    },
+    AluFn.Fn.MINU: {
+        "op_type": OpType.BIT_MANIPULATION,
+        "funct3": Funct3.MINU,
+        "funct7": Funct7.MIN,
+    },
+    AluFn.Fn.CPOP: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_5,
+        "funct3": Funct3.CPOP,
+        "funct7": Funct7.CPOP,
+    },
+    AluFn.Fn.SEXTB: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_1,
+        "funct3": Funct3.SEXTB,
+        "funct7": Funct7.SEXTB,
+    },
+    AluFn.Fn.ZEXTH: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_1,
+        "funct3": Funct3.ZEXTH,
+        "funct7": Funct7.ZEXTH,
+    },
+    AluFn.Fn.SEXTH: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_2,
+        "funct3": Funct3.SEXTH,
+        "funct7": Funct7.SEXTH,
+    },
+    AluFn.Fn.ORCB: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_1,
+        "funct3": Funct3.ORCB,
+        "funct7": Funct7.ORCB,
+    },
+    AluFn.Fn.REV8: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_1,
+        "funct3": Funct3.REV8,
+        "funct7": Funct7.REV8,
+    },
+    AluFn.Fn.CLZ: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_3,
+        "funct3": Funct3.CLZ,
+        "funct7": Funct7.CLZ,
+    },
+    AluFn.Fn.CTZ: {
+        "op_type": OpType.UNARY_BIT_MANIPULATION_4,
+        "funct3": Funct3.CTZ,
+        "funct7": Funct7.CTZ,
+    },
 }
 
 
@@ -104,10 +231,10 @@ class AluUnitTest(GenericFunctionalTestUnit):
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
             ops,
-            ALUComponent(zba_enable=True),
+            ALUComponent(zba_enable=True, zbb_enable=True),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=800,
+            number_of_tests=1000,
             seed=42,
             method_name=method_name,
             zero_imm=False,
@@ -158,7 +285,7 @@ class TestAluFuncUnit(TestCaseWithSimulator):
                     "imm": data2 if data2_is_imm else 0,
                 }
             )
-            self.responses.append({"rob_id": rob_id, "result": result, "rp_dst": rp_dst})
+            self.responses.append({"rob_id": rob_id, "result": result, "rp_dst": rp_dst, "exception": 0})
 
     def test_randomized(self):
         def random_wait():

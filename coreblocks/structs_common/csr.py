@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.enum import IntEnum
 from dataclasses import dataclass
 
 from coreblocks.transactions import Method, def_method, Transaction, TModule
@@ -7,13 +8,13 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
-from coreblocks.params.isa import BitEnum, Funct3
+from coreblocks.params.isa import Funct3
 from coreblocks.params.keys import BranchResolvedKey, InstructionPrecommitKey
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
 
 
-class PrivilegeLevel(BitEnum, width=2):
+class PrivilegeLevel(IntEnum, shape=2):
     USER = 0b00
     SUPERVISOR = 0b01
     MACHINE = 0b11
@@ -106,7 +107,7 @@ class CSRRegister(Elaboratable):
         self._fu_write = Method(i=csr_layouts._fu_write)
 
         self.value = Signal(gen_params.isa.xlen)
-        self.side_effects = Record({("read", 1), ("write", 1)})
+        self.side_effects = Record([("read", 1), ("write", 1)])
 
         # append to global CSR list
         dm = gen_params.get(DependencyManager)
@@ -115,7 +116,7 @@ class CSRRegister(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        internal_method_layout = {("data", self.gen_params.isa.xlen), ("active", 1)}
+        internal_method_layout = [("data", self.gen_params.isa.xlen), ("active", 1)]
         write_internal = Record(internal_method_layout)
         fu_write_internal = Record(internal_method_layout)
 
@@ -306,7 +307,7 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
-            self.send_result(m, rob_id=instr.rob_id, rp_dst=instr.rp_dst, result=current_result)
+            self.send_result(m, rob_id=instr.rob_id, rp_dst=instr.rp_dst, result=current_result, exception=0)
 
         @def_method(m, self.fetch_continue, accepted)
         def _():

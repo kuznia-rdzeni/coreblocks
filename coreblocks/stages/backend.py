@@ -46,10 +46,12 @@ class ResultAnnouncement(Elaboratable):
         m = TModule()
 
         @def_method(m, self.send_result)
-        def _(result, rob_id, rp_dst):
-            self.m_rob_mark_done(m, rob_id=rob_id)
-            self.m_rf_write_val(m, reg_id=rp_dst, reg_val=result)
-            with m.If(rp_dst != 0):
-                self.m_rs_write_val(m, tag=rp_dst, value=result)
+        def _(result, rob_id, rp_dst, exception):
+            self.m_rob_mark_done(m, rob_id=rob_id, exception=exception)
+
+            with m.If(exception == 0):
+                self.m_rf_write_val(m, reg_id=rp_dst, reg_val=result)
+                with m.If(rp_dst != 0):
+                    self.m_rs_write_val(m, tag=rp_dst, value=result)
 
         return m

@@ -39,6 +39,7 @@ class BasicFifo(Elaboratable):
         self.read = Method(o=self.layout)
         self.write = Method(i=self.layout)
         self.clear = Method()
+        self.head = Record(self.layout)
 
         self.buff = Memory(width=self.width, depth=self.depth)
 
@@ -77,6 +78,9 @@ class BasicFifo(Elaboratable):
         with m.If(self.clear.run):
             m.d.sync += self.level.eq(0)
 
+        m.d.comb += self.buff_rdport.addr.eq(self.read_idx)
+        m.d.comb += self.head.eq(self.buff_rdport.data)
+
         @def_method(m, self.write, ready=self.write_ready)
         def _(arg: Record) -> None:
             m.d.comb += self.buff_wrport.addr.eq(self.write_idx)
@@ -87,15 +91,63 @@ class BasicFifo(Elaboratable):
 
         @def_method(m, self.read, self.read_ready)
         def _() -> ValueLike:
-            m.d.comb += self.buff_rdport.addr.eq(self.read_idx)
-
             m.d.sync += self.read_idx.eq(mod_incr(self.read_idx, self.depth))
-
-            return self.buff_rdport.data
+            return self.head
 
         @def_method(m, self.clear)
         def _() -> None:
             m.d.sync += self.read_idx.eq(0)
             m.d.sync += self.write_idx.eq(0)
+
+        return m
+
+
+class Semaphore(Elaboratable):
+    """Semaphore"""
+
+    def __init__(self, max_count: int) -> None:
+        """
+        Parameters
+        ----------
+        size: int
+            Size of the semaphore.
+
+        """
+        self.max_count = max_count
+
+        self.acquire = Method()
+        self.release = Method()
+        self.clear = Method()
+
+        self.acquire_ready = Signal()
+        self.release_ready = Signal()
+
+        self.count = Signal(self.max_count.bit_length())
+
+        self.clear.add_conflict(self.acquire, Priority.LEFT)
+        self.clear.add_conflict(self.release, Priority.LEFT)
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        m.d.comb += self.release_ready.eq(self.count > 0)
+        m.d.comb += self.acquire_ready.eq(self.count < self.max_count)
+
+        with m.If(self.clear.run):
+            m.d.sync += self.count.eq(0)
+        with m.Else():
+            m.d.sync += self.count.eq(self.count + self.acquire.run - self.release.run)
+
+        @def_method(m, self.acquire, ready=self.acquire_ready)
+        def _() -> None:
+            pass
+
+        @def_method(m, self.release, ready=self.release_ready)
+        def _() -> None:
+            pass
+
+        @def_method(m, self.clear)
+        def _() -> None:
+            pass
 
         return m

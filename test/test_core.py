@@ -34,7 +34,7 @@ from riscvmodel.variant import RV32I
 
 
 class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams, instr_mem: list[int] = [], data_mem: Optional[list[int]] = None):
+    def __init__(self, gen_params: GenParams, instr_mem: list[int] = [0], data_mem: Optional[list[int]] = None):
         self.gp = gen_params
         self.instr_mem = instr_mem
         if data_mem is None:

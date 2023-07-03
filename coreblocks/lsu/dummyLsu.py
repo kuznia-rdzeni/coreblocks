@@ -45,7 +45,6 @@ class LSUDummyInternals(Elaboratable):
         self.get_result_ack = Signal()
         self.result_ready = Signal()
         self.execute_store = Signal()
-        self.store_ready = Signal()
 
     def calculate_addr(self):
         """Calculate Load/Store address as defined by RiscV spec"""
@@ -120,10 +119,9 @@ class LSUDummyInternals(Elaboratable):
         with Transaction().body(m):
             fetched = self.bus.result(m)
             m.d.sync += op_initiated.eq(0)
-            if is_store:
-                m.d.sync += self.store_ready.eq(1)
-            else:
-                m.d.sync += self.result_ready.eq(1)
+            m.d.sync += self.result_ready.eq(1)
+
+            if not is_store:
                 with m.If(fetched.err == 0):
                     m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
                 with m.Else():
@@ -154,7 +152,6 @@ class LSUDummyInternals(Elaboratable):
                     self.op_init(m, op_initiated, False)
                     m.next = "LoadInit"
                 with m.If(instr_ready & ~instr_is_load):
-                    m.d.sync += self.result_ready.eq(1)
                     m.next = "StoreWaitForExec"
             with m.State("LoadInit"):
                 with m.If(~op_initiated):
@@ -168,8 +165,6 @@ class LSUDummyInternals(Elaboratable):
                     m.d.sync += self.loadedData.eq(0)
                     m.next = "Start"
             with m.State("StoreWaitForExec"):
-                with m.If(self.get_result_ack):
-                    m.d.sync += self.result_ready.eq(0)
                 with m.If(self.execute_store):
                     self.op_init(m, op_initiated, True)
                     m.next = "StoreInit"
@@ -180,8 +175,8 @@ class LSUDummyInternals(Elaboratable):
                     m.next = "StoreEnd"
             with m.State("StoreEnd"):
                 self.op_end(m, op_initiated, True)
-                with m.If(self.store_ready):
-                    m.d.sync += self.store_ready.eq(0)
+                with m.If(self.get_result_ack):
+                    m.d.sync += self.result_ready.eq(0)
                     m.next = "Start"
         return m
 
@@ -193,8 +188,6 @@ class LSUDummy(FuncBlock, Elaboratable):
     address is in correct range. Addresses have to be aligned.
 
     It uses the same interface as RS.
-
-    We assume that store cannot return an error.
 
     Attributes
     ----------
@@ -264,21 +257,17 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         with Transaction().body(m, request=result_ready):
             m.d.comb += internal.get_result_ack.eq(1)
-            with m.If(current_instr.exec_fn.op_type == OpType.LOAD):
-                m.d.sync += current_instr.eq(0)
-                m.d.sync += reserved.eq(0)
-            self.send_result(m, rob_id=current_instr.rob_id, rp_dst=current_instr.rp_dst, result=internal.loadedData)
+
+            m.d.sync += current_instr.eq(0)
+            m.d.sync += reserved.eq(0)
+
+            self.send_result(m, rob_id=current_instr.rob_id, rp_dst=current_instr.rp_dst, result=internal.loadedData, exception=0)
 
         @def_method(m, self.precommit)
         def _(rob_id: Value):
             # TODO: I/O reads
             with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
-                m.d.sync += internal.execute_store.eq(1)
-
-        with m.If(internal.store_ready):
-            m.d.sync += internal.execute_store.eq(0)
-            m.d.sync += current_instr.eq(0)
-            m.d.sync += reserved.eq(0)
+                m.d.comb += internal.execute_store.eq(1)
 
         return m
 

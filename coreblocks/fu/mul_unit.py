@@ -196,7 +196,7 @@ class MulUnit(FuncUnit, Elaboratable):
             sign_result = Mux(params.negative_res, -response.o, response.o)  # changing sign of result
             result = Mux(params.high_res, sign_result[xlen:], sign_result[:xlen])  # selecting upper or lower bits
 
-            self.send_result(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst)
+            self.send_result(m, rob_id=params.rob_id, result=result, rp_dst=params.rp_dst, exception=0)
 
         return m
 
