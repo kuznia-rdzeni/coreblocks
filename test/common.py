@@ -1,3 +1,4 @@
+from inspect import Parameter, signature
 import random
 import unittest
 import os
@@ -45,7 +46,7 @@ U = TypeVar("U")
 RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
-TestGen = Generator[Command | Value | Statement | None, Any, T]
+TestGen = Generator[Union[Command , Value , Statement , None , "CoreblockCommand"], Any, T]
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 SimpleLayout = list[Tuple[str, Union[int, "SimpleLayout"]]]
 
@@ -545,7 +546,8 @@ class TestbenchIO(Elaboratable):
             for _ in range(extra_settle_count + 1):
                 yield Settle()
 
-        ret_out = method_def_helper(self, function, **arg)
+        f_wrapped = yield from wrap_with_now(function)
+        ret_out = method_def_helper(self, f_wrapped, **arg)
         yield from self.method_return(ret_out or {})
         yield
 
@@ -564,6 +566,15 @@ class TestbenchIO(Elaboratable):
 
     def debug_signals(self) -> SignalBundle:
         return self.adapter.debug_signals()
+
+def wrap_with_now(func : Callable):
+    parameters = signature(func).parameters
+    kw_parameters = set( n for n, p in parameters.items() if p.kind in {Parameter.KEYWORD_ONLY})
+    if ( "_now" in parameters):
+        _now = yield Now()
+        return lambda *args, **kwargs: func(*args, _now = _now, **kwargs)
+    else:
+        return func
 
 
 def def_method_mock(

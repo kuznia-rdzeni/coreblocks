@@ -20,6 +20,7 @@ __all__ = [
     "CSRLayouts",
     "ICacheLayouts",
     "SuperscalarFreeRFLayouts",
+    "ExceptionRegisterLayouts",
 ]
 
 

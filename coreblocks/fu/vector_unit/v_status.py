@@ -108,7 +108,7 @@ class VectorStatusUnit(Elaboratable):
                 with branch():
                     self.process_normal_instr(m, instr)
             m.d.sync += self.vstart.eq(0)
-            with condition(m) as branch:
+            with condition(m, nonblocking= False) as branch:
                 with branch(self.vstart != 0):
                     self.report(m, rob_id = instr.rob_id, cause = ExceptionCause.ILLEGAL_INSTRUCTION)
                     self.retire(m, rob_id = instr.rob_id, exception = 1)

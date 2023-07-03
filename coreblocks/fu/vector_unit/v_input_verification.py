@@ -55,13 +55,13 @@ class VectorInputVerificator(Elaboratable):
         self.clear = Method()
 
     def check_instr(self, m : TModule, instr) -> Value:
-        # TODO add checking if instruction is whole-register move, load or store (don't use vtype)
+        # TODO add checking if instruction is whole-register move, load or store (so they don't use vtype)
         illegal_because_vill = Signal()
-        with m.If(self.vill == 1 & (instr.exec_fn.op_type != OpType.V_CONTROL)):
+        with m.If((self.vill == 1) & (instr.exec_fn.op_type != OpType.V_CONTROL)):
             m.d.comb += illegal_because_vill.eq(1)
 
-        # TODO add checking for specific instructions if me support not zero start for them
-        # as for now we assume that no instruction can be stoppedn inside of execution
+        # TODO add checking for specific instructions that support not zero start
+        # as for now we assume that no instruction can be stopped inside of execution
         # (which is not true, because of load/stores)
         illegal_because_vstart = Signal()
         with m.If(self.vstart !=0):
@@ -87,12 +87,10 @@ class VectorInputVerificator(Elaboratable):
                     self.put_instr(m, instr)
                     self.rob_block_interrupts(m, rob_id = instr.rob_id)
                 with branch(raise_illegal == 1):
-                    self.report(m, rob_id = instr.rob_id, cuse = ExceptionCause.ILLEGAL_INSTRUCTION)
-                    self.retire(m, rob_id = instr.rob_id, exception = 1)
-
-        with Transaction(name = "vstart_getter").body(m):
+                    self.report(m, rob_id = instr.rob_id, cause = ExceptionCause.ILLEGAL_INSTRUCTION)
+                    self.retire(m, rob_id = instr.rob_id, exception = 1, rp_dst = instr.rp_dst, result = 0)
+        with Transaction(name = "getters").body(m):
             m.d.comb += self.vstart.eq(self.get_vstart(m).vstart)
-        with Transaction(name = "vill_getter").body(m):
             m.d.comb += self.vill.eq(self.get_vill(m).vill)
 
         @def_method(m, self.clear)
