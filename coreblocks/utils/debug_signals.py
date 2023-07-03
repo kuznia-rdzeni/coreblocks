@@ -22,7 +22,7 @@ def auto_debug_signals(thing) -> SignalBundle:
 
         # Check for reference cycles e.g. Amaranth's MustUse
         if id(thing) in _visited:
-            return []
+            return None
         _visited.add(id(thing))
 
         match thing:
@@ -55,7 +55,7 @@ def auto_debug_signals(thing) -> SignalBundle:
                 try:
                     vs = vars(thing)
                 except (KeyError, AttributeError, TypeError):
-                    return []
+                    return None
 
                 for v in vs:
                     a = getattr(thing, v)
