@@ -261,7 +261,9 @@ class LSUDummy(FuncBlock, Elaboratable):
             m.d.sync += current_instr.eq(0)
             m.d.sync += reserved.eq(0)
 
-            self.send_result(m, rob_id=current_instr.rob_id, rp_dst=current_instr.rp_dst, result=internal.loadedData, exception=0)
+            self.send_result(
+                m, rob_id=current_instr.rob_id, rp_dst=current_instr.rp_dst, result=internal.loadedData, exception=0
+            )
 
         @def_method(m, self.precommit)
         def _(rob_id: Value):
