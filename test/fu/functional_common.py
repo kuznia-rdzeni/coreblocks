@@ -10,6 +10,7 @@ from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.layouts import ExceptionRegisterLayouts, FuncUnitLayouts
+from coreblocks.transactions import MethodLayout
 from coreblocks.transactions.lib import AdapterTrans, Adapter
 from test.common import TestbenchIO, TestCaseWithSimulator
 
@@ -26,9 +27,10 @@ class FunctionalTestCircuit(Elaboratable):
         Class of functional unit to be tested.
     """
 
-    def __init__(self, gen: GenParams, func_unit: FunctionalComponentParams):
+    def __init__(self, gen: GenParams, func_unit: FunctionalComponentParams, result_layout_additional: MethodLayout):
         self.gen = gen
         self.func_unit = func_unit
+        self.result_layout_additional = result_layout_additional
 
     def elaborate(self, platform):
         m = Module()
@@ -40,7 +42,7 @@ class FunctionalTestCircuit(Elaboratable):
 
         # mocked output
         m.submodules.send_result_mock = self.send_result_mock = TestbenchIO(
-            Adapter(i=self.gen.get(FuncUnitLayouts).send_result)
+            Adapter(i=self.gen.get(FuncUnitLayouts).send_result + list(self.result_layout_additional))
         )
 
         m.submodules.func_unit = func_unit = self.func_unit.get_module(
@@ -77,6 +79,9 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         Core generation parameters.
     methodName: str
         Named test method to be executed. Necessary for Python to correctly run test.
+    result_layout_additional: MethodLayout
+        Additional fields for the result layout. Helpful for units with a side channel,
+        like e.g. the jump-branch unit.
     """
 
     def __init__(
@@ -89,6 +94,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         zero_imm: bool = True,
         gen: GenParams = GenParams(test_core_config),
         method_name: str = "runTest",
+        result_layout_additional: MethodLayout = [],
     ):
         super().__init__(method_name)
         self.ops = operations
@@ -98,9 +104,10 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         self.seed = seed
         self.zero_imm = zero_imm
         self.gen = gen
+        self.result_layout_additional = result_layout_additional
 
     def setUp(self):
-        self.m = FunctionalTestCircuit(self.gen, self.func_unit)
+        self.m = FunctionalTestCircuit(self.gen, self.func_unit, self.result_layout_additional)
 
         random.seed(self.seed)
         self.requests = deque()

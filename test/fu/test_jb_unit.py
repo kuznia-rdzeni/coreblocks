@@ -4,41 +4,39 @@ from parameterized import parameterized_class
 
 from coreblocks.params import *
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
-from coreblocks.transactions import Method, def_method, TModule
+from coreblocks.transactions import Method, TModule, MethodLayout
+from coreblocks.transactions.core import Transaction
+from coreblocks.transactions.lib import FIFO
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
-from coreblocks.transactions.lib import Adapter
 from coreblocks.utils.protocols import FuncUnit
+from coreblocks.utils.utils import assign
 
-from test.common import TestbenchIO, signed_to_int
+from test.common import signed_to_int
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
 
 class JumpBranchWrapper(Elaboratable):
     def __init__(self, gen_params: GenParams, send_result: Method):
+        self.gen_params = gen_params
         self.send_result = send_result
-        self.jb = JumpBranchFuncUnit(gen_params, send_result=self.send_result)
-        self.issue = self.jb.issue
-        self.accept = Method(o=gen_params.get(FuncUnitLayouts).send_result + gen_params.get(FetchLayouts).branch_verify)
+        self.issue = Method(i=self.gen_params.get(FuncUnitLayouts).issue)
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.jb_unit = self.jb
+        m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).send_result, 2)
 
-        @def_method(m, self.accept)
-        def _(arg):
-            res = self.jb.send_result(m)
-            br = self.jb.branch_result(m)
-            return {
-                "from_pc": br.from_pc,
-                "next_pc": br.next_pc,
-                "result": res.result,
-                "rob_id": res.rob_id,
-                "rp_dst": res.rp_dst,
-                "exception": 0,
-            }
+        m.submodules.jb_unit = self.jb = JumpBranchFuncUnit(self.gen_params, send_result=fifo.write)
+
+        self.issue.proxy(m, self.jb.issue)
+
+        with Transaction().body(m):
+            new_arg = Record.like(self.send_result.data_in)
+            m.d.comb += assign(new_arg, fifo.read(m))
+            m.d.comb += assign(new_arg, self.jb.branch_result(m))
+            self.send_result(m, new_arg)
 
         return m
 
@@ -112,36 +110,35 @@ ops_auipc = {
 
 
 @parameterized_class(
-    ("name", "ops", "func_unit", "compute_result"),
+    ("name", "ops", "func_unit", "compute_result", "result_layout_additional"),
     [
         (
             "branches_and_jumps",
             ops,
             JumpBranchWrapperComponent(),
             compute_result,
+            lambda _, gen: gen.get(FetchLayouts).branch_verify,
         ),
-        (
-            "auipc",
-            ops_auipc,
-            JumpComponent(),
-            compute_result_auipc,
-        ),
+        ("auipc", ops_auipc, JumpComponent(), compute_result_auipc, lambda _, gen: []),
     ],
 )
 class JumpBranchUnitTest(GenericFunctionalTestUnit):
     compute_result: Callable[[int, int, int, int, Any, int], Dict[str, int]]
+    result_layout_additional: Callable[[GenParams], MethodLayout]
 
     def test_test(self):
         self.run_pipeline()
 
     def __init__(self, method_name: str = "runTest"):
+        gen_params = GenParams(test_core_config)
         super().__init__(
             self.ops,
             self.func_unit,
             self.compute_result,
-            gen=GenParams(test_core_config),
+            gen=gen_params,
             number_of_tests=300,
             seed=32323,
             zero_imm=False,
             method_name=method_name,
+            result_layout_additional=self.result_layout_additional(gen_params),
         )
