@@ -3,7 +3,7 @@ from operator import and_
 from functools import reduce
 
 from amaranth import *
-from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter, ManyToOneConnectTrans
+from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter, ConnectTrans
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.params.layouts import *
 from coreblocks.params import GenParams
@@ -26,26 +26,6 @@ class BackendTestCircuit(Elaboratable):
         self.lay_rs_write = self.gen.get(RSLayouts, rs_entries_bits=self.gen.max_rs_entries_bits).update_in
         self.lay_rf_write = self.gen.get(RFLayouts).rf_write
 
-        # Initialize for each FU an FIFO which will be a stub for that FU
-        fu_fifos = []
-        get_results = []
-        for i in range(self.fu_count):
-            fifo = FIFO(self.lay_result, 16)
-            fu_fifos.append(fifo)
-            get_results.append(fifo.read)
-            m.submodules[f"fu_fifo_{i}"] = fifo
-
-            fifo_in = TestbenchIO(AdapterTrans(fifo.write))
-            m.submodules[f"fu_fifo_{i}_in"] = fifo_in
-            self.fu_fifo_ins.append(fifo_in)
-
-        # Create FUArbiter, which will serialize results from different FU's
-        serialized_results_fifo = FIFO(self.lay_result, 16)
-        m.submodules.serialized_results_fifo = serialized_results_fifo
-        m.submodules.fu_arbitration = ManyToOneConnectTrans(
-            get_results=get_results, put_result=serialized_results_fifo.write
-        )
-
         # Create stubs for interfaces used by result announcement
         self.rs_announce_val_tbio = TestbenchIO(Adapter(i=self.lay_rs_write, o=self.lay_rs_write))
         m.submodules.rs_announce_val_tbio = self.rs_announce_val_tbio
@@ -55,13 +35,22 @@ class BackendTestCircuit(Elaboratable):
         m.submodules.rob_mark_done_tbio = self.rob_mark_done_tbio
 
         # Create result announcement
-        m.submodules.result_announcement = ResultAnnouncement(
+        m.submodules.result_announcement = result_announcement = ResultAnnouncement(
             gen_params=self.gen,
-            get_result=serialized_results_fifo.read,
             rob_mark_done=self.rob_mark_done_tbio.adapter.iface,
             rs_write_val=self.rs_announce_val_tbio.adapter.iface,
             rf_write_val=self.rf_announce_val_tbio.adapter.iface,
         )
+
+        # Initialize for each FU an FIFO which will be a stub for that FU
+        for i in range(self.fu_count):
+            fifo = FIFO(self.lay_result, 16)
+            m.submodules[f"fu_fifo_{i}_connect"] = ConnectTrans(fifo.read, result_announcement.send_result)
+            m.submodules[f"fu_fifo_{i}"] = fifo
+
+            fifo_in = TestbenchIO(AdapterTrans(fifo.write))
+            m.submodules[f"fu_fifo_{i}_in"] = fifo_in
+            self.fu_fifo_ins.append(fifo_in)
 
         return m
 

@@ -7,16 +7,18 @@ from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpCompo
 from coreblocks.transactions import Method, def_method, TModule
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
+from coreblocks.transactions.lib import Adapter
 from coreblocks.utils.protocols import FuncUnit
 
-from test.common import signed_to_int
+from test.common import TestbenchIO, signed_to_int
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
 
 class JumpBranchWrapper(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.jb = JumpBranchFuncUnit(GenParams(test_core_config))
+    def __init__(self, gen_params: GenParams, send_result: Method):
+        self.send_result = send_result
+        self.jb = JumpBranchFuncUnit(gen_params, send_result=self.send_result)
         self.issue = self.jb.issue
         self.accept = Method(o=gen_params.get(FuncUnitLayouts).send_result + gen_params.get(FetchLayouts).branch_verify)
 
@@ -27,7 +29,7 @@ class JumpBranchWrapper(Elaboratable):
 
         @def_method(m, self.accept)
         def _(arg):
-            res = self.jb.accept(m)
+            res = self.jb.send_result(m)
             br = self.jb.branch_result(m)
             return {
                 "from_pc": br.from_pc,
@@ -42,8 +44,8 @@ class JumpBranchWrapper(Elaboratable):
 
 
 class JumpBranchWrapperComponent(FunctionalComponentParams):
-    def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return JumpBranchWrapper(gen_params)
+    def get_module(self, gen_params: GenParams, send_result: Method) -> FuncUnit:
+        return JumpBranchWrapper(gen_params, send_result)
 
     def get_optypes(self) -> set[OpType]:
         return JumpBranchFn().get_op_types()

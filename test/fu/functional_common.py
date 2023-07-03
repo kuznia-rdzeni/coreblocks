@@ -9,7 +9,7 @@ from coreblocks.params.configurations import test_core_config
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params.keys import ExceptionReportKey
-from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.params.layouts import ExceptionRegisterLayouts, FuncUnitLayouts
 from coreblocks.transactions.lib import AdapterTrans, Adapter
 from test.common import TestbenchIO, TestCaseWithSimulator
 
@@ -38,11 +38,17 @@ class FunctionalTestCircuit(Elaboratable):
         )
         self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
 
-        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen)
+        # mocked output
+        m.submodules.send_result_mock = self.send_result_mock = TestbenchIO(
+            Adapter(i=self.gen.get(FuncUnitLayouts).send_result)
+        )
 
-        # mocked input and output
+        m.submodules.func_unit = func_unit = self.func_unit.get_module(
+            self.gen, send_result=self.send_result_mock.adapter.iface
+        )
+
+        # mocked input
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
 
         return m
 
@@ -145,7 +151,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         def consumer():
             while self.responses:
                 expected = self.responses.pop()
-                result = yield from self.m.accept.call()
+                result = yield from self.m.send_result_mock.call()
                 self.assertDictEqual(expected, result)
                 yield from random_wait()
 
@@ -154,6 +160,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
                 req = self.requests.pop()
                 yield from self.m.issue.call(req)
                 yield from random_wait()
+            self.assertFalse(self.responses)
 
         def exception_consumer():
             while self.exceptions:

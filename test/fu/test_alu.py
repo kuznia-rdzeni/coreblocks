@@ -1,6 +1,7 @@
 from coreblocks.params import Funct3, Funct7, GenParams, OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.fu.alu import AluFn, ALUComponent, AluFuncUnit
+from coreblocks.params.layouts import FuncUnitLayouts
 
 from test.fu.functional_common import GenericFunctionalTestUnit
 
@@ -248,11 +249,15 @@ class AluFuncUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.func_unit = func_unit = AluFuncUnit(self.gen)
+        # mocked output
+        m.submodules.send_result_mock = self.send_result_mock = TestbenchIO(
+            Adapter(i=self.gen.get(FuncUnitLayouts).send_result)
+        )
 
-        # mocked input and output
+        m.submodules.func_unit = func_unit = AluFuncUnit(self.gen, self.send_result_mock.adapter.iface)
+
+        # mocked input
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
 
         return m
 
@@ -295,7 +300,7 @@ class TestAluFuncUnit(TestCaseWithSimulator):
         def consumer():
             while self.responses:
                 expected = self.responses.pop()
-                result = yield from self.m.accept.call()
+                result = yield from self.m.send_result_mock.call()
                 self.assertDictEqual(expected, result)
                 yield from random_wait()
 
@@ -313,7 +318,7 @@ class TestAluFuncUnit(TestCaseWithSimulator):
         def consumer():
             while self.responses:
                 expected = self.responses.pop()
-                result = yield from self.m.accept.call()
+                result = yield from self.m.send_result_mock.call()
                 self.assertDictEqual(expected, result)
 
         def producer():
