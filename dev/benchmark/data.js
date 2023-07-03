@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688371501922,
+  "lastUpdate": 1688371960941,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Fmax and LCs": [
@@ -8552,6 +8552,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nsichneu",
             "value": 0.15129959734328294,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "02ade9b3b62130fd43613c133f0795f9b8b4e590",
+          "message": "auto_debug_signals: drop useless empty objects (#418)",
+          "timestamp": "2023-07-03T09:54:37+02:00",
+          "tree_id": "0b617871cc95985f0d03f07726694063ce08bdff",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/02ade9b3b62130fd43613c133f0795f9b8b4e590"
+        },
+        "date": 1688371959393,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "minver",
+            "value": 0.24334628411853151,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2142909720634896,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28757457429729644,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.34326885628975723,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15129959734328294,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20199456436288493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.383974924819342,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2950910250985018,
             "unit": "Instructions Per Cycle"
           }
         ]
