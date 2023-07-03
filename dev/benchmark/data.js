@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688394010482,
+  "lastUpdate": 1688394300757,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -9555,6 +9555,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as ram: (ECP5)",
             "value": 1052,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8172,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1799f5e77fccd9077c4039bf4ba6a705e6cd9180",
+          "message": "Make timeouts bigger (#426)",
+          "timestamp": "2023-07-03T15:58:39+02:00",
+          "tree_id": "be9b28f0453009cd382d4739f66d820023f17cce",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/1799f5e77fccd9077c4039bf4ba6a705e6cd9180"
+        },
+        "date": 1688394298641,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.02,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 22700,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1472,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1060,
             "unit": "LUT"
           },
           {
