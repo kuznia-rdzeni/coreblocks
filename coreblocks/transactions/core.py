@@ -415,6 +415,10 @@ class TransactionManager(Elaboratable):
             ]
             cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
 
+            for method, transactions in method_map.transactions_by_method.items():
+                if method.single_caller and len(transactions) > 1:
+                    raise RuntimeError(f"Single-caller method '{method.name}' called more than once")
+
         m = Module()
         m.submodules.merge_manager = merge_manager
 
@@ -911,7 +915,13 @@ class Method(TransactionBase):
     """
 
     def __init__(
-        self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = (), nonexclusive: bool = False
+        self,
+        *,
+        name: Optional[str] = None,
+        i: MethodLayout = (),
+        o: MethodLayout = (),
+        nonexclusive: bool = False,
+        single_caller: bool = False,
     ):
         """
         Parameters
@@ -930,6 +940,10 @@ class Method(TransactionBase):
             transactions in the same clock cycle. If such a situation happens,
             the method still is executed only once, and each of the callers
             receive its output. Nonexclusive methods cannot have inputs.
+        single_caller: bool
+            If true, this method is intended to be called from a single
+            transaction. An error will be thrown if called from multiple
+            transactions.
         """
         super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$method")
@@ -939,6 +953,7 @@ class Method(TransactionBase):
         self.data_in = Record(i)
         self.data_out = Record(o)
         self.nonexclusive = nonexclusive
+        self.single_caller = single_caller
         if nonexclusive:
             assert len(self.data_in) == 0
 
