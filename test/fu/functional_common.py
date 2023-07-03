@@ -3,6 +3,7 @@ from collections import deque
 from typing import Dict, Callable, Any
 
 from amaranth import Elaboratable, Module
+from amaranth.sim import Passive
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
@@ -161,6 +162,11 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
                 result = yield from self.m.report_mock.call()
                 self.assertDictEqual(expected, result)
                 yield from random_wait()
+
+            # keep partialy dependent tests from hanging up and detect extra calls
+            yield Passive()
+            result = yield from self.m.report_mock.call()
+            self.assertFalse(True, "unexpected report call")
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(producer)

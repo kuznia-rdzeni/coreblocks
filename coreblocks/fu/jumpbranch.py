@@ -126,6 +126,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
         self.jb_fn = jb_fn
 
+        self.dm = gen.get(DependencyManager)
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -154,7 +156,17 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             m.d.top_comb += jb.in_rvc.eq(arg.exec_fn.funct7)
 
-            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=0)
+            # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
+            # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
+            # generated for a conditional branch that is not taken."
+            exception = Signal()
+            jmp_addr_misaligned = (jb.jmp_addr & (0b1 if Extension.C in self.gen.isa.extensions else 0b11)) != 0
+            with m.If((decoder.decode_fn != JumpBranchFn.Fn.AUIPC) & jb.taken & jmp_addr_misaligned):
+                m.d.comb += exception.eq(1)
+                report = self.dm.get_dependency(ExceptionReportKey())
+                report(m, rob_id=arg.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED)
+
+            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
 
             # skip writing next branch target for auipc
             with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):

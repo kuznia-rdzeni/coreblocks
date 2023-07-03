@@ -161,6 +161,7 @@ class TestUnalignedFetch(TestCaseWithSimulator):
         self.m = ModuleConnector(self.icache, fifo, self.io_out, fetch, self.verify_branch)
 
         self.mem = {}
+        self.memerr = set()
 
         random.seed(422)
 
@@ -172,12 +173,16 @@ class TestUnalignedFetch(TestCaseWithSimulator):
             is_rvc = random.random() < 0.5
             branch_target = random.randrange(2**self.gp.isa.ilen) & ~0b1
 
+            error = random.random() < 0.1
+
             if is_rvc:
                 data = (random.randrange(11) << 2) | 0b01  # C.ADDI
                 if is_branch:
                     data = data | (0b101 << 13)  # make it C.J
 
                 self.mem[pc] = data
+                if error:
+                    self.memerr.add(pc)
             else:
                 data = random.randrange(2**self.gp.isa.ilen) & ~0b1111111
                 data |= 0b11  # 2 lowest bits must be set in 32-bit long instructions
@@ -186,6 +191,8 @@ class TestUnalignedFetch(TestCaseWithSimulator):
 
                 self.mem[pc] = data & 0xFFFF
                 self.mem[pc + 2] = data >> 16
+                if error:
+                    self.memerr.add(random.choice([pc, pc + 2]))
 
             next_pc = pc + (2 if is_rvc else 4)
             if is_branch:
@@ -196,6 +203,7 @@ class TestUnalignedFetch(TestCaseWithSimulator):
                     "pc": pc,
                     "is_branch": is_branch,
                     "next_pc": next_pc,
+                    "rvc": is_rvc,
                 }
             )
 
@@ -222,7 +230,8 @@ class TestUnalignedFetch(TestCaseWithSimulator):
 
                 data = (get_mem_or_random(req_addr + 2) << 16) | get_mem_or_random(req_addr)
 
-                output_q.append({"instr": data, "error": 0})
+                err = (req_addr in self.memerr) or (req_addr + 2 in self.memerr)
+                output_q.append({"instr": data, "error": err})
 
         @def_method_mock(lambda: self.icache.issue_req_io, enable=lambda: len(input_q) < 2, sched_prio=1)
         def issue_req_mock(addr):
@@ -237,12 +246,20 @@ class TestUnalignedFetch(TestCaseWithSimulator):
     def fetch_out_check(self):
         while self.instr_queue:
             instr = self.instr_queue.popleft()
-            if instr["is_branch"]:
-                yield from self.random_wait(10)
-                yield from self.verify_branch.call(next_pc=instr["next_pc"])
+
+            instr_error = (instr["pc"] & (~0b11)) in self.memerr or (instr["pc"] & (~0b11)) + 2 in self.memerr
+            if instr["pc"] & 2 and not instr["rvc"]:
+                instr_error |= ((instr["pc"] + 2) & (~0b11)) in self.memerr or (
+                    (instr["pc"] + 2) & (~0b11)
+                ) + 2 in self.memerr
 
             v = yield from self.io_out.call()
             self.assertEqual(v["pc"], instr["pc"])
+            self.assertEqual(v["access_fault"], instr_error)
+
+            if instr["is_branch"] or instr_error:
+                yield from self.random_wait(10)
+                yield from self.verify_branch.call(next_pc=instr["next_pc"])
 
     def test(self):
         issue_req_mock, accept_res_mock, cache_process = self.cache_processes()
