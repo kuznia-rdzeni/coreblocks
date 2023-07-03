@@ -73,6 +73,7 @@ class Fetch(Elaboratable):
 
                 with m.If(res.error):
                     # TODO: Raise different code for page fault when supported
+                    stall()
                     m.d.comb += fetch_error.eq(1)
                 with m.Else():
                     with m.If(unsafe_instr):
