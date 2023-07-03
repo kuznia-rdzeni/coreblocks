@@ -20,7 +20,7 @@ class RecursiveDivison(Elaboratable):
 
     If count if not aligned to power of 2, then in last iteration we need to calculate
     different amount of bits.
-    So to optimize resource usage, there is partial reminder
+    So to optimize resource usage, there is partial remainder
     that allows to reuse this module for a shorter calculation.
 
     Attributes
@@ -42,7 +42,7 @@ class RecursiveDivison(Elaboratable):
     remainder: Signal
         Calculated remainder
     partial_remainder: Signal
-        Calculated partial reminder
+        Calculated partial remainder
     """
 
     def __init__(self, step_count: int, size: int, partial_remainder_count: int = 0):
@@ -56,7 +56,7 @@ class RecursiveDivison(Elaboratable):
 
         self.quotient = Signal(unsigned(size))
         self.remainder = Signal(unsigned(size))
-        self.partial_reminder = Signal(unsigned(size))
+        self.partial_remainder = Signal(unsigned(size))
 
     def elaborate(self, platform) -> TModule:
         if self.step_count == 0:
@@ -65,7 +65,7 @@ class RecursiveDivison(Elaboratable):
 
             m.d.comb += self.quotient.eq(0)
             m.d.comb += self.remainder.eq(self.input_remainder)
-            m.d.comb += self.partial_reminder.eq(self.input_remainder)
+            m.d.comb += self.partial_remainder.eq(self.input_remainder)
 
             return m
         else:
@@ -100,9 +100,9 @@ class RecursiveDivison(Elaboratable):
 
         # partial remainder
         if self.partial_remainder_count == 0:
-            m.d.comb += self.partial_reminder.eq(self.input_remainder)
+            m.d.comb += self.partial_remainder.eq(self.input_remainder)
         else:
-            m.d.comb += self.partial_reminder.eq(rec_div.partial_reminder)
+            m.d.comb += self.partial_remainder.eq(rec_div.partial_remainder)
 
         return m
 
@@ -154,14 +154,7 @@ class LongDivider(DividerBase):
 
         stage = Signal(unsigned(xlen_log + 1))
 
-        @def_method(m, self.clear)
-        def _():
-            m.d.sync += remainder.eq(0)
-            m.d.sync += quotient.eq(0)
-            m.d.sync += stage.eq(0)
-            m.d.sync += ready.eq(1)
-
-        # resetting
+        # starting calculations
         @def_method(m, self.issue, ready=ready)
         def _(arg):
             m.d.sync += dividend.eq(arg.dividend)
@@ -178,6 +171,12 @@ class LongDivider(DividerBase):
             m.d.sync += ready.eq(1)
             return {"quotient": quotient, "remainder": remainder}
 
+        # clearing the unit
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += stage.eq(0)
+            m.d.sync += ready.eq(1)
+
         # performing calculations
         with m.If(~ready & (stage != self.stages)):
             special_stage = (self.stages == stage + 1) & self.odd_iteration
@@ -193,7 +192,7 @@ class LongDivider(DividerBase):
 
             # if we are in the last stage and uneven amount of bits needs to be handled
             with m.If(special_stage):
-                m.d.sync += remainder.eq(divider.partial_reminder)
+                m.d.sync += remainder.eq(divider.partial_remainder)
                 m.d.sync += quotient.eq(
                     Cat(divider.quotient[self.ipc - self.partial_remainder_count : self.ipc], quotient)
                 )
