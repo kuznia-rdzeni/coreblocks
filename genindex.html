@@ -136,6 +136,10 @@
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.alu.AluFuncUnit.__init__">(coreblocks.fu.alu.AluFuncUnit method)</a>
 </li>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivComponent.__init__">(coreblocks.fu.div_unit.DivComponent method)</a>
+</li>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivUnit.__init__">(coreblocks.fu.div_unit.DivUnit method)</a>
+</li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionFuncUnit.__init__">(coreblocks.fu.exception.ExceptionFuncUnit method)</a>
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionUnitComponent.__init__">(coreblocks.fu.exception.ExceptionUnitComponent method)</a>
@@ -696,6 +700,13 @@
 </li>
       </ul></li>
       <li>
+    coreblocks.fu.div_unit
+
+      <ul>
+        <li><a href="coreblocks.fu.html#module-coreblocks.fu.div_unit">module</a>
+</li>
+      </ul></li>
+      <li>
     coreblocks.fu.exception
 
       <ul>
@@ -828,6 +839,8 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.instr">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.isa
 
@@ -835,8 +848,6 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.isa">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.keys
 
@@ -1158,23 +1169,41 @@
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey">DependencyKey (class in coreblocks.params.dependencies)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyManager">DependencyManager (class in coreblocks.params.dependencies)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICache.deserialize_addr">deserialize_addr() (coreblocks.frontend.icache.ICache method)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.FenceTarget.DEV_I">DEV_I (coreblocks.params.isa.FenceTarget attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.FenceTarget.DEV_O">DEV_O (coreblocks.params.isa.FenceTarget attribute)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.Direction">Direction (class in coreblocks.transactions.graph)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIV">DIV (coreblocks.params.isa.Funct3 attribute)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivFn.Fn.DIV">DIV (coreblocks.fu.div_unit.DivFn.Fn attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIV">(coreblocks.params.isa.Funct3 attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivComponent.div_fn">div_fn (coreblocks.fu.div_unit.DivComponent attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.DIV_REM">DIV_REM (coreblocks.params.optypes.OpType attribute)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIVU">DIVU (coreblocks.params.isa.Funct3 attribute)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivComponent">DivComponent (class in coreblocks.fu.div_unit)</a>
+</li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivFn">DivFn (class in coreblocks.fu.div_unit)</a>
+</li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivFn.Fn">DivFn.Fn (class in coreblocks.fu.div_unit)</a>
+</li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivFn.Fn.DIVU">DIVU (coreblocks.fu.div_unit.DivFn.Fn attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIVU">(coreblocks.params.isa.Funct3 attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivUnit">DivUnit (class in coreblocks.fu.div_unit)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIVUW">DIVUW (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
@@ -1364,9 +1393,13 @@
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.OwnershipGraph.get_hier_name">get_hier_name() (coreblocks.transactions.graph.OwnershipGraph method)</a>
 </li>
-      <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager.get_instructions">get_instructions() (coreblocks.fu.fu_decoder.DecoderManager method)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.get_input">get_input() (in module coreblocks.fu.div_unit)</a>
+</li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivFn.get_instructions">get_instructions() (coreblocks.fu.div_unit.DivFn method)</a>
 
       <ul>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager.get_instructions">(coreblocks.fu.fu_decoder.DecoderManager method)</a>
+</li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulFn.get_instructions">(coreblocks.fu.mul_unit.MulFn method)</a>
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.zbc.ZbcFn.get_instructions">(coreblocks.fu.zbc.ZbcFn class method)</a>
@@ -1377,6 +1410,8 @@
       <li><a href="coreblocks.fu.html#coreblocks.fu.alu.ALUComponent.get_module">get_module() (coreblocks.fu.alu.ALUComponent method)</a>
 
       <ul>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivComponent.get_module">(coreblocks.fu.div_unit.DivComponent method)</a>
+</li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionUnitComponent.get_module">(coreblocks.fu.exception.ExceptionUnitComponent method)</a>
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.jumpbranch.JumpComponent.get_module">(coreblocks.fu.jumpbranch.JumpComponent method)</a>
@@ -1407,6 +1442,8 @@
       <li><a href="coreblocks.fu.html#coreblocks.fu.alu.ALUComponent.get_optypes">get_optypes() (coreblocks.fu.alu.ALUComponent method)</a>
 
       <ul>
+        <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivComponent.get_optypes">(coreblocks.fu.div_unit.DivComponent method)</a>
+</li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionUnitComponent.get_optypes">(coreblocks.fu.exception.ExceptionUnitComponent method)</a>
 </li>
         <li><a href="coreblocks.fu.html#coreblocks.fu.jumpbranch.JumpComponent.get_optypes">(coreblocks.fu.jumpbranch.JumpComponent method)</a>
@@ -1523,6 +1560,8 @@
       <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.INSTRUCTION_PAGE_FAULT">INSTRUCTION_PAGE_FAULT (coreblocks.params.isa.ExceptionCause attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.keys.InstructionPrecommitKey">InstructionPrecommitKey (class in coreblocks.params.keys)</a>
+</li>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivComponent.ipc">ipc (coreblocks.fu.div_unit.DivComponent attribute)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.rvc.is_instr_compressed">is_instr_compressed() (in module coreblocks.frontend.rvc)</a>
 </li>
@@ -1689,6 +1728,8 @@
         <li><a href="coreblocks.fu.html#module-coreblocks.fu">coreblocks.fu</a>
 </li>
         <li><a href="coreblocks.fu.html#module-coreblocks.fu.alu">coreblocks.fu.alu</a>
+</li>
+        <li><a href="coreblocks.fu.html#module-coreblocks.fu.div_unit">coreblocks.fu.div_unit</a>
 </li>
         <li><a href="coreblocks.fu.html#module-coreblocks.fu.exception">coreblocks.fu.exception</a>
 </li>
@@ -2011,14 +2052,22 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Registers">Registers (class in coreblocks.params.isa)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REM">REM (coreblocks.params.isa.Funct3 attribute)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivFn.Fn.REM">REM (coreblocks.fu.div_unit.DivFn.Fn attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REM">(coreblocks.params.isa.Funct3 attribute)</a>
 </li>
+      </ul></li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.OwnershipGraph.remember">remember() (coreblocks.transactions.graph.OwnershipGraph method)</a>
 </li>
       <li><a href="coreblocks.transactions.html#coreblocks.transactions.graph.OwnershipGraph.remember_field">remember_field() (coreblocks.transactions.graph.OwnershipGraph method)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REMU">REMU (coreblocks.params.isa.Funct3 attribute)</a>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivFn.Fn.REMU">REMU (coreblocks.fu.div_unit.DivFn.Fn attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REMU">(coreblocks.params.isa.Funct3 attribute)</a>
 </li>
+      </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REMUW">REMUW (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REMW">REMW (coreblocks.params.isa.Funct3 attribute)</a>
@@ -2031,14 +2080,14 @@
 </li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.retirement.Retirement">Retirement (class in coreblocks.stages.retirement)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REV8">REV8 (coreblocks.params.isa.Funct3 attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.REV8">(coreblocks.params.isa.Funct7 attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12.REV8_32">REV8_32 (coreblocks.params.isa.Funct12 attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12.REV8_64">REV8_64 (coreblocks.params.isa.Funct12 attribute)</a>
@@ -2608,7 +2657,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 08:06 2023-07-03.
+      <span class="lastupdated">Last updated on 09:39 2023-07-03.
       </span></p>
   </div>
 

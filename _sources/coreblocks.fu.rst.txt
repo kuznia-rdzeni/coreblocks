@@ -20,6 +20,14 @@ coreblocks.fu.alu module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.fu.div\_unit module
+------------------------------
+
+.. automodule:: coreblocks.fu.div_unit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.fu.exception module
 ------------------------------
 
