@@ -2,7 +2,1225 @@ window.BENCHMARK_DATA = {
   "lastUpdate": 1688372129390,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
-    "Fmax and LCs": [
+    "Performance (IPC)": [
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f22d67ada17b425d5e4d759d9549404cd1a2d2a4",
+          "message": "Hopefully fix benchmark workflow (#373)",
+          "timestamp": "2023-06-01T11:43:07+02:00",
+          "tree_id": "381ba085799084d3cb5e79c9863a83179d704f99",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f22d67ada17b425d5e4d759d9549404cd1a2d2a4"
+        },
+        "date": 1685613584522,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f2bcf12703b8b37e301522bdef2d9da8627fe0e9",
+          "message": "Make fetcher ready for discarding multiple instructions (#375)",
+          "timestamp": "2023-06-02T23:12:01+02:00",
+          "tree_id": "107554c4d5dadde6d00b56d1c13e7015404e70b5",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f2bcf12703b8b37e301522bdef2d9da8627fe0e9"
+        },
+        "date": 1685741322498,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a903b181b1884403a2558d682777bf5dc6fb3651",
+          "message": "Make verify_branch know its origin with from_pc (#378)",
+          "timestamp": "2023-06-02T23:33:49+02:00",
+          "tree_id": "41f8563314467cc9f70ec01ffd7ad94305b9b00d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a903b181b1884403a2558d682777bf5dc6fb3651"
+        },
+        "date": 1685742793637,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cf1004ef9628fc3b7d2020e4c39d409311436706",
+          "message": "Instruction decoder refactor (#379)",
+          "timestamp": "2023-06-05T09:01:09+02:00",
+          "tree_id": "841173c625873d45aeb07cf431c66d70821f1dca",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cf1004ef9628fc3b7d2020e4c39d409311436706"
+        },
+        "date": 1685949476490,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ebdabff1247eedb08004bd06dcd2c2eb7336d40a",
+          "message": "Parametrize rs_entries in RSLayouts (#372)",
+          "timestamp": "2023-06-05T09:17:07+02:00",
+          "tree_id": "c1b76d3af644b6f5e9aedf358a9833853069bd95",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ebdabff1247eedb08004bd06dcd2c2eb7336d40a"
+        },
+        "date": 1685950625929,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fd3857d23079b1e9c651e4b48381b361434228f8",
+          "message": "ISA String improvements (#377)",
+          "timestamp": "2023-06-05T11:31:11+02:00",
+          "tree_id": "ec55139ad76e0945aca7c0d0ae9601c8a9b38261",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/fd3857d23079b1e9c651e4b48381b361434228f8"
+        },
+        "date": 1685959025883,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pazeraf@gmail.com",
+            "name": "Filip Pazera",
+            "username": "pa000"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "92439af1cd33c528137d1824e57dcbc25cfecc71",
+          "message": "Zbc functional unit (#294)",
+          "timestamp": "2023-06-07T15:15:23+02:00",
+          "tree_id": "b86c7b3dbdf4c1c28988f3374e5ae76d29224d48",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/92439af1cd33c528137d1824e57dcbc25cfecc71"
+        },
+        "date": 1686144913019,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "324526@uwr.edu.pl",
+            "name": "Wojciech Pokój",
+            "username": "wojpok"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c43c51454414b7acf25a52ea3b97af65e085294e",
+          "message": "ZBB extension (#369)",
+          "timestamp": "2023-06-12T10:55:42+02:00",
+          "tree_id": "f017659bbe01efafb5fc6ba8c4e0d916649f22bf",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c43c51454414b7acf25a52ea3b97af65e085294e"
+        },
+        "date": 1686561646127,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8381ebb9476f3205371010edfe2eba358a975fa3",
+          "message": "Remove dummy sync signal (#387)",
+          "timestamp": "2023-06-14T09:48:06+02:00",
+          "tree_id": "255762b7705e9ff5723f58e8f4ba528b516234ac",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8381ebb9476f3205371010edfe2eba358a975fa3"
+        },
+        "date": 1686729951150,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "63d824f90f451100f2d2de523bb66282d6834f1f",
+          "message": "Update Amaranth version (#392)",
+          "timestamp": "2023-06-19T13:22:33+02:00",
+          "tree_id": "d4282f77208e706f1839a85208fcb9ff10b85a91",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/63d824f90f451100f2d2de523bb66282d6834f1f"
+        },
+        "date": 1687174811918,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "712601e17afd3aef891651487a454908f3399869",
+          "message": "Simultaneous transactions (#347)",
+          "timestamp": "2023-06-22T20:56:17+02:00",
+          "tree_id": "a7daa806d0abe77635e1e1ff859f0392657ca161",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/712601e17afd3aef891651487a454908f3399869"
+        },
+        "date": 1687461256473,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f5302ce9d42c5fbaecd1bf1dbe32d6ab7bd4681c",
+          "message": "Try-product combiner (#391)",
+          "timestamp": "2023-06-23T13:03:54+02:00",
+          "tree_id": "463106b8295841f359e500761e10b8e2df981e12",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f5302ce9d42c5fbaecd1bf1dbe32d6ab7bd4681c"
+        },
+        "date": 1687519300371,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "95f038d1819ad9a919443dd7311cca6e42b34dd4",
+          "message": "Layout for exceptions (#393)",
+          "timestamp": "2023-06-23T15:19:34+02:00",
+          "tree_id": "d6f0f7c2d315449290d80f7db682f939f5dc5518",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/95f038d1819ad9a919443dd7311cca6e42b34dd4"
+        },
+        "date": 1687527439068,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "324526@uwr.edu.pl",
+            "name": "Wojciech Pokój",
+            "username": "wojpok"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "75b1161f734c1be0ca8063d2b648defdb7cf1cfa",
+          "message": "Encoding uniqueness (#388)",
+          "timestamp": "2023-06-26T11:40:52+02:00",
+          "tree_id": "1e6bf18541a503ca50c508443053e6fda5baaf4e",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/75b1161f734c1be0ca8063d2b648defdb7cf1cfa"
+        },
+        "date": 1687773541292,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "802d33498bdc94739ad6048dab2b696d15556012",
+          "message": "Exception support (#386)",
+          "timestamp": "2023-06-27T12:12:37+02:00",
+          "tree_id": "8b6af11e6b5a4050a59bfbc9db2e32fa4ada6fec",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/802d33498bdc94739ad6048dab2b696d15556012"
+        },
+        "date": 1687861853076,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cc5cc1740a758a11b8485627453afa85bb633ce8",
+          "message": "MemoryBank and Serializer (#304)",
+          "timestamp": "2023-06-27T15:09:19+02:00",
+          "tree_id": "9e0498ff5b040e236aac06dfdee35afacf6e68fe",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cc5cc1740a758a11b8485627453afa85bb633ce8"
+        },
+        "date": 1687872469103,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "ud",
+            "value": 0.29163741321475933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3753409431602963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15128913530656055,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20042344550924895,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.3382389623347468,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28342665913210674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24265409717186368,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.21254611128189363,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f58fd958bde32881d6f8b40fc1c2e9039147022b",
+          "message": "DummyLSU: Delay pushing store result until execution (#398)",
+          "timestamp": "2023-06-28T12:21:39+02:00",
+          "tree_id": "2d8b2665595b553e7b59752bd8b8bb050ce1532f",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f58fd958bde32881d6f8b40fc1c2e9039147022b"
+        },
+        "date": 1687948789830,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.28757457429729644,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2950910250985018,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24334628411853151,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20199456436288493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2142909720634896,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.34326885628975723,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15129959734328294,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.383974924819342,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "24831d688ef84c9a22b1e1d28f9f2f6995faa0e7",
+          "message": "Synthesize different core versions (#407)",
+          "timestamp": "2023-06-30T19:16:15+02:00",
+          "tree_id": "d1155c0f1fa5af0e559571c62e4e008b2e852372",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/24831d688ef84c9a22b1e1d28f9f2f6995faa0e7"
+        },
+        "date": 1688146538644,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.34326885628975723,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2142909720634896,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20199456436288493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28757457429729644,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24334628411853151,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.383974924819342,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2950910250985018,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15129959734328294,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "02ade9b3b62130fd43613c133f0795f9b8b4e590",
+          "message": "auto_debug_signals: drop useless empty objects (#418)",
+          "timestamp": "2023-07-03T09:54:37+02:00",
+          "tree_id": "0b617871cc95985f0d03f07726694063ce08bdff",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/02ade9b3b62130fd43613c133f0795f9b8b4e590"
+        },
+        "date": 1688371959393,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "minver",
+            "value": 0.24334628411853151,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2142909720634896,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.28757457429729644,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.34326885628975723,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15129959734328294,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20199456436288493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.383974924819342,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2950910250985018,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      }
+    ],
+    "Fmax and LCs (basic)": [
       {
         "commit": {
           "author": {
@@ -7401,1227 +8619,7 @@ window.BENCHMARK_DATA = {
             "unit": "LUT"
           }
         ]
-      }
-    ],
-    "Performance (IPC)": [
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "f22d67ada17b425d5e4d759d9549404cd1a2d2a4",
-          "message": "Hopefully fix benchmark workflow (#373)",
-          "timestamp": "2023-06-01T11:43:07+02:00",
-          "tree_id": "381ba085799084d3cb5e79c9863a83179d704f99",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f22d67ada17b425d5e4d759d9549404cd1a2d2a4"
-        },
-        "date": 1685613584522,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
       },
-      {
-        "commit": {
-          "author": {
-            "email": "arek_koz@o2.pl",
-            "name": "Arusekk",
-            "username": "Arusekk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "f2bcf12703b8b37e301522bdef2d9da8627fe0e9",
-          "message": "Make fetcher ready for discarding multiple instructions (#375)",
-          "timestamp": "2023-06-02T23:12:01+02:00",
-          "tree_id": "107554c4d5dadde6d00b56d1c13e7015404e70b5",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f2bcf12703b8b37e301522bdef2d9da8627fe0e9"
-        },
-        "date": 1685741322498,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "arek_koz@o2.pl",
-            "name": "Arusekk",
-            "username": "Arusekk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "a903b181b1884403a2558d682777bf5dc6fb3651",
-          "message": "Make verify_branch know its origin with from_pc (#378)",
-          "timestamp": "2023-06-02T23:33:49+02:00",
-          "tree_id": "41f8563314467cc9f70ec01ffd7ad94305b9b00d",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a903b181b1884403a2558d682777bf5dc6fb3651"
-        },
-        "date": 1685742793637,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "piotro888@wp.pl",
-            "name": "piotro888",
-            "username": "piotro888"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "cf1004ef9628fc3b7d2020e4c39d409311436706",
-          "message": "Instruction decoder refactor (#379)",
-          "timestamp": "2023-06-05T09:01:09+02:00",
-          "tree_id": "841173c625873d45aeb07cf431c66d70821f1dca",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cf1004ef9628fc3b7d2020e4c39d409311436706"
-        },
-        "date": 1685949476490,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "piotro888@wp.pl",
-            "name": "piotro888",
-            "username": "piotro888"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "ebdabff1247eedb08004bd06dcd2c2eb7336d40a",
-          "message": "Parametrize rs_entries in RSLayouts (#372)",
-          "timestamp": "2023-06-05T09:17:07+02:00",
-          "tree_id": "c1b76d3af644b6f5e9aedf358a9833853069bd95",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ebdabff1247eedb08004bd06dcd2c2eb7336d40a"
-        },
-        "date": 1685950625929,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "piotro888@wp.pl",
-            "name": "piotro888",
-            "username": "piotro888"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "fd3857d23079b1e9c651e4b48381b361434228f8",
-          "message": "ISA String improvements (#377)",
-          "timestamp": "2023-06-05T11:31:11+02:00",
-          "tree_id": "ec55139ad76e0945aca7c0d0ae9601c8a9b38261",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/fd3857d23079b1e9c651e4b48381b361434228f8"
-        },
-        "date": 1685959025883,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "pazeraf@gmail.com",
-            "name": "Filip Pazera",
-            "username": "pa000"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "92439af1cd33c528137d1824e57dcbc25cfecc71",
-          "message": "Zbc functional unit (#294)",
-          "timestamp": "2023-06-07T15:15:23+02:00",
-          "tree_id": "b86c7b3dbdf4c1c28988f3374e5ae76d29224d48",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/92439af1cd33c528137d1824e57dcbc25cfecc71"
-        },
-        "date": 1686144913019,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "324526@uwr.edu.pl",
-            "name": "Wojciech Pokój",
-            "username": "wojpok"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "c43c51454414b7acf25a52ea3b97af65e085294e",
-          "message": "ZBB extension (#369)",
-          "timestamp": "2023-06-12T10:55:42+02:00",
-          "tree_id": "f017659bbe01efafb5fc6ba8c4e0d916649f22bf",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c43c51454414b7acf25a52ea3b97af65e085294e"
-        },
-        "date": 1686561646127,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "xthaid@gmail.com",
-            "name": "Jakub Urbańczyk",
-            "username": "xThaid"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "8381ebb9476f3205371010edfe2eba358a975fa3",
-          "message": "Remove dummy sync signal (#387)",
-          "timestamp": "2023-06-14T09:48:06+02:00",
-          "tree_id": "255762b7705e9ff5723f58e8f4ba528b516234ac",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8381ebb9476f3205371010edfe2eba358a975fa3"
-        },
-        "date": 1686729951150,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "63d824f90f451100f2d2de523bb66282d6834f1f",
-          "message": "Update Amaranth version (#392)",
-          "timestamp": "2023-06-19T13:22:33+02:00",
-          "tree_id": "d4282f77208e706f1839a85208fcb9ff10b85a91",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/63d824f90f451100f2d2de523bb66282d6834f1f"
-        },
-        "date": 1687174811918,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "712601e17afd3aef891651487a454908f3399869",
-          "message": "Simultaneous transactions (#347)",
-          "timestamp": "2023-06-22T20:56:17+02:00",
-          "tree_id": "a7daa806d0abe77635e1e1ff859f0392657ca161",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/712601e17afd3aef891651487a454908f3399869"
-        },
-        "date": 1687461256473,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "f5302ce9d42c5fbaecd1bf1dbe32d6ab7bd4681c",
-          "message": "Try-product combiner (#391)",
-          "timestamp": "2023-06-23T13:03:54+02:00",
-          "tree_id": "463106b8295841f359e500761e10b8e2df981e12",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f5302ce9d42c5fbaecd1bf1dbe32d6ab7bd4681c"
-        },
-        "date": 1687519300371,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "arek_koz@o2.pl",
-            "name": "Arusekk",
-            "username": "Arusekk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "95f038d1819ad9a919443dd7311cca6e42b34dd4",
-          "message": "Layout for exceptions (#393)",
-          "timestamp": "2023-06-23T15:19:34+02:00",
-          "tree_id": "d6f0f7c2d315449290d80f7db682f939f5dc5518",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/95f038d1819ad9a919443dd7311cca6e42b34dd4"
-        },
-        "date": 1687527439068,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "324526@uwr.edu.pl",
-            "name": "Wojciech Pokój",
-            "username": "wojpok"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "75b1161f734c1be0ca8063d2b648defdb7cf1cfa",
-          "message": "Encoding uniqueness (#388)",
-          "timestamp": "2023-06-26T11:40:52+02:00",
-          "tree_id": "1e6bf18541a503ca50c508443053e6fda5baaf4e",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/75b1161f734c1be0ca8063d2b648defdb7cf1cfa"
-        },
-        "date": 1687773541292,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "piotro888@wp.pl",
-            "name": "piotro888",
-            "username": "piotro888"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "802d33498bdc94739ad6048dab2b696d15556012",
-          "message": "Exception support (#386)",
-          "timestamp": "2023-06-27T12:12:37+02:00",
-          "tree_id": "8b6af11e6b5a4050a59bfbc9db2e32fa4ada6fec",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/802d33498bdc94739ad6048dab2b696d15556012"
-        },
-        "date": 1687861853076,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "34948061+lekcyjna123@users.noreply.github.com",
-            "name": "lekcyjna123",
-            "username": "lekcyjna123"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "cc5cc1740a758a11b8485627453afa85bb633ce8",
-          "message": "MemoryBank and Serializer (#304)",
-          "timestamp": "2023-06-27T15:09:19+02:00",
-          "tree_id": "9e0498ff5b040e236aac06dfdee35afacf6e68fe",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cc5cc1740a758a11b8485627453afa85bb633ce8"
-        },
-        "date": 1687872469103,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "ud",
-            "value": 0.29163741321475933,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.3753409431602963,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15128913530656055,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20042344550924895,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.3382389623347468,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28342665913210674,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24265409717186368,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.21254611128189363,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "piotro888@wp.pl",
-            "name": "piotro888",
-            "username": "piotro888"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "f58fd958bde32881d6f8b40fc1c2e9039147022b",
-          "message": "DummyLSU: Delay pushing store result until execution (#398)",
-          "timestamp": "2023-06-28T12:21:39+02:00",
-          "tree_id": "2d8b2665595b553e7b59752bd8b8bb050ce1532f",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f58fd958bde32881d6f8b40fc1c2e9039147022b"
-        },
-        "date": 1687948789830,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "aha-mont64",
-            "value": 0.28757457429729644,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.2950910250985018,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24334628411853151,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20199456436288493,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.2142909720634896,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.34326885628975723,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15129959734328294,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.383974924819342,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "24831d688ef84c9a22b1e1d28f9f2f6995faa0e7",
-          "message": "Synthesize different core versions (#407)",
-          "timestamp": "2023-06-30T19:16:15+02:00",
-          "tree_id": "d1155c0f1fa5af0e559571c62e4e008b2e852372",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/24831d688ef84c9a22b1e1d28f9f2f6995faa0e7"
-        },
-        "date": 1688146538644,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "nettle-sha256",
-            "value": 0.34326885628975723,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.2142909720634896,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20199456436288493,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28757457429729644,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "minver",
-            "value": 0.24334628411853151,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.383974924819342,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.2950910250985018,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15129959734328294,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "arek_koz@o2.pl",
-            "name": "Arusekk",
-            "username": "Arusekk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "02ade9b3b62130fd43613c133f0795f9b8b4e590",
-          "message": "auto_debug_signals: drop useless empty objects (#418)",
-          "timestamp": "2023-07-03T09:54:37+02:00",
-          "tree_id": "0b617871cc95985f0d03f07726694063ce08bdff",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/02ade9b3b62130fd43613c133f0795f9b8b4e590"
-        },
-        "date": 1688371959393,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "minver",
-            "value": 0.24334628411853151,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "slre",
-            "value": 0.2142909720634896,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "aha-mont64",
-            "value": 0.28757457429729644,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nettle-sha256",
-            "value": 0.34326885628975723,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "nsichneu",
-            "value": 0.15129959734328294,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "statemate",
-            "value": 0.20199456436288493,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "crc32",
-            "value": 0.383974924819342,
-            "unit": "Instructions Per Cycle"
-          },
-          {
-            "name": "ud",
-            "value": 0.2950910250985018,
-            "unit": "Instructions Per Cycle"
-          }
-        ]
-      }
-    ],
-    "Fmax and LCs (basic)": [
       {
         "commit": {
           "author": {
