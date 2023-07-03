@@ -250,6 +250,7 @@ class FetchLayouts:
             ("data", gen_params.isa.ilen),
             ("pc", gen_params.isa.xlen),
             ("access_fault", 1),
+            ("rvc", 1),
         ]
 
         self.branch_verify = [

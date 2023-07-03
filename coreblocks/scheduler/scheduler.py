@@ -320,7 +320,7 @@ class RSInsertion(Elaboratable):
                     "imm": instr.imm,
                     "csr": instr.csr,
                     "pc": instr.pc,
-                }
+                },
             }
 
             for i, rs_insert in enumerate(self.rs_insert):

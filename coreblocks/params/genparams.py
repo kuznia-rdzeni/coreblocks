@@ -68,9 +68,6 @@ class GenParams(DependentCache):
         if cfg.embedded:
             raise RuntimeError("E extension is not supported yet")  # TODO: Remove after implementing E in decode
 
-        if cfg.compressed:
-            raise RuntimeError("C extension is not supported yet")  # TODO: Remove after implementing C in decode
-
         extensions |= cfg._implied_extensions
         self.isa_str = gen_isa_string(extensions, cfg.xlen)
 
