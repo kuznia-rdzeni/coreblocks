@@ -41,10 +41,14 @@ class LSUDummyInternals(Elaboratable):
         self.current_instr = current_instr
         self.bus = bus
 
+        self.dependency_manager = self.gen_params.get(DependencyManager)
+        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
+
         self.loadedData = Signal(self.gen_params.isa.xlen)
         self.get_result_ack = Signal()
         self.result_ready = Signal()
         self.execute_store = Signal()
+        self.op_exception = Signal()
 
     def calculate_addr(self):
         """Calculate Load/Store address as defined by RiscV spec"""
@@ -94,9 +98,20 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += data.eq(raw_data)
         return data
 
+    def check_align(self, m: TModule, addr: Signal):
+        misaligned = Signal()
+        with m.Switch(self.current_instr.exec_fn.funct3):
+            with m.Case(Funct3.W):
+                m.d.comb += misaligned.eq(addr[0:2] != 0)
+            with m.Case(Funct3.H, Funct3.HU):
+                m.d.comb += misaligned.eq(addr[0] != 0)
+        return misaligned
+
     def op_init(self, m: TModule, op_initiated: Signal, is_store: bool):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
+        misaligned = Signal()
+        m.d.comb += misaligned.eq(self.check_align(m, addr))
 
         bytes_mask = self.prepare_bytes_mask(m, addr)
         req = Record(self.bus.requestLayout)
@@ -105,27 +120,41 @@ class LSUDummyInternals(Elaboratable):
         m.d.comb += req.sel.eq(bytes_mask)
         m.d.comb += req.data.eq(self.prepare_data_to_save(m, self.current_instr.s2_val, addr))
 
-        # load_init is under an "if" so that this transaction requests to be executed
-        # after all "if"s above are taken, so there is no need to add any additional
-        # signal here as a "request"
         with Transaction().body(m):
-            self.bus.request(m, req)
+            with m.If(~misaligned):
+                # load_init is under an "if" so that this transaction requests to be executed
+                # after all "if"s above are taken, so there is no need to add any additional
+                # signal here as a "request"
+                self.bus.request(m, req)
+            with m.Else():
+                m.d.sync += self.op_exception.eq(1)
+
+                cause = ExceptionCause.STORE_ADDRESS_MISALIGNED if is_store else ExceptionCause.LOAD_ADDRESS_MISALIGNED
+                self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
+
             m.d.sync += op_initiated.eq(1)
 
     def op_end(self, m: TModule, op_initiated: Signal, is_store: bool):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
 
-        with Transaction().body(m):
-            fetched = self.bus.result(m)
-            m.d.sync += op_initiated.eq(0)
-            m.d.sync += self.result_ready.eq(1)
+        with m.If(~self.op_exception):
+            with Transaction().body(m):
+                fetched = self.bus.result(m)
+                m.d.sync += op_initiated.eq(0)
 
-            if not is_store:
-                with m.If(fetched.err == 0):
-                    m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
-                with m.Else():
-                    m.d.sync += self.loadedData.eq(0)
+                if not is_store:
+                    with m.If(fetched.err == 0):
+                        m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
+
+                with m.If(fetched.err):
+                    cause = ExceptionCause.STORE_ACCESS_FAULT if is_store else ExceptionCause.LOAD_ACCESS_FAULT
+                    self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
+
+                m.d.sync += self.op_exception.eq(fetched.err)
+                m.d.sync += self.result_ready.eq(1)
+        with m.Else():
+            m.d.sync += self.result_ready.eq(1)
 
     def elaborate(self, platform):
         def check_if_instr_ready(current_instr: Record, result_ready: Signal) -> Value:
@@ -163,6 +192,7 @@ class LSUDummyInternals(Elaboratable):
                 with m.If(self.get_result_ack):
                     m.d.sync += self.result_ready.eq(0)
                     m.d.sync += self.loadedData.eq(0)
+                    m.d.sync += self.op_exception.eq(0)
                     m.next = "Start"
             with m.State("StoreWaitForExec"):
                 with m.If(self.execute_store):
@@ -177,6 +207,7 @@ class LSUDummyInternals(Elaboratable):
                 self.op_end(m, op_initiated, True)
                 with m.If(self.get_result_ack):
                     m.d.sync += self.result_ready.eq(0)
+                    m.d.sync += self.op_exception.eq(0)
                     m.next = "Start"
         return m
 
@@ -266,7 +297,7 @@ class LSUDummy(FuncBlock, Elaboratable):
                 "rob_id": current_instr.rob_id,
                 "rp_dst": current_instr.rp_dst,
                 "result": internal.loadedData,
-                "exception": 0,
+                "exception": internal.op_exception,
             }
 
         @def_method(m, self.precommit)

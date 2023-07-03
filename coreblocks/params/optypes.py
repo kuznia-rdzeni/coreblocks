@@ -1,7 +1,7 @@
 from enum import IntEnum, auto, unique
 
 from coreblocks.params import Extension
-from coreblocks.params.isa import extension_implications
+from coreblocks.params.isa import extension_implications, extension_only_implies
 
 
 @unique
@@ -117,7 +117,8 @@ def optypes_required_by_extensions(
         implied_extensions = Extension(0)
         for ext in Extension:
             if ext in extensions:
-                if ext in extension_implications and ext in optypes_by_extensions:
+                # check if extensions has implications, but skip if we don't have defined any optypes for it yet
+                if ext in extension_implications and (ext in optypes_by_extensions or ext in extension_only_implies):
                     implied_extensions |= extension_implications[ext]
         extensions |= implied_extensions
 

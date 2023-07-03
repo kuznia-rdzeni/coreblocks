@@ -16,7 +16,7 @@ from test.fu.functional_common import GenericFunctionalTestUnit
 
 class JumpBranchWrapper(Elaboratable):
     def __init__(self, gen_params: GenParams):
-        self.jb = JumpBranchFuncUnit(GenParams(test_core_config))
+        self.jb = JumpBranchFuncUnit(gen_params)
         self.issue = self.jb.issue
         self.accept = Method(o=gen_params.get(FuncUnitLayouts).accept + gen_params.get(FetchLayouts).branch_verify)
 
@@ -35,7 +35,7 @@ class JumpBranchWrapper(Elaboratable):
                 "result": res.result,
                 "rob_id": res.rob_id,
                 "rp_dst": res.rp_dst,
-                "exception": 0,
+                "exception": res.exception,
             }
 
         return m
@@ -77,7 +77,13 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
     next_pc &= max_int
     res &= max_int
 
-    return {"result": res, "from_pc": pc, "next_pc": next_pc}
+    exception = None
+    if next_pc & 0b11 != 0:
+        exception = ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED
+
+    return {"result": res, "from_pc": pc, "next_pc": next_pc} | (
+        {"exception": exception} if exception is not None else {}
+    )
 
 
 @staticmethod

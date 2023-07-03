@@ -4,7 +4,7 @@ import random
 from amaranth import *
 from amaranth.sim import Settle, Passive
 
-from coreblocks.params import GenParams, RSLayouts, SchedulerLayouts, OpType, Opcode, Funct3, Funct7
+from coreblocks.params import GenParams, RSLayouts, SchedulerLayouts, OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.scheduler.scheduler import RSSelection
 from coreblocks.transactions.lib import FIFO, Adapter, AdapterTrans
@@ -68,7 +68,6 @@ class TestRSSelect(TestCaseWithSimulator):
                 funct3 = random.choice(list(Funct3))
                 funct7 = random.choice(list(Funct7))
 
-                opcode = random.choice(list(Opcode))
                 immediate = random.randrange(2**32)
 
                 rob_id = random.randrange(self.gen_params.rob_entries_bits)
@@ -76,8 +75,6 @@ class TestRSSelect(TestCaseWithSimulator):
                 csr = random.randrange(2**self.gen_params.isa.csr_alen)
 
                 instr = {
-                    "opcode": opcode,
-                    "illegal": 0,
                     "exec_fn": {
                         "op_type": op_type,
                         "funct3": funct3,
