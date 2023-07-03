@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688377876300,
+  "lastUpdate": 1688378209734,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -1215,6 +1215,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "ud",
             "value": 0.2950910250985018,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "324526@uwr.edu.pl",
+            "name": "Wojciech Pokój",
+            "username": "wojpok"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "de5279129166eed9b2311f9e9fa4fc3935466ac8",
+          "message": "Division unit (#389)",
+          "timestamp": "2023-07-03T11:38:04+02:00",
+          "tree_id": "4080e1f3982cece53f160cbfa11a749aa94822bf",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/de5279129166eed9b2311f9e9fa4fc3935466ac8"
+        },
+        "date": 1688378207666,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "slre",
+            "value": 0.21250038417801273,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.383974924819342,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.2828491744495354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29335309567662415,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24125798497454903,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.20126447714429588,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.36743626977565014,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.1537547475379883,
             "unit": "Instructions Per Cycle"
           }
         ]
