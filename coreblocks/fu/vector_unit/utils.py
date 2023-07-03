@@ -5,7 +5,7 @@ from amaranth import *
 from coreblocks.params import VectorParameters, GenParams
 from coreblocks.utils._typing import ValueLike
 
-__all__ = ["SEW", "EEW", "EMUL", "LMUL", "eew_to_bits", "bits_to_eew", "eew_div_2", "get_vlmax"]
+__all__ = ["SEW", "EEW", "EMUL", "LMUL", "eew_to_bits", "bits_to_eew", "eew_div_2", "get_vlmax", "lmul_to_float"]
 
 
 class SEW(IntEnum):
@@ -123,5 +123,5 @@ def get_vlmax(m : TModule, sew : Value, lmul : Value, gen_params : GenParams, v_
         for s in SEW:
             for lm in LMUL:
                 with m.Case((s << log2_int(len(SEW))) | lm):
-                    m.d.comb += sig.eq(int(v_params.vlen//eew_to_bits(s)/lmul_to_float(lm)))
+                    m.d.comb += sig.eq(int(v_params.vlen//eew_to_bits(s)*lmul_to_float(lm)))
     return sig

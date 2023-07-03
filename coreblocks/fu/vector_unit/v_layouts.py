@@ -68,6 +68,7 @@ class VectorFrontendLayouts:
             ("sew", SEW),
             ("ta", 1),
             ("ma", 1),
+            ("vl", gen_params.isa.xlen)
         ]
 
         self.verification_in = self.verification_out = self.status_in = [

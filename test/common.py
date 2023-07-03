@@ -195,6 +195,9 @@ def generate_instr(
 def get_dict_subset(base: Mapping[T, U], keys: Iterable[T]) -> dict[T, U]:
     return {k: base[k] for k in keys}
 
+def get_dict_without(base: Mapping[T,U], keys_to_delete: Iterable[T]) -> dict[T,U]:
+    return {k: base[k] for k in base.keys() if k not in keys_to_delete}
+
 
 def get_outputs(field: Record) -> TestGen[RecordIntDict]:
     # return dict of all signal values in a record because amaranth's simulator can't read all

@@ -10,15 +10,13 @@ from coreblocks.utils.fifo import BasicFifo
 
 
 class VectorStatusUnit(Elaboratable):
-    def __init__(self, gen_params: GenParams, v_params: VectorParameters, retire : Method, put_instr : Method):
+    def __init__(self, gen_params: GenParams, v_params: VectorParameters, put_instr : Method, retire : Method):
         self.gen_params = gen_params
         self.v_params = v_params
         self.retire = retire
         self.put_instr = put_instr
 
         self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
-        self.dependency_manager = self.gen_params.get(DependencyManager)
-        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
         self.get_vill = Method(o = self.layouts.get_vill, nonexclusive=True)
         self.get_vstart = Method(o = self.layouts.get_vstart, nonexclusive = True)
         self.clear = Method()
@@ -50,9 +48,9 @@ class VectorStatusUnit(Elaboratable):
     def process_vsetvl(self, m, instr):
         new_vtype = Signal(8)
         avl = Signal().like(self.vl)
+        vlmax = Signal().like(self.vl)
         ill = Signal()
         valid_rs1 = Signal()
-        m.d.top_comb = avl.eq(get_vlmax(m, self.extract_vsew(new_vtype), self.extract_vlmul(new_vtype), self.gen_params, self.v_params))
         with m.Switch(instr.imm2[-2:]):
             with m.Case(0,1):
                 m.d.comb += new_vtype.eq(instr.imm2[:8])
@@ -65,6 +63,9 @@ class VectorStatusUnit(Elaboratable):
                 m.d.comb += avl.eq(instr.imm[:5])
         with m.If(self.extract_vsew(new_vtype) > bits_to_eew(self.v_params.elen)):
             m.d.comb += ill.eq(1)
+
+        m.d.comb += vlmax.eq(get_vlmax(m, new_vtype[3:6], new_vtype[:3], self.gen_params, self.v_params))
+        m.d.comb += avl.eq(vlmax)
 
         with m.If(ill):
             m.d.sync += self.vtype.eq(1<<31)
@@ -87,30 +88,33 @@ class VectorStatusUnit(Elaboratable):
                 output.vtype.lmul.eq(self.extract_vlmul()),
                 output.vtype.ma.eq(self.extract_vma()),
                 output.vtype.ta.eq(self.extract_vta()),
+                output.vtype.vl.eq(self.vl),
                 ]
         self.put_instr(m, output)
 
     def elaborate(self, platform):
         m = TModule()
 
-        fifo = BasicFifo(self.layouts.status_in, 2)
-        m.submodules.fifo = fifo
-
-        self.issue.proxy(m, fifo.write)
-
-        status_handler = Transaction(name = "status_handler")
-
-        with status_handler.body(m):
-            instr = fifo.read(m)
-            with condition(m, nonblocking = False) as branch:
-                with branch(fifo.head.exec_fn.op_type == OpType.V_CONTROL):
-                    self.process_vsetvl(m, instr)
-                with branch():
-                    self.process_normal_instr(m, instr)
+        @def_method(m, self.issue)
+        def _(arg):
             m.d.sync += self.vstart.eq(0)
-            with condition(m, nonblocking= False) as branch:
-                with branch(self.vstart != 0):
-                    self.report(m, rob_id = instr.rob_id, cause = ExceptionCause.ILLEGAL_INSTRUCTION)
-                    self.retire(m, rob_id = instr.rob_id, exception = 1)
+            with condition(m, nonblocking = False) as branch:
+                with branch(arg.exec_fn.op_type == OpType.V_CONTROL):
+                    self.process_vsetvl(m, arg)
+                with branch():
+                    self.process_normal_instr(m, arg)
 
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += self.vstart.eq(0)
+            m.d.sync += self.vl.eq(0)
+            m.d.sync += self.vtype.eq(1<<31)
+
+        @def_method(m, self.get_vill)
+        def _():
+            return {"vill" : self.extract_vill()}
+
+        @def_method(m, self.get_vstart)
+        def _():
+            return {"vstart": self.vstart}
         return m
