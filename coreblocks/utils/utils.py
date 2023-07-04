@@ -20,6 +20,7 @@ __all__ = [
     "popcount",
     "count_leading_zeros",
     "count_trailing_zeros",
+    "make_forwarding_signal",
 ]
 
 
@@ -418,3 +419,13 @@ def silence_mustuse(elaboratable: Elaboratable):
     except Exception:
         elaboratable._MustUse__silence = True  # type: ignore
         raise
+
+
+def make_forwarding_signal(m: ModuleLike, comb_signal: Signal, sync_signal: Optional[Signal] = None):
+    if sync_signal is None:
+        sync_signal = Signal.like(comb_signal)
+
+    m.d.sync += sync_signal.eq(comb_signal)
+    m.d.comb += comb_signal.eq(sync_signal)
+
+    return sync_signal

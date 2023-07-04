@@ -5,6 +5,7 @@ from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign, ModuleLike
 from coreblocks.utils.protocols import FuncBlock
+from coreblocks.utils.utils import make_forwarding_signal
 
 
 __all__ = ["LSUDummy", "LSUBlockComponent"]
@@ -50,10 +51,8 @@ class LSUDummyInternals(Elaboratable):
         self.execute = Signal()
         self.op_exception = Signal()
 
-    def calculate_addr(self, m: ModuleLike):
-        addr = Signal(self.gen_params.isa.xlen)
-        m.d.comb += addr.eq(self.current_instr.s1_val + self.current_instr.imm)
-        return addr
+    def calculate_addr(self):
+        return self.current_instr.s1_val + self.current_instr.imm
 
     def prepare_bytes_mask(self, m: ModuleLike, addr: Signal) -> Signal:
         mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
@@ -122,13 +121,22 @@ class LSUDummyInternals(Elaboratable):
 
         is_load = self.current_instr.exec_fn.op_type == OpType.LOAD
 
-        addr = self.calculate_addr(m)
+        addr = Signal(self.gen_params.isa.xlen)
         aligned = self.check_align(m, addr)
         bytes_mask = self.prepare_bytes_mask(m, addr)
         data = self.prepare_data_to_save(m, self.current_instr.s2_val, addr)
 
+        make_forwarding_signal(m, addr)
+        make_forwarding_signal(m, self.loadedData)
+        make_forwarding_signal(m, self.op_exception)
+        make_forwarding_signal(m, self.result_ready)
+
         with m.FSM("Start"):
             with m.State("Start"):
+                m.d.comb += self.op_exception.eq(0)
+                m.d.comb += self.result_ready.eq(0)
+                m.d.comb += addr.eq(self.calculate_addr())
+
                 with m.If(instr_ready & (self.execute | is_load)):
                     with m.If(aligned):
                         with Transaction().body(m):
@@ -136,8 +144,7 @@ class LSUDummyInternals(Elaboratable):
                             m.next = "End"
                     with m.Else():
                         with Transaction().body(m):
-                            m.d.sync += self.op_exception.eq(1)
-                            m.d.sync += self.result_ready.eq(1)
+                            m.d.comb += self.op_exception.eq(1)
 
                             cause = Mux(
                                 is_load, ExceptionCause.LOAD_ADDRESS_MISALIGNED, ExceptionCause.STORE_ADDRESS_MISALIGNED
@@ -147,21 +154,22 @@ class LSUDummyInternals(Elaboratable):
                             m.next = "End"
 
             with m.State("End"):
+                with m.If(self.op_exception):
+                    m.d.comb += self.result_ready.eq(1)
+
                 with Transaction().body(m):
                     fetched = self.bus.result(m)
 
-                    m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
+                    m.d.comb += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
 
                     with m.If(fetched.err):
                         cause = Mux(is_load, ExceptionCause.LOAD_ACCESS_FAULT, ExceptionCause.STORE_ACCESS_FAULT)
                         self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
 
-                    m.d.sync += self.op_exception.eq(fetched.err)
-                    m.d.sync += self.result_ready.eq(1)
+                    m.d.comb += self.op_exception.eq(fetched.err)
+                    m.d.comb += self.result_ready.eq(1)
 
                 with m.If(self.get_result_ack):
-                    m.d.sync += self.result_ready.eq(0)
-                    m.d.sync += self.op_exception.eq(0)
                     m.next = "Start"
 
         return m
