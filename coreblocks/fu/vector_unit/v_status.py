@@ -10,7 +10,49 @@ from coreblocks.utils.fifo import BasicFifo
 
 
 class VectorStatusUnit(Elaboratable):
+    """ Module to process vector CSR values
+
+    This module holds vector CSR registers values:
+    - vtype
+    - vstart
+    - vl
+    Each vector instruction passed to the vector unit, is associated with a copy of these registers,
+    with values from the moment of it is processing. This guarantees
+    that any instruction executed out-of-order in vector unit, will see
+    the csr registers as they were defined in programme order.
+
+    This unit is also a sink for `vset{i}vl{i}` instructions. These
+    update the apropriate registers and are immediately retired.
+
+    Attributes
+    ----------
+    issue : Method(one_caller = True)
+        Method that has only one caller, used to pass new instructions to be processed.
+        Layout: `VectorFrontendLayouts.status_in`
+    get_vill : Method
+        Nonexclusive method used to get the current value of `vill`.
+        Layout: `VectorFrontendLayouts.get_vill`
+    get_vstart : Method
+        Nonexclusive method used to get the current value of `vstart`.
+        Layout: `VectorFrontendLayouts.get_vstart`
+    clear : Method
+        Clear the internal state.
+    """
     def __init__(self, gen_params: GenParams, v_params: VectorParameters, put_instr : Method, retire : Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        v_params : VectorParameters
+            Vector unit configuration
+        put_instr : Method
+            Method used to pass vector instructions that operate on data to the next pipeline stage.
+            Layout: VectorFrontendLayouts.status_out
+        retire : Method
+            Method used to inform about the retirement of vset{i}vl{i} instructions.
+            Layout: FuncUnitLayouts.accept
+        """
         self.gen_params = gen_params
         self.v_params = v_params
         self.retire = retire
@@ -117,4 +159,3 @@ class VectorStatusUnit(Elaboratable):
         @def_method(m, self.get_vstart)
         def _():
             return {"vstart": self.vstart}
-        return m

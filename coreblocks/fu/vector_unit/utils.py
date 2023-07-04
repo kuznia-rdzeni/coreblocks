@@ -3,7 +3,7 @@ from enum import IntEnum, auto
 from amaranth.utils import *
 from amaranth import *
 from coreblocks.params import VectorParameters, GenParams
-from coreblocks.utils._typing import ValueLike
+from coreblocks.utils._typing import ValueLike, ModuleLike
 
 __all__ = ["SEW", "EEW", "EMUL", "LMUL", "eew_to_bits", "bits_to_eew", "eew_div_2", "get_vlmax", "lmul_to_float"]
 
@@ -101,6 +101,18 @@ def eew_div_2(eew: EEW) -> EEW:
     return bits_to_eew(eew_to_bits(eew) // 2)
 
 def lmul_to_float(lmul : LMUL) -> float:
+    """Converts LMUL to float
+
+    Parameters
+    ----------
+    lmul : LMUL
+        The lmul to convert.
+    
+    Returns
+    -------
+    float
+        The multiplier that is represented by `lmul`.
+    """
     match lmul:
         case LMUL.m1:
             return 1
@@ -117,7 +129,32 @@ def lmul_to_float(lmul : LMUL) -> float:
         case LMUL.mf8:
             return 0.125
 
-def get_vlmax(m : TModule, sew : Value, lmul : Value, gen_params : GenParams, v_params : VectorParameters) -> Signal:
+def get_vlmax(m : ModuleLike, sew : Value, lmul : Value, gen_params : GenParams, v_params : VectorParameters) -> Signal:
+    """ Generates circuit to calculate VLMAX
+
+    This function generates a circuit that computes in
+    combinational domain, a VLMAX based on the `sew` and
+    `lmul` signals, taking into account the `vlen` configured in
+    `v_params`.
+
+    Parameters
+    ----------
+    m : ModuleLike
+        Module to connect the generated circuit to.
+    sew : Value
+        SEW for which VLMAX should is to be calculated.
+    lmul : Value
+        LMUL for which VLMAX should is to be calculated.
+    gen_params : GenParams
+        Configuration of the core.
+    v_params : VectorParameters
+        Configuration of the vector extension.
+
+    Returns
+    -------
+    vlmax : Signal
+        Signal containing the calculated VLMAX.
+    """
     sig = Signal(gen_params.isa.xlen)
     with m.Switch((sew << len(lmul)) | lmul):
         for s in SEW:
