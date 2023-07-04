@@ -16,12 +16,14 @@ __all__ = [
     "align_to_power_of_two",
     "bits_from_int",
     "layout_subset",
+    "layout_difference",
     "ModuleConnector",
     "silence_mustuse",
     "popcount",
     "count_leading_zeros",
     "count_trailing_zeros",
     "mod_incr",
+    "MultiPriorityEncoder",
 ]
 
 
@@ -345,6 +347,10 @@ def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]
 
 
+def layout_difference(layout: LayoutList, *, fields: set[str]) -> LayoutList:
+    return [item for item in layout if item[0] not in fields]
+
+
 def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
     """
     Flattens input data, which can be either a signal, a record, a list (or a dict) of SignalBundle items.
@@ -429,3 +435,61 @@ def silence_mustuse(elaboratable: Elaboratable):
     except Exception:
         elaboratable._MustUse__silence = True  # type: ignore
         raise
+
+
+class MultiPriorityEncoder(Elaboratable):
+    """Priority encoder with more outputs
+
+    This is an extension of the `PriorityEncoder` from amaranth, that supports
+    generating more than one output from an input signal.
+
+    Attributes
+    ----------
+    input_width : int
+        Width of the input signal
+    outputs_count : int
+        Number of outputs to generate at once.
+    input : Signal, in
+        Signal with 1 on `i`-th bit if `i` can be selected by encoder
+    outputs : list[Signal], out
+        Signals with selected indicies, they are sorted in ascending order,
+        if the number of ready signals is less than `outputs_count`,
+        then valid signals are at the beginning of the list.
+    valids : list[Signals], out
+        One bit for each output signal, indicating whether the output is valid or not.
+    """
+
+    def __init__(self, input_width: int, outputs_count: int):
+        self.input_width = input_width
+        self.outputs_count = outputs_count
+
+        self.input = Signal(self.input_width)
+        self.outputs = [Signal(range(self.input_width)) for _ in range(self.outputs_count)]
+        self.valids = [Signal() for _ in range(self.outputs_count)]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        current_outputs = [Signal(range(self.input_width)) for _ in range(self.outputs_count)]
+        current_valids = [Signal() for _ in range(self.outputs_count)]
+        for j in reversed(range(self.input_width)):
+            new_current_outputs = [Signal(range(self.input_width)) for _ in range(self.outputs_count)]
+            new_current_valids = [Signal() for _ in range(self.outputs_count)]
+            with m.If(self.input[j]):
+                m.d.comb += new_current_outputs[0].eq(j)
+                m.d.comb += new_current_valids[0].eq(1)
+                for k in range(self.outputs_count - 1):
+                    m.d.comb += new_current_outputs[k + 1].eq(current_outputs[k])
+                    m.d.comb += new_current_valids[k + 1].eq(current_valids[k])
+            with m.Else():
+                for k in range(self.outputs_count):
+                    m.d.comb += new_current_outputs[k].eq(current_outputs[k])
+                    m.d.comb += new_current_valids[k].eq(current_valids[k])
+            current_outputs = new_current_outputs
+            current_valids = new_current_valids
+
+        for k in range(self.outputs_count):
+            m.d.comb += self.outputs[k].eq(current_outputs[k])
+            m.d.comb += self.valids[k].eq(current_valids[k])
+
+        return m

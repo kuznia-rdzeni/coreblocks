@@ -13,8 +13,10 @@ class ReorderBuffer(Elaboratable):
         self.mark_done = Method(i=layouts.mark_done_layout)
         self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
         self.retire = Method(o=layouts.retire_layout)
-        self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
         self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
+        self.block_interrupts = Method(i=layouts.block_interrupts)
+
+        self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
 
     def elaborate(self, platform):
         m = TModule()
@@ -63,5 +65,9 @@ class ReorderBuffer(Elaboratable):
         @def_method(m, self.get_indices)
         def _():
             return {"start": start_idx, "end": end_idx}
+
+        @def_method(m, self.block_interrupts)
+        def _(rob_id):
+            m.d.sync += self.data[rob_id].block_interrupts.eq(1)
 
         return m

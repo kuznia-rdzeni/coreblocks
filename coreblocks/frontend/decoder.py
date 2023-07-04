@@ -354,6 +354,7 @@ _instructions_by_optype = {
     OpType.V_CONTROL: [
         Encoding(Opcode.OP_V, Funct3.OPCFG),
     ],
+    OpType.V_MEMORY: [],
 }
 
 

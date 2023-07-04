@@ -1,9 +1,9 @@
 from amaranth.utils import *
 from coreblocks.params import *
 from coreblocks.params.vector_params import VectorParameters
-from coreblocks.fu.vector_unit.utils import EEW
+from coreblocks.fu.vector_unit.utils import SEW, LMUL, EEW
 from coreblocks.utils._typing import LayoutLike
-from coreblocks.utils import layout_subset
+from coreblocks.utils import layout_subset, layout_difference
 
 
 class VectorRegisterBankLayouts:
@@ -59,3 +59,26 @@ class VectorXRSLayout(RSLayouts):
 
         self.insert_in: LayoutLike = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
         self.take_out: LayoutLike = self.data_layout
+
+
+class VectorFrontendLayouts:
+    def __init__(self, gen_params: GenParams, v_params: VectorParameters):
+        common = gen_params.get(CommonLayouts)
+        self.vtype = [("lmul", LMUL), ("sew", SEW), ("ta", 1), ("ma", 1), ("vl", gen_params.isa.xlen)]
+
+        self.verification_in = self.verification_out = self.status_in = [
+            ("rp_s1", common.p_register_entry),
+            ("rp_s2", common.p_register_entry),
+            ("rp_dst", common.p_register_entry),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("exec_fn", common.exec_fn),
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
+            ("imm", gen_params.isa.xlen),
+            ("imm2", gen_params.imm2_width),
+        ]
+
+        self.status_out = layout_difference(self.status_in, fields={"imm2"}) + [("vtype", self.vtype)]
+
+        self.get_vill = [("vill", 1)]
+        self.get_vstart = [("vstart", v_params.vstart_bits)]

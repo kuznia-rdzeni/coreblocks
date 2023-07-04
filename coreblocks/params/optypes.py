@@ -56,6 +56,7 @@ class OpType(IntEnum):
     V_PERMUTATION_SCALAR = auto()
     V_CONTROL = auto()
     V_REDUCTION = auto()
+    V_MEMORY = auto()
 
 
 #
@@ -129,6 +130,7 @@ optypes_by_extensions = {
         OpType.V_PERMUTATION_SCALAR,
         OpType.V_CONTROL,
         OpType.V_REDUCTION,
+        OpType.V_MEMORY,
     ],
 }
 

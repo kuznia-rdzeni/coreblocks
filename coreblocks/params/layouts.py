@@ -1,3 +1,4 @@
+from amaranth.utils import *
 from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode, RegisterType
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.utils.utils import layout_subset
@@ -18,6 +19,8 @@ __all__ = [
     "LSULayouts",
     "CSRLayouts",
     "ICacheLayouts",
+    "SuperscalarFreeRFLayouts",
+    "ExceptionRegisterLayouts",
 ]
 
 
@@ -131,6 +134,19 @@ class RATLayouts:
         self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
 
 
+class SuperscalarFreeRFLayouts:
+    def __init__(self, entries_count: int, outputs_count: int):
+        self.allocate_in = [
+            ("reg_count", bits_for(outputs_count)),
+        ]
+
+        self.allocate_out = [(f"reg{i}", log2_int(entries_count, False)) for i in range(outputs_count)]
+
+        self.deallocate_in = [
+            ("reg", log2_int(entries_count, False)),
+        ]
+
+
 class ROBLayouts:
     def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)
@@ -147,6 +163,7 @@ class ROBLayouts:
             ("rob_data", self.data_layout),
             ("done", 1),
             ("exception", 1),
+            ("block_interrupts", 1),
         ]
 
         self.mark_done_layout = [
@@ -161,6 +178,8 @@ class ROBLayouts:
         ]
 
         self.get_indices = [("start", gen_params.rob_entries_bits), ("end", gen_params.rob_entries_bits)]
+
+        self.block_interrupts = [("rob_id", gen_params.rob_entries_bits)]
 
 
 class RSInterfaceLayouts:
