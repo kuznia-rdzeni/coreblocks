@@ -110,21 +110,6 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += aligned.eq(1)
         return aligned
 
-    def op_end(self, m: TModule, is_load: bool, addr: Signal):
-        with Transaction().body(m):
-            fetched = self.bus.result(m)
-
-            if is_load:
-                with m.If(fetched.err == 0):
-                    m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
-
-            with m.If(fetched.err):
-                cause = ExceptionCause.LOAD_ACCESS_FAULT if is_load else ExceptionCause.STORE_ACCESS_FAULT
-                self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
-
-            m.d.sync += self.op_exception.eq(fetched.err)
-            m.d.sync += self.result_ready.eq(1)
-
     def elaborate(self, platform):
         m = TModule()
 
@@ -148,10 +133,7 @@ class LSUDummyInternals(Elaboratable):
                     with m.If(aligned):
                         with Transaction().body(m):
                             self.bus.request(m, addr=addr >> 2, we=~is_load, sel=bytes_mask, data=data)
-                            with m.If(is_load):
-                                m.next = "LoadEnd"
-                            with m.Else():
-                                m.next = "StoreEnd"
+                            m.next = "End"
                     with m.Else():
                         with Transaction().body(m):
                             m.d.sync += self.op_exception.eq(1)
@@ -162,24 +144,26 @@ class LSUDummyInternals(Elaboratable):
                             )
                             self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
 
-                            m.next = "ExceptionEnd"
-            with m.State("LoadEnd"):
-                self.op_end(m, True, addr)
+                            m.next = "End"
+
+            with m.State("End"):
+                with Transaction().body(m):
+                    fetched = self.bus.result(m)
+
+                    m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
+
+                    with m.If(fetched.err):
+                        cause = Mux(is_load, ExceptionCause.LOAD_ACCESS_FAULT, ExceptionCause.STORE_ACCESS_FAULT)
+                        self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
+
+                    m.d.sync += self.op_exception.eq(fetched.err)
+                    m.d.sync += self.result_ready.eq(1)
+
                 with m.If(self.get_result_ack):
                     m.d.sync += self.result_ready.eq(0)
                     m.d.sync += self.op_exception.eq(0)
                     m.next = "Start"
-            with m.State("StoreEnd"):
-                self.op_end(m, False, addr)
-                with m.If(self.get_result_ack):
-                    m.d.sync += self.result_ready.eq(0)
-                    m.d.sync += self.op_exception.eq(0)
-                    m.next = "Start"
-            with m.State("ExceptionEnd"):
-                with m.If(self.get_result_ack):
-                    m.d.sync += self.result_ready.eq(0)
-                    m.d.sync += self.op_exception.eq(0)
-                    m.next = "Start"
+
         return m
 
 
