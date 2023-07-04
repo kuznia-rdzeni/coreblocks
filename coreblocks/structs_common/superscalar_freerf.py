@@ -10,7 +10,32 @@ from coreblocks.fu.vector_unit.v_layouts import *
 __all__ = ["SuperscalarFreeRF"]
 
 class SuperscalarFreeRF(Elaboratable):
+    """ Superscalar structure for holding free registers
+
+    This module is intended to hold information about physical
+    registers that aren't currently in use, and to provide superscalar
+    selection of free registers ids.
+
+    Attributes
+    ----------
+    allocate : Method(one_caller=True)
+        Method to get `reg_count` free registers. If the requested
+        registers number of registers is greater than the actual number of free registers
+        no registers are being allocated and the method is inactive.
+    deallocates : list[Method]
+        List with `outputs_count` methods. Each of them allows to deallocate
+        one register in one cycle.
+    """
     def __init__(self, entries_count : int, outputs_count : int):
+        """
+        Parameters
+        ----------
+        entries_count : int
+            The total number of registers that should be available in the core.
+        outputs_count : int
+            Number of the deallocate methods that should be created to allow for
+            superscalar freeing of registers.
+        """
         self.entries_count = entries_count
         self.outputs_count = outputs_count
 
@@ -31,7 +56,7 @@ class SuperscalarFreeRF(Elaboratable):
 
         regs = [Signal.like(encoder.outputs[j]) for j in range(self.outputs_count)]
 
-        # ONE CALLER!
+        # one caller!
         @def_method(m, self.allocate)
         def _(reg_count):
             with condition(m, nonblocking = False) as branch:
