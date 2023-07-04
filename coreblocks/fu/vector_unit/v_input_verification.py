@@ -1,32 +1,3 @@
-# Zweryfikować czy wspieramy dane SEW i LMUL, czyli:
-#   - SEW <= ELEN
-#   - LMUL >= 8/ELEN
-# Jeśli nie to ustawić vill
-
-# Jeśli wykonujemy instrukcję i `vill` jest ustawiony, to zgłaszamy wyjątek `illegal instruction`
-#   - dotyczy tylko instrukcji używających vtype, czyli wszystkich poza vsetvl, loadami storami i movami
-#
-# Jeśli vill jest 1, to wszystkie pozostałe bity z rejestru powinny być 0
-#
-# - Każda instrukcja resetuje vstart
-# - vstart jest zapisywany przede wszystkim przez HW podczas przerwania/wyjątku
-# - vstart is not modi ed by vector instructions that raise illegal-instruction exceptions.
-# - The vstart CSR is writable by unprivileged code, but non-zero vstart values may cause vector instructions to run
-#   substantially slower on some implementations, so vstart should not be used by application programmers
-# - Implementations are permitted to raise illegal instruction exceptions when attempting to execute a vector instruction with a
-#   value of vstart that the implementation can never produce when executing that same instruction with the same vtype
-#   setting.
-#
-# It is recommended that at reset, vtype.vill is set, the remaining bits in vtype are zero, and vl is set to zero.
-#
-# Jeśli mamy grupę rejestrów to powinna być ona odpowiednio wyrównana - zarezerwowane
-# poszerzanie dla LMUL8 i zwężanie dla minimalnego LMUL są zarezerowowane
-#
-# podniesienie wyjątku powinno blokować dalsze przetwarzanie?
-#
-# When vstart ≥ vl, there are no body elements, and no elements are updated in any destination vector register group,
-# including that no tail elements are updated with agnostic values. - trzeba zrobić tylko renaming
-
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
@@ -36,7 +7,51 @@ from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.utils.fifo import BasicFifo
 
 class VectorInputVerificator(Elaboratable):
+    """ Module to verify incoming vector instructions
+    
+    This module should check if incoming vector instructions are correct,
+    if not, it raises an ILLEGAL_INSTRUCTION exception and immediately
+    retire instruction. It currently checks:
+    - if vtype dependent instruction doesn't come when `vill` is set
+    - if vstart has a supported value (currently only vstart=0 is supported)
+    Retiring illegal instructions immediately skips all steps in the middle of the
+    vector pipeline. Notably, such instructions aren't passed to VectorStatusUnit
+    so vstart isn't updated. This is a behaviour as required by the specification.
+
+    There are no checks if instruction is being reserved and the behaviour is
+    unspecified (as RISC-V allows).
+
+    Attributes
+    ----------
+    issue : Method
+        Called to insert a new instruction to process.
+        Layout: VectorFrontendLayouts.verification_in
+    clear : Method
+        Clear internal state.
+    """
     def __init__(self, gen_params : GenParams, v_params : VectorParameters, rob_block_interrupts : Method, put_instr : Method, get_vill : Method, get_vstart : Method, retire : Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        v_params : VectorParameters
+            Vector unit configuration
+        rob_block_interrupts : Method
+            Method to be called to block interrupts on the given rob_id.
+        put_instr : Method
+            Method used to pass vector instructions that operate on data to the next pipeline stage.
+            Layout: VectorFrontendLayouts.verification_out
+        get_vill : Method
+            Method used to get the current (in terms of programme order) vill. Care
+            should be taken to avoid introducing erroneous latency.
+        get_vstart : Method
+            Method used to get the current (in terms of programme order) vstart. Care
+            should be taken to avoid introducing erroneuos latency.
+        retire : Method
+            Method used to inform about the retirement of vset{i}vl{i} instructions.
+            Layout: FuncUnitLayouts.accept
+        """
         self.gen_params = gen_params
         self.v_params = v_params
         self.rob_block_interrupts = rob_block_interrupts

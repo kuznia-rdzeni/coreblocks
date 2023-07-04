@@ -23,6 +23,10 @@ class VectorStatusUnit(Elaboratable):
 
     This unit is also a sink for `vset{i}vl{i}` instructions. These
     update the apropriate registers and are immediately retired.
+    If the requested parameters aren't valid, `vill` is set. Current checks:
+    - SEW < ELEN
+
+    This unit is responsible for resetting vstart to 0 after each instruction.
 
     Attributes
     ----------
