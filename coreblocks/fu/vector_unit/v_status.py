@@ -49,6 +49,8 @@ class VectorStatusUnit(Elaboratable):
         new_vtype = Signal(8)
         avl = Signal().like(self.vl)
         vlmax = Signal().like(self.vl)
+        m.d.comb += vlmax.eq(get_vlmax(m, new_vtype[3:6], new_vtype[:3], self.gen_params, self.v_params))
+        m.d.comb += avl.eq(vlmax)
         ill = Signal()
         valid_rs1 = Signal()
         with m.Switch(instr.imm2[-2:]):
@@ -64,8 +66,6 @@ class VectorStatusUnit(Elaboratable):
         with m.If(self.extract_vsew(new_vtype) > bits_to_eew(self.v_params.elen)):
             m.d.comb += ill.eq(1)
 
-        m.d.comb += vlmax.eq(get_vlmax(m, new_vtype[3:6], new_vtype[:3], self.gen_params, self.v_params))
-        m.d.comb += avl.eq(vlmax)
 
         with m.If(ill):
             m.d.sync += self.vtype.eq(1<<31)
@@ -76,7 +76,7 @@ class VectorStatusUnit(Elaboratable):
             m.d.comb += avl.eq(instr.s1_val)
 
         with m.If(instr.rp_dst.id.bool() | instr.rp_s1.id.bool()):
-                m.d.sync += self.vl.eq(avl)
+            m.d.sync += self.vl.eq(avl)
 
         self.retire(m, rob_id = instr.rob_id, exception = 0, result = avl, rp_dst = instr.rp_dst)
 

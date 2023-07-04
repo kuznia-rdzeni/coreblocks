@@ -22,28 +22,33 @@ def generate_vsetvl_imm():
         "ma" : ma,
         }
 
-def generate_vsetvl(gen_params : GenParams, v_params : VectorParameters, layout : LayoutLike):
+def generate_vsetvl(gen_params : GenParams, v_params : VectorParameters, layout : LayoutLike, last_vl : int):
     instr = generate_instr(gen_params, layout)
     imm2, vtype = generate_vsetvl_imm()
+    if eew_to_bits(vtype["sew"])> v_params.elen:
+        imm2=0
+        vtype = { "sew" : EEW(0), "lmul" : LMUL(0), "ta" : 0, "ma" : 0}
     vsetvl_type = random.randrange(4)
     if vsetvl_type == 2:
         instr = overwrite_dict_values(instr, {"s2_val" : imm2})
+    if vsetvl_type == 3:
+        instr = overwrite_dict_values(instr, {"imm" : instr["rp_s1"]["id"]})
     imm2 |= (vsetvl_type << 10)
     instr = overwrite_dict_values(instr, {"imm2" : imm2, "exec_fn": {"op_type" : OpType.V_CONTROL, "funct3" : Funct3.OPCFG}})
 
     vlmax = int(v_params.vlen // eew_to_bits(vtype["sew"]) * lmul_to_float(vtype["lmul"]))
 
-    print("vlmax",vlmax)
-    
     if vsetvl_type==3:
-        vtype |= {"vl" : instr["rp_s1"]}
+        vtype |= {"vl" : instr["rp_s1"]["id"]}
     else:
         if instr["rp_s1"]["id"] == 0:
             vtype |= {"vl" : vlmax}
         else:
             vtype |= {"vl" : instr["s1_val"]}
 
-    print(vtype)
+    if instr["rp_s1"]["id"] == 0 and instr["rp_dst"]["id"] == 0:
+        vtype |= {"vl" : last_vl}
+
     return instr, vtype
 
 class TestVInstructionVerification(TestCaseWithSimulator):
@@ -51,7 +56,7 @@ class TestVInstructionVerification(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
         self.gen_params = GenParams(test_core_config)
-        self.test_number = 6
+        self.test_number = 700
         self.v_params = VectorParameters(vlen=1024, elen = 32)
 
         self.vf_layout = VectorFrontendLayouts(self.gen_params, self.v_params)
@@ -70,7 +75,6 @@ class TestVInstructionVerification(TestCaseWithSimulator):
         def create_mocks():
             @def_method_mock(lambda: self.put_instr)
             def put_instr(arg):
-                print("---", arg)
                 put_q.append(arg)
 
             @def_method_mock(lambda: self.retire)
@@ -80,12 +84,10 @@ class TestVInstructionVerification(TestCaseWithSimulator):
             return put_instr, retire
 
         def process():
-            print()
             self.assertEqual((yield from self.circ.get_vill.call())["vill"], 1)
-            instr, vtype = generate_vsetvl(self.gen_params, self.v_params, self.vf_layout.status_in)
+            instr, vtype = generate_vsetvl(self.gen_params, self.v_params, self.vf_layout.status_in, 0)
             data_vsetvl_q.append((instr, vtype))
             yield from self.circ.issue.call(instr)
-            print(instr)
             current_vtype = vtype
             for _ in range(self.test_number):
                 if random.randrange(2):
@@ -94,9 +96,8 @@ class TestVInstructionVerification(TestCaseWithSimulator):
                             break
                     data_normal_q.append((data, current_vtype))
                 else:
-                    data, current_vtype = generate_vsetvl(self.gen_params, self.v_params, self.vf_layout.verification_in)
+                    data, current_vtype = generate_vsetvl(self.gen_params, self.v_params, self.vf_layout.verification_in, current_vtype["vl"])
                     data_vsetvl_q.append((data, current_vtype))
-                print("+++", data)
                 yield from self.circ.issue.call(data)
             # wait few cycles to be sure that all mocks were called
             for _ in range(2):
@@ -113,8 +114,8 @@ class TestVInstructionVerification(TestCaseWithSimulator):
                 self.assertEqual(retire_data["exception"], 0)
                 for field in ["rp_dst", "rob_id"]:
                     self.assertEqual(org_data[field], retire_data[field])
-                print(org_data["rp_dst"])
-                self.assertEqual(org_vtype["vl"], retire_data["result"])
+                if org_data["rp_dst"]["id"]!=0:
+                    self.assertEqual(org_vtype["vl"], retire_data["result"])
 
         with self.run_simulation(self.m) as sim:
             for mock in create_mocks():

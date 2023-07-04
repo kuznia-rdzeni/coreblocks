@@ -119,9 +119,11 @@ def lmul_to_float(lmul : LMUL) -> float:
 
 def get_vlmax(m : TModule, sew : Value, lmul : Value, gen_params : GenParams, v_params : VectorParameters) -> Signal:
     sig = Signal(gen_params.isa.xlen)
-    with m.Switch((sew << len(sew)) | lmul):
+    with m.Switch((sew << len(lmul)) | lmul):
         for s in SEW:
             for lm in LMUL:
-                with m.Case((s << log2_int(len(SEW))) | lm):
-                    m.d.comb += sig.eq(int(v_params.vlen//eew_to_bits(s)*lmul_to_float(lm)))
+                bits = (s << log2_int(len(LMUL), False)) | lm
+                with m.Case(bits):
+                    val = int(v_params.vlen//eew_to_bits(s)*lmul_to_float(lm))
+                    m.d.comb += sig.eq(val)
     return sig
