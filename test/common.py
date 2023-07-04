@@ -46,7 +46,7 @@ U = TypeVar("U")
 RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
-TestGen = Generator[Union[Command , Value , Statement , None , "CoreblockCommand"], Any, T]
+TestGen = Generator[Union[Command, Value, Statement, None, "CoreblockCommand"], Any, T]
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 SimpleLayout = list[Tuple[str, Union[int, "SimpleLayout"]]]
 
@@ -62,15 +62,19 @@ def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
         else:
             yield getattr(field, name).eq(value)
 
+
 def get_unique_generator():
     history = defaultdict(set)
+
     def f(cycle, generator):
         data = generator()
         while data in history[cycle]:
             data = generator()
         history[cycle].add(data)
         return data
+
     return f
+
 
 def generate_based_on_layout(layout: SimpleLayout, *, max_bits: Optional[int] = None):
     d = {}
@@ -85,14 +89,16 @@ def generate_based_on_layout(layout: SimpleLayout, *, max_bits: Optional[int] = 
             d[elem[0]] = generate_based_on_layout(elem[1])
     return d
 
-def generate_phys_register_id(*, gen_params : Optional[GenParams] = None, max_bits : Optional[int] = None):
+
+def generate_phys_register_id(*, gen_params: Optional[GenParams] = None, max_bits: Optional[int] = None):
     if max_bits is not None:
         return random.randrange(max_bits)
     if gen_params is not None:
         return random.randrange(2**gen_params.phys_regs_bits)
     raise ValueError("gen_params and max_bits can not be both None")
 
-def generate_l_register_id(*, gen_params : Optional[GenParams] = None, max_bits : Optional[int] = None):
+
+def generate_l_register_id(*, gen_params: Optional[GenParams] = None, max_bits: Optional[int] = None):
     if max_bits is not None:
         return random.randrange(max_bits)
     if gen_params is not None:
@@ -195,7 +201,8 @@ def generate_instr(
 def get_dict_subset(base: Mapping[T, U], keys: Iterable[T]) -> dict[T, U]:
     return {k: base[k] for k in keys}
 
-def get_dict_without(base: Mapping[T,U], keys_to_delete: Iterable[T]) -> dict[T,U]:
+
+def get_dict_without(base: Mapping[T, U], keys_to_delete: Iterable[T]) -> dict[T, U]:
     return {k: base[k] for k in base.keys() if k not in keys_to_delete}
 
 
@@ -347,12 +354,14 @@ class TestModule(Elaboratable):
 
         return m
 
+
 class CoreblockCommand:
     pass
 
 
 class Now(CoreblockCommand):
     pass
+
 
 class SyncProcessWrapper:
     def __init__(self, f):
@@ -370,7 +379,7 @@ class SyncProcessWrapper:
                 if command is None:
                     self.current_cycle += 1
                     # forward to amaranth
-                    yield 
+                    yield
                 elif isinstance(command, Now):
                     response = self.current_cycle
                 # Pass everything else to amaranth simulator without modifications
@@ -378,6 +387,7 @@ class SyncProcessWrapper:
                     response = yield command
         except StopIteration:
             pass
+
 
 class PysimSimulator(Simulator):
     def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
@@ -570,12 +580,13 @@ class TestbenchIO(Elaboratable):
     def debug_signals(self) -> SignalBundle:
         return self.adapter.debug_signals()
 
-def wrap_with_now(func : Callable):
+
+def wrap_with_now(func: Callable):
     parameters = signature(func).parameters
-    kw_parameters = set( n for n, p in parameters.items() if p.kind in {Parameter.KEYWORD_ONLY})
-    if ( "_now" in parameters):
+    kw_parameters = set(n for n, p in parameters.items() if p.kind in {Parameter.KEYWORD_ONLY})
+    if "_now" in kw_parameters:
         _now = yield Now()
-        return lambda *args, **kwargs: func(*args, _now = _now, **kwargs)
+        return lambda *args, **kwargs: func(*args, _now=_now, **kwargs)
     else:
         return func
 

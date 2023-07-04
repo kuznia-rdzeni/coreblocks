@@ -30,4 +30,4 @@ class VectorParameters:
         self.elems_in_bank_bits = log2_int(self.elems_in_bank, False)
         # vstart have to have enough bits to hold all indicies for minimum SEW and maximum LMUL
         # minimum SEW is 1 byte and maximum LMUL is 8
-        self.vstart_bits = log2_int(self.bytes_in_vlen * 8, False) 
+        self.vstart_bits = log2_int(self.bytes_in_vlen * 8, False)

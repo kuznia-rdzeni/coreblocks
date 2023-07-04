@@ -60,16 +60,11 @@ class VectorXRSLayout(RSLayouts):
         self.insert_in: LayoutLike = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
         self.take_out: LayoutLike = self.data_layout
 
+
 class VectorFrontendLayouts:
-    def __init__(self, gen_params : GenParams, v_params : VectorParameters):
+    def __init__(self, gen_params: GenParams, v_params: VectorParameters):
         common = gen_params.get(CommonLayouts)
-        self.vtype = [
-            ("lmul", LMUL),
-            ("sew", SEW),
-            ("ta", 1),
-            ("ma", 1),
-            ("vl", gen_params.isa.xlen)
-        ]
+        self.vtype = [("lmul", LMUL), ("sew", SEW), ("ta", 1), ("ma", 1), ("vl", gen_params.isa.xlen)]
 
         self.verification_in = self.verification_out = self.status_in = [
             ("rp_s1", common.p_register_entry),
@@ -83,7 +78,7 @@ class VectorFrontendLayouts:
             ("imm2", gen_params.imm2_width),
         ]
 
-        self.status_out = layout_difference(self.status_in, fields = {"imm2"}) + [("vtype", self.vtype)]
+        self.status_out = layout_difference(self.status_in, fields={"imm2"}) + [("vtype", self.vtype)]
 
-        self.get_vill = [("vill",1)]
+        self.get_vill = [("vill", 1)]
         self.get_vstart = [("vstart", v_params.vstart_bits)]

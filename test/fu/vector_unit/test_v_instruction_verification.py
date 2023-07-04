@@ -4,34 +4,47 @@ from coreblocks.fu.vector_unit.vrs import *
 from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
-from amaranth.utils import bits_for
 from coreblocks.fu.vector_unit.v_input_verification import *
 from collections import deque, defaultdict
 
 
 class TestVInstructionVerification(TestCaseWithSimulator):
-
     def setUp(self):
         random.seed(14)
         self.gen_params = GenParams(test_core_config)
         self.test_number = 100
-        self.v_params = VectorParameters(vlen=1024, elen = 32)
+        self.v_params = VectorParameters(vlen=1024, elen=32)
 
         self.vf_layout = VectorFrontendLayouts(self.gen_params, self.v_params)
         self.rob_block_interrupts = TestbenchIO(Adapter(i=ROBLayouts(self.gen_params).block_interrupts))
-        self.put_instr = TestbenchIO(Adapter(i= self.vf_layout.verification_out))
+        self.put_instr = TestbenchIO(Adapter(i=self.vf_layout.verification_out))
         self.get_vill = TestbenchIO(Adapter(o=self.vf_layout.get_vill))
         self.get_vstart = TestbenchIO(Adapter(o=self.vf_layout.get_vstart))
         self.retire = TestbenchIO(Adapter(i=FuncUnitLayouts(self.gen_params).accept))
-        self.exception_report = TestbenchIO( Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
+        self.exception_report = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
         self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
         self.circ = SimpleTestCircuit(
-                VectorInputVerificator(self.gen_params, self.v_params, self.rob_block_interrupts.adapter.iface, self.put_instr.adapter.iface, self.get_vill.adapter.iface, self.get_vstart.adapter.iface, self.retire.adapter.iface)
-                )
+            VectorInputVerificator(
+                self.gen_params,
+                self.v_params,
+                self.rob_block_interrupts.adapter.iface,
+                self.put_instr.adapter.iface,
+                self.get_vill.adapter.iface,
+                self.get_vstart.adapter.iface,
+                self.retire.adapter.iface,
+            )
+        )
 
-        self.m = ModuleConnector(circ = self.circ, rob_block_interrupts = self.rob_block_interrupts, put_instr = self.put_instr, get_vill = self.get_vill, get_vstart = self.get_vstart, retire = self.retire,
-                                 report = self.exception_report)
+        self.m = ModuleConnector(
+            circ=self.circ,
+            rob_block_interrupts=self.rob_block_interrupts,
+            put_instr=self.put_instr,
+            get_vill=self.get_vill,
+            get_vstart=self.get_vstart,
+            retire=self.retire,
+            report=self.exception_report,
+        )
 
     def check_ok(self, data, rbi, put):
         self.assertEqual(len(data), len(rbi))
@@ -43,8 +56,9 @@ class TestVInstructionVerification(TestCaseWithSimulator):
 
     def test_passing(self):
         data_q = deque()
-        rbi_q  = deque()
+        rbi_q = deque()
         put_q = deque()
+
         def create_mocks():
             @def_method_mock(lambda: self.rob_block_interrupts)
             def rbi(rob_id):
@@ -56,11 +70,11 @@ class TestVInstructionVerification(TestCaseWithSimulator):
 
             @def_method_mock(lambda: self.get_vill)
             def get_vill():
-                return {"vill" : 0}
+                return {"vill": 0}
 
             @def_method_mock(lambda: self.get_vstart)
             def get_vstart():
-                return {"vstart" : 0}
+                return {"vstart": 0}
 
             @def_method_mock(lambda: self.retire)
             def retire(rob_id, result, rp_dst, exception):
@@ -69,6 +83,7 @@ class TestVInstructionVerification(TestCaseWithSimulator):
             @def_method_mock(lambda: self.exception_report)
             def report(rob_id, cause):
                 self.assertTrue(False)
+
             return rbi, put_instr, get_vill, get_vstart, retire, report
 
         def process():
@@ -93,8 +108,9 @@ class TestVInstructionVerification(TestCaseWithSimulator):
         report_q = deque()
         vill_q = defaultdict(int)
         vstart_q = defaultdict(int)
-        rbi_q  = deque()
+        rbi_q = deque()
         put_q = deque()
+
         def create_mocks():
             @def_method_mock(lambda: self.rob_block_interrupts)
             def rbi(rob_id):
@@ -106,12 +122,12 @@ class TestVInstructionVerification(TestCaseWithSimulator):
 
             @def_method_mock(lambda: self.get_vill)
             def get_vill(*, _now):
-                ret = {"vill" : vill_q[_now]}
+                ret = {"vill": vill_q[_now]}
                 return ret
 
             @def_method_mock(lambda: self.get_vstart)
             def get_vstart(*, _now):
-                ret = {"vstart" : vstart_q[_now]}
+                ret = {"vstart": vstart_q[_now]}
                 return ret
 
             @def_method_mock(lambda: self.retire)
@@ -121,17 +137,18 @@ class TestVInstructionVerification(TestCaseWithSimulator):
             @def_method_mock(lambda: self.exception_report)
             def report(arg):
                 report_q.append(arg)
+
             return rbi, put_instr, get_vill, get_vstart, retire, report
 
         def process():
             for _ in range(self.test_number):
                 data = generate_instr(self.gen_params, self.vf_layout.verification_in, support_vector=True)
-                now = yield Now() 
+                now = yield Now()
                 if vill := random.randrange(2):
                     vstart_q[now] = 0
                 else:
                     vstart_q[now] = 1
-                vill_q[now]=vill
+                vill_q[now] = vill
 
                 yield from self.circ.issue.call(data)
                 if (data["exec_fn"]["op_type"] == OpType.V_CONTROL) and vill:

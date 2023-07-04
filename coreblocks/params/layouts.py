@@ -133,18 +133,17 @@ class RATLayouts:
         self.rat_commit_in = [("rl_dst", gen_params.isa.reg_cnt_log), ("rp_dst", gen_params.phys_regs_bits)]
         self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
 
+
 class SuperscalarFreeRFLayouts:
-    def __init__(self, entries_count : int, outputs_count : int):
+    def __init__(self, entries_count: int, outputs_count: int):
         self.allocate_in = [
             ("reg_count", bits_for(outputs_count)),
         ]
 
-        self.allocate_out = [
-            (f"reg{i}", log2_int(entries_count, False)) for i in range(outputs_count)
-        ]
+        self.allocate_out = [(f"reg{i}", log2_int(entries_count, False)) for i in range(outputs_count)]
 
         self.deallocate_in = [
-            (f"reg", log2_int(entries_count, False)),
+            ("reg", log2_int(entries_count, False)),
         ]
 
 

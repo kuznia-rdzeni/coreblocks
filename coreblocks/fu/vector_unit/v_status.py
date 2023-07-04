@@ -6,11 +6,10 @@ from coreblocks.utils import *
 from coreblocks.params import *
 from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_layouts import *
-from coreblocks.utils.fifo import BasicFifo
 
 
 class VectorStatusUnit(Elaboratable):
-    """ Module to process vector CSR values
+    """Module to process vector CSR values
 
     This module holds vector CSR registers values:
     - vtype
@@ -42,7 +41,8 @@ class VectorStatusUnit(Elaboratable):
     clear : Method
         Clear the internal state.
     """
-    def __init__(self, gen_params: GenParams, v_params: VectorParameters, put_instr : Method, retire : Method):
+
+    def __init__(self, gen_params: GenParams, v_params: VectorParameters, put_instr: Method, retire: Method):
         """
         Parameters
         ----------
@@ -63,12 +63,12 @@ class VectorStatusUnit(Elaboratable):
         self.put_instr = put_instr
 
         self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
-        self.get_vill = Method(o = self.layouts.get_vill, nonexclusive=True)
-        self.get_vstart = Method(o = self.layouts.get_vstart, nonexclusive = True)
+        self.get_vill = Method(o=self.layouts.get_vill, nonexclusive=True)
+        self.get_vstart = Method(o=self.layouts.get_vstart, nonexclusive=True)
         self.clear = Method()
-        self.issue = Method(i = self.layouts.status_in)
+        self.issue = Method(i=self.layouts.status_in)
 
-        self.vtype = Signal(self.gen_params.isa.xlen, reset = 1<<31)
+        self.vtype = Signal(self.gen_params.isa.xlen, reset=1 << 31)
         self.vstart = Signal(self.v_params.vstart_bits)
         self.vl = Signal(self.gen_params.isa.xlen)
 
@@ -81,12 +81,12 @@ class VectorStatusUnit(Elaboratable):
     def extract_vta(self) -> Value:
         return self.vtype[6]
 
-    def extract_vlmul(self, val : Optional[Value] = None) -> Value:
+    def extract_vlmul(self, val: Optional[Value] = None) -> Value:
         if val is not None:
             return val[0:3]
         return self.vtype[0:3]
 
-    def extract_vsew(self, val : Optional[Value] = None) -> Value:
+    def extract_vsew(self, val: Optional[Value] = None) -> Value:
         if val is not None:
             return val[3:6]
         return self.vtype[3:6]
@@ -100,7 +100,7 @@ class VectorStatusUnit(Elaboratable):
         ill = Signal()
         valid_rs1 = Signal()
         with m.Switch(instr.imm2[-2:]):
-            with m.Case(0,1):
+            with m.Case(0, 1):
                 m.d.comb += new_vtype.eq(instr.imm2[:8])
                 m.d.comb += valid_rs1.eq(1)
             with m.Case(2):
@@ -112,9 +112,8 @@ class VectorStatusUnit(Elaboratable):
         with m.If(self.extract_vsew(new_vtype) > bits_to_eew(self.v_params.elen)):
             m.d.comb += ill.eq(1)
 
-
         with m.If(ill):
-            m.d.sync += self.vtype.eq(1<<31)
+            m.d.sync += self.vtype.eq(1 << 31)
         with m.Else():
             m.d.sync += self.vtype.eq(new_vtype)
 
@@ -124,18 +123,18 @@ class VectorStatusUnit(Elaboratable):
         with m.If(instr.rp_dst.id.bool() | instr.rp_s1.id.bool()):
             m.d.sync += self.vl.eq(avl)
 
-        self.retire(m, rob_id = instr.rob_id, exception = 0, result = avl, rp_dst = instr.rp_dst)
+        self.retire(m, rob_id=instr.rob_id, exception=0, result=avl, rp_dst=instr.rp_dst)
 
-    def process_normal_instr(self, m : TModule, instr):
+    def process_normal_instr(self, m: TModule, instr):
         output = Record(self.layouts.status_out)
         m.d.top_comb += assign(output, instr, fields=AssignType.COMMON)
         m.d.top_comb += [
-                output.vtype.sew.eq(self.extract_vsew()),
-                output.vtype.lmul.eq(self.extract_vlmul()),
-                output.vtype.ma.eq(self.extract_vma()),
-                output.vtype.ta.eq(self.extract_vta()),
-                output.vtype.vl.eq(self.vl),
-                ]
+            output.vtype.sew.eq(self.extract_vsew()),
+            output.vtype.lmul.eq(self.extract_vlmul()),
+            output.vtype.ma.eq(self.extract_vma()),
+            output.vtype.ta.eq(self.extract_vta()),
+            output.vtype.vl.eq(self.vl),
+        ]
         self.put_instr(m, output)
 
     def elaborate(self, platform):
@@ -144,7 +143,7 @@ class VectorStatusUnit(Elaboratable):
         @def_method(m, self.issue)
         def _(arg):
             m.d.sync += self.vstart.eq(0)
-            with condition(m, nonblocking = False) as branch:
+            with condition(m, nonblocking=False) as branch:
                 with branch(arg.exec_fn.op_type == OpType.V_CONTROL):
                     self.process_vsetvl(m, arg)
                 with branch():
@@ -154,12 +153,14 @@ class VectorStatusUnit(Elaboratable):
         def _():
             m.d.sync += self.vstart.eq(0)
             m.d.sync += self.vl.eq(0)
-            m.d.sync += self.vtype.eq(1<<31)
+            m.d.sync += self.vtype.eq(1 << 31)
 
         @def_method(m, self.get_vill)
         def _():
-            return {"vill" : self.extract_vill()}
+            return {"vill": self.extract_vill()}
 
         @def_method(m, self.get_vstart)
         def _():
             return {"vstart": self.vstart}
+
+        return m

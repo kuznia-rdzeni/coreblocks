@@ -27,7 +27,6 @@ __all__ = [
 ]
 
 
-
 def mod_incr(sig: Value, mod: int) -> Value:
     """
     Perform `(sig+1) % mod` operation.
@@ -347,6 +346,7 @@ def count_trailing_zeros(s: Value) -> Value:
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]
 
+
 def layout_difference(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] not in fields]
 
@@ -438,8 +438,8 @@ def silence_mustuse(elaboratable: Elaboratable):
 
 
 class MultiPriorityEncoder(Elaboratable):
-    """ Priority encoder with more outputs
-    
+    """Priority encoder with more outputs
+
     This is an extension of the `PriorityEncoder` from amaranth, that supports
     generating more than one output from an input signal.
 
@@ -458,7 +458,8 @@ class MultiPriorityEncoder(Elaboratable):
     valids : list[Signals], out
         One bit for each output signal, indicating whether the output is valid or not.
     """
-    def __init__(self, input_width : int, outputs_count : int):
+
+    def __init__(self, input_width: int, outputs_count: int):
         self.input_width = input_width
         self.outputs_count = outputs_count
 
@@ -477,9 +478,9 @@ class MultiPriorityEncoder(Elaboratable):
             with m.If(self.input[j]):
                 m.d.comb += new_current_outputs[0].eq(j)
                 m.d.comb += new_current_valids[0].eq(1)
-                for k in range(self.outputs_count-1):
-                    m.d.comb += new_current_outputs[k+1].eq(current_outputs[k])
-                    m.d.comb += new_current_valids[k+1].eq(current_valids[k])
+                for k in range(self.outputs_count - 1):
+                    m.d.comb += new_current_outputs[k + 1].eq(current_outputs[k])
+                    m.d.comb += new_current_valids[k + 1].eq(current_valids[k])
             with m.Else():
                 for k in range(self.outputs_count):
                     m.d.comb += new_current_outputs[k].eq(current_outputs[k])

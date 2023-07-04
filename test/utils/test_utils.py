@@ -3,7 +3,13 @@ import random
 
 from amaranth import *
 from test.common import *
-from coreblocks.utils import align_to_power_of_two, popcount, count_leading_zeros, count_trailing_zeros, MultiPriorityEncoder
+from coreblocks.utils import (
+    align_to_power_of_two,
+    popcount,
+    count_leading_zeros,
+    count_trailing_zeros,
+    MultiPriorityEncoder,
+)
 from parameterized import parameterized_class
 
 
@@ -174,7 +180,6 @@ class TestCountTrailingZeros(TestCaseWithSimulator):
 
 
 class TestMultiPriorityEncoder(TestCaseWithSimulator):
-
     def setUp(self):
         random.seed(14)
         self.test_number = 50
@@ -192,7 +197,6 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
         places += [None] * self.output_count
         return places
 
-
     def process(self):
         for _ in range(self.test_number):
             input = random.randrange(2**self.input_width)
@@ -207,5 +211,5 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
                     self.assertEqual((yield real), ex)
 
     def test_random(self):
-        with self.run_simulation(self.circ, max_cycles = 100) as sim:
+        with self.run_simulation(self.circ, max_cycles=100) as sim:
             sim.add_process(self.process)

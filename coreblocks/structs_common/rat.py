@@ -1,12 +1,12 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method, TModule, loop_def_method
+from coreblocks.transactions import Method, TModule, loop_def_method
 from coreblocks.params import RATLayouts, GenParams
 
 __all__ = ["FRAT", "RRAT"]
 
 
 class FRAT(Elaboratable):
-    """ Frontend Register Alias Table
+    """Frontend Register Alias Table
 
     Module to store the translation from logical register
     id's to physical register id's. It can handle up to
@@ -25,7 +25,8 @@ class FRAT(Elaboratable):
         between mappings inserted by different methods simultaneusly.
         Layout: RATLayouts.rat_rename_*
     """
-    def __init__(self, *, gen_params: GenParams, superscalarity : int = 1):
+
+    def __init__(self, *, gen_params: GenParams, superscalarity: int = 1):
         """
         Parameters
         ----------
@@ -42,9 +43,11 @@ class FRAT(Elaboratable):
 
         self.entries = Array(Signal(self.gen_params.phys_regs_bits) for _ in range(self.gen_params.isa.reg_cnt))
 
-        if self.superscalarity<1:
+        if self.superscalarity < 1:
             raise ValueError(f"FRAT should have minimum one method, so superscalarity>=1, got: {self.superscalarity}")
-        self.rename_list = [Method(i=self.rename_input_layout, o=self.rename_output_layout) for _ in range(self.superscalarity)]
+        self.rename_list = [
+            Method(i=self.rename_input_layout, o=self.rename_output_layout) for _ in range(self.superscalarity)
+        ]
         # for backward compatibility
         self.rename = self.rename_list[0]
 
@@ -60,7 +63,7 @@ class FRAT(Elaboratable):
 
 
 class RRAT(Elaboratable):
-    """ Retirement Register Alias Table
+    """Retirement Register Alias Table
 
     Register alias table of committed instructions. It represents the state of
     the CPU as seen by the programmer. It can handle up to `superscalarity` commits
@@ -78,7 +81,8 @@ class RRAT(Elaboratable):
         `old_rp_dst` which was previously mapped to `rl_dst`.
         Layout: RATLayouts.rat_commit_*
     """
-    def __init__(self, *, gen_params: GenParams, superscalarity : int = 1):
+
+    def __init__(self, *, gen_params: GenParams, superscalarity: int = 1):
         """
         Parameters
         ----------
@@ -95,9 +99,11 @@ class RRAT(Elaboratable):
 
         self.entries = Array(Signal(self.gen_params.phys_regs_bits) for _ in range(self.gen_params.isa.reg_cnt))
 
-        if self.superscalarity<1:
+        if self.superscalarity < 1:
             raise ValueError(f"FRAT should have minimum one method, so superscalarity>=1, got: {self.superscalarity}")
-        self.commit_list = [Method(i=self.commit_input_layout, o=self.commit_output_layout) for _ in range(self.superscalarity)]
+        self.commit_list = [
+            Method(i=self.commit_input_layout, o=self.commit_output_layout) for _ in range(self.superscalarity)
+        ]
         # for backward compatibility
         self.commit = self.commit_list[0]
 

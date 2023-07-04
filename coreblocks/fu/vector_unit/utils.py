@@ -1,9 +1,8 @@
-from coreblocks.transactions import TModule
-from enum import IntEnum, auto
+from enum import IntEnum
 from amaranth.utils import *
 from amaranth import *
 from coreblocks.params import VectorParameters, GenParams
-from coreblocks.utils._typing import ValueLike, ModuleLike
+from coreblocks.utils._typing import ModuleLike
 
 __all__ = ["SEW", "EEW", "EMUL", "LMUL", "eew_to_bits", "bits_to_eew", "eew_div_2", "get_vlmax", "lmul_to_float"]
 
@@ -23,17 +22,23 @@ class SEW(IntEnum):
     w16 = 1
     w32 = 2
     w64 = 3
+
+
 EEW = SEW
+
 
 class LMUL(IntEnum):
     m1 = 0
     m2 = 1
     m4 = 2
     m8 = 3
-    mf2 = 7 # multiply fractional 2 --> LMUL=1/2
+    mf2 = 7  # multiply fractional 2 --> LMUL=1/2
     mf4 = 6
     mf8 = 5
+
+
 EMUL = LMUL
+
 
 def eew_to_bits(eew: EEW) -> int:
     """Convert EEW to number of bits
@@ -100,14 +105,15 @@ def eew_div_2(eew: EEW) -> EEW:
     """
     return bits_to_eew(eew_to_bits(eew) // 2)
 
-def lmul_to_float(lmul : LMUL) -> float:
+
+def lmul_to_float(lmul: LMUL) -> float:
     """Converts LMUL to float
 
     Parameters
     ----------
     lmul : LMUL
         The lmul to convert.
-    
+
     Returns
     -------
     float
@@ -129,8 +135,9 @@ def lmul_to_float(lmul : LMUL) -> float:
         case LMUL.mf8:
             return 0.125
 
-def get_vlmax(m : ModuleLike, sew : Value, lmul : Value, gen_params : GenParams, v_params : VectorParameters) -> Signal:
-    """ Generates circuit to calculate VLMAX
+
+def get_vlmax(m: ModuleLike, sew: Value, lmul: Value, gen_params: GenParams, v_params: VectorParameters) -> Signal:
+    """Generates circuit to calculate VLMAX
 
     This function generates a circuit that computes in
     combinational domain, a VLMAX based on the `sew` and
@@ -161,6 +168,6 @@ def get_vlmax(m : ModuleLike, sew : Value, lmul : Value, gen_params : GenParams,
             for lm in LMUL:
                 bits = (s << log2_int(len(LMUL), False)) | lm
                 with m.Case(bits):
-                    val = int(v_params.vlen//eew_to_bits(s)*lmul_to_float(lm))
+                    val = int(v_params.vlen // eew_to_bits(s) * lmul_to_float(lm))
                     m.d.comb += sig.eq(val)
     return sig

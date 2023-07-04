@@ -1,4 +1,3 @@
-from typing import Optional
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
@@ -9,8 +8,9 @@ from coreblocks.fu.vector_unit.v_layouts import *
 
 __all__ = ["SuperscalarFreeRF"]
 
+
 class SuperscalarFreeRF(Elaboratable):
-    """ Superscalar structure for holding free registers
+    """Superscalar structure for holding free registers
 
     This module is intended to hold information about physical
     registers that aren't currently in use, and to provide superscalar
@@ -26,7 +26,8 @@ class SuperscalarFreeRF(Elaboratable):
         List with `outputs_count` methods. Each of them allows to deallocate
         one register in one cycle.
     """
-    def __init__(self, entries_count : int, outputs_count : int):
+
+    def __init__(self, entries_count: int, outputs_count: int):
         """
         Parameters
         ----------
@@ -46,7 +47,7 @@ class SuperscalarFreeRF(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        self.used = Signal(self.entries_count, reset = 2**self.entries_count - 1)
+        self.used = Signal(self.entries_count, reset=2**self.entries_count - 1)
 
         m.submodules.priority_encoder = encoder = MultiPriorityEncoder(self.entries_count, self.outputs_count)
         m.d.top_comb += encoder.input.eq(self.used)
@@ -59,7 +60,7 @@ class SuperscalarFreeRF(Elaboratable):
         # one caller!
         @def_method(m, self.allocate)
         def _(reg_count):
-            with condition(m, nonblocking = False) as branch:
+            with condition(m, nonblocking=False) as branch:
                 with branch((reg_count <= free_count) & (reg_count > 0)):
                     mask = (1 << reg_count) - 1
                     for j in range(self.outputs_count):
@@ -67,12 +68,10 @@ class SuperscalarFreeRF(Elaboratable):
                         m.d.comb += used_bit.eq(self.used.bit_select(encoder.outputs[j], 1))
                         m.d.sync += self.used.bit_select(encoder.outputs[j], 1).eq(used_bit & (~mask[j]))
                         m.d.comb += regs[j].eq(encoder.outputs[j])
-            return {f"reg{i}":regs[i] for i in range(self.outputs_count)}
-
+            return {f"reg{i}": regs[i] for i in range(self.outputs_count)}
 
         @loop_def_method(m, self.deallocates)
         def _(_, reg):
             m.d.sync += self.used.bit_select(reg, 1).eq(1)
-
 
         return m
