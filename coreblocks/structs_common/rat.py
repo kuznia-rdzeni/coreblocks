@@ -6,7 +6,34 @@ __all__ = ["FRAT", "RRAT"]
 
 
 class FRAT(Elaboratable):
+    """ Frontend Register Alias Table
+
+    Module to store the translation from logical register
+    id's to physical register id's. It can handle up to
+    `superscalarity` requests simultaneously.
+
+    Attributes
+    ----------
+    rename : Method
+        Alias to rename_list[0] for backward compatibility.
+    rename_list : list[Method], len(rename_list) == `superscalarity`
+        List with the `superscalarity` rename methods. Each method can handle
+        one renaime request. Each request consists of two
+        source registers to be renamed and a pair of logical and
+        physical destination registers ids. This pair represents a
+        mapping to be added to RAT. There are no checks for conflicts
+        between mappings inserted by different methods simultaneusly.
+        Layout: RATLayouts.rat_rename_*
+    """
     def __init__(self, *, gen_params: GenParams, superscalarity : int = 1):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        superscalarity : int
+            Number of the rename methods to create.
+        """
         self.gen_params = gen_params
         self.superscalarity = superscalarity
         layouts = gen_params.get(RATLayouts)
@@ -33,10 +60,33 @@ class FRAT(Elaboratable):
 
 
 class RRAT(Elaboratable):
-    """
-    Assumption about uniques
+    """ Retirement Register Alias Table
+
+    Register alias table of committed instructions. It represents the state of
+    the CPU as seen by the programmer. It can handle up to `superscalarity` commits
+    recuests in a cycle as long as the logical registers ids passed to the methods
+    are different. There are no checks to catch the situation, where two methods
+    try to update the same register simultaneusly.
+
+    Attributes
+    ----------
+    commit : Method
+        Alias to commit_list[0] for backward compatibility.
+    commit_list : list[Method]
+        List with the `superscalarity` commit methods. Each of them takes
+        `rp_dst` and `rl_dst` and update mapping hold in RAT returning
+        `old_rp_dst` which was previously mapped to `rl_dst`.
+        Layout: RATLayouts.rat_commit_*
     """
     def __init__(self, *, gen_params: GenParams, superscalarity : int = 1):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        superscalarity : int
+            Number of `commit` methods to create.
+        """
         self.gen_params = gen_params
         self.superscalarity = superscalarity
         layouts = gen_params.get(RATLayouts)
