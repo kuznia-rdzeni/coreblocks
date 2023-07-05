@@ -37,6 +37,7 @@ __all__ = [
     "OmegaRoutingNetwork",
     "PriorityOrderingTransProxyTrans",
     "PriorityOrderingProxyTrans",
+    "RegisterPipe",
 ]
 
 # FIFOs
@@ -1571,4 +1572,31 @@ class PriorityOrderingProxyTrans(PriorityOrderingTransProxyTrans):
     def elaborate(self, platform):
         m = super().elaborate(platform)
         m.submodules.connects = ModuleConnector(*self._m_connects)
+        return m
+
+
+class RegisterPipe(Elaboratable):
+    def __init__(self, layout : LayoutLike, channels : int):
+        self.layout = layout
+        self.channels = channels
+
+        self.write_list = [Method(i = self.layout) for _ in range(self.channels)]
+        self.read_list = [Method(o = self.layout) for _ in range(self.channels)]
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        registers = [Register(self.layout) for _ in range(self.channels)]
+        m.submodules.registers = ModuleConnector(*registers)
+
+        all_write_ready = Cat(reg.write.ready for reg in registers).all()
+
+        @loop_def_method(m, self.write_list, ready_list = lambda _: all_write_ready)
+        def _(i, arg):
+            registers[i].write(m, arg)
+
+        @loop_def_method(m, self.read_list)
+        def _(i):
+            return registers[i].read(m)
+
         return m

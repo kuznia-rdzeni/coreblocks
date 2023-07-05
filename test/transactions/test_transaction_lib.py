@@ -21,6 +21,7 @@ from ..common import (
     TestbenchIO,
     data_layout,
     def_method_mock,
+    Now,
 )
 
 
@@ -942,3 +943,62 @@ class TestPriorityOrderingProxy(TestCaseWithSimulator):
             sim.add_sync_process(self.activator)
             for i in range(len(self.ordered)):
                 sim.add_sync_process(self.method_mock_generator(i))
+
+
+class TestRegisterPipe(TestCaseWithSimulator):
+
+    def setUp(self):
+        self.test_number = 50
+        self.data_width = 8
+        self.layout = data_layout(self.data_width)
+        self.channels = 3
+        random.seed(14)
+
+        self.circ = SimpleTestCircuit(RegisterPipe(self.layout, self.channels))
+
+        self.virtual_regs : list[Optional[int]] = [None for _ in range(self.channels)]
+        self.try_read = [False for _ in range(self.channels)]
+
+    def input_process(self, k):
+        def f():
+            for _ in range(self.test_number):
+                while True:
+                    val = random.randrange(2**self.data_width)
+                    print(k, self.virtual_regs, (yield Now()))
+                    yield Settle()
+                    if all( (reg is None) or try_read for reg,try_read in zip(self.virtual_regs, self.try_read)):
+                        ret = yield from self.circ.write_list[k].call_try(data=val)
+                        self.assertIsNotNone(ret)
+                        yield Settle()
+                        self.virtual_regs[k]=val
+                        yield Settle()
+                        break
+                    else:
+                        ret = yield from self.circ.write_list[k].call_try(data=val)
+                        self.assertIsNone(ret)
+        return f
+
+    def output_process(self, k):
+        def f():
+            for _ in range(self.test_number):
+                while True:
+                    self.try_read[k]=True
+                    data = yield from self.circ.read_list[k].call_try()
+                    if (data_org := self.virtual_regs[k]) is None:
+                        self.assertIsNone(data)
+                    else:
+                        self.assertEqual(data["data"], data_org)
+                        self.virtual_regs[k]=None
+                        break
+                self.try_read[k]=False
+                yield from self.tick(random.randrange(3))
+                print((yield Now()))
+        return f
+
+    def test_random(self):
+        print()
+        with self.run_simulation(self.circ) as sim:
+            for k in range(self.channels):
+                sim.add_sync_process(self.input_process(k))
+                sim.add_sync_process(self.output_process(k))
+
