@@ -502,13 +502,14 @@ class PriorityUniqnessChecker(Elaboratable):
         self.inputs_count =inputs_count
 
         self.inputs = [Signal(self.input_width) for _ in range(self.inputs_count)]
+        self.input_valids = [Signal() for _ in range(self.inputs_count)]
         self.valids = [Signal(reset = 1) for _ in range(self.inputs_count)]
 
     def elaborate(self, platform):
         m = Module()
 
         for i in range(self.inputs_count):
-            cond = Cat([self.inputs[i] == self.inputs[j] for j in range(i)]).any()
+            cond = Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any()
             with m.If(cond):
                 m.d.comb += self.valids[i].eq(0)
 

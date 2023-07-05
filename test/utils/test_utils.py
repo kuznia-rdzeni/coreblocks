@@ -224,26 +224,31 @@ class TestPriorityUniqnessChecker(TestCaseWithSimulator):
         self.input_count = 9
         self.circ = PriorityUniqnessChecker(self.input_count, self.input_width)
 
-    def generate_mask(self, vals):
+    def generate_mask(self, vals, inputs_valid):
         s = set()
         valids = []
-        for v in vals:
+        for v, in_valid in zip(vals, inputs_valid):
             valids.append(int(v not in s))
-            s.add(v)
+            if in_valid:
+                s.add(v)
         return valids
 
     def input_process(self):
         for _ in range(self.test_number):
             inputs = []
+            inputs_valid = []
             for k in range(self.input_count):
                 val = random.randrange(2**self.input_width)
+                in_valid = random.randrange(2)
                 inputs.append(val)
+                inputs_valid.append(in_valid)
                 yield self.circ.inputs[k].eq(val)
+                yield self.circ.input_valids[k].eq(in_valid)
             yield Settle()
             result = []
             for i in range(self.input_count):
                 result.append((yield self.circ.valids[i]))
-            self.assertListEqual(self.generate_mask(inputs), result)
+            self.assertListEqual(self.generate_mask(inputs, inputs_valid), result)
 
     def test_random(self):
         with self.run_simulation(self.circ) as sim:
