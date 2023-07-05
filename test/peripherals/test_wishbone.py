@@ -324,6 +324,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
 
                 yield from self.m.request.call(addr=addr, data=data, we=write, sel=sel)
                 res = yield from self.m.result.call()
+                yield Settle()
                 if write:
                     self.assertEqual((yield self.m.mem_slave.mem[addr]), mem_state[addr])
                 else:
