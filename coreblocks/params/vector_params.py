@@ -4,12 +4,13 @@ __all__ = ["VectorParameters"]
 
 
 class VectorParameters:
-    def __init__(self, *, vlen: int, elen: int, vrp_count: int = 40, register_bank_count: int = 4):
+    def __init__(self, *, vlen: int, elen: int, vrp_count: int = 40, register_bank_count: int = 4, vxrs_entries = 8):
         self.elen = elen
         self.vlen = vlen
         self.vrp_count = vrp_count
         self.vrp_count_bits = log2_int(self.vrp_count, False)
         self.register_bank_count = register_bank_count
+        self.vxrs_entries = vxrs_entries
 
         self.bytes_in_vlen = self.vlen // 8
         self.bytes_in_elen = elen // 8

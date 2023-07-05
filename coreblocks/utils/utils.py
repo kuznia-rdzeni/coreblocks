@@ -24,6 +24,7 @@ __all__ = [
     "count_trailing_zeros",
     "mod_incr",
     "MultiPriorityEncoder",
+    "PriorityUniqnessChecker",
 ]
 
 
@@ -491,5 +492,24 @@ class MultiPriorityEncoder(Elaboratable):
         for k in range(self.outputs_count):
             m.d.comb += self.outputs[k].eq(current_outputs[k])
             m.d.comb += self.valids[k].eq(current_valids[k])
+
+        return m
+
+
+class PriorityUniqnessChecker(Elaboratable):
+    def __init__(self, inputs_count : int, input_width : int):
+        self.input_width = input_width
+        self.inputs_count =inputs_count
+
+        self.inputs = [Signal(self.input_width) for _ in range(self.inputs_count)]
+        self.valids = [Signal(reset = 1) for _ in range(self.inputs_count)]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        for i in range(self.inputs_count):
+            cond = Cat([self.inputs[i] == self.inputs[j] for j in range(i)]).any()
+            with m.If(cond):
+                m.d.comb += self.valids[i].eq(0)
 
         return m

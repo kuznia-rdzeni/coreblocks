@@ -6,7 +6,7 @@ from coreblocks.transactions import Method, def_method, TModule, loop_def_method
 from coreblocks.params import RSLayouts, GenParams, OpType
 from coreblocks.transactions.core import RecordDict
 from coreblocks.utils.protocols import RSLayoutProtocol
-from coreblocks.utils.utils import mod_incr, assign, AssignType
+from coreblocks.utils.utils import mod_incr, assign, AssignType, MultiPriorityEncoder
 
 __all__ = ["RS", "FifoRS"]
 
@@ -22,10 +22,10 @@ class RS(Elaboratable, Generic[T]):
         ready_for: Optional[Iterable[Iterable[OpType]]] = None,
         *,
         layout_class: Type[T] = RSLayouts,
-        insert_hook: Optional[Method] = None,
-        custom_rec_ready_setter: Optional[Callable[[Self, TModule], None]] = None
+        custom_rec_ready_setter: Optional[Callable[[Self, TModule], None]] = None,
+        superscalarity : int = 1
     ) -> None:
-        self.insert_hook = insert_hook
+        self.superscalarity = superscalarity
         self.custom_rec_ready_setter = custom_rec_ready_setter
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
@@ -39,8 +39,13 @@ class RS(Elaboratable, Generic[T]):
             ("rec_reserved", 1),
         ]
 
-        self.insert = Method(i=self.layouts.insert_in)
-        self.select = Method(o=self.layouts.select_out)
+        if self.superscalarity<1:
+            raise ValueError("Requested less than 1 input port.")
+
+        self.insert_list = [Method(i=self.layouts.insert_in) for _ in range(self.superscalarity)]
+        self.insert = self.insert_list[0]
+        self.select_list = [Method(o=self.layouts.select_out) for _ in range(self.superscalarity)]
+        self.select = self.select_list[0]
         self.update = Method(i=self.layouts.update_in)
         self.take = Method(i=self.layouts.take_in, o=self.layouts.take_out)
 
@@ -74,7 +79,7 @@ class RS(Elaboratable, Generic[T]):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
+        m.submodules.enc_select = encoder =  MultiPriorityEncoder(input_width=self.rs_entries, outputs_count=self.superscalarity)
 
         self.generate_rec_ready_setters(m)
 
@@ -89,20 +94,18 @@ class RS(Elaboratable, Generic[T]):
             op_vector = Cat(Cat(record.rs_data.exec_fn.op_type == op for op in op_list).any() for record in self.data)
             ready_lists.append(take_vector & op_vector)
 
-        m.d.comb += m.submodules.enc_select.i.eq(select_vector)
+        m.d.comb += encoder.input.eq(select_vector)
 
-        @def_method(m, self.select, ready=select_possible)
-        def _() -> Signal:
-            m.d.sync += self.data[m.submodules.enc_select.o].rec_reserved.eq(1)
-            return m.submodules.enc_select.o
+        @loop_def_method(m, self.select_list, ready_list=encoder.valids)
+        def _(i:int) -> Signal:
+            m.d.sync += self.data[encoder.outputs[i]].rec_reserved.eq(1)
+            return encoder.outputs[i]
 
-        @def_method(m, self.insert)
-        def _(rs_entry_id: Value, rs_data: Value) -> None:
+        @loop_def_method(m, self.insert_list)
+        def _(_:int, rs_entry_id: Value, rs_data: Value) -> None:
             m.d.sync += self.data[rs_entry_id].rs_data.eq(rs_data)
             m.d.sync += self.data[rs_entry_id].rec_full.eq(1)
             m.d.sync += self.data[rs_entry_id].rec_reserved.eq(1)
-            if self.insert_hook is not None:
-                self.insert_hook(m, rs_entry_id)
 
         self.define_update_method(m)
 

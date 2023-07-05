@@ -21,6 +21,7 @@ __all__ = [
     "ICacheLayouts",
     "SuperscalarFreeRFLayouts",
     "ExceptionRegisterLayouts",
+    "ScoreboardLayouts",
 ]
 
 
@@ -419,3 +420,10 @@ class ExceptionRegisterLayouts:
             ("cause", ExceptionCause),
             ("rob_id", gen_params.rob_entries_bits),
         ]
+
+class ScoreboardLayouts:
+    def __init__(self, entries_number : int):
+        bits = log2_int(entries_number, False)
+        self.set_dirty_in = [("id", bits), ("dirty", 1)]
+        self.get_dirty_in = [("id", bits)]
+        self.get_dirty_out = [("dirty", 1)]

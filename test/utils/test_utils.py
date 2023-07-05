@@ -9,6 +9,7 @@ from coreblocks.utils import (
     count_leading_zeros,
     count_trailing_zeros,
     MultiPriorityEncoder,
+    PriorityUniqnessChecker,
 )
 from parameterized import parameterized_class
 
@@ -213,3 +214,37 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
     def test_random(self):
         with self.run_simulation(self.circ, max_cycles=100) as sim:
             sim.add_process(self.process)
+
+
+class TestPriorityUniqnessChecker(TestCaseWithSimulator):
+    def setUp(self):
+        random.seed(14)
+        self.test_number = 50
+        self.input_width = 4
+        self.input_count = 9
+        self.circ = PriorityUniqnessChecker(self.input_count, self.input_width)
+
+    def generate_mask(self, vals):
+        s = set()
+        valids = []
+        for v in vals:
+            valids.append(int(v not in s))
+            s.add(v)
+        return valids
+
+    def input_process(self):
+        for _ in range(self.test_number):
+            inputs = []
+            for k in range(self.input_count):
+                val = random.randrange(2**self.input_width)
+                inputs.append(val)
+                yield self.circ.inputs[k].eq(val)
+            yield Settle()
+            result = []
+            for i in range(self.input_count):
+                result.append((yield self.circ.valids[i]))
+            self.assertListEqual(self.generate_mask(inputs), result)
+
+    def test_random(self):
+        with self.run_simulation(self.circ) as sim:
+            sim.add_process(self.input_process)

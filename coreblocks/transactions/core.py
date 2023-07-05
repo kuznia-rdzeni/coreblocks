@@ -1182,7 +1182,7 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
     return decorator
 
 
-def loop_def_method(m: TModule, methods_list: list[Method], ready_list: Optional[list[ValueLike] | Callable] = None):
+def loop_def_method(m: TModule, methods_list: list[Method], ready_list: Optional[Sequence[ValueLike] | Callable] = None):
     """Decorator for defining similar methods
 
     This decorator is a wrapper over `def_method`, which allows you to easily

@@ -6,6 +6,8 @@ from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.utils.fifo import BasicFifo
 
+__all__ = ["VectorInputVerificator"]
+
 
 class VectorInputVerificator(Elaboratable):
     """Module to verify incoming vector instructions
