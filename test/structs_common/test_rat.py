@@ -37,7 +37,7 @@ class TestFRAT(TestCaseWithSimulator):
                 yield Settle()
                 self.virtual_rat[rl_dst] = rp_dst
 
-                self.tick(random.randrange(2))
+                yield from self.tick(random.randrange(2))
 
         return f
 
@@ -74,7 +74,7 @@ class TestRRAT(TestCaseWithSimulator):
                 yield Settle()
                 self.virtual_rat[rl_dst] = rp_dst
 
-                self.tick(random.randrange(2))
+                yield from self.tick(random.randrange(2))
 
         return f
 

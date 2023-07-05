@@ -5,6 +5,7 @@ from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_input_verification import *
+from coreblocks.transactions.lib import *
 from collections import deque, defaultdict
 
 
@@ -155,7 +156,7 @@ class TestVInstructionVerification(TestCaseWithSimulator):
                     data_q_pass.append(data)
                 else:
                     data_q_fail.append(data)
-                self.tick(random.randrange(4))
+                yield from self.tick(random.randrange(4))
 
             # wait few cycles to be sure that all mocks were called
             for _ in range(2):

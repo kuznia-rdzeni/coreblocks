@@ -26,7 +26,7 @@ class TestScoreboard(TestCaseWithSimulator):
                 yield from self.circ.set_dirty_list[k].call(id=id, dirty=new_dirty)
                 yield Settle()
                 self.virtual_scoreboard[id] = new_dirty
-                self.tick(random.randrange(3))
+                yield from self.tick(random.randrange(3))
         return f
 
 
