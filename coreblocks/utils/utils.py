@@ -422,6 +422,25 @@ def silence_mustuse(elaboratable: Elaboratable):
 
 
 def make_forwarding_signal(m: ModuleLike, comb_signal: Signal, sync_signal: Optional[Signal] = None):
+    """
+    Defines a signal which is backed by a register, but can be changed
+    combinationally. The argument, `comb_signal`, needs to be an externally
+    created `Signal`. It defaults to the current state of the backing
+    register. Changing it combinationally also modifies the backing register.
+
+    Parameters
+    ----------
+    comb_signal: Signal
+        Externally created signal, lives in the combinational domain.
+    sync_signal: Signal, optional
+        Backing register for `comb_signal`. If omitted, it is created
+        internally.
+
+    Returns
+    -------
+    Signal
+        The backing register.
+    """
     if sync_signal is None:
         sync_signal = Signal.like(comb_signal)
 
