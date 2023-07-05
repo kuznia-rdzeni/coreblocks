@@ -16,6 +16,7 @@ __all__ = [
     "MemoryBank",
     "Forwarder",
     "Connect",
+    "Register",
     "Collector",
     "ClickIn",
     "ClickOut",
@@ -101,7 +102,6 @@ class FIFO(Elaboratable):
 
 # Forwarding with overflow buffering
 
-
 class Forwarder(Elaboratable):
     """Forwarding with overflow buffering
 
@@ -160,6 +160,49 @@ class Forwarder(Elaboratable):
         def _():
             m.d.sync += reg_valid.eq(0)
             return read_value
+
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += reg_valid.eq(0)
+
+        return m
+
+
+class Register(Elaboratable):
+    def __init__(self, layout: MethodLayout):
+        """
+        Parameters
+        ----------
+        layout: record layout
+            The format of records forwarded.
+        """
+        self.read = Method(o=layout)
+        self.write = Method(i=layout)
+        self.clear = Method()
+        self.head = Record.like(self.read.data_out)
+
+        self.clear.add_conflict(self.read, Priority.LEFT)
+        self.clear.add_conflict(self.write, Priority.LEFT)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        reg = Record.like(self.read.data_out)
+        reg_valid = Signal()
+        m.d.top_comb += self.head.eq(reg)
+
+        self.read.schedule_before(self.write)  # to avoid combinational loops
+
+        @def_method(m, self.read, ready=reg_valid)
+        def _():
+            m.d.sync += reg_valid.eq(0)
+            return reg
+
+        @def_method(m, self.write, ready=~reg_valid | self.read.run)
+        def _(arg):
+            m.d.sync += reg.eq(arg)
+            m.d.sync += reg_valid.eq(1)
+
 
         @def_method(m, self.clear)
         def _():

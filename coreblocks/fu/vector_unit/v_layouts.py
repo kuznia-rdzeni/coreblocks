@@ -104,7 +104,7 @@ class VectorFrontendLayouts:
             ("imm2", gen_params.imm2_width),
         ]
 
-        self.status_out = layout_difference(self.status_in, fields={"imm2"}) + [("vtype", self.vtype)]
-
+        self.status_out = self.translator_in =  layout_difference(self.status_in, fields={"imm2"}) + [("vtype", self.vtype)]
+        self.translator_out = self.translator_in + [("rp_s3", common.p_register_entry)]
         self.get_vill = [("vill", 1)]
         self.get_vstart = [("vstart", v_params.vstart_bits)]

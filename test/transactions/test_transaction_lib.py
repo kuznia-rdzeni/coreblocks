@@ -34,12 +34,12 @@ class RevConnect(Elaboratable):
         return self.connect
 
 
-FIFO_Like: TypeAlias = FIFO | Forwarder | Connect | RevConnect
+FIFO_Like: TypeAlias = FIFO | Forwarder | Connect | RevConnect | Register
 
 
 class TestFifoBase(TestCaseWithSimulator):
     def do_test_fifo(
-        self, fifo_class: type[FIFO_Like], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs: dict = {}
+            self, fifo_class: type[FIFO_Like], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs: dict = {}, timeout : Optional[int] = None
     ):
         iosize = 8
 
@@ -60,7 +60,12 @@ class TestFifoBase(TestCaseWithSimulator):
                 self.assertEqual((yield from m.read.call()), {"data": i})
                 yield from random_wait(reader_rand)
 
-        with self.run_simulation(m) as sim:
+        if timeout is not None:
+            ctx = self.run_simulation(m, timeout)
+        else:
+            ctx = self.run_simulation(m)
+
+        with ctx as sim:
             sim.add_sync_process(reader)
             sim.add_sync_process(writer)
 
@@ -132,6 +137,13 @@ class TestForwarder(TestFifoBase):
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
 
+class TestRegister(TestFifoBase):
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(Register, writer_rand=writer_rand, reader_rand=reader_rand)
+
+    def test_pipelining(self):
+        self.do_test_fifo(Register, writer_rand=0, reader_rand=0, timeout = 258)
 
 class TestMemoryBank(TestCaseWithSimulator):
     test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
