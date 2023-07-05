@@ -1600,3 +1600,53 @@ class RegisterPipe(Elaboratable):
             return registers[i].read(m)
 
         return m
+
+class ShiftRegister(Elaboratable):
+    def __init__(self, layout : LayoutLike, entries_number : int, put : Method, *, first_transparent : bool = True):
+        self.layout = layout
+        self.entries_number = entries_number
+        self.put = put
+        self.first_transparent = first_transparent
+
+        self.write_list = [Method(i = self.layout) for _ in range(entries_number)]
+    
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        regs = [Signal(len(Record(self.layout))) for _ in range(self.entries_number)]
+        valids=[Signal() for _ in range(self.entries_number)]
+        count = Signal(log2_int(self.entries_number, False))
+        ready = Signal(reset = 1)
+        start = Signal()
+
+        with m.FSM():
+            with m.State("start"):
+                if self.first_transparent:
+                    next_state = "1"
+                else:
+                    next_state = "0"
+                with m.If(start):
+                    m.next = next_state
+            for i in range(self.entries_number):
+                with m.State(f"{i}"):
+                    m.d.comb += ready.eq(0)
+                    if i+1 == self.entries_number:
+                        m.next = "start"
+                    else:
+                        with m.If(valids[i+1]):
+                            m.next = f"{i+1}"
+                        with m.Else():
+                            m.next = "start"
+                    self.put(m,regs[i])
+                    m.d.sync += valids[i].eq(0)
+
+        @loop_def_method(m, self.write_list, lambda _: ready)
+        def _(i, arg):
+            m.d.comb += start.eq(1)
+            if self.first_transparent and i == 0 :
+                self.put(m, arg)
+            else:
+                m.d.sync += regs[ i ].eq(arg)
+                m.d.sync += valids[ i ].eq(1)
+
+        return m

@@ -13,6 +13,12 @@ from coreblocks.utils._typing import ValueLike
 __all__ = ["VectorTranslator"]
 
 class VectorTranslatorEEW(Elaboratable):
+    """
+    Not tested, may not work.
+    Probably there is a need to do mapping from widening/narrowing instructions to normal
+    instructions.
+    As for now it uses internal instruction to narrow data, but there is ZEXT and SEXT
+    """
     def __init__(self, gen_params : GenParams, v_params : VectorParameters, put_instr : Method, report_multiplicator : Method):
        self.gen_params = gen_params
        self.v_params = v_params
