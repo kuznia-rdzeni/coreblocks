@@ -507,7 +507,9 @@ class InstrDecoder(Elaboratable):
             m.d.comb += self.opcode.eq(opcode)
 
         # Illegal instruction detection
-
-        m.d.comb += self.illegal.eq((self.optype == OpType.UNKNOWN) | (self.instr[0:2] != 0b11))
+        # 0b11 at field [0:2] of instruction specify standard 32-bit instruction encoding space (not checked by opcode)
+        encoding_space = Signal(2)
+        m.d.comb += self._extract(0, encoding_space)
+        m.d.comb += self.illegal.eq((self.optype == OpType.UNKNOWN) | (encoding_space != 0b11))
 
         return m

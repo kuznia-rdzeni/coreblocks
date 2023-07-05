@@ -1,4 +1,7 @@
 from amaranth import *
+
+from coreblocks.params.isa import Funct3
+from coreblocks.params.optypes import OpType
 from ..transactions import Method, Transaction, TModule
 from ..params import GenParams
 from .decoder import InstrDecoder
@@ -52,23 +55,35 @@ class Decode(Elaboratable):
                 | (instr_decoder.optype == OpType.BRANCH)
             )
 
+            exception_override = Signal()
+            m.d.comb += exception_override.eq(instr_decoder.illegal | raw.access_fault)
+            exception_funct = Signal(Funct3)
+            with m.If(raw.access_fault):
+                m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
+            with m.Elif(instr_decoder.illegal):
+                m.d.comb += exception_funct.eq(Funct3._EILLEGALINSTR)
+
             self.push_decoded(
                 m,
                 {
-                    "opcode": instr_decoder.opcode,
-                    "illegal": instr_decoder.illegal,
                     "exec_fn": {
-                        "op_type": instr_decoder.optype,
+                        "op_type": Mux(~exception_override, instr_decoder.optype, OpType.EXCEPTION),
                         # imm muxing in FUs depend on unused functs set to 0
                         # todo: this is a bit awkward and needs a refactor in the future
-                        "funct3": Mux(instr_decoder.funct3_v, instr_decoder.funct3, 0),
-                        "funct7": Mux(instr_decoder.funct7_v, instr_decoder.funct7, Mux(is_jb_unit_instr, raw.rvc, 0)),
+                        "funct3": Mux(
+                            ~exception_override, Mux(instr_decoder.funct3_v, instr_decoder.funct3, 0), exception_funct
+                        ),
+                        "funct7": Mux(
+                            ~exception_override,
+                            Mux(instr_decoder.funct7_v, instr_decoder.funct7, Mux(is_jb_unit_instr, raw.rvc, 0)),
+                            0,
+                        ),
                     },
                     "regs_l": {
                         # read/writes to phys reg 0 make no effect
-                        "rl_dst": Mux(instr_decoder.rd_v, instr_decoder.rd, 0),
-                        "rl_s1": Mux(instr_decoder.rs1_v, instr_decoder.rs1, 0),
-                        "rl_s2": Mux(instr_decoder.rs2_v, instr_decoder.rs2, 0),
+                        "rl_dst": Mux(instr_decoder.rd_v & (~exception_override), instr_decoder.rd, 0),
+                        "rl_s1": Mux(instr_decoder.rs1_v & (~exception_override), instr_decoder.rs1, 0),
+                        "rl_s2": Mux(instr_decoder.rs2_v & (~exception_override), instr_decoder.rs2, 0),
                     },
                     "imm": instr_decoder.imm,
                     "csr": instr_decoder.csr,

@@ -41,14 +41,19 @@ class LSUDummyInternals(Elaboratable):
         self.current_instr = current_instr
         self.bus = bus
 
+        self.dependency_manager = self.gen_params.get(DependencyManager)
+        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
+
         self.loadedData = Signal(self.gen_params.isa.xlen)
         self.get_result_ack = Signal()
         self.result_ready = Signal()
-        self.execute_store = Signal()
+        self.execute = Signal()
+        self.op_exception = Signal()
 
-    def calculate_addr(self):
-        """Calculate Load/Store address as defined by RiscV spec"""
-        return self.current_instr.s1_val + self.current_instr.imm
+    def calculate_addr(self, m: ModuleLike):
+        addr = Signal(self.gen_params.isa.xlen)
+        m.d.comb += addr.eq(self.current_instr.s1_val + self.current_instr.imm)
+        return addr
 
     def prepare_bytes_mask(self, m: ModuleLike, addr: Signal) -> Signal:
         mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
@@ -94,90 +99,71 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += data.eq(raw_data)
         return data
 
-    def op_init(self, m: TModule, op_initiated: Signal, is_store: bool):
-        addr = Signal(self.gen_params.isa.xlen)
-        m.d.comb += addr.eq(self.calculate_addr())
-
-        bytes_mask = self.prepare_bytes_mask(m, addr)
-        req = Record(self.bus.requestLayout)
-        m.d.comb += req.addr.eq(addr >> 2)  # calculate word address
-        m.d.comb += req.we.eq(is_store)
-        m.d.comb += req.sel.eq(bytes_mask)
-        m.d.comb += req.data.eq(self.prepare_data_to_save(m, self.current_instr.s2_val, addr))
-
-        # load_init is under an "if" so that this transaction requests to be executed
-        # after all "if"s above are taken, so there is no need to add any additional
-        # signal here as a "request"
-        with Transaction().body(m):
-            self.bus.request(m, req)
-            m.d.sync += op_initiated.eq(1)
-
-    def op_end(self, m: TModule, op_initiated: Signal, is_store: bool):
-        addr = Signal(self.gen_params.isa.xlen)
-        m.d.comb += addr.eq(self.calculate_addr())
-
-        with Transaction().body(m):
-            fetched = self.bus.result(m)
-            m.d.sync += op_initiated.eq(0)
-            m.d.sync += self.result_ready.eq(1)
-
-            if not is_store:
-                with m.If(fetched.err == 0):
-                    m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
-                with m.Else():
-                    m.d.sync += self.loadedData.eq(0)
+    def check_align(self, m: TModule, addr: Signal):
+        aligned = Signal()
+        with m.Switch(self.current_instr.exec_fn.funct3):
+            with m.Case(Funct3.W):
+                m.d.comb += aligned.eq(addr[0:2] == 0)
+            with m.Case(Funct3.H, Funct3.HU):
+                m.d.comb += aligned.eq(addr[0] == 0)
+            with m.Case():
+                m.d.comb += aligned.eq(1)
+        return aligned
 
     def elaborate(self, platform):
-        def check_if_instr_ready(current_instr: Record, result_ready: Signal) -> Value:
-            """Check if all values needed by instruction are already calculated."""
-            return (
-                (current_instr.rp_s1 == 0)
-                & (current_instr.rp_s2 == 0)
-                & (current_instr.valid == 1)
-                & (result_ready == 0)
-            )
-
-        def check_if_instr_is_load(current_instr: Record) -> Value:
-            return current_instr.exec_fn.op_type == OpType.LOAD
-
         m = TModule()
 
-        instr_ready = check_if_instr_ready(self.current_instr, self.result_ready)
-        instr_is_load = check_if_instr_is_load(self.current_instr)
-        op_initiated = Signal()
+        instr_ready = (
+            (self.current_instr.rp_s1 == 0)
+            & (self.current_instr.rp_s2 == 0)
+            & self.current_instr.valid
+            & ~self.result_ready
+        )
+
+        is_load = self.current_instr.exec_fn.op_type == OpType.LOAD
+
+        addr = self.calculate_addr(m)
+        aligned = self.check_align(m, addr)
+        bytes_mask = self.prepare_bytes_mask(m, addr)
+        data = self.prepare_data_to_save(m, self.current_instr.s2_val, addr)
 
         with m.FSM("Start"):
             with m.State("Start"):
-                with m.If(instr_ready & instr_is_load):
-                    self.op_init(m, op_initiated, False)
-                    m.next = "LoadInit"
-                with m.If(instr_ready & ~instr_is_load):
-                    m.next = "StoreWaitForExec"
-            with m.State("LoadInit"):
-                with m.If(~op_initiated):
-                    self.op_init(m, op_initiated, False)
-                with m.Else():
-                    m.next = "LoadEnd"
-            with m.State("LoadEnd"):
-                self.op_end(m, op_initiated, False)
+                with m.If(instr_ready & (self.execute | is_load)):
+                    with m.If(aligned):
+                        with Transaction().body(m):
+                            self.bus.request(m, addr=addr >> 2, we=~is_load, sel=bytes_mask, data=data)
+                            m.next = "End"
+                    with m.Else():
+                        with Transaction().body(m):
+                            m.d.sync += self.op_exception.eq(1)
+                            m.d.sync += self.result_ready.eq(1)
+
+                            cause = Mux(
+                                is_load, ExceptionCause.LOAD_ADDRESS_MISALIGNED, ExceptionCause.STORE_ADDRESS_MISALIGNED
+                            )
+                            self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
+
+                            m.next = "End"
+
+            with m.State("End"):
+                with Transaction().body(m):
+                    fetched = self.bus.result(m)
+
+                    m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
+
+                    with m.If(fetched.err):
+                        cause = Mux(is_load, ExceptionCause.LOAD_ACCESS_FAULT, ExceptionCause.STORE_ACCESS_FAULT)
+                        self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
+
+                    m.d.sync += self.op_exception.eq(fetched.err)
+                    m.d.sync += self.result_ready.eq(1)
+
                 with m.If(self.get_result_ack):
                     m.d.sync += self.result_ready.eq(0)
-                    m.d.sync += self.loadedData.eq(0)
+                    m.d.sync += self.op_exception.eq(0)
                     m.next = "Start"
-            with m.State("StoreWaitForExec"):
-                with m.If(self.execute_store):
-                    self.op_init(m, op_initiated, True)
-                    m.next = "StoreInit"
-            with m.State("StoreInit"):
-                with m.If(~op_initiated):
-                    self.op_init(m, op_initiated, True)
-                with m.Else():
-                    m.next = "StoreEnd"
-            with m.State("StoreEnd"):
-                self.op_end(m, op_initiated, True)
-                with m.If(self.get_result_ack):
-                    m.d.sync += self.result_ready.eq(0)
-                    m.next = "Start"
+
         return m
 
 
@@ -266,14 +252,13 @@ class LSUDummy(FuncBlock, Elaboratable):
                 "rob_id": current_instr.rob_id,
                 "rp_dst": current_instr.rp_dst,
                 "result": internal.loadedData,
-                "exception": 0,
+                "exception": internal.op_exception,
             }
 
         @def_method(m, self.precommit)
         def _(rob_id: Value):
-            # TODO: I/O reads
-            with m.If((current_instr.exec_fn.op_type == OpType.STORE) & (rob_id == current_instr.rob_id)):
-                m.d.comb += internal.execute_store.eq(1)
+            with m.If(current_instr.valid & (rob_id == current_instr.rob_id)):
+                m.d.comb += internal.execute.eq(1)
 
         return m
 
