@@ -434,6 +434,9 @@ class TransactionManager(Elaboratable):
             if len(method_args[method]) == 1:
                 m.d.comb += method.data_in.eq(method_args[method][0])
             else:
+                if method.single_caller:
+                    raise RuntimeError(f"Single-caller method '{method.name}' called more than once")
+
                 runs = Cat(method_runs[method])
                 for i in OneHotSwitchDynamic(m, runs):
                     m.d.comb += method.data_in.eq(method_args[method][i])
@@ -911,7 +914,13 @@ class Method(TransactionBase):
     """
 
     def __init__(
-        self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = (), nonexclusive: bool = False
+        self,
+        *,
+        name: Optional[str] = None,
+        i: MethodLayout = (),
+        o: MethodLayout = (),
+        nonexclusive: bool = False,
+        single_caller: bool = False,
     ):
         """
         Parameters
@@ -930,6 +939,10 @@ class Method(TransactionBase):
             transactions in the same clock cycle. If such a situation happens,
             the method still is executed only once, and each of the callers
             receive its output. Nonexclusive methods cannot have inputs.
+        single_caller: bool
+            If true, this method is intended to be called from a single
+            transaction. An error will be thrown if called from multiple
+            transactions.
         """
         super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$method")
@@ -939,6 +952,7 @@ class Method(TransactionBase):
         self.data_in = Record(i)
         self.data_out = Record(o)
         self.nonexclusive = nonexclusive
+        self.single_caller = single_caller
         if nonexclusive:
             assert len(self.data_in) == 0
 
