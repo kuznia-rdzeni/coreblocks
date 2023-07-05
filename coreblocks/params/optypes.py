@@ -51,10 +51,13 @@ class OpType(IntEnum):
     V_ARITHMETIC_NARROWING = auto()
     V_ARITHMETIC_NARROWING_IMM = auto()
     V_ARITHMETIC_NARROWING_SCALAR = auto()
+    V_ARITHMETIC_WIDENING = auto()
+    V_ARITHMETIC_WIDENING_IMM = auto()
+    V_ARITHMETIC_WIDENING_SCALAR = auto()
     V_PERMUTATION = auto()
     V_PERMUTATION_IMM = auto()
     V_PERMUTATION_SCALAR = auto()
-    V_CONTROL = auto()
+    V_CONTROL = auto() # optype used both for vsetvl and internal instructions
     V_REDUCTION = auto()
     V_MEMORY = auto()
 
