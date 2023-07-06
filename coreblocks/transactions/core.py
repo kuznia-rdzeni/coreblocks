@@ -771,7 +771,7 @@ class TransactionBase(Owned):
     def get(cls) -> Self:
         ret = cls.peek()
         if ret is None:
-            raise RuntimeError("No current body")
+            raise RuntimeError("No transaction body have been found. Maybe you use method outside of transaction?")
         return ret
 
     @classmethod

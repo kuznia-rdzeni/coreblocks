@@ -455,6 +455,9 @@ class TestCaseWithSimulator(unittest.TestCase):
         for _ in range(cycle_cnt):
             yield
 
+    def assertIterableEqual(self, it1, it2):
+        self.assertListEqual(list(it1), list(it2))
+
 
 class TestbenchIO(Elaboratable):
     def __init__(self, adapter: AdapterBase):

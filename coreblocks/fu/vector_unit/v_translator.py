@@ -128,6 +128,9 @@ class VectorTranslatorEEW(Elaboratable):
         return m
 
 
+class VectorTranslateLMUL(Elaboratable):
+    pass
+
 class VectorTranslator(Elaboratable):
     def __init__(self, gen_params : GenParams, v_params : VectorParameters):
        self.gen_params = gen_params

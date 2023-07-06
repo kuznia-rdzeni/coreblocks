@@ -38,6 +38,7 @@ __all__ = [
     "PriorityOrderingTransProxyTrans",
     "PriorityOrderingProxyTrans",
     "RegisterPipe",
+    "ShiftRegister",
 ]
 
 # FIFOs
@@ -1616,29 +1617,8 @@ class ShiftRegister(Elaboratable):
         regs = [Signal(len(Record(self.layout))) for _ in range(self.entries_number)]
         valids=[Signal() for _ in range(self.entries_number)]
         count = Signal(log2_int(self.entries_number, False))
-        ready = Signal(reset = 1)
-        start = Signal()
-
-        with m.FSM():
-            with m.State("start"):
-                if self.first_transparent:
-                    next_state = "1"
-                else:
-                    next_state = "0"
-                with m.If(start):
-                    m.next = next_state
-            for i in range(self.entries_number):
-                with m.State(f"{i}"):
-                    m.d.comb += ready.eq(0)
-                    if i+1 == self.entries_number:
-                        m.next = "start"
-                    else:
-                        with m.If(valids[i+1]):
-                            m.next = f"{i+1}"
-                        with m.Else():
-                            m.next = "start"
-                    self.put(m,regs[i])
-                    m.d.sync += valids[i].eq(0)
+        ready = Signal(reset = 1, name="rrready")
+        start = Signal(name="ssstart")
 
         @loop_def_method(m, self.write_list, lambda _: ready)
         def _(i, arg):
@@ -1648,5 +1628,34 @@ class ShiftRegister(Elaboratable):
             else:
                 m.d.sync += regs[ i ].eq(arg)
                 m.d.sync += valids[ i ].eq(1)
+
+        reg_now = Signal.like(regs[0])
+        reg_now_v = Signal()
+        execute_put = Transaction()
+        with m.FSM():
+            with m.State("start"):
+                if self.first_transparent:
+                    if self.entries_number>1:
+                        with m.If(start & self.write_list[1].run):
+                            m.next = "1"
+                else:
+                    with m.If(start):
+                        m.next = "0"
+            for i in range(self.first_transparent, self.entries_number):
+                with m.State(f"{i}"):
+                    m.d.comb += ready.eq(0)
+                    if i+1 == self.entries_number:
+                        m.next = "start"
+                    else:
+                        with m.If(valids[i+1] & execute_put.grant):
+                            m.next = f"{i+1}"
+                        with m.Elif(execute_put.grant):
+                            m.next = "start"
+                    m.d.comb += reg_now.eq(regs[i])
+                    m.d.comb += reg_now_v.eq(1)
+                    m.d.sync += valids[i].eq(0)
+
+        with execute_put.body(m, request = reg_now_v):
+            self.put(m,reg_now)
 
         return m

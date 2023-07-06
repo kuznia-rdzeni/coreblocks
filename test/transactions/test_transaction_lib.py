@@ -4,7 +4,7 @@ import itertools
 from operator import and_
 from functools import reduce
 from amaranth.sim import Settle, Passive
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 from typing import TypeAlias, Callable, Optional
 from collections import defaultdict, deque
 
@@ -1002,3 +1002,50 @@ class TestRegisterPipe(TestCaseWithSimulator):
                 sim.add_sync_process(self.input_process(k))
                 sim.add_sync_process(self.output_process(k))
 
+
+@parameterized_class("transparent", [(True,), (False,)])
+class TestShiftRegister(TestCaseWithSimulator):
+    transparent : bool
+    def setUp(self):
+        self.test_number = 50
+        self.input_width = 8
+        self.layout = data_layout(self.input_width)
+        self.entries_number = 3
+        random.seed(14)
+
+        self.put = TestbenchIO(Adapter(i=self.layout))
+        self.circ = SimpleTestCircuit(ShiftRegister(self.layout, self.entries_number, self.put.adapter.iface, first_transparent = self.transparent))
+
+        self.m = ModuleConnector(circ = self.circ, put = self.put)
+        
+        self.received_data=deque()
+        self.expected_data = deque()
+
+    @def_method_mock(lambda self: self.put)
+    def put_process(self, data):
+        self.received_data.append(data)
+
+    def disable_all(self):
+        for k in range(self.entries_number):
+            yield from self.circ.write_list[k].disable()
+
+    def input_process(self):
+        for _ in range(self.test_number):
+            n = random.randrange(1,self.entries_number)
+            for k in range(n):
+                val = random.randrange(2**self.input_width)
+                yield from self.circ.write_list[k].call_init(data=val)
+                self.expected_data.append(val)
+            yield Settle()
+            for i in range(n-self.transparent+1):
+                yield
+                yield from self.disable_all()
+            yield from self.disable_all()
+            self.assertIterableEqual(self.expected_data, self.received_data)
+            self.expected_data.clear()
+            self.received_data.clear()
+
+    def test_random(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.input_process)
+            sim.add_sync_process(self.put_process)
