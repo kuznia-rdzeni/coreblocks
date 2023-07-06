@@ -129,7 +129,61 @@ class VectorTranslatorEEW(Elaboratable):
 
 
 class VectorTranslateLMUL(Elaboratable):
-    pass
+    def __init__(self, gen_params : GenParams, v_params : VectorParameters, put_instr : Method, report_multiplicator : Method):
+       self.gen_params = gen_params
+       self.v_params = v_params
+
+       self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+       self.issue = Method(i= self.layouts.translator_in)
+       self.put_instr = put_instr
+       self.report_multiplicator = report_multiplicator
+
+       self.max_lmul = 8
+
+    def generate_instr(self, m : TModule, org_instr, mask : int, end_bits : int):
+        rec = Record(self.layouts.translator_in)
+        m.d.comb += assign(rec, org_instr)
+        m.d.comb += rec.vtype.lmul.eq(LMUL.m1)
+        m.d.comb += rec.rp_s1.id.eq((org_instr.rp_s1.id & mask) | end_bits)
+        m.d.comb += rec.rp_s2.id.eq((org_instr.rp_s2.id & mask) | end_bits)
+        m.d.comb += rec.rp_dst.id.eq((org_instr.rp_dst.id & mask) | end_bits)
+        return rec
+    
+    def elaborate(self, platform):
+        m = TModule()
+
+        shift_reg = ShiftRegister(self.layouts.translator_in, self.max_lmul, self.put_instr, first_transparent=True)
+        m.submodules.shift_reg = shift_reg
+
+        @def_method(m, self.issue)
+        def _(arg):
+            mb_writes = [MethodBrancherIn(m, shift_reg.write_list[i]) for i in range(self.max_lmul)]
+            mb_report_mult = MethodBrancherIn(m, self.report_multiplicator)
+            with m.Switch(arg.vtype.lmul):
+                with m.Case(LMUL.m2):
+                    mb_writes[0](self.generate_instr(m,arg, 0x1E, 0))
+                    mb_writes[1](self.generate_instr(m,arg, 0x1E, 1))
+                    mb_report_mult(2)
+                with m.Case(LMUL.m4):
+                    mb_writes[0](self.generate_instr(m,arg, 0x1C, 0))
+                    mb_writes[1](self.generate_instr(m,arg, 0x1C, 1))
+                    mb_writes[2](self.generate_instr(m,arg, 0x1C, 2))
+                    mb_writes[3](self.generate_instr(m,arg, 0x1C, 3))
+                    mb_report_mult(4)
+                with m.Case(LMUL.m8):
+                    mb_writes[0](self.generate_instr(m,arg, 0x18, 0))
+                    mb_writes[1](self.generate_instr(m,arg, 0x18, 1))
+                    mb_writes[2](self.generate_instr(m,arg, 0x18, 2))
+                    mb_writes[3](self.generate_instr(m,arg, 0x18, 3))
+                    mb_writes[4](self.generate_instr(m,arg, 0x18, 4))
+                    mb_writes[5](self.generate_instr(m,arg, 0x18, 5))
+                    mb_writes[6](self.generate_instr(m,arg, 0x18, 6))
+                    mb_writes[7](self.generate_instr(m,arg, 0x18, 7))
+                    mb_report_mult(8)
+                with m.Case():
+                    mb_writes[0](arg)
+                    mb_report_mult(1)
+        return m
 
 class VectorTranslator(Elaboratable):
     def __init__(self, gen_params : GenParams, v_params : VectorParameters):

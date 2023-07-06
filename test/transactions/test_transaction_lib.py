@@ -964,7 +964,6 @@ class TestRegisterPipe(TestCaseWithSimulator):
             for _ in range(self.test_number):
                 while True:
                     val = random.randrange(2**self.data_width)
-                    print(k, self.virtual_regs, (yield Now()))
                     yield Settle()
                     if all( (reg is None) or try_read for reg,try_read in zip(self.virtual_regs, self.try_read)):
                         ret = yield from self.circ.write_list[k].call_try(data=val)
@@ -992,11 +991,9 @@ class TestRegisterPipe(TestCaseWithSimulator):
                         break
                 self.try_read[k]=False
                 yield from self.tick(random.randrange(3))
-                print((yield Now()))
         return f
 
     def test_random(self):
-        print()
         with self.run_simulation(self.circ) as sim:
             for k in range(self.channels):
                 sim.add_sync_process(self.input_process(k))

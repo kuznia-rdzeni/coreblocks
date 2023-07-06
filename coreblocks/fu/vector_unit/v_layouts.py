@@ -108,3 +108,4 @@ class VectorFrontendLayouts:
         self.translator_out = self.translator_in + [("rp_s3", common.p_register_entry)]
         self.get_vill = [("vill", 1)]
         self.get_vstart = [("vstart", v_params.vstart_bits)]
+        self.translator_report_multiplier_in = [("mult", 4)]

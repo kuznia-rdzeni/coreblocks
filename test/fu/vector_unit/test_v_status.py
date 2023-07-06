@@ -8,24 +8,15 @@ from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_status import *
 from collections import deque
 
-
-def generate_vsetvl_imm():
-    sew = random.choice(list(SEW))
-    lmul = random.choice(list(LMUL))
-    ta = random.randrange(2)
-    ma = random.randrange(2)
-    imm = ma << 7 | ta << 6 | sew << 3 | lmul
-    return imm, {
-        "sew": sew,
-        "lmul": lmul,
-        "ta": ta,
-        "ma": ma,
-    }
+def generate_vsetvl_imm(gen_params) -> tuple[int, dict]:
+    vtype = generate_vtype(gen_params)
+    imm = convert_vtype_to_imm(vtype)
+    return imm, get_dict_without(vtype, ["vl"])
 
 
 def generate_vsetvl(gen_params: GenParams, v_params: VectorParameters, layout: LayoutLike, last_vl: int):
     instr = generate_instr(gen_params, layout)
-    imm2, vtype = generate_vsetvl_imm()
+    imm2, vtype = generate_vsetvl_imm(gen_params)
     if eew_to_bits(vtype["sew"]) > v_params.elen:
         imm2 = 0
         vtype = {"sew": EEW(0), "lmul": LMUL(0), "ta": 0, "ma": 0}

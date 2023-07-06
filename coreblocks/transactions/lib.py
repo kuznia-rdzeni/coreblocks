@@ -39,6 +39,7 @@ __all__ = [
     "PriorityOrderingProxyTrans",
     "RegisterPipe",
     "ShiftRegister",
+    "MethodBrancherIn",
 ]
 
 # FIFOs
@@ -1659,3 +1660,17 @@ class ShiftRegister(Elaboratable):
                 m.d.sync += valids[ i ].eq(1)
 
         return m
+
+
+class MethodBrancherIn():
+    def __init__(self, m:TModule, method : Method):
+        self.m = m
+        self.method = method
+        self.rec_in = Record(method.data_in.layout)
+        self.valid_in = Signal()
+        with self.m.If(self.valid_in):
+            method(m, self.rec_in)
+
+    def __call__(self, args):
+        self.m.d.comb += self.rec_in.eq(args)
+        self.m.d.comb += self.valid_in.eq(1)

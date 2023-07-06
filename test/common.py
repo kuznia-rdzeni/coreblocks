@@ -27,9 +27,10 @@ from amaranth.sim import *
 from amaranth.sim.core import Command
 
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
-from coreblocks.transactions.lib import AdapterBase, AdapterTrans
+from coreblocks.transactions.lib import AdapterBase, AdapterTrans, Adapter, MethodLayout
 from coreblocks.transactions._utils import method_def_helper
 from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode
+from coreblocks.fu.vector_unit.utils import SEW, LMUL
 from coreblocks.utils import (
     ValueLike,
     HasElaborate,
@@ -50,9 +51,20 @@ TestGen = Generator[Union[Command, Value, Statement, None, "CoreblockCommand"], 
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 SimpleLayout = list[Tuple[str, Union[int, "SimpleLayout"]]]
 
+class MethodMock(Elaboratable):
+    def __init__(self, i : MethodLayout = (), o : MethodLayout = ()):
+        self.tb = TestbenchIO(Adapter(i=i, o=o))
+
+    def elaborate(self, platform):
+        return Fragment.get(self.tb, platform)
+
+    def get_method(self):
+        return self.tb.adapter.iface
+
 
 def data_layout(val: int) -> LayoutLike:
     return [("data", val)]
+
 
 
 def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
@@ -143,6 +155,26 @@ def overwrite_dict_values(base: dict, overwriting: Mapping) -> dict:
     return copy
 
 
+def convert_vtype_to_imm(vtype) -> int:
+    imm = vtype["ma"] << 7 | vtype["ta"] << 6 | vtype["sew"] << 3 | vtype["lmul"]
+    return imm
+
+
+def generate_vtype(gen_params : GenParams):
+    sew = random.choice(list(SEW))
+    lmul = random.choice(list(LMUL))
+    ta = random.randrange(2)
+    ma = random.randrange(2)
+    vl = random.randrange(2**gen_params.isa.xlen)
+    return {
+        "sew": sew,
+        "lmul": lmul,
+        "ta": ta,
+        "ma": ma,
+        "vl" : vl,
+    }
+
+
 def generate_instr(
     gen_params: GenParams,
     layout: LayoutLike,
@@ -195,6 +227,8 @@ def generate_instr(
             else:
                 s2_val = random.randrange(2**gen_params.isa.xlen)
             rec["s2_val"] = s2_val
+        if "vtype" in field[0]:
+            rec["vtype"] = generate_vtype(gen_params)
     return overwrite_dict_values(rec, overwriting)
 
 
@@ -595,7 +629,8 @@ def wrap_with_now(func: Callable):
 
 
 def def_method_mock(
-    tb_getter: Callable[[], TestbenchIO] | Callable[[Any], TestbenchIO], sched_prio: int = 0, **kwargs
+    tb_getter: Callable[[], TestbenchIO] | Callable[[Any], TestbenchIO] | Callable[[], MethodMock] | Callable[[Any], MethodMock],
+    sched_prio: int = 0, **kwargs
 ) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
@@ -663,6 +698,8 @@ def def_method_mock(
                     bind = getattr(v, "__get__", None)
                     kw[k] = bind(func_self) if bind else v
             tb = getter()
+            if isinstance(tb, MethodMock):
+                tb=tb.tb
             assert isinstance(tb, TestbenchIO)
             yield from tb.method_handle_loop(f, extra_settle_count=sched_prio, **kw)
 
