@@ -1617,17 +1617,8 @@ class ShiftRegister(Elaboratable):
         regs = [Signal(len(Record(self.layout))) for _ in range(self.entries_number)]
         valids=[Signal() for _ in range(self.entries_number)]
         count = Signal(log2_int(self.entries_number, False))
-        ready = Signal(reset = 1, name="rrready")
-        start = Signal(name="ssstart")
-
-        @loop_def_method(m, self.write_list, lambda _: ready)
-        def _(i, arg):
-            m.d.comb += start.eq(1)
-            if self.first_transparent and i == 0 :
-                self.put(m, arg)
-            else:
-                m.d.sync += regs[ i ].eq(arg)
-                m.d.sync += valids[ i ].eq(1)
+        ready = Signal(reset = 1)
+        start = Signal()
 
         reg_now = Signal.like(regs[0])
         reg_now_v = Signal()
@@ -1657,5 +1648,14 @@ class ShiftRegister(Elaboratable):
 
         with execute_put.body(m, request = reg_now_v):
             self.put(m,reg_now)
+
+        @loop_def_method(m, self.write_list, lambda _: ready)
+        def _(i, arg):
+            m.d.comb += start.eq(1)
+            if self.first_transparent and i == 0 :
+                self.put(m, arg)
+            else:
+                m.d.sync += regs[ i ].eq(arg)
+                m.d.sync += valids[ i ].eq(1)
 
         return m
