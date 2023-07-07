@@ -105,7 +105,7 @@ class VectorFrontendLayouts:
         ]
 
         self.status_out = self.translator_in =  layout_difference(self.status_in, fields={"imm2"}) + [("vtype", self.vtype)]
-        self.translator_out = self.translator_in + [("rp_s3", common.p_register_entry)]
+        self.translator_out = self.translator_in + [("rp_s3", common.p_register_entry), ("rp_v0", [("id", gen_params.phys_regs_bits)])]
         self.get_vill = [("vill", 1)]
         self.get_vstart = [("vstart", v_params.vstart_bits)]
-        self.translator_report_multiplier_in = [("mult", 4)]
+        self.translator_report_multiplier = [("mult", 4)]
