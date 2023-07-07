@@ -19,7 +19,7 @@ class TestLMULTranslator(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config)
         self.v_params = VectorParameters(vlen = 1024, elen = 32)
         self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
-        self.put = MethodMock(i=self.layouts.translator_in)
+        self.put = MethodMock(i=self.layouts.translator_inner)
         self.circ = SimpleTestCircuit(VectorTranslateLMUL(self.gen_params, self.v_params, self.put.get_method()))
 
         self.m = ModuleConnector(circ = self.circ, put=self.put)
@@ -48,7 +48,7 @@ class TestLMULTranslator(TestCaseWithSimulator):
 
     def process(self):
         for _ in range(self.test_number):
-            instr = generate_instr(self.gen_params, self.layouts.translator_in, support_vector=True)
+            instr = generate_instr(self.gen_params, self.layouts.translator_inner, support_vector=True)
             received_mult = (yield from self.circ.issue.call(instr))["mult"]
             expected_mult = math.ceil(lmul_to_float(instr["vtype"]["lmul"]))
             expected_list = self.generate_expected_list(instr)
@@ -86,7 +86,7 @@ class TestVectorTranslateRS3(TestCaseWithSimulator):
 
     def process(self):
         for _ in range(self.test_number):
-            instr = generate_instr(self.gen_params, self.layouts.translator_in, support_vector=True)
+            instr = generate_instr(self.gen_params, self.layouts.translator_inner, support_vector=True)
             yield from self.circ.issue.call(instr)
             expected_instr = self.generate_expected_instr(instr)
             yield Settle()

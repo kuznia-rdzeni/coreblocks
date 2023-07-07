@@ -105,7 +105,34 @@ class VectorFrontendLayouts:
         ]
 
         self.status_out = self.translator_in =  layout_difference(self.status_in, fields={"imm2"}) + [("vtype", self.vtype)]
-        self.translator_out = self.translator_in + [("rp_s3", common.p_register_entry), ("rp_v0", [("id", gen_params.phys_regs_bits)])]
+        self.translator_inner = layout_difference(self.translator_in, fields= {"imm"})
+        self.translator_out = self.translator_inner + [("rp_s3", common.p_register_entry), ("rp_v0", [("id", gen_params.phys_regs_bits)])]
+        self.alloc_rename_out = self.alloc_rename_in = self.translator_out
         self.get_vill = [("vill", 1)]
         self.get_vstart = [("vstart", v_params.vstart_bits)]
         self.translator_report_multiplier = [("mult", 4)]
+
+
+        self.instr_to_mem = [
+            ("rp_s1", common.p_register_entry),
+            ("rp_s2", common.p_register_entry),
+            ("rp_s3", common.p_register_entry),
+            ("rp_v0", [("id", gen_params.phys_regs_bits)]),
+            ("rp_dst", common.p_register_entry),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("exec_fn", common.exec_fn),
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
+            ("imm2", gen_params.imm2_width),
+                ]
+
+        self.instr_to_vvrs = [
+            ("rp_s1", common.p_register_entry),
+            ("rp_s2", common.p_register_entry),
+            ("rp_s3", common.p_register_entry),
+            ("rp_v0", [("id", gen_params.phys_regs_bits)]),
+            ("rp_dst", common.p_register_entry),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("exec_fn", common.exec_fn),
+            ("s1_val", gen_params.isa.xlen),
+                ]

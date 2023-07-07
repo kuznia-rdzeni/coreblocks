@@ -134,13 +134,13 @@ class VectorTranslateLMUL(Elaboratable):
        self.v_params = v_params
 
        self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
-       self.issue = Method(i= self.layouts.translator_in, o=self.layouts.translator_report_multiplier)
+       self.issue = Method(i= self.layouts.translator_inner, o=self.layouts.translator_report_multiplier)
        self.put_instr = put_instr
 
        self.max_lmul = 8
 
     def generate_instr(self, m : TModule, org_instr, mask : int, end_bits : int):
-        rec = Record(self.layouts.translator_in)
+        rec = Record(self.layouts.translator_inner)
         m.d.comb += assign(rec, org_instr)
         m.d.comb += rec.vtype.lmul.eq(LMUL.m1)
         m.d.comb += rec.rp_s1.id.eq((org_instr.rp_s1.id & mask) | end_bits)
@@ -151,7 +151,7 @@ class VectorTranslateLMUL(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        shift_reg = ShiftRegister(self.layouts.translator_in, self.max_lmul, self.put_instr, first_transparent=True)
+        shift_reg = ShiftRegister(self.layouts.translator_inner, self.max_lmul, self.put_instr, first_transparent=True)
         m.submodules.shift_reg = shift_reg
 
         @def_method(m, self.issue)
@@ -191,7 +191,7 @@ class VectorTranslateRS3(Elaboratable):
        self.v_params = v_params
 
        self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
-       self.issue = Method(i= self.layouts.translator_in)
+       self.issue = Method(i= self.layouts.translator_inner)
        self.put_instr = put_instr
 
     def elaborate(self, platform) -> TModule:
@@ -203,9 +203,31 @@ class VectorTranslateRS3(Elaboratable):
             m.d.top_comb += assign(rec, arg)
             m.d.top_comb += rec.rp_s3.eq(arg.rp_dst)
             m.d.top_comb += rec.rp_v0.id.eq(0)
+            #TODO add support for stores (rp_dst set to non valid - type X)
             self.put_instr(m, rec)
 
         return m
+
+class VectorTranslateRewirteImm(Elaboratable):
+    def __init__(self, gen_params : GenParams, v_params : VectorParameters):
+       self.gen_params = gen_params
+       self.v_params = v_params
+
+       self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+       self.issue = Method(i= self.layouts.translator_in, o =self.layouts.translator_inner )
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        @def_method(m, self.issue)
+        def _(arg):
+            rec = Record(self.layouts.translator_inner)
+            m.d.comb += assign(rec, arg, fields=AssignType.COMMON)
+            with m.If((arg.exec_fn.funct3 == Funct3.OPIVI) & (arg.exec_fn.op_type != OpType.V_MEMORY)):
+                m.d.comb += rec.s1_val.eq(arg.imm)
+            return rec
+        return m
+                
 
 class VectorTranslator(Elaboratable):
     def __init__(self, gen_params : GenParams, v_params : VectorParameters, put_instr : Method, retire_mult : Method):
@@ -222,10 +244,12 @@ class VectorTranslator(Elaboratable):
 
         m.submodules.transl_rp3 = transl_rp3 = VectorTranslateRS3(self.gen_params, self.v_params, self.put_instr)
         m.submodules.transl_lmul = transl_lmul =VectorTranslateLMUL(self.gen_params, self.v_params, transl_rp3.issue)
+        m.submodules.transl_rewrite_imm = transl_rewrite_imm = VectorTranslateRewirteImm(self.gen_params, self.v_params)
 
         @def_method(m, self.issue)
         def _(arg):
-            mult = transl_lmul.issue(m, arg)
+            rewrited_imm = transl_rewrite_imm.issue(m, arg)
+            mult = transl_lmul.issue(m, rewrited_imm)
             self.retire_mult(m, mult)
 
         return m

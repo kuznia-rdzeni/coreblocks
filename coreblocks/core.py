@@ -107,7 +107,8 @@ class Core(Elaboratable):
         m.submodules.scheduler = Scheduler(
             get_instr=fifo_decode.read,
             get_free_reg=free_rf_fifo.read,
-            rat_rename=frat.rename,
+            rat_get_rename=frat.get_rename_list[0],
+            rat_set_rename=frat.set_rename_list[0],
             rob_put=rob.put,
             rf_read1=rf.read1,
             rf_read2=rf.read2,

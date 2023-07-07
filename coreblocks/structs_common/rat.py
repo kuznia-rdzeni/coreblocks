@@ -37,27 +37,26 @@ class FRAT(Elaboratable):
         """
         self.gen_params = gen_params
         self.superscalarity = superscalarity
-        layouts = gen_params.get(RATLayouts)
-        self.rename_input_layout = layouts.rat_rename_in
-        self.rename_output_layout = layouts.rat_rename_out
+        self.layouts = gen_params.get(RATLayouts)
 
         self.entries = Array(Signal(self.gen_params.phys_regs_bits) for _ in range(self.gen_params.isa.reg_cnt))
 
         if self.superscalarity < 1:
             raise ValueError(f"FRAT should have minimum one method, so superscalarity>=1, got: {self.superscalarity}")
-        self.rename_list = [
-            Method(i=self.rename_input_layout, o=self.rename_output_layout) for _ in range(self.superscalarity)
-        ]
-        # for backward compatibility
-        self.rename = self.rename_list[0]
+
+        self.set_rename_list = [ Method(i=self.layouts.set_rename_in) for _ in range(self.superscalarity) ]
+        self.get_rename_list = [ Method(i=self.layouts.get_rename_in, o=self.layouts.get_rename_out) for _ in range(self.superscalarity) ]
 
     def elaborate(self, platform):
         m = TModule()
 
-        @loop_def_method(m, self.rename_list)
-        def _(_, rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value):
-            m.d.sync += self.entries[rl_dst].eq(rp_dst)
+        @loop_def_method(m, self.get_rename_list)
+        def _(_, rl_s1: Value, rl_s2: Value):
             return {"rp_s1": self.entries[rl_s1], "rp_s2": self.entries[rl_s2]}
+
+        @loop_def_method(m, self.set_rename_list)
+        def _(_, rp_dst: Value, rl_dst: Value):
+            m.d.sync += self.entries[rl_dst].eq(rp_dst)
 
         return m
 

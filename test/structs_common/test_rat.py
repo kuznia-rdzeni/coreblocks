@@ -24,9 +24,16 @@ class TestFRAT(TestCaseWithSimulator):
                 rp_dst = generate_phys_register_id(gen_params=self.gen_params)
                 cycle = yield Now()
                 rl_dst = self.unique_rl_dst_generator(cycle, lambda: generate_l_register_id(gen_params=self.gen_params))
-                req = {"rl_s1": rl_s1, "rl_s2": rl_s2, "rl_dst": rl_dst, "rp_dst": rp_dst}
+                req_get = {"rl_s1": rl_s1, "rl_s2": rl_s2}
+                req_set = {"rl_dst": rl_dst, "rp_dst": rp_dst}
 
-                resp = yield from self.circ.rename_list[k].call(req)
+                yield from self.circ.get_rename_list[k].call_init(req_get)
+                yield from self.circ.set_rename_list[k].call_init(req_set)
+                yield
+                resp = yield from self.circ.get_rename_list[k].call_result()
+                yield from self.circ.get_rename_list[k].disable()
+                yield from self.circ.set_rename_list[k].disable()
+
                 self.assertIsNotNone(resp)
 
                 if rl_s1 in self.virtual_rat:
