@@ -322,7 +322,8 @@ def count_leading_zeros(s: Value) -> Value:
     try:
         xlen_log = log2_int(len(s))
     except ValueError:
-        raise NotImplementedError("CountLeadingZeros - only sizes aligned to power of 2 are supperted")
+        xlen_log = log2_int(len(s), False)
+        s = Cat(Repl(1, (1<<xlen_log) - len(s)), s)
 
     value = iter(s, xlen_log)
 
@@ -339,7 +340,7 @@ def count_trailing_zeros(s: Value) -> Value:
     try:
         log2_int(len(s))
     except ValueError:
-        raise NotImplementedError("CountTrailingZeros - only sizes aligned to power of 2 are supperted")
+        s = Cat(s, Repl(1, (1<<log2_int(len(s), False)) - len(s)))
 
     return count_leading_zeros(s[::-1])
 

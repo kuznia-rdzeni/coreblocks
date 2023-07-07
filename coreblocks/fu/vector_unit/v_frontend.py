@@ -14,6 +14,7 @@ from coreblocks.fu.vector_unit.v_status import *
 from coreblocks.fu.vector_unit.v_translator import *
 from coreblocks.fu.vector_unit.v_alloc_rename import *
 
+__all__ = ["VectorFrontend"]
 
 class VectorMemoryVVRSSplitter(Elaboratable):
     def __init__(self, gen_params : GenParams, v_params : VectorParameters, put_to_mem : Method, put_to_vvrs : Method):
@@ -32,11 +33,11 @@ class VectorMemoryVVRSSplitter(Elaboratable):
         def _(arg):
             with m.If(arg.exec_fn.op_type == OpType.V_MEMORY):
                 rec_mem = Record(self.layouts.instr_to_mem)
-                m.d.top_comb = assign(rec_mem, arg, fields = AssignType.COMMON)
+                m.d.top_comb += assign(rec_mem, arg, fields = AssignType.COMMON)
                 self.put_to_mem(m, rec_mem)
             with m.Else():
                 rec_vvrs = Record(self.layouts.instr_to_vvrs)
-                m.d.top_comb = assign(rec_vvrs, arg, fields = AssignType.COMMON)
+                m.d.top_comb += assign(rec_vvrs, arg, fields = AssignType.COMMON)
                 self.put_to_vvrs(m, rec_vvrs)
         return m
 
@@ -76,7 +77,7 @@ class VectorFrontend(Elaboratable):
         self.insert.proxy(m, vxrs.insert)
         self.select.proxy(m, vxrs.select)
         self.update.proxy(m, vxrs.update)
-        m.submodules.wakeup_xrs = wakeup_xrs = WakeupSelect(gen_params = self.gen_params, get_ready = vxrs.get_ready_list[0],take_row = vxrs.take, issue= verificator.issue)
+        m.submodules.wakeup_xrs = wakeup_xrs = WakeupSelect(gen_params = self.gen_params, get_ready = vxrs.get_ready_list[0],take_row = vxrs.take, issue= verificator.issue, row_layout = self.layouts.verification_in)
 
         
         m.submodules.fifo_from_translator = fifo_from_translator = BasicFifo(self.layouts.translator_out, 2)

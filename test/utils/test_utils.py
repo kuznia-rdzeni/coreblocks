@@ -80,10 +80,9 @@ class TestPopcount(TestCaseWithSimulator):
 
 
 class CLZTestCircuit(Elaboratable):
-    def __init__(self, xlen_log: int):
-        self.sig_in = Signal(1 << xlen_log)
-        self.sig_out = Signal(xlen_log + 1)
-        self.xlen_log = xlen_log
+    def __init__(self, xlen: int):
+        self.sig_in = Signal(xlen)
+        self.sig_out = Signal(xlen + 1)
 
     def elaborate(self, platform):
         m = Module()
@@ -98,7 +97,7 @@ class CLZTestCircuit(Elaboratable):
 
 @parameterized_class(
     ("name", "size"),
-    [("size" + str(s), s) for s in range(1, 7)],
+    [("size" + str(s), s) for s in [1,2,4,8,16,32,3,5,13,42,111]],
 )
 class TestCountLeadingZeros(TestCaseWithSimulator):
     size: int
@@ -112,7 +111,7 @@ class TestCountLeadingZeros(TestCaseWithSimulator):
         yield self.m.sig_in.eq(n)
         yield Settle()
         out_clz = yield self.m.sig_out
-        self.assertEqual(out_clz, (2**self.size) - n.bit_length(), f"{n:x}")
+        self.assertEqual(out_clz, self.size - n.bit_length(), f"{n:x}")
 
     def process(self):
         for i in range(self.test_number):
@@ -126,10 +125,9 @@ class TestCountLeadingZeros(TestCaseWithSimulator):
 
 
 class CTZTestCircuit(Elaboratable):
-    def __init__(self, xlen_log: int):
-        self.sig_in = Signal(1 << xlen_log)
-        self.sig_out = Signal(xlen_log + 1)
-        self.xlen_log = xlen_log
+    def __init__(self, xlen: int):
+        self.sig_in = Signal(xlen)
+        self.sig_out = Signal(xlen + 1)
 
     def elaborate(self, platform):
         m = Module()
@@ -144,7 +142,7 @@ class CTZTestCircuit(Elaboratable):
 
 @parameterized_class(
     ("name", "size"),
-    [("size" + str(s), s) for s in range(1, 7)],
+    [("size" + str(s), s) for s in [1,2,4,8,16,32,3,5,13,42,111]],
 )
 class TestCountTrailingZeros(TestCaseWithSimulator):
     size: int
@@ -161,7 +159,7 @@ class TestCountTrailingZeros(TestCaseWithSimulator):
 
         expected = 0
         if n == 0:
-            expected = 2**self.size
+            expected = self.size
         else:
             while (n & 1) == 0:
                 expected += 1

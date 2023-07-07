@@ -116,23 +116,25 @@ class VectorFrontendLayouts:
         self.instr_to_mem = [
             ("rp_s1", common.p_register_entry),
             ("rp_s2", common.p_register_entry),
-            ("rp_s3", common.p_register_entry),
-            ("rp_v0", [("id", gen_params.phys_regs_bits)]),
             ("rp_dst", common.p_register_entry),
             ("rob_id", gen_params.rob_entries_bits),
             ("exec_fn", common.exec_fn),
             ("s1_val", gen_params.isa.xlen),
             ("s2_val", gen_params.isa.xlen),
             ("imm2", gen_params.imm2_width),
-                ]
+            ("vtype", self.vtype),
+            ("rp_s3", common.p_register_entry),
+            ("rp_v0", [("id", gen_params.phys_regs_bits)]),
+            ]
 
         self.instr_to_vvrs = [
             ("rp_s1", common.p_register_entry),
             ("rp_s2", common.p_register_entry),
-            ("rp_s3", common.p_register_entry),
-            ("rp_v0", [("id", gen_params.phys_regs_bits)]),
             ("rp_dst", common.p_register_entry),
             ("rob_id", gen_params.rob_entries_bits),
             ("exec_fn", common.exec_fn),
             ("s1_val", gen_params.isa.xlen),
+            ("vtype", self.vtype),
+            ("rp_s3", common.p_register_entry),
+            ("rp_v0", [("id", gen_params.phys_regs_bits)]),
                 ]

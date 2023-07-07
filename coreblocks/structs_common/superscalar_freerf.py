@@ -52,7 +52,7 @@ class SuperscalarFreeRF(Elaboratable):
         m.submodules.priority_encoder = encoder = MultiPriorityEncoder(self.entries_count, self.outputs_count)
         m.d.top_comb += encoder.input.eq(self.used)
 
-        free_count = Signal(log2_int(self.entries_count, False))
+        free_count = Signal(log2_int(self.entries_count, False), name="free_count")
         m.d.top_comb += free_count.eq(count_trailing_zeros(~Cat(encoder.valids)))
 
         regs = [Signal.like(encoder.outputs[j]) for j in range(self.outputs_count)]
@@ -61,7 +61,9 @@ class SuperscalarFreeRF(Elaboratable):
         @def_method(m, self.allocate)
         def _(reg_count):
             with condition(m, nonblocking=False) as branch:
-                with branch((reg_count <= free_count) & (reg_count > 0)):
+                branch_cond = Signal(name="moj_warunek")
+                m.d.top_comb += branch_cond.eq((reg_count <= free_count) & (reg_count > 0))
+                with branch(branch_cond):
                     mask = (1 << reg_count) - 1
                     for j in range(self.outputs_count):
                         used_bit = Signal()

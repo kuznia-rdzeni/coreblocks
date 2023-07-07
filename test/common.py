@@ -202,7 +202,7 @@ def generate_instr(
             rec["regs_l"] = generate_register_set(width, support_vector=support_vector)
         if "regs_p" in field[0]:
             rec["regs_p"] = generate_register_set(reg_phys_width, support_vector=support_vector)
-        for label in ["rp_dst", "rp_s1", "rp_s2"]:
+        for label in ["rp_dst", "rp_s1", "rp_s2", "rp_s3"]:
             if label in field[0]:
                 rec[label] = generate_register_entry(reg_phys_width, support_vector=support_vector)
         if "exec_fn" in field[0]:
@@ -229,6 +229,8 @@ def generate_instr(
             rec["s2_val"] = s2_val
         if "vtype" in field[0]:
             rec["vtype"] = generate_vtype(gen_params)
+        if "rp_v0" in field[0]:
+            rec["rp_v0"] = {"id" : generate_phys_register_id(gen_params=gen_params)}
     return overwrite_dict_values(rec, overwriting)
 
 
