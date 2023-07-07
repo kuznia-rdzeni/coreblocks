@@ -12,10 +12,6 @@ from coreblocks.utils._typing import ValueLike
 
 __all__ = ["VectorAllocRename"]
 
-class NotMethod():
-    def __init__(self, method : Method):
-        self.method = method
-
 class VectorAllocRename(Elaboratable):
     def __init__(self, gen_params : GenParams, v_params : VectorParameters, alloc : Method, get_rename1 : Method, get_rename2 : Method, set_rename : Method):
         self.gen_params = gen_params

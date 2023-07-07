@@ -1000,9 +1000,12 @@ class TestRegisterPipe(TestCaseWithSimulator):
                 sim.add_sync_process(self.output_process(k))
 
 
-@parameterized_class("transparent", [(True,), (False,)])
+@parameterized_class(["transparent", "mock_enable"], 
+                     itertools.product([True, False], [lambda _: True, lambda _: random.random()<0.1])
+                     )
 class TestShiftRegister(TestCaseWithSimulator):
     transparent : bool
+    mock_enable : Callable
     def setUp(self):
         self.test_number = 50
         self.input_width = 8
@@ -1018,7 +1021,7 @@ class TestShiftRegister(TestCaseWithSimulator):
         self.received_data=deque()
         self.expected_data = deque()
 
-    @def_method_mock(lambda self: self.put)
+    @def_method_mock(lambda self: self.put, enable = lambda self: self.mock_enable())
     def put_process(self, data):
         self.received_data.append(data)
 

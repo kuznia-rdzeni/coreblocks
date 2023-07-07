@@ -53,7 +53,7 @@ class VectorFrontend(Elaboratable):
         #TODO Prepare more retire methods to use in different places
         self.retire = retire
         self.retire_mult = retire_mult
-        self.alloc_reg = alloc_reg
+        self.alloc_reg = NotMethod(alloc_reg)
         self.get_rename1_frat = get_rename1_frat
         self.get_rename2_frat = get_rename2_frat
         self.set_rename_frat = set_rename_frat
@@ -85,7 +85,7 @@ class VectorFrontend(Elaboratable):
 
         m.submodules.from_status_to_tranlator = ConnectTrans(fifo_from_v_status.read, translator.issue)
         
-        m.submodules.alloc_rename = alloc_rename = VectorAllocRename(self.gen_params, self.v_params, self.alloc_reg, self.get_rename1_frat, self.get_rename2_frat, self.set_rename_frat)
+        m.submodules.alloc_rename = alloc_rename = VectorAllocRename(self.gen_params, self.v_params, self.alloc_reg.method, self.get_rename1_frat, self.get_rename2_frat, self.set_rename_frat)
         m.submodules.splitter = splitter = VectorMemoryVVRSSplitter(self.gen_params, self.v_params, self.put_to_mem, self.put_to_vvrs)
         
         with Transaction(name="allocating").body(m):

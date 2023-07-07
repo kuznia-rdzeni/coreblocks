@@ -40,6 +40,7 @@ __all__ = [
     "RegisterPipe",
     "ShiftRegister",
     "MethodBrancherIn",
+    "NotMethod",
 ]
 
 # FIFOs
@@ -1637,7 +1638,8 @@ class ShiftRegister(Elaboratable):
                 with m.State(f"{i}"):
                     m.d.comb += ready.eq(0)
                     if i+1 == self.entries_number:
-                        m.next = "start"
+                        with m.If(execute_put.grant):
+                            m.next = "start"
                     else:
                         with m.If(valids[i+1] & execute_put.grant):
                             m.next = f"{i+1}"
@@ -1674,3 +1676,7 @@ class MethodBrancherIn():
     def __call__(self, args):
         self.m.d.comb += self.rec_in.eq(args)
         self.m.d.comb += self.valid_in.eq(1)
+
+class NotMethod():
+    def __init__(self, method : Method):
+        self.method = method

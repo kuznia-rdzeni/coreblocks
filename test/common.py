@@ -494,6 +494,10 @@ class TestCaseWithSimulator(unittest.TestCase):
     def assertIterableEqual(self, it1, it2):
         self.assertListEqual(list(it1), list(it2))
 
+    def assertFieldsEqual(self, dict1, dict2, fields : Iterable):
+        for field in fields:
+            self.assertEqual(dict1[field], dict2[field], field)
+
 
 class TestbenchIO(Elaboratable):
     def __init__(self, adapter: AdapterBase):

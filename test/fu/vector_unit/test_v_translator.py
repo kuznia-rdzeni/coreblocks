@@ -9,10 +9,14 @@ from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_status import *
 from coreblocks.fu.vector_unit.v_translator import VectorTranslateLMUL, VectorTranslateRS3
 from collections import deque
+from parameterized import parameterized_class
 import copy
 
 
+@parameterized_class(["name", "mock_enable"],
+                     [("always_enable", lambda _: True), ("seldom_enable", lambda _ : random.random()<0.1)])
 class TestLMULTranslator(TestCaseWithSimulator):
+    mock_enable : Callable
     def setUp(self):
         random.seed(14)
         self.test_number = 50
@@ -26,12 +30,12 @@ class TestLMULTranslator(TestCaseWithSimulator):
 
         self.received_instr=deque()
 
-    @def_method_mock(lambda self: self.put, sched_prio = 1)
+    @def_method_mock(lambda self: self.put, sched_prio = 1, enable = lambda self: self.mock_enable())
     def put_process(self, arg):
         self.received_instr.append(arg)
 
     def generate_expected_list(self, instr):
-        lmul = math.ceil(lmul_to_float(instr["vtype"]["lmul"]))
+        lmul = lmul_to_int(instr["vtype"]["lmul"])
         instr["rp_s1"]["id"] -= (instr["rp_s1"]["id"]%lmul)
         instr["rp_s2"]["id"] -= (instr["rp_s2"]["id"]%lmul)
         instr["rp_dst"]["id"] -= (instr["rp_dst"]["id"]%lmul)
@@ -50,7 +54,7 @@ class TestLMULTranslator(TestCaseWithSimulator):
         for _ in range(self.test_number):
             instr = generate_instr(self.gen_params, self.layouts.translator_inner, support_vector=True)
             received_mult = (yield from self.circ.issue.call(instr))["mult"]
-            expected_mult = math.ceil(lmul_to_float(instr["vtype"]["lmul"]))
+            expected_mult = lmul_to_int(instr["vtype"]["lmul"])
             expected_list = self.generate_expected_list(instr)
             yield from self.tick(expected_mult)
             yield Settle()

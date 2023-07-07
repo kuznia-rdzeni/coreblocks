@@ -42,8 +42,19 @@ def generate_vsetvl(gen_params: GenParams, v_params: VectorParameters, layout: L
     return instr, vtype
 
 
-def generate_vector_instr(gen_params: GenParams, v_params: VectorParameters, layout: LayoutLike, not_balanced_vsetvl = False):
-    instr = generate_instr(gen_params, layout, support_vector = True)
-    if instr["exec_fn"]["op_type"]==OpType.V_CONTROL or (not_balanced_vsetvl and random.randrange(2)):
-        instr = get_dict_subset(generate_vsetvl(gen_params, v_params, layout)[0], [field[0] for field in layout])
-    return instr
+def get_vector_instr_generator():
+    last_vtype = {"vl" :0, "ma" : 0, "ta" : 0, "sew":0, "lmul":0}
+    first_instr = True
+    def f(gen_params: GenParams, v_params: VectorParameters, layout: LayoutLike, not_balanced_vsetvl = False):
+        nonlocal last_vtype
+        nonlocal first_instr
+        if first_instr:
+            instr, last_vtype = generate_vsetvl(gen_params, v_params, layout)
+            first_instr = False
+            return instr, last_vtype
+
+        instr = generate_instr(gen_params, layout, support_vector = True)
+        if instr["exec_fn"]["op_type"]==OpType.V_CONTROL or (not_balanced_vsetvl and random.randrange(2)):
+            instr, last_vtype = generate_vsetvl(gen_params, v_params, layout)
+        return instr, last_vtype
+    return f
