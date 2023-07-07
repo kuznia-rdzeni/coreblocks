@@ -12,11 +12,7 @@ from collections import deque
 from parameterized import parameterized_class
 import copy
 
-
-@parameterized_class(["name", "mock_enable"],
-                     [("always_enable", lambda _: True), ("seldom_enable", lambda _ : random.random()<0.1)])
 class TestLMULTranslator(TestCaseWithSimulator):
-    mock_enable : Callable
     def setUp(self):
         random.seed(14)
         self.test_number = 50
@@ -50,21 +46,37 @@ class TestLMULTranslator(TestCaseWithSimulator):
         return out
 
 
-    def process(self):
-        for _ in range(self.test_number):
-            instr = generate_instr(self.gen_params, self.layouts.translator_inner, support_vector=True)
-            received_mult = (yield from self.circ.issue.call(instr))["mult"]
-            expected_mult = lmul_to_int(instr["vtype"]["lmul"])
-            expected_list = self.generate_expected_list(instr)
-            yield from self.tick(expected_mult)
-            yield Settle()
-            self.assertEqual(expected_mult, received_mult)
-            self.assertIterableEqual(expected_list, self.received_instr)
-            self.received_instr.clear()
+    def process(self, waiter):
+        def f():
+            for _ in range(self.test_number):
+                instr = generate_instr(self.gen_params, self.layouts.translator_inner, support_vector=True)
+                received_mult = (yield from self.circ.issue.call(instr))["mult"]
+                expected_mult = lmul_to_int(instr["vtype"]["lmul"])
+                expected_list = self.generate_expected_list(instr)
+                yield from waiter(expected_mult)
+                yield Settle()
+                self.assertEqual(expected_mult, received_mult)
+                self.assertIterableEqual(expected_list, self.received_instr)
+                self.received_instr.clear()
+        return f
+
+    def waiter_in_pipeline(self, expected_mult):
+        yield from self.tick(expected_mult)
+
+    def waiter_in_random(self, expected_mult):
+        while len(self.received_instr) < expected_mult:
+            yield
+
+    def test_pipeline(self):
+        self.mock_enable = lambda: True
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.process(self.waiter_in_pipeline))
+            sim.add_sync_process(self.put_process)
 
     def test_random(self):
+        self.mock_enable = lambda : random.random()<0.1
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.process)
+            sim.add_sync_process(self.process(self.waiter_in_random))
             sim.add_sync_process(self.put_process)
 
 class TestVectorTranslateRS3(TestCaseWithSimulator):
