@@ -1654,7 +1654,8 @@ class ShiftRegister(Elaboratable):
 
         @loop_def_method(m, self.write_list, lambda _: ready)
         def _(i, arg):
-            m.d.comb += start.eq(1)
+            if i==0:
+                m.d.comb += start.eq(1)
             if self.first_transparent and i == 0 :
                 self.put(m, arg)
             else:

@@ -1000,12 +1000,11 @@ class TestRegisterPipe(TestCaseWithSimulator):
                 sim.add_sync_process(self.output_process(k))
 
 
-@parameterized_class(["transparent", "mock_enable"], 
-                     itertools.product([True, False], [lambda _: True, lambda _: random.random()<0.1])
+@parameterized_class(["transparent"], 
+                     [(True,), (False,)]
                      )
 class TestShiftRegister(TestCaseWithSimulator):
     transparent : bool
-    mock_enable : Callable
     def setUp(self):
         self.test_number = 50
         self.input_width = 8
@@ -1021,7 +1020,7 @@ class TestShiftRegister(TestCaseWithSimulator):
         self.received_data=deque()
         self.expected_data = deque()
 
-    @def_method_mock(lambda self: self.put, enable = lambda self: self.mock_enable())
+    @def_method_mock(lambda self: self.put, enable = lambda self: self.mock_enable(), sched_prio = 1)
     def put_process(self, data):
         self.received_data.append(data)
 
@@ -1029,23 +1028,42 @@ class TestShiftRegister(TestCaseWithSimulator):
         for k in range(self.entries_number):
             yield from self.circ.write_list[k].disable()
 
-    def input_process(self):
-        for _ in range(self.test_number):
-            n = random.randrange(1,self.entries_number)
-            for k in range(n):
-                val = random.randrange(2**self.input_width)
-                yield from self.circ.write_list[k].call_init(data=val)
-                self.expected_data.append(val)
-            yield Settle()
-            for i in range(n-self.transparent+1):
-                yield
+    def input_process(self, checker):
+        def f():
+            for _ in range(self.test_number):
+                n = random.randrange(1,self.entries_number)
+                for k in range(n):
+                    val = random.randrange(2**self.input_width)
+                    yield from self.circ.write_list[k].call_init(data=val)
+                    self.expected_data.append(val)
+                yield from checker(n)
                 yield from self.disable_all()
-            yield from self.disable_all()
-            self.assertIterableEqual(self.expected_data, self.received_data)
-            self.expected_data.clear()
-            self.received_data.clear()
+                self.assertIterableEqual(self.expected_data, self.received_data)
+                self.expected_data.clear()
+                self.received_data.clear()
+        return f
 
-    def test_random(self):
+    def check_pipeline(self, n):
+        yield Settle()
+        for i in range(n-self.transparent+1):
+            yield
+            yield from self.disable_all()
+
+    def check_random(self, n):
+        yield Settle()
+        while len(self.received_data)<len(self.expected_data):
+            yield
+            if (yield from self.circ.write_list[0].done()):
+                yield from self.disable_all()
+
+    def test_pipeline(self):
+        self.mock_enable = lambda : True
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.input_process)
+            sim.add_sync_process(self.input_process(self.check_pipeline))
+            sim.add_sync_process(self.put_process)
+
+    def test_random_wait(self):
+        self.mock_enable = lambda : random.random()<0.1
+        with self.run_simulation(self.m, 3000) as sim:
+            sim.add_sync_process(self.input_process(self.check_random))
             sim.add_sync_process(self.put_process)
