@@ -69,14 +69,11 @@ class ReorderBuffer(Elaboratable):
             m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.data[start_idx].done.eq(0)
             entry = self.data[start_idx].rob_data
-            return {
-                "rp_dst": entry.rp_dst,
-                "pc": entry.pc,
-            }
+            return {"rp_dst": entry.rp_dst}
 
-        # TODO: There is a potential race condition when ROB is flushed.
-        # If functional units aren't flushed, finished obsolete instructions
-        # could mark fields in ROB as done when they shouldn't.
+        # For correctness, flushing functional units needs to be done to
+        # avoid marking entries in the ROB that don't correspond to them
+        # anymore because they got flushed - this is currently implemented
         @def_method(m, self.mark_done)
         def _(rob_id: Value):
             m.d.sync += self.data[rob_id].done.eq(1)

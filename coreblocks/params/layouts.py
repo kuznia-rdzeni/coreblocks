@@ -135,10 +135,7 @@ class ROBLayouts:
 
         self.empty = [("empty", 1)]
 
-        self.flush_layout = [
-            ("rp_dst", gen_params.phys_regs_bits),
-            ("pc", gen_params.isa.xlen),
-        ]
+        self.flush_layout = [("rp_dst", gen_params.phys_regs_bits)]
 
         self.get_indices = [("start", gen_params.rob_entries_bits), ("end", gen_params.rob_entries_bits)]
 
