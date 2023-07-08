@@ -42,7 +42,7 @@ class RS(Elaboratable, Generic[T]):
         if self.superscalarity<1:
             raise ValueError("Requested less than 1 input port.")
 
-        self.insert_list = [Method(i=self.layouts.insert_in) for _ in range(self.superscalarity)]
+        self.insert_list = [Method(i=self.layouts.insert_in, name="insert{i}") for i in range(self.superscalarity)]
         self.insert = self.insert_list[0]
         self.select_list = [Method(o=self.layouts.select_out) for _ in range(self.superscalarity)]
         self.select = self.select_list[0]
@@ -149,12 +149,14 @@ class FifoRS(RS[T]):
         def _():
             # ignore rs_entry_id because we always insert data to first empty slot
             return
-
-        @def_method(m, self.insert, ready=mod_incr(self.first_empty, self.rs_entries) != self.oldest_full)
+    
+        next_after_empty = Signal().like(self.first_empty)
+        m.d.top_comb += next_after_empty.eq(mod_incr(self.first_empty, self.rs_entries))
+        @def_method(m, self.insert, ready= next_after_empty != self.oldest_full)
         def _(rs_entry_id, rs_data):
             m.d.sync += self.data[self.first_empty].rs_data.eq(rs_data)
             m.d.sync += self.data[self.first_empty].rec_full.eq(1)
-            m.d.sync += self.first_empty.eq(mod_incr(self.first_empty, self.rs_entries))
+            m.d.sync += self.first_empty.eq(next_after_empty)
 
         self.define_update_method(m)
         self.generate_rec_ready_setters(m)

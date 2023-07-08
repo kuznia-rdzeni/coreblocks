@@ -45,7 +45,7 @@ def generate_vsetvl(gen_params: GenParams, v_params: VectorParameters, layout: L
 def get_vector_instr_generator():
     last_vtype = {"vl" :0, "ma" : 0, "ta" : 0, "sew":0, "lmul":0}
     first_instr = True
-    def f(gen_params: GenParams, v_params: VectorParameters, layout: LayoutLike, not_balanced_vsetvl = False):
+    def f(gen_params: GenParams, v_params: VectorParameters, layout: LayoutLike, not_balanced_vsetvl = False, vsetvl_different_rp_id : bool = False):
         nonlocal last_vtype
         nonlocal first_instr
         if first_instr:
@@ -56,5 +56,7 @@ def get_vector_instr_generator():
         instr = generate_instr(gen_params, layout, support_vector = True)
         if instr["exec_fn"]["op_type"]==OpType.V_CONTROL or (not_balanced_vsetvl and random.randrange(2)):
             instr, last_vtype = generate_vsetvl(gen_params, v_params, layout)
+            while vsetvl_different_rp_id and instr["rp_s1"]["id"] == instr["rp_s2"]["id"]:
+                instr, last_vtype = generate_vsetvl(gen_params, v_params, layout)
         return instr, last_vtype
     return f
