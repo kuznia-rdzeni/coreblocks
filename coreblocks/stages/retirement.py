@@ -39,7 +39,7 @@ class Retirement(Elaboratable):
         m.submodules.instret_csr = self.instret_csr
 
         # start_idx of last instruction that got sent a precommit
-        last_precommit_id = Signal()
+        last_precommit_id = Signal(self.gen_params.rob_entries_bits)
         # stall request from outside
         stall_req = Signal()
         imm_stall_req = Signal()

@@ -54,6 +54,9 @@ class RetirementTestCircuit(Elaboratable):
             rob_get_indices=self.mock_rob_get_indices.adapter.iface,
         )
 
+        m.submodules.stall = self.stall = TestbenchIO(AdapterTrans(self.retirement.stall))
+        m.submodules.unstall = self.unstall = TestbenchIO(AdapterTrans(self.retirement.unstall))
+
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
 
         return m
@@ -67,9 +70,11 @@ class RetirementTest(TestCaseWithSimulator):
         self.submit_q = deque()
         self.rf_free_q = deque()
         self.precommit_q = deque()
+        self.done_q = deque()
 
         random.seed(8)
         self.cycles = 256
+        self.stalled = False
 
         rat_state = [0] * self.gen_params.isa.reg_cnt
 
@@ -86,14 +91,21 @@ class RetirementTest(TestCaseWithSimulator):
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
                 self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp, "pc": pc}, "rob_id": rob_id})
                 self.precommit_q.append(rob_id)
+                # done_q contains amount of precommit calls needed per each instruction in unary form,
+                # i.e. [False, True, False, False, False, True] means first instruction needs one precommit
+                # call to become "done" and third instruction needs three precommit calls
+                for _ in range(random.randrange(1, 6)):
+                    self.done_q.append(False)
+                self.done_q.append(True)
             # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
+        self.rob_max_id = len(self.precommit_q)
 
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
-        @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q), sched_prio=1)
+        @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q) and self.done_q[0], sched_prio=1)
         def retire_process():
             return self.submit_q.popleft()
 
@@ -120,13 +132,37 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertFalse(self.submit_q)
             self.assertFalse(self.rf_free_q)
 
-        @def_method_mock(lambda: retc.mock_rf_free, sched_prio=2)
+        def random_stall():
+            yield Passive()
+            while True:
+                if random.random() < 0.05:
+                    while (c := (yield from retc.stall.call()))['stalled'] != 1:
+                        yield
+                    self.stalled = True
+                    for _ in range(random.randint(0, 20)):
+                        yield
+                    yield from retc.unstall.call()
+                    self.stalled = False
+                else:
+                    yield
+
+        @def_method_mock(lambda: retc.mock_rf_free, sched_prio=3)
         def rf_free_process(reg_id):
             self.assertEqual(reg_id, self.rf_free_q.popleft())
 
-        @def_method_mock(lambda: retc.mock_precommit, sched_prio=2)
+        # mock_precommit mock must run later (thus have higher sched_prio)
+        # than mock_rob_get_indices because of interdependency on precommit_q
+        @def_method_mock(lambda: retc.mock_precommit, sched_prio=4)
         def precommit_process(rob_id):
-            self.assertEqual(rob_id, self.precommit_q.popleft())
+            self.assertFalse(self.stalled)
+            if self.done_q.popleft():
+                self.assertEqual(rob_id, self.precommit_q.popleft())
+
+        @def_method_mock(lambda: retc.mock_rob_get_indices, sched_prio=3)
+        def rob_get_indices_process():
+            start_idx = (self.rob_max_id - len(self.precommit_q)) % 2**self.gen_params.rob_entries_bits
+            # end ptr is not used by retirement
+            return {'start': start_idx, 'end': 0}
 
         with self.run_simulation(retc) as sim:
             sim.add_sync_process(retire_process)
@@ -135,3 +171,5 @@ class RetirementTest(TestCaseWithSimulator):
             sim.add_sync_process(rat_process)
             sim.add_sync_process(rf_free_process)
             sim.add_sync_process(precommit_process)
+            sim.add_sync_process(random_stall)
+            sim.add_sync_process(rob_get_indices_process)
