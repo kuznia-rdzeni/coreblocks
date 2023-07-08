@@ -105,7 +105,9 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
-        @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q) and self.done_q[0], sched_prio=1)
+        @def_method_mock(
+            lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q) and self.done_q[0], sched_prio=1
+        )
         def retire_process():
             return self.submit_q.popleft()
 
@@ -136,7 +138,7 @@ class RetirementTest(TestCaseWithSimulator):
             yield Passive()
             while True:
                 if random.random() < 0.05:
-                    while (c := (yield from retc.stall.call()))['stalled'] != 1:
+                    while (yield from retc.stall.call())["stalled"] != 1:
                         yield
                     self.stalled = True
                     for _ in range(random.randint(0, 20)):
@@ -162,7 +164,7 @@ class RetirementTest(TestCaseWithSimulator):
         def rob_get_indices_process():
             start_idx = (self.rob_max_id - len(self.precommit_q)) % 2**self.gen_params.rob_entries_bits
             # end ptr is not used by retirement
-            return {'start': start_idx, 'end': 0}
+            return {"start": start_idx, "end": 0}
 
         with self.run_simulation(retc) as sim:
             sim.add_sync_process(retire_process)
