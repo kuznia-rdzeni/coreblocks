@@ -48,7 +48,7 @@ def load_regression_tests() -> list[str]:
             print("Couldn't build regression tests")
             sys.exit(1)
 
-    exclude = {"rv32ui-ma_data", "rv32ui-fence_i", "rv32um-div", "rv32um-divu", "rv32um-rem", "rv32um-remu"}
+    exclude = {"rv32ui-ma_data", "rv32ui-fence_i"}
 
     return list(all_tests - exclude)
 

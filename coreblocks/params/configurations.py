@@ -10,6 +10,9 @@ from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.fu.jumpbranch import JumpComponent
 from coreblocks.fu.mul_unit import MulComponent, MulType
+from coreblocks.fu.div_unit import DivComponent
+from coreblocks.fu.zbc import ZbcComponent
+from coreblocks.fu.zbs import ZbsComponent
 from coreblocks.fu.exception import ExceptionUnitComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
 from coreblocks.structs_common.csr import CSRBlockComponent
@@ -100,15 +103,24 @@ full_core_config = CoreConfiguration(
             [
                 ALUComponent(zba_enable=True, zbb_enable=True),
                 ShiftUnitComponent(zbb_enable=True),
+                ZbcComponent(),
+                ZbsComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
             ],
             rs_entries=4,
         ),
-        RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=2),
+        RSBlockComponent(
+            [
+                MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+                DivComponent(ipc=3),
+            ],
+            rs_entries=2,
+        ),
         LSUBlockComponent(),
         CSRBlockComponent(),
     ),
+    compressed=True,
 )
 
 # Core configuration used in internal testbenches

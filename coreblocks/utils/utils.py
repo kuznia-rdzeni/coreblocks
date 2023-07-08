@@ -378,7 +378,7 @@ def align_to_power_of_two(num: int, power: int) -> int:
 
 def bits_from_int(num: int, lower: int, length: int):
     """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
-    return (num >> lower) & (1 << (length) - 1)
+    return (num >> lower) & ((1 << (length)) - 1)
 
 
 class ModuleConnector(Elaboratable):

@@ -421,3 +421,27 @@ class TestScheduleBefore(TestCaseWithSimulator):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
+
+
+class SingleCallerTestCircuit(Elaboratable):
+    def elaborate(self, platform):
+        m = TModule()
+
+        method = Method(single_caller=True)
+
+        with Transaction().body(m):
+            method(m)
+
+        with Transaction().body(m):
+            method(m)
+
+        return m
+
+
+class TestSingleCaller(TestCaseWithSimulator):
+    def test_single_caller(self):
+        m = SingleCallerTestCircuit()
+
+        with self.assertRaises(RuntimeError):
+            with self.run_simulation(m):
+                pass

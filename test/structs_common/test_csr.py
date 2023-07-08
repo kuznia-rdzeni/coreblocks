@@ -1,9 +1,13 @@
 from amaranth import *
 
+from coreblocks.transactions.lib import Adapter
 from coreblocks.structs_common.csr import CSRUnit, CSRRegister
 from coreblocks.params import GenParams
-from coreblocks.params.isa import Funct3
+from coreblocks.params.isa import Funct3, ExceptionCause
 from coreblocks.params.configurations import test_core_config
+from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.params.keys import ExceptionReportKey
+from coreblocks.params.dependencies import DependencyManager
 from coreblocks.frontend.decoder import OpType
 
 from ..common import *
@@ -12,9 +16,10 @@ import random
 
 
 class CSRUnitTestCircuit(Elaboratable):
-    def __init__(self, gen_params, csr_count):
+    def __init__(self, gen_params, csr_count, only_legal=True):
         self.gen_params = gen_params
         self.csr_count = csr_count
+        self.only_legal = only_legal
 
     def elaborate(self, platform):
         m = Module()
@@ -26,6 +31,10 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
         m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
         m.submodules.precommit = self.precommit = TestbenchIO(AdapterTrans(self.dut.precommit))
+        m.submodules.exception_report = self.exception_report = TestbenchIO(
+            Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
+        )
+        self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
         m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(AdapterTrans(self.dut.fetch_continue))
 
@@ -40,11 +49,8 @@ class CSRUnitTestCircuit(Elaboratable):
         for i in range(self.csr_count):
             make_csr(i)
 
-        # for future tests with exception support
-        # read-only
-        # make_csr(0xc00)
-        # missing privilege
-        # make_csr(0x100)
+        if not self.only_legal:
+            make_csr(0xC00)  # read-only csr
 
         return m
 
@@ -109,6 +115,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
     def process_test(self):
         yield from self.dut.fetch_continue.enable()
+        yield from self.dut.exception_report.enable()
         for _ in range(self.cycles):
             yield from self.random_wait()
 
@@ -133,6 +140,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             if op["exp"]["exp_read"]["rp_dst"]:
                 self.assertEqual(res["result"], op["exp"]["exp_read"]["result"])
             self.assertEqual((yield self.dut.csr[op["exp"]["exp_write"]["csr"]].value), op["exp"]["exp_write"]["value"])
+            self.assertEqual(res["exception"], 0)
 
     def test_randomized(self):
         self.gp = GenParams(test_core_config)
@@ -145,6 +153,54 @@ class TestCSRUnit(TestCaseWithSimulator):
 
         with self.run_simulation(self.dut) as sim:
             sim.add_sync_process(self.process_test)
+
+    exception_csr_numbers = [
+        0xC00,  # read_only
+        0xFFF,  # nonexistent
+        # 0x100 TODO: check priv level when implemented
+    ]
+
+    def process_exception_test(self):
+        yield from self.dut.fetch_continue.enable()
+        yield from self.dut.exception_report.enable()
+        for csr in self.exception_csr_numbers:
+            yield from self.random_wait()
+
+            yield from self.dut.select.call()
+
+            rob_id = random.randrange(2**self.gp.rob_entries_bits)
+            yield from self.dut.insert.call(
+                rs_data={
+                    "exec_fn": {"op_type": OpType.CSR_REG, "funct3": Funct3.CSRRW, "funct7": 0},
+                    "rp_s1": 0,
+                    "rp_s1_reg": 1,
+                    "s1_val": 1,
+                    "rp_dst": 2,
+                    "imm": 0,
+                    "csr": csr,
+                    "rob_id": rob_id,
+                }
+            )
+
+            yield from self.random_wait()
+            yield from self.dut.precommit.call(rob_id=rob_id)
+
+            yield from self.random_wait()
+            res = yield from self.dut.accept.call()
+
+            self.assertEqual(res["exception"], 1)
+            report = yield from self.dut.exception_report.call_result()
+            assert report is not None
+            self.assertDictEqual({"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION}, report)
+
+    def test_exception(self):
+        self.gp = GenParams(test_core_config)
+        random.seed(9)
+
+        self.dut = CSRUnitTestCircuit(self.gp, 0, only_legal=False)
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_sync_process(self.process_exception_test)
 
 
 class TestCSRRegister(TestCaseWithSimulator):

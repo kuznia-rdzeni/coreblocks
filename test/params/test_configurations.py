@@ -17,7 +17,7 @@ class TestConfigurationsISAString(TestCase):
 
     TEST_CASES = [
         ISAStrTest(basic_core_config, "rv32i", "rv32", "rv32i"),
-        ISAStrTest(full_core_config, "rv32izicsr_zmmul_zba_zbb", "rv32zicsr_zmmul_zba_zbb", "rv32izicsr_zmmul_zba_zbb"),
+        ISAStrTest(full_core_config, "rv32imcbzicsr", "rv32mcbzicsr", "rv32imcbzicsr"),
         ISAStrTest(tiny_core_config, "rv32i", "rv32", "rv32i"),
         ISAStrTest(test_core_config, "rv32", "rv32", "rv32i"),
     ]
@@ -29,7 +29,9 @@ class TestConfigurationsISAString(TestCase):
 
     def test_isa_str_raw(self):
         for test in self.TEST_CASES:
-            partial, full = extensions_supported(test.core_config.func_units_config)
+            partial, full = extensions_supported(
+                test.core_config.func_units_config, test.core_config.embedded, test.core_config.compressed
+            )
 
             partial = gen_isa_string(partial, 32)
             full = gen_isa_string(full, 32)
