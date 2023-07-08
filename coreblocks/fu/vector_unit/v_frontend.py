@@ -17,7 +17,32 @@ from coreblocks.fu.vector_unit.v_alloc_rename import *
 __all__ = ["VectorFrontend"]
 
 class VectorMemoryVVRSSplitter(Elaboratable):
+    """ Splits instructions from VectorFrontend to memory and VVRS streams.
+
+    Vector memory instructions use different data than rest, so to optimise the number of bits
+    used in VVRS, it is better to split memory instructions and all other vector
+    instructions in the frontend, to reduce the pipeline width as early as possible.
+
+    Attributes
+    ----------
+    issue : Method
+        Method used to pass an instruction that should be forwarded
+        either to memory or to VVRS.
+    """
     def __init__(self, gen_params : GenParams, put_to_mem : Method, put_to_vvrs : Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration
+        put_to_mem : Method
+            Method to be called when the instruction is to be processed by the memory subsystem.
+            Layout: VectorFrontendLayouts.instr_to_mem.
+        put_to_vvrs : Method
+            Method called when the instruction should be processed as normal vector
+            instruction that operates on vector registers.
+            Layout: VectorFrontendLayouts.instr_to_vvrs.
+        """
         self.gen_params = gen_params
         self.put_to_mem = put_to_mem
         self.put_to_vvrs = put_to_vvrs
@@ -42,9 +67,59 @@ class VectorMemoryVVRSSplitter(Elaboratable):
 
 
 class VectorFrontend(Elaboratable):
+    """ Handles initial vector instruction processing similar to scalar `Scheduler`
+
+    This module is a container that connects various blocks and stages of
+    initial vector instruction processing. It provides a standard `RSFuncBlock` interface
+    which can be used to connect it directly to the `Scheduler`. Incoming instructions
+    are passed to:
+    - VXRS (to wait for X operands)
+    - verification
+    - vtype handling
+    - instructions translations
+    - register renaming and allocation
+    - splitting instructions into two streams: memory and arithmetic-logic
+
+
+    Attributes
+    ----------
+    select : Method
+        See `RSFuncBlock`. Layout: VectorXRSLayout.select_out
+    insert : Method
+        See `RSFuncBlock`. Layout: VectorXRSLayout.insert_in
+    update : Method
+        See `RSFuncBlock`. Layout: VectorXRSLayout.update_in
+    """
 
     def __init__(self, gen_params : GenParams, rob_block_interrupts : Method, retire : Method, retire_mult : Method, alloc_reg : Method,
                  get_rename1_frat : Method, get_rename2_frat : Method, set_rename_frat : Method, put_to_mem : Method, put_to_vvrs : Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        rob_block_interrupts : Method
+            Method to block interrupts on a given `rob_id`. Layout: RobLayouts.block_interrupts
+        retire : Method
+            Method to retire a vector instruction. Used to retire `vset{i}vl{i}` and
+            illegal instructions.
+        retire_mult : Method
+            Method to report to the vector retirement module the number of internal instructions
+            generated from an original vector instruction.
+        alloc_reg : Method
+            Allocate a new vector register.
+        get_rename1_frat : Method
+            Method to get the renaming of vector logical registers to vector physical registers.
+        get_rename2_frat : Method
+            As above.
+        set_rename_frat : Method
+            Method to add a new renaming entry for a vector logical register
+        put_to_mem : Method
+            Method to be called when an instruction is to be processed by the memory subsystem.
+        put_to_vvrs : Method
+            Method to be called, if an instruction should be put iton VVRS and processed as common
+            arithmetical-logical-permutation instruction.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.layouts = VectorFrontendLayouts(self.gen_params)

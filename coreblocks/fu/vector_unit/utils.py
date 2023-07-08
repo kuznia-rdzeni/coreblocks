@@ -174,4 +174,11 @@ def get_vlmax(m: ModuleLike, sew: Value, lmul: Value, gen_params: GenParams, v_p
     return sig
 
 def lmul_to_int(lmul : LMUL) -> int:
+    """Convert LMUL to int by rounding up.
+
+    Parameters
+    ----------
+    lmul : LMUL
+        Value to convert.
+    """
     return math.ceil(lmul_to_float(lmul))

@@ -61,7 +61,7 @@ class SuperscalarFreeRF(Elaboratable):
         @def_method(m, self.allocate)
         def _(reg_count):
             with condition(m, nonblocking=False) as branch:
-                branch_cond = Signal(name="moj_warunek")
+                branch_cond = Signal()
                 m.d.top_comb += branch_cond.eq((reg_count <= free_count) & (reg_count > 0))
                 with branch(branch_cond):
                     mask = (1 << reg_count) - 1

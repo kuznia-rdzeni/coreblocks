@@ -13,7 +13,33 @@ from coreblocks.utils._typing import ValueLike
 __all__ = ["VectorAllocRename"]
 
 class VectorAllocRename(Elaboratable):
+    """ Allocate and rename vector registers
+
+    Module for allocating and renaming vector registers using the vector
+    register alias table and vector FreeRF file.
+
+    Attributes
+    ----------
+    issue : Method(i=VectorFrontendLayouts.alloc_rename_in, o= VectorFrontendLayouts.alloc_rename_out)
+        Method to send the instruction to be renamed. If `rp_dst` has `RegisterType.V` then a
+        new physical vector register is allocated and VFRAT will be updated.
+    """
     def __init__(self, gen_params : GenParams,alloc : Method, get_rename1 : Method, get_rename2 : Method, set_rename : Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        alloc : Method(i=SuperscalarFreeRFLayouts.allocate_in)
+            Method to allocate a register.
+        get_rename1 : Method(i=RATLayouts.get_rename_in, o=RATLayouts.get_rename_out)
+            Method to get the renaming of registers. 
+        get_rename2 : Method
+            The same as `get_rename1` but an another instance, to allow for renaming of 4
+            registers at a time.
+        set_rename : Method
+            Method used to update the VFRAT.
+        """
         self.gen_params = gen_params
         self.alloc = NotMethod(alloc)
         self.get_rename1 = get_rename1
