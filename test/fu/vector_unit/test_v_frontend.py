@@ -93,19 +93,21 @@ class TestVectorFrontend(TestCaseWithSimulator):
         self.received_mult.append(mult)
 
 
-    def input_process(self):
-        for i in range(self.test_number):
-            instr, vtype = self.generate_vector_instr(self.gen_params, self.v_params, self.layouts.verification_in, vsetvl_different_rp_id = True)
-            self.orginal_instr.append((instr, vtype))
-            if instr["exec_fn"]["op_type"] != OpType.V_CONTROL:
-                self._org_robs.append(instr["rob_id"])
-            yield from self.circ.select.call()
-            yield from self.circ.insert.call(rs_entry_id=0, rs_data = instr)
-            if instr["rp_s1"]["id"]!=0:
-                yield from self.circ.update.call(tag = instr["rp_s1"], value = instr["s1_val"])
-            if instr["rp_s2"]["id"]!=0:
-                yield from self.circ.update.call(tag = instr["rp_s2"], value = instr["s2_val"])
-            yield from self.tick(random.randrange(3))
+    def input_process(self, generator):
+        def f():
+            for i in range(self.test_number):
+                instr, vtype = generator()
+                self.orginal_instr.append((instr, vtype))
+                if instr["exec_fn"]["op_type"] != OpType.V_CONTROL:
+                    self._org_robs.append(instr["rob_id"])
+                yield from self.circ.select.call()
+                yield from self.circ.insert.call(rs_entry_id=0, rs_data = instr)
+                if instr["rp_s1"]["id"]!=0:
+                    yield from self.circ.update.call(tag = instr["rp_s1"], value = instr["s1_val"])
+                if instr["rp_s2"]["id"]!=0:
+                    yield from self.circ.update.call(tag = instr["rp_s2"], value = instr["s2_val"])
+                yield from self.tick(random.randrange(3))
+        return f
 
     def remove_duplicates(self, lista):
         nowa =[lista[0]]
@@ -143,13 +145,12 @@ class TestVectorFrontend(TestCaseWithSimulator):
             if self.to_dealocate:
                 reg = self.to_dealocate.popleft()
                 yield from self.deallocate.call(reg=reg)
-            yield
-            #yield from self.tick(random.randrange(3))
+            yield from self.tick(random.randrange(3))
 
     def test_random(self):
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.checker)
-            sim.add_sync_process(self.input_process)
+            sim.add_sync_process(self.input_process(lambda : self.generate_vector_instr(self.gen_params, self.v_params, self.layouts.verification_in, vsetvl_different_rp_id = True)))
             sim.add_sync_process(self.put_vvrs_process)
             sim.add_sync_process(self.put_mem_process)
             sim.add_sync_process(self.rob_block_interrupt_process)
@@ -158,4 +159,14 @@ class TestVectorFrontend(TestCaseWithSimulator):
             sim.add_sync_process(self.report_process)
             sim.add_sync_process(self.deallocator_process)
 
-    #TODO test z stałym LMUL=8
+    def test_heavy_load(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.checker)
+            sim.add_sync_process(self.input_process(lambda : self.generate_vector_instr(self.gen_params, self.v_params, self.layouts.verification_in, vsetvl_different_rp_id = True, const_lmul = LMUL.m8)))
+            sim.add_sync_process(self.put_vvrs_process)
+            sim.add_sync_process(self.put_mem_process)
+            sim.add_sync_process(self.rob_block_interrupt_process)
+            sim.add_sync_process(self.retire_process)
+            sim.add_sync_process(self.mult_process)
+            sim.add_sync_process(self.report_process)
+            sim.add_sync_process(self.deallocator_process)
