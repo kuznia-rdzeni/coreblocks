@@ -14,11 +14,11 @@ __all__ = ["VectorTranslator"]
 
 class VectorTranslatorEEW(Elaboratable):
     """
-    Not tested, may not work.
-    Probably there is a need to do mapping from widening/narrowing instructions to normal
-    instructions.
-    As for now it uses internal instruction to narrow data, but there is ZEXT and SEXT
+    Block prepared to support widening and narrowing operations
+    but as for now not used, and not tested.
     """
+    #Probably there is a need to do mapping from widening/narrowing instructions to normal
+    #instructions. As for now it uses internal instruction to narrow data, but there is ZEXT and SEXT
     def __init__(self, gen_params : GenParams, put_instr : Method, report_multiplicator : Method):
        self.gen_params = gen_params
 
@@ -128,14 +128,36 @@ class VectorTranslatorEEW(Elaboratable):
 
 
 class VectorTranslateLMUL(Elaboratable):
+    """ Transforms instructions with LMUL>1 to a sequence of LMUL=1 instructions
+
+    LMUL>8 instructions operate on a set of registers at once, so at the beginning
+    we can split such instructions into set of instructions working independently
+    (but in the long run it doesn't work see: vrgather).
+
+    Generated instructions are stored in ShiftRegister and then sent to the next
+    pipeline stage one by one.
+
+    Attributes
+    ----------
+    issue : Method
+        Method used to pass an instruction to process.
+    """
     def __init__(self, gen_params : GenParams,put_instr : Method):
-       self.gen_params = gen_params
-
-       self.layouts = VectorFrontendLayouts(self.gen_params)
-       self.issue = Method(i= self.layouts.translator_inner, o=self.layouts.translator_report_multiplier)
-       self.put_instr = put_instr
-
-       self.max_lmul = 8
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration
+        put_instr : Method
+            The method used to pass the instruction to the next processing stage.
+        """
+        self.gen_params = gen_params
+ 
+        self.layouts = VectorFrontendLayouts(self.gen_params)
+        self.issue = Method(i= self.layouts.translator_inner, o=self.layouts.translator_report_multiplier)
+        self.put_instr = put_instr
+ 
+        self.max_lmul = 8
 
     def generate_instr(self, m : TModule, org_instr, mask : int, end_bits : int):
         rec = Record(self.layouts.translator_inner)
@@ -184,12 +206,33 @@ class VectorTranslateLMUL(Elaboratable):
         return m
 
 class VectorTranslateRS3(Elaboratable):
-    def __init__(self, gen_params : GenParams, put_instr : Method):
-       self.gen_params = gen_params
+    """ Transformation that adds rp_s3 and rp_v0 fields.
 
-       self.layouts = VectorFrontendLayouts(self.gen_params)
-       self.issue = Method(i= self.layouts.translator_inner)
-       self.put_instr = put_instr
+    In the backend, we need to know the address of the v0 register (for the mask)
+    and original `rp_dst` register (for third operand in some instructions),
+    but by default there are no such fields in layout from scalar `Scheduler`.
+    This module prepares appropriate fields so that they can be used in next
+    pipeline stages.
+
+    Attributes
+    ----------
+    issue : Method
+        Send an instruction to transform.
+    """
+    def __init__(self, gen_params : GenParams, put_instr : Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration
+        put_instr : Method
+            The method used to pass the instruction to the next processing stage.
+        """
+        self.gen_params = gen_params
+
+        self.layouts = VectorFrontendLayouts(self.gen_params)
+        self.issue = Method(i= self.layouts.translator_inner)
+        self.put_instr = put_instr
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -206,6 +249,19 @@ class VectorTranslateRS3(Elaboratable):
         return m
 
 class VectorTranslateRewirteImm(Elaboratable):
+    """ Compact imm and s1_val
+
+    After processing `vset{i}vl{i}` there is no need to pass
+    both `imm` and `s1_val`. We will use either one or the other,
+    but not both. So, to reduce the number of bits used, we can compact
+    these fields and pass `imm` in `s1_val`.
+
+    Attributes
+    ----------
+    issue : Method
+        Send instruction to process as a request and receive processed
+        output in response.
+    """
     def __init__(self, gen_params : GenParams):
        self.gen_params = gen_params
 
@@ -226,13 +282,38 @@ class VectorTranslateRewirteImm(Elaboratable):
                 
 
 class VectorTranslator(Elaboratable):
-    def __init__(self, gen_params : GenParams,put_instr : Method, retire_mult : Method):
-       self.gen_params = gen_params
-       self.put_instr = put_instr
-       self.retire_mult = retire_mult
+    """ Container holding variate vector instruction transformations
 
-       self.layouts = VectorFrontendLayouts(self.gen_params)
-       self.issue = Method(i= self.layouts.translator_in)
+    Each instruction sent to this module is transformed by:
+    - VectorTranslateRewirteImm
+    - VectorTranslateLMUL
+    - VectorTranslateRS3
+    and then sent to the next pipeline stage. Number of instructions generated 
+    is sent to retirement using the `retire_mult` method.
+
+    Attributes
+    ----------
+    issue : Method
+        Send an instruction to transform.
+    """
+    def __init__(self, gen_params : GenParams,put_instr : Method, retire_mult : Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration
+        put_instr : Method
+            The method used to pass the instruction to the next processing stage.
+        retire_mult : Method
+            The method used to report the number of internal instructions generated
+            from a programme instruction.
+        """
+        self.gen_params = gen_params
+        self.put_instr = put_instr
+        self.retire_mult = retire_mult
+
+        self.layouts = VectorFrontendLayouts(self.gen_params)
+        self.issue = Method(i= self.layouts.translator_in)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
