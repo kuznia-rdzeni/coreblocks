@@ -15,16 +15,16 @@ from test.fu.vector_unit.common import *
 class TestVectorAllocRename(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(test_vector_core_config)
         self.test_number = 100
-        self.v_params = VectorParameters(vlen=1024, elen=32)
+        self.v_params = self.gen_params.v_params
 
-        self.layout = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.layout = VectorFrontendLayouts(self.gen_params)
 
         self.frat = FRAT(gen_params = self.gen_params, superscalarity = 2)
         self.freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1)
         self.deallocate = TestbenchIO(AdapterTrans(self.freerf.deallocates[0]))
-        self.circ = SimpleTestCircuit(VectorAllocRename(self.gen_params, self.v_params,
+        self.circ = SimpleTestCircuit(VectorAllocRename(self.gen_params,
                                                      self.freerf.allocate,
                                                      self.frat.get_rename_list[0], self.frat.get_rename_list[1], self.frat.set_rename_list[0]))
         self.m = ModuleConnector(
@@ -39,7 +39,7 @@ class TestVectorAllocRename(TestCaseWithSimulator):
 
     def process(self):
         for _ in range(self.test_number):
-            instr, _ = self.generate_vector_instr(self.gen_params, self.v_params, self.layout.alloc_rename_in)
+            instr, _ = self.generate_vector_instr(self.gen_params, self.layout.alloc_rename_in)
             out = yield from self.circ.issue.call(instr)
             for field_name in ["rob_id", "exec_fn", "vtype"]:
                 self.assertEqual(instr[field_name], out[field_name])

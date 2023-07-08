@@ -12,11 +12,11 @@ from collections import deque, defaultdict
 class TestVInstructionVerification(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(test_vector_core_config)
         self.test_number = 100
-        self.v_params = VectorParameters(vlen=1024, elen=32)
+        self.v_params = self.gen_params.v_params
 
-        self.vf_layout = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.vf_layout = VectorFrontendLayouts(self.gen_params)
         self.rob_block_interrupts = TestbenchIO(Adapter(i=ROBLayouts(self.gen_params).block_interrupts))
         self.put_instr = TestbenchIO(Adapter(i=self.vf_layout.verification_out))
         self.get_vill = TestbenchIO(Adapter(o=self.vf_layout.get_vill))
@@ -28,7 +28,6 @@ class TestVInstructionVerification(TestCaseWithSimulator):
         self.circ = SimpleTestCircuit(
             VectorInputVerificator(
                 self.gen_params,
-                self.v_params,
                 self.rob_block_interrupts.adapter.iface,
                 self.put_instr.adapter.iface,
                 self.get_vill.adapter.iface,

@@ -12,16 +12,15 @@ from collections import deque
 class TestVectorStatusUnit(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(test_vector_core_config)
         self.test_number = 700
-        self.v_params = VectorParameters(vlen=1024, elen=32)
 
-        self.vf_layout = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.vf_layout = VectorFrontendLayouts(self.gen_params)
         self.put_instr = TestbenchIO(Adapter(i=self.vf_layout.status_out))
         self.retire = TestbenchIO(Adapter(i=FuncUnitLayouts(self.gen_params).accept))
 
         self.circ = SimpleTestCircuit(
-            VectorStatusUnit(self.gen_params, self.v_params, self.put_instr.adapter.iface, self.retire.adapter.iface)
+            VectorStatusUnit(self.gen_params, self.put_instr.adapter.iface, self.retire.adapter.iface)
         )
 
         self.m = ModuleConnector(circ=self.circ, put_instr=self.put_instr, retire=self.retire)
@@ -45,7 +44,7 @@ class TestVectorStatusUnit(TestCaseWithSimulator):
 
         def process():
             self.assertEqual((yield from self.circ.get_vill.call())["vill"], 1)
-            instr, vtype = generate_vsetvl(self.gen_params, self.v_params, self.vf_layout.status_in, 0)
+            instr, vtype = generate_vsetvl(self.gen_params, self.vf_layout.status_in, 0)
             data_vsetvl_q.append((instr, vtype))
             yield from self.circ.issue.call(instr)
             current_vtype = vtype
@@ -57,7 +56,7 @@ class TestVectorStatusUnit(TestCaseWithSimulator):
                     data_normal_q.append((data, current_vtype))
                 else:
                     data, current_vtype = generate_vsetvl(
-                        self.gen_params, self.v_params, self.vf_layout.verification_in, current_vtype["vl"]
+                        self.gen_params, self.vf_layout.verification_in, current_vtype["vl"]
                     )
                     data_vsetvl_q.append((data, current_vtype))
                 yield from self.circ.issue.call(data)

@@ -17,13 +17,12 @@ from coreblocks.fu.vector_unit.v_alloc_rename import *
 __all__ = ["VectorFrontend"]
 
 class VectorMemoryVVRSSplitter(Elaboratable):
-    def __init__(self, gen_params : GenParams, v_params : VectorParameters, put_to_mem : Method, put_to_vvrs : Method):
+    def __init__(self, gen_params : GenParams, put_to_mem : Method, put_to_vvrs : Method):
         self.gen_params = gen_params
-        self.v_params = v_params
         self.put_to_mem = put_to_mem
         self.put_to_vvrs = put_to_vvrs
 
-        self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.issue = Method(i = self.layouts.alloc_rename_out)
 
     def elaborate(self, platform) -> TModule:
@@ -44,11 +43,11 @@ class VectorMemoryVVRSSplitter(Elaboratable):
 
 class VectorFrontend(Elaboratable):
 
-    def __init__(self, gen_params : GenParams, v_params : VectorParameters, rob_block_interrupts : Method, retire : Method, retire_mult : Method, alloc_reg : Method,
+    def __init__(self, gen_params : GenParams, rob_block_interrupts : Method, retire : Method, retire_mult : Method, alloc_reg : Method,
                  get_rename1_frat : Method, get_rename2_frat : Method, set_rename_frat : Method, put_to_mem : Method, put_to_vvrs : Method):
         self.gen_params = gen_params
-        self.v_params = v_params
-        self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.v_params = self.gen_params.v_params
+        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.rob_block_interrupts = rob_block_interrupts
         #TODO Prepare more retire methods to use in different places
         self.retire = retire
@@ -70,8 +69,8 @@ class VectorFrontend(Elaboratable):
 
 
         m.submodules.fifo_from_v_status = fifo_from_v_status = BasicFifo(self.layouts.status_out, 2)
-        m.submodules.v_status = v_status = VectorStatusUnit(self.gen_params, self.v_params, fifo_from_v_status.write, self.retire)
-        m.submodules.verificator = verificator = VectorInputVerificator(self.gen_params, self.v_params, self.rob_block_interrupts, v_status.issue, v_status.get_vill, v_status.get_vstart, self.retire)
+        m.submodules.v_status = v_status = VectorStatusUnit(self.gen_params, fifo_from_v_status.write, self.retire)
+        m.submodules.verificator = verificator = VectorInputVerificator(self.gen_params, self.rob_block_interrupts, v_status.issue, v_status.get_vill, v_status.get_vstart, self.retire)
 
         m.submodules.vxrs = vxrs = VXRS(self.gen_params, self.v_params.vxrs_entries)
         self.insert.proxy(m, vxrs.insert)
@@ -81,12 +80,12 @@ class VectorFrontend(Elaboratable):
 
         
         m.submodules.fifo_from_translator = fifo_from_translator = BasicFifo(self.layouts.translator_out, 2)
-        m.submodules.translator = translator = VectorTranslator(self.gen_params, self.v_params, fifo_from_translator.write, self.retire_mult)
+        m.submodules.translator = translator = VectorTranslator(self.gen_params, fifo_from_translator.write, self.retire_mult)
 
         m.submodules.from_status_to_tranlator = ConnectTrans(fifo_from_v_status.read, translator.issue)
         
-        m.submodules.alloc_rename = alloc_rename = VectorAllocRename(self.gen_params, self.v_params, self.alloc_reg.method, self.get_rename1_frat, self.get_rename2_frat, self.set_rename_frat)
-        m.submodules.splitter = splitter = VectorMemoryVVRSSplitter(self.gen_params, self.v_params, self.put_to_mem, self.put_to_vvrs)
+        m.submodules.alloc_rename = alloc_rename = VectorAllocRename(self.gen_params, self.alloc_reg.method, self.get_rename1_frat, self.get_rename2_frat, self.set_rename_frat)
+        m.submodules.splitter = splitter = VectorMemoryVVRSSplitter(self.gen_params, self.put_to_mem, self.put_to_vvrs)
         
         with Transaction(name="allocating").body(m):
             instr = fifo_from_translator.read(m)

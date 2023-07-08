@@ -13,15 +13,14 @@ from coreblocks.utils._typing import ValueLike
 __all__ = ["VectorAllocRename"]
 
 class VectorAllocRename(Elaboratable):
-    def __init__(self, gen_params : GenParams, v_params : VectorParameters, alloc : Method, get_rename1 : Method, get_rename2 : Method, set_rename : Method):
+    def __init__(self, gen_params : GenParams,alloc : Method, get_rename1 : Method, get_rename2 : Method, set_rename : Method):
         self.gen_params = gen_params
-        self.v_params = v_params
         self.alloc = NotMethod(alloc)
         self.get_rename1 = get_rename1
         self.get_rename2 = get_rename2
         self.set_rename = set_rename
 
-        self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.issue = Method(i = self.layouts.alloc_rename_in, o = self.layouts.alloc_rename_out)
 
     def elaborate(self, platform) -> TModule:

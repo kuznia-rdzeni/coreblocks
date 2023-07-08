@@ -16,11 +16,10 @@ class TestLMULTranslator(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
         self.test_number = 50
-        self.gen_params = GenParams(test_core_config)
-        self.v_params = VectorParameters(vlen = 1024, elen = 32)
-        self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.gen_params = GenParams(test_vector_core_config)
+        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.put = MethodMock(i=self.layouts.translator_inner)
-        self.circ = SimpleTestCircuit(VectorTranslateLMUL(self.gen_params, self.v_params, self.put.get_method()))
+        self.circ = SimpleTestCircuit(VectorTranslateLMUL(self.gen_params, self.put.get_method()))
 
         self.m = ModuleConnector(circ = self.circ, put=self.put)
 
@@ -83,11 +82,10 @@ class TestVectorTranslateRS3(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
         self.test_number = 50
-        self.gen_params = GenParams(test_core_config)
-        self.v_params = VectorParameters(vlen = 1024, elen = 32)
-        self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.gen_params = GenParams(test_vector_core_config)
+        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.put = MethodMock(i=self.layouts.translator_out)
-        self.circ = SimpleTestCircuit(VectorTranslateRS3(self.gen_params, self.v_params, self.put.get_method()))
+        self.circ = SimpleTestCircuit(VectorTranslateRS3(self.gen_params, self.put.get_method()))
 
         self.m = ModuleConnector(circ = self.circ, put=self.put)
 

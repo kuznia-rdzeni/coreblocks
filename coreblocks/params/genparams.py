@@ -7,6 +7,7 @@ from .isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
 from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
+from .vector_params import VectorParameters
 
 from typing import TYPE_CHECKING
 
@@ -105,5 +106,8 @@ class GenParams(DependentCache):
         self.max_rs_entries_bits = (self.max_rs_entries - 1).bit_length()
         self.start_pc = cfg.start_pc
         self.imm2_width = max(self.isa.csr_alen, self.isa.v_zimmlen)
+
+        if cfg.vector_config is not None:
+            self.v_params = VectorParameters(cfg.vector_config)
 
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)

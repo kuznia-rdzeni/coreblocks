@@ -20,9 +20,9 @@ class TestVectorFrontend(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
         self.test_number = 50
-        self.gen_params = GenParams(test_core_config)
-        self.v_params = VectorParameters(vlen = 1024, elen = 32)
-        self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.gen_params = GenParams(test_vector_core_config)
+        self.layouts = VectorFrontendLayouts(self.gen_params)
+        self.v_params = self.gen_params.v_params
 
         self.generate_vector_instr = get_vector_instr_generator()
 
@@ -36,7 +36,7 @@ class TestVectorFrontend(TestCaseWithSimulator):
         self.frat = FRAT(gen_params = self.gen_params, superscalarity = 2)
         self.freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1)
         self.deallocate = TestbenchIO(AdapterTrans(self.freerf.deallocates[0]))
-        self.circ = SimpleTestCircuit(VectorFrontend(self.gen_params, self.v_params, self.rob_block_interrupt.get_method(),
+        self.circ = SimpleTestCircuit(VectorFrontend(self.gen_params,self.rob_block_interrupt.get_method(),
                                                      self.retire.get_method(), self.retire_mult.get_method(), self.freerf.allocate,
                                                      self.frat.get_rename_list[0], self.frat.get_rename_list[1], self.frat.set_rename_list[0],
                                                      self.put_mem.get_method(), self.put_vvrs.get_method()))
@@ -150,7 +150,7 @@ class TestVectorFrontend(TestCaseWithSimulator):
     def test_random(self):
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.checker)
-            sim.add_sync_process(self.input_process(lambda : self.generate_vector_instr(self.gen_params, self.v_params, self.layouts.verification_in, vsetvl_different_rp_id = True)))
+            sim.add_sync_process(self.input_process(lambda : self.generate_vector_instr(self.gen_params,self.layouts.verification_in, vsetvl_different_rp_id = True)))
             sim.add_sync_process(self.put_vvrs_process)
             sim.add_sync_process(self.put_mem_process)
             sim.add_sync_process(self.rob_block_interrupt_process)
@@ -162,7 +162,7 @@ class TestVectorFrontend(TestCaseWithSimulator):
     def test_heavy_load(self):
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.checker)
-            sim.add_sync_process(self.input_process(lambda : self.generate_vector_instr(self.gen_params, self.v_params, self.layouts.verification_in, vsetvl_different_rp_id = True, const_lmul = LMUL.m8)))
+            sim.add_sync_process(self.input_process(lambda : self.generate_vector_instr(self.gen_params, self.layouts.verification_in, vsetvl_different_rp_id = True, const_lmul = LMUL.m8)))
             sim.add_sync_process(self.put_vvrs_process)
             sim.add_sync_process(self.put_mem_process)
             sim.add_sync_process(self.rob_block_interrupt_process)

@@ -42,14 +42,12 @@ class VectorStatusUnit(Elaboratable):
         Clear the internal state.
     """
 
-    def __init__(self, gen_params: GenParams, v_params: VectorParameters, put_instr: Method, retire: Method):
+    def __init__(self, gen_params: GenParams, put_instr: Method, retire: Method):
         """
         Parameters
         ----------
         gen_params : GenParams
             Core configuration.
-        v_params : VectorParameters
-            Vector unit configuration
         put_instr : Method
             Method used to pass vector instructions that operate on data to the next pipeline stage.
             Layout: VectorFrontendLayouts.status_out
@@ -58,11 +56,11 @@ class VectorStatusUnit(Elaboratable):
             Layout: FuncUnitLayouts.accept
         """
         self.gen_params = gen_params
-        self.v_params = v_params
+        self.v_params = self.gen_params.v_params
         self.retire = retire
         self.put_instr = put_instr
 
-        self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.get_vill = Method(o=self.layouts.get_vill, nonexclusive=True)
         self.get_vstart = Method(o=self.layouts.get_vstart, nonexclusive=True)
         self.clear = Method()

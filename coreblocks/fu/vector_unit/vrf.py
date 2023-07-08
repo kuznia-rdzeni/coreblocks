@@ -33,11 +33,11 @@ class VRFFragment(Elaboratable):
         `read_resp[1]`.
     """
 
-    def __init__(self, *, gen_params: GenParams, v_params: VectorParameters):
+    def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
-        self.v_params = v_params
+        self.v_params = self.gen_params.v_params
 
-        self.layout = VRFFragmentLayouts(self.gen_params, self.v_params)
+        self.layout = VRFFragmentLayouts(self.gen_params)
 
         self.read_ports_count = 3
         self.read_req = [Method(i=self.layout.read_req) for _ in range(self.read_ports_count)]
@@ -47,7 +47,7 @@ class VRFFragment(Elaboratable):
         self.write = Method(i=self.layout.write)
 
         self.regs = [
-            VectorRegisterBank(gen_params=self.gen_params, v_params=self.v_params)
+            VectorRegisterBank(gen_params=self.gen_params)
             for _ in range(self.v_params.vrp_count)
         ]
 

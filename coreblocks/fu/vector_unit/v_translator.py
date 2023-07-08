@@ -19,11 +19,10 @@ class VectorTranslatorEEW(Elaboratable):
     instructions.
     As for now it uses internal instruction to narrow data, but there is ZEXT and SEXT
     """
-    def __init__(self, gen_params : GenParams, v_params : VectorParameters, put_instr : Method, report_multiplicator : Method):
+    def __init__(self, gen_params : GenParams, put_instr : Method, report_multiplicator : Method):
        self.gen_params = gen_params
-       self.v_params = v_params
 
-       self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+       self.layouts = VectorFrontendLayouts(self.gen_params)
        self.issue = Method(i= self.layouts.translator_in)
        self.put_instr = put_instr
        self.report_multiplicator = report_multiplicator
@@ -129,11 +128,10 @@ class VectorTranslatorEEW(Elaboratable):
 
 
 class VectorTranslateLMUL(Elaboratable):
-    def __init__(self, gen_params : GenParams, v_params : VectorParameters, put_instr : Method):
+    def __init__(self, gen_params : GenParams,put_instr : Method):
        self.gen_params = gen_params
-       self.v_params = v_params
 
-       self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+       self.layouts = VectorFrontendLayouts(self.gen_params)
        self.issue = Method(i= self.layouts.translator_inner, o=self.layouts.translator_report_multiplier)
        self.put_instr = put_instr
 
@@ -186,11 +184,10 @@ class VectorTranslateLMUL(Elaboratable):
         return m
 
 class VectorTranslateRS3(Elaboratable):
-    def __init__(self, gen_params : GenParams, v_params : VectorParameters, put_instr : Method):
+    def __init__(self, gen_params : GenParams, put_instr : Method):
        self.gen_params = gen_params
-       self.v_params = v_params
 
-       self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+       self.layouts = VectorFrontendLayouts(self.gen_params)
        self.issue = Method(i= self.layouts.translator_inner)
        self.put_instr = put_instr
 
@@ -209,11 +206,10 @@ class VectorTranslateRS3(Elaboratable):
         return m
 
 class VectorTranslateRewirteImm(Elaboratable):
-    def __init__(self, gen_params : GenParams, v_params : VectorParameters):
+    def __init__(self, gen_params : GenParams):
        self.gen_params = gen_params
-       self.v_params = v_params
 
-       self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+       self.layouts = VectorFrontendLayouts(self.gen_params)
        self.issue = Method(i= self.layouts.translator_in, o =self.layouts.translator_inner )
 
     def elaborate(self, platform) -> TModule:
@@ -230,21 +226,20 @@ class VectorTranslateRewirteImm(Elaboratable):
                 
 
 class VectorTranslator(Elaboratable):
-    def __init__(self, gen_params : GenParams, v_params : VectorParameters, put_instr : Method, retire_mult : Method):
+    def __init__(self, gen_params : GenParams,put_instr : Method, retire_mult : Method):
        self.gen_params = gen_params
-       self.v_params = v_params
        self.put_instr = put_instr
        self.retire_mult = retire_mult
 
-       self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+       self.layouts = VectorFrontendLayouts(self.gen_params)
        self.issue = Method(i= self.layouts.translator_in)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        m.submodules.transl_rp3 = transl_rp3 = VectorTranslateRS3(self.gen_params, self.v_params, self.put_instr)
-        m.submodules.transl_lmul = transl_lmul =VectorTranslateLMUL(self.gen_params, self.v_params, transl_rp3.issue)
-        m.submodules.transl_rewrite_imm = transl_rewrite_imm = VectorTranslateRewirteImm(self.gen_params, self.v_params)
+        m.submodules.transl_rp3 = transl_rp3 = VectorTranslateRS3(self.gen_params, self.put_instr)
+        m.submodules.transl_lmul = transl_lmul =VectorTranslateLMUL(self.gen_params, transl_rp3.issue)
+        m.submodules.transl_rewrite_imm = transl_rewrite_imm = VectorTranslateRewirteImm(self.gen_params)
 
         @def_method(m, self.issue)
         def _(arg):

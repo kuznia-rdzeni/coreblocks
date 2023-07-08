@@ -5,7 +5,7 @@ from coreblocks.structs_common.rs import FifoRS, RS
 from coreblocks.params import *
 from coreblocks.fu.vector_unit.v_layouts import *
 
-__all__ = ["VXRS"]
+__all__ = ["VXRS", "VVRS"]
 
 
 class VXRS(FifoRS):
@@ -60,3 +60,6 @@ class VVRS(RS):
 
                     with m.If(record.rs_data.rp_s3 == tag):
                         m.d.sync += record.rs_data.rp_s3_rdy.eq(1)
+
+                    with m.If(record.rs_data.rp_v0 == tag):
+                        m.d.sync += record.rs_data.rp_v0_rdy.eq(1)
