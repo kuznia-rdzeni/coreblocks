@@ -148,10 +148,11 @@ def generate_exec_fn(optypes: Optional[Iterable[OpType]] = None):
 def overwrite_dict_values(base: dict, overwriting: Mapping) -> dict:
     copy = base
     for k, v in overwriting.items():
-        if k in copy and isinstance(v, Mapping):
-            overwrite_dict_values(copy[k], v)
-        else:
-            copy[k] = v
+        if k in copy:
+            if isinstance(v, Mapping):
+                overwrite_dict_values(copy[k], v)
+            else:
+                copy[k] = v
     return copy
 
 

@@ -34,10 +34,12 @@ class TestVectorAllocRename(TestCaseWithSimulator):
                 dealocate = self.deallocate
                 )
 
+        self.generate_vector_instr = get_vector_instr_generator()
+
 
     def process(self):
         for _ in range(self.test_number):
-            instr = generate_vector_instr(self.gen_params, self.v_params, self.layout.alloc_rename_in)
+            instr, _ = self.generate_vector_instr(self.gen_params, self.v_params, self.layout.alloc_rename_in)
             out = yield from self.circ.issue.call(instr)
             for field_name in ["rob_id", "exec_fn", "vtype"]:
                 self.assertEqual(instr[field_name], out[field_name])
