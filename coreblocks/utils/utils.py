@@ -498,7 +498,32 @@ class MultiPriorityEncoder(Elaboratable):
 
 
 class PriorityUniqnessChecker(Elaboratable):
+    """ Find every first occurrence of the argument.
+
+    This module takes `input_count` arguments and checks which are
+    unique. The first occurrence of a unique value is valid, all others
+    are not.
+
+    Attributes
+    ----------
+    inputs : list[Signal], in
+        List of input signals to be compared for uniqueness. Each has
+        `input_width` bits.
+    inputs_valids : list[Signal], in
+        Marks valid inputs to compare.
+    valids : list[Signal], out
+        Result of the uniqueness check. Each first occurrence of value
+        has 1 bit and all others have 0.
+    """
     def __init__(self, inputs_count : int, input_width : int):
+        """
+        Parameters
+        ----------
+        input_width : int
+            Width of an input element in bits.
+        input_count : int
+            Number of inputs to create.
+        """
         self.input_width = input_width
         self.inputs_count =inputs_count
 
