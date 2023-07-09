@@ -39,13 +39,13 @@ class Fetch(Elaboratable):
         m = TModule()
 
         m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(
-            layout=[("addr", self.gp.isa.xlen), ("tag", 2)], depth=2
+            layout=[("addr", self.gp.isa.xlen), ("tag", 1)], depth=2
         )
 
         speculative_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
 
         stalled = Signal()
-        tag = Signal(2)
+        tag = Signal(1)
         request_trans = Transaction(name="request")
         response_trans = Transaction(name="response")
 
