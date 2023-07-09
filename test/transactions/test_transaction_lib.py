@@ -21,6 +21,7 @@ from ..common import (
     TestbenchIO,
     data_layout,
     def_method_mock,
+    MethodMock,
 )
 
 
@@ -1076,3 +1077,37 @@ class TestShiftRegister(TestCaseWithSimulator):
         with self.run_simulation(self.m, 3000) as sim:
             sim.add_sync_process(self.input_process(self.check_random))
             sim.add_sync_process(self.put_process)
+
+class TestDownCounter(TestCaseWithSimulator):
+    def setUp(self):
+        random.seed(15)
+        self.test_number = 10
+        self.width = 5
+
+        self.callback_mock = MethodMock()
+        self.circ = SimpleTestCircuit(DownCounter(self.width, self.callback_mock.get_method()))
+        self.m = ModuleConnector(circ = self.circ, callback = self.callback_mock)
+
+        self.called = False
+
+    @def_method_mock(lambda self: self.callback_mock)
+    def callback_process(self):
+        self.called = True
+        
+
+    def process(self):
+        for _ in range(self.test_number):
+            start = random.randrange(1, 2**self.width)
+            yield from self.circ.set_start.call(start=start)
+            while start != 0:
+                self.assertFalse(self.called)
+                yield from self.circ.tick.call()
+                start -=1
+            yield Settle()
+            self.assertTrue(self.called)
+            self.called = False
+
+    def test_random(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.process)
+            sim.add_sync_process(self.callback_process)

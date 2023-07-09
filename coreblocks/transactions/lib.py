@@ -41,6 +41,7 @@ __all__ = [
     "ShiftRegister",
     "MethodBrancherIn",
     "NotMethod",
+    "DownCounter",
 ]
 
 # FIFOs
@@ -1811,3 +1812,38 @@ class NotMethod:
 
     def __init__(self, method: Method):
         self.method = method
+
+
+class DownCounter(Elaboratable):
+    def __init__(self, width : int, callback : Method):
+        self.width = width
+        self.callback = callback
+
+        self.set_start = Method(i=[("start", width)])
+        self.tick = Method()
+
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        value = Signal(self.width)
+        running = Signal()
+
+        @def_method(m, self.set_start)
+        def _ (start):
+            m.d.sync += value.eq(start)
+            with m.If(start!=0):
+                m.d.sync += running.eq(1)
+
+        @def_method(m, self.tick)
+        def _():
+            cond_signal = Signal()
+            with condition(m, nonblocking= False) as branch:
+                m.d.top_comb += cond_signal.eq((value == 1) & running)
+                with branch(cond_signal):
+                    self.callback(m)
+                    m.d.sync += running.eq(0)
+                with branch(~cond_signal):
+                    m.d.sync += value.eq(value-1)
+
+        return m
