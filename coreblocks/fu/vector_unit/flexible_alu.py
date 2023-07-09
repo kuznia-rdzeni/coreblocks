@@ -7,7 +7,6 @@ from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils._typing import ValueLike
 from coreblocks.fu.fu_decoder import DecoderManager
-from coreblocks.fu.vector_unit.utils import *
 
 __all__ = ["FlexibleAdder", "FlexibleElementwiseFunction"]
 

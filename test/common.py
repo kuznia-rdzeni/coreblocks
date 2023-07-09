@@ -29,8 +29,7 @@ from amaranth.sim.core import Command
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans, Adapter, MethodLayout
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode
-from coreblocks.fu.vector_unit.utils import SEW, LMUL
+from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode, SEW, LMUL
 from coreblocks.utils import (
     ValueLike,
     HasElaborate,
@@ -161,12 +160,15 @@ def convert_vtype_to_imm(vtype) -> int:
     return imm
 
 
-def generate_vtype(gen_params: GenParams):
+def generate_vtype(gen_params: GenParams, max_vl : Optional[int] = None):
     sew = random.choice(list(SEW))
     lmul = random.choice(list(LMUL))
     ta = random.randrange(2)
     ma = random.randrange(2)
-    vl = random.randrange(2**gen_params.isa.xlen)
+    if max_vl is not None:
+        vl = random.randrange(max_vl)
+    else:
+        vl = random.randrange(2**16)
     return {
         "sew": sew,
         "lmul": lmul,
@@ -187,6 +189,7 @@ def generate_instr(
     generate_illegal: bool = False,
     non_uniform_s2_val=True,
     overwriting: dict = {},
+    max_vl : Optional[int] = None
 ):
     rec = {}
     if max_bits is None:
@@ -229,7 +232,7 @@ def generate_instr(
                 s2_val = random.randrange(2**gen_params.isa.xlen)
             rec["s2_val"] = s2_val
         if "vtype" in field[0]:
-            rec["vtype"] = generate_vtype(gen_params)
+            rec["vtype"] = generate_vtype(gen_params, max_vl = max_vl)
         if "rp_v0" in field[0]:
             rec["rp_v0"] = {"id": generate_phys_register_id(gen_params=gen_params)}
     return overwrite_dict_values(rec, overwriting)

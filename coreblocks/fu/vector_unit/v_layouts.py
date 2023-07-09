@@ -1,6 +1,6 @@
 from amaranth.utils import *
 from coreblocks.params import *
-from coreblocks.fu.vector_unit.utils import SEW, LMUL, EEW
+from coreblocks.params.isa import SEW, LMUL, EEW
 from coreblocks.utils._typing import LayoutLike
 from coreblocks.utils import layout_subset, layout_difference
 
@@ -11,7 +11,7 @@ class VectorRegisterBankLayouts:
         self.read_resp = [("data", v_params.elen)]
 
         self.write = [
-            ("addr", range(v_params.elems_in_bank)),
+            ("addr", range(v_params.elens_in_bank)),
             ("data", v_params.elen),
             ("mask", v_params.bytes_in_elen),
         ]
@@ -23,14 +23,14 @@ class VectorRegisterBankLayouts:
 class VRFFragmentLayouts:
     def __init__(self, gen_params: GenParams):
         v_params = gen_params.v_params
-        self.read_req = [("vrp_id", v_params.vrp_count_bits), ("addr", v_params.elems_in_bank_bits)]
+        self.read_req = [("vrp_id", v_params.vrp_count_bits), ("addr", v_params.elens_in_bank_bits)]
 
         self.read_resp_i = [("vrp_id", v_params.vrp_count_bits)]
         self.read_resp_o = [("data", v_params.elen)]
 
         self.write = [
             ("vrp_id", v_params.vrp_count_bits),
-            ("addr", log2_int(v_params.elems_in_bank)),
+            ("addr", log2_int(v_params.elens_in_bank)),
             ("data", v_params.elen),
             ("mask", v_params.bytes_in_elen),
         ]
@@ -92,6 +92,7 @@ class VectorVRSLayout(RSLayouts):
 
 class VectorCommonLayouts:
     def __init__(self, gen_params: GenParams):
+        #TODO optimisation use 16 bits for VL
         self.vtype = [("lmul", LMUL), ("sew", SEW), ("ta", 1), ("ma", 1), ("vl", gen_params.isa.xlen)]
 
 
@@ -158,4 +159,6 @@ class VectorBackendLayouts:
     def __init__(self, gen_params: GenParams):
         frontend = VectorFrontendLayouts(gen_params)
 
-        self.vvrs_in = frontend.instr_to_vvrs
+        self.executor_in = self.vvrs_out = self.vvrs_in = frontend.instr_to_vvrs
+
+        self.len_getter_out = [("elems_len", gen_params.v_params.eew_to_elems_in_bank_bits[EEW.w8])]

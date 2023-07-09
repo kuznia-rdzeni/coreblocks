@@ -1,10 +1,9 @@
 from amaranth import *
+from amaranth.utils import log2_int
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 from coreblocks.utils import *
 from coreblocks.params import *
-from coreblocks.fu.vector_unit.utils import *
-from coreblocks.fu.vector_unit.v_layouts import *
 
 __all__ = ["SuperscalarFreeRF"]
 

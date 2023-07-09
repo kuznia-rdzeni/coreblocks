@@ -5,7 +5,6 @@ from coreblocks.transactions.lib import MemoryBank
 from coreblocks.params import *
 from coreblocks.utils.fifo import BasicFifo
 from coreblocks.fu.vector_unit.v_layouts import VectorRegisterBankLayouts
-from coreblocks.fu.vector_unit.utils import EEW
 
 __all__ = ["VectorRegisterBank"]
 
@@ -45,7 +44,7 @@ class VectorRegisterBank(Elaboratable):
         self.layouts = VectorRegisterBankLayouts(self.gen_params)
 
         self.bank = MemoryBank(
-            data_layout=self.layouts.read_resp, elem_count=self.v_params.elems_in_bank, granularity=8
+            data_layout=self.layouts.read_resp, elem_count=self.v_params.elens_in_bank, granularity=8
         )
 
         self.eew = Signal(EEW)

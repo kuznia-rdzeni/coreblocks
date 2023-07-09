@@ -1,5 +1,6 @@
 from amaranth.utils import *
 from typing import TYPE_CHECKING
+from coreblocks.params.isa import EEW, eew_to_bits
 
 if TYPE_CHECKING:
     from coreblocks.params.configurations import VectorUnitConfiguration
@@ -27,13 +28,16 @@ class VectorParameters:
         if self.vlen % self.elen != 0:
             raise ValueError("Wrong vectors parameters. VLEN should be divisable by ELEN")
 
-        self.elems_in_vlen = self.vlen // self.elen
+        self.elens_in_vlen = self.vlen // self.elen
 
-        if self.elems_in_vlen % self.register_bank_count != 0:
+        if self.elens_in_vlen % self.register_bank_count != 0:
             raise ValueError("Number of elements in vector register not divisable by number of banks.")
 
-        self.elems_in_bank = self.elems_in_vlen // self.register_bank_count
-        self.elems_in_bank_bits = log2_int(self.elems_in_bank, False)
+        self.elens_in_bank = self.elens_in_vlen // self.register_bank_count
+        self.elens_in_bank_bits = log2_int(self.elens_in_bank, False)
+
+        self.eew_to_elems_in_bank = {eew: self.vlen // eew_to_bits(eew) // self.register_bank_count for eew in EEW}
+        self.eew_to_elems_in_bank_bits = {eew: bits_for(self.eew_to_elems_in_bank[eew]) for eew in EEW}
         # vstart have to have enough bits to hold all indicies for minimum SEW and maximum LMUL
         # minimum SEW is 1 byte and maximum LMUL is 8
         self.vstart_bits = log2_int(self.bytes_in_vlen * 8, False)

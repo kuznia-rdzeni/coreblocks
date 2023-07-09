@@ -4,8 +4,44 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 from coreblocks.utils import *
 from coreblocks.params import *
-from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_layouts import *
+
+
+def get_vlmax(m: ModuleLike, sew: Value, lmul: Value, gen_params: GenParams) -> Signal:
+    """Generates circuit to calculate VLMAX
+
+    This function generates a circuit that computes in
+    combinational domain, a VLMAX based on the `sew` and
+    `lmul` signals, taking into account the `vlen` configured in
+    `v_params`.
+
+    Parameters
+    ----------
+    m : ModuleLike
+        Module to connect the generated circuit to.
+    sew : Value
+        SEW for which VLMAX should is to be calculated.
+    lmul : Value
+        LMUL for which VLMAX should is to be calculated.
+    gen_params : GenParams
+        Configuration of the core.
+    v_params : VectorParameters
+        Configuration of the vector extension.
+
+    Returns
+    -------
+    vlmax : Signal
+        Signal containing the calculated VLMAX.
+    """
+    sig = Signal(gen_params.isa.xlen)
+    with m.Switch((sew << len(lmul)) | lmul):
+        for s in SEW:
+            for lm in LMUL:
+                bits = (s << log2_int(len(LMUL), False)) | lm
+                with m.Case(bits):
+                    val = int(gen_params.v_params.vlen // eew_to_bits(s) * lmul_to_float(lm))
+                    m.d.comb += sig.eq(val)
+    return sig
 
 
 class VectorStatusUnit(Elaboratable):
@@ -93,7 +129,7 @@ class VectorStatusUnit(Elaboratable):
         new_vtype = Signal(8)
         avl = Signal().like(self.vl)
         vlmax = Signal().like(self.vl)
-        m.d.comb += vlmax.eq(get_vlmax(m, new_vtype[3:6], new_vtype[:3], self.gen_params, self.v_params))
+        m.d.comb += vlmax.eq(get_vlmax(m, new_vtype[3:6], new_vtype[:3], self.gen_params))
         m.d.comb += avl.eq(vlmax)
         ill = Signal()
         valid_rs1 = Signal()

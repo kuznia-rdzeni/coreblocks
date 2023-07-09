@@ -5,7 +5,6 @@ from coreblocks.utils import *
 from coreblocks.params import *
 from coreblocks.utils.fifo import *
 from coreblocks.scheduler.wakeup_select import *
-from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_layouts import *
 
 __all__ = ["VectorAllocRename"]
