@@ -10,6 +10,21 @@ from coreblocks.utils.utils import PriorityUniqnessChecker
 __all__ = ["Scoreboard"]
 
 class Scoreboard(Elaboratable):
+    """
+    This module implements a scoreboard. A simple structure that allows
+    to store a dirty bit for each of the indicies..
+
+    Attributes
+    ----------
+    get_dirty_list : list[Method]
+        Methods to get the dirty bit for the given index id.
+        Layout: ScoreboardLayouts.get_dirty_*
+    set_dirty_list : list[Method]
+        Methods to set the dirty bit for the given index id. If more than
+        one method try to write to the same index, the method
+        with the lowest index in list has a priority.
+        Layout: ScoreboardLayouts.set_dirty_in
+    """
     def __init__(self, entries_number : int, superscalarity : int = 1):
         self.entries_number = entries_number
         self.superscalarity = superscalarity

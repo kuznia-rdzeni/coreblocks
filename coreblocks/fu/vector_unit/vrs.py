@@ -31,6 +31,14 @@ class VXRS(FifoRS):
 
 
 class VVRS(RS):
+    """ Extends RS with vector update and ready functionality.
+
+    This module implements an RS, that waits untill all vector registers
+    that can be used by a vector instruction are ready.
+
+    NOTE: At the moment there is no prechecking if all 4 registers 
+    we are waiting on needed.
+    """
     def __init__(self,
         gen_params: GenParams,
         rs_entries: int,
@@ -44,6 +52,7 @@ class VVRS(RS):
                     record.rs_data.rp_s1_rdy &
                     record.rs_data.rp_s2_rdy &
                     record.rs_data.rp_s3_rdy &
+                    record.rs_data.rp_v0_rdy &
                     record.rec_full.bool()
                     )
 

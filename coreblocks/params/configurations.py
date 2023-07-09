@@ -24,6 +24,24 @@ basic_configuration: tuple[fu_params.BlockComponentParams, ...] = (
 
 @dataclass(kw_only=True)
 class VectorUnitConfiguration:
+    """ Vector unit configuration parameters
+
+    Parameters
+    ----------
+    vlen : int
+        Length of one vector register in bits.
+    elen : int
+        Maximal supported element width by vector extension. It has to be
+        power of 2. Currently available values: {8,16,32,64}.
+    vrp_count : int
+        The number of physical vector registers.
+    register_bank_count : int
+        Number of banks to which an physical register should be split.
+    vxrs_entries : int
+        Number of entries in VXRS (reservation station for scalars).
+    vvrs_entries : int
+        Number of entries in VVRS (reservation station for vector registers).
+    """
     vlen: int = 1024
     elen: int = 32
     vrp_count: int = 40

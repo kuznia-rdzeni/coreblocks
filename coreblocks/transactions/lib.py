@@ -173,6 +173,24 @@ class Forwarder(Elaboratable):
 
 
 class Register(Elaboratable):
+    """
+    This module implements a `Register`. It is a halfway between
+    `Forwarder` and `2-FIFO`. In the `Register` data is always
+    stored localy, so the critical path of the data is cut, but there is a
+    combinational path between the control signals of the `read` and
+    the `write` methods. For comparison:
+    - in `Forwarder` there is both a data and a control combinational path
+    - in `2-FIFO` there are no combinational paths
+
+    The `read` method is scheduled before the `write`.
+
+    Attributes
+    ----------
+    read: Method
+        The read method. Accepts an empty argument, returns a `Record`.
+    write: Method
+        The write method. Accepts a `Record`, returns empty result.
+    """
     def __init__(self, layout: MethodLayout):
         """
         Parameters
@@ -1579,7 +1597,29 @@ class PriorityOrderingProxyTrans(PriorityOrderingTransProxyTrans):
 
 
 class RegisterPipe(Elaboratable):
+    """
+    This module allows registers to be written only when
+    all ports are ready, but data can be read one by one.
+    This is useful if we need to process batches of data
+    where order within batch doesn't matter, but the order
+    between batches does..
+
+    Attributes
+    ----------
+    read_list: list[Method]
+        The read methods. Accepts an empty argument, returns a `Record`.
+    write_list: list[Method]
+        The write method. Accepts a `Record`, returns empty result.
+    """
     def __init__(self, layout : LayoutLike, channels : int):
+        """
+        Parameters
+        ----------
+        layout : LayoutLike
+            Layout of the stored data.
+        channels : int
+            The number of read and write methods to create.
+        """
         self.layout = layout
         self.channels = channels
 
@@ -1605,7 +1645,36 @@ class RegisterPipe(Elaboratable):
         return m
 
 class ShiftRegister(Elaboratable):
+    """
+    This module implements a shift register. It allows the serialisation of
+    a batch of requests. It assumes that the `write` methods are called
+    in order (from the method with the lowest index in the list, to
+    the method with the biggest index in the list) and next forwards
+    received data to the `put` method in order of methods from the list.
+    So the data from the 0-th method will be transfered first, next from
+    the 1-st method and so on.
+
+    Attributes
+    ----------
+    write_list : list[Method]
+        Methods to write data. Either all or none are ready.
+    """
     def __init__(self, layout : LayoutLike, entries_number : int, put : Method, *, first_transparent : bool = True):
+        """
+        Parameters
+        ----------
+        layout : LayoutLike
+            The layout of the stored data.
+        entries_number : int
+            The number of entries that can be written at once into
+            the shift register.
+        put : Method
+            The method to call to pass serialised data.
+        first_transparent : bool
+            Decide whether the call to first write should be transparent
+            and passed directly to `put`, or if first should be
+            stored into a register.
+        """
         self.layout = layout
         self.entries_number = entries_number
         self.put = put
@@ -1666,7 +1735,58 @@ class ShiftRegister(Elaboratable):
 
 
 class MethodBrancherIn():
+    """ Syntax sugar for calling the same method in different `m.If` branches.
+
+    Sometimes it is handy to write:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        with Transaction().body(m):
+            with m.If(cond):
+                method(arg1)
+            with m.Else():
+                method(arg2)
+
+    But such code is not allowed, because a method is called twice in a transaction.
+    So normaly it has to be rewritten to:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        rec = Record(method.data_in.layout)
+        with Transaction().body(m):
+            with m.If(cond):
+                m.d.comb += assign(rec, arg1)
+            with m.Else():
+                m.d.comb += assign(rec, arg2)
+            method(rec)
+
+    But such a form is less readable. `MethodBrancherIn` is designed to do this
+    transformation automatically, so you can write:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        with Transaction().body(m):
+            b_method = MethodBrancherIn(m, method)
+            with m.If(cond):
+                b_method(arg1)
+            with m.Else():
+                b_method(arg2)
+
+    IMPORTANT: `MethodBrancherIn` is constructed within a `Transaction` or
+    `Method` that should call the passed `method`. It creates a call in `__init__`.
+    """
     def __init__(self, m:TModule, method : Method):
+        """
+        Parameters
+        ----------
+        m : TModule
+            Module to add connections to.
+        method : Method
+            Method to wrap.
+        """
         self.m = m
         self.method = method
         self.rec_in = Record(method.data_in.layout)
@@ -1679,5 +1799,9 @@ class MethodBrancherIn():
         self.m.d.comb += self.valid_in.eq(1)
 
 class NotMethod():
+    """
+    Temporary workaround for bug in where passing a single_caller Method
+    as an argument to SimpleTestCircuit connects a second caller.
+    """
     def __init__(self, method : Method):
         self.method = method
