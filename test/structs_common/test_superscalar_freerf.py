@@ -7,9 +7,11 @@ from coreblocks.structs_common.superscalar_freerf import SuperscalarFreeRF
 from collections import deque
 from parameterized import parameterized_class
 
+
 @parameterized_class(["outputs_count"], [(1,), (2,), (3,), (4,), (5,)])
 class TestSuperscalarFreeRF(TestCaseWithSimulator):
-    outputs_count : int
+    outputs_count: int
+
     def setUp(self):
         random.seed(14)
         self.entries_count = 21

@@ -97,7 +97,7 @@ class CLZTestCircuit(Elaboratable):
 
 @parameterized_class(
     ("name", "size"),
-    [("size" + str(s), s) for s in [1,2,4,8,16,32,3,5,13,42,111]],
+    [("size" + str(s), s) for s in [1, 2, 4, 8, 16, 32, 3, 5, 13, 42, 111]],
 )
 class TestCountLeadingZeros(TestCaseWithSimulator):
     size: int
@@ -142,7 +142,7 @@ class CTZTestCircuit(Elaboratable):
 
 @parameterized_class(
     ("name", "size"),
-    [("size" + str(s), s) for s in [1,2,4,8,16,32,3,5,13,42,111]],
+    [("size" + str(s), s) for s in [1, 2, 4, 8, 16, 32, 3, 5, 13, 42, 111]],
 )
 class TestCountTrailingZeros(TestCaseWithSimulator):
     size: int

@@ -21,7 +21,6 @@ from ..common import (
     TestbenchIO,
     data_layout,
     def_method_mock,
-    Now,
 )
 
 
@@ -40,7 +39,12 @@ FIFO_Like: TypeAlias = FIFO | Forwarder | Connect | RevConnect | Register
 
 class TestFifoBase(TestCaseWithSimulator):
     def do_test_fifo(
-            self, fifo_class: type[FIFO_Like], writer_rand: int = 0, reader_rand: int = 0, fifo_kwargs: dict = {}, timeout : Optional[int] = None
+        self,
+        fifo_class: type[FIFO_Like],
+        writer_rand: int = 0,
+        reader_rand: int = 0,
+        fifo_kwargs: dict = {},
+        timeout: Optional[int] = None,
     ):
         iosize = 8
 
@@ -138,13 +142,15 @@ class TestForwarder(TestFifoBase):
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
 
+
 class TestRegister(TestFifoBase):
     @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
     def test_fifo(self, writer_rand, reader_rand):
         self.do_test_fifo(Register, writer_rand=writer_rand, reader_rand=reader_rand)
 
     def test_pipelining(self):
-        self.do_test_fifo(Register, writer_rand=0, reader_rand=0, timeout = 258)
+        self.do_test_fifo(Register, writer_rand=0, reader_rand=0, timeout=258)
+
 
 class TestMemoryBank(TestCaseWithSimulator):
     test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
@@ -946,7 +952,6 @@ class TestPriorityOrderingProxy(TestCaseWithSimulator):
 
 
 class TestRegisterPipe(TestCaseWithSimulator):
-
     def setUp(self):
         self.test_number = 50
         self.data_width = 8
@@ -956,7 +961,7 @@ class TestRegisterPipe(TestCaseWithSimulator):
 
         self.circ = SimpleTestCircuit(RegisterPipe(self.layout, self.channels))
 
-        self.virtual_regs : list[Optional[int]] = [None for _ in range(self.channels)]
+        self.virtual_regs: list[Optional[int]] = [None for _ in range(self.channels)]
         self.try_read = [False for _ in range(self.channels)]
 
     def input_process(self, k):
@@ -965,32 +970,34 @@ class TestRegisterPipe(TestCaseWithSimulator):
                 while True:
                     val = random.randrange(2**self.data_width)
                     yield Settle()
-                    if all( (reg is None) or try_read for reg,try_read in zip(self.virtual_regs, self.try_read)):
+                    if all((reg is None) or try_read for reg, try_read in zip(self.virtual_regs, self.try_read)):
                         ret = yield from self.circ.write_list[k].call_try(data=val)
                         self.assertIsNotNone(ret)
                         yield Settle()
-                        self.virtual_regs[k]=val
+                        self.virtual_regs[k] = val
                         yield Settle()
                         break
                     else:
                         ret = yield from self.circ.write_list[k].call_try(data=val)
                         self.assertIsNone(ret)
+
         return f
 
     def output_process(self, k):
         def f():
             for _ in range(self.test_number):
                 while True:
-                    self.try_read[k]=True
+                    self.try_read[k] = True
                     data = yield from self.circ.read_list[k].call_try()
                     if (data_org := self.virtual_regs[k]) is None:
                         self.assertIsNone(data)
                     else:
                         self.assertEqual(data["data"], data_org)
-                        self.virtual_regs[k]=None
+                        self.virtual_regs[k] = None
                         break
-                self.try_read[k]=False
+                self.try_read[k] = False
                 yield from self.tick(random.randrange(3))
+
         return f
 
     def test_random(self):
@@ -1000,11 +1007,10 @@ class TestRegisterPipe(TestCaseWithSimulator):
                 sim.add_sync_process(self.output_process(k))
 
 
-@parameterized_class(["transparent"], 
-                     [(True,), (False,)]
-                     )
+@parameterized_class(["transparent"], [(True,), (False,)])
 class TestShiftRegister(TestCaseWithSimulator):
-    transparent : bool
+    transparent: bool
+
     def setUp(self):
         self.test_number = 50
         self.input_width = 8
@@ -1013,14 +1019,16 @@ class TestShiftRegister(TestCaseWithSimulator):
         random.seed(14)
 
         self.put = TestbenchIO(Adapter(i=self.layout))
-        self.circ = SimpleTestCircuit(ShiftRegister(self.layout, self.entries_number, self.put.adapter.iface, first_transparent = self.transparent))
+        self.circ = SimpleTestCircuit(
+            ShiftRegister(self.layout, self.entries_number, self.put.adapter.iface, first_transparent=self.transparent)
+        )
 
-        self.m = ModuleConnector(circ = self.circ, put = self.put)
-        
-        self.received_data=deque()
+        self.m = ModuleConnector(circ=self.circ, put=self.put)
+
+        self.received_data = deque()
         self.expected_data = deque()
 
-    @def_method_mock(lambda self: self.put, enable = lambda self: self.mock_enable(), sched_prio = 1)
+    @def_method_mock(lambda self: self.put, enable=lambda self: self.mock_enable(), sched_prio=1)
     def put_process(self, data):
         self.received_data.append(data)
 
@@ -1031,7 +1039,7 @@ class TestShiftRegister(TestCaseWithSimulator):
     def input_process(self, checker):
         def f():
             for _ in range(self.test_number):
-                n = random.randrange(1,self.entries_number)
+                n = random.randrange(1, self.entries_number)
                 for k in range(n):
                     val = random.randrange(2**self.input_width)
                     yield from self.circ.write_list[k].call_init(data=val)
@@ -1041,29 +1049,30 @@ class TestShiftRegister(TestCaseWithSimulator):
                 self.assertIterableEqual(self.expected_data, self.received_data)
                 self.expected_data.clear()
                 self.received_data.clear()
+
         return f
 
     def check_pipeline(self, n):
         yield Settle()
-        for i in range(n-self.transparent+1):
+        for i in range(n - self.transparent + 1):
             yield
             yield from self.disable_all()
 
     def check_random(self, n):
         yield Settle()
-        while len(self.received_data)<len(self.expected_data):
+        while len(self.received_data) < len(self.expected_data):
             yield
             if (yield from self.circ.write_list[0].done()):
                 yield from self.disable_all()
 
     def test_pipeline(self):
-        self.mock_enable = lambda : True
+        self.mock_enable = lambda: True
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.input_process(self.check_pipeline))
             sim.add_sync_process(self.put_process)
 
     def test_random_wait(self):
-        self.mock_enable = lambda : random.random()<0.1
+        self.mock_enable = lambda: random.random() < 0.1
         with self.run_simulation(self.m, 3000) as sim:
             sim.add_sync_process(self.input_process(self.check_random))
             sim.add_sync_process(self.put_process)

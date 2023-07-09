@@ -138,7 +138,7 @@ class VectorStatusUnit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        #TODO Optimisation: Use Funct7+rs2 istead of imm2
+        # TODO Optimisation: Use Funct7+rs2 istead of imm2
 
         @def_method(m, self.issue)
         def _(arg):

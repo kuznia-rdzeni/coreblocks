@@ -398,8 +398,9 @@ class TestLayout(RSLayoutProtocol):
 
 @parameterized_class(["wait_time_consumer", "wait_time_inserter"], itertools.product([1, 5], [1, 5]))
 class TestFifoRS(TestCaseWithSimulator):
-    wait_time_consumer : int
-    wait_time_inserter : int
+    wait_time_consumer: int
+    wait_time_inserter: int
+
     def rec_ready_setter(self):
         def f(self_dut: FifoRS, m: TModule):
             for record in self_dut.data:

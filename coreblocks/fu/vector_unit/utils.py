@@ -5,7 +5,18 @@ from amaranth import *
 from coreblocks.params import VectorParameters, GenParams
 from coreblocks.utils._typing import ModuleLike
 
-__all__ = ["SEW", "EEW", "EMUL", "LMUL", "eew_to_bits", "bits_to_eew", "eew_div_2", "get_vlmax", "lmul_to_float", "lmul_to_int"]
+__all__ = [
+    "SEW",
+    "EEW",
+    "EMUL",
+    "LMUL",
+    "eew_to_bits",
+    "bits_to_eew",
+    "eew_div_2",
+    "get_vlmax",
+    "lmul_to_float",
+    "lmul_to_int",
+]
 
 
 class SEW(IntEnum):
@@ -173,7 +184,8 @@ def get_vlmax(m: ModuleLike, sew: Value, lmul: Value, gen_params: GenParams, v_p
                     m.d.comb += sig.eq(val)
     return sig
 
-def lmul_to_int(lmul : LMUL) -> int:
+
+def lmul_to_int(lmul: LMUL) -> int:
     """Convert LMUL to int by rounding up.
 
     Parameters

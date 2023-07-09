@@ -4,7 +4,6 @@ from coreblocks.transactions.core import *
 from coreblocks.transactions.lib import MemoryBank
 from coreblocks.params import *
 from coreblocks.utils.fifo import BasicFifo
-from coreblocks.params.vector_params import VectorParameters
 from coreblocks.fu.vector_unit.v_layouts import VectorRegisterBankLayouts
 from coreblocks.fu.vector_unit.utils import EEW
 

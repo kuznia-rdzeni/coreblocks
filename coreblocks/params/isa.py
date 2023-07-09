@@ -105,13 +105,13 @@ class Funct6(IntEnum, shape=6):
     VWREDSUMU = 0b110000
     VWREDSUM = 0b110001
 
-v_narrowing_to_normal_map = {
-    Funct6.VNSRA : Funct6.VSRA,
-    Funct6.VNSRL : Funct6.VSRL,
-        }
 
-v_widening_to_normal_map = {
-    }
+v_narrowing_to_normal_map = {
+    Funct6.VNSRA: Funct6.VSRA,
+    Funct6.VNSRL: Funct6.VSRL,
+}
+
+v_widening_to_normal_map = {}
 
 
 class Funct7(IntEnum, shape=7):
@@ -127,8 +127,9 @@ class Funct7(IntEnum, shape=7):
     ZEXTH = 0b0000100
     SFENCEVMA = 0b0001001
 
-def funct6_to_funct7(funct6 : Funct6, vm : bool | int) -> Funct7:
-    return Funct7(int(funct6)*2 + int(vm))
+
+def funct6_to_funct7(funct6: Funct6, vm: bool | int) -> Funct7:
+    return Funct7(int(funct6) * 2 + int(vm))
 
 
 class Funct12(IntEnum, shape=12):

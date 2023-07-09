@@ -71,7 +71,9 @@ class Renaming(Elaboratable):
     the F-RAT with the translation from the logical destination register ID to the physical ID.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, get_rename: Method, set_rename : Method, gen_params: GenParams):
+    def __init__(
+        self, *, get_instr: Method, push_instr: Method, get_rename: Method, set_rename: Method, gen_params: GenParams
+    ):
         """
         Parameters
         ----------
@@ -107,9 +109,9 @@ class Renaming(Elaboratable):
             instr = self.get_instr(m)
 
             with m.If(instr.regs_l.dst.type == RegisterType.X):
-                self.set_rename(m, rl_dst = instr.regs_l.dst.id, rp_dst = instr.regs_p.dst.id)
+                self.set_rename(m, rl_dst=instr.regs_l.dst.id, rp_dst=instr.regs_p.dst.id)
 
-            renamed_regs = self.get_rename( m, rl_s1= instr.regs_l.s1.id, rl_s2= instr.regs_l.s2.id)
+            renamed_regs = self.get_rename(m, rl_s1=instr.regs_l.s1.id, rl_s2=instr.regs_l.s2.id)
 
             m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "imm2", "pc"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)

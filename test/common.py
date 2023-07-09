@@ -51,8 +51,9 @@ TestGen = Generator[Union[Command, Value, Statement, None, "CoreblockCommand"], 
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 SimpleLayout = list[Tuple[str, Union[int, "SimpleLayout"]]]
 
+
 class MethodMock(Elaboratable):
-    def __init__(self, i : MethodLayout = (), o : MethodLayout = ()):
+    def __init__(self, i: MethodLayout = (), o: MethodLayout = ()):
         self.tb = TestbenchIO(Adapter(i=i, o=o))
 
     def elaborate(self, platform):
@@ -64,7 +65,6 @@ class MethodMock(Elaboratable):
 
 def data_layout(val: int) -> LayoutLike:
     return [("data", val)]
-
 
 
 def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
@@ -161,7 +161,7 @@ def convert_vtype_to_imm(vtype) -> int:
     return imm
 
 
-def generate_vtype(gen_params : GenParams):
+def generate_vtype(gen_params: GenParams):
     sew = random.choice(list(SEW))
     lmul = random.choice(list(LMUL))
     ta = random.randrange(2)
@@ -172,7 +172,7 @@ def generate_vtype(gen_params : GenParams):
         "lmul": lmul,
         "ta": ta,
         "ma": ma,
-        "vl" : vl,
+        "vl": vl,
     }
 
 
@@ -231,7 +231,7 @@ def generate_instr(
         if "vtype" in field[0]:
             rec["vtype"] = generate_vtype(gen_params)
         if "rp_v0" in field[0]:
-            rec["rp_v0"] = {"id" : generate_phys_register_id(gen_params=gen_params)}
+            rec["rp_v0"] = {"id": generate_phys_register_id(gen_params=gen_params)}
     return overwrite_dict_values(rec, overwriting)
 
 
@@ -492,10 +492,10 @@ class TestCaseWithSimulator(unittest.TestCase):
         for _ in range(cycle_cnt):
             yield
 
-    def assertIterableEqual(self, it1, it2):
+    def assertIterableEqual(self, it1, it2):  # noqa: N802
         self.assertListEqual(list(it1), list(it2))
 
-    def assertFieldsEqual(self, dict1, dict2, fields : Iterable):
+    def assertFieldsEqual(self, dict1, dict2, fields: Iterable):  # noqa: N802
         for field in fields:
             self.assertEqual(dict1[field], dict2[field], field)
 
@@ -636,8 +636,12 @@ def wrap_with_now(func: Callable):
 
 
 def def_method_mock(
-    tb_getter: Callable[[], TestbenchIO] | Callable[[Any], TestbenchIO] | Callable[[], MethodMock] | Callable[[Any], MethodMock],
-    sched_prio: int = 0, **kwargs
+    tb_getter: Callable[[], TestbenchIO]
+    | Callable[[Any], TestbenchIO]
+    | Callable[[], MethodMock]
+    | Callable[[Any], MethodMock],
+    sched_prio: int = 0,
+    **kwargs,
 ) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
@@ -706,7 +710,7 @@ def def_method_mock(
                     kw[k] = bind(func_self) if bind else v
             tb = getter()
             if isinstance(tb, MethodMock):
-                tb=tb.tb
+                tb = tb.tb
             assert isinstance(tb, TestbenchIO)
             yield from tb.method_handle_loop(f, extra_settle_count=sched_prio, **kw)
 

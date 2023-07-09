@@ -2,8 +2,8 @@ from amaranth import *
 from test.common import *
 from coreblocks.params import *
 from coreblocks.params.configurations import *
-from collections import deque
 from coreblocks.structs_common.scoreboard import *
+
 
 class TestScoreboard(TestCaseWithSimulator):
     def setUp(self):
@@ -27,8 +27,8 @@ class TestScoreboard(TestCaseWithSimulator):
                 yield Settle()
                 self.virtual_scoreboard[id] = new_dirty
                 yield from self.tick(random.randrange(3))
-        return f
 
+        return f
 
     def test_random(self):
         with self.run_simulation(self.circ) as sim:
@@ -36,8 +36,8 @@ class TestScoreboard(TestCaseWithSimulator):
                 sim.add_sync_process(self.create_process(k))
 
     def conflict_process(self):
-        yield from self.circ.set_dirty_list[0].call_init(id=0, dirty = 0)
-        yield from self.circ.set_dirty_list[1].call_init(id=0, dirty = 0)
+        yield from self.circ.set_dirty_list[0].call_init(id=0, dirty=0)
+        yield from self.circ.set_dirty_list[1].call_init(id=0, dirty=0)
         yield Settle()
         yield
         self.assertEqual((yield from self.circ.set_dirty_list[0].done()), 1)

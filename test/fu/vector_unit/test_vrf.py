@@ -38,7 +38,11 @@ class TestVRFFragment(TestCaseWithSimulator):
     wait_chance: float
 
     def setUp(self):
-        gp = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(vlen=128, elen=32, vrp_count=8, register_bank_count=1)))
+        gp = GenParams(
+            test_vector_core_config.replace(
+                vector_config=VectorUnitConfiguration(vlen=128, elen=32, vrp_count=8, register_bank_count=1)
+            )
+        )
         self.vp = gp.v_params
         self.circ = SimpleTestCircuit(VRFFragment(gen_params=gp))
         self.read_port_count = 3

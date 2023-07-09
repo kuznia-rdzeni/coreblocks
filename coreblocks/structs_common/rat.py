@@ -44,8 +44,10 @@ class FRAT(Elaboratable):
         if self.superscalarity < 1:
             raise ValueError(f"FRAT should have minimum one method, so superscalarity>=1, got: {self.superscalarity}")
 
-        self.set_rename_list = [ Method(i=self.layouts.set_rename_in) for _ in range(self.superscalarity) ]
-        self.get_rename_list = [ Method(i=self.layouts.get_rename_in, o=self.layouts.get_rename_out) for _ in range(self.superscalarity) ]
+        self.set_rename_list = [Method(i=self.layouts.set_rename_in) for _ in range(self.superscalarity)]
+        self.get_rename_list = [
+            Method(i=self.layouts.get_rename_in, o=self.layouts.get_rename_out) for _ in range(self.superscalarity)
+        ]
 
     def elaborate(self, platform):
         m = TModule()

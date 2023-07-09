@@ -323,7 +323,7 @@ def count_leading_zeros(s: Value) -> Value:
         xlen_log = log2_int(len(s))
     except ValueError:
         xlen_log = log2_int(len(s), False)
-        s = Cat(Repl(1, (1<<xlen_log) - len(s)), s)
+        s = Cat(Repl(1, (1 << xlen_log) - len(s)), s)
 
     value = iter(s, xlen_log)
 
@@ -340,7 +340,7 @@ def count_trailing_zeros(s: Value) -> Value:
     try:
         log2_int(len(s))
     except ValueError:
-        s = Cat(s, Repl(1, (1<<log2_int(len(s), False)) - len(s)))
+        s = Cat(s, Repl(1, (1 << log2_int(len(s), False)) - len(s)))
 
     return count_leading_zeros(s[::-1])
 
@@ -498,7 +498,7 @@ class MultiPriorityEncoder(Elaboratable):
 
 
 class PriorityUniqnessChecker(Elaboratable):
-    """ Find every first occurrence of the argument.
+    """Find every first occurrence of the argument.
 
     This module takes `input_count` arguments and checks which are
     unique. The first occurrence of a unique value is valid, all others
@@ -515,7 +515,8 @@ class PriorityUniqnessChecker(Elaboratable):
         Result of the uniqueness check. Each first occurrence of value
         has 1 bit and all others have 0.
     """
-    def __init__(self, inputs_count : int, input_width : int):
+
+    def __init__(self, inputs_count: int, input_width: int):
         """
         Parameters
         ----------
@@ -525,11 +526,11 @@ class PriorityUniqnessChecker(Elaboratable):
             Number of inputs to create.
         """
         self.input_width = input_width
-        self.inputs_count =inputs_count
+        self.inputs_count = inputs_count
 
         self.inputs = [Signal(self.input_width) for _ in range(self.inputs_count)]
         self.input_valids = [Signal() for _ in range(self.inputs_count)]
-        self.valids = [Signal(reset = 1) for _ in range(self.inputs_count)]
+        self.valids = [Signal(reset=1) for _ in range(self.inputs_count)]
 
     def elaborate(self, platform):
         m = Module()

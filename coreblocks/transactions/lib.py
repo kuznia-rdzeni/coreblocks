@@ -106,6 +106,7 @@ class FIFO(Elaboratable):
 
 # Forwarding with overflow buffering
 
+
 class Forwarder(Elaboratable):
     """Forwarding with overflow buffering
 
@@ -191,6 +192,7 @@ class Register(Elaboratable):
     write: Method
         The write method. Accepts a `Record`, returns empty result.
     """
+
     def __init__(self, layout: MethodLayout):
         """
         Parameters
@@ -224,7 +226,6 @@ class Register(Elaboratable):
         def _(arg):
             m.d.sync += reg.eq(arg)
             m.d.sync += reg_valid.eq(1)
-
 
         @def_method(m, self.clear)
         def _():
@@ -1611,7 +1612,8 @@ class RegisterPipe(Elaboratable):
     write_list: list[Method]
         The write method. Accepts a `Record`, returns empty result.
     """
-    def __init__(self, layout : LayoutLike, channels : int):
+
+    def __init__(self, layout: LayoutLike, channels: int):
         """
         Parameters
         ----------
@@ -1623,8 +1625,8 @@ class RegisterPipe(Elaboratable):
         self.layout = layout
         self.channels = channels
 
-        self.write_list = [Method(i = self.layout) for _ in range(self.channels)]
-        self.read_list = [Method(o = self.layout) for _ in range(self.channels)]
+        self.write_list = [Method(i=self.layout) for _ in range(self.channels)]
+        self.read_list = [Method(o=self.layout) for _ in range(self.channels)]
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -1634,7 +1636,7 @@ class RegisterPipe(Elaboratable):
 
         all_write_ready = Cat(reg.write.ready for reg in registers).all()
 
-        @loop_def_method(m, self.write_list, ready_list = lambda _: all_write_ready)
+        @loop_def_method(m, self.write_list, ready_list=lambda _: all_write_ready)
         def _(i, arg):
             registers[i].write(m, arg)
 
@@ -1643,6 +1645,7 @@ class RegisterPipe(Elaboratable):
             return registers[i].read(m)
 
         return m
+
 
 class ShiftRegister(Elaboratable):
     """
@@ -1659,7 +1662,8 @@ class ShiftRegister(Elaboratable):
     write_list : list[Method]
         Methods to write data. Either all or none are ready.
     """
-    def __init__(self, layout : LayoutLike, entries_number : int, put : Method, *, first_transparent : bool = True):
+
+    def __init__(self, layout: LayoutLike, entries_number: int, put: Method, *, first_transparent: bool = True):
         """
         Parameters
         ----------
@@ -1680,15 +1684,14 @@ class ShiftRegister(Elaboratable):
         self.put = put
         self.first_transparent = first_transparent
 
-        self.write_list = [Method(i = self.layout) for _ in range(entries_number)]
-    
+        self.write_list = [Method(i=self.layout) for _ in range(entries_number)]
+
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
         regs = [Signal(len(Record(self.layout))) for _ in range(self.entries_number)]
-        valids=[Signal() for _ in range(self.entries_number)]
-        count = Signal(log2_int(self.entries_number, False))
-        ready = Signal(reset = 1)
+        valids = [Signal() for _ in range(self.entries_number)]
+        ready = Signal(reset=1)
         start = Signal()
 
         reg_now = Signal.like(regs[0])
@@ -1697,7 +1700,7 @@ class ShiftRegister(Elaboratable):
         with m.FSM():
             with m.State("start"):
                 if self.first_transparent:
-                    if self.entries_number>1:
+                    if self.entries_number > 1:
                         with m.If(start & self.write_list[1].run):
                             m.next = "1"
                 else:
@@ -1706,11 +1709,11 @@ class ShiftRegister(Elaboratable):
             for i in range(self.first_transparent, self.entries_number):
                 with m.State(f"{i}"):
                     m.d.comb += ready.eq(0)
-                    if i+1 == self.entries_number:
+                    if i + 1 == self.entries_number:
                         with m.If(execute_put.grant):
                             m.next = "start"
                     else:
-                        with m.If(valids[i+1] & execute_put.grant):
+                        with m.If(valids[i + 1] & execute_put.grant):
                             m.next = f"{i+1}"
                         with m.Elif(execute_put.grant):
                             m.next = "start"
@@ -1718,24 +1721,24 @@ class ShiftRegister(Elaboratable):
                     m.d.comb += reg_now_v.eq(1)
                     m.d.sync += valids[i].eq(0)
 
-        with execute_put.body(m, request = reg_now_v):
-            self.put(m,reg_now)
+        with execute_put.body(m, request=reg_now_v):
+            self.put(m, reg_now)
 
         @loop_def_method(m, self.write_list, lambda _: ready)
         def _(i, arg):
-            if i==0:
+            if i == 0:
                 m.d.comb += start.eq(1)
-            if self.first_transparent and i == 0 :
+            if self.first_transparent and i == 0:
                 self.put(m, arg)
             else:
-                m.d.sync += regs[ i ].eq(arg)
-                m.d.sync += valids[ i ].eq(1)
+                m.d.sync += regs[i].eq(arg)
+                m.d.sync += valids[i].eq(1)
 
         return m
 
 
-class MethodBrancherIn():
-    """ Syntax sugar for calling the same method in different `m.If` branches.
+class MethodBrancherIn:
+    """Syntax sugar for calling the same method in different `m.If` branches.
 
     Sometimes it is handy to write:
 
@@ -1778,7 +1781,8 @@ class MethodBrancherIn():
     IMPORTANT: `MethodBrancherIn` is constructed within a `Transaction` or
     `Method` that should call the passed `method`. It creates a call in `__init__`.
     """
-    def __init__(self, m:TModule, method : Method):
+
+    def __init__(self, m: TModule, method: Method):
         """
         Parameters
         ----------
@@ -1798,10 +1802,12 @@ class MethodBrancherIn():
         self.m.d.comb += self.rec_in.eq(args)
         self.m.d.comb += self.valid_in.eq(1)
 
-class NotMethod():
+
+class NotMethod:
     """
     Temporary workaround for bug in where passing a single_caller Method
     as an argument to SimpleTestCircuit connects a second caller.
     """
-    def __init__(self, method : Method):
+
+    def __init__(self, method: Method):
         self.method = method

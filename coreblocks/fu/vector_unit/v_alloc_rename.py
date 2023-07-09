@@ -1,4 +1,3 @@
-from typing import Optional
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
@@ -8,12 +7,12 @@ from coreblocks.utils.fifo import *
 from coreblocks.scheduler.wakeup_select import *
 from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_layouts import *
-from coreblocks.utils._typing import ValueLike
 
 __all__ = ["VectorAllocRename"]
 
+
 class VectorAllocRename(Elaboratable):
-    """ Allocate and rename vector registers
+    """Allocate and rename vector registers
 
     Module for allocating and renaming vector registers using the vector
     register alias table and vector FreeRF file.
@@ -24,7 +23,10 @@ class VectorAllocRename(Elaboratable):
         Method to send the instruction to be renamed. If `rp_dst` has `RegisterType.V` then a
         new physical vector register is allocated and VFRAT will be updated.
     """
-    def __init__(self, gen_params : GenParams,alloc : Method, get_rename1 : Method, get_rename2 : Method, set_rename : Method):
+
+    def __init__(
+        self, gen_params: GenParams, alloc: Method, get_rename1: Method, get_rename2: Method, set_rename: Method
+    ):
         """
         Parameters
         ----------
@@ -33,7 +35,7 @@ class VectorAllocRename(Elaboratable):
         alloc : Method(i=SuperscalarFreeRFLayouts.allocate_in)
             Method to allocate a register.
         get_rename1 : Method(i=RATLayouts.get_rename_in, o=RATLayouts.get_rename_out)
-            Method to get the renaming of registers. 
+            Method to get the renaming of registers.
         get_rename2 : Method
             The same as `get_rename1` but an another instance, to allow for renaming of 4
             registers at a time.
@@ -47,7 +49,7 @@ class VectorAllocRename(Elaboratable):
         self.set_rename = set_rename
 
         self.layouts = VectorFrontendLayouts(self.gen_params)
-        self.issue = Method(i = self.layouts.alloc_rename_in, o = self.layouts.alloc_rename_out)
+        self.issue = Method(i=self.layouts.alloc_rename_in, o=self.layouts.alloc_rename_out)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -78,6 +80,5 @@ class VectorAllocRename(Elaboratable):
             m.d.av_comb += rec.rp_s3.id.eq(rename_out2.rp_s1)
             m.d.av_comb += rec.rp_v0.id.eq(rename_out2.rp_s2)
             return rec
-
 
         return m

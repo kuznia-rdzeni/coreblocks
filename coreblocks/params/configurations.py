@@ -15,16 +15,25 @@ from coreblocks.fu.exception import ExceptionUnitComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
 from coreblocks.structs_common.csr import CSRBlockComponent
 
-__all__ = ["CoreConfiguration", "VectorUnitConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config", "test_vector_core_config"]
+__all__ = [
+    "CoreConfiguration",
+    "VectorUnitConfiguration",
+    "basic_core_config",
+    "tiny_core_config",
+    "full_core_config",
+    "test_core_config",
+    "test_vector_core_config",
+]
 
 basic_configuration: tuple[fu_params.BlockComponentParams, ...] = (
     rs_func_block.RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=4),
     LSUBlockComponent(),
 )
 
+
 @dataclass(kw_only=True)
 class VectorUnitConfiguration:
-    """ Vector unit configuration parameters
+    """Vector unit configuration parameters
 
     Parameters
     ----------
@@ -42,12 +51,13 @@ class VectorUnitConfiguration:
     vvrs_entries : int
         Number of entries in VVRS (reservation station for vector registers).
     """
+
     vlen: int = 1024
     elen: int = 32
     vrp_count: int = 40
     register_bank_count: int = 4
-    vxrs_entries :int = 8
-    vvrs_entries :int = 8
+    vxrs_entries: int = 8
+    vvrs_entries: int = 8
 
 
 @dataclass(kw_only=True)
@@ -105,12 +115,13 @@ class CoreConfiguration:
 
     allow_partial_extensions: bool = True  # TODO: Change to False when I extension will be fully supported
 
-    vector_config : Optional[VectorUnitConfiguration] = None
+    vector_config: Optional[VectorUnitConfiguration] = None
 
     _implied_extensions: isa.Extension = isa.Extension(0)
 
     def replace(self, **kwargs):
         return dataclasses.replace(self, **kwargs)
+
 
 # Default core configuration
 basic_core_config = CoreConfiguration()
@@ -156,7 +167,7 @@ test_vector_core_config = CoreConfiguration(
     rob_entries_bits=7,
     phys_regs_bits=7,
     _implied_extensions=isa.Extension.I | isa.Extension.V,
-    vector_config = VectorUnitConfiguration()
+    vector_config=VectorUnitConfiguration(),
 )
 
 # Core configuration with vector extension

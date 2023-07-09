@@ -1,7 +1,6 @@
 from typing import Iterable, Optional, Type, Generic, TypeVar, Callable
 from typing_extensions import Self
 from amaranth import *
-from amaranth.lib.coding import PriorityEncoder
 from coreblocks.transactions import Method, def_method, TModule, loop_def_method
 from coreblocks.params import RSLayouts, GenParams, OpType
 from coreblocks.transactions.core import RecordDict
@@ -23,7 +22,7 @@ class RS(Elaboratable, Generic[T]):
         *,
         layout_class: Type[T] = RSLayouts,
         custom_rec_ready_setter: Optional[Callable[[Self, TModule], None]] = None,
-        superscalarity : int = 1
+        superscalarity: int = 1
     ) -> None:
         self.superscalarity = superscalarity
         self.custom_rec_ready_setter = custom_rec_ready_setter
@@ -39,7 +38,7 @@ class RS(Elaboratable, Generic[T]):
             ("rec_reserved", 1),
         ]
 
-        if self.superscalarity<1:
+        if self.superscalarity < 1:
             raise ValueError("Requested less than 1 input port.")
 
         self.insert_list = [Method(i=self.layouts.insert_in, name="insert{i}") for i in range(self.superscalarity)]
@@ -79,12 +78,13 @@ class RS(Elaboratable, Generic[T]):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.enc_select = encoder =  MultiPriorityEncoder(input_width=self.rs_entries, outputs_count=self.superscalarity)
+        m.submodules.enc_select = encoder = MultiPriorityEncoder(
+            input_width=self.rs_entries, outputs_count=self.superscalarity
+        )
 
         self.generate_rec_ready_setters(m)
 
         select_vector = Cat(~record.rec_reserved for record in self.data)
-        select_possible = select_vector.any()
 
         take_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
         take_possible = take_vector.any()
@@ -97,12 +97,12 @@ class RS(Elaboratable, Generic[T]):
         m.d.comb += encoder.input.eq(select_vector)
 
         @loop_def_method(m, self.select_list, ready_list=encoder.valids)
-        def _(i:int) -> Signal:
+        def _(i: int) -> Signal:
             m.d.sync += self.data[encoder.outputs[i]].rec_reserved.eq(1)
             return encoder.outputs[i]
 
         @loop_def_method(m, self.insert_list)
-        def _(_:int, rs_entry_id: Value, rs_data: Value) -> None:
+        def _(_: int, rs_entry_id: Value, rs_data: Value) -> None:
             m.d.sync += self.data[rs_entry_id].rs_data.eq(rs_data)
             m.d.sync += self.data[rs_entry_id].rec_full.eq(1)
             m.d.sync += self.data[rs_entry_id].rec_reserved.eq(1)
@@ -149,10 +149,11 @@ class FifoRS(RS[T]):
         def _():
             # ignore rs_entry_id because we always insert data to first empty slot
             return
-    
+
         next_after_empty = Signal().like(self.first_empty)
         m.d.top_comb += next_after_empty.eq(mod_incr(self.first_empty, self.rs_entries))
-        @def_method(m, self.insert, ready= next_after_empty != self.oldest_full)
+
+        @def_method(m, self.insert, ready=next_after_empty != self.oldest_full)
         def _(rs_entry_id, rs_data):
             m.d.sync += self.data[self.first_empty].rs_data.eq(rs_data)
             m.d.sync += self.data[self.first_empty].rec_full.eq(1)

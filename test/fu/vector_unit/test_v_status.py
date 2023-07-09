@@ -9,6 +9,7 @@ from coreblocks.fu.vector_unit.v_status import *
 from test.fu.vector_unit.common import *
 from collections import deque
 
+
 class TestVectorStatusUnit(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)

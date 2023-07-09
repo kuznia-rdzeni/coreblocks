@@ -20,7 +20,15 @@ class WakeupSelect(Elaboratable):
 
     """
 
-    def __init__(self, *, gen_params: GenParams, get_ready: Method, take_row: Method, issue: Method, row_layout : Optional[LayoutLike] = None):
+    def __init__(
+        self,
+        *,
+        gen_params: GenParams,
+        get_ready: Method,
+        take_row: Method,
+        issue: Method,
+        row_layout: Optional[LayoutLike] = None
+    ):
         """
         Parameters
         ----------

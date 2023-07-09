@@ -57,7 +57,7 @@ class OpType(IntEnum):
     V_PERMUTATION = auto()
     V_PERMUTATION_IMM = auto()
     V_PERMUTATION_SCALAR = auto()
-    V_CONTROL = auto() # optype used both for vsetvl and internal instructions
+    V_CONTROL = auto()  # optype used both for vsetvl and internal instructions
     V_REDUCTION = auto()
     V_MEMORY = auto()
 

@@ -1,4 +1,3 @@
-from typing import Optional
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
@@ -12,49 +11,51 @@ from coreblocks.utils._typing import ValueLike
 
 __all__ = ["VectorTranslator"]
 
+
 class VectorTranslatorEEW(Elaboratable):
     """
     Block prepared to support widening and narrowing operations
     but as for now not used, and not tested.
     """
-    #Probably there is a need to do mapping from widening/narrowing instructions to normal
-    #instructions. As for now it uses internal instruction to narrow data, but there is ZEXT and SEXT
-    def __init__(self, gen_params : GenParams, put_instr : Method, report_multiplicator : Method):
-       self.gen_params = gen_params
 
-       self.layouts = VectorFrontendLayouts(self.gen_params)
-       self.issue = Method(i= self.layouts.translator_in)
-       self.put_instr = put_instr
-       self.report_multiplicator = report_multiplicator
+    # Probably there is a need to do mapping from widening/narrowing instructions to normal
+    # instructions. As for now it uses internal instruction to narrow data, but there is ZEXT and SEXT
+    def __init__(self, gen_params: GenParams, put_instr: Method, report_multiplicator: Method):
+        self.gen_params = gen_params
 
-       self.shape_narrowing_optypes = [
-           OpType.V_ARITHMETIC_NARROWING,
-           OpType.V_ARITHMETIC_NARROWING_IMM,
-           OpType.V_ARITHMETIC_NARROWING_SCALAR,
-           ]
-       self.shape_widening_optypes = [
-           OpType.V_ARITHMETIC_WIDENING,
-           OpType.V_ARITHMETIC_WIDENING_IMM,
-           OpType.V_ARITHMETIC_WIDENING_SCALAR]
+        self.layouts = VectorFrontendLayouts(self.gen_params)
+        self.issue = Method(i=self.layouts.translator_in)
+        self.put_instr = put_instr
+        self.report_multiplicator = report_multiplicator
 
+        self.shape_narrowing_optypes = [
+            OpType.V_ARITHMETIC_NARROWING,
+            OpType.V_ARITHMETIC_NARROWING_IMM,
+            OpType.V_ARITHMETIC_NARROWING_SCALAR,
+        ]
+        self.shape_widening_optypes = [
+            OpType.V_ARITHMETIC_WIDENING,
+            OpType.V_ARITHMETIC_WIDENING_IMM,
+            OpType.V_ARITHMETIC_WIDENING_SCALAR,
+        ]
 
-    def generate_move_instr(self, m : TModule, org_instr, if_narrow : ValueLike, reg_id : ValueLike) -> Record:
+    def generate_move_instr(self, m: TModule, org_instr, if_narrow: ValueLike, reg_id: ValueLike) -> Record:
         rec = Record(self.layouts.translator_in)
         d = {
-            "exec_fn" : {
-                "funct3" : Funct3.OPIVI,
-                "funct7" : Mux(if_narrow, Funct6._VNARROW, Funct6._VWIDEN) * 2 + 1,
-                "op_type" : OpType.V_CONTROL,
-                },
-            "vtype" : org_instr.vtype,
-            "rp_s1" : {
+            "exec_fn": {
+                "funct3": Funct3.OPIVI,
+                "funct7": Mux(if_narrow, Funct6._VNARROW, Funct6._VWIDEN) * 2 + 1,
+                "op_type": OpType.V_CONTROL,
+            },
+            "vtype": org_instr.vtype,
+            "rp_s1": {
                 "id": reg_id,
-                "type" : RegisterType.V,
-                },
-            "rp_dst" : {
+                "type": RegisterType.V,
+            },
+            "rp_dst": {
                 "id": reg_id,
-                "type" : RegisterType.V,
-                }
+                "type": RegisterType.V,
+            },
         }
         m.d.comb += assign(rec, d)
         return rec
@@ -68,11 +69,11 @@ class VectorTranslatorEEW(Elaboratable):
         counter = Signal(2)
         multiplicator = Signal(2)
 
-        with Transaction(name="trans_put_instr_buff_1").body(m, request = counter == 1):
+        with Transaction(name="trans_put_instr_buff_1").body(m, request=counter == 1):
             m.d.sync += counter.eq(0)
             self.put_instr(m, reg1)
 
-        with Transaction(name="trans_put_instr_buff_2").body(m, request = counter == 2):
+        with Transaction(name="trans_put_instr_buff_2").body(m, request=counter == 2):
             m.d.sync += counter.eq(1)
             self.put_instr(m, reg2)
 
@@ -83,38 +84,42 @@ class VectorTranslatorEEW(Elaboratable):
             instr1_generated = self.generate_move_instr(m, arg, instr1_narrowing, instr1_reg)
             instr2_narrowing = Signal()
             instr2_reg = Signal(self.gen_params.phys_regs_bits)
-            instr2_generated =  self.generate_move_instr(m, arg, instr2_narrowing, instr2_reg)
+            instr2_generated = self.generate_move_instr(m, arg, instr2_narrowing, instr2_reg)
             is_narrowing = Cat(arg.exec_fn.op_type == op for op in self.shape_narrowing_optypes).any()
             is_widening = Cat(arg.exec_fn.op_type == op for op in self.shape_widening_optypes).any()
             with m.If(is_narrowing):
-                with m.If(Cat([arg.exec_fn.funct3 == funct for funct in [Funct3.OPIVV, Funct3.OPMVV, Funct3.OPFVV]]).any()):
+                with m.If(
+                    Cat([arg.exec_fn.funct3 == funct for funct in [Funct3.OPIVV, Funct3.OPMVV, Funct3.OPFVV]]).any()
+                ):
                     m.d.comb += [
-                            instr1_narrowing.eq(0),
-                            instr1_reg.eq(arg.rp_s1.id),
-                            instr2_narrowing.eq(1),
-                            instr2_reg.eq(arg.rp_dst.id),
-                            reg_now.re(instr1_generated),
-                            multiplicator.eq(3),
-                            ]
+                        instr1_narrowing.eq(0),
+                        instr1_reg.eq(arg.rp_s1.id),
+                        instr2_narrowing.eq(1),
+                        instr2_reg.eq(arg.rp_dst.id),
+                        reg_now.re(instr1_generated),
+                        multiplicator.eq(3),
+                    ]
                     m.d.sync += reg2.eq(arg)
                     m.d.sync += reg1.eq(instr2_generated)
                     m.d.sync += counter.eq(2)
                 with m.Else():
                     m.d.comb += [
-                            reg_now.re(arg),
-                            multiplicator.eq(2),
-                            instr2_narrowing.eq(1),
-                            instr2_reg.eq(arg.rp_dst.id),]
+                        reg_now.re(arg),
+                        multiplicator.eq(2),
+                        instr2_narrowing.eq(1),
+                        instr2_reg.eq(arg.rp_dst.id),
+                    ]
                     m.d.sync += reg1.eq(instr2_generated)
                     m.d.sync += counter.eq(1)
             with m.Elif(is_widening):
-                m.d.comb += [reg_now.re(instr1_generated),
-                             multiplicator.eq(3),
-                             instr1_narrowing.eq(0),
-                             instr1_reg.eq(arg.rp_s1.id),
-                             instr2_narrowing.eq(0),
-                             instr2_reg.eq(arg.rp_s2.id),
-                             ]
+                m.d.comb += [
+                    reg_now.re(instr1_generated),
+                    multiplicator.eq(3),
+                    instr1_narrowing.eq(0),
+                    instr1_reg.eq(arg.rp_s1.id),
+                    instr2_narrowing.eq(0),
+                    instr2_reg.eq(arg.rp_s2.id),
+                ]
                 m.d.sync += reg2.eq(instr2_generated)
                 m.d.sync += reg1.eq(arg)
                 m.d.sync += counter.eq(2)
@@ -128,7 +133,7 @@ class VectorTranslatorEEW(Elaboratable):
 
 
 class VectorTranslateLMUL(Elaboratable):
-    """ Transforms instructions with LMUL>1 to a sequence of LMUL=1 instructions
+    """Transforms instructions with LMUL>1 to a sequence of LMUL=1 instructions
 
     LMUL>8 instructions operate on a set of registers at once, so at the beginning
     we can split such instructions into set of instructions working independently
@@ -142,7 +147,8 @@ class VectorTranslateLMUL(Elaboratable):
     issue : Method
         Method used to pass an instruction to process.
     """
-    def __init__(self, gen_params : GenParams,put_instr : Method):
+
+    def __init__(self, gen_params: GenParams, put_instr: Method):
         """
         Parameters
         ----------
@@ -152,14 +158,14 @@ class VectorTranslateLMUL(Elaboratable):
             The method used to pass the instruction to the next processing stage.
         """
         self.gen_params = gen_params
- 
+
         self.layouts = VectorFrontendLayouts(self.gen_params)
-        self.issue = Method(i= self.layouts.translator_inner, o=self.layouts.translator_report_multiplier)
+        self.issue = Method(i=self.layouts.translator_inner, o=self.layouts.translator_report_multiplier)
         self.put_instr = put_instr
- 
+
         self.max_lmul = 8
 
-    def generate_instr(self, m : TModule, org_instr, mask : int, end_bits : int):
+    def generate_instr(self, m: TModule, org_instr, mask: int, end_bits: int):
         rec = Record(self.layouts.translator_inner)
         m.d.comb += assign(rec, org_instr)
         m.d.comb += rec.vtype.lmul.eq(LMUL.m1)
@@ -167,7 +173,7 @@ class VectorTranslateLMUL(Elaboratable):
         m.d.comb += rec.rp_s2.id.eq((org_instr.rp_s2.id & mask) | end_bits)
         m.d.comb += rec.rp_dst.id.eq((org_instr.rp_dst.id & mask) | end_bits)
         return rec
-    
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -180,33 +186,35 @@ class VectorTranslateLMUL(Elaboratable):
             mult = Signal(bits_for(self.max_lmul))
             with m.Switch(arg.vtype.lmul):
                 with m.Case(LMUL.m2):
-                    mb_writes[0](self.generate_instr(m,arg, 0x1E, 0))
-                    mb_writes[1](self.generate_instr(m,arg, 0x1E, 1))
+                    mb_writes[0](self.generate_instr(m, arg, 0x1E, 0))
+                    mb_writes[1](self.generate_instr(m, arg, 0x1E, 1))
                     m.d.comb += mult.eq(2)
                 with m.Case(LMUL.m4):
-                    mb_writes[0](self.generate_instr(m,arg, 0x1C, 0))
-                    mb_writes[1](self.generate_instr(m,arg, 0x1C, 1))
-                    mb_writes[2](self.generate_instr(m,arg, 0x1C, 2))
-                    mb_writes[3](self.generate_instr(m,arg, 0x1C, 3))
+                    mb_writes[0](self.generate_instr(m, arg, 0x1C, 0))
+                    mb_writes[1](self.generate_instr(m, arg, 0x1C, 1))
+                    mb_writes[2](self.generate_instr(m, arg, 0x1C, 2))
+                    mb_writes[3](self.generate_instr(m, arg, 0x1C, 3))
                     m.d.comb += mult.eq(4)
                 with m.Case(LMUL.m8):
-                    mb_writes[0](self.generate_instr(m,arg, 0x18, 0))
-                    mb_writes[1](self.generate_instr(m,arg, 0x18, 1))
-                    mb_writes[2](self.generate_instr(m,arg, 0x18, 2))
-                    mb_writes[3](self.generate_instr(m,arg, 0x18, 3))
-                    mb_writes[4](self.generate_instr(m,arg, 0x18, 4))
-                    mb_writes[5](self.generate_instr(m,arg, 0x18, 5))
-                    mb_writes[6](self.generate_instr(m,arg, 0x18, 6))
-                    mb_writes[7](self.generate_instr(m,arg, 0x18, 7))
+                    mb_writes[0](self.generate_instr(m, arg, 0x18, 0))
+                    mb_writes[1](self.generate_instr(m, arg, 0x18, 1))
+                    mb_writes[2](self.generate_instr(m, arg, 0x18, 2))
+                    mb_writes[3](self.generate_instr(m, arg, 0x18, 3))
+                    mb_writes[4](self.generate_instr(m, arg, 0x18, 4))
+                    mb_writes[5](self.generate_instr(m, arg, 0x18, 5))
+                    mb_writes[6](self.generate_instr(m, arg, 0x18, 6))
+                    mb_writes[7](self.generate_instr(m, arg, 0x18, 7))
                     m.d.comb += mult.eq(8)
                 with m.Case():
                     mb_writes[0](arg)
                     m.d.comb += mult.eq(1)
-            return {"mult" : mult}
+            return {"mult": mult}
+
         return m
 
+
 class VectorTranslateRS3(Elaboratable):
-    """ Transformation that adds rp_s3 and rp_v0 fields.
+    """Transformation that adds rp_s3 and rp_v0 fields.
 
     In the backend, we need to know the address of the v0 register (for the mask)
     and original `rp_dst` register (for third operand in some instructions),
@@ -219,7 +227,8 @@ class VectorTranslateRS3(Elaboratable):
     issue : Method
         Send an instruction to transform.
     """
-    def __init__(self, gen_params : GenParams, put_instr : Method):
+
+    def __init__(self, gen_params: GenParams, put_instr: Method):
         """
         Parameters
         ----------
@@ -231,7 +240,7 @@ class VectorTranslateRS3(Elaboratable):
         self.gen_params = gen_params
 
         self.layouts = VectorFrontendLayouts(self.gen_params)
-        self.issue = Method(i= self.layouts.translator_inner)
+        self.issue = Method(i=self.layouts.translator_inner)
         self.put_instr = put_instr
 
     def elaborate(self, platform) -> TModule:
@@ -243,13 +252,14 @@ class VectorTranslateRS3(Elaboratable):
             m.d.top_comb += assign(rec, arg)
             m.d.top_comb += rec.rp_s3.eq(arg.rp_dst)
             m.d.top_comb += rec.rp_v0.id.eq(0)
-            #TODO add support for stores (rp_dst set to non valid - type X)
+            # TODO add support for stores (rp_dst set to non valid - type X)
             self.put_instr(m, rec)
 
         return m
 
+
 class VectorTranslateRewirteImm(Elaboratable):
-    """ Compact imm and s1_val
+    """Compact imm and s1_val
 
     After processing `vset{i}vl{i}` there is no need to pass
     both `imm` and `s1_val`. We will use either one or the other,
@@ -262,11 +272,12 @@ class VectorTranslateRewirteImm(Elaboratable):
         Send instruction to process as a request and receive processed
         output in response.
     """
-    def __init__(self, gen_params : GenParams):
-       self.gen_params = gen_params
 
-       self.layouts = VectorFrontendLayouts(self.gen_params)
-       self.issue = Method(i= self.layouts.translator_in, o =self.layouts.translator_inner )
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
+
+        self.layouts = VectorFrontendLayouts(self.gen_params)
+        self.issue = Method(i=self.layouts.translator_in, o=self.layouts.translator_inner)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -278,17 +289,18 @@ class VectorTranslateRewirteImm(Elaboratable):
             with m.If((arg.exec_fn.funct3 == Funct3.OPIVI) & (arg.exec_fn.op_type != OpType.V_MEMORY)):
                 m.d.comb += rec.s1_val.eq(arg.imm)
             return rec
+
         return m
-                
+
 
 class VectorTranslator(Elaboratable):
-    """ Container holding variate vector instruction transformations
+    """Container holding variate vector instruction transformations
 
     Each instruction sent to this module is transformed by:
     - VectorTranslateRewirteImm
     - VectorTranslateLMUL
     - VectorTranslateRS3
-    and then sent to the next pipeline stage. Number of instructions generated 
+    and then sent to the next pipeline stage. Number of instructions generated
     is sent to retirement using the `retire_mult` method.
 
     Attributes
@@ -296,7 +308,8 @@ class VectorTranslator(Elaboratable):
     issue : Method
         Send an instruction to transform.
     """
-    def __init__(self, gen_params : GenParams,put_instr : Method, retire_mult : Method):
+
+    def __init__(self, gen_params: GenParams, put_instr: Method, retire_mult: Method):
         """
         Parameters
         ----------
@@ -313,13 +326,13 @@ class VectorTranslator(Elaboratable):
         self.retire_mult = retire_mult
 
         self.layouts = VectorFrontendLayouts(self.gen_params)
-        self.issue = Method(i= self.layouts.translator_in)
+        self.issue = Method(i=self.layouts.translator_in)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
         m.submodules.transl_rp3 = transl_rp3 = VectorTranslateRS3(self.gen_params, self.put_instr)
-        m.submodules.transl_lmul = transl_lmul =VectorTranslateLMUL(self.gen_params, transl_rp3.issue)
+        m.submodules.transl_lmul = transl_lmul = VectorTranslateLMUL(self.gen_params, transl_rp3.issue)
         m.submodules.transl_rewrite_imm = transl_rewrite_imm = VectorTranslateRewirteImm(self.gen_params)
 
         @def_method(m, self.issue)

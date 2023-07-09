@@ -8,7 +8,7 @@ __all__ = ["VectorParameters"]
 
 
 class VectorParameters:
-    def __init__(self,  cfg : "VectorUnitConfiguration"):
+    def __init__(self, cfg: "VectorUnitConfiguration"):
         self.elen = cfg.elen
         self.vlen = cfg.vlen
         self.vrp_count = cfg.vrp_count

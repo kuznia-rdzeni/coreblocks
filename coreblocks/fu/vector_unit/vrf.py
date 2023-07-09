@@ -3,7 +3,6 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils import *
-from coreblocks.params.vector_params import VectorParameters
 from coreblocks.fu.vector_unit.v_layouts import VRFFragmentLayouts
 from coreblocks.fu.vector_unit.v_register import VectorRegisterBank
 
@@ -46,10 +45,7 @@ class VRFFragment(Elaboratable):
         ]
         self.write = Method(i=self.layout.write)
 
-        self.regs = [
-            VectorRegisterBank(gen_params=self.gen_params)
-            for _ in range(self.v_params.vrp_count)
-        ]
+        self.regs = [VectorRegisterBank(gen_params=self.gen_params) for _ in range(self.v_params.vrp_count)]
 
         self.clear_module = MethodProduct([reg.clear for reg in self.regs])
         self.clear = self.clear_module.method

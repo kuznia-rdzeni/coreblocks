@@ -1,4 +1,3 @@
-import math
 from amaranth import *
 from test.common import *
 from coreblocks.fu.vector_unit.vrs import *
@@ -9,8 +8,8 @@ from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_status import *
 from coreblocks.fu.vector_unit.v_translator import VectorTranslateLMUL, VectorTranslateRS3
 from collections import deque
-from parameterized import parameterized_class
 import copy
+
 
 class TestLMULTranslator(TestCaseWithSimulator):
     def setUp(self):
@@ -21,29 +20,28 @@ class TestLMULTranslator(TestCaseWithSimulator):
         self.put = MethodMock(i=self.layouts.translator_inner)
         self.circ = SimpleTestCircuit(VectorTranslateLMUL(self.gen_params, self.put.get_method()))
 
-        self.m = ModuleConnector(circ = self.circ, put=self.put)
+        self.m = ModuleConnector(circ=self.circ, put=self.put)
 
-        self.received_instr=deque()
+        self.received_instr = deque()
 
-    @def_method_mock(lambda self: self.put, sched_prio = 1, enable = lambda self: self.mock_enable())
+    @def_method_mock(lambda self: self.put, sched_prio=1, enable=lambda self: self.mock_enable())
     def put_process(self, arg):
         self.received_instr.append(arg)
 
     def generate_expected_list(self, instr):
         lmul = lmul_to_int(instr["vtype"]["lmul"])
-        instr["rp_s1"]["id"] -= (instr["rp_s1"]["id"]%lmul)
-        instr["rp_s2"]["id"] -= (instr["rp_s2"]["id"]%lmul)
-        instr["rp_dst"]["id"] -= (instr["rp_dst"]["id"]%lmul)
-        instr["vtype"]["lmul"]=LMUL.m1 if lmul > 1 else instr["vtype"]["lmul"]
+        instr["rp_s1"]["id"] -= instr["rp_s1"]["id"] % lmul
+        instr["rp_s2"]["id"] -= instr["rp_s2"]["id"] % lmul
+        instr["rp_dst"]["id"] -= instr["rp_dst"]["id"] % lmul
+        instr["vtype"]["lmul"] = LMUL.m1 if lmul > 1 else instr["vtype"]["lmul"]
         out = []
         for i in range(lmul):
             instr_new = copy.deepcopy(instr)
-            instr_new["rp_s1"]["id"] +=i
-            instr_new["rp_s2"]["id"] +=i
-            instr_new["rp_dst"]["id"] +=i
+            instr_new["rp_s1"]["id"] += i
+            instr_new["rp_s2"]["id"] += i
+            instr_new["rp_dst"]["id"] += i
             out.append(instr_new)
         return out
-
 
     def process(self, waiter):
         def f():
@@ -57,6 +55,7 @@ class TestLMULTranslator(TestCaseWithSimulator):
                 self.assertEqual(expected_mult, received_mult)
                 self.assertIterableEqual(expected_list, self.received_instr)
                 self.received_instr.clear()
+
         return f
 
     def waiter_in_pipeline(self, expected_mult):
@@ -73,10 +72,11 @@ class TestLMULTranslator(TestCaseWithSimulator):
             sim.add_sync_process(self.put_process)
 
     def test_random(self):
-        self.mock_enable = lambda : random.random()<0.1
+        self.mock_enable = lambda: random.random() < 0.1
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.process(self.waiter_in_random))
             sim.add_sync_process(self.put_process)
+
 
 class TestVectorTranslateRS3(TestCaseWithSimulator):
     def setUp(self):
@@ -87,16 +87,16 @@ class TestVectorTranslateRS3(TestCaseWithSimulator):
         self.put = MethodMock(i=self.layouts.translator_out)
         self.circ = SimpleTestCircuit(VectorTranslateRS3(self.gen_params, self.put.get_method()))
 
-        self.m = ModuleConnector(circ = self.circ, put=self.put)
+        self.m = ModuleConnector(circ=self.circ, put=self.put)
 
-        self.received_instr=deque()
+        self.received_instr = deque()
 
-    @def_method_mock(lambda self: self.put, sched_prio = 1)
+    @def_method_mock(lambda self: self.put, sched_prio=1)
     def put_process(self, arg):
         self.received_instr.append(arg)
 
     def generate_expected_instr(self, instr):
-        return instr | {"rp_s3" : instr["rp_dst"], "rp_v0" : {"id" : 0}}
+        return instr | {"rp_s3": instr["rp_dst"], "rp_v0": {"id": 0}}
 
     def process(self):
         for _ in range(self.test_number):
