@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from coreblocks.params.dependencies import SimpleKey, UnifierKey
 from transactron import Method
-from transactron.lib import MethodProduct, MethodTryProduct, Collector
+from transactron.lib import MethodProduct, MethodTryProduct
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 if TYPE_CHECKING:

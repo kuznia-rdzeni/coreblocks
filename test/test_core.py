@@ -7,7 +7,12 @@ from .common import TestCaseWithSimulator, TestbenchIO, signed_to_int
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
+from coreblocks.params.configurations import (
+    CoreConfiguration,
+    basic_core_config,
+    full_core_config,
+    interrupt_core_config,
+)
 from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
 
 from typing import Optional, cast
@@ -245,7 +250,7 @@ class TestCoreRandomized(TestCoreBase):
         m = TestElaboratable(self.gp, instr_mem=self.instr_mem)
         self.m = m
 
-        with self.run_simulation(m) as sim:
+        with self.run_simulation(m, max_cycles=20 * self.instr_count) as sim:
             sim.add_sync_process(self.randomized_input)
 
 
@@ -328,7 +333,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
     hi: int
 
     def setUp(self):
-        self.configuration = full_core_config
+        self.configuration = interrupt_core_config
         self.gp = GenParams(self.configuration)
         random.seed(1500100900)
 

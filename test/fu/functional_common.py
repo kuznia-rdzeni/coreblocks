@@ -2,7 +2,7 @@ from dataclasses import asdict, dataclass
 from itertools import product
 import random
 from collections import deque
-from typing import Optional, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
@@ -33,6 +33,8 @@ class FunctionalTestCircuit(Elaboratable):
 
     def __init__(self, gen: GenParams, func_unit: FunctionalComponentParams):
         self.gen = gen
+        self.report_mock = TestbenchIO(Adapter(i=self.gen.get(ExceptionRegisterLayouts).report))
+        self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
         self.func_unit_comp = func_unit
         self.func_unit = self.func_unit_comp.get_module(self.gen)
         self.issue = TestbenchIO(AdapterTrans(self.func_unit.issue))
@@ -41,10 +43,7 @@ class FunctionalTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.report_mock = self.report_mock = TestbenchIO(
-            Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
-        )
-        self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
+        m.submodules.report_mock = self.report_mock
 
         m.submodules.func_unit = self.func_unit
 
@@ -120,6 +119,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         self.m = FunctionalTestCircuit(gen, self.func_unit)
 
         random.seed(self.seed)
+        self.max_wait = 10
         self.requests = deque[RecordIntDict]()
         self.responses = deque[RecordIntDictRet]()
         self.exceptions = deque[RecordIntDictRet]()
@@ -177,7 +177,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
                 yield from self.m.issue.call(req)
                 yield from self.random_wait()
 
-        def exception_consumer(self):
+        def exception_consumer():
             while self.exceptions:
                 expected = self.exceptions.pop()
                 result = yield from self.m.report_mock.call()
@@ -205,8 +205,6 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     def run_standard_fu_test(self, pipeline_test=False):
         if pipeline_test:
             self.max_wait = 0
-        else:
-            self.max_wait = 10
 
         procs = self.get_basic_processes()
         if pipeline_test:
@@ -214,9 +212,6 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         self.run_pipeline(self.get_basic_processes())
 
     def run_pipeline(self, custom_procs: dict):
-        if custom_procs is not None:
-            procs = custom_procs
-
         with self.run_simulation(self.m) as sim:
-            for _, proc in procs.items():
+            for _, proc in custom_procs.items():
                 sim.add_sync_process(proc)

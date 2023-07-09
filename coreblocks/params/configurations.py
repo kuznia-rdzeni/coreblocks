@@ -18,7 +18,14 @@ from coreblocks.fu.intret_unit import IntRetComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
 from coreblocks.structs_common.csr import CSRBlockComponent
 
-__all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
+__all__ = [
+    "CoreConfiguration",
+    "basic_core_config",
+    "tiny_core_config",
+    "full_core_config",
+    "interrupt_core_config",
+    "test_core_config",
+]
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=4),
@@ -126,7 +133,10 @@ full_core_config = CoreConfiguration(
         CSRBlockComponent(),
     ),
     compressed=True,
+    allow_partial_extensions=True,
 )
+
+interrupt_core_config = full_core_config.replace(compressed=False)
 
 # Core configuration used in internal testbenches
 test_core_config = CoreConfiguration(

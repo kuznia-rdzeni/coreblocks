@@ -97,7 +97,9 @@ class RetirementTest(TestCaseWithSimulator):
                 self.rf_free_q.append(rat_state[rl])
                 rat_state[rl] = rp
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
-                self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp, "pc": pc}, "rob_id": rob_id, "exception": 0})
+                self.submit_q.append(
+                    {"rob_data": {"rl_dst": rl, "rp_dst": rp, "pc": pc}, "rob_id": rob_id, "exception": 0}
+                )
                 self.precommit_q.append(rob_id)
                 # done_q contains amount of precommit calls needed per each instruction in unary form,
                 # i.e. [False, True, False, False, False, True] means first instruction needs one precommit

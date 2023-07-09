@@ -4,8 +4,9 @@ from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.isa import Funct3, ExceptionCause
 
 from transactron import *
-from transactron.lib import FIFO
+from transactron.core import Priority
 
+from coreblocks.utils.fifo import BasicFifo
 from coreblocks.params import OpType, GenParams, FuncUnitLayouts, FunctionalComponentParams
 from coreblocks.utils import OneHotSwitch
 from coreblocks.params.keys import ExceptionReportKey
@@ -48,6 +49,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
+        self.clear = Method()
 
         dm = gen_params.get(DependencyManager)
         self.report = dm.get_dependency(ExceptionReportKey())
@@ -55,7 +57,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
+        m.submodules.fifo = fifo = BasicFifo(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
@@ -86,6 +88,10 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
             self.report(m, rob_id=arg.rob_id, cause=cause)
 
             fifo.write(m, result=0, exception=1, rob_id=arg.rob_id, rp_dst=arg.rp_dst)
+
+        self.clear.proxy(m, fifo.clear)
+        self.clear.add_conflict(self.issue, priority=Priority.LEFT)
+        self.clear.add_conflict(self.accept, priority=Priority.LEFT)
 
         return m
 

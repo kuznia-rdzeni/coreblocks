@@ -275,11 +275,6 @@ class LSUDummy(FuncBlock, Elaboratable):
             m.d.sync += current_instr.eq(0)
             m.d.sync += reserved.eq(0)
 
-        with m.If(internal.store_ready):
-            m.d.sync += internal.execute_store.eq(0)
-            m.d.sync += current_instr.eq(0)
-            m.d.sync += reserved.eq(0)
-
         return m
 
 

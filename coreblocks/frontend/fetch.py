@@ -3,7 +3,6 @@ from coreblocks.utils.fifo import BasicFifo, Semaphore
 from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
 from transactron import def_method, Method, Transaction, TModule
-from transactron.core import Priority
 from ..params import *
 
 
@@ -89,8 +88,13 @@ class Fetch(Elaboratable):
                 self.cont(m, data=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
 
         self.verify_branch.add_conflict(self.stall)
-        self.verify_branch.add_conflict(response_trans, priority=Priority.LEFT)
-        self.verify_branch.add_conflict(request_trans, priority=Priority.LEFT)
+
+        # These aren't strictly necessary as verify_branch being defined later
+        # in the code will take precedence when setting speculative_pc, stalled
+        # and tag, but you can uncomment these for a fun debugging session:
+        # from ..transactions import Priority
+        # self.verify_branch.add_conflict(response_trans, priority=Priority.LEFT)
+        # self.verify_branch.add_conflict(request_trans, priority=Priority.LEFT)
 
         @def_method(m, self.stall)
         def _():
@@ -127,7 +131,9 @@ class UnalignedFetch(Elaboratable):
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        layouts = self.gp.get(FetchLayouts)
+        self.verify_branch = Method(i=layouts.branch_verify_in, o=layouts.branch_verify_out)
+        self.stall = Method()
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
@@ -224,6 +230,13 @@ class UnalignedFetch(Elaboratable):
                     m.d.sync += current_pc.eq(current_pc + Mux(is_rvc, C(2, 3), C(4, 3)))
 
                 self.cont(m, data=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
+
+        @def_method(m, self.stall)
+        def _():
+            # TODO:  implement this properly - This is a placeholder
+            # and most likely won't work
+            m.d.sync += stalled.eq(1)
+            m.d.sync += flushing.eq(1)
 
         @def_method(m, self.verify_branch, ready=(stalled & ~flushing))
         def _(from_pc: Value, next_pc: Value):

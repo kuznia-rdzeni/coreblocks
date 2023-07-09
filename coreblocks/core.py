@@ -3,9 +3,14 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from transactron.core import Transaction, TModule
-from transactron.lib import ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey, ClearKey
+from coreblocks.params.keys import (
+    BranchResolvedKey,
+    GenericCSRRegistersKey,
+    InstructionPrecommitKey,
+    WishboneDataKey,
+    ClearKey,
+)
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import Extension
 from coreblocks.frontend.decode import Decode
@@ -85,7 +90,7 @@ class Core(Elaboratable):
         )
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)
-        connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
+        self.connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
 
         self.retirement = Retirement(
             self.gen_params,

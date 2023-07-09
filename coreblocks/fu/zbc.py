@@ -13,7 +13,8 @@ from coreblocks.params import (
     FunctionalComponentParams,
 )
 from transactron import Method, def_method, TModule
-from transactron.lib import FIFO
+from transactron.core import Priority
+from coreblocks.utils.fifo import BasicFifo
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
@@ -173,11 +174,12 @@ class ZbcUnit(Elaboratable):
         self.gen_params = gen_params
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
+        self.clear = Method()
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.params_fifo = params_fifo = FIFO(
+        m.submodules.params_fifo = params_fifo = BasicFifo(
             [
                 ("rob_id", self.gen_params.rob_entries_bits),
                 ("rp_dst", self.gen_params.phys_regs_bits),
@@ -240,6 +242,10 @@ class ZbcUnit(Elaboratable):
             m.d.comb += clmul.i1.eq(value1)
             m.d.comb += clmul.i2.eq(value2)
             m.d.comb += clmul.reset.eq(1)
+
+        self.clear.proxy(m, params_fifo.clear)
+        self.clear.add_conflict(self.issue, priority=Priority.LEFT)
+        self.clear.add_conflict(self.accept, priority=Priority.LEFT)
 
         return m
 

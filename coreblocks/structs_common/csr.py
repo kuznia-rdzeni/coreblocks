@@ -8,7 +8,7 @@ from coreblocks.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
+from coreblocks.params.layouts import FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3, ExceptionCause
 from coreblocks.params.keys import BranchResolvedKey, ExceptionReportKey, InstructionPrecommitKey
 from coreblocks.params.optypes import OpType
@@ -225,7 +225,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         reserved = Signal()
         ready_to_process = Signal()
         done = Signal()
-        accepted = Signal()
         exception = Signal()
         rob_sfx_empty = Signal()
 

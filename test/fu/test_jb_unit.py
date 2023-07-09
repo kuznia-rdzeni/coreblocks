@@ -4,10 +4,9 @@ from collections import deque
 
 from coreblocks.params import *
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn
-from transactron import def_method, TModule
+from transactron import TModule
 from transactron.lib import Adapter, AdapterTrans
 from coreblocks.params.layouts import FetchLayouts
-from coreblocks.params.configurations import test_core_config
 from coreblocks.utils.protocols import FuncUnit
 
 from test.common import signed_to_int, TestbenchIO, def_method_mock
@@ -34,19 +33,6 @@ class JumpBranchWrapper(Elaboratable):
         m = TModule()
 
         m.submodules.jb_unit = self.jb
-
-        @def_method(m, self.accept)
-        def _(arg):
-            res = self.jb.accept(m)
-            br = self.jb.branch_result(m)
-            return {
-                "from_pc": br.from_pc,
-                "next_pc": br.next_pc,
-                "result": res.result,
-                "rob_id": res.rob_id,
-                "rp_dst": res.rp_dst,
-                "exception": res.exception,
-            }
         m.submodules.set_pc = self.set_pc
         m.submodules.precommit = self.precommit
 
@@ -171,9 +157,7 @@ class JumpBranchUnitTest(FunctionalUnitTestCase[JumpBranchFn.Fn]):
             precommit_q.append(arg)
             return {"old_pc": 0}
 
+        exception_consumer = self.get_basic_processes()["exception_consumer"]
         self.run_pipeline(
-            {
-                "main_proc": main_proc,
-                "set_pc_mock": set_pc_mock,
-            }
+            {"main_proc": main_proc, "set_pc_mock": set_pc_mock, "exception_consumer": exception_consumer}
         )

@@ -9,7 +9,6 @@ from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.frontend.decoder import OpType
-from coreblocks.transactions.lib import Adapter
 
 from ..common import *
 
