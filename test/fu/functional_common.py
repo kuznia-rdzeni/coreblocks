@@ -2,7 +2,7 @@ from dataclasses import asdict, dataclass
 from itertools import product
 import random
 from collections import deque
-from typing import Generic, TypeVar
+from typing import Optional, Generic, TypeVar
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
@@ -33,7 +33,10 @@ class FunctionalTestCircuit(Elaboratable):
 
     def __init__(self, gen: GenParams, func_unit: FunctionalComponentParams):
         self.gen = gen
-        self.func_unit = func_unit
+        self.func_unit_comp = func_unit
+        self.func_unit = self.func_unit_comp.get_module(self.gen)
+        self.issue = TestbenchIO(AdapterTrans(self.func_unit.issue))
+        self.accept = TestbenchIO(AdapterTrans(self.func_unit.accept))
 
     def elaborate(self, platform):
         m = Module()
@@ -43,11 +46,11 @@ class FunctionalTestCircuit(Elaboratable):
         )
         self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
 
-        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen)
+        m.submodules.func_unit = self.func_unit
 
         # mocked input and output
-        m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
+        m.submodules.issue_method = self.issue
+        m.submodules.accept_method = self.accept
 
         return m
 
@@ -160,30 +163,37 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         for i in range(random.randint(0, self.max_wait)):
             yield
 
-    def consumer(self):
-        while self.responses:
-            expected = self.responses.pop()
-            result = yield from self.m.accept.call()
-            self.assertDictEqual(expected, result)
-            yield from self.random_wait()
+    def get_basic_processes(self):
+        def consumer():
+            while self.responses:
+                expected = self.responses.pop()
+                result = yield from self.m.accept.call()
+                self.assertDictEqual(expected, result)
+                yield from self.random_wait()
 
-    def producer(self):
-        while self.requests:
-            req = self.requests.pop()
-            yield from self.m.issue.call(req)
-            yield from self.random_wait()
+        def producer():
+            while self.requests:
+                req = self.requests.pop()
+                yield from self.m.issue.call(req)
+                yield from self.random_wait()
 
-    def exception_consumer(self):
-        while self.exceptions:
-            expected = self.exceptions.pop()
+        def exception_consumer(self):
+            while self.exceptions:
+                expected = self.exceptions.pop()
+                result = yield from self.m.report_mock.call()
+                self.assertDictEqual(expected, result)
+                yield from self.random_wait()
+
+            # keep partialy dependent tests from hanging up and detect extra calls
+            yield Passive()
             result = yield from self.m.report_mock.call()
-            self.assertDictEqual(expected, result)
-            yield from self.random_wait()
+            self.assertFalse(True, "unexpected report call")
 
-        # keep partialy dependent tests from hanging up and detect extra calls
-        yield Passive()
-        result = yield from self.m.report_mock.call()
-        self.assertFalse(True, "unexpected report call")
+        return {
+            "consumer": consumer,
+            "producer": producer,
+            "exception_consumer": exception_consumer,
+        }
 
     def pipeline_verifier(self):
         yield Passive()
@@ -198,9 +208,15 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         else:
             self.max_wait = 10
 
+        procs = self.get_basic_processes()
+        if pipeline_test:
+            procs |= {"pipeline_verifier": self.pipeline_verifier}
+        self.run_pipeline(self.get_basic_processes())
+
+    def run_pipeline(self, custom_procs: dict):
+        if custom_procs is not None:
+            procs = custom_procs
+
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.producer)
-            sim.add_sync_process(self.consumer)
-            sim.add_sync_process(self.exception_consumer)
-            if pipeline_test:
-                sim.add_sync_process(self.pipeline_verifier)
+            for _, proc in procs.items():
+                sim.add_sync_process(proc)

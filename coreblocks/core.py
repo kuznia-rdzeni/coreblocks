@@ -3,9 +3,9 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from transactron.core import Transaction, TModule
-from transactron.lib import FIFO, ConnectTrans
+from transactron.lib import ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey, ClearKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import Extension
 from coreblocks.frontend.decode import Decode
@@ -20,6 +20,7 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
+from coreblocks.stages.int_coordinator import InterruptCoordinator
 from coreblocks.utils.fifo import BasicFifo
 
 __all__ = ["Core"]
@@ -34,9 +35,12 @@ class Core(Elaboratable):
 
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
+        self.connections = gen_params.get(DependencyManager)
 
         # make fifo_fetch visible outside the core for injecting instructions
-        self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
+        self.fifo_fetch = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, 2)
+        self.connections.add_dependency(ClearKey(), self.fifo_fetch.clear)
+
         self.free_rf_fifo = BasicFifo(
             self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
@@ -54,22 +58,23 @@ class Core(Elaboratable):
             self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fifo_fetch.write)
         else:
             self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
+        self.connections.add_dependency(BranchResolvedKey(), self.fetch.verify_branch)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        connections = gen_params.get(DependencyManager)
-        connections.add_dependency(WishboneDataKey(), self.wb_master_data)
+        self.connections.add_dependency(WishboneDataKey(), self.wb_master_data)
 
         self.exception_cause_register = ExceptionCauseRegister(self.gen_params, rob_get_indices=self.ROB.get_indices)
 
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
+            extra_methods_required=[InstructionPrecommitKey()],
         )
+        self.connections.add_dependency(ClearKey(), self.func_blocks_unifier.clear)
 
         self.announcement = ResultAnnouncement(
             gen=self.gen_params,
@@ -82,6 +87,32 @@ class Core(Elaboratable):
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
 
+        self.retirement = Retirement(
+            self.gen_params,
+            rob_peek=self.ROB.peek,
+            rob_retire=self.ROB.retire,
+            rob_get_indices=self.ROB.get_indices,
+            r_rat_commit=self.RRAT.commit,
+            free_rf_put=self.free_rf_fifo.write,
+            rf_free=self.RF.free,
+            precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
+            exception_cause_get=self.exception_cause_register.get,
+        )
+
+        self.int_coordinator = InterruptCoordinator(
+            gen_params=self.gen_params,
+            r_rat_get_all=self.RRAT.get_all,
+            f_rat_set_all=self.FRAT.set_all,
+            pc_stall=self.fetch.stall,
+            pc_verify_branch=self.fetch.verify_branch,
+            rob_empty=self.ROB.empty,
+            rob_flush=self.ROB.flush_one,
+            rob_peek=self.ROB.peek,
+            free_reg_put=self.free_rf_fifo.write,
+            retirement_stall=self.retirement.stall,
+            retirement_unstall=self.retirement.unstall,
+        )
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -93,7 +124,7 @@ class Core(Elaboratable):
 
         m.submodules.free_rf_fifo = free_rf_fifo = self.free_rf_fifo
         m.submodules.FRAT = frat = self.FRAT
-        m.submodules.RRAT = rrat = self.RRAT
+        m.submodules.RRAT = self.RRAT
         m.submodules.RF = rf = self.RF
         m.submodules.ROB = rob = self.ROB
 
@@ -103,12 +134,14 @@ class Core(Elaboratable):
         m.submodules.icache = self.icache
         m.submodules.fetch = self.fetch
 
-        m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
+        m.submodules.fifo_decode = fifo_decode = BasicFifo(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
+        self.connections.add_dependency(ClearKey(), fifo_decode.clear)
+
         m.submodules.decode = Decode(
             gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=fifo_decode.write
         )
 
-        m.submodules.scheduler = Scheduler(
+        m.submodules.scheduler = scheduler = Scheduler(
             get_instr=fifo_decode.read,
             get_free_reg=free_rf_fifo.read,
             rat_rename=frat.rename,
@@ -119,25 +152,13 @@ class Core(Elaboratable):
             gen_params=self.gen_params,
         )
 
+        self.connections.add_dependency(ClearKey(), scheduler.clear)
+
         m.submodules.exception_cause_register = self.exception_cause_register
-
-        m.submodules.verify_branch = ConnectTrans(
-            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch
-        )
-
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
-        m.submodules.retirement = Retirement(
-            self.gen_params,
-            rob_peek=rob.peek,
-            rob_retire=rob.retire,
-            r_rat_commit=rrat.commit,
-            free_rf_put=free_rf_fifo.write,
-            rf_free=rf.free,
-            precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
-            exception_cause_get=self.exception_cause_register.get,
-        )
-
+        m.submodules.retirement = self.retirement
+        m.submodules.int_coordinator = self.int_coordinator
         m.submodules.csr_generic = self.csr_generic
 
         # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0

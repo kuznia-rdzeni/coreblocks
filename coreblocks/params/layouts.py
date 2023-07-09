@@ -55,25 +55,12 @@ class SchedulerLayouts:
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
+            ("rob_id", gen_params.rob_entries_bits),
             ("imm", gen_params.isa.xlen),
             ("csr", gen_params.isa.csr_alen),
             ("pc", gen_params.isa.xlen),
         ]
-        self.renaming_out = self.rob_allocate_in = [
-            ("exec_fn", common.exec_fn),
-            (
-                "regs_l",
-                [
-                    ("rl_dst", gen_params.isa.reg_cnt_log),
-                    ("rl_dst_v", 1),
-                ],
-            ),
-            ("regs_p", common.regs_p),
-            ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
-            ("pc", gen_params.isa.xlen),
-        ]
-        self.rob_allocate_out = self.rs_select_in = [
+        self.renaming_out = self.rs_select_in = [
             ("exec_fn", common.exec_fn),
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
@@ -114,12 +101,15 @@ class RATLayouts:
         self.rat_commit_in = [("rl_dst", gen_params.isa.reg_cnt_log), ("rp_dst", gen_params.phys_regs_bits)]
         self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
 
+        self.rat_regs = [(str(i), gen_params.phys_regs_bits) for i in range(1, gen_params.isa.reg_cnt)]
+
 
 class ROBLayouts:
     def __init__(self, gen_params: GenParams):
         self.data_layout = [
             ("rl_dst", gen_params.isa.reg_cnt_log),
             ("rp_dst", gen_params.phys_regs_bits),
+            ("pc", gen_params.isa.xlen),
         ]
 
         self.id_layout = [
@@ -142,6 +132,10 @@ class ROBLayouts:
             ("rob_id", gen_params.rob_entries_bits),
             ("exception", 1),
         ]
+
+        self.empty = [("empty", 1)]
+
+        self.flush_layout = [("rp_dst", gen_params.phys_regs_bits)]
 
         self.get_indices = [("start", gen_params.rob_entries_bits), ("end", gen_params.rob_entries_bits)]
 
@@ -175,6 +169,10 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         self.precommit = [
             ("rob_id", gen_params.rob_entries_bits),
+        ]
+
+        self.stall = [
+            ("stalled", 1),
         ]
 
 
@@ -253,9 +251,13 @@ class FetchLayouts:
             ("rvc", 1),
         ]
 
-        self.branch_verify = [
+        self.branch_verify_in = [
             ("from_pc", gen_params.isa.xlen),
             ("next_pc", gen_params.isa.xlen),
+        ]
+
+        self.branch_verify_out = [
+            ("old_pc", gen_params.isa.xlen),
         ]
 
 
@@ -291,6 +293,10 @@ class FuncUnitLayouts:
             ("rp_dst", gen_params.phys_regs_bits),
             ("exception", 1),
         ]
+
+        retirement = gen_params.get(RetirementLayouts)
+
+        self.precommit = retirement.precommit
 
 
 class UnsignedMulUnitLayouts:

@@ -42,9 +42,10 @@ class SchedulerTestCircuit(Elaboratable):
 
         # mocked RSFuncBlock
         class MockedRSFuncBlock(FuncBlock):
-            def __init__(self, select, insert):
+            def __init__(self, select, insert, clear):
                 self.select = select
                 self.insert = insert
+                self.clear = clear
 
             update: Method
             get_result: Method
@@ -54,26 +55,33 @@ class SchedulerTestCircuit(Elaboratable):
 
         method_rs_alloc = []
         method_rs_insert = []
+        method_rs_clear = []
         rs_blocks: list[tuple[FuncBlock, set[OpType]]] = []
         self.rs_alloc = []
         self.rs_insert = []
+        self.rs_clear = []
 
         # mocked RS
         for i, rs in enumerate(self.rs):
             alloc_adapter = Adapter(o=rs_layouts.select_out)
             insert_adapter = Adapter(i=rs_layouts.insert_in)
+            clear_adapter = Adapter()
 
             select_test = TestbenchIO(alloc_adapter)
             insert_test = TestbenchIO(insert_adapter)
+            clear_test = TestbenchIO(clear_adapter)
 
             method_rs_alloc.append(alloc_adapter)
             method_rs_insert.append(insert_adapter)
+            method_rs_clear.append(clear_adapter)
             self.rs_alloc.append(select_test)
             self.rs_insert.append(insert_test)
-            rs_blocks.append((MockedRSFuncBlock(alloc_adapter.iface, insert_adapter.iface), rs))
+            self.rs_clear.append(clear_test)
+            rs_blocks.append((MockedRSFuncBlock(alloc_adapter.iface, insert_adapter.iface, clear_adapter.iface), rs))
 
             m.submodules[f"rs_alloc_{i}"] = self.rs_alloc[i]
             m.submodules[f"rs_insert_{i}"] = self.rs_insert[i]
+            m.submodules[f"rs_clear_{i}"] = self.rs_clear[i]
 
         # mocked input and output
         m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write))

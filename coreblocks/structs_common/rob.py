@@ -1,5 +1,6 @@
 from amaranth import *
 from transactron import Method, def_method, TModule
+from transactron.core import Priority
 from ..params import GenParams, ROBLayouts
 
 __all__ = ["ReorderBuffer"]
@@ -13,6 +14,9 @@ class ReorderBuffer(Elaboratable):
         self.mark_done = Method(i=layouts.mark_done_layout)
         self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
         self.retire = Method(o=layouts.retire_layout)
+        self.empty = Method(o=layouts.empty, nonexclusive=True)
+        self.flush_one = Method(o=layouts.flush_layout)
+        self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
         self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
         self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
 
@@ -22,10 +26,10 @@ class ReorderBuffer(Elaboratable):
         start_idx = Signal(self.params.rob_entries_bits)
         end_idx = Signal(self.params.rob_entries_bits)
 
-        peek_possible = start_idx != end_idx
+        empty = start_idx == end_idx
         put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
 
-        @def_method(m, self.peek, ready=peek_possible)
+        @def_method(m, self.peek, ready=~empty)
         def _():
             return {
                 "rob_data": self.data[start_idx].rob_data,
@@ -52,13 +56,36 @@ class ReorderBuffer(Elaboratable):
             m.d.sync += end_idx.eq(end_idx + 1)
             return end_idx
 
-        # TODO: There is a potential race condition when ROB is flushed.
-        # If functional units aren't flushed, finished obsolete instructions
-        # could mark fields in ROB as done when they shouldn't.
+        @def_method(m, self.empty)
+        def _():
+            return empty
+
+        self.flush_one.add_conflict(self.put, priority=Priority.LEFT)
+        self.flush_one.add_conflict(self.retire, priority=Priority.LEFT)
+
+        # TODO: rework flushing so that it's handled by some other block
+        # or ROB itself (rather than interrupt coordinator). This should
+        # be easier when we switch to one-cycle ROB flushing method that
+        # just restores a pointer in free-RF-list since we won't have to
+        # recycle physical register ids back during flushing
+        @def_method(m, self.flush_one)
+        def _():
+            m.d.sync += start_idx.eq(start_idx + 1)
+            m.d.sync += self.data[start_idx].done.eq(0)
+            entry = self.data[start_idx].rob_data
+            return {"rp_dst": entry.rp_dst}
+
+        # For correctness, flushing functional units needs to be done to
+        # avoid marking entries in the ROB that don't correspond to them
+        # anymore because they got flushed - this is currently implemented
         @def_method(m, self.mark_done)
         def _(rob_id: Value, exception):
             m.d.sync += self.data[rob_id].done.eq(1)
             m.d.sync += self.data[rob_id].exception.eq(exception)
+
+        @def_method(m, self.get_indices)
+        def _():
+            return {"start": start_idx, "end": end_idx}
 
         @def_method(m, self.get_indices)
         def _():

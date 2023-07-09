@@ -2,10 +2,11 @@ from typing import Sequence
 from amaranth import *
 
 from transactron import *
-from transactron.lib import FIFO
+from transactron.core import Priority
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
 from coreblocks.utils import HasElaborate, OneHotSwitch
+from coreblocks.utils.fifo import BasicFifo
 
 from coreblocks.fu.fu_decoder import DecoderManager
 from enum import IntFlag, auto
@@ -215,12 +216,13 @@ class AluFuncUnit(FuncUnit, Elaboratable):
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
+        self.clear = Method()
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.alu_fn)
-        m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
+        m.submodules.fifo = fifo = BasicFifo(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.alu_fn.get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
@@ -236,6 +238,10 @@ class AluFuncUnit(FuncUnit, Elaboratable):
             m.d.comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
             fifo.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
+
+        self.clear.proxy(m, fifo.clear)
+        self.clear.add_conflict(self.issue, priority=Priority.LEFT)
+        self.clear.add_conflict(self.accept, priority=Priority.LEFT)
 
         return m
 

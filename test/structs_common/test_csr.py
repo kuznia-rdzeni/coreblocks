@@ -2,13 +2,14 @@ from amaranth import *
 
 from transactron.lib import Adapter
 from coreblocks.structs_common.csr import CSRUnit, CSRRegister
-from coreblocks.params import GenParams
 from coreblocks.params.isa import Funct3, ExceptionCause
+from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.frontend.decoder import OpType
+from coreblocks.transactions.lib import Adapter
 
 from ..common import *
 
@@ -24,6 +25,12 @@ class CSRUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        fetch_layouts = self.gen_params.get(FetchLayouts)
+        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(
+            Adapter(i=fetch_layouts.branch_verify_in, o=fetch_layouts.branch_verify_out)
+        )
+        self.gen_params.get(DependencyManager).add_dependency(BranchResolvedKey(), self.fetch_continue.adapter.iface)
+
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
         m.submodules.select = self.select = TestbenchIO(AdapterTrans(self.dut.select))
@@ -35,8 +42,6 @@ class CSRUnitTestCircuit(Elaboratable):
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
         self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
-
-        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(AdapterTrans(self.dut.fetch_continue))
 
         self.csr = {}
 

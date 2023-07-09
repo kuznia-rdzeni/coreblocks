@@ -187,13 +187,11 @@ class CSRUnit(FuncBlock, Elaboratable):
         ----------
         gen_params: GenParams
             Core generation parameters.
-        fetch_continue: Method
-            Method to resume `Fetch` unit from stalled PC.
         """
         self.gen_params = gen_params
         self.dependency_manager = gen_params.get(DependencyManager)
 
-        self.fetch_continue = Method(o=gen_params.get(FetchLayouts).branch_verify)
+        self.verify_branch = self.dependency_manager.get_dependency(BranchResolvedKey())
 
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRLayouts)
@@ -209,7 +207,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.clear.add_conflict(self.insert, Priority.LEFT)
         self.clear.add_conflict(self.update, Priority.LEFT)
         self.clear.add_conflict(self.get_result, Priority.LEFT)
-        self.clear.add_conflict(self.fetch_continue, Priority.LEFT)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
@@ -328,7 +325,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.get_result, done)
         def _():
-            m.d.comb += accepted.eq(1)
+            self.verify_branch(m, from_pc=instr.pc, next_pc=instr.pc + self.gen_params.isa.ilen_bytes)
 
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
@@ -352,10 +349,6 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
 
-        @def_method(m, self.fetch_continue, accepted)
-        def _():
-            return {"from_pc": instr.pc, "next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
-
         # Generate rob_sfx_empty signal from precommit
         @def_method(m, self.precommit)
         def _(rob_id):
@@ -368,7 +361,6 @@ class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
         unit = CSRUnit(gen_params)
-        connections.add_dependency(BranchResolvedKey(), unit.fetch_continue)
         connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 

@@ -5,12 +5,14 @@ from enum import IntFlag, auto
 from typing import Sequence
 
 from transactron import *
-from transactron.core import def_method
+from transactron.core import Priority
 from transactron.lib import *
 
 from coreblocks.params import *
+from coreblocks.params.keys import BranchResolvedKey
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
+from coreblocks.utils.fifo import BasicFifo
 
 from coreblocks.fu.fu_decoder import DecoderManager
 
@@ -62,7 +64,6 @@ class JumpBranch(Elaboratable):
         m = Module()
 
         branch_target = Signal(self.gen_params.isa.xlen)
-
         # Spec: "The 12-bit B-immediate encodes signed offsets in multiples of 2,
         # and is added to the current pc to give the target address."
         # Multiplies of 2 are converted to the real offset in the decode stage, so we have 13 bits.
@@ -122,7 +123,9 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
-        self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
+        self.precommit = Method(i=layouts.precommit)
+        self.clear = Method()
+        self.verify_branch = gen.get(DependencyManager).get_dependency(BranchResolvedKey())
 
         self.jb_fn = jb_fn
 
@@ -131,20 +134,25 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
+        branch_result = Record(
+            self.gen.get(FetchLayouts).branch_verify_in
+            + [("rob_id", self.gen.rob_entries_bits), ("valid", 1), ("can_retire", 1)]
+        )
+
         m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
-        m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
-        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
+        m.submodules.fifo_res = fifo_res = BasicFifo(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
 
-        @def_method(m, self.accept)
+        # ready signal ensures sequential execution of issue -> precommit -> accept
+        # in cases where op != AUIPC, and sequential execution of issue -> accept
+        # in case where op == AUIPC
+        @def_method(m, self.accept, ready=branch_result.can_retire)
         def _():
+            m.d.sync += branch_result.valid.eq(0)
+            m.d.sync += branch_result.can_retire.eq(0)
             return fifo_res.read(m)
 
-        @def_method(m, self.branch_result)
-        def _():
-            return fifo_branch.read(m)
-
-        @def_method(m, self.issue)
+        @def_method(m, self.issue, ready=~branch_result.valid)
         def _(arg):
             m.d.top_comb += decoder.exec_fn.eq(arg.exec_fn)
             m.d.top_comb += jb.fn.eq(decoder.decode_fn)
@@ -170,7 +178,29 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             # skip writing next branch target for auipc
             with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):
-                fifo_branch.write(m, from_pc=jb.in_pc, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res))
+                m.d.sync += branch_result.rob_id.eq(arg.rob_id)
+                m.d.sync += branch_result.from_pc.eq(jb.in_pc)
+                m.d.sync += branch_result.next_pc.eq(Mux(jb.taken, jb.jmp_addr, jb.reg_res))
+            with m.Else():
+                m.d.sync += branch_result.can_retire.eq(1)
+            m.d.sync += branch_result.valid.eq(1)
+
+        @def_method(m, self.precommit)
+        def _(rob_id):
+            with m.If(branch_result.valid & (rob_id == branch_result.rob_id)):
+                m.d.sync += branch_result.can_retire.eq(1)
+                self.verify_branch(m, from_pc=branch_result.from_pc, next_pc=branch_result.next_pc)
+
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += branch_result.valid.eq(0)
+            m.d.sync += branch_result.can_retire.eq(0)
+            fifo_res.clear(m)
+
+        self.clear.add_conflict(self.issue, priority=Priority.LEFT)
+        self.clear.add_conflict(self.accept, priority=Priority.LEFT)
+        self.clear.add_conflict(self.precommit, priority=Priority.LEFT)
+        self.accept.add_conflict(self.precommit, priority=Priority.LEFT)
 
         return m
 
@@ -182,7 +212,7 @@ class JumpComponent(FunctionalComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
         connections = gen_params.get(DependencyManager)
-        connections.add_dependency(BranchResolvedKey(), unit.branch_result)
+        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 
     def get_optypes(self) -> set[OpType]:

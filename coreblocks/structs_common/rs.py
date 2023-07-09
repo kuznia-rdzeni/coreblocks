@@ -3,7 +3,7 @@ from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
 from transactron import Method, def_method, TModule
 from coreblocks.params import RSLayouts, GenParams, OpType
-from transactron.core import RecordDict
+from transactron.core import RecordDict, Priority
 
 __all__ = ["RS"]
 
@@ -28,6 +28,7 @@ class RS(Elaboratable):
         self.select = Method(o=self.layouts.select_out)
         self.update = Method(i=self.layouts.update_in)
         self.take = Method(i=self.layouts.take_in, o=self.layouts.take_out)
+        self.clear = Method()
 
         self.ready_for = [list(op_list) for op_list in ready_for]
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
@@ -94,6 +95,17 @@ class RS(Elaboratable):
                 "imm": record.rs_data.imm,
                 "pc": record.rs_data.pc,
             }
+
+        self.clear.add_conflict(self.select, priority=Priority.LEFT)
+        self.clear.add_conflict(self.insert, priority=Priority.LEFT)
+        self.clear.add_conflict(self.update, priority=Priority.LEFT)
+        self.clear.add_conflict(self.take, priority=Priority.LEFT)
+
+        @def_method(m, self.clear)
+        def _() -> None:
+            for entry in self.data:
+                m.d.sync += entry.rec_full.eq(0)
+                m.d.sync += entry.rec_reserved.eq(0)
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
 

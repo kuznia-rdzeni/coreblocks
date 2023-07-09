@@ -3,10 +3,11 @@ from typing import Sequence
 from amaranth import *
 
 from transactron import Method, Transaction, TModule
-from transactron.lib import FIFO, Forwarder
+from transactron.lib import Forwarder, MethodProduct
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from coreblocks.utils import assign, AssignType
 from coreblocks.utils.protocols import FuncBlock
+from coreblocks.utils.fifo import BasicFifo
 
 
 __all__ = ["Scheduler"]
@@ -18,7 +19,9 @@ class RegAllocation(Elaboratable):
     the instruction result). A part of the scheduling process.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, get_free_reg: Method, gen_params: GenParams):
+    def __init__(
+        self, *, get_instr: Method, push_instr: Method, get_free_reg: Method, rob_put: Method, gen_params: GenParams
+    ):
         """
         Parameters
         ----------
@@ -28,7 +31,9 @@ class RegAllocation(Elaboratable):
         push_instr: Method
             Method used for pushing the serviced instruction to the next step. Uses `SchedulerLayouts.reg_alloc_out`.
         get_free_reg: Method
-             Method providing the ID of a currently free physical register.
+            Method providing the ID of a currently free physical register.
+        rob_put: Method
+            Method to put the instruction in a free slot in the ROB and get its ID back
         gen_params: GenParams
             Core generation parameters.
         """
@@ -40,6 +45,7 @@ class RegAllocation(Elaboratable):
         self.get_instr = get_instr
         self.push_instr = push_instr
         self.get_free_reg = get_free_reg
+        self.rob_put = rob_put
 
     def elaborate(self, platform):
         m = TModule()
@@ -53,8 +59,14 @@ class RegAllocation(Elaboratable):
                 reg_id = self.get_free_reg(m)
                 m.d.comb += free_reg.eq(reg_id)
 
+            rob_id = self.rob_put(
+                m,
+                {"rl_dst": instr.regs_l.rl_dst, "rp_dst": free_reg, "pc": instr.pc},
+            )
+
             m.d.comb += assign(data_out, instr)
             m.d.comb += data_out.regs_p.rp_dst.eq(free_reg)
+            m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
             self.push_instr(m, data_out)
 
         return m
@@ -107,65 +119,10 @@ class Renaming(Elaboratable):
                 },
             )
 
-            m.d.comb += assign(data_out, instr, fields={"exec_fn", "imm", "csr", "pc"})
-            m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
+            m.d.comb += assign(data_out, instr, fields={"exec_fn", "imm", "csr", "pc", "rob_id"})
             m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
             m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
             m.d.comb += data_out.regs_p.rp_s2.eq(renamed_regs.rp_s2)
-            self.push_instr(m, data_out)
-
-        return m
-
-
-class ROBAllocation(Elaboratable):
-    """
-    Module performing "ReOrder Buffer entry allocation" step of scheduling process.
-    """
-
-    def __init__(self, *, get_instr: Method, push_instr: Method, rob_put: Method, gen_params: GenParams):
-        """
-        Parameters
-        ----------
-        get_instr: Method
-            Method providing instructions with physical register IDs present for all used registers.
-            Uses `SchedulerLayouts.rob_allocate_in`.
-        push_instr: Method
-            Method used for pushing the serviced instruction to the next step.
-            Uses `SchedulerLayouts.rob_allocate_out`.
-        rob_put: Method
-            Method used for getting a free entry in the ROB. Uses `ROBLayouts.data_layout`
-            and `ROBLayouts.id_layout`.
-        gen_params: GenParams
-            Core generation parameters.
-        """
-        self.gen_params = gen_params
-        layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.rob_allocate_in
-        self.output_layout = layouts.rob_allocate_out
-
-        self.get_instr = get_instr
-        self.push_instr = push_instr
-        self.rob_put = rob_put
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        data_out = Record(self.output_layout)
-
-        with Transaction().body(m):
-            instr = self.get_instr(m)
-
-            rob_id = self.rob_put(
-                m,
-                {
-                    "rl_dst": instr.regs_l.rl_dst,
-                    "rp_dst": instr.regs_p.rp_dst,
-                },
-            )
-
-            m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
-            m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
-
             self.push_instr(m, data_out)
 
         return m
@@ -343,9 +300,8 @@ class Scheduler(Elaboratable):
     available RS which supports this kind of instructions.
 
     In order to prepare instruction it performs following steps:
-    - physical register allocation
+    - physical register allocation + ROB entry allocation
     - register renaming
-    - ROB entry allocation
     - RS selection
     - RS insertion
 
@@ -399,19 +355,21 @@ class Scheduler(Elaboratable):
         self.rf_read1 = rf_read1
         self.rf_read2 = rf_read2
         self.rs = reservation_stations
+        self.clear = Method()
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(self.layouts.reg_alloc_out, 2)
+        m.submodules.alloc_rename_buf = alloc_rename_buf = BasicFifo(self.layouts.reg_alloc_out, 2)
         m.submodules.reg_alloc = RegAllocation(
             get_instr=self.get_instr,
             push_instr=alloc_rename_buf.write,
             get_free_reg=self.get_free_reg,
+            rob_put=self.rob_put,
             gen_params=self.gen_params,
         )
 
-        m.submodules.rename_out_buf = rename_out_buf = FIFO(self.layouts.renaming_out, 2)
+        m.submodules.rename_out_buf = rename_out_buf = BasicFifo(self.layouts.renaming_out, 2)
         m.submodules.renaming = Renaming(
             get_instr=alloc_rename_buf.read,
             push_instr=rename_out_buf.write,
@@ -419,18 +377,10 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.reg_alloc_out_buf = reg_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
-        m.submodules.rob_alloc = ROBAllocation(
-            get_instr=rename_out_buf.read,
-            push_instr=reg_alloc_out_buf.write,
-            rob_put=self.rob_put,
-            gen_params=self.gen_params,
-        )
-
-        m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
+        m.submodules.rs_select_out_buf = rs_select_out_buf = BasicFifo(self.layouts.rs_select_out, 2)
         m.submodules.rs_selector = RSSelection(
             gen_params=self.gen_params,
-            get_instr=reg_alloc_out_buf.read,
+            get_instr=rename_out_buf.read,
             rs_select=[(rs.select, optypes) for rs, optypes in self.rs],
             push_instr=rs_select_out_buf.write,
         )
@@ -442,5 +392,10 @@ class Scheduler(Elaboratable):
             rf_read2=self.rf_read2,
             gen_params=self.gen_params,
         )
+
+        m.submodules.clear_product = clear_product = MethodProduct(
+            [alloc_rename_buf.clear, rename_out_buf.clear, rs_select_out_buf.clear]
+        )
+        self.clear.proxy(m, clear_product.method)
 
         return m

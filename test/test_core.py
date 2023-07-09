@@ -3,7 +3,7 @@ from amaranth import Elaboratable, Module
 from transactron.lib import AdapterTrans
 from coreblocks.utils import align_to_power_of_two
 
-from .common import TestCaseWithSimulator, TestbenchIO
+from .common import TestCaseWithSimulator, TestbenchIO, signed_to_int
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
@@ -59,12 +59,14 @@ class TestElaboratable(Elaboratable):
         self.core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
         self.io_in = TestbenchIO(AdapterTrans(self.core.fifo_fetch.write))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
+        self.interrupt = TestbenchIO(AdapterTrans(self.core.int_coordinator.trigger))
 
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
         m.submodules.rf_write = self.rf_write
+        m.submodules.interrupt = self.interrupt
 
         m.d.comb += wb_instr_bus.connect(self.wb_mem_slave.bus)
         m.d.comb += wb_data_bus.connect(self.wb_mem_slave_data.bus)
@@ -112,6 +114,16 @@ class TestCoreBase(TestCaseWithSimulator):
 
     def push_instr(self, opcode):
         yield from self.m.io_in.call(data=opcode)
+
+    def push_arch_reg_val(self, reg_id, val):
+        addi_imm = signed_to_int(val & 0xFFF, 12)
+        lui_imm = (val & 0xFFFFF000) >> 12
+        # handle addi sign extension, see: https://stackoverflow.com/a/59546567
+        if val & 0x800:
+            lui_imm = (lui_imm + 1) & (0xFFFFF)
+
+        yield from self.push_instr(InstructionLUI(reg_id, lui_imm).encode())
+        yield from self.push_instr(InstructionADDI(reg_id, reg_id, addi_imm).encode())
 
     def compare_core_states(self, sw_core):
         for i in range(self.gp.isa.reg_cnt):
@@ -237,31 +249,11 @@ class TestCoreRandomized(TestCoreBase):
             sim.add_sync_process(self.randomized_input)
 
 
-@parameterized_class(
-    ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
-    [
-        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
-        ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
-        ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
-    ],
-)
-class TestCoreAsmSource(TestCoreBase):
-    source_file: str
-    cycle_count: int
-    expected_regvals: dict[int, int]
-    configuration: CoreConfiguration
+class TestCoreAsmSourceBase(TestCoreBase):
+    base_dir: str = "test/asm/"
 
-    def run_and_check(self):
-        for i in range(self.cycle_count):
-            yield
-
-        for reg_id, val in self.expected_regvals.items():
-            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
-
-    def test_asm_source(self):
-        self.gp = GenParams(self.configuration)
-        self.base_dir = "test/asm/"
-        self.bin_src = []
+    def prepare_source(self, filename):
+        bin_src = []
 
         with tempfile.NamedTemporaryFile() as asm_tmp:
             subprocess.check_call(
@@ -273,7 +265,7 @@ class TestCoreAsmSource(TestCoreBase):
                     "-march=rv32im_zicsr",
                     "-o",
                     asm_tmp.name,
-                    self.base_dir + self.source_file,
+                    TestCoreAsmSourceBase.base_dir + filename,
                 ]
             )
             code = subprocess.check_output(
@@ -282,8 +274,93 @@ class TestCoreAsmSource(TestCoreBase):
             for word_idx in range(0, len(code), 4):
                 word = code[word_idx : word_idx + 4]
                 bin_instr = int.from_bytes(word, "little")
-                self.bin_src.append(bin_instr)
+                bin_src.append(bin_instr)
+        return bin_src
 
-        self.m = TestElaboratable(self.gp, instr_mem=self.bin_src)
+
+@parameterized_class(
+    ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
+    [
+        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
+        ("fibonacci_mem", "fibonacci_mem.asm", 1500, {3: 55}, basic_core_config),
+        ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
+    ],
+)
+class TestCoreBasicAsmSource(TestCoreAsmSourceBase):
+    source_file: str
+    cycle_count: int
+    expected_regvals: dict[int, int]
+    configuration: CoreConfiguration
+
+    def setUp(self):
+        self.gp = GenParams(self.configuration)
+
+    def run_and_check(self):
+        yield from self.tick(self.cycle_count)
+        for reg_id, val in self.expected_regvals.items():
+            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
+
+    def test_asm_source(self):
+        bin_src = self.prepare_source(self.source_file)
+        self.m = TestElaboratable(self.gp, instr_mem=bin_src)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_and_check)
+
+
+# test interrupts with varying triggering frequency (parametrizable amount of cycles between
+# returning from an interrupt and triggering it again with 'lo' and 'hi' parameters)
+@parameterized_class(
+    ("source_file", "main_cycle_count", "start_regvals", "expected_regvals", "lo", "hi"),
+    [
+        ("interrupt.asm", 800, {4: 2971215073, 8: 29}, {2: 2971215073, 7: 29, 31: 0xDE}, 300, 500),
+        ("interrupt.asm", 800, {4: 24157817, 8: 199}, {2: 24157817, 7: 199, 31: 0xDE}, 100, 200),
+        ("interrupt.asm", 400, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
+        # 10-15 is the smallest feasible cycle count between interrupts to provide forward progress
+        ("interrupt.asm", 300, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 10, 15),
+    ],
+)
+class TestCoreInterrupt(TestCoreAsmSourceBase):
+    source_file: str
+    main_cycle_count: int
+    start_regvals: dict[int, int]
+    expected_regvals: dict[int, int]
+    lo: int
+    hi: int
+
+    def setUp(self):
+        self.configuration = full_core_config
+        self.gp = GenParams(self.configuration)
+        random.seed(1500100900)
+
+    def run_with_interrupt(self):
+        main_cycles = 0
+        int_count = 0
+
+        # set up fibonacci max numbers
+        for reg_id, val in self.start_regvals.items():
+            yield from self.push_arch_reg_val(reg_id, val)
+        # wait for caches to fill up so that mtvec is written - very important
+        yield from self.tick(200)
+        while main_cycles < self.main_cycle_count:
+            # run main code for some semi-random amount of cycles
+            c = random.randrange(self.lo, self.hi)
+            main_cycles += c
+            yield from self.tick(c)
+            # trigger an interrupt
+            yield from self.m.interrupt.call()
+            # wait one clock cycle for the interrupt to get registered
+            yield
+            # wait until ISR returns
+            while (yield self.m.core.int_coordinator.interrupt) != 0:
+                yield
+            int_count += 1
+
+        self.assertEqual((yield from self.get_arch_reg_val(30)), int_count)
+        for reg_id, val in self.expected_regvals.items():
+            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
+
+    def test_interrupted_prog(self):
+        bin_src = self.prepare_source(self.source_file)
+        self.m = TestElaboratable(self.gp, instr_mem=bin_src)
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.run_with_interrupt)

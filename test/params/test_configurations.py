@@ -16,8 +16,13 @@ class TestConfigurationsISAString(TestCase):
         gp_str: str
 
     TEST_CASES = [
-        ISAStrTest(basic_core_config, "rv32i", "rv32i", "rv32i"),
-        ISAStrTest(full_core_config, "rv32imcbzicsr", "rv32imcbzicsr", "rv32imcbzicsr"),
+        ISAStrTest(basic_core_config, "rv32i", "rv32", "rv32i"),
+        ISAStrTest(
+            full_core_config,
+            "rv32imcbzicsr_xintmachinemode",
+            "rv32imcbzicsr",
+            "rv32imcbzicsr_xintmachinemode",
+        ),
         ISAStrTest(tiny_core_config, "rv32e", "rv32", "rv32e"),
         ISAStrTest(test_core_config, "rv32", "rv32", "rv32i"),
     ]

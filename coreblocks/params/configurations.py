@@ -14,6 +14,7 @@ from coreblocks.fu.div_unit import DivComponent
 from coreblocks.fu.zbc import ZbcComponent
 from coreblocks.fu.zbs import ZbsComponent
 from coreblocks.fu.exception import ExceptionUnitComponent
+from coreblocks.fu.intret_unit import IntRetComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
 from coreblocks.structs_common.csr import CSRBlockComponent
 
@@ -110,6 +111,7 @@ full_core_config = CoreConfiguration(
                 ZbsComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
+                IntRetComponent(),
             ],
             rs_entries=4,
         ),

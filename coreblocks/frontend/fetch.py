@@ -3,6 +3,7 @@ from coreblocks.utils.fifo import BasicFifo, Semaphore
 from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
 from transactron import def_method, Method, Transaction, TModule
+from transactron.core import Priority
 from ..params import *
 
 
@@ -29,7 +30,9 @@ class Fetch(Elaboratable):
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        layouts = self.gp.get(FetchLayouts)
+        self.verify_branch = Method(i=layouts.branch_verify_in, o=layouts.branch_verify_out)
+        self.stall = Method()
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
@@ -38,26 +41,28 @@ class Fetch(Elaboratable):
         m = TModule()
 
         m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(
-            layout=[("addr", self.gp.isa.xlen), ("spin", 1)], depth=2
+            layout=[("addr", self.gp.isa.xlen), ("tag", 1)], depth=2
         )
 
         speculative_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
 
         stalled = Signal()
-        spin = Signal()
+        tag = Signal(1)
+        request_trans = Transaction(name="request")
+        response_trans = Transaction(name="response")
 
-        with Transaction().body(m, request=~stalled):
+        with request_trans.body(m, request=~stalled):
             self.icache.issue_req(m, addr=speculative_pc)
-            self.fetch_target_queue.write(m, addr=speculative_pc, spin=spin)
+            self.fetch_target_queue.write(m, addr=speculative_pc, tag=tag)
 
             m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
 
         def stall():
             m.d.sync += stalled.eq(1)
             with m.If(~stalled):
-                m.d.sync += spin.eq(~spin)
+                m.d.sync += tag.eq(tag + 1)
 
-        with Transaction().body(m):
+        with response_trans.body(m):
             target = self.fetch_target_queue.read(m)
             res = self.icache.accept_res(m)
 
@@ -67,7 +72,7 @@ class Fetch(Elaboratable):
                 (opcode == Opcode.BRANCH) | (opcode == Opcode.JAL) | (opcode == Opcode.JALR) | (opcode == Opcode.SYSTEM)
             )
 
-            with m.If(spin == target.spin):
+            with m.If(tag == target.tag):
                 instr = Signal(self.gp.isa.ilen)
                 fetch_error = Signal()
 
@@ -78,16 +83,24 @@ class Fetch(Elaboratable):
                 with m.Else():
                     with m.If(unsafe_instr):
                         stall()
-
                     m.d.sync += self.pc.eq(target.addr)
                     m.d.comb += instr.eq(res.instr)
 
                 self.cont(m, data=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
 
-        @def_method(m, self.verify_branch, ready=stalled)
+        self.verify_branch.add_conflict(self.stall)
+        self.verify_branch.add_conflict(response_trans, priority=Priority.LEFT)
+        self.verify_branch.add_conflict(request_trans, priority=Priority.LEFT)
+
+        @def_method(m, self.stall)
+        def _():
+            stall()
+
+        @def_method(m, self.verify_branch)
         def _(from_pc: Value, next_pc: Value):
             m.d.sync += speculative_pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
+            return self.pc
 
         return m
 

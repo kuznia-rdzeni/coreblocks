@@ -1,22 +1,34 @@
 from amaranth import *
 from parameterized import parameterized_class
+from collections import deque
 
 from coreblocks.params import *
-from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
-from transactron import Method, def_method, TModule
-from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
+from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn
+from transactron import def_method, TModule
+from transactron.lib import Adapter, AdapterTrans
+from coreblocks.params.layouts import FetchLayouts
+from coreblocks.params.configurations import test_core_config
 from coreblocks.utils.protocols import FuncUnit
 
-from test.common import signed_to_int
+from test.common import signed_to_int, TestbenchIO, def_method_mock
 
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 class JumpBranchWrapper(Elaboratable):
     def __init__(self, gen_params: GenParams):
+        fetch_layouts = gen_params.get(FetchLayouts)
+        self.set_pc = TestbenchIO(Adapter(i=fetch_layouts.branch_verify_in, o=fetch_layouts.branch_verify_out))
+        gen_params.get(DependencyManager).add_dependency(BranchResolvedKey(), self.set_pc.adapter.iface)
+
         self.jb = JumpBranchFuncUnit(gen_params)
+
+        self.precommit = TestbenchIO(AdapterTrans(self.jb.precommit))
+
         self.issue = self.jb.issue
-        self.accept = Method(o=gen_params.get(FuncUnitLayouts).accept + gen_params.get(FetchLayouts).branch_verify)
+        self.accept = self.jb.accept
+        self.clear = self.jb.clear
+        self.optypes = set()
 
     def elaborate(self, platform):
         m = TModule()
@@ -35,6 +47,8 @@ class JumpBranchWrapper(Elaboratable):
                 "rp_dst": res.rp_dst,
                 "exception": res.exception,
             }
+        m.submodules.set_pc = self.set_pc
+        m.submodules.precommit = self.precommit
 
         return m
 
@@ -115,18 +129,16 @@ ops_auipc = {
 
 
 @parameterized_class(
-    ("name", "ops", "func_unit", "compute_result"),
+    ("name", "ops", "compute_result"),
     [
         (
             "branches_and_jumps",
             ops,
-            JumpBranchWrapperComponent(),
             compute_result,
         ),
         (
             "auipc",
             ops_auipc,
-            JumpComponent(),
             compute_result_auipc,
         ),
     ],
@@ -134,6 +146,34 @@ ops_auipc = {
 class JumpBranchUnitTest(FunctionalUnitTestCase[JumpBranchFn.Fn]):
     compute_result = compute_result
     zero_imm = False
+    number_of_tests = 300
+    func_unit = JumpBranchWrapperComponent()
 
-    def test_fu(self):
-        self.run_standard_fu_test()
+    def test_test(self):
+        precommit_q = deque()
+        # it's either ignoring the type or forcing 'precommit' to exist in all FUs
+        fu: JumpBranchWrapper = self.m.func_unit  # type: ignore
+
+        def main_proc():
+            while self.requests:
+                # JB unit is serialized now anyway so this doesn't hurt
+                req = self.requests.pop()
+                yield from self.m.issue.call(req)
+                yield from fu.precommit.call({"rob_id": req["rob_id"]})
+                res = yield from self.m.accept.call()
+                if req["exec_fn"]["op_type"] != OpType.AUIPC:
+                    res |= precommit_q.pop()
+                expected = self.responses.pop()
+                self.assertDictEqual(res, expected)
+
+        @def_method_mock(lambda: fu.set_pc, sched_prio=0, enable=lambda: True)
+        def set_pc_mock(arg):
+            precommit_q.append(arg)
+            return {"old_pc": 0}
+
+        self.run_pipeline(
+            {
+                "main_proc": main_proc,
+                "set_pc_mock": set_pc_mock,
+            }
+        )

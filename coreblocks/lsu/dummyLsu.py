@@ -1,6 +1,7 @@
 from amaranth import *
 
 from transactron import Method, def_method, Transaction, TModule
+from transactron.core import Priority
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign, ModuleLike
@@ -209,6 +210,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.update = Method(i=self.lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
         self.precommit = Method(i=self.lsu_layouts.precommit)
+        self.clear = Method()
 
         self.bus = bus
 
@@ -261,6 +263,22 @@ class LSUDummy(FuncBlock, Elaboratable):
                 current_instr.valid & (rob_id == current_instr.rob_id) & (current_instr.exec_fn.op_type != OpType.FENCE)
             ):
                 m.d.comb += internal.execute.eq(1)
+
+        self.clear.add_conflict(self.select, priority=Priority.LEFT)
+        self.clear.add_conflict(self.insert, priority=Priority.LEFT)
+        self.clear.add_conflict(self.update, priority=Priority.LEFT)
+        self.clear.add_conflict(self.get_result, priority=Priority.LEFT)
+
+        @def_method(m, self.clear)
+        def _():
+            # TODO: clearing internal lsu component ;)
+            m.d.sync += current_instr.eq(0)
+            m.d.sync += reserved.eq(0)
+
+        with m.If(internal.store_ready):
+            m.d.sync += internal.execute_store.eq(0)
+            m.d.sync += current_instr.eq(0)
+            m.d.sync += reserved.eq(0)
 
         return m
 

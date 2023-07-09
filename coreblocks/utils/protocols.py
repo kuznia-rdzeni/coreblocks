@@ -16,6 +16,7 @@ class Unifier(HasElaborate, Protocol):
 class FuncUnit(HasElaborate, Protocol):
     issue: Method
     accept: Method
+    clear: Method
 
 
 class FuncBlock(HasElaborate, Protocol):
@@ -23,3 +24,4 @@ class FuncBlock(HasElaborate, Protocol):
     select: Method
     update: Method
     get_result: Method
+    clear: Method
