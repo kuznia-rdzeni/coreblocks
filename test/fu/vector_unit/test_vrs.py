@@ -31,7 +31,7 @@ class TestVXRS(TestCaseWithSimulator):
 
     def generate_input(self):
         input = []
-        for i in range(self.rs_entries):
+        for i in range(self.rs_entries - 1):
             data = generate_instr(
                 self.gen_params,
                 VectorXRSLayout(self.gen_params, rs_entries_bits=bits_for(self.rs_entries - 1)).data_layout,
@@ -73,7 +73,7 @@ class TestVXRS(TestCaseWithSimulator):
     def process(self, input):
         def f():
             yield from self.insert_input(input)
-            for id in range(self.rs_entries):
+            for id in range(self.rs_entries - 1):
                 instr = input[id]
                 self.assertTrue((yield self.circ._dut.data[id].rec_full))
                 yield from self.assert_ready(self.circ._dut.data[id], instr)

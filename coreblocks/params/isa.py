@@ -15,6 +15,7 @@ __all__ = [
     "FenceFm",
     "ISA",
     "RegisterType",
+    "funct6_to_funct7",
 ]
 
 
@@ -61,8 +62,8 @@ class Funct3(IntEnum, shape=3):
 
 
 class Funct6(IntEnum, shape=6):
-    VADD = 0b000000
-    VSUB = 0b000010
+    VADD = _VWIDEN = 0b000000
+    VSUB = _VNARROW = 0b000010
     VRSUB = 0b000011
     VMINU = 0b000100
     VMIN = 0b000101
@@ -105,6 +106,14 @@ class Funct6(IntEnum, shape=6):
     VWREDSUM = 0b110001
 
 
+v_narrowing_to_normal_map = {
+    Funct6.VNSRA: Funct6.VSRA,
+    Funct6.VNSRL: Funct6.VSRL,
+}
+
+v_widening_to_normal_map = {}
+
+
 class Funct7(IntEnum, shape=7):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = ANDN = ORN = XNOR = 0b0100000
@@ -117,6 +126,10 @@ class Funct7(IntEnum, shape=7):
     ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = 0b0110000
     ZEXTH = 0b0000100
     SFENCEVMA = 0b0001001
+
+
+def funct6_to_funct7(funct6: Funct6, vm: bool | int) -> Funct7:
+    return Funct7(int(funct6) * 2 + int(vm))
 
 
 class Funct12(IntEnum, shape=12):

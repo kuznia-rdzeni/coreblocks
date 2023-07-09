@@ -71,7 +71,9 @@ class Renaming(Elaboratable):
     the F-RAT with the translation from the logical destination register ID to the physical ID.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, rename: Method, gen_params: GenParams):
+    def __init__(
+        self, *, get_instr: Method, push_instr: Method, get_rename: Method, set_rename: Method, gen_params: GenParams
+    ):
         """
         Parameters
         ----------
@@ -79,9 +81,12 @@ class Renaming(Elaboratable):
             Method providing instructions with an allocated physical register. Uses `SchedulerLayouts.renaming_in`.
         push_instr: Method
             Method used for pushing the serviced instruction to the next step. Uses `SchedulerLayouts.renaming_out`.
-        rename: Method
-            Method used for renaming the source register in F-RAT. Uses
-            `RATLayouts.rename_input_layout` and `RATLayouts.rename_output_layout`.
+        get_rename: Method
+            Method used for reading the renaming of the source register from F-RAT.
+            Uses `RATLayouts.get_rename_in` and `RATLayouts.get_rename_out`.
+        set_rename: Method
+            Method used for updating the renaming of the source register in the F-RAT.
+            Uses `RATLayouts.set_rename_in`.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -92,7 +97,8 @@ class Renaming(Elaboratable):
 
         self.get_instr = get_instr
         self.push_instr = push_instr
-        self.rename = rename
+        self.get_rename = get_rename
+        self.set_rename = set_rename
 
     def elaborate(self, platform):
         m = TModule()
@@ -102,21 +108,10 @@ class Renaming(Elaboratable):
         with Transaction().body(m):
             instr = self.get_instr(m)
 
-            rl_dst_to_rename = Signal().like(instr.regs_l.dst.id, reset=0)
-            rp_dst_to_rename = Signal().like(instr.regs_p.dst.id, reset=0)
             with m.If(instr.regs_l.dst.type == RegisterType.X):
-                m.d.comb += rl_dst_to_rename.eq(instr.regs_l.dst.id)
-                m.d.comb += rp_dst_to_rename.eq(instr.regs_p.dst.id)
+                self.set_rename(m, rl_dst=instr.regs_l.dst.id, rp_dst=instr.regs_p.dst.id)
 
-            renamed_regs = self.rename(
-                m,
-                {
-                    "rl_s1": instr.regs_l.s1.id,
-                    "rl_s2": instr.regs_l.s2.id,
-                    "rl_dst": rl_dst_to_rename,
-                    "rp_dst": rp_dst_to_rename,
-                },
-            )
+            renamed_regs = self.get_rename(m, rl_s1=instr.regs_l.s1.id, rl_s2=instr.regs_l.s2.id)
 
             m.d.comb += assign(data_out, instr, fields={"opcode", "illegal", "exec_fn", "imm", "imm2", "pc"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
@@ -381,7 +376,8 @@ class Scheduler(Elaboratable):
         *,
         get_instr: Method,
         get_free_reg: Method,
-        rat_rename: Method,
+        rat_get_rename: Method,
+        rat_set_rename: Method,
         rob_put: Method,
         rf_read1: Method,
         rf_read2: Method,
@@ -396,9 +392,12 @@ class Scheduler(Elaboratable):
             layout as described by `DecodeLayouts.decoded_instr`.
         get_free_reg: Method
             Method providing the ID of a currently free physical register.
-        rat_rename: Method
-            Method used for renaming the source register in F-RAT. Uses `RATLayouts.rat_rename_in`
-            and `RATLayouts.rat_rename_out`.
+        rat_get_rename: Method
+            Method used for reading the renaming of the source register from F-RAT.
+            Uses `RATLayouts.get_rename_in` and `RATLayouts.get_rename_out`.
+        rat_set_rename: Method
+            Method used for updating the renaming of the source register in the F-RAT.
+            Uses `RATLayouts.set_rename_in`.
         rob_put: Method
             Method used for getting a free entry in ROB. Uses `ROBLayouts.data_layout`.
         rf_read1: Method
@@ -416,7 +415,8 @@ class Scheduler(Elaboratable):
         self.layouts = self.gen_params.get(SchedulerLayouts)
         self.get_instr = get_instr
         self.get_free_reg = get_free_reg
-        self.rat_rename = rat_rename
+        self.get_rat_rename = rat_get_rename
+        self.set_rat_rename = rat_set_rename
         self.rob_put = rob_put
         self.rf_read1 = rf_read1
         self.rf_read2 = rf_read2
@@ -437,7 +437,8 @@ class Scheduler(Elaboratable):
         m.submodules.renaming = Renaming(
             get_instr=alloc_rename_buf.read,
             push_instr=rename_out_buf.write,
-            rename=self.rat_rename,
+            get_rename=self.get_rat_rename,
+            set_rename=self.set_rat_rename,
             gen_params=self.gen_params,
         )
 

@@ -1,7 +1,9 @@
+import itertools
 from typing import Iterable, Optional
 from collections import deque
 from amaranth import Elaboratable, Module
 from amaranth.sim import Settle
+from parameterized import parameterized_class
 
 from coreblocks.transactions.lib import AdapterTrans
 from coreblocks.transactions import TModule
@@ -394,7 +396,11 @@ class TestLayout(RSLayoutProtocol):
         self.get_ready_list_out = [("ready_list", 8)]
 
 
+@parameterized_class(["wait_time_consumer", "wait_time_inserter"], itertools.product([1, 5], [1, 5]))
 class TestFifoRS(TestCaseWithSimulator):
+    wait_time_consumer: int
+    wait_time_inserter: int
+
     def rec_ready_setter(self):
         def f(self_dut: FifoRS, m: TModule):
             for record in self_dut.data:
@@ -417,12 +423,14 @@ class TestFifoRS(TestCaseWithSimulator):
             data = generate_based_on_layout(self.layouts.data_layout)
             yield from self.circ.insert.call(rs_data=data, rs_entry_id=0)
             self.data_queue.append(data)
+            yield from self.tick(random.randrange(self.wait_time_inserter))
 
     def consumer(self):
         for _ in range(self.test_number):
             data = yield from self.circ.take.call(rs_entry_id=0)
             data_expected = self.data_queue.popleft()
             self.assertEqual(data, data_expected)
+            yield from self.tick(random.randrange(self.wait_time_consumer))
 
     def test(self):
         with self.run_simulation(self.circ, 2000) as sim:

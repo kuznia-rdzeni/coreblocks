@@ -771,7 +771,7 @@ class TransactionBase(Owned):
     def get(cls) -> Self:
         ret = cls.peek()
         if ret is None:
-            raise RuntimeError("No current body")
+            raise RuntimeError("No transaction body have been found. Maybe you use method outside of transaction?")
         return ret
 
     @classmethod
@@ -1182,7 +1182,9 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
     return decorator
 
 
-def loop_def_method(m: TModule, methods_list: list[Method], ready_list: Optional[list[ValueLike] | Callable] = None):
+def loop_def_method(
+    m: TModule, methods_list: list[Method], ready_list: Optional[Sequence[ValueLike] | Callable] = None
+):
     """Decorator for defining similar methods
 
     This decorator is a wrapper over `def_method`, which allows you to easily

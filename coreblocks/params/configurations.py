@@ -1,3 +1,4 @@
+from typing import Optional
 from collections.abc import Collection
 import dataclasses
 from dataclasses import dataclass
@@ -14,12 +15,49 @@ from coreblocks.fu.exception import ExceptionUnitComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
 from coreblocks.structs_common.csr import CSRBlockComponent
 
-__all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
+__all__ = [
+    "CoreConfiguration",
+    "VectorUnitConfiguration",
+    "basic_core_config",
+    "tiny_core_config",
+    "full_core_config",
+    "test_core_config",
+    "test_vector_core_config",
+]
 
 basic_configuration: tuple[fu_params.BlockComponentParams, ...] = (
     rs_func_block.RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=4),
     LSUBlockComponent(),
 )
+
+
+@dataclass(kw_only=True)
+class VectorUnitConfiguration:
+    """Vector unit configuration parameters
+
+    Parameters
+    ----------
+    vlen : int
+        Length of one vector register in bits.
+    elen : int
+        Maximal supported element width by vector extension. It has to be
+        power of 2. Currently available values: {8,16,32,64}.
+    vrp_count : int
+        The number of physical vector registers.
+    register_bank_count : int
+        Number of banks to which an physical register should be split.
+    vxrs_entries : int
+        Number of entries in VXRS (reservation station for scalars).
+    vvrs_entries : int
+        Number of entries in VVRS (reservation station for vector registers).
+    """
+
+    vlen: int = 1024
+    elen: int = 32
+    vrp_count: int = 40
+    register_bank_count: int = 4
+    vxrs_entries: int = 8
+    vvrs_entries: int = 8
 
 
 @dataclass(kw_only=True)
@@ -54,6 +92,8 @@ class CoreConfiguration:
         Log of the cache line size (in bytes).
     allow_partial_extensions: bool
         Allow partial support of extensions.
+    vector_config: Optional[VectorUnitConfiguration]
+        Configuration of vector unit.
     _implied_extensions: Extenstion
         Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
     """
@@ -74,6 +114,8 @@ class CoreConfiguration:
     icache_block_size_bits: int = 5
 
     allow_partial_extensions: bool = True  # TODO: Change to False when I extension will be fully supported
+
+    vector_config: Optional[VectorUnitConfiguration] = None
 
     _implied_extensions: isa.Extension = isa.Extension(0)
 
@@ -117,6 +159,15 @@ test_core_config = CoreConfiguration(
     rob_entries_bits=7,
     phys_regs_bits=7,
     _implied_extensions=isa.Extension.I,
+)
+
+# Core configuration used in internal testbenches with vector extension
+test_vector_core_config = CoreConfiguration(
+    func_units_config=tuple(rs_func_block.RSBlockComponent([], rs_entries=4) for _ in range(2)),
+    rob_entries_bits=7,
+    phys_regs_bits=7,
+    _implied_extensions=isa.Extension.I | isa.Extension.V,
+    vector_config=VectorUnitConfiguration(),
 )
 
 # Core configuration with vector extension

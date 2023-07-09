@@ -5,13 +5,16 @@ from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.structs_common.superscalar_freerf import SuperscalarFreeRF
 from collections import deque
+from parameterized import parameterized_class
 
 
+@parameterized_class(["outputs_count"], [(1,), (2,), (3,), (4,), (5,)])
 class TestSuperscalarFreeRF(TestCaseWithSimulator):
+    outputs_count: int
+
     def setUp(self):
         random.seed(14)
         self.entries_count = 21
-        self.outputs_count = 4
         self.test_cycles = 50
 
         self.circ = SimpleTestCircuit(SuperscalarFreeRF(self.entries_count, self.outputs_count))

@@ -6,68 +6,22 @@ from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_status import *
+from test.fu.vector_unit.common import *
 from collections import deque
-
-
-def generate_vsetvl_imm():
-    sew = random.choice(list(SEW))
-    lmul = random.choice(list(LMUL))
-    ta = random.randrange(2)
-    ma = random.randrange(2)
-    imm = ma << 7 | ta << 6 | sew << 3 | lmul
-    return imm, {
-        "sew": sew,
-        "lmul": lmul,
-        "ta": ta,
-        "ma": ma,
-    }
-
-
-def generate_vsetvl(gen_params: GenParams, v_params: VectorParameters, layout: LayoutLike, last_vl: int):
-    instr = generate_instr(gen_params, layout)
-    imm2, vtype = generate_vsetvl_imm()
-    if eew_to_bits(vtype["sew"]) > v_params.elen:
-        imm2 = 0
-        vtype = {"sew": EEW(0), "lmul": LMUL(0), "ta": 0, "ma": 0}
-    vsetvl_type = random.randrange(4)
-    if vsetvl_type == 2:
-        instr = overwrite_dict_values(instr, {"s2_val": imm2})
-    if vsetvl_type == 3:
-        instr = overwrite_dict_values(instr, {"imm": instr["rp_s1"]["id"]})
-    imm2 |= vsetvl_type << 10
-    instr = overwrite_dict_values(
-        instr, {"imm2": imm2, "exec_fn": {"op_type": OpType.V_CONTROL, "funct3": Funct3.OPCFG}}
-    )
-
-    vlmax = int(v_params.vlen // eew_to_bits(vtype["sew"]) * lmul_to_float(vtype["lmul"]))
-
-    if vsetvl_type == 3:
-        vtype |= {"vl": instr["rp_s1"]["id"]}
-    else:
-        if instr["rp_s1"]["id"] == 0:
-            vtype |= {"vl": vlmax}
-        else:
-            vtype |= {"vl": instr["s1_val"]}
-
-    if instr["rp_s1"]["id"] == 0 and instr["rp_dst"]["id"] == 0:
-        vtype |= {"vl": last_vl}
-
-    return instr, vtype
 
 
 class TestVectorStatusUnit(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(test_vector_core_config)
         self.test_number = 700
-        self.v_params = VectorParameters(vlen=1024, elen=32)
 
-        self.vf_layout = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.vf_layout = VectorFrontendLayouts(self.gen_params)
         self.put_instr = TestbenchIO(Adapter(i=self.vf_layout.status_out))
         self.retire = TestbenchIO(Adapter(i=FuncUnitLayouts(self.gen_params).accept))
 
         self.circ = SimpleTestCircuit(
-            VectorStatusUnit(self.gen_params, self.v_params, self.put_instr.adapter.iface, self.retire.adapter.iface)
+            VectorStatusUnit(self.gen_params, self.put_instr.adapter.iface, self.retire.adapter.iface)
         )
 
         self.m = ModuleConnector(circ=self.circ, put_instr=self.put_instr, retire=self.retire)
@@ -91,7 +45,7 @@ class TestVectorStatusUnit(TestCaseWithSimulator):
 
         def process():
             self.assertEqual((yield from self.circ.get_vill.call())["vill"], 1)
-            instr, vtype = generate_vsetvl(self.gen_params, self.v_params, self.vf_layout.status_in, 0)
+            instr, vtype = generate_vsetvl(self.gen_params, self.vf_layout.status_in, 0)
             data_vsetvl_q.append((instr, vtype))
             yield from self.circ.issue.call(instr)
             current_vtype = vtype
@@ -103,7 +57,7 @@ class TestVectorStatusUnit(TestCaseWithSimulator):
                     data_normal_q.append((data, current_vtype))
                 else:
                     data, current_vtype = generate_vsetvl(
-                        self.gen_params, self.v_params, self.vf_layout.verification_in, current_vtype["vl"]
+                        self.gen_params, self.vf_layout.verification_in, current_vtype["vl"]
                     )
                     data_vsetvl_q.append((data, current_vtype))
                 yield from self.circ.issue.call(data)

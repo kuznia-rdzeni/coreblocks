@@ -24,6 +24,7 @@ __all__ = [
     "count_trailing_zeros",
     "mod_incr",
     "MultiPriorityEncoder",
+    "PriorityUniqnessChecker",
 ]
 
 
@@ -321,7 +322,8 @@ def count_leading_zeros(s: Value) -> Value:
     try:
         xlen_log = log2_int(len(s))
     except ValueError:
-        raise NotImplementedError("CountLeadingZeros - only sizes aligned to power of 2 are supperted")
+        xlen_log = log2_int(len(s), False)
+        s = Cat(Repl(1, (1 << xlen_log) - len(s)), s)
 
     value = iter(s, xlen_log)
 
@@ -338,7 +340,7 @@ def count_trailing_zeros(s: Value) -> Value:
     try:
         log2_int(len(s))
     except ValueError:
-        raise NotImplementedError("CountTrailingZeros - only sizes aligned to power of 2 are supperted")
+        s = Cat(s, Repl(1, (1 << log2_int(len(s), False)) - len(s)))
 
     return count_leading_zeros(s[::-1])
 
@@ -491,5 +493,51 @@ class MultiPriorityEncoder(Elaboratable):
         for k in range(self.outputs_count):
             m.d.comb += self.outputs[k].eq(current_outputs[k])
             m.d.comb += self.valids[k].eq(current_valids[k])
+
+        return m
+
+
+class PriorityUniqnessChecker(Elaboratable):
+    """Find every first occurrence of the argument.
+
+    This module takes `input_count` arguments and checks which are
+    unique. The first occurrence of a unique value is valid, all others
+    are not.
+
+    Attributes
+    ----------
+    inputs : list[Signal], in
+        List of input signals to be compared for uniqueness. Each has
+        `input_width` bits.
+    inputs_valids : list[Signal], in
+        Marks valid inputs to compare.
+    valids : list[Signal], out
+        Result of the uniqueness check. Each first occurrence of value
+        has 1 bit and all others have 0.
+    """
+
+    def __init__(self, inputs_count: int, input_width: int):
+        """
+        Parameters
+        ----------
+        input_width : int
+            Width of an input element in bits.
+        input_count : int
+            Number of inputs to create.
+        """
+        self.input_width = input_width
+        self.inputs_count = inputs_count
+
+        self.inputs = [Signal(self.input_width) for _ in range(self.inputs_count)]
+        self.input_valids = [Signal() for _ in range(self.inputs_count)]
+        self.valids = [Signal(reset=1) for _ in range(self.inputs_count)]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        for i in range(self.inputs_count):
+            cond = Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any()
+            with m.If(cond):
+                m.d.comb += self.valids[i].eq(0)
 
         return m

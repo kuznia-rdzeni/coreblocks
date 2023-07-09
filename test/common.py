@@ -27,9 +27,10 @@ from amaranth.sim import *
 from amaranth.sim.core import Command
 
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
-from coreblocks.transactions.lib import AdapterBase, AdapterTrans
+from coreblocks.transactions.lib import AdapterBase, AdapterTrans, Adapter, MethodLayout
 from coreblocks.transactions._utils import method_def_helper
 from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode
+from coreblocks.fu.vector_unit.utils import SEW, LMUL
 from coreblocks.utils import (
     ValueLike,
     HasElaborate,
@@ -49,6 +50,17 @@ RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Union[Command, Value, Statement, None, "CoreblockCommand"], Any, T]
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 SimpleLayout = list[Tuple[str, Union[int, "SimpleLayout"]]]
+
+
+class MethodMock(Elaboratable):
+    def __init__(self, i: MethodLayout = (), o: MethodLayout = ()):
+        self.tb = TestbenchIO(Adapter(i=i, o=o))
+
+    def elaborate(self, platform):
+        return Fragment.get(self.tb, platform)
+
+    def get_method(self):
+        return self.tb.adapter.iface
 
 
 def data_layout(val: int) -> LayoutLike:
@@ -136,11 +148,32 @@ def generate_exec_fn(optypes: Optional[Iterable[OpType]] = None):
 def overwrite_dict_values(base: dict, overwriting: Mapping) -> dict:
     copy = base
     for k, v in overwriting.items():
-        if k in copy and isinstance(v, Mapping):
-            overwrite_dict_values(copy[k], v)
-        else:
-            copy[k] = v
+        if k in copy:
+            if isinstance(v, Mapping):
+                overwrite_dict_values(copy[k], v)
+            else:
+                copy[k] = v
     return copy
+
+
+def convert_vtype_to_imm(vtype) -> int:
+    imm = vtype["ma"] << 7 | vtype["ta"] << 6 | vtype["sew"] << 3 | vtype["lmul"]
+    return imm
+
+
+def generate_vtype(gen_params: GenParams):
+    sew = random.choice(list(SEW))
+    lmul = random.choice(list(LMUL))
+    ta = random.randrange(2)
+    ma = random.randrange(2)
+    vl = random.randrange(2**gen_params.isa.xlen)
+    return {
+        "sew": sew,
+        "lmul": lmul,
+        "ta": ta,
+        "ma": ma,
+        "vl": vl,
+    }
 
 
 def generate_instr(
@@ -170,7 +203,7 @@ def generate_instr(
             rec["regs_l"] = generate_register_set(width, support_vector=support_vector)
         if "regs_p" in field[0]:
             rec["regs_p"] = generate_register_set(reg_phys_width, support_vector=support_vector)
-        for label in ["rp_dst", "rp_s1", "rp_s2"]:
+        for label in ["rp_dst", "rp_s1", "rp_s2", "rp_s3"]:
             if label in field[0]:
                 rec[label] = generate_register_entry(reg_phys_width, support_vector=support_vector)
         if "exec_fn" in field[0]:
@@ -195,6 +228,10 @@ def generate_instr(
             else:
                 s2_val = random.randrange(2**gen_params.isa.xlen)
             rec["s2_val"] = s2_val
+        if "vtype" in field[0]:
+            rec["vtype"] = generate_vtype(gen_params)
+        if "rp_v0" in field[0]:
+            rec["rp_v0"] = {"id": generate_phys_register_id(gen_params=gen_params)}
     return overwrite_dict_values(rec, overwriting)
 
 
@@ -455,6 +492,13 @@ class TestCaseWithSimulator(unittest.TestCase):
         for _ in range(cycle_cnt):
             yield
 
+    def assertIterableEqual(self, it1, it2):  # noqa: N802
+        self.assertListEqual(list(it1), list(it2))
+
+    def assertFieldsEqual(self, dict1, dict2, fields: Iterable):  # noqa: N802
+        for field in fields:
+            self.assertEqual(dict1[field], dict2[field], field)
+
 
 class TestbenchIO(Elaboratable):
     def __init__(self, adapter: AdapterBase):
@@ -592,7 +636,12 @@ def wrap_with_now(func: Callable):
 
 
 def def_method_mock(
-    tb_getter: Callable[[], TestbenchIO] | Callable[[Any], TestbenchIO], sched_prio: int = 0, **kwargs
+    tb_getter: Callable[[], TestbenchIO]
+    | Callable[[Any], TestbenchIO]
+    | Callable[[], MethodMock]
+    | Callable[[Any], MethodMock],
+    sched_prio: int = 0,
+    **kwargs,
 ) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
@@ -660,6 +709,8 @@ def def_method_mock(
                     bind = getattr(v, "__get__", None)
                     kw[k] = bind(func_self) if bind else v
             tb = getter()
+            if isinstance(tb, MethodMock):
+                tb = tb.tb
             assert isinstance(tb, TestbenchIO)
             yield from tb.method_handle_loop(f, extra_settle_count=sched_prio, **kw)
 

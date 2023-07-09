@@ -4,7 +4,6 @@ from coreblocks.transactions.core import *
 from coreblocks.transactions.lib import MemoryBank
 from coreblocks.params import *
 from coreblocks.utils.fifo import BasicFifo
-from coreblocks.params.vector_params import VectorParameters
 from coreblocks.fu.vector_unit.v_layouts import VectorRegisterBankLayouts
 from coreblocks.fu.vector_unit.utils import EEW
 
@@ -39,11 +38,11 @@ class VectorRegisterBank(Elaboratable):
         Clear register and all internal buffers.
     """
 
-    def __init__(self, *, gen_params: GenParams, v_params: VectorParameters):
+    def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
-        self.v_params = v_params
+        self.v_params = self.gen_params.v_params
 
-        self.layouts = VectorRegisterBankLayouts(self.gen_params, self.v_params)
+        self.layouts = VectorRegisterBankLayouts(self.gen_params)
 
         self.bank = MemoryBank(
             data_layout=self.layouts.read_resp, elem_count=self.v_params.elems_in_bank, granularity=8

@@ -21,6 +21,7 @@ __all__ = [
     "ICacheLayouts",
     "SuperscalarFreeRFLayouts",
     "ExceptionRegisterLayouts",
+    "ScoreboardLayouts",
 ]
 
 
@@ -122,13 +123,15 @@ class RFLayouts:
 
 class RATLayouts:
     def __init__(self, gen_params: GenParams):
-        self.rat_rename_in = [
-            ("rl_s1", gen_params.isa.reg_cnt_log),
-            ("rl_s2", gen_params.isa.reg_cnt_log),
+        self.set_rename_in = [
             ("rl_dst", gen_params.isa.reg_cnt_log),
             ("rp_dst", gen_params.phys_regs_bits),
         ]
-        self.rat_rename_out = [("rp_s1", gen_params.phys_regs_bits), ("rp_s2", gen_params.phys_regs_bits)]
+        self.get_rename_in = [
+            ("rl_s1", gen_params.isa.reg_cnt_log),
+            ("rl_s2", gen_params.isa.reg_cnt_log),
+        ]
+        self.get_rename_out = [("rp_s1", gen_params.phys_regs_bits), ("rp_s2", gen_params.phys_regs_bits)]
 
         self.rat_commit_in = [("rl_dst", gen_params.isa.reg_cnt_log), ("rp_dst", gen_params.phys_regs_bits)]
         self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
@@ -419,3 +422,11 @@ class ExceptionRegisterLayouts:
             ("cause", ExceptionCause),
             ("rob_id", gen_params.rob_entries_bits),
         ]
+
+
+class ScoreboardLayouts:
+    def __init__(self, entries_number: int):
+        bits = log2_int(entries_number, False)
+        self.set_dirty_in = [("id", bits), ("dirty", 1)]
+        self.get_dirty_in = [("id", bits)]
+        self.get_dirty_out = [("dirty", 1)]

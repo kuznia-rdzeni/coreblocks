@@ -16,6 +16,7 @@ __all__ = [
     "MemoryBank",
     "Forwarder",
     "Connect",
+    "Register",
     "Collector",
     "ClickIn",
     "ClickOut",
@@ -36,6 +37,10 @@ __all__ = [
     "OmegaRoutingNetwork",
     "PriorityOrderingTransProxyTrans",
     "PriorityOrderingProxyTrans",
+    "RegisterPipe",
+    "ShiftRegister",
+    "MethodBrancherIn",
+    "NotMethod",
 ]
 
 # FIFOs
@@ -160,6 +165,67 @@ class Forwarder(Elaboratable):
         def _():
             m.d.sync += reg_valid.eq(0)
             return read_value
+
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += reg_valid.eq(0)
+
+        return m
+
+
+class Register(Elaboratable):
+    """
+    This module implements a `Register`. It is a halfway between
+    `Forwarder` and `2-FIFO`. In the `Register` data is always
+    stored localy, so the critical path of the data is cut, but there is a
+    combinational path between the control signals of the `read` and
+    the `write` methods. For comparison:
+    - in `Forwarder` there is both a data and a control combinational path
+    - in `2-FIFO` there are no combinational paths
+
+    The `read` method is scheduled before the `write`.
+
+    Attributes
+    ----------
+    read: Method
+        The read method. Accepts an empty argument, returns a `Record`.
+    write: Method
+        The write method. Accepts a `Record`, returns empty result.
+    """
+
+    def __init__(self, layout: MethodLayout):
+        """
+        Parameters
+        ----------
+        layout: record layout
+            The format of records forwarded.
+        """
+        self.read = Method(o=layout)
+        self.write = Method(i=layout)
+        self.clear = Method()
+        self.head = Record.like(self.read.data_out)
+
+        self.clear.add_conflict(self.read, Priority.LEFT)
+        self.clear.add_conflict(self.write, Priority.LEFT)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        reg = Record.like(self.read.data_out)
+        reg_valid = Signal()
+        m.d.top_comb += self.head.eq(reg)
+
+        self.read.schedule_before(self.write)  # to avoid combinational loops
+
+        @def_method(m, self.read, ready=reg_valid)
+        def _():
+            m.d.sync += reg_valid.eq(0)
+            return reg
+
+        @def_method(m, self.write, ready=~reg_valid | self.read.run)
+        def _(arg):
+            m.d.sync += reg.eq(arg)
+            m.d.sync += reg_valid.eq(1)
 
         @def_method(m, self.clear)
         def _():
@@ -1529,3 +1595,219 @@ class PriorityOrderingProxyTrans(PriorityOrderingTransProxyTrans):
         m = super().elaborate(platform)
         m.submodules.connects = ModuleConnector(*self._m_connects)
         return m
+
+
+class RegisterPipe(Elaboratable):
+    """
+    This module allows registers to be written only when
+    all ports are ready, but data can be read one by one.
+    This is useful if we need to process batches of data
+    where order within batch doesn't matter, but the order
+    between batches does..
+
+    Attributes
+    ----------
+    read_list: list[Method]
+        The read methods. Accepts an empty argument, returns a `Record`.
+    write_list: list[Method]
+        The write method. Accepts a `Record`, returns empty result.
+    """
+
+    def __init__(self, layout: LayoutLike, channels: int):
+        """
+        Parameters
+        ----------
+        layout : LayoutLike
+            Layout of the stored data.
+        channels : int
+            The number of read and write methods to create.
+        """
+        self.layout = layout
+        self.channels = channels
+
+        self.write_list = [Method(i=self.layout) for _ in range(self.channels)]
+        self.read_list = [Method(o=self.layout) for _ in range(self.channels)]
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        registers = [Register(self.layout) for _ in range(self.channels)]
+        m.submodules.registers = ModuleConnector(*registers)
+
+        all_write_ready = Cat(reg.write.ready for reg in registers).all()
+
+        @loop_def_method(m, self.write_list, ready_list=lambda _: all_write_ready)
+        def _(i, arg):
+            registers[i].write(m, arg)
+
+        @loop_def_method(m, self.read_list)
+        def _(i):
+            return registers[i].read(m)
+
+        return m
+
+
+class ShiftRegister(Elaboratable):
+    """
+    This module implements a shift register. It allows the serialisation of
+    a batch of requests. It assumes that the `write` methods are called
+    in order (from the method with the lowest index in the list, to
+    the method with the biggest index in the list) and next forwards
+    received data to the `put` method in order of methods from the list.
+    So the data from the 0-th method will be transfered first, next from
+    the 1-st method and so on.
+
+    Attributes
+    ----------
+    write_list : list[Method]
+        Methods to write data. Either all or none are ready.
+    """
+
+    def __init__(self, layout: LayoutLike, entries_number: int, put: Method, *, first_transparent: bool = True):
+        """
+        Parameters
+        ----------
+        layout : LayoutLike
+            The layout of the stored data.
+        entries_number : int
+            The number of entries that can be written at once into
+            the shift register.
+        put : Method
+            The method to call to pass serialised data.
+        first_transparent : bool
+            Decide whether the call to first write should be transparent
+            and passed directly to `put`, or if first should be
+            stored into a register.
+        """
+        self.layout = layout
+        self.entries_number = entries_number
+        self.put = put
+        self.first_transparent = first_transparent
+
+        self.write_list = [Method(i=self.layout) for _ in range(entries_number)]
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        regs = [Signal(len(Record(self.layout))) for _ in range(self.entries_number)]
+        valids = [Signal() for _ in range(self.entries_number)]
+        ready = Signal(reset=1)
+        start = Signal()
+
+        reg_now = Signal.like(regs[0])
+        reg_now_v = Signal()
+        execute_put = Transaction()
+        with m.FSM():
+            with m.State("start"):
+                if self.first_transparent:
+                    if self.entries_number > 1:
+                        with m.If(start & self.write_list[1].run):
+                            m.next = "1"
+                else:
+                    with m.If(start):
+                        m.next = "0"
+            for i in range(self.first_transparent, self.entries_number):
+                with m.State(f"{i}"):
+                    m.d.comb += ready.eq(0)
+                    if i + 1 == self.entries_number:
+                        with m.If(execute_put.grant):
+                            m.next = "start"
+                    else:
+                        with m.If(valids[i + 1] & execute_put.grant):
+                            m.next = f"{i+1}"
+                        with m.Elif(execute_put.grant):
+                            m.next = "start"
+                    m.d.comb += reg_now.eq(regs[i])
+                    m.d.comb += reg_now_v.eq(1)
+                    m.d.sync += valids[i].eq(0)
+
+        with execute_put.body(m, request=reg_now_v):
+            self.put(m, reg_now)
+
+        @loop_def_method(m, self.write_list, lambda _: ready)
+        def _(i, arg):
+            if i == 0:
+                m.d.comb += start.eq(1)
+            if self.first_transparent and i == 0:
+                self.put(m, arg)
+            else:
+                m.d.sync += regs[i].eq(arg)
+                m.d.sync += valids[i].eq(1)
+
+        return m
+
+
+class MethodBrancherIn:
+    """Syntax sugar for calling the same method in different `m.If` branches.
+
+    Sometimes it is handy to write:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        with Transaction().body(m):
+            with m.If(cond):
+                method(arg1)
+            with m.Else():
+                method(arg2)
+
+    But such code is not allowed, because a method is called twice in a transaction.
+    So normaly it has to be rewritten to:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        rec = Record(method.data_in.layout)
+        with Transaction().body(m):
+            with m.If(cond):
+                m.d.comb += assign(rec, arg1)
+            with m.Else():
+                m.d.comb += assign(rec, arg2)
+            method(rec)
+
+    But such a form is less readable. `MethodBrancherIn` is designed to do this
+    transformation automatically, so you can write:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        with Transaction().body(m):
+            b_method = MethodBrancherIn(m, method)
+            with m.If(cond):
+                b_method(arg1)
+            with m.Else():
+                b_method(arg2)
+
+    IMPORTANT: `MethodBrancherIn` is constructed within a `Transaction` or
+    `Method` that should call the passed `method`. It creates a call in `__init__`.
+    """
+
+    def __init__(self, m: TModule, method: Method):
+        """
+        Parameters
+        ----------
+        m : TModule
+            Module to add connections to.
+        method : Method
+            Method to wrap.
+        """
+        self.m = m
+        self.method = method
+        self.rec_in = Record(method.data_in.layout)
+        self.valid_in = Signal()
+        with self.m.If(self.valid_in):
+            method(m, self.rec_in)
+
+    def __call__(self, args):
+        self.m.d.comb += self.rec_in.eq(args)
+        self.m.d.comb += self.valid_in.eq(1)
+
+
+class NotMethod:
+    """
+    Temporary workaround for bug in where passing a single_caller Method
+    as an argument to SimpleTestCircuit connects a second caller.
+    """
+
+    def __init__(self, method: Method):
+        self.method = method

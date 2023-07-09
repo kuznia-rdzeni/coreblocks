@@ -87,7 +87,8 @@ class SchedulerTestCircuit(Elaboratable):
         m.submodules.scheduler = self.scheduler = Scheduler(
             get_instr=instr_fifo.read,
             get_free_reg=free_rf_fifo.read,
-            rat_rename=rat.rename,
+            rat_get_rename=rat.get_rename_list[0],
+            rat_set_rename=rat.set_rename_list[0],
             rob_put=self.rob.put,
             rf_read1=self.rf.read1,
             rf_read2=self.rf.read2,

@@ -6,6 +6,8 @@ from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.utils.fifo import BasicFifo
 
+__all__ = ["VectorInputVerificator"]
+
 
 class VectorInputVerificator(Elaboratable):
     """Module to verify incoming vector instructions
@@ -34,7 +36,6 @@ class VectorInputVerificator(Elaboratable):
     def __init__(
         self,
         gen_params: GenParams,
-        v_params: VectorParameters,
         rob_block_interrupts: Method,
         put_instr: Method,
         get_vill: Method,
@@ -46,8 +47,6 @@ class VectorInputVerificator(Elaboratable):
         ----------
         gen_params : GenParams
             Core configuration.
-        v_params : VectorParameters
-            Vector unit configuration
         rob_block_interrupts : Method
             Method to be called to block interrupts on the given rob_id.
         put_instr : Method
@@ -64,14 +63,14 @@ class VectorInputVerificator(Elaboratable):
             Layout: FuncUnitLayouts.accept
         """
         self.gen_params = gen_params
-        self.v_params = v_params
+        self.v_params = self.gen_params.v_params
         self.rob_block_interrupts = rob_block_interrupts
         self.put_instr = put_instr
         self.get_vill = get_vill
         self.get_vstart = get_vstart
         self.retire = retire
 
-        self.layouts = VectorFrontendLayouts(self.gen_params, self.v_params)
+        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.vill = Signal()
         self.vstart = Signal(self.v_params.vstart_bits)
         self.dependency_manager = self.gen_params.get(DependencyManager)
