@@ -19,7 +19,7 @@ class JumpBranchWrapper(Elaboratable):
     def __init__(self, gen_params: GenParams):
         fetch_layouts = gen_params.get(FetchLayouts)
         self.set_pc = TestbenchIO(Adapter(i=fetch_layouts.branch_verify_in, o=fetch_layouts.branch_verify_out))
-        gen_params.get(DependencyManager).add_dependency(SetPCKey(), self.set_pc.adapter.iface)
+        gen_params.get(DependencyManager).add_dependency(BranchResolvedKey(), self.set_pc.adapter.iface)
 
         self.jb = JumpBranchFuncUnit(gen_params)
 

@@ -8,7 +8,7 @@ __all__ = [
     "WishboneDataKey",
     "InstructionPrecommitKey",
     "MretKey",
-    "SetPCKey",
+    "BranchResolvedKey",
     "ClearKey",
 ]
 
@@ -29,7 +29,7 @@ class MretKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class SetPCKey(SimpleKey[Method]):
+class BranchResolvedKey(SimpleKey[Method]):
     pass
 
 

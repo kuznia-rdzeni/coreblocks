@@ -23,7 +23,7 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(
             Adapter(i=fetch_layouts.branch_verify_in, o=fetch_layouts.branch_verify_out)
         )
-        self.gen_params.get(DependencyManager).add_dependency(SetPCKey(), self.fetch_continue.adapter.iface)
+        self.gen_params.get(DependencyManager).add_dependency(BranchResolvedKey(), self.fetch_continue.adapter.iface)
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 

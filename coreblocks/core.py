@@ -4,7 +4,7 @@ from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import InstructionPrecommitKey, WishboneDataKey, ClearKey, SetPCKey
+from coreblocks.params.keys import InstructionPrecommitKey, WishboneDataKey, ClearKey, BranchResolvedKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
@@ -52,7 +52,7 @@ class Core(Elaboratable):
             self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
 
         self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
-        self.connections.add_dependency(SetPCKey(), self.fetch.verify_branch)
+        self.connections.add_dependency(BranchResolvedKey(), self.fetch.verify_branch)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)

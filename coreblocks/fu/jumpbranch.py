@@ -9,7 +9,7 @@ from coreblocks.transactions.core import Priority
 from coreblocks.transactions.lib import *
 
 from coreblocks.params import *
-from coreblocks.params.keys import SetPCKey
+from coreblocks.params.keys import BranchResolvedKey
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 from coreblocks.utils.fifo import BasicFifo
@@ -124,7 +124,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         self.accept = Method(o=layouts.accept)
         self.precommit = Method(i=layouts.precommit)
         self.clear = Method()
-        self.verify_branch = gen.get(DependencyManager).get_dependency(SetPCKey())
+        self.verify_branch = gen.get(DependencyManager).get_dependency(BranchResolvedKey())
 
         self.jb_fn = jb_fn
 

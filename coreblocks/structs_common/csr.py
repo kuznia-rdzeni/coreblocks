@@ -9,7 +9,7 @@ from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import BitEnum, Funct3
-from coreblocks.params.keys import InstructionPrecommitKey, SetPCKey
+from coreblocks.params.keys import InstructionPrecommitKey, BranchResolvedKey
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
 
@@ -190,7 +190,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.gen_params = gen_params
         self.dependency_manager = gen_params.get(DependencyManager)
 
-        self.verify_branch = self.dependency_manager.get_dependency(SetPCKey())
+        self.verify_branch = self.dependency_manager.get_dependency(BranchResolvedKey())
 
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRLayouts)
