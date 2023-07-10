@@ -63,9 +63,6 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         List of operations performed by this unit.
     func_unit: FunctionalComponentParams
         Unit parameters for the unit instantiated.
-    expected: Callable[[int, int, int, int, _T, int], dict[str, int]]
-        Function computing expected results
-        (input_1, input_2, input_imm, pc, operation_key_from_operations, xlen) -> results dict.
     number_of_tests: int
         Number of random tests to be performed per operation.
     seed: int
@@ -85,6 +82,24 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
 
     @staticmethod
     def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: _T, xlen: int) -> dict[str, int]:
+        """
+        Computes expected results.
+
+        Parameters
+        ----------
+        i1: int
+            First argument value.
+        i2: int
+            Second argument value.
+        i_imm: int
+            Immediate value.
+        pc: int
+            Program counter value.
+        fn: _T
+            Function to execute.
+        xlen: int
+            Architecture bit width.
+        """
         raise NotImplementedError
 
     def setUp(self):
@@ -131,10 +146,11 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             if cause is not None:
                 self.exceptions.append({"rob_id": rob_id, "cause": cause})
 
-    def run_fu_test(self):
+    def run_fu_test(self, pipeline_test=False):
         def random_wait():
-            for i in range(random.randint(0, 10)):
-                yield
+            if not pipeline_test:
+                for i in range(random.randint(0, 10)):
+                    yield
 
         def consumer():
             while self.responses:
@@ -161,7 +177,16 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             result = yield from self.m.report_mock.call()
             self.assertFalse(True, "unexpected report call")
 
+        def pipeline_verifier():
+            yield Passive()
+            while True:
+                self.assertTrue((yield self.m.issue.adapter.iface.ready))
+                self.assertEqual((yield self.m.issue.adapter.en), (yield self.m.issue.adapter.done))
+                yield
+
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
             sim.add_sync_process(exception_consumer)
+            if pipeline_test:
+                sim.add_sync_process(pipeline_verifier)

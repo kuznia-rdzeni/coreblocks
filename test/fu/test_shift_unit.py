@@ -61,3 +61,6 @@ class ShiftUnitTest(FunctionalUnitTestCase[ShiftUnitFn.Fn]):
 
     def test_fu(self):
         self.run_fu_test()
+
+    def test_pipeline(self):
+        self.run_fu_test(pipeline_test=True)

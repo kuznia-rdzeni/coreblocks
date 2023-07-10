@@ -1,19 +1,8 @@
-from coreblocks.params import Funct3, Funct7, GenParams, OpType
-from coreblocks.params.configurations import test_core_config
-from coreblocks.fu.alu import AluFn, ALUComponent, AluFuncUnit
+from coreblocks.params import Funct3, Funct7, OpType
+from coreblocks.fu.alu import AluFn, ALUComponent
 
 from test.fu.functional_common import FunctionalUnitTestCase
 
-import random
-from collections import deque
-
-from amaranth import *
-from amaranth.sim import *
-
-from coreblocks.transactions import *
-from coreblocks.transactions.lib import *
-
-from ..common import TestCaseWithSimulator, TestbenchIO
 from test.common import signed_to_int
 
 
@@ -230,89 +219,5 @@ class AluUnitTest(FunctionalUnitTestCase[AluFn.Fn]):
     def test_fu(self):
         self.run_fu_test()
 
-
-class AluFuncUnitTestCircuit(Elaboratable):
-    def __init__(self, gen: GenParams):
-        self.gen = gen
-
-    def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.func_unit = func_unit = AluFuncUnit(self.gen)
-
-        # mocked input and output
-        m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
-
-        return m
-
-
-class TestAluFuncUnit(TestCaseWithSimulator):
-    def setUp(self):
-        self.gen = GenParams(test_core_config)
-        self.m = AluFuncUnitTestCircuit(self.gen)
-
-        random.seed(42)
-        self.requests = deque()
-        self.responses = deque()
-        max_int = 2**self.gen.isa.xlen - 1
-        for i in range(50):
-            data1 = random.randint(0, max_int)
-            data2 = random.randint(0, max_int)
-            data2_is_imm = random.randint(0, 1)
-            rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
-            rp_dst = random.randint(0, 2**self.gen.phys_regs_bits - 1)
-            exec_fn = {"op_type": OpType.ARITHMETIC, "funct3": Funct3.ADD, "funct7": Funct7.ADD}
-            result = (data1 + data2) & max_int
-
-            self.requests.append(
-                {
-                    "s1_val": data1,
-                    "s2_val": 0 if data2_is_imm else data2,
-                    "rob_id": rob_id,
-                    "exec_fn": exec_fn,
-                    "rp_dst": rp_dst,
-                    "imm": data2 if data2_is_imm else 0,
-                }
-            )
-            self.responses.append({"rob_id": rob_id, "result": result, "rp_dst": rp_dst, "exception": 0})
-
-    def test_randomized(self):
-        def random_wait():
-            for i in range(random.randint(0, 5)):
-                yield
-
-        def consumer():
-            while self.responses:
-                expected = self.responses.pop()
-                result = yield from self.m.accept.call()
-                self.assertDictEqual(expected, result)
-                yield from random_wait()
-
-        def producer():
-            while self.requests:
-                req = self.requests.pop()
-                yield from self.m.issue.call(req)
-                yield from random_wait()
-
-        with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(producer)
-            sim.add_sync_process(consumer)
-
     def test_pipeline(self):
-        def consumer():
-            while self.responses:
-                expected = self.responses.pop()
-                result = yield from self.m.accept.call()
-                self.assertDictEqual(expected, result)
-
-        def producer():
-            while self.requests:
-                req = self.requests.pop()
-                yield from self.m.issue.call_init(req)
-                yield
-                self.assertTrue((yield from self.m.issue.done()))
-
-        with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(producer)
-            sim.add_sync_process(consumer)
+        self.run_fu_test(pipeline_test=True)
