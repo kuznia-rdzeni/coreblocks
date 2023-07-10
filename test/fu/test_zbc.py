@@ -3,7 +3,6 @@ from parameterized import parameterized_class
 from coreblocks.fu.zbc import ZbcFn, ZbcComponent
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from test.common import RecordIntDict
 
 from test.fu.functional_common import FunctionalUnitTestCase
 
@@ -34,24 +33,6 @@ def clmulr(i1: int, i2: int, xlen: int) -> int:
     return output % (2**xlen)
 
 
-@staticmethod
-def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbcFn.Fn, xlen: int) -> dict[str, int]:
-    match fn:
-        case ZbcFn.Fn.CLMUL:
-            return {"result": clmul(i1, i2, xlen)}
-        case ZbcFn.Fn.CLMULH:
-            return {"result": clmulh(i1, i2, xlen)}
-        case ZbcFn.Fn.CLMULR:
-            return {"result": clmulr(i1, i2, xlen)}
-
-
-ops: dict[ZbcFn.Fn, RecordIntDict] = {
-    ZbcFn.Fn.CLMUL: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMUL, "funct7": Funct7.CLMUL},
-    ZbcFn.Fn.CLMULH: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMULH, "funct7": Funct7.CLMUL},
-    ZbcFn.Fn.CLMULR: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMULR, "funct7": Funct7.CLMUL},
-}
-
-
 @parameterized_class(
     ("name", "func_unit"),
     [
@@ -70,8 +51,21 @@ ops: dict[ZbcFn.Fn, RecordIntDict] = {
     ],
 )
 class ZbcUnitTest(FunctionalUnitTestCase[ZbcFn.Fn]):
-    ops = ops
-    compute_result = compute_result
+    ops = {
+        ZbcFn.Fn.CLMUL: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMUL, "funct7": Funct7.CLMUL},
+        ZbcFn.Fn.CLMULH: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMULH, "funct7": Funct7.CLMUL},
+        ZbcFn.Fn.CLMULR: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMULR, "funct7": Funct7.CLMUL},
+    }
 
-    def test_test(self):
+    @staticmethod
+    def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbcFn.Fn, xlen: int) -> dict[str, int]:
+        match fn:
+            case ZbcFn.Fn.CLMUL:
+                return {"result": clmul(i1, i2, xlen)}
+            case ZbcFn.Fn.CLMULH:
+                return {"result": clmulh(i1, i2, xlen)}
+            case ZbcFn.Fn.CLMULR:
+                return {"result": clmulr(i1, i2, xlen)}
+
+    def test_fu(self):
         self.run_fu_test()

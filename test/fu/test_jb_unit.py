@@ -54,23 +54,24 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
     next_pc = 0
     res = pc + 4
 
-    if fn == JumpBranchFn.Fn.JAL:
-        next_pc = pc + signed_to_int(i_imm & 0x1FFFFF, 21)  # truncate to first 21 bits
-    if fn == JumpBranchFn.Fn.JALR:
-        # truncate to first 12 bits and set 0th bit to 0
-        next_pc = (i1 + signed_to_int(i_imm & 0xFFF, 12)) & ~0x1
-    if fn == JumpBranchFn.Fn.BEQ:
-        next_pc = branch_target if i1 == i2 else pc + 4
-    if fn == JumpBranchFn.Fn.BNE:
-        next_pc = branch_target if i1 != i2 else pc + 4
-    if fn == JumpBranchFn.Fn.BLT:
-        next_pc = branch_target if signed_to_int(i1, xlen) < signed_to_int(i2, xlen) else pc + 4
-    if fn == JumpBranchFn.Fn.BLTU:
-        next_pc = branch_target if i1 < i2 else pc + 4
-    if fn == JumpBranchFn.Fn.BGE:
-        next_pc = branch_target if signed_to_int(i1, xlen) >= signed_to_int(i2, xlen) else pc + 4
-    if fn == JumpBranchFn.Fn.BGEU:
-        next_pc = branch_target if i1 >= i2 else pc + 4
+    match fn:
+        case JumpBranchFn.Fn.JAL:
+            next_pc = pc + signed_to_int(i_imm & 0x1FFFFF, 21)  # truncate to first 21 bits
+        case JumpBranchFn.Fn.JALR:
+            # truncate to first 12 bits and set 0th bit to 0
+            next_pc = (i1 + signed_to_int(i_imm & 0xFFF, 12)) & ~0x1
+        case JumpBranchFn.Fn.BEQ:
+            next_pc = branch_target if i1 == i2 else pc + 4
+        case JumpBranchFn.Fn.BNE:
+            next_pc = branch_target if i1 != i2 else pc + 4
+        case JumpBranchFn.Fn.BLT:
+            next_pc = branch_target if signed_to_int(i1, xlen) < signed_to_int(i2, xlen) else pc + 4
+        case JumpBranchFn.Fn.BLTU:
+            next_pc = branch_target if i1 < i2 else pc + 4
+        case JumpBranchFn.Fn.BGE:
+            next_pc = branch_target if signed_to_int(i1, xlen) >= signed_to_int(i2, xlen) else pc + 4
+        case JumpBranchFn.Fn.BGEU:
+            next_pc = branch_target if i1 >= i2 else pc + 4
 
     next_pc &= max_int
     res &= max_int
@@ -134,5 +135,5 @@ class JumpBranchUnitTest(FunctionalUnitTestCase[JumpBranchFn.Fn]):
     compute_result = compute_result
     zero_imm = False
 
-    def test_test(self):
+    def test_fu(self):
         self.run_fu_test()
