@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688984105763,
+  "lastUpdate": 1688984425146,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -10360,6 +10360,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1472,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1052,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8169,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "Kristopher38@wp.pl",
+            "name": "Krzysztof Obłonczek",
+            "username": "Kristopher38"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6344da745a97aa22bec2c6dad67357c97e001494",
+          "message": "Use all available cores when compiling cocotb regression tests with verilator (#430)",
+          "timestamp": "2023-07-10T12:07:24+02:00",
+          "tree_id": "493a60b72edba7b70036367f533ccb07467a123d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6344da745a97aa22bec2c6dad67357c97e001494"
+        },
+        "date": 1688984422842,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.43,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23462,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1440,
             "unit": "LUT"
           },
           {
