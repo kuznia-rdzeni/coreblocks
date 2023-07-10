@@ -17,6 +17,7 @@ from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO
 from test.common import signed_to_int
 
 
+@staticmethod
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: int) -> dict[str, int]:
     val2 = i_imm if i_imm else i2
     mask = (1 << xlen) - 1
@@ -225,18 +226,13 @@ ops: dict[AluFn.Fn, RecordIntDict] = {
 
 
 class AluUnitTest(FunctionalUnitTestCase[AluFn.Fn]):
+    func_unit = ALUComponent(zba_enable=True, zbb_enable=True)
+    compute_result = compute_result
+    ops = ops
+    zero_imm = False
+
     def test_test(self):
         self.run_fu_test()
-
-    def __init__(self, method_name: str = "runTest"):
-        super().__init__(
-            ops,
-            ALUComponent(zba_enable=True, zbb_enable=True),
-            compute_result,
-            gen=GenParams(test_core_config),
-            method_name=method_name,
-            zero_imm=False,
-        )
 
 
 class AluFuncUnitTestCircuit(Elaboratable):

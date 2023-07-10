@@ -1,7 +1,7 @@
 from itertools import product
 import random
 from collections import deque
-from typing import Callable, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
@@ -57,12 +57,12 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     Common test unit for testing functional modules which are using @see{FuncUnitLayouts}.
     For example of usage see @see{MultiplierUnitTest}.
 
-    Parameters
+    Attributes
     ----------
     operations: dict[_T, dict]
         List of operations performed by this unit.
     func_unit: FunctionalComponentParams
-        Class of functional unit to be tested.
+        Unit parameters for the unit instantiated.
     expected: Callable[[int, int, int, int, _T, int], dict[str, int]]
         Function computing expected results
         (input_1, input_2, input_imm, pc, operation_key_from_operations, xlen) -> results dict.
@@ -72,41 +72,31 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         Seed for generating random tests.
     zero_imm: bool
         Whether to set 'imm' to 0 or not in case 2nd operand comes from 's2_val'
-    gen: GenParams
+    core_config: CoreConfiguration
         Core generation parameters.
-    methodName: str
-        Named test method to be executed. Necessary for Python to correctly run test.
     """
 
-    def __init__(
-        self,
-        operations: dict[_T, RecordIntDict],
-        func_unit: FunctionalComponentParams,
-        compute_result: Callable[[int, int, int, int, _T, int], dict[str, int]],
-        number_of_tests: int = 100,
-        seed: int = 40,
-        zero_imm: bool = True,
-        gen: GenParams = GenParams(test_core_config),
-        method_name: str = "runTest",
-    ):
-        super().__init__(method_name)
-        self.ops = operations
-        self.func_unit = func_unit
-        self.compute_result = compute_result
-        self.number_of_tests = number_of_tests
-        self.seed = seed
-        self.zero_imm = zero_imm
-        self.gen = gen
+    ops: dict[_T, RecordIntDict]
+    func_unit: FunctionalComponentParams
+    number_of_tests = 50
+    seed = 40
+    zero_imm = True
+    core_config = test_core_config
+
+    @staticmethod
+    def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: _T, xlen: int) -> dict[str, int]:
+        raise NotImplementedError
 
     def setUp(self):
-        self.m = FunctionalTestCircuit(self.gen, self.func_unit)
+        gen = GenParams(test_core_config)
+        self.m = FunctionalTestCircuit(gen, self.func_unit)
 
         random.seed(self.seed)
         self.requests = deque[RecordIntDict]()
         self.responses = deque[RecordIntDictRet]()
         self.exceptions = deque[RecordIntDictRet]()
 
-        max_int = 2**self.gen.isa.xlen - 1
+        max_int = 2**gen.isa.xlen - 1
         functions = list(self.ops.keys())
 
         for op, _ in product(functions, range(self.number_of_tests)):
@@ -114,11 +104,11 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             data2 = random.randint(0, max_int)
             data_imm = random.randint(0, max_int)
             data2_is_imm = random.randint(0, 1)
-            rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
-            rp_dst = random.randint(0, 2**self.gen.phys_regs_bits - 1)
+            rob_id = random.randint(0, 2**gen.rob_entries_bits - 1)
+            rp_dst = random.randint(0, 2**gen.phys_regs_bits - 1)
             exec_fn = self.ops[op]
             pc = random.randint(0, max_int) & ~0b11
-            results = self.compute_result(data1, data2, data_imm, pc, op, self.gen.isa.xlen)
+            results = self.compute_result(data1, data2, data_imm, pc, op, gen.isa.xlen)
 
             self.requests.append(
                 {

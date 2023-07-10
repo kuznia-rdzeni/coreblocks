@@ -1,17 +1,15 @@
 from parameterized import parameterized_class
-from typing import Dict
 
 from coreblocks.params import *
 from coreblocks.fu.mul_unit import MulFn, MulComponent, MulType
-from coreblocks.params.configurations import test_core_config
-from coreblocks.params.fu_params import FunctionalComponentParams
 
 from test.common import RecordIntDict, signed_to_int, int_to_signed
 
 from test.fu.functional_common import FunctionalUnitTestCase
 
 
-def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: MulFn.Fn, xlen: int) -> Dict[str, int]:
+@staticmethod
+def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: MulFn.Fn, xlen: int) -> dict[str, int]:
     signed_i1 = signed_to_int(i1, xlen)
     signed_i2 = signed_to_int(i2, xlen)
     if fn == MulFn.Fn.MUL:
@@ -40,7 +38,7 @@ ops: dict[MulFn.Fn, RecordIntDict] = {
 
 
 @parameterized_class(
-    ("name", "mul_unit"),
+    ("name", "func_unit"),
     [
         (
             "recursive_multiplier",
@@ -57,16 +55,8 @@ ops: dict[MulFn.Fn, RecordIntDict] = {
     ],
 )
 class MultiplierUnitTest(FunctionalUnitTestCase[MulFn.Fn]):
-    mul_unit: FunctionalComponentParams
+    ops = ops
+    compute_result = compute_result
 
     def test_test(self):
         self.run_fu_test()
-
-    def __init__(self, method_name: str = "runTest"):
-        super().__init__(
-            ops,
-            self.mul_unit,
-            compute_result,
-            gen=GenParams(test_core_config),
-            method_name=method_name,
-        )

@@ -4,7 +4,6 @@ from parameterized import parameterized_class
 from coreblocks.params import *
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
 from coreblocks.transactions import Method, def_method, TModule
-from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
 from coreblocks.utils.protocols import FuncUnit
 
@@ -132,15 +131,8 @@ ops_auipc = {
     ],
 )
 class JumpBranchUnitTest(FunctionalUnitTestCase[JumpBranchFn.Fn]):
+    compute_result = compute_result
+    zero_imm = False
+
     def test_test(self):
         self.run_fu_test()
-
-    def __init__(self, method_name: str = "runTest"):
-        super().__init__(
-            self.ops,
-            self.func_unit,
-            self.compute_result,
-            gen=GenParams(test_core_config),
-            zero_imm=False,
-            method_name=method_name,
-        )

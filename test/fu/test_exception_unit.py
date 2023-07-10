@@ -1,10 +1,8 @@
 from amaranth import *
-from typing import Dict, Callable, Any
 from parameterized import parameterized_class
 
 from coreblocks.params import *
 from coreblocks.fu.exception import ExceptionUnitFn, ExceptionUnitComponent
-from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import ExceptionCause
 from test.common import RecordIntDict
 
@@ -12,7 +10,7 @@ from test.fu.functional_common import FunctionalUnitTestCase
 
 
 @staticmethod
-def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ExceptionUnitFn.Fn, xlen: int) -> Dict[str, int]:
+def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ExceptionUnitFn.Fn, xlen: int) -> dict[str, int]:
     cause = None
     if fn == ExceptionUnitFn.Fn.EBREAK or fn == ExceptionUnitFn.Fn.BREAKPOINT:
         cause = ExceptionCause.BREAKPOINT
@@ -50,18 +48,8 @@ ops: dict[ExceptionUnitFn.Fn, RecordIntDict] = {
     ],
 )
 class ExceptionUnitTest(FunctionalUnitTestCase[ExceptionUnitFn.Fn]):
-    compute_result: Callable[[int, int, int, int, Any, int], Dict[str, int]]
+    number_of_tests = 1
+    zero_imm = False
 
     def test_test(self):
         self.run_fu_test()
-
-    def __init__(self, method_name: str = "runTest"):
-        super().__init__(
-            self.ops,
-            self.func_unit,
-            self.compute_result,
-            gen=GenParams(test_core_config),
-            number_of_tests=1,
-            zero_imm=False,
-            method_name=method_name,
-        )

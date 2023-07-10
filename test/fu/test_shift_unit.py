@@ -1,11 +1,11 @@
-from coreblocks.params import Funct3, Funct7, OpType, GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import Funct3, Funct7, OpType
 from coreblocks.fu.shift_unit import ShiftUnitFn, ShiftUnitComponent
 from test.common import RecordIntDict
 
 from test.fu.functional_common import FunctionalUnitTestCase
 
 
+@staticmethod
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ShiftUnitFn.Fn, xlen: int) -> dict[str, int]:
     val2 = i_imm if i_imm else i2
 
@@ -59,15 +59,10 @@ ops: dict[ShiftUnitFn.Fn, RecordIntDict] = {
 
 
 class ShiftUnitTest(FunctionalUnitTestCase[ShiftUnitFn.Fn]):
+    ops = ops
+    func_unit = ShiftUnitComponent(zbb_enable=True)
+    compute_result = compute_result
+    zero_imm = False
+
     def test_test(self):
         self.run_fu_test()
-
-    def __init__(self, method_name: str = "runTest"):
-        super().__init__(
-            ops,
-            ShiftUnitComponent(zbb_enable=True),
-            compute_result,
-            gen=GenParams(test_core_config),
-            method_name=method_name,
-            zero_imm=False,
-        )

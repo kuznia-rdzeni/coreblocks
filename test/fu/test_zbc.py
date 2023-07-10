@@ -1,4 +1,4 @@
-from typing import Dict
+from parameterized import parameterized_class
 
 from coreblocks.fu.zbc import ZbcFn, ZbcComponent
 from coreblocks.params import *
@@ -34,7 +34,8 @@ def clmulr(i1: int, i2: int, xlen: int) -> int:
     return output % (2**xlen)
 
 
-def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbcFn.Fn, xlen: int) -> Dict[str, int]:
+@staticmethod
+def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbcFn.Fn, xlen: int) -> dict[str, int]:
     match fn:
         case ZbcFn.Fn.CLMUL:
             return {"result": clmul(i1, i2, xlen)}
@@ -51,44 +52,26 @@ ops: dict[ZbcFn.Fn, RecordIntDict] = {
 }
 
 
-class IterativeZbcUnitTest(FunctionalUnitTestCase[ZbcFn.Fn]):
-    def test_test(self):
-        self.run_fu_test()
-
-    def __init__(self, method_name: str = "runTest"):
-        super().__init__(
-            ops,
+@parameterized_class(
+    ("name", "func_unit"),
+    [
+        (
+            "iterative",
             ZbcComponent(recursion_depth=0),
-            compute_result,
-            gen=GenParams(test_core_config),
-            method_name=method_name,
-        )
-
-
-class RecursiveZbcUnitTestDepth3(FunctionalUnitTestCase[ZbcFn.Fn]):
-    def test_test(self):
-        self.run_fu_test()
-
-    def __init__(self, method_name: str = "runTest"):
-        super().__init__(
-            ops,
+        ),
+        (
+            "recursive_3",
             ZbcComponent(recursion_depth=3),
-            compute_result,
-            gen=GenParams(test_core_config),
-            method_name=method_name,
-        )
+        ),
+        (
+            "recursive_full",
+            ZbcComponent(recursion_depth=test_core_config.xlen.bit_length() - 1),
+        ),
+    ],
+)
+class ZbcUnitTest(FunctionalUnitTestCase[ZbcFn.Fn]):
+    ops = ops
+    compute_result = compute_result
 
-
-class RecursiveZbcUnitTestFullDepth(FunctionalUnitTestCase[ZbcFn.Fn]):
     def test_test(self):
         self.run_fu_test()
-
-    def __init__(self, method_name: str = "runTest"):
-        gen = GenParams(test_core_config)
-        super().__init__(
-            ops,
-            ZbcComponent(recursion_depth=gen.isa.xlen_log),
-            compute_result,
-            gen=gen,
-            method_name=method_name,
-        )
