@@ -1,8 +1,9 @@
 from coreblocks.params import Funct3, Funct7, GenParams
 from coreblocks.params.configurations import test_core_config
 from coreblocks.fu.zbs import ZbsFunction, ZbsComponent
+from test.common import RecordIntDict
 
-from test.fu.functional_common import GenericFunctionalTestUnit
+from test.fu.functional_common import FunctionalUnitTestCase
 
 
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbsFunction.Fn, xlen: int) -> dict[str, int]:
@@ -22,7 +23,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbsFunction.Fn, xl
         return {"result": i1 | (1 << index)}
 
 
-ops = {
+ops: dict[ZbsFunction.Fn, RecordIntDict] = {
     ZbsFunction.Fn.BCLR: {
         "funct3": Funct3.BCLR,
         "funct7": Funct7.BCLR,
@@ -42,9 +43,9 @@ ops = {
 }
 
 
-class ZbsUnitTest(GenericFunctionalTestUnit):
+class ZbsUnitTest(FunctionalUnitTestCase[ZbsFunction.Fn]):
     def test_test(self):
-        self.run_pipeline()
+        self.run_fu_test()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
@@ -52,8 +53,6 @@ class ZbsUnitTest(GenericFunctionalTestUnit):
             ZbsComponent(),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=600,
-            seed=32323,
             method_name=method_name,
             zero_imm=False,
         )

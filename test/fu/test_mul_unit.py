@@ -6,9 +6,9 @@ from coreblocks.fu.mul_unit import MulFn, MulComponent, MulType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.fu_params import FunctionalComponentParams
 
-from test.common import signed_to_int, int_to_signed
+from test.common import RecordIntDict, signed_to_int, int_to_signed
 
-from test.fu.functional_common import GenericFunctionalTestUnit
+from test.fu.functional_common import FunctionalUnitTestCase
 
 
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: MulFn.Fn, xlen: int) -> Dict[str, int]:
@@ -28,7 +28,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: MulFn.Fn, xlen: in
         return {"result": int_to_signed(signed_half_i1 * signed_half_i2, xlen)}
 
 
-ops = {
+ops: dict[MulFn.Fn, RecordIntDict] = {
     MulFn.Fn.MUL: {"op_type": OpType.MUL, "funct3": Funct3.MUL, "funct7": Funct7.MULDIV},
     MulFn.Fn.MULH: {"op_type": OpType.MUL, "funct3": Funct3.MULH, "funct7": Funct7.MULDIV},
     MulFn.Fn.MULHU: {"op_type": OpType.MUL, "funct3": Funct3.MULHU, "funct7": Funct7.MULDIV},
@@ -56,11 +56,11 @@ ops = {
         ),
     ],
 )
-class MultiplierUnitTest(GenericFunctionalTestUnit):
+class MultiplierUnitTest(FunctionalUnitTestCase[MulFn.Fn]):
     mul_unit: FunctionalComponentParams
 
     def test_test(self):
-        self.run_pipeline()
+        self.run_fu_test()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
@@ -68,7 +68,5 @@ class MultiplierUnitTest(GenericFunctionalTestUnit):
             self.mul_unit,
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=600,
-            seed=32323,
             method_name=method_name,
         )

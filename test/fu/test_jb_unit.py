@@ -1,5 +1,4 @@
 from amaranth import *
-from typing import Dict, Callable, Any
 from parameterized import parameterized_class
 
 from coreblocks.params import *
@@ -11,7 +10,7 @@ from coreblocks.utils.protocols import FuncUnit
 
 from test.common import signed_to_int
 
-from test.fu.functional_common import GenericFunctionalTestUnit
+from test.fu.functional_common import FunctionalUnitTestCase
 
 
 class JumpBranchWrapper(Elaboratable):
@@ -50,7 +49,7 @@ class JumpBranchWrapperComponent(FunctionalComponentParams):
 
 
 @staticmethod
-def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> Dict[str, int]:
+def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> dict[str, int]:
     max_int = 2**xlen - 1
     branch_target = pc + signed_to_int(i_imm & 0x1FFF, 13)
     next_pc = 0
@@ -87,7 +86,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
 
 
 @staticmethod
-def compute_result_auipc(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> Dict[str, int]:
+def compute_result_auipc(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> dict[str, int]:
     max_int = 2**xlen - 1
     res = pc + 4
 
@@ -132,11 +131,9 @@ ops_auipc = {
         ),
     ],
 )
-class JumpBranchUnitTest(GenericFunctionalTestUnit):
-    compute_result: Callable[[int, int, int, int, Any, int], Dict[str, int]]
-
+class JumpBranchUnitTest(FunctionalUnitTestCase[JumpBranchFn.Fn]):
     def test_test(self):
-        self.run_pipeline()
+        self.run_fu_test()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
@@ -144,8 +141,6 @@ class JumpBranchUnitTest(GenericFunctionalTestUnit):
             self.func_unit,
             self.compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=300,
-            seed=32323,
             zero_imm=False,
             method_name=method_name,
         )

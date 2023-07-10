@@ -3,8 +3,9 @@ from typing import Dict
 from coreblocks.fu.zbc import ZbcFn, ZbcComponent
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
+from test.common import RecordIntDict
 
-from test.fu.functional_common import GenericFunctionalTestUnit
+from test.fu.functional_common import FunctionalUnitTestCase
 
 
 # Instruction semantics are based on pseudocode from the spec
@@ -43,16 +44,16 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbcFn.Fn, xlen: in
             return {"result": clmulr(i1, i2, xlen)}
 
 
-ops = {
+ops: dict[ZbcFn.Fn, RecordIntDict] = {
     ZbcFn.Fn.CLMUL: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMUL, "funct7": Funct7.CLMUL},
     ZbcFn.Fn.CLMULH: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMULH, "funct7": Funct7.CLMUL},
     ZbcFn.Fn.CLMULR: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMULR, "funct7": Funct7.CLMUL},
 }
 
 
-class IterativeZbcUnitTest(GenericFunctionalTestUnit):
+class IterativeZbcUnitTest(FunctionalUnitTestCase[ZbcFn.Fn]):
     def test_test(self):
-        self.run_pipeline()
+        self.run_fu_test()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
@@ -60,15 +61,13 @@ class IterativeZbcUnitTest(GenericFunctionalTestUnit):
             ZbcComponent(recursion_depth=0),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=400,
-            seed=323262,
             method_name=method_name,
         )
 
 
-class RecursiveZbcUnitTestDepth3(GenericFunctionalTestUnit):
+class RecursiveZbcUnitTestDepth3(FunctionalUnitTestCase[ZbcFn.Fn]):
     def test_test(self):
-        self.run_pipeline()
+        self.run_fu_test()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
@@ -76,15 +75,13 @@ class RecursiveZbcUnitTestDepth3(GenericFunctionalTestUnit):
             ZbcComponent(recursion_depth=3),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=400,
-            seed=323262,
             method_name=method_name,
         )
 
 
-class RecursiveZbcUnitTestFullDepth(GenericFunctionalTestUnit):
+class RecursiveZbcUnitTestFullDepth(FunctionalUnitTestCase[ZbcFn.Fn]):
     def test_test(self):
-        self.run_pipeline()
+        self.run_fu_test()
 
     def __init__(self, method_name: str = "runTest"):
         gen = GenParams(test_core_config)
@@ -93,7 +90,5 @@ class RecursiveZbcUnitTestFullDepth(GenericFunctionalTestUnit):
             ZbcComponent(recursion_depth=gen.isa.xlen_log),
             compute_result,
             gen=gen,
-            number_of_tests=300,
-            seed=323262,
             method_name=method_name,
         )

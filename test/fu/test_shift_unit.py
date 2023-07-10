@@ -1,8 +1,9 @@
 from coreblocks.params import Funct3, Funct7, OpType, GenParams
 from coreblocks.params.configurations import test_core_config
 from coreblocks.fu.shift_unit import ShiftUnitFn, ShiftUnitComponent
+from test.common import RecordIntDict
 
-from test.fu.functional_common import GenericFunctionalTestUnit
+from test.fu.functional_common import FunctionalUnitTestCase
 
 
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ShiftUnitFn.Fn, xlen: int) -> dict[str, int]:
@@ -29,7 +30,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ShiftUnitFn.Fn, xl
     return {"result": res & mask}
 
 
-ops = {
+ops: dict[ShiftUnitFn.Fn, RecordIntDict] = {
     ShiftUnitFn.Fn.SLL: {
         "op_type": OpType.SHIFT,
         "funct3": Funct3.SLL,
@@ -57,9 +58,9 @@ ops = {
 }
 
 
-class ShiftUnitTest(GenericFunctionalTestUnit):
+class ShiftUnitTest(FunctionalUnitTestCase[ShiftUnitFn.Fn]):
     def test_test(self):
-        self.run_pipeline()
+        self.run_fu_test()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
@@ -67,8 +68,6 @@ class ShiftUnitTest(GenericFunctionalTestUnit):
             ShiftUnitComponent(zbb_enable=True),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=200,
-            seed=42,
             method_name=method_name,
             zero_imm=False,
         )

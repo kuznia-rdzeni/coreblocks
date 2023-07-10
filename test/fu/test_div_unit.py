@@ -3,10 +3,10 @@ from parameterized import parameterized_class
 from coreblocks.params import Funct3, Funct7, OpType, GenParams
 from coreblocks.fu.div_unit import DivFn, DivComponent
 
-from test.fu.functional_common import GenericFunctionalTestUnit
+from test.fu.functional_common import FunctionalUnitTestCase
 from coreblocks.params.configurations import test_core_config
 
-from test.common import signed_to_int, int_to_signed
+from test.common import RecordIntDict, signed_to_int, int_to_signed
 
 
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: DivFn.Fn, xlen: int) -> dict[str, int]:
@@ -47,7 +47,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: DivFn.Fn, xlen: in
     return {"result": res & mask}
 
 
-ops = {
+ops: dict[DivFn.Fn, RecordIntDict] = {
     DivFn.Fn.DIVU: {"op_type": OpType.DIV_REM, "funct3": Funct3.DIVU, "funct7": Funct7.MULDIV},
     DivFn.Fn.DIV: {"op_type": OpType.DIV_REM, "funct3": Funct3.DIV, "funct7": Funct7.MULDIV},
     DivFn.Fn.REMU: {"op_type": OpType.DIV_REM, "funct3": Funct3.REMU, "funct7": Funct7.MULDIV},
@@ -59,11 +59,11 @@ ops = {
     ("name", "ipc"),
     [("ipc" + str(s), s) for s in [3, 4, 5, 8]],
 )
-class DivisionUnitTest(GenericFunctionalTestUnit):
+class DivisionUnitTest(FunctionalUnitTestCase[DivFn.Fn]):
     ipc: int
 
     def test_test(self):
-        self.run_pipeline()
+        self.run_fu_test()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
@@ -71,7 +71,5 @@ class DivisionUnitTest(GenericFunctionalTestUnit):
             DivComponent(ipc=self.ipc),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=200,
-            seed=1,
             method_name=method_name,
         )

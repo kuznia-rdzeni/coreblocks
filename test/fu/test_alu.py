@@ -2,7 +2,7 @@ from coreblocks.params import Funct3, Funct7, GenParams, OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.fu.alu import AluFn, ALUComponent, AluFuncUnit
 
-from test.fu.functional_common import GenericFunctionalTestUnit
+from test.fu.functional_common import FunctionalUnitTestCase
 
 import random
 from collections import deque
@@ -13,7 +13,7 @@ from amaranth.sim import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO
 from test.common import signed_to_int
 
 
@@ -100,7 +100,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: AluFn.Fn, xlen: in
     return {"result": res & mask}
 
 
-ops = {
+ops: dict[AluFn.Fn, RecordIntDict] = {
     AluFn.Fn.ADD: {
         "op_type": OpType.ARITHMETIC,
         "funct3": Funct3.ADD,
@@ -224,9 +224,9 @@ ops = {
 }
 
 
-class AluUnitTest(GenericFunctionalTestUnit):
+class AluUnitTest(FunctionalUnitTestCase[AluFn.Fn]):
     def test_test(self):
-        self.run_pipeline()
+        self.run_fu_test()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
@@ -234,8 +234,6 @@ class AluUnitTest(GenericFunctionalTestUnit):
             ALUComponent(zba_enable=True, zbb_enable=True),
             compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=1000,
-            seed=42,
             method_name=method_name,
             zero_imm=False,
         )

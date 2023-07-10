@@ -6,8 +6,9 @@ from coreblocks.params import *
 from coreblocks.fu.exception import ExceptionUnitFn, ExceptionUnitComponent
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import ExceptionCause
+from test.common import RecordIntDict
 
-from test.fu.functional_common import GenericFunctionalTestUnit
+from test.fu.functional_common import FunctionalUnitTestCase
 
 
 @staticmethod
@@ -27,7 +28,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ExceptionUnitFn.Fn
     return {"result": 0} | {"exception": cause} if cause is not None else {}
 
 
-ops = {
+ops: dict[ExceptionUnitFn.Fn, RecordIntDict] = {
     ExceptionUnitFn.Fn.EBREAK: {"op_type": OpType.EBREAK},
     ExceptionUnitFn.Fn.ECALL: {"op_type": OpType.ECALL},
     ExceptionUnitFn.Fn.INSTR_ACCESS_FAULT: {"op_type": OpType.EXCEPTION, "funct3": Funct3._EINSTRACCESSFAULT},
@@ -48,11 +49,11 @@ ops = {
         )
     ],
 )
-class ExceptionUnitTest(GenericFunctionalTestUnit):
+class ExceptionUnitTest(FunctionalUnitTestCase[ExceptionUnitFn.Fn]):
     compute_result: Callable[[int, int, int, int, Any, int], Dict[str, int]]
 
     def test_test(self):
-        self.run_pipeline()
+        self.run_fu_test()
 
     def __init__(self, method_name: str = "runTest"):
         super().__init__(
@@ -60,8 +61,7 @@ class ExceptionUnitTest(GenericFunctionalTestUnit):
             self.func_unit,
             self.compute_result,
             gen=GenParams(test_core_config),
-            number_of_tests=10,
-            seed=32323,
+            number_of_tests=1,
             zero_imm=False,
             method_name=method_name,
         )

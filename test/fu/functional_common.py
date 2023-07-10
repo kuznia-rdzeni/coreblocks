@@ -1,6 +1,7 @@
+from itertools import product
 import random
 from collections import deque
-from typing import Dict, Callable, Any
+from typing import Callable, Generic, TypeVar
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
@@ -12,7 +13,7 @@ from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.transactions.lib import AdapterTrans, Adapter
-from test.common import TestbenchIO, TestCaseWithSimulator
+from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator
 
 
 class FunctionalTestCircuit(Elaboratable):
@@ -48,22 +49,25 @@ class FunctionalTestCircuit(Elaboratable):
         return m
 
 
-class GenericFunctionalTestUnit(TestCaseWithSimulator):
+_T = TypeVar("_T")
+
+
+class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     """
     Common test unit for testing functional modules which are using @see{FuncUnitLayouts}.
     For example of usage see @see{MultiplierUnitTest}.
 
     Parameters
     ----------
-    operations: Dict[Any, Dict]
+    operations: dict[_T, dict]
         List of operations performed by this unit.
     func_unit: FunctionalComponentParams
         Class of functional unit to be tested.
-    expected: Callable[[int, int, int, int, Any, int], Dict[str, int]]
+    expected: Callable[[int, int, int, int, _T, int], dict[str, int]]
         Function computing expected results
         (input_1, input_2, input_imm, pc, operation_key_from_operations, xlen) -> results dict.
     number_of_tests: int
-        Number of random tests to be performed.
+        Number of random tests to be performed per operation.
     seed: int
         Seed for generating random tests.
     zero_imm: bool
@@ -76,10 +80,10 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
 
     def __init__(
         self,
-        operations: Dict[Any, Dict],
+        operations: dict[_T, RecordIntDict],
         func_unit: FunctionalComponentParams,
-        expected: Callable[[int, int, int, int, Any, int], Dict[str, int]],
-        number_of_tests: int = 2000,
+        compute_result: Callable[[int, int, int, int, _T, int], dict[str, int]],
+        number_of_tests: int = 100,
         seed: int = 40,
         zero_imm: bool = True,
         gen: GenParams = GenParams(test_core_config),
@@ -88,7 +92,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         super().__init__(method_name)
         self.ops = operations
         self.func_unit = func_unit
-        self.expected = expected
+        self.compute_result = compute_result
         self.number_of_tests = number_of_tests
         self.seed = seed
         self.zero_imm = zero_imm
@@ -98,24 +102,23 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
         self.m = FunctionalTestCircuit(self.gen, self.func_unit)
 
         random.seed(self.seed)
-        self.requests = deque()
-        self.responses = deque()
-        self.exceptions = deque()
+        self.requests = deque[RecordIntDict]()
+        self.responses = deque[RecordIntDictRet]()
+        self.exceptions = deque[RecordIntDictRet]()
 
         max_int = 2**self.gen.isa.xlen - 1
         functions = list(self.ops.keys())
 
-        for i in range(self.number_of_tests):
+        for op, _ in product(functions, range(self.number_of_tests)):
             data1 = random.randint(0, max_int)
             data2 = random.randint(0, max_int)
             data_imm = random.randint(0, max_int)
             data2_is_imm = random.randint(0, 1)
-            op = random.choice(functions)
             rob_id = random.randint(0, 2**self.gen.rob_entries_bits - 1)
             rp_dst = random.randint(0, 2**self.gen.phys_regs_bits - 1)
             exec_fn = self.ops[op]
             pc = random.randint(0, max_int) & ~0b11
-            results = self.expected(data1, data2, data_imm, pc, op, self.gen.isa.xlen)
+            results = self.compute_result(data1, data2, data_imm, pc, op, self.gen.isa.xlen)
 
             self.requests.append(
                 {
@@ -138,7 +141,7 @@ class GenericFunctionalTestUnit(TestCaseWithSimulator):
             if cause is not None:
                 self.exceptions.append({"rob_id": rob_id, "cause": cause})
 
-    def run_pipeline(self):
+    def run_fu_test(self):
         def random_wait():
             for i in range(random.randint(0, 10)):
                 yield
