@@ -460,6 +460,20 @@ class TransactionManager(Elaboratable):
 
         return graph
 
+    def debug_signals(self) -> SignalBundle:
+        method_map = MethodMap(self.transactions)
+
+        def transaction_debug(t: Transaction):
+            return [t.request, t.grant] + [m.ready for m in method_map.methods_by_transaction[t]]
+
+        def method_debug(m: Method):
+            return [m.ready, m.run, {t.name: transaction_debug(t) for t in method_map.transactions_by_method[m]}]
+
+        return {
+            "transactions": {t.name: transaction_debug(t) for t in method_map.transactions},
+            "methods": {m.owned_name: method_debug(m) for m in method_map.methods},
+        }
+
 
 class TransactionContext:
     stack: list[TransactionManager] = []
@@ -657,6 +671,7 @@ class TransactionBase(Owned):
     def_counter: ClassVar[count] = count()
     def_order: int
     defined: bool = False
+    name: str
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
@@ -778,6 +793,13 @@ class TransactionBase(Owned):
         if not isinstance(TransactionBase.stack[-1], cls):
             raise RuntimeError(f"Current body not a {cls.__name__}")
         return TransactionBase.stack[-1]
+
+    @property
+    def owned_name(self):
+        if self.owner is not None:
+            return f"{self.owner.__class__.__name__}.{self.name}"
+        else:
+            return self.name
 
 
 class Transaction(TransactionBase):
