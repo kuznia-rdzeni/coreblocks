@@ -189,9 +189,7 @@ class TransactionManager(Elaboratable):
         self.transactions.append(transaction)
 
     @staticmethod
-    def _conflict_graph(
-        method_map: MethodMap, relations: list[Relation]
-    ) -> Tuple[TransactionGraph, TransactionGraph, PriorityOrder]:
+    def _conflict_graph(method_map: MethodMap) -> Tuple[TransactionGraph, TransactionGraph, PriorityOrder]:
         """_conflict_graph
 
         This function generates the graph of transaction conflicts. Conflicts
@@ -251,6 +249,12 @@ class TransactionManager(Elaboratable):
                 for transaction2 in method_map.transactions_for(method):
                     if transaction1 is not transaction2:
                         add_edge(transaction1, transaction2, Priority.UNDEFINED, True)
+
+        relations = [
+            Relation(**relation, start=elem)
+            for elem in method_map.methods_and_transactions
+            for relation in elem.relations
+        ]
 
         for relation in relations:
             start = relation["start"]
@@ -408,12 +412,7 @@ class TransactionManager(Elaboratable):
             merge_manager = self._simultaneous()
 
             method_map = MethodMap(self.transactions)
-            relations = [
-                Relation(**relation, start=elem)
-                for elem in method_map.methods_and_transactions
-                for relation in elem.relations
-            ]
-            cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
+            cgr, rgr, porder = TransactionManager._conflict_graph(method_map)
 
         m = Module()
         m.submodules.merge_manager = merge_manager
@@ -462,9 +461,14 @@ class TransactionManager(Elaboratable):
 
     def debug_signals(self) -> SignalBundle:
         method_map = MethodMap(self.transactions)
+        cgr, _, _ = TransactionManager._conflict_graph(method_map)
 
         def transaction_debug(t: Transaction):
-            return [t.request, t.grant] + [m.ready for m in method_map.methods_by_transaction[t]]
+            return (
+                [t.request, t.grant]
+                + [m.ready for m in method_map.methods_by_transaction[t]]
+                + [t2.grant for t2 in cgr[t]]
+            )
 
         def method_debug(m: Method):
             return [m.ready, m.run, {t.name: transaction_debug(t) for t in method_map.transactions_by_method[m]}]
