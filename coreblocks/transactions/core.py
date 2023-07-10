@@ -800,8 +800,8 @@ class TransactionBase(Owned):
 
     @property
     def owned_name(self):
-        if self.owner is not None:
-            return f"{self.owner.__class__.__name__}.{self.name}"
+        if self.owner is not None and self.owner.__class__.__name__ != self.name:
+            return f"{self.owner.__class__.__name__}_{self.name}"
         else:
             return self.name
 
@@ -861,8 +861,8 @@ class Transaction(TransactionBase):
         if manager is None:
             manager = TransactionContext.get()
         manager.add_transaction(self)
-        self.request = Signal(name=self.name + "_request")
-        self.grant = Signal(name=self.name + "_grant")
+        self.request = Signal(name=self.owned_name + "_request")
+        self.grant = Signal(name=self.owned_name + "_grant")
 
     @contextmanager
     def body(self, m: TModule, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
@@ -973,8 +973,8 @@ class Method(TransactionBase):
         super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
-        self.ready = Signal(name=self.name + "_ready")
-        self.run = Signal(name=self.name + "_run")
+        self.ready = Signal(name=self.owned_name + "_ready")
+        self.run = Signal(name=self.owned_name + "_run")
         self.data_in = Record(i)
         self.data_out = Record(o)
         self.nonexclusive = nonexclusive
@@ -1133,7 +1133,7 @@ class Method(TransactionBase):
         if arg is None:
             arg = kwargs
 
-        enable_sig = Signal(name=self.name + "_enable")
+        enable_sig = Signal(name=self.owned_name + "_enable")
         m.d.av_comb += enable_sig.eq(enable)
         m.d.top_comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
