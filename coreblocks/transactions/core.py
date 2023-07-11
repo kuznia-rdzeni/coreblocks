@@ -9,6 +9,7 @@ from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
+from warnings import warn
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
 from coreblocks.utils.utils import OneHotSwitchDynamic
@@ -358,6 +359,12 @@ class TransactionManager(Elaboratable):
                 continue
             q.extend(new_group | other_group for other_group in simultaneous if new_group & other_group)
             tr_simultaneous.add(new_group)
+
+        if len(tr_simultaneous) > 3000:
+            warn(
+                f"There is a lot of simultaneous transactions generated: {len(tr_simultaneous)}."
+                + "Elaborating can take hudge time. Are you sure that you didn't do any mistake?"
+            )
 
         # step 3: maximal group selection
         def maximal(group: frozenset[Transaction]):
