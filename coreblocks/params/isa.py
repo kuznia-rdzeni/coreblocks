@@ -370,6 +370,8 @@ class ISA:
         self.ilen_bytes = self.ilen // 8
         self.ilen_log = self.ilen.bit_length() - 1
 
+        self.reg_field_bits = 5
+
         self.csr_alen = 12
 
 

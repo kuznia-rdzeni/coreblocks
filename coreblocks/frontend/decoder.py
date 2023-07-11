@@ -357,6 +357,12 @@ class InstrDecoder(Elaboratable):
         m = Module()
 
         extensions = self.gen.isa.extensions
+
+        # We need to support all I instructions in E extension, but this is not a full implication.
+        # E&I coexisting is a different case, that should be handled in ISA class
+        if Extension.E in extensions:
+            extensions |= Extension.I
+
         supported_encodings: set[Encoding] = set()
         encoding_to_optype: dict[Encoding, OpType] = dict()
         for ext, optypes in optypes_by_extensions.items():
@@ -480,6 +486,13 @@ class InstrDecoder(Elaboratable):
             self._extract(28, self.fm),
         ]
 
+        register_space_invalid = Signal()
+        m.d.comb += register_space_invalid.eq(
+            (self.rd_v & instr[7 + self.gen.isa.reg_cnt_log : 7 + self.gen.isa.reg_field_bits].any())
+            | (self.rs1_v & instr[15 + self.gen.isa.reg_cnt_log : 15 + self.gen.isa.reg_field_bits].any())
+            | (self.rs2_v & instr[20 + self.gen.isa.reg_cnt_log : 20 + self.gen.isa.reg_field_bits].any())
+        )
+
         # CSR address
 
         m.d.comb += self._extract(20, self.csr)
@@ -510,6 +523,6 @@ class InstrDecoder(Elaboratable):
         # 0b11 at field [0:2] of instruction specify standard 32-bit instruction encoding space (not checked by opcode)
         encoding_space = Signal(2)
         m.d.comb += self._extract(0, encoding_space)
-        m.d.comb += self.illegal.eq((self.optype == OpType.UNKNOWN) | (encoding_space != 0b11))
+        m.d.comb += self.illegal.eq((self.optype == OpType.UNKNOWN) | (encoding_space != 0b11) | register_space_invalid)
 
         return m
