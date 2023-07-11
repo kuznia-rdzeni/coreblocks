@@ -363,7 +363,7 @@ class TransactionManager(Elaboratable):
         if len(tr_simultaneous) > 3000:
             warn(
                 f"There is a lot of simultaneous transactions generated: {len(tr_simultaneous)}."
-                + "Elaborating can take hudge time. Are you sure that you didn't do any mistake?"
+                + "Elaborating can take huge time. Are you sure that you didn't do any mistake?"
             )
 
         # step 3: maximal group selection
