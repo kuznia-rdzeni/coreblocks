@@ -40,4 +40,4 @@ class ExceptionUnitTest(FunctionalUnitTestCase[ExceptionUnitFn.Fn]):
         return {"result": 0} | {"exception": cause} if cause is not None else {}
 
     def test_fu(self):
-        self.run_fu_test()
+        self.run_standard_fu_test()

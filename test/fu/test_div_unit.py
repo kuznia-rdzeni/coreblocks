@@ -59,4 +59,4 @@ class DivisionUnitTest(FunctionalUnitTestCase[DivFn.Fn]):
         return {"result": res & mask}
 
     def test_fu(self):
-        self.run_fu_test()
+        self.run_standard_fu_test()

@@ -46,7 +46,7 @@ class ZbsUnitTest(FunctionalUnitTestCase[ZbsFunction.Fn]):
                 return {"result": i1 | (1 << index)}
 
     def test_fu(self):
-        self.run_fu_test()
+        self.run_standard_fu_test()
 
     def test_pipeline(self):
-        self.run_fu_test(pipeline_test=True)
+        self.run_standard_fu_test(pipeline_test=True)

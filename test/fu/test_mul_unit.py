@@ -56,4 +56,4 @@ class MultiplierUnitTest(FunctionalUnitTestCase[MulFn.Fn]):
                 return {"result": int_to_signed(signed_half_i1 * signed_half_i2, xlen)}
 
     def test_fu(self):
-        self.run_fu_test()
+        self.run_standard_fu_test()

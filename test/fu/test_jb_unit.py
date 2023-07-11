@@ -136,4 +136,4 @@ class JumpBranchUnitTest(FunctionalUnitTestCase[JumpBranchFn.Fn]):
     zero_imm = False
 
     def test_fu(self):
-        self.run_fu_test()
+        self.run_standard_fu_test()

@@ -68,4 +68,4 @@ class ZbcUnitTest(FunctionalUnitTestCase[ZbcFn.Fn]):
                 return {"result": clmulr(i1, i2, xlen)}
 
     def test_fu(self):
-        self.run_fu_test()
+        self.run_standard_fu_test()

@@ -146,47 +146,51 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             if cause is not None:
                 self.exceptions.append({"rob_id": rob_id, "cause": cause})
 
-    def run_fu_test(self, pipeline_test=False):
-        def random_wait():
-            if not pipeline_test:
-                for i in range(random.randint(0, 10)):
-                    yield
+    def random_wait(self):
+        for i in range(random.randint(0, self.max_wait)):
+            yield
 
-        def consumer():
-            while self.responses:
-                expected = self.responses.pop()
-                result = yield from self.m.accept.call()
-                self.assertDictEqual(expected, result)
-                yield from random_wait()
+    def consumer(self):
+        while self.responses:
+            expected = self.responses.pop()
+            result = yield from self.m.accept.call()
+            self.assertDictEqual(expected, result)
+            yield from self.random_wait()
 
-        def producer():
-            while self.requests:
-                req = self.requests.pop()
-                yield from self.m.issue.call(req)
-                yield from random_wait()
+    def producer(self):
+        while self.requests:
+            req = self.requests.pop()
+            yield from self.m.issue.call(req)
+            yield from self.random_wait()
 
-        def exception_consumer():
-            while self.exceptions:
-                expected = self.exceptions.pop()
-                result = yield from self.m.report_mock.call()
-                self.assertDictEqual(expected, result)
-                yield from random_wait()
-
-            # keep partialy dependent tests from hanging up and detect extra calls
-            yield Passive()
+    def exception_consumer(self):
+        while self.exceptions:
+            expected = self.exceptions.pop()
             result = yield from self.m.report_mock.call()
-            self.assertFalse(True, "unexpected report call")
+            self.assertDictEqual(expected, result)
+            yield from self.random_wait()
 
-        def pipeline_verifier():
-            yield Passive()
-            while True:
-                self.assertTrue((yield self.m.issue.adapter.iface.ready))
-                self.assertEqual((yield self.m.issue.adapter.en), (yield self.m.issue.adapter.done))
-                yield
+        # keep partialy dependent tests from hanging up and detect extra calls
+        yield Passive()
+        result = yield from self.m.report_mock.call()
+        self.assertFalse(True, "unexpected report call")
+
+    def pipeline_verifier(self):
+        yield Passive()
+        while True:
+            self.assertTrue((yield self.m.issue.adapter.iface.ready))
+            self.assertEqual((yield self.m.issue.adapter.en), (yield self.m.issue.adapter.done))
+            yield
+
+    def run_standard_fu_test(self, pipeline_test=False):
+        if pipeline_test:
+            self.max_wait = 0
+        else:
+            self.max_wait = 10
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(producer)
-            sim.add_sync_process(consumer)
-            sim.add_sync_process(exception_consumer)
+            sim.add_sync_process(self.producer)
+            sim.add_sync_process(self.consumer)
+            sim.add_sync_process(self.exception_consumer)
             if pipeline_test:
-                sim.add_sync_process(pipeline_verifier)
+                sim.add_sync_process(self.pipeline_verifier)
