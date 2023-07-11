@@ -66,6 +66,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
 
     def process(self):
         print("START")
+        self.assertFalse(True)
         for i in range(self.v_params.vrp_count):
             yield from self.memory_write(i)
 

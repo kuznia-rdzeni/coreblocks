@@ -1267,7 +1267,7 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
 
 
 def condition_switch(
-    m: TModule, variable: Signal, branch_number: int, *, nonblocking: bool = True, priority: bool = True
+    m: TModule, variable: Signal, branch_number: int, *, nonblocking: bool = False, priority: bool = False
 ):
     """
     Syntax sugar to easy define condition which compares given signal to first `branch_number` integers.

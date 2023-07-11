@@ -31,32 +31,47 @@ class VectorElemsDownloader(Elaboratable):
         m.submodules.uniqness_checker = uniqness_checker = PriorityUniqnessChecker(4, self.gen_params.phys_regs_bits)
 
         regs_fields = ["s1", "s2", "s3", "v0"]
+#        regs_fields = ["s1", "s2", "s3"]
         for i, field in enumerate(regs_fields):
             m.d.comb += uniqness_checker.inputs[i].eq(instr[field])
 
         for i, field in enumerate(["s1_needed", "s2_needed", "s3_needed", "v0_needed"]):
             m.d.comb += uniqness_checker.input_valids[i].eq(instr[field])
 
+        uniq = Signal(4)
+        m.d.top_comb += uniq.eq(Cat(uniqness_checker.valids))
         with Transaction(name = "downloader_request_trans").body(m, request = instr_valid & (req_counter != 0)):
-            for i, field in enumerate(regs_fields):
-                with connected_conditions(m, nonblocking = False) as cond:
-                    with cond() as branch:
-                        with branch(uniqness_checker.valids[i]):
-                            self.read_req_list[i].method(m, vrp_id = instr[field], addr = req_counter)
+            with condition(m, nonblocking = False, priority = False) as branch:
+                for i in range(2**4):
+                    with branch(i == uniq):
+                        for j in range(4):
+                            if (1<<j) & i:
+                                self.read_req_list[j].method(m, vrp_id = instr[regs_fields[j]], addr = req_counter)
             m.d.sync += req_counter.eq(req_counter-1)
 
-        data_to_fu = Record(self.layouts.downloader_data_out)
-        with Transaction(name = "downloader_response_trans").body(m, request = instr_valid & (resp_counter != 0)):
-            for i, field in enumerate(regs_fields):
-                with connected_conditions(m, nonblocking = False) as cond:
-                    with cond() as branch:
-                        with branch(uniqness_checker.valids[i]):
-                            m.d.top_comb += data_to_fu[field].eq(self.read_resp_list[i].method(m, vrp_id = instr[field]).data)
-            m.d.sync += resp_counter.eq(resp_counter-1)
-            self.send_to_fu(m, data_to_fu)
-            with m.If(resp_counter == 1):
-                m.d.sync += instr_valid.eq(0)
 
+
+
+#        with Transaction(name = "downloader_request_trans").body(m, request = instr_valid & (req_counter != 0)):
+#            with connected_conditions(m, nonblocking = False) as cond:
+#                for i, field in enumerate(regs_fields):
+#                    with cond() as branch:
+#                        with branch(uniqness_checker.valids[i]):
+#                            self.read_req_list[i].method(m, vrp_id = instr[field], addr = req_counter)
+#            m.d.sync += req_counter.eq(req_counter-1)
+#
+#        data_to_fu = Record(self.layouts.downloader_data_out)
+#        with Transaction(name = "downloader_response_trans").body(m, request = instr_valid & (resp_counter != 0)):
+#            with connected_conditions(m, nonblocking = False) as cond:
+#                for i, field in enumerate(regs_fields):
+#                    with cond() as branch:
+#                        with branch(uniqness_checker.valids[i]):
+#                            m.d.top_comb += data_to_fu[field].eq(self.read_resp_list[i].method(m, vrp_id = instr[field]).data)
+#            m.d.sync += resp_counter.eq(resp_counter-1)
+#            self.send_to_fu(m, data_to_fu)
+#            with m.If(resp_counter == 1):
+#                m.d.sync += instr_valid.eq(0)
+#
 
         @def_method(m, self.issue, ready = ~instr_valid)
         def _(arg):
