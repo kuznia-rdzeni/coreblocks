@@ -21,11 +21,11 @@ class VRFFragment(Elaboratable):
 
     Attributes
     ----------
-    write : Method
+    write : Method(one_caller = True)
         Method to write to the physical vector register. Use the `VRFFragmentLayouts.write` layout.
-    read_req : list[Method]
+    read_req : list[Method(one_caller = True)]
         Methods that can be used to issue read requests to physical vector registers.
-    read_resp : list[Method]
+    read_resp : list[Method(one_caller = True)]
         Methods to receive the last issued read for the given physical vector register. This will
         always returns the last results, regardless of which `read_req` method was used to issue the request.
         So it is possible to issue a request using `read_req[0]` and receive results from it using

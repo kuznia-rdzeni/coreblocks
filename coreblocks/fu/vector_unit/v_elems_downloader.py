@@ -14,8 +14,8 @@ class VectorElemsDownloader(Elaboratable):
     def __init__(self, gen_params : GenParams, read_req_list : list[Method], read_resp_list : list[Method], send_to_fu : Method):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
-        self.read_req_list = read_req_list
-        self.read_resp_list = read_resp_list
+        self.read_req_list = [NotMethod(m) for m in read_req_list]
+        self.read_resp_list = [NotMethod(m) for m in read_resp_list]
         self.send_to_fu = send_to_fu
 
         self.layouts = VectorBackendLayouts(self.gen_params)
@@ -42,7 +42,7 @@ class VectorElemsDownloader(Elaboratable):
                 with connected_conditions(m, nonblocking = False) as cond:
                     with cond() as branch:
                         with branch(uniqness_checker.valids[i]):
-                            self.read_req_list[i](m, instr[field])
+                            self.read_req_list[i].method(m, instr[field])
             m.d.sync += req_counter.eq(req_counter-1)
 
         data_to_fu = Record(self.layouts.downloader_data_out)
@@ -51,7 +51,7 @@ class VectorElemsDownloader(Elaboratable):
                 with connected_conditions(m, nonblocking = False) as cond:
                     with cond() as branch:
                         with branch(uniqness_checker.valids[i]):
-                            m.d.top_comb += data_to_fu[field].eq(self.read_resp_list[i](m).data)
+                            m.d.top_comb += data_to_fu[field].eq(self.read_resp_list[i].method(m).data)
             m.d.sync += resp_counter.eq(resp_counter-1)
             self.send_to_fu(m, data_to_fu)
             with m.If(resp_counter == 1):
@@ -64,3 +64,5 @@ class VectorElemsDownloader(Elaboratable):
             m.d.sync += instr_valid.eq(1)
             m.d.sync += req_counter.eq(instr.elems_len)
             m.d.sync += resp_counter.eq(instr.elems_len)
+
+        return m
