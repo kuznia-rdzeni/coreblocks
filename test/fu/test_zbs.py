@@ -1,7 +1,8 @@
 from coreblocks.params import Funct3, Funct7
 from coreblocks.fu.zbs import ZbsFunction, ZbsComponent
+from coreblocks.params.optypes import OpType
 
-from test.fu.functional_common import FunctionalUnitTestCase
+from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 class ZbsUnitTest(FunctionalUnitTestCase[ZbsFunction.Fn]):
@@ -9,22 +10,10 @@ class ZbsUnitTest(FunctionalUnitTestCase[ZbsFunction.Fn]):
     zero_imm = False
 
     ops = {
-        ZbsFunction.Fn.BCLR: {
-            "funct3": Funct3.BCLR,
-            "funct7": Funct7.BCLR,
-        },
-        ZbsFunction.Fn.BEXT: {
-            "funct3": Funct3.BEXT,
-            "funct7": Funct7.BEXT,
-        },
-        ZbsFunction.Fn.BINV: {
-            "funct3": Funct3.BINV,
-            "funct7": Funct7.BINV,
-        },
-        ZbsFunction.Fn.BSET: {
-            "funct3": Funct3.BSET,
-            "funct7": Funct7.BSET,
-        },
+        ZbsFunction.Fn.BCLR: ExecFn(OpType.SINGLE_BIT_MANIPULATION, Funct3.BCLR, Funct7.BCLR),
+        ZbsFunction.Fn.BEXT: ExecFn(OpType.SINGLE_BIT_MANIPULATION, Funct3.BEXT, Funct7.BEXT),
+        ZbsFunction.Fn.BINV: ExecFn(OpType.SINGLE_BIT_MANIPULATION, Funct3.BINV, Funct7.BINV),
+        ZbsFunction.Fn.BSET: ExecFn(OpType.SINGLE_BIT_MANIPULATION, Funct3.BSET, Funct7.BSET),
     }
 
     @staticmethod

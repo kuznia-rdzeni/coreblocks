@@ -4,7 +4,7 @@ from coreblocks.fu.zbc import ZbcFn, ZbcComponent
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 
-from test.fu.functional_common import FunctionalUnitTestCase
+from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 # Instruction semantics are based on pseudocode from the spec
@@ -52,9 +52,9 @@ def clmulr(i1: int, i2: int, xlen: int) -> int:
 )
 class ZbcUnitTest(FunctionalUnitTestCase[ZbcFn.Fn]):
     ops = {
-        ZbcFn.Fn.CLMUL: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMUL, "funct7": Funct7.CLMUL},
-        ZbcFn.Fn.CLMULH: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMULH, "funct7": Funct7.CLMUL},
-        ZbcFn.Fn.CLMULR: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMULR, "funct7": Funct7.CLMUL},
+        ZbcFn.Fn.CLMUL: ExecFn(OpType.CLMUL, Funct3.CLMUL, Funct7.CLMUL),
+        ZbcFn.Fn.CLMULH: ExecFn(OpType.CLMUL, Funct3.CLMULH, Funct7.CLMUL),
+        ZbcFn.Fn.CLMULR: ExecFn(OpType.CLMUL, Funct3.CLMULR, Funct7.CLMUL),
     }
 
     @staticmethod

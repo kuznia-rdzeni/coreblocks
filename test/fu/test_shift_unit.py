@@ -1,7 +1,7 @@
 from coreblocks.params import Funct3, Funct7, OpType
 from coreblocks.fu.shift_unit import ShiftUnitFn, ShiftUnitComponent
 
-from test.fu.functional_common import FunctionalUnitTestCase
+from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 class ShiftUnitTest(FunctionalUnitTestCase[ShiftUnitFn.Fn]):
@@ -9,30 +9,11 @@ class ShiftUnitTest(FunctionalUnitTestCase[ShiftUnitFn.Fn]):
     zero_imm = False
 
     ops = {
-        ShiftUnitFn.Fn.SLL: {
-            "op_type": OpType.SHIFT,
-            "funct3": Funct3.SLL,
-        },
-        ShiftUnitFn.Fn.SRL: {
-            "op_type": OpType.SHIFT,
-            "funct3": Funct3.SR,
-            "funct7": Funct7.SL,
-        },
-        ShiftUnitFn.Fn.SRA: {
-            "op_type": OpType.SHIFT,
-            "funct3": Funct3.SR,
-            "funct7": Funct7.SA,
-        },
-        ShiftUnitFn.Fn.ROL: {
-            "op_type": OpType.BIT_MANIPULATION,
-            "funct3": Funct3.ROL,
-            "funct7": Funct7.ROL,
-        },
-        ShiftUnitFn.Fn.ROR: {
-            "op_type": OpType.BIT_MANIPULATION,
-            "funct3": Funct3.ROR,
-            "funct7": Funct7.ROR,
-        },
+        ShiftUnitFn.Fn.SLL: ExecFn(OpType.SHIFT, Funct3.SLL),
+        ShiftUnitFn.Fn.SRL: ExecFn(OpType.SHIFT, Funct3.SR, Funct7.SL),
+        ShiftUnitFn.Fn.SRA: ExecFn(OpType.SHIFT, Funct3.SR, Funct7.SA),
+        ShiftUnitFn.Fn.ROL: ExecFn(OpType.BIT_MANIPULATION, Funct3.ROL, Funct7.ROL),
+        ShiftUnitFn.Fn.ROR: ExecFn(OpType.BIT_MANIPULATION, Funct3.ROR, Funct7.ROR),
     }
 
     @staticmethod

@@ -3,9 +3,9 @@ from parameterized import parameterized_class
 from coreblocks.params import Funct3, Funct7, OpType
 from coreblocks.fu.div_unit import DivFn, DivComponent
 
-from test.fu.functional_common import FunctionalUnitTestCase
+from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
-from test.common import RecordIntDict, signed_to_int, int_to_signed
+from test.common import signed_to_int, int_to_signed
 
 
 @parameterized_class(
@@ -13,11 +13,11 @@ from test.common import RecordIntDict, signed_to_int, int_to_signed
     [("ipc" + str(s), DivComponent(ipc=s)) for s in [3, 4, 5, 8]],
 )
 class DivisionUnitTest(FunctionalUnitTestCase[DivFn.Fn]):
-    ops: dict[DivFn.Fn, RecordIntDict] = {
-        DivFn.Fn.DIVU: {"op_type": OpType.DIV_REM, "funct3": Funct3.DIVU, "funct7": Funct7.MULDIV},
-        DivFn.Fn.DIV: {"op_type": OpType.DIV_REM, "funct3": Funct3.DIV, "funct7": Funct7.MULDIV},
-        DivFn.Fn.REMU: {"op_type": OpType.DIV_REM, "funct3": Funct3.REMU, "funct7": Funct7.MULDIV},
-        DivFn.Fn.REM: {"op_type": OpType.DIV_REM, "funct3": Funct3.REM, "funct7": Funct7.MULDIV},
+    ops = {
+        DivFn.Fn.DIVU: ExecFn(OpType.DIV_REM, Funct3.DIVU, Funct7.MULDIV),
+        DivFn.Fn.DIV: ExecFn(OpType.DIV_REM, Funct3.DIV, Funct7.MULDIV),
+        DivFn.Fn.REMU: ExecFn(OpType.DIV_REM, Funct3.REMU, Funct7.MULDIV),
+        DivFn.Fn.REM: ExecFn(OpType.DIV_REM, Funct3.REM, Funct7.MULDIV),
     }
 
     @staticmethod

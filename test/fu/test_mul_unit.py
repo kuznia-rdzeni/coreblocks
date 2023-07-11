@@ -5,7 +5,7 @@ from coreblocks.fu.mul_unit import MulFn, MulComponent, MulType
 
 from test.common import signed_to_int, int_to_signed
 
-from test.fu.functional_common import FunctionalUnitTestCase
+from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 @parameterized_class(
@@ -27,13 +27,13 @@ from test.fu.functional_common import FunctionalUnitTestCase
 )
 class MultiplierUnitTest(FunctionalUnitTestCase[MulFn.Fn]):
     ops = {
-        MulFn.Fn.MUL: {"op_type": OpType.MUL, "funct3": Funct3.MUL, "funct7": Funct7.MULDIV},
-        MulFn.Fn.MULH: {"op_type": OpType.MUL, "funct3": Funct3.MULH, "funct7": Funct7.MULDIV},
-        MulFn.Fn.MULHU: {"op_type": OpType.MUL, "funct3": Funct3.MULHU, "funct7": Funct7.MULDIV},
-        MulFn.Fn.MULHSU: {"op_type": OpType.MUL, "funct3": Funct3.MULHSU, "funct7": Funct7.MULDIV},
+        MulFn.Fn.MUL: ExecFn(OpType.MUL, Funct3.MUL, Funct7.MULDIV),
+        MulFn.Fn.MULH: ExecFn(OpType.MUL, Funct3.MULH, Funct7.MULDIV),
+        MulFn.Fn.MULHU: ExecFn(OpType.MUL, Funct3.MULHU, Funct7.MULDIV),
+        MulFn.Fn.MULHSU: ExecFn(OpType.MUL, Funct3.MULHSU, Funct7.MULDIV),
         #  Prepared for RV64
         #
-        #  MulFn.Fn.MULW: {"op_type": OpType.ARITHMETIC_W, "funct3": Funct3.MULW, "funct7": Funct7.MULDIV},
+        #  MulFn.Fn.MULW: ExecFn(OpType.ARITHMETIC_W, Funct3.MULW, Funct7.MULDIV),
     }
 
     @staticmethod

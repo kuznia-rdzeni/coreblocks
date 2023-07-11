@@ -1,7 +1,7 @@
 from coreblocks.params import Funct3, Funct7, OpType
 from coreblocks.fu.alu import AluFn, ALUComponent
 
-from test.fu.functional_common import FunctionalUnitTestCase
+from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 from test.common import signed_to_int
 
@@ -11,126 +11,31 @@ class AluUnitTest(FunctionalUnitTestCase[AluFn.Fn]):
     zero_imm = False
 
     ops = {
-        AluFn.Fn.ADD: {
-            "op_type": OpType.ARITHMETIC,
-            "funct3": Funct3.ADD,
-            "funct7": Funct7.ADD,
-        },
-        AluFn.Fn.SUB: {
-            "op_type": OpType.ARITHMETIC,
-            "funct3": Funct3.ADD,
-            "funct7": Funct7.SUB,
-        },
-        AluFn.Fn.SLT: {
-            "op_type": OpType.COMPARE,
-            "funct3": Funct3.SLT,
-        },
-        AluFn.Fn.SLTU: {
-            "op_type": OpType.COMPARE,
-            "funct3": Funct3.SLTU,
-        },
-        AluFn.Fn.XOR: {
-            "op_type": OpType.LOGIC,
-            "funct3": Funct3.XOR,
-        },
-        AluFn.Fn.OR: {
-            "op_type": OpType.LOGIC,
-            "funct3": Funct3.OR,
-        },
-        AluFn.Fn.AND: {
-            "op_type": OpType.LOGIC,
-            "funct3": Funct3.AND,
-        },
-        AluFn.Fn.SH1ADD: {
-            "op_type": OpType.ADDRESS_GENERATION,
-            "funct3": Funct3.SH1ADD,
-            "funct7": Funct7.SH1ADD,
-        },
-        AluFn.Fn.SH2ADD: {
-            "op_type": OpType.ADDRESS_GENERATION,
-            "funct3": Funct3.SH2ADD,
-            "funct7": Funct7.SH2ADD,
-        },
-        AluFn.Fn.SH3ADD: {
-            "op_type": OpType.ADDRESS_GENERATION,
-            "funct3": Funct3.SH3ADD,
-            "funct7": Funct7.SH3ADD,
-        },
-        AluFn.Fn.ANDN: {
-            "op_type": OpType.BIT_MANIPULATION,
-            "funct3": Funct3.ANDN,
-            "funct7": Funct7.ANDN,
-        },
-        AluFn.Fn.XNOR: {
-            "op_type": OpType.BIT_MANIPULATION,
-            "funct3": Funct3.XNOR,
-            "funct7": Funct7.XNOR,
-        },
-        AluFn.Fn.ORN: {
-            "op_type": OpType.BIT_MANIPULATION,
-            "funct3": Funct3.ORN,
-            "funct7": Funct7.ORN,
-        },
-        AluFn.Fn.MAX: {
-            "op_type": OpType.BIT_MANIPULATION,
-            "funct3": Funct3.MAX,
-            "funct7": Funct7.MAX,
-        },
-        AluFn.Fn.MAXU: {
-            "op_type": OpType.BIT_MANIPULATION,
-            "funct3": Funct3.MAXU,
-            "funct7": Funct7.MAX,
-        },
-        AluFn.Fn.MIN: {
-            "op_type": OpType.BIT_MANIPULATION,
-            "funct3": Funct3.MIN,
-            "funct7": Funct7.MIN,
-        },
-        AluFn.Fn.MINU: {
-            "op_type": OpType.BIT_MANIPULATION,
-            "funct3": Funct3.MINU,
-            "funct7": Funct7.MIN,
-        },
-        AluFn.Fn.CPOP: {
-            "op_type": OpType.UNARY_BIT_MANIPULATION_5,
-            "funct3": Funct3.CPOP,
-            "funct7": Funct7.CPOP,
-        },
-        AluFn.Fn.SEXTB: {
-            "op_type": OpType.UNARY_BIT_MANIPULATION_1,
-            "funct3": Funct3.SEXTB,
-            "funct7": Funct7.SEXTB,
-        },
-        AluFn.Fn.ZEXTH: {
-            "op_type": OpType.UNARY_BIT_MANIPULATION_1,
-            "funct3": Funct3.ZEXTH,
-            "funct7": Funct7.ZEXTH,
-        },
-        AluFn.Fn.SEXTH: {
-            "op_type": OpType.UNARY_BIT_MANIPULATION_2,
-            "funct3": Funct3.SEXTH,
-            "funct7": Funct7.SEXTH,
-        },
-        AluFn.Fn.ORCB: {
-            "op_type": OpType.UNARY_BIT_MANIPULATION_1,
-            "funct3": Funct3.ORCB,
-            "funct7": Funct7.ORCB,
-        },
-        AluFn.Fn.REV8: {
-            "op_type": OpType.UNARY_BIT_MANIPULATION_1,
-            "funct3": Funct3.REV8,
-            "funct7": Funct7.REV8,
-        },
-        AluFn.Fn.CLZ: {
-            "op_type": OpType.UNARY_BIT_MANIPULATION_3,
-            "funct3": Funct3.CLZ,
-            "funct7": Funct7.CLZ,
-        },
-        AluFn.Fn.CTZ: {
-            "op_type": OpType.UNARY_BIT_MANIPULATION_4,
-            "funct3": Funct3.CTZ,
-            "funct7": Funct7.CTZ,
-        },
+        AluFn.Fn.ADD: ExecFn(OpType.ARITHMETIC, Funct3.ADD, Funct7.ADD),
+        AluFn.Fn.SUB: ExecFn(OpType.ARITHMETIC, Funct3.ADD, Funct7.SUB),
+        AluFn.Fn.SLT: ExecFn(OpType.COMPARE, Funct3.SLT),
+        AluFn.Fn.SLTU: ExecFn(OpType.COMPARE, Funct3.SLTU),
+        AluFn.Fn.XOR: ExecFn(OpType.LOGIC, Funct3.XOR),
+        AluFn.Fn.OR: ExecFn(OpType.LOGIC, Funct3.OR),
+        AluFn.Fn.AND: ExecFn(OpType.LOGIC, Funct3.AND),
+        AluFn.Fn.SH1ADD: ExecFn(OpType.ADDRESS_GENERATION, Funct3.SH1ADD, Funct7.SH1ADD),
+        AluFn.Fn.SH2ADD: ExecFn(OpType.ADDRESS_GENERATION, Funct3.SH2ADD, Funct7.SH2ADD),
+        AluFn.Fn.SH3ADD: ExecFn(OpType.ADDRESS_GENERATION, Funct3.SH3ADD, Funct7.SH3ADD),
+        AluFn.Fn.ANDN: ExecFn(OpType.BIT_MANIPULATION, Funct3.ANDN, Funct7.ANDN),
+        AluFn.Fn.XNOR: ExecFn(OpType.BIT_MANIPULATION, Funct3.XNOR, Funct7.XNOR),
+        AluFn.Fn.ORN: ExecFn(OpType.BIT_MANIPULATION, Funct3.ORN, Funct7.ORN),
+        AluFn.Fn.MAX: ExecFn(OpType.BIT_MANIPULATION, Funct3.MAX, Funct7.MAX),
+        AluFn.Fn.MAXU: ExecFn(OpType.BIT_MANIPULATION, Funct3.MAXU, Funct7.MAX),
+        AluFn.Fn.MIN: ExecFn(OpType.BIT_MANIPULATION, Funct3.MIN, Funct7.MIN),
+        AluFn.Fn.MINU: ExecFn(OpType.BIT_MANIPULATION, Funct3.MINU, Funct7.MIN),
+        AluFn.Fn.CPOP: ExecFn(OpType.UNARY_BIT_MANIPULATION_5, Funct3.CPOP, Funct7.CPOP),
+        AluFn.Fn.SEXTB: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.SEXTB, Funct7.SEXTB),
+        AluFn.Fn.ZEXTH: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.ZEXTH, Funct7.ZEXTH),
+        AluFn.Fn.SEXTH: ExecFn(OpType.UNARY_BIT_MANIPULATION_2, Funct3.SEXTH, Funct7.SEXTH),
+        AluFn.Fn.ORCB: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.ORCB, Funct7.ORCB),
+        AluFn.Fn.REV8: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.REV8, Funct7.REV8),
+        AluFn.Fn.CLZ: ExecFn(OpType.UNARY_BIT_MANIPULATION_3, Funct3.CLZ, Funct7.CLZ),
+        AluFn.Fn.CTZ: ExecFn(OpType.UNARY_BIT_MANIPULATION_4, Funct3.CTZ, Funct7.CTZ),
     }
 
     @staticmethod

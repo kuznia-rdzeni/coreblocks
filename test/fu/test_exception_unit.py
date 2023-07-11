@@ -4,7 +4,7 @@ from coreblocks.params import *
 from coreblocks.fu.exception import ExceptionUnitFn, ExceptionUnitComponent
 from coreblocks.params.isa import ExceptionCause
 
-from test.fu.functional_common import FunctionalUnitTestCase
+from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 class ExceptionUnitTest(FunctionalUnitTestCase[ExceptionUnitFn.Fn]):
@@ -13,12 +13,12 @@ class ExceptionUnitTest(FunctionalUnitTestCase[ExceptionUnitFn.Fn]):
     zero_imm = False
 
     ops = {
-        ExceptionUnitFn.Fn.EBREAK: {"op_type": OpType.EBREAK},
-        ExceptionUnitFn.Fn.ECALL: {"op_type": OpType.ECALL},
-        ExceptionUnitFn.Fn.INSTR_ACCESS_FAULT: {"op_type": OpType.EXCEPTION, "funct3": Funct3._EINSTRACCESSFAULT},
-        ExceptionUnitFn.Fn.ILLEGAL_INSTRUCTION: {"op_type": OpType.EXCEPTION, "funct3": Funct3._EILLEGALINSTR},
-        ExceptionUnitFn.Fn.BREAKPOINT: {"op_type": OpType.EXCEPTION, "funct3": Funct3._EBREAKPOINT},
-        ExceptionUnitFn.Fn.INSTR_PAGE_FAULT: {"op_type": OpType.EXCEPTION, "funct3": Funct3._EINSTRPAGEFAULT},
+        ExceptionUnitFn.Fn.EBREAK: ExecFn(OpType.EBREAK),
+        ExceptionUnitFn.Fn.ECALL: ExecFn(OpType.ECALL),
+        ExceptionUnitFn.Fn.INSTR_ACCESS_FAULT: ExecFn(OpType.EXCEPTION, Funct3._EINSTRACCESSFAULT),
+        ExceptionUnitFn.Fn.ILLEGAL_INSTRUCTION: ExecFn(OpType.EXCEPTION, Funct3._EILLEGALINSTR),
+        ExceptionUnitFn.Fn.BREAKPOINT: ExecFn(OpType.EXCEPTION, Funct3._EBREAKPOINT),
+        ExceptionUnitFn.Fn.INSTR_PAGE_FAULT: ExecFn(OpType.EXCEPTION, Funct3._EINSTRPAGEFAULT),
     }
 
     @staticmethod

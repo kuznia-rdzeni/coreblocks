@@ -1,3 +1,4 @@
+from dataclasses import asdict, dataclass
 from itertools import product
 import random
 from collections import deque
@@ -10,8 +11,10 @@ from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.fu_params import FunctionalComponentParams
+from coreblocks.params.isa import Funct3, Funct7
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.params.optypes import OpType
 from coreblocks.transactions.lib import AdapterTrans, Adapter
 from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator
 
@@ -49,6 +52,13 @@ class FunctionalTestCircuit(Elaboratable):
         return m
 
 
+@dataclass
+class ExecFn:
+    op_type: OpType
+    funct3: Funct3 = Funct3.ADD
+    funct7: Funct7 = Funct7.ADD
+
+
 _T = TypeVar("_T")
 
 
@@ -59,7 +69,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
 
     Attributes
     ----------
-    operations: dict[_T, dict]
+    operations: dict[_T, ExecFn]
         List of operations performed by this unit.
     func_unit: FunctionalComponentParams
         Unit parameters for the unit instantiated.
@@ -73,7 +83,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         Core generation parameters.
     """
 
-    ops: dict[_T, RecordIntDict]
+    ops: dict[_T, ExecFn]
     func_unit: FunctionalComponentParams
     number_of_tests = 50
     seed = 40
@@ -130,7 +140,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
                     "s1_val": data1,
                     "s2_val": 0 if data2_is_imm and self.zero_imm else data2,
                     "rob_id": rob_id,
-                    "exec_fn": exec_fn,
+                    "exec_fn": asdict(exec_fn),
                     "rp_dst": rp_dst,
                     "imm": data_imm if not self.zero_imm else data2 if data2_is_imm else 0,
                     "pc": pc,

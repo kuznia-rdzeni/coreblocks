@@ -9,7 +9,7 @@ from coreblocks.utils.protocols import FuncUnit
 
 from test.common import signed_to_int
 
-from test.fu.functional_common import FunctionalUnitTestCase
+from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 class JumpBranchWrapper(Elaboratable):
@@ -99,18 +99,18 @@ def compute_result_auipc(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn
 
 
 ops = {
-    JumpBranchFn.Fn.BEQ: {"op_type": OpType.BRANCH, "funct3": Funct3.BEQ, "funct7": 0},
-    JumpBranchFn.Fn.BNE: {"op_type": OpType.BRANCH, "funct3": Funct3.BNE, "funct7": 0},
-    JumpBranchFn.Fn.BLT: {"op_type": OpType.BRANCH, "funct3": Funct3.BLT, "funct7": 0},
-    JumpBranchFn.Fn.BLTU: {"op_type": OpType.BRANCH, "funct3": Funct3.BLTU, "funct7": 0},
-    JumpBranchFn.Fn.BGE: {"op_type": OpType.BRANCH, "funct3": Funct3.BGE, "funct7": 0},
-    JumpBranchFn.Fn.BGEU: {"op_type": OpType.BRANCH, "funct3": Funct3.BGEU, "funct7": 0},
-    JumpBranchFn.Fn.JAL: {"op_type": OpType.JAL, "funct3": 0, "funct7": 0},
-    JumpBranchFn.Fn.JALR: {"op_type": OpType.JALR, "funct3": Funct3.JALR, "funct7": 0},
+    JumpBranchFn.Fn.BEQ: ExecFn(OpType.BRANCH, Funct3.BEQ),
+    JumpBranchFn.Fn.BNE: ExecFn(OpType.BRANCH, Funct3.BNE),
+    JumpBranchFn.Fn.BLT: ExecFn(OpType.BRANCH, Funct3.BLT),
+    JumpBranchFn.Fn.BLTU: ExecFn(OpType.BRANCH, Funct3.BLTU),
+    JumpBranchFn.Fn.BGE: ExecFn(OpType.BRANCH, Funct3.BGE),
+    JumpBranchFn.Fn.BGEU: ExecFn(OpType.BRANCH, Funct3.BGEU),
+    JumpBranchFn.Fn.JAL: ExecFn(OpType.JAL),
+    JumpBranchFn.Fn.JALR: ExecFn(OpType.JALR),
 }
 
 ops_auipc = {
-    JumpBranchFn.Fn.AUIPC: {"op_type": OpType.AUIPC, "funct3": 0, "funct7": 0},
+    JumpBranchFn.Fn.AUIPC: ExecFn(OpType.AUIPC),
 }
 
 
