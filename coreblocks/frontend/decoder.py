@@ -358,8 +358,7 @@ class InstrDecoder(Elaboratable):
 
         extensions = self.gen.isa.extensions
 
-        # We need to support all I instructions in E extension, but this is not a full implication.
-        # E&I coexisting is a different case, that should be handled in ISA class
+        # We need to support all I instructions in E extension, but this is not extension implication
         if Extension.E in extensions:
             extensions |= Extension.I
 

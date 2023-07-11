@@ -237,10 +237,8 @@ class Extension(enum.IntFlag):
     G = I | M | A | F | D | ZICSR | ZIFENCEI
 
 
-# Extensions which are mutually exclusive
-_extension_exclusive = [
-    [Extension.I, Extension.E],
-]
+# Extensions which are mutually exclusive - not needed for now
+# _extension_exclusive = []
 
 # Extensions which explicitly require another extension in order to be valid (can be joined using | operator)
 _extension_requirements = {
@@ -344,13 +342,13 @@ class ISA:
             if ext in self.extensions:
                 self.extensions |= imply
 
-        for exclusive in _extension_exclusive:
-            for i in range(len(exclusive)):
-                for j in range(i + 1, len(exclusive)):
-                    if exclusive[i] | exclusive[j] in self.extensions:
-                        raise RuntimeError(
-                            f"ISA extensions {exclusive[i].name} and {exclusive[j].name} are mutually exclusive"
-                        )
+        # for exclusive in _extension_exclusive:
+        #    for i in range(len(exclusive)):
+        #        for j in range(i + 1, len(exclusive)):
+        #            if exclusive[i] | exclusive[j] in self.extensions:
+        #                raise RuntimeError(
+        #                    f"ISA extensions {exclusive[i].name} and {exclusive[j].name} are mutually exclusive"
+        #                )
 
         for ext, requirements in _extension_requirements.items():
             if ext in self.extensions and requirements not in self.extensions:
@@ -360,7 +358,8 @@ class ISA:
                             f"ISA extension {ext.name} requires the {req.name} extension to be supported"
                         )
 
-        if self.extensions & Extension.E:
+        # I & E extensions can coexist if I extenstion can be disableable at runtime
+        if self.extensions & Extension.E and not self.extensions & Extension.I:
             self.reg_cnt = 16
         else:
             self.reg_cnt = 32
