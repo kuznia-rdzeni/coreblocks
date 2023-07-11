@@ -1177,9 +1177,9 @@ class Serializer(Elaboratable):
             self.serialized_req_method(m, arg)
 
         @loop_def_method(m, self.serialize_out, ready_list=lambda i: pending_requests.head.id == i)
-        def _(_):
+        def _(_, arg):
             pending_requests.read(m)
-            return self.serialized_resp_method(m)
+            return self.serialized_resp_method(m, arg)
 
         self.clear.proxy(m, pending_requests.clear)
 
