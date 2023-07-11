@@ -158,6 +158,7 @@ class VectorFrontendLayouts:
 class VectorBackendLayouts:
     def __init__(self, gen_params: GenParams):
         frontend = VectorFrontendLayouts(gen_params)
+        v_params = gen_params.v_params
 
         self.executor_in = self.vvrs_out = self.vvrs_in = frontend.instr_to_vvrs
 
@@ -173,4 +174,11 @@ class VectorBackendLayouts:
                 ("v0", gen_params.phys_regs_bits),
                 ("v0_needed", 1),
                 ("elems_len", gen_params.v_params.eew_to_elems_in_bank_bits[EEW.w8]),
+                ]
+
+        self.fu_data_in = self.downloader_data_out = [
+                ("s1", v_params.elen),
+                ("s2", v_params.elen),
+                ("s3", v_params.elen),
+                ("v0", v_params.elen),
                 ]

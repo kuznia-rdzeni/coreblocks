@@ -1278,7 +1278,7 @@ def condition_switch(
                 yield i
 
 @contextmanager
-def connected_conditions(m : TModule, *, nonblocking = False, priority = False):
+def connected_conditions(m : TModule, *, nonblocking = False):
     """
     All conditions for which branch is True has to execute simultanuesly.
 
@@ -1290,6 +1290,7 @@ def connected_conditions(m : TModule, *, nonblocking = False, priority = False):
         - if nonblocking=False and there is no branch evaluated to `True` in any condition
         then transaction is not ready
     """
+    priority = False # hardcoded till issue #436 will be closed
     all_not_conds_list = []
     @contextmanager
     def _internal_condition():
