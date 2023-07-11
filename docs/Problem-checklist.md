@@ -12,4 +12,7 @@ If something doesn't work and you're puzzled as to why - go through this checkli
 
 5. Check if your code doesn't have any combinational loops - especially if your simulation hangs.
 
+6. Check that you don't use repeatedly any methods/transactions inside `condition` that use `condition` themselves. This leads to exponential complexity.
+
+
 Please extend this list if you spot yourself doing an easy-to-fix mistake.
