@@ -14,23 +14,23 @@
                        WishboneMaster1_result["result"]
                    end
                    subgraph FIFO["fifo_fetch FIFO"]
-                       FIFO_read["read"]
                        FIFO_write["write"]
+                       FIFO_read["read"]
                    end
                    subgraph BasicFifo["free_rf_fifo BasicFifo"]
                        BasicFifo_write["write"]
                        BasicFifo_read["read"]
                    end
                    subgraph SimpleWBCacheRefiller["icache_refiller SimpleWBCacheRefiller"]
-                       SimpleWBCacheRefiller_start_refill["start_refill"]
                        SimpleWBCacheRefiller_accept_refill["accept_refill"]
                        SimpleWBCacheRefiller_SimpleWBCacheRefiller["SimpleWBCacheRefiller"]
+                       SimpleWBCacheRefiller_start_refill["start_refill"]
                    end
                    subgraph ICache["icache ICache"]
-                       ICache_issue_req["issue_req"]
                        ICache_ICache["ICache"]
                        ICache_ICache1["ICache"]
                        ICache_ICache2["ICache"]
+                       ICache_issue_req["issue_req"]
                        ICache_accept_res["accept_res"]
                        subgraph FIFO1["req_fifo FIFO"]
                            FIFO1_write["write"]
@@ -57,17 +57,17 @@
                        RRAT_commit["commit"]
                    end
                    subgraph RegisterFile["RF RegisterFile"]
-                       RegisterFile_read2["read2"]
                        RegisterFile_read1["read1"]
-                       RegisterFile_write["write"]
+                       RegisterFile_read2["read2"]
                        RegisterFile_free["free"]
+                       RegisterFile_write["write"]
                    end
                    subgraph ReorderBuffer["ROB ReorderBuffer"]
+                       ReorderBuffer_peek["peek"]
+                       ReorderBuffer_get_indices["get_indices"]
                        ReorderBuffer_put["put"]
                        ReorderBuffer_retire["retire"]
-                       ReorderBuffer_peek["peek"]
                        ReorderBuffer_mark_done["mark_done"]
-                       ReorderBuffer_get_indices["get_indices"]
                    end
                    subgraph ExceptionCauseRegister["exception_cause_register ExceptionCauseRegister"]
                        ExceptionCauseRegister_report["report"]
@@ -98,13 +98,13 @@
                            RSFuncBlock_select["select"]
                            RSFuncBlock_insert["insert"]
                            subgraph RS["rs RS"]
-                               RS_update["update"]
-                               RS_select["select"]
-                               RS_insert["insert"]
                                RS_take["take"]
                                RS_RS["RS"]
                                RS_RS1["RS"]
                                RS_RS2["RS"]
+                               RS_update["update"]
+                               RS_select["select"]
+                               RS_insert["insert"]
                            end
                            subgraph AluFuncUnit["func_unit_0 AluFuncUnit"]
                                AluFuncUnit_accept["accept"]
@@ -164,11 +164,11 @@
                            end
                        end
                        subgraph LSUDummy["rs_block_1 LSUDummy"]
-                           LSUDummy_update["update"]
-                           LSUDummy_insert["insert"]
                            LSUDummy_get_result["get_result"]
                            LSUDummy_precommit["precommit"]
                            LSUDummy_select["select"]
+                           LSUDummy_update["update"]
+                           LSUDummy_insert["insert"]
                            subgraph LSUDummyInternals["internal LSUDummyInternals"]
                                LSUDummyInternals_LSUDummyInternals["LSUDummyInternals"]
                                LSUDummyInternals_LSUDummyInternals1["LSUDummyInternals"]
@@ -311,15 +311,15 @@
    FIFO8_read --> ROBAllocation_ROBAllocation
    ROBAllocation_ROBAllocation --> ReorderBuffer_put
    ROBAllocation_ROBAllocation --> FIFO9_write
-   FIFO9_read --> RSSelection_RSSelection1
-   RSSelection_RSSelection1 --> Forwarder3_write
+   FIFO9_read --> RSSelection_RSSelection2
+   RSSelection_RSSelection2 --> Forwarder3_write
+   Forwarder3_read --> RSSelection_RSSelection1
    Forwarder3_read --> RSSelection_RSSelection
-   Forwarder3_read --> RSSelection_RSSelection2
-   RSFuncBlock_select --> RSSelection_RSSelection
-   RS_select --> RSSelection_RSSelection
+   RSFuncBlock_select --> RSSelection_RSSelection1
+   RS_select --> RSSelection_RSSelection1
+   RSSelection_RSSelection1 --> FIFO10_write
    RSSelection_RSSelection --> FIFO10_write
-   RSSelection_RSSelection2 --> FIFO10_write
-   RSSelection_RSSelection2 <--> LSUDummy_select
+   RSSelection_RSSelection <--> LSUDummy_select
    FIFO10_read --> RSInsertion_RSInsertion
    RegisterFile_read1 --> RSInsertion_RSInsertion
    RegisterFile_read2 --> RSInsertion_RSInsertion
