@@ -162,3 +162,15 @@ class VectorBackendLayouts:
         self.executor_in = self.vvrs_out = self.vvrs_in = frontend.instr_to_vvrs
 
         self.len_getter_out = [("elems_len", gen_params.v_params.eew_to_elems_in_bank_bits[EEW.w8])]
+        self.needed_regs_out = [("rp_s1", 1), ("rp_s2", 1), ("rp_s3", 1), ("rp_dst", 1)]
+        self.downloader_in = [
+                ("s1", gen_params.phys_regs_bits),
+                ("s1_needed", 1),
+                ("s2", gen_params.phys_regs_bits),
+                ("s2_needed", 1),
+                ("s3", gen_params.phys_regs_bits),
+                ("s3_needed", 1),
+                ("v0", gen_params.phys_regs_bits),
+                ("v0_needed", 1),
+                ("elems_len", gen_params.v_params.eew_to_elems_in_bank_bits[EEW.w8]),
+                ]

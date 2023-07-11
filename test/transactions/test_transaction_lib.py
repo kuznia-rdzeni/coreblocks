@@ -754,6 +754,9 @@ class ConditionTestCircuit(Elaboratable):
                 if self.catchall:
                     with branch():
                         self.target(m, cond=0)
+            with condition(m, priority = True) as branch:
+                with branch(1):
+                    pass
 
         return m
 
@@ -798,6 +801,102 @@ class ConditionTest(TestCaseWithSimulator):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(target_process)
+            sim.add_sync_process(process)
+
+class ConnectedConditionTestCircuit(Elaboratable):
+    def __init__(self, target1: Method, target2: Method, *, priority: bool, nonblocking : bool):
+        self.target1 = target1
+        self.target2 = target2
+        self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)])
+        self.priority = priority
+        self.nonblocking = nonblocking
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        @def_method(m, self.source)
+        def _(cond1, cond2, cond3):
+            with connected_conditions(m, nonblocking = self.nonblocking, priority=self.priority) as cond: 
+                with cond() as branch:
+                    with branch(cond1):
+                        self.target1(m, cond=1)
+                with cond() as branch:
+                    with branch(cond2):
+                        self.target2(m, cond=2)
+                    with branch(cond3):
+                        self.target2(m, cond=3)
+        return m
+
+class ConnectedConditionTest(TestCaseWithSimulator):
+    @parameterized.expand(product([False, True], [False, True]))
+    def test_condition(self, nonblocking: bool, priority: bool):
+        print(priority)
+        target1 = MethodMock(i=[("cond", 2)])
+        target2 = MethodMock(i=[("cond", 2)])
+
+        circ = SimpleTestCircuit(
+            ConnectedConditionTestCircuit(target1.get_method(), target2.get_method(), nonblocking=nonblocking, priority=priority)
+        )
+        m = ModuleConnector(test_circuit=circ, target1=target1, target2=target2)
+
+        selection1: Optional[int]
+        selection2: Optional[int]
+
+        t1_active = True
+        t2_active = True
+
+        @def_method_mock(lambda: target1, enable = lambda: t1_active, sched_prio = 1)
+        def target1_process(cond):
+            nonlocal selection1
+            selection1 = cond
+
+        @def_method_mock(lambda: target2, enable = lambda: t2_active, sched_prio = 1)
+        def target2_process(cond):
+            nonlocal selection2
+            selection2 = cond
+
+        def process():
+            nonlocal selection1, selection2
+            nonlocal t1_active, t2_active
+            for ta1, ta2 in product([False, True], [False, True]):
+                t1_active, t2_active = ta1, ta2
+                print(ta1, ta2)
+                for c1, c2, c3 in product([0, 1], [0, 1], [0, 1]):
+                    print(c1,c2,c3)
+                    selection1 = None
+                    selection2 = None
+                    res = yield from circ.source.call_try(cond1=c1, cond2=c2, cond3=c3)
+                    yield Settle()
+
+                    if res is None:
+                        self.assertIsNone(selection1)
+                        self.assertIsNone(selection2)
+                        if c1+c2+c3 ==0:
+                            self.assertFalse(nonblocking)
+                        else:
+                            self.assertTrue((not t1_active and c1==1) or (not t2_active and c2+c3>0)) 
+                        continue
+                    if selection1 is None and selection2 is None:
+                        self.assertTrue(nonblocking)
+                        self.assertEqual((c1, c2, c3), (0, 0, 0))
+                        continue
+                    if selection1 is None:
+                        self.assertEqual(c1, 0)
+                        self.assertTrue(c2 != 0 or c3 !=0)
+                    else:
+                        self.assertEqual(c1, 1)
+                    if selection2 is None:
+                        self.assertEqual((c2, c3), (0,0))
+                        self.assertEqual(c1, 1)
+                    else:
+                        if priority:
+                            self.assertEqual(selection2, 2 * c2  + 3 * c3 * (1 - c2) )
+                        else:
+                            self.assertIn(selection2, [2 * c2, 3 * c3])
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(target1_process)
+            sim.add_sync_process(target2_process)
             sim.add_sync_process(process)
 
 

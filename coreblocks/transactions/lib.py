@@ -32,6 +32,7 @@ __all__ = [
     "Serializer",
     "MethodTryProduct",
     "condition",
+    "connected_conditions",
     "condition_switch",
     "AnyToAnySimpleRoutingBlock",
     "OmegaRoutingNetwork",
@@ -1275,6 +1276,50 @@ def condition_switch(
         for i in range(branch_number):
             with branch(variable == i):
                 yield i
+
+@contextmanager
+def connected_conditions(m : TModule, *, nonblocking = False, priority = False):
+    """
+    All conditions for which branch is True has to execute simultanuesly.
+
+    This is a wrapper over `connection` that allows to define set of condtions in a transaction such that:
+        - all conditions with a minimum one branch evaluated to `True` have to execute
+        (if they can not because e.g. method is not ready then all conditions stalls)
+        - if there is a branch which evaluated to True, transaction will be ready
+            all conditions whith all barnches evaluated to False will be ignored
+        - if nonblocking=False and there is no branch evaluated to `True` in any condition
+        then transaction is not ready
+    """
+    all_not_conds_list = []
+    @contextmanager
+    def _internal_condition():
+        condition_conds = []
+        true_branch_f = None
+        @contextmanager
+        def _internal_branch(cond: ValueLike):
+            condition_conds.append(cond)
+            assert true_branch_f is not None
+            with true_branch_f(cond):
+                yield
+        with condition(m, nonblocking = False, priority = priority) as branch:
+            true_branch_f = branch
+            yield _internal_branch
+
+            not_conds = Signal()
+            m.d.top_comb += not_conds.eq(~Cat(condition_conds).any())
+            all_not_conds_list.append(not_conds)
+            with branch(not_conds):
+                pass
+
+    all_conds = Signal()
+    with condition(m, nonblocking = False) as branch:
+        with branch(all_conds):
+            yield _internal_condition
+
+    if nonblocking:
+        m.d.top_comb += all_conds.eq(1)
+    else:
+        m.d.top_comb += all_conds.eq(~Cat(all_not_conds_list).all())
 
 
 def def_one_caller_wrapper(method_to_wrap: Method, wrapper: Method) -> TModule:
