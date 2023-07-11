@@ -350,6 +350,7 @@ class TransactionManager(Elaboratable):
                         )
                     simultaneous.add(frozenset({tr1, tr2}))
 
+        print("KROK 2")
         # step 2: transitivity computation
         tr_simultaneous = set[frozenset[Transaction]]()
 
@@ -365,6 +366,8 @@ class TransactionManager(Elaboratable):
             q.extend(new_group | other_group for other_group in simultaneous if new_group & other_group)
             tr_simultaneous.add(new_group)
 
+        print("KROK 3")
+        print(len(tr_simultaneous))
         # step 3: maximal group selection
         def maximal(group: frozenset[Transaction]):
             return not any(group.issubset(group2) and group != group2 for group2 in tr_simultaneous)

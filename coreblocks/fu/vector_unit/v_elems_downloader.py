@@ -26,8 +26,8 @@ class VectorElemsDownloader(Elaboratable):
 
         instr = Record(self.layouts.downloader_in)
         instr_valid = Signal()
-        req_counter = Signal(self.v_params.eew_to_elems_in_bank_bits[EEW.w8])
-        resp_counter = Signal(self.v_params.eew_to_elems_in_bank_bits[EEW.w8])
+        req_counter = Signal(self.v_params.elens_in_bank_bits)
+        resp_counter = Signal(self.v_params.elens_in_bank_bits)
         m.submodules.uniqness_checker = uniqness_checker = PriorityUniqnessChecker(4, self.gen_params.phys_regs_bits)
 
         regs_fields = ["s1", "s2", "s3", "v0"]
@@ -42,7 +42,7 @@ class VectorElemsDownloader(Elaboratable):
                 with connected_conditions(m, nonblocking = False) as cond:
                     with cond() as branch:
                         with branch(uniqness_checker.valids[i]):
-                            self.read_req_list[i].method(m, instr[field])
+                            self.read_req_list[i].method(m, vrp_id = instr[field], addr = req_counter)
             m.d.sync += req_counter.eq(req_counter-1)
 
         data_to_fu = Record(self.layouts.downloader_data_out)
@@ -51,7 +51,7 @@ class VectorElemsDownloader(Elaboratable):
                 with connected_conditions(m, nonblocking = False) as cond:
                     with cond() as branch:
                         with branch(uniqness_checker.valids[i]):
-                            m.d.top_comb += data_to_fu[field].eq(self.read_resp_list[i].method(m).data)
+                            m.d.top_comb += data_to_fu[field].eq(self.read_resp_list[i].method(m, vrp_id = instr[field]).data)
             m.d.sync += resp_counter.eq(resp_counter-1)
             self.send_to_fu(m, data_to_fu)
             with m.If(resp_counter == 1):

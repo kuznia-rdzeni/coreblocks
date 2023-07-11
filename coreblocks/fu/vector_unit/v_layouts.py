@@ -13,7 +13,7 @@ class VectorRegisterBankLayouts:
         self.write = [
             ("addr", range(v_params.elens_in_bank)),
             ("data", v_params.elen),
-            ("mask", v_params.bytes_in_elen),
+            ("valid_mask", v_params.bytes_in_elen),
         ]
         self.write_scalar = [("value", v_params.elen)]
 
@@ -30,9 +30,9 @@ class VRFFragmentLayouts:
 
         self.write = [
             ("vrp_id", v_params.vrp_count_bits),
-            ("addr", log2_int(v_params.elens_in_bank)),
+            ("addr", v_params.elens_in_bank_bits),
             ("data", v_params.elen),
-            ("mask", v_params.bytes_in_elen),
+            ("valid_mask", v_params.bytes_in_elen),
         ]
 
 
@@ -165,15 +165,15 @@ class VectorBackendLayouts:
         self.len_getter_out = [("elems_len", gen_params.v_params.eew_to_elems_in_bank_bits[EEW.w8])]
         self.needed_regs_out = [("rp_s1", 1), ("rp_s2", 1), ("rp_s3", 1), ("rp_dst", 1)]
         self.downloader_in = [
-                ("s1", gen_params.phys_regs_bits),
+                ("s1", v_params.vrp_count_bits),
                 ("s1_needed", 1),
-                ("s2", gen_params.phys_regs_bits),
+                ("s2", v_params.vrp_count_bits),
                 ("s2_needed", 1),
-                ("s3", gen_params.phys_regs_bits),
+                ("s3", v_params.vrp_count_bits),
                 ("s3_needed", 1),
-                ("v0", gen_params.phys_regs_bits),
+                ("v0", v_params.vrp_count_bits),
                 ("v0_needed", 1),
-                ("elems_len", gen_params.v_params.eew_to_elems_in_bank_bits[EEW.w8]),
+                ("elems_len", v_params.elens_in_bank_bits),
                 ]
 
         self.fu_data_in = self.downloader_data_out = [

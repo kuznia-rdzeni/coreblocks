@@ -12,14 +12,14 @@ from parameterized import parameterized_class
 
 def generate_write(vp: VectorParameters):
     data = random.randrange(2**vp.elen)
-    addr = random.randrange(vp.elems_in_bank)
+    addr = random.randrange(vp.elens_in_bank)
     mask = random.randrange(2**vp.bytes_in_elen)
     vrp_id = random.randrange(vp.vrp_count)
-    return {"data": data, "addr": addr, "mask": mask, "vrp_id": vrp_id}
+    return {"data": data, "addr": addr, "valid_mask": mask, "vrp_id": vrp_id}
 
 
 def generate_read_req(vp: VectorParameters):
-    addr = random.randrange(vp.elems_in_bank)
+    addr = random.randrange(vp.elens_in_bank)
     vrp_id = random.randrange(vp.vrp_count)
     return {"addr": addr, "vrp_id": vrp_id}
 
@@ -45,11 +45,11 @@ class TestVRFFragment(TestCaseWithSimulator):
         )
         self.vp = gp.v_params
         self.circ = SimpleTestCircuit(VRFFragment(gen_params=gp))
-        self.read_port_count = 3
+        self.read_port_count = 4
 
         self.test_number = 100
         self.reference_memory = [
-            [2**self.vp.elen - 1 for __ in range(self.vp.elems_in_bank)] for _ in range(self.vp.vrp_count)
+            [2**self.vp.elen - 1 for __ in range(self.vp.elens_in_bank)] for _ in range(self.vp.vrp_count)
         ]
         self.expected_reads = deque()
         self.vrp_running = deque()
@@ -65,7 +65,7 @@ class TestVRFFragment(TestCaseWithSimulator):
             yield from self.circ.write.call(req)
             yield Settle()
             current_val = self.reference_memory[req["vrp_id"]][req["addr"]]
-            new_val = (req["data"] & expand_mask(req["mask"])) | (current_val & ~expand_mask(req["mask"]))
+            new_val = (req["data"] & expand_mask(req["valid_mask"])) | (current_val & ~expand_mask(req["valid_mask"]))
             self.reference_memory[req["vrp_id"]][req["addr"]] = new_val
             while random.random() < self.wait_chance:
                 yield

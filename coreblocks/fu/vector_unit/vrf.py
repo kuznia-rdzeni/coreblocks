@@ -38,7 +38,7 @@ class VRFFragment(Elaboratable):
 
         self.layout = VRFFragmentLayouts(self.gen_params)
 
-        self.read_ports_count = 3
+        self.read_ports_count = 4
         self.read_req = [Method(i=self.layout.read_req) for _ in range(self.read_ports_count)]
         self.read_resp = [
             Method(i=self.layout.read_resp_i, o=self.layout.read_resp_o) for _ in range(self.read_ports_count)
@@ -57,9 +57,9 @@ class VRFFragment(Elaboratable):
         m.submodules.clear_product = self.clear_module
 
         @def_method(m, self.write)
-        def _(vrp_id, addr, data, mask):
+        def _(vrp_id, addr, data, valid_mask):
             for j in condition_switch(m, vrp_id, self.v_params.vrp_count, nonblocking=False):
-                self.regs[j].write(m, data=data, addr=addr, mask=mask)
+                self.regs[j].write(m, data=data, addr=addr, valid_mask=valid_mask)
 
         @loop_def_method(m, self.read_req)
         def _(_, vrp_id, addr):

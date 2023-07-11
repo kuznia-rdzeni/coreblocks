@@ -92,10 +92,10 @@ class VectorRegisterBank(Elaboratable):
             return {"data": out_masked}
 
         @def_method(m, self.write)
-        def _(addr, data, mask):
-            self.bank.write(m, addr=addr, data=data, mask=mask)
+        def _(addr, data, valid_mask):
+            self.bank.write(m, addr=addr, data=data, mask=valid_mask)
             mask_part = self.byte_mask.word_select(addr, self.v_params.bytes_in_elen)
-            m.d.sync += mask_part.eq(mask_part | mask)
+            m.d.sync += mask_part.eq(mask_part | valid_mask)
 
         @def_method(m, self.initialise)
         def _(eew: Signal):

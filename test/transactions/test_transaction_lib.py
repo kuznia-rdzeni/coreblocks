@@ -813,7 +813,7 @@ class ConnectedConditionTestCircuit(Elaboratable):
 
         @def_method(m, self.source)
         def _(cond1, cond2, cond3):
-            with connected_conditions(m, nonblocking = self.nonblocking, priority=self.priority) as cond: 
+            with connected_conditions(m, nonblocking = self.nonblocking) as cond: 
                 with cond() as branch:
                     with branch(cond1):
                         self.target1(m, cond=1)

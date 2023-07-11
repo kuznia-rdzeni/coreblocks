@@ -8,7 +8,7 @@ from parameterized import parameterized
 
 from ...common import TestCaseWithSimulator
 
-from coreblocks.fu.vector_unit.utils import *
+from coreblocks.params.isa import *
 from coreblocks.fu.vector_unit.flexible_alu import FlexibleAdder, FlexibleElementwiseFunction
 
 
