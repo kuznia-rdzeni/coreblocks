@@ -183,6 +183,6 @@ class VectorBackendLayouts:
                 ]
 
         self.uploader_result_in = [ ("dst_val", v_params.elen) ] 
-        self.uploader_init_in = [ ("rp_dst", v_params.vrp_count_bits) ]
+        self.uploader_init_in = [ ("vrp_id", v_params.vrp_count_bits), ("ma", 1), ("elems_len", v_params.elens_in_bank_bits)]
         self.mask_extractor_out = self.uploader_mask_in = [ ("mask", v_params.bytes_in_elen) ]
         self.uploader_old_dst_in = [("old_dst_val", v_params.elen)]

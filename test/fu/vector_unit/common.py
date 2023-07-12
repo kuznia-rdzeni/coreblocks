@@ -79,3 +79,11 @@ def get_vector_instr_generator():
         return instr, last_vtype
 
     return f
+
+def expand_mask(mask):
+    m = 0
+    for b in bin(mask)[2:]:
+        m <<= 8
+        if b == "1":
+            m |= 0xFF
+    return m

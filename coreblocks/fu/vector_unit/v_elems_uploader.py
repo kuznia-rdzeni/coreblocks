@@ -25,7 +25,7 @@ class VectorElemsUploader(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        vrp_id = Signal(self.v_params.vrp_count_bits)
+        vrp_id_saved = Signal(self.v_params.vrp_count_bits)
         write_counter = Signal(self.v_params.elens_in_bank_bits, name= "write_counter")
         uploader_ready = Signal()
 
@@ -40,10 +40,12 @@ class VectorElemsUploader(Elaboratable):
             m.d.top_comb += addr.eq(write_counter - 1)
 
             #this implements mask undisturbed policy
-            self.write(m, vrp_id = vrp_id , addr = addr, valid_mask = 2 ** self.v_params.bytes_in_elen - 1, data = (mask_expanded & dst_val) | (~mask_expanded & old_dst_val))
+            self.write(m, vrp_id = vrp_id_saved , addr = addr, valid_mask = 2 ** self.v_params.bytes_in_elen - 1, data = (mask_expanded & dst_val) | (~mask_expanded & old_dst_val))
             m.d.sync += write_counter.eq(addr)
         
         @def_method(m, self.init)
         def _(vrp_id, ma, elems_len):
             m.d.sync += write_counter.eq(elems_len)
-            m.d.sync += vrp_id.eq(vrp_id)
+            m.d.sync += vrp_id_saved.eq(vrp_id)
+
+        return m

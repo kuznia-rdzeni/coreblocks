@@ -1,7 +1,5 @@
 from amaranth import *
-from coreblocks.utils.fifo import BasicFifo
 from test.common import *
-from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_elems_downloader import *

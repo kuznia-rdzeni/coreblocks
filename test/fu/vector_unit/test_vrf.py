@@ -8,6 +8,7 @@ from coreblocks.transactions.core import *
 from coreblocks.transactions.lib import *
 import random
 from parameterized import parameterized_class
+from test.fu.vector_unit.common import *
 
 
 def generate_write(vp: VectorParameters):
@@ -22,15 +23,6 @@ def generate_read_req(vp: VectorParameters):
     addr = random.randrange(vp.elens_in_bank)
     vrp_id = random.randrange(vp.vrp_count)
     return {"addr": addr, "vrp_id": vrp_id}
-
-
-def expand_mask(mask):
-    m = 0
-    for b in bin(mask)[2:]:
-        m <<= 8
-        if b == "1":
-            m |= 0xFF
-    return m
 
 
 @parameterized_class(("wait_chance",), [(0.005,), (0.3,)])
