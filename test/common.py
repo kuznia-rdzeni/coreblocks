@@ -427,22 +427,23 @@ class CondVar():
 class Barrier():
     """
     No support for situation, where there can be more process which want to use Barrier
-    that `count`. In other words number of process using this barrier has to be `count`.
+    that `count`. In other words number of process using this barrier must be `count`.
     """
     def __init__(self, count):
         self.count = count
         self._counter = count
 
     def wait(self):
-        yield Settle()
+        # allow other processes to leave barrier
         yield Settle()
         yield Settle()
         self._counter -= 1
+        # wait a cycle so that in case when _counter is now 0,
+        # processes inside a loop get this information
         yield
-        yield Settle()
         while self._counter >0 :
             yield
-            yield Settle()
+        # wait till all processes waiting on barrier will be woken up
         yield Settle()
         self._counter += 1
 
