@@ -36,17 +36,17 @@ class TestVectorElemsUploader(TestCaseWithSimulator):
         self.send_mask = deque()
         self.send_new_dst = deque()
 
-    @def_method_mock(lambda self: self.write, enable = lambda self: random.random() >= self.wait_ppb, sched_prio = 2)
+    @def_method_mock(lambda self: self.write, enable = lambda self: random.random() >= self.wait_ppb, sched_prio = 1)
     def write_process(self, arg):
         self.received_data.append(arg)
 
-    @def_method_mock(lambda self:self.read_old_dst, sched_prio = 1)
+    @def_method_mock(lambda self:self.read_old_dst)
     def read_old_dst_process(self):
         old_dst = random.randrange(2**self.v_params.elen)
         self.send_old_dst.append(old_dst)
         return {"old_dst_val": old_dst}
 
-    @def_method_mock(lambda self : self.read_mask, sched_prio = 1)
+    @def_method_mock(lambda self : self.read_mask)
     def read_mask_process(self):
         mask = random.randrange(2**self.v_params.bytes_in_elen)
         self.send_mask.append(mask)
