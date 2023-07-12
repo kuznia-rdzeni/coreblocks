@@ -394,6 +394,57 @@ class TestModule(Elaboratable):
 
         return m
 
+class CondVar():
+    """
+    Simple CondVar. It has some limitations e.g. it can not notify other process
+    without waiting a cycle.
+    """
+    def __init__(self, notify_prio : bool = False, transparent : bool = True):
+        self.var = False
+        self.notify_prio = notify_prio
+        self.transparent = transparent
+
+    def wait(self):
+        yield Settle()
+        if not self.transparent:
+            yield Settle()
+        while not self.var:
+            yield
+            yield Settle()
+        if self.notify_prio:
+            yield Settle()
+            yield Settle()
+
+    def notify(self):
+        # We need to wait a cycle because we have a race between notify and wait
+        # waiting process could already call the `yield` so it would skip our notification
+        yield
+        self.var = True
+        yield Settle()
+        yield Settle()
+        self.var = False
+
+class Barrier():
+    """
+    No support for situation, where there can be more process which want to use Barrier
+    that `count`. In other words number of process using this barrier has to be `count`.
+    """
+    def __init__(self, count):
+        self.count = count
+        self._counter = count
+
+    def wait(self):
+        yield Settle()
+        yield Settle()
+        yield Settle()
+        self._counter -= 1
+        yield
+        yield Settle()
+        while self._counter >0 :
+            yield
+            yield Settle()
+        yield Settle()
+        self._counter += 1
 
 class CoreblockCommand:
     pass

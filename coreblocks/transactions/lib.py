@@ -43,6 +43,7 @@ __all__ = [
     "MethodBrancherIn",
     "NotMethod",
     "DownCounter",
+    "Barrier",
 ]
 
 # FIFOs
@@ -1650,7 +1651,7 @@ class RegisterPipe(Elaboratable):
     all ports are ready, but data can be read one by one.
     This is useful if we need to process batches of data
     where order within batch doesn't matter, but the order
-    between batches does..
+    between batches does.
 
     Attributes
     ----------
@@ -1891,5 +1892,47 @@ class DownCounter(Elaboratable):
                     m.d.sync += running.eq(0)
                 with branch(~cond_signal):
                     m.d.sync += value.eq(value-1)
+
+        return m
+
+class Barrier(Elaboratable):
+    def __init__(self, layout, port_count : int):
+        self.layout = layout
+        self.port_count = port_count
+        self.layout_out = [(f"out{i}", self.layout) for i in  range(self.port_count)]
+
+        self.write_list = [Method(i = self.layout) for _ in range(self.port_count)]
+        self.read = Method(o = self.layout_out)
+        self.set_valids = Method(i =[("valids", self.port_count)])
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        valids = Signal(self.port_count)
+        data = [Record(self.layout) for _ in range(self.port_count)]
+        data_current = [Record(self.layout) for _ in range(self.port_count)]
+        data_valids = [Signal() for _ in range(self.port_count)]
+        
+        for write in self.write_list:
+            write.schedule_before(self.read)
+        @loop_def_method(m, self.write_list, ready_list = lambda i: ~data_valids[i])
+        def _(i, arg):
+            m.d.sync += data_valids[i].eq(1)
+            m.d.sync += data[i].eq(arg)
+            m.d.top_comb += data_current[i].eq(arg)
+
+        all_ready = Signal()
+        m.d.top_comb += all_ready.eq((~valids | Cat(data_valids) | Cat([w.run for w in self.write_list])).all())
+        out_data = Record(self.layout_out)
+        @def_method(m, self.read, ready = all_ready)
+        def _():
+            for i in range(self.port_count):
+                m.d.sync += data_valids[i].eq(0)
+                m.d.top_comb += out_data[f"out{i}"].eq(Mux(data_valids[i], data[i], Mux(self.write_list[i].run, data_current[i], 0)))
+            return out_data
+
+        @def_method(m, self.set_valids)
+        def _(arg):
+            m.d.sync += valids.eq(arg.valids)
 
         return m

@@ -22,7 +22,10 @@ from ..common import (
     data_layout,
     def_method_mock,
     MethodMock,
+    CondVar,
+    Now,
 )
+from ..common import Barrier as SimBarrier
 
 
 class RevConnect(Elaboratable):
@@ -1204,3 +1207,84 @@ class TestDownCounter(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.process)
             sim.add_sync_process(self.callback_process)
+
+@parameterized_class(["port_count", "writer_max_wait_time"], itertools.product([1, 2, 3,], [0, 4]))
+class TestBarrier(TestCaseWithSimulator):
+    port_count : int
+    writer_max_wait_time : int
+    def setUp(self):
+        print(self.port_count, self.writer_max_wait_time)
+        random.seed(14+self.port_count+self.writer_max_wait_time)
+        self.mask_count = 10
+        self.test_number = 10
+        self.width = 5
+        self.layout = data_layout(self.width)
+
+        self.circ = SimpleTestCircuit(Barrier(self.layout, self.port_count))
+
+        self.mask_cond_var = CondVar(transparent = False)
+        self.mask_barrier = SimBarrier(1+self.port_count)
+
+        self.valids = 0
+        self.sent = [False for _ in range(self.port_count)]
+        self.data = {}
+
+    def set_mask(self):
+        self.valids = random.randrange(2**self.port_count)
+        yield from self.circ.set_valids.call(valids=self.valids)
+
+    def check_if_all_send(self):
+        for i, b in enumerate(self.sent):
+            if (self.valids & (1 << i)) and not b:
+                return False
+        return True
+
+    def check_received_data(self, res):
+        for i in range(self.port_count):
+            field_name=f"out{i}"
+            if not self.valids & (1 <<i):
+                self.assertEqual(res[field_name]["data"], 0)
+            else:
+                self.assertEqual(res[field_name]["data"], self.data[i])
+
+    def write_process_generator(self, k):
+        def f():
+            for mi in range(self.mask_count):
+                yield from self.mask_barrier.wait()
+                yield from self.mask_cond_var.wait()
+                for _ in range(self.test_number):
+                    if self.valids & (1<<k):
+                        val = random.randrange(2**self.width)
+                        yield from self.circ.write_list[k].call(data = val)
+                        self.data[k] = val
+                        self.sent[k] = True
+
+                    yield from self.tick(random.randrange(self.writer_max_wait_time+1))
+        return f
+
+
+    def read_process(self):
+        for mi in range(self.mask_count):
+            yield from self.mask_barrier.wait()
+            yield from self.set_mask()
+            yield from self.mask_cond_var.notify()
+            for _ in range(self.test_number):
+                while True:
+                    res = yield from self.circ.read.call_try()
+                    yield Settle()
+                    all_send = self.check_if_all_send()
+                    if all_send:
+                        self.assertIsNotNone(res)
+                        break
+                    else:
+                        self.assertIsNone(res)
+                self.check_received_data(res)
+                self.sent = [False for _ in range(self.port_count)]
+                self.data.clear()
+                yield from self.tick(random.randrange(3))
+
+    def test_random(self):
+        with self.run_simulation(self.circ, ) as sim:
+            sim.add_sync_process(self.read_process)
+            for k in range(self.port_count):
+                sim.add_sync_process(self.write_process_generator(k))
