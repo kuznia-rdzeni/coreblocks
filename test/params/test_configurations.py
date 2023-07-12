@@ -16,7 +16,7 @@ class TestConfigurationsISAString(TestCase):
         gp_str: str
 
     TEST_CASES = [
-        ISAStrTest(basic_core_config, "rv32i", "rv32", "rv32i"),
+        ISAStrTest(basic_core_config, "rv32i", "rv32i", "rv32i"),
         ISAStrTest(full_core_config, "rv32imcbzicsr", "rv32imcbzicsr", "rv32imcbzicsr"),
         ISAStrTest(tiny_core_config, "rv32i", "rv32", "rv32i"),
         ISAStrTest(test_core_config, "rv32", "rv32", "rv32i"),
