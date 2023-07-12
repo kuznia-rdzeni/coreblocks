@@ -531,11 +531,9 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_file = unittest.TestCase.id(self)
 
-        print("przed sim")
         sim = PysimSimulator(
             module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
         )
-        print("sim")
         yield sim
         res = sim.run()
 

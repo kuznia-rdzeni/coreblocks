@@ -251,9 +251,6 @@ class TransactionManager(Elaboratable):
             pgr[transaction] = set()
             rgr[transaction] = set()
 
-        print("methods", len(list(method_map.methods)))
-        print("SUM:", sum(len(list(method_map.transactions_for(method)))**2 for method in method_map.methods))
-
         for method in method_map.methods:
             if method.nonexclusive:
                 continue
@@ -354,7 +351,6 @@ class TransactionManager(Elaboratable):
                         )
                     simultaneous.add(frozenset({tr1, tr2}))
 
-        print("step 2", time()-self.ttt)
         # step 2: transitivity computation
         tr_simultaneous = set[frozenset[Transaction]]()
 
@@ -370,15 +366,12 @@ class TransactionManager(Elaboratable):
             q.extend(new_group | other_group for other_group in simultaneous if new_group & other_group)
             tr_simultaneous.add(new_group)
 
-        print("step 3", time()-self.ttt)
-        print(len(tr_simultaneous))
         # step 3: maximal group selection
         def maximal(group: frozenset[Transaction]):
             return not any(group.issubset(group2) and group != group2 for group2 in tr_simultaneous)
 
         final_simultaneous = set(filter(maximal, tr_simultaneous))
 
-        print("step 4", time()-self.ttt)
         # step 4: convert transactions to methods
         joined_transactions = set[Transaction]().union(*final_simultaneous)
 
@@ -407,19 +400,16 @@ class TransactionManager(Elaboratable):
         m = TModule()
         m._MustUse__silence = True  # type: ignore
 
-        print("step 5", len(final_simultaneous), time()-self.ttt)
         for group in final_simultaneous:
             name = "_".join([t.name for t in group])
             with Transaction(manager=self, name=name).body(m):
                 for transaction in group:
                     methods[transaction](m)
-        print("end simultaneous", time()-self.ttt)
         return m
 
     def elaborate(self, platform):
         # In the following, various problems in the transaction set-up are detected.
         # The exception triggers an unused Elaboratable warning.
-        self.ttt = time()
         with silence_mustuse(self):
             merge_manager = self._simultaneous()
 
@@ -429,9 +419,7 @@ class TransactionManager(Elaboratable):
                 for elem in method_map.methods_and_transactions
                 for relation in elem.relations
             ]
-            print("method map created", time()-self.ttt)
             cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
-            print("conflict graph created", time()-self.ttt)
 
         m = Module()
         m.submodules.merge_manager = merge_manager
@@ -441,7 +429,6 @@ class TransactionManager(Elaboratable):
         )
 
         method_enables = self._method_enables(method_map)
-        print("methods enabled", time()-self.ttt)
 
         for method, transactions in method_map.transactions_by_method.items():
             granted = Cat(transaction.grant & method_enables[transaction][method] for transaction in transactions)
@@ -456,7 +443,6 @@ class TransactionManager(Elaboratable):
                 runs = Cat(method_runs[method])
                 for i in OneHotSwitchDynamic(m, runs):
                     m.d.comb += method.data_in.eq(method_args[method][i])
-        print("end elaborate", time()-self.ttt)
 
         return m
 

@@ -71,7 +71,14 @@ class VectorElemsDownloader(Elaboratable):
         with Transaction(name = "downloader_response_trans").body(m, request = instr_valid & (resp_counter != 0)):
             barrier_out = barrier.read(m)
             for i, field in enumerate(regs_fields):
-                m.d.comb += data_to_fu[field].eq(barrier_out[f"out{i}"])
+                with m.If(needed_signals.bit_select(i,1)):
+                    with m.If(uniqness_checker.valids[i]):
+                        m.d.comb += data_to_fu[field].eq(barrier_out[f"out{i}"])
+                    with m.Else():
+                        for j in reversed(range(i)):
+                            with m.If(uniqness_checker.valids[j] & needed_signals.bit_select(j, 1) & (instr[field] == instr[regs_fields[j]])):
+                                m.d.comb += data_to_fu[field].eq(barrier_out[f"out{j}"])
+
             m.d.sync += resp_counter.eq(resp_counter-1)
             self.send_to_fu(m, data_to_fu)
             with m.If(resp_counter == 1):

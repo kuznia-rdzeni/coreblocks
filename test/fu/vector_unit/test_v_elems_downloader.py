@@ -20,7 +20,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
         random.seed(self.seed)
         self.vrp_count = 8
         self.gen_params = GenParams(test_vector_core_config.replace(vector_config=VectorUnitConfiguration(vrp_count = self.vrp_count)))
-        self.test_number = 10
+        self.test_number = 30
         self.v_params = self.gen_params.v_params
 
         self.layout = VectorBackendLayouts(self.gen_params)
@@ -36,14 +36,12 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
 
         self.memory = {i: [0]*self.v_params.elens_in_bank for i in range(self.v_params.vrp_count)}
 
-    @def_method_mock(lambda self: self.fu_receiver, enable = lambda _ : True)#lambda self : random.random() >= self.wait_ppb)
+    @def_method_mock(lambda self: self.fu_receiver, enable = lambda self : random.random() >= self.wait_ppb)
     def fu_receiver_process(self, arg):
-        print("odebrano", arg)
         self.received_data.append(arg)
 
 
     def memory_write(self, vrp_id):
-        print("memory write", vrp_id, (yield Now()))
         for i in range(self.v_params.elens_in_bank):
             val = random.randrange(2**self.v_params.elen)
             yield from self.write.call(addr=i, data=val, valid_mask = 2**self.v_params.bytes_in_elen-1, vrp_id = vrp_id)
@@ -64,26 +62,19 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
 
     def check_register(self, input, field_name):
         vrp_id = input[field_name]
-        print(vrp_id)
         for i,elem in enumerate(reversed(self.received_data)):
             if input[field_name + "_needed"]:
                 self.assertEqual(elem[field_name], self.memory[vrp_id][i])
             else:
                 self.assertEqual(elem[field_name], 0)
-        print("ok")
 
     def process(self):
-        print("START")
         for i in range(self.v_params.vrp_count):
             yield from self.memory_write(i)
-        for k in self.memory:
-            print(k, self.memory[k])
 
         for _ in range(self.test_number):
-            print(_)
             self.received_data.clear()
             input = self.generate_input()
-            print(input)
             yield from self.circ.issue.call(input)
             while len(self.received_data) < input["elems_len"]:
                 yield
@@ -94,34 +85,6 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
             self.memory_write(random.randrange(self.v_params.vrp_count))
 
     def test_random(self):
-        print("TUT")
-        with self.run_simulation(self.m, 300) as sim:
-            print("TUT2")
+        with self.run_simulation(self.m, ) as sim:
             sim.add_sync_process(self.process)
             sim.add_sync_process(self.fu_receiver_process)
-
-
-    def test_if(self):
-        class MojTest(Elaboratable):
-            def __init__(self):
-                self.method = Method()
-            def elaborate(self, platform):
-                m = TModule()
-
-                @def_method(m, self.method, ready = 1)
-                def _():
-                    pass
-
-                with Transaction().body(m):
-                    with m.If(0):
-                        self.method(m)
-                return m
-        ci=SimpleTestCircuit(MojTest())
-
-        def moj_proc():
-            for i in range(10):
-                yield
-
-        with self.run_simulation(ci) as sim:
-            sim.add_sync_process(moj_proc)
-
