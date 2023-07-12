@@ -46,7 +46,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
         print("memory write", vrp_id, (yield Now()))
         for i in range(self.v_params.elens_in_bank):
             val = random.randrange(2**self.v_params.elen)
-            yield from self.write.call(addr=i, data=val, valid_mask = 2**self.v_params.bytes_in_elen-1)
+            yield from self.write.call(addr=i, data=val, valid_mask = 2**self.v_params.bytes_in_elen-1, vrp_id = vrp_id)
             self.memory[vrp_id][i] = val
 
     def generate_input(self):
@@ -62,15 +62,22 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
             "v0_needed" : random.randrange(2),
         }
 
-    def check_register(self, expected, field_name):
-        vrp_id = expected[field_name]
-        for i,elem in enumerate(self.received_data):
-            self.assertEqual(elem[field_name], self.memory[vrp_id][i])
+    def check_register(self, input, field_name):
+        vrp_id = input[field_name]
+        print(vrp_id)
+        for i,elem in enumerate(reversed(self.received_data)):
+            if input[field_name + "_needed"]:
+                self.assertEqual(elem[field_name], self.memory[vrp_id][i])
+            else:
+                self.assertEqual(elem[field_name], 0)
+        print("ok")
 
     def process(self):
         print("START")
         for i in range(self.v_params.vrp_count):
             yield from self.memory_write(i)
+        for k in self.memory:
+            print(k, self.memory[k])
 
         for _ in range(self.test_number):
             print(_)
