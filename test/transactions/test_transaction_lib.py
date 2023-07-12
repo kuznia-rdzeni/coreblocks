@@ -1213,7 +1213,6 @@ class TestBarrier(TestCaseWithSimulator):
     port_count : int
     writer_max_wait_time : int
     def setUp(self):
-        print(self.port_count, self.writer_max_wait_time)
         random.seed(14+self.port_count+self.writer_max_wait_time)
         self.mask_count = 10
         self.test_number = 10
