@@ -1,10 +1,10 @@
 from amaranth import *
-from coreblocks.transactions import *
 from coreblocks.transactions.core import *
 from coreblocks.transactions.lib import MemoryBank
 from coreblocks.params import *
 from coreblocks.utils.fifo import BasicFifo
 from coreblocks.fu.vector_unit.v_layouts import VectorRegisterBankLayouts
+from coreblocks.fu.vector_unit.utils import *
 
 __all__ = ["VectorRegisterBank"]
 
@@ -67,9 +67,6 @@ class VectorRegisterBank(Elaboratable):
         self.clear.add_conflict(self.write, Priority.LEFT)
         self.clear.add_conflict(self.initialise, Priority.LEFT)
 
-    def expand_mask(self, mask: Value) -> Value:
-        return Cat(Mux(mask[i], 0xFF, 0x00) for i in range(self.v_params.bytes_in_elen))
-
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
@@ -87,7 +84,7 @@ class VectorRegisterBank(Elaboratable):
             out = self.bank.read_resp(m)
             mask = mask_forward.read(m)
             out_masked = Signal.like(out)
-            expanded_mask = ~self.expand_mask(mask.data)
+            expanded_mask = ~expand_mask(self.v_params, mask.data)
             m.d.top_comb += out_masked.eq(out | expanded_mask)
             return {"data": out_masked}
 

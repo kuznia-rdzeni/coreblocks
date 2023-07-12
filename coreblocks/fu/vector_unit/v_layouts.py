@@ -1,6 +1,5 @@
 from amaranth.utils import *
 from coreblocks.params import *
-from coreblocks.params.isa import SEW, LMUL, EEW
 from coreblocks.utils._typing import LayoutLike
 from coreblocks.utils import layout_subset, layout_difference
 
@@ -182,3 +181,8 @@ class VectorBackendLayouts:
                 ("s3", v_params.elen),
                 ("v0", v_params.elen),
                 ]
+
+        self.uploader_result_in = [ ("dst_val", v_params.elen) ] 
+        self.uploader_init_in = [ ("rp_dst", v_params.vrp_count_bits) ]
+        self.mask_extractor_out = self.uploader_mask_in = [ ("mask", v_params.bytes_in_elen) ]
+        self.uploader_old_dst_in = [("old_dst_val", v_params.elen)]

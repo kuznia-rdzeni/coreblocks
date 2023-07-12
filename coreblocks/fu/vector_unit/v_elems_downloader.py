@@ -5,8 +5,6 @@ from coreblocks.utils import *
 from coreblocks.params import *
 from coreblocks.utils.fifo import *
 from coreblocks.fu.vector_unit.v_layouts import *
-from coreblocks.fu.vector_unit.vrs import *
-from coreblocks.structs_common.scoreboard import *
 
 __all__ = ["VectorElemsDownloader"]
 

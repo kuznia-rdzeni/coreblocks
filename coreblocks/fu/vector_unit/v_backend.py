@@ -10,6 +10,12 @@ from coreblocks.fu.vector_unit.vrs import *
 from coreblocks.fu.vector_unit.v_insert_to_vvrs import *
 from coreblocks.structs_common.scoreboard import *
 
+# TODO optimise by allowing to start porcessing new register while old is still being uploaded
+
+# TODO TODO TODO - downloader should download v0 from address//8
+# TODO TODO TODO - initialize regs somewhere
+# TODO TODO TODO - handle rp_dst == RegisterType.X
+# TODO TODO TODO - handle tail undisturbed elements
 
 class VectorBackend(Elaboratable):
     def __init__(self, gen_params: GenParams):
