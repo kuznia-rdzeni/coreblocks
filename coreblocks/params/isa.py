@@ -237,11 +237,6 @@ class Extension(enum.IntFlag):
     G = I | M | A | F | D | ZICSR | ZIFENCEI
 
 
-# Extensions which are mutually exclusive
-_extension_exclusive = [
-    [Extension.I, Extension.E],
-]
-
 # Extensions which explicitly require another extension in order to be valid (can be joined using | operator)
 _extension_requirements = {
     Extension.D: Extension.F,
@@ -344,14 +339,6 @@ class ISA:
             if ext in self.extensions:
                 self.extensions |= imply
 
-        for exclusive in _extension_exclusive:
-            for i in range(len(exclusive)):
-                for j in range(i + 1, len(exclusive)):
-                    if exclusive[i] | exclusive[j] in self.extensions:
-                        raise RuntimeError(
-                            f"ISA extensions {exclusive[i].name} and {exclusive[j].name} are mutually exclusive"
-                        )
-
         for ext, requirements in _extension_requirements.items():
             if ext in self.extensions and requirements not in self.extensions:
                 for req in Extension:
@@ -360,7 +347,8 @@ class ISA:
                             f"ISA extension {ext.name} requires the {req.name} extension to be supported"
                         )
 
-        if self.extensions & Extension.E:
+        # I & E extensions can coexist if I extenstion can be disableable at runtime
+        if self.extensions & Extension.E and not self.extensions & Extension.I:
             self.reg_cnt = 16
         else:
             self.reg_cnt = 32
@@ -369,6 +357,8 @@ class ISA:
         self.ilen = 32
         self.ilen_bytes = self.ilen // 8
         self.ilen_log = self.ilen.bit_length() - 1
+
+        self.reg_field_bits = 5
 
         self.csr_alen = 12
 
