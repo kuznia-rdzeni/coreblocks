@@ -149,15 +149,10 @@ class FlexibleAluExecutor(Elaboratable):
         return m
 
 class VectorBasicFlexibleAlu(Elaboratable):
-    """
-    FlexibleAlu without any hand-made optimisations.
-
-    TODO
-    """
-
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, put_output : Method):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
+        self.put_output = put_output
 
         self.layouts = VectorAluLayouts(self.gen_params)
         self.issue = Method(i = self.layouts.alu_in)
@@ -165,9 +160,18 @@ class VectorBasicFlexibleAlu(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
+        m.submodules.executor = executor = FlexibleAluExecutor(self.gen_params)
 
+        modified_exec_fn = Record(self.gen_params.get(CommonLayouts).exec_fn)
         @def_method(m, self.issue)
-        def _(s1, s2, s3, exec_fn, eew):
-            pass
+        def _(s1, s2, exec_fn, eew):
+            m.d.top_comb += executor.in1.eq(s1)
+            m.d.top_comb += executor.in2.eq(s2)
+            m.d.top_comb += executor.eew.eq(eew)
+            m.d.top_comb += assign(modified_exec_fn, exec_fn, fields={"funct3", "op_type"})
+            # remove vm bit
+            m.d.top_comb += modified_exec_fn.funct7.eq(exec.fn[1:] << 1)
+
+            self.put_output(m, {"dst_val" : executor.out})
 
         return m

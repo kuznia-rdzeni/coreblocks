@@ -174,13 +174,15 @@ class FlexibleElementwiseFunction(Elaboratable):
 
 
 def compress_mask(m: TModule, val: Value, eew: Value) -> Value:
-    """Compress masks created with `FlexibleElementwiseFunction`
+    """Compress elems extended masks format created with `FlexibleElementwiseFunction`
 
     This function takes `val` with `out_width_bits` from `FlexibleElementwiseFunction` and
     assumes that mask bits are set on the first bit of each output element. As an output it
     returns the mask compressed to one bit per bajt. If operands where processed
     with element eew bigger the EEW.w8, then only the first `k` bits are valid, where
     `k = out_width/eew`.
+
+    In other words it converts elems extended mask format to elems mask format.
 
     Parameters
     ----------

@@ -258,8 +258,6 @@ _instructions_by_optype = {
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSSUBU),
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSSUB),
         Encoding(Opcode.OP_V, Funct3.OPIVV, funct6=Funct6.VSMUL),
-    ],
-    OpType.V_ARITHMETIC_IMM: [
         Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VADD, instr_type_override=InstrType.S1IS2),
         Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VRSUB, instr_type_override=InstrType.S1IS2),
         Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VAND, instr_type_override=InstrType.S1IS2),
@@ -278,8 +276,6 @@ _instructions_by_optype = {
         Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VMADC, instr_type_override=InstrType.S1IS2),
         Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSADDU, instr_type_override=InstrType.S1IS2),
         Encoding(Opcode.OP_V, Funct3.OPIVI, funct6=Funct6.VSADD, instr_type_override=InstrType.S1IS2),
-    ],
-    OpType.V_ARITHMETIC_SCALAR: [
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VADD),
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VSUB),
         Encoding(Opcode.OP_V, Funct3.OPIVX, funct6=Funct6.VRSUB),
@@ -660,7 +656,7 @@ class InstrDecoder(Elaboratable):
         with m.If(
             (self.opcode == Opcode.OP_V)
             & (
-                (self.optype == OpType.V_ARITHMETIC_SCALAR)
+                (self.funct3 == Funct3.OPIVX)
                 | (self.optype == OpType.V_PERMUTATION_SCALAR)
                 | (self.optype == OpType.V_ARITHMETIC_NARROWING_SCALAR)
             )

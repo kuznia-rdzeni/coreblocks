@@ -212,7 +212,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=4,
             imm=11,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vadd.vi v0, v4, 11
         InstrTest(
             0x0283CFD7,
@@ -225,7 +225,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=8,
             rs1_rf=RegisterType.X,
             rs1=7,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vadd.vx v31, v8, x7
         InstrTest(
             0x0083CFD7,
@@ -238,7 +238,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=8,
             rs1_rf=RegisterType.X,
             rs1=7,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vadd.vx v31, v8, x7, v0.t
         InstrTest(
             0x0A818257,
@@ -264,7 +264,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=3,
             rs1_rf=RegisterType.X,
             rs1=1,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vsub.vx v2, v3, x1
         InstrTest(
             0x0E21C0D7,
@@ -277,7 +277,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vrsub.vx v1, v2, x3
         InstrTest(
             0x0E23B0D7,
@@ -289,7 +289,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=7,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vrsub.vi v1, v2, 7
         InstrTest(
             0x122180D7,
@@ -315,7 +315,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vminu.vx v1, v2, x3
         InstrTest(
             0x162180D7,
@@ -341,7 +341,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmin.vx v1, v2, x3
         InstrTest(
             0x1A2180D7,
@@ -367,7 +367,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmaxu.vx v1, v2, x3
         InstrTest(
             0x1E2180D7,
@@ -393,7 +393,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmax.vx v1, v2, x3
         InstrTest(
             0x262180D7,
@@ -419,7 +419,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vand.vx v1, v2, x3
         InstrTest(
             0x2627B0D7,
@@ -431,7 +431,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=15,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vand.vi v1, v2, 15
         InstrTest(
             0x2A2180D7,
@@ -457,7 +457,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vor.vx v1, v2, x3
         InstrTest(
             0x2A2830D7,
@@ -469,7 +469,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=-16,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vor.vi v1, v2, -16
         InstrTest(
             0x2E2180D7,
@@ -495,7 +495,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vxor.vx v1, v2, x3
         InstrTest(
             0x2E2030D7,
@@ -507,7 +507,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=0,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vxor.vi v1, v2, 0
         InstrTest(
             0x322180D7,
@@ -634,7 +634,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vadc.vxm v1, v2, x3, v0
         InstrTest(
             0x4021B0D7,
@@ -646,7 +646,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vadc.vim v1, v2, 3, v0
         InstrTest(
             0x442180D7,
@@ -672,7 +672,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmadc.vxm v1, v2, x3, v0
         InstrTest(
             0x4421B0D7,
@@ -684,7 +684,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vmadc.vim v1, v2, 3, v0
         InstrTest(
             0x482180D7,
@@ -710,7 +710,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vsbc.vxm v1, v2, x3, v0
         InstrTest(
             0x4C2180D7,
@@ -736,7 +736,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsbc.vxm v1, v2, x3, v0
         InstrTest(
             0x5C2180D7,
@@ -838,7 +838,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmseq.vx v1, v2, x3
         InstrTest(
             0x6221B0D7,
@@ -850,7 +850,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vmseq.vi v1, v2, 3
         InstrTest(
             0x662180D7,
@@ -876,7 +876,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsne.vx v1, v2, x3
         InstrTest(
             0x6621B0D7,
@@ -888,7 +888,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsne.vi v1, v2, 3
         InstrTest(
             0x6A2180D7,
@@ -914,7 +914,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsltu.vx v1, v2, x3
         InstrTest(
             0x6E2180D7,
@@ -940,7 +940,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmslt.vx v1, v2, x3
         InstrTest(
             0x722180D7,
@@ -966,7 +966,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsleu.vx v1, v2, x3
         InstrTest(
             0x7221B0D7,
@@ -978,7 +978,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsleu.vi v1, v2, 3
         InstrTest(
             0x762180D7,
@@ -1004,7 +1004,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsle.vx v1, v2, x3
         InstrTest(
             0x7621B0D7,
@@ -1016,7 +1016,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsle.vi v1, v2, 3
         InstrTest(
             0x7A21C0D7,
@@ -1029,7 +1029,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsgtu.vx v1, v2, x3
         InstrTest(
             0x7A21B0D7,
@@ -1041,7 +1041,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsgtu.vi v1, v2, 3
         InstrTest(
             0x7E21C0D7,
@@ -1054,7 +1054,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsgt.vx v1, v2, x3
         InstrTest(
             0x7E21B0D7,
@@ -1066,7 +1066,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vmsgt.vi v1, v2, 3
         InstrTest(
             0x822180D7,
@@ -1092,7 +1092,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vsaddu.vx v1, v2, x3
         InstrTest(
             0x8221B0D7,
@@ -1104,7 +1104,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vsaddu.vi v1, v2, 3
         InstrTest(
             0x862180D7,
@@ -1130,7 +1130,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vsadd.vx v1, v2, x3
         InstrTest(
             0x8621B0D7,
@@ -1142,7 +1142,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vsadd.vi v1, v2, 3
         InstrTest(
             0x8A2180D7,
@@ -1168,7 +1168,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vssubu.vx v1, v2, x3
         InstrTest(
             0x8E2180D7,
@@ -1194,7 +1194,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vssub.vx v1, v2, x3
         InstrTest(
             0x962180D7,
@@ -1220,7 +1220,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vsll.vx v1, v2, x3
         InstrTest(
             0x9621B0D7,
@@ -1232,7 +1232,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vsll.vi v1, v2, 3
         InstrTest(
             0x9E2180D7,
@@ -1258,7 +1258,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vsmul.vx v1, v2, x3
         InstrTest(
             0x9E803057,
@@ -1332,7 +1332,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vsrl.vx v1, v2, x3
         InstrTest(
             0xA221B0D7,
@@ -1344,7 +1344,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vsrl.vi v1, v2, 3
         InstrTest(
             0xA62180D7,
@@ -1370,7 +1370,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2=2,
             rs1_rf=RegisterType.X,
             rs1=3,
-            op=OpType.V_ARITHMETIC_SCALAR,
+            op=OpType.V_ARITHMETIC,
         ),  # vsra.vx v1, v2, x3
         InstrTest(
             0xA621B0D7,
@@ -1382,7 +1382,7 @@ class TestDecoder(TestCaseWithSimulator):
             rs2_rf=RegisterType.V,
             rs2=2,
             imm=3,
-            op=OpType.V_ARITHMETIC_IMM,
+            op=OpType.V_ARITHMETIC,
         ),  # vsra.vi v1, v2, 3
         InstrTest(
             0xB22180D7,
