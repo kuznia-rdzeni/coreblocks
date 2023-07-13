@@ -72,8 +72,8 @@ class Funct3(IntEnum, shape=3):
 
 
 class Funct6(IntEnum, shape=6):
-    VADD = _VWIDEN = 0b000000
-    VSUB = _VNARROW = 0b000010
+    VADD = 0b000000
+    VSUB = 0b000010
     VRSUB = 0b000011
     VMINU = 0b000100
     VMIN = 0b000101

@@ -100,3 +100,24 @@ def elem_mask_to_byte_mask(elen, mask, eew):
         mask = mask[1:]
     return m
 
+def execute_flexible_operation(op: Callable, in1: int, in2: int, elen: int, eew: EEW) -> int:
+    def split_flex(n: int, elen: int, eew: EEW):
+        ebits = eew_to_bits(eew)
+        while elen > 0:
+            yield n % (2**ebits)
+            n = n >> ebits
+            elen -= ebits
+
+
+    def glue_flex(elems: list[int], elen: int, eew: EEW) -> int:
+        out = 0
+        ebits = eew_to_bits(eew)
+        mask = 2**ebits - 1
+        for elem in reversed(elems):
+            out = (out << ebits) | (elem & mask)
+        return out
+
+    out_elems = []
+    for elem1, elem2 in zip(split_flex(in1, elen, eew), split_flex(in2, elen, eew)):
+        out_elems.append(op(elem1, elem2))
+    return glue_flex(out_elems, elen, eew)

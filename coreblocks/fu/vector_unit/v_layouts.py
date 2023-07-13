@@ -158,11 +158,13 @@ class VectorAluLayouts:
         common = gen_params.get(CommonLayouts)
         v_params = gen_params.v_params
         self.alu_in = [
-                ("s1", v_params.vrp_count_bits),
-                ("s2", v_params.vrp_count_bits),
-                ("s3", v_params.vrp_count_bits),
+                ("s1", v_params.elen),
+                ("s2", v_params.elen),
             ("exec_fn", common.exec_fn),
+            ("eew", EEW)
         ]
+
+        self.alu_out = [("dst_val", v_params.elen)]
 
 class VectorBackendLayouts:
     def __init__(self, gen_params: GenParams):

@@ -100,26 +100,31 @@ class FlexibleAluExecutor(Elaboratable):
             with OneHotCase(VectorAluFn.Fn.SRA):   # Arithmetic right shift
                 with m.Switch(self.eew):
                     for eew_iter in EEW:
+                        eew_iter_bits = eew_to_bits(eew_iter)
                         if eew_to_bits(eew_iter) <= self.v_params.elen:
-                            m.submodules.flexible_sra = flexible_sra = FlexibleElementwiseFunction(out_width,
-                                                                                                   lambda x, y: x.as_signed() >> y[:log2_int(eew_to_bits(eew_iter))]) #TODO optimise number of FlexibleElementWiseFunction's creates
                             with m.Case(eew_iter):
-                                self.connect_flexible_elementwise_function(m, flexible_sra)
+                                # there are two lambdas to capture width by copy
+                                self.create_flexible_elementwise_function(m,
+                                                                          f"flexible_sra_{eew_iter_bits}", 
+                                                                          (lambda width: lambda x, y: x.as_signed() >> (y[:log2_int(width)]))(eew_iter_bits)) #TODO optimise number of FlexibleElementWiseFunction's creates
             with OneHotCase(VectorAluFn.Fn.SLL):   # Logic left shift
                 with m.Switch(self.eew):
                     for eew_iter in EEW:
+                        eew_iter_bits = eew_to_bits(eew_iter)
                         if eew_to_bits(eew_iter) <= self.v_params.elen:
-                            m.submodules.flexible_sll = flexible_sll = FlexibleElementwiseFunction(out_width, lambda x, y: x << y[:log2_int(eew_to_bits(eew_iter))])
                             with m.Case(eew_iter):
-                                self.connect_flexible_elementwise_function(m, flexible_sll)
+                                self.create_flexible_elementwise_function(m,
+                                                                          f"flexible_sll_{eew_iter_bits}",
+                                                                          (lambda width: lambda x, y: x << y[:log2_int(width)])(eew_iter_bits))
             with OneHotCase(VectorAluFn.Fn.SRL):   # Logic right shift
                 with m.Switch(self.eew):
                     for eew_iter in EEW:
                         eew_iter_bits = eew_to_bits(eew_iter)
                         if eew_iter_bits <= self.v_params.elen:
-                            m.submodules.flexible_srl = flexible_srl = FlexibleElementwiseFunction( out_width, lambda x, y: x >> y[:log2_int(eew_iter_bits)])
                             with m.Case(eew_iter):
-                                self.connect_flexible_elementwise_function(m, flexible_srl)
+                                self.create_flexible_elementwise_function(m,
+                                                                          f"flexible_srl_{eew_iter_bits}",
+                                                                          (lambda width: lambda x, y: x >> y[:log2_int(width)])(eew_iter_bits))
             with OneHotCase(VectorAluFn.Fn.SLE):   # Set if less or equal than (signed)
                 self.create_flexible_elementwise_function(m, "flexible_sle", lambda x, y: Mux(x.as_signed() <= y.as_signed(), 1, 0))
             with OneHotCase(VectorAluFn.Fn.SLEU):   # Set if less or equal than (unsigned)
@@ -131,7 +136,7 @@ class FlexibleAluExecutor(Elaboratable):
             with OneHotCase(VectorAluFn.Fn.SEQ):   # Set if equal
                 self.create_flexible_elementwise_function(m, "flexible_seq", lambda x, y: Mux(x == y, 1, 0))
             with OneHotCase(VectorAluFn.Fn.XOR):   # Bitwise xor
-                self.create_flexible_elementwise_function(m, "flexible_xor", lambda x, y: x ^ y)
+                self.create_flexible_elementwise_function(m, "flexible_xor", lambda x, y: x ^ y) # TODO REMOVE
             with OneHotCase(VectorAluFn.Fn.OR):   # Bitwise or
                 self.create_flexible_elementwise_function(m, "flexible_or", lambda x, y: x | y)
             with OneHotCase(VectorAluFn.Fn.AND):   # Bitwise and
@@ -170,7 +175,8 @@ class VectorBasicFlexibleAlu(Elaboratable):
             m.d.top_comb += executor.eew.eq(eew)
             m.d.top_comb += assign(modified_exec_fn, exec_fn, fields={"funct3", "op_type"})
             # remove vm bit
-            m.d.top_comb += modified_exec_fn.funct7.eq(exec.fn[1:] << 1)
+            m.d.top_comb += modified_exec_fn.funct7.eq(exec_fn.funct7[1:] << 1)
+            m.d.top_comb += assign(executor.exec_fn, modified_exec_fn)
 
             self.put_output(m, {"dst_val" : executor.out})
 

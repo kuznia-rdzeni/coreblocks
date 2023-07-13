@@ -1,39 +1,13 @@
 import random
 from collections import deque
-
-from amaranth import *
-from amaranth.sim import *
 from typing import Callable
 from parameterized import parameterized
-
-from ...common import TestCaseWithSimulator
-
+from amaranth import *
+from amaranth.sim import *
 from coreblocks.params.isa import *
 from coreblocks.fu.vector_unit.flexible_functions import FlexibleAdder, FlexibleElementwiseFunction
-
-
-def split_flex(n: int, elen: int, eew: EEW):
-    ebits = eew_to_bits(eew)
-    while elen > 0:
-        yield n % (2**ebits)
-        n = n >> ebits
-        elen -= ebits
-
-
-def glue_flex(elems: list[int], elen: int, eew: EEW) -> int:
-    out = 0
-    ebits = eew_to_bits(eew)
-    mask = 2**ebits - 1
-    for elem in reversed(elems):
-        out = (out << ebits) | (elem & mask)
-    return out
-
-
-def op_flex(op: Callable, in1: int, in2: int, elen: int, eew: EEW) -> int:
-    out_elems = []
-    for elem1, elem2 in zip(split_flex(in1, elen, eew), split_flex(in2, elen, eew)):
-        out_elems.append(op(elem1, elem2))
-    return glue_flex(out_elems, elen, eew)
+from test.common import TestCaseWithSimulator
+from test.fu.vector_unit.common import *
 
 
 class TestFlexibleAdder(TestCaseWithSimulator):
@@ -77,10 +51,10 @@ class TestFlexibleAdder(TestCaseWithSimulator):
             sim.add_process(process)
 
     def test_add(self):
-        self.check_fn(False, lambda in1, in2, eew: op_flex(lambda x, y: x + y, in1, in2, self.elen, eew))
+        self.check_fn(False, lambda in1, in2, eew: execute_flexible_operation(lambda x, y: x + y, in1, in2, self.elen, eew))
 
     def test_substract(self):
-        self.check_fn(True, lambda in1, in2, eew: op_flex(lambda x, y: x - y, in1, in2, self.elen, eew))
+        self.check_fn(True, lambda in1, in2, eew: execute_flexible_operation(lambda x, y: x - y, in1, in2, self.elen, eew))
 
 
 class TestFlexibleElementwiseFunction(TestCaseWithSimulator):
@@ -109,7 +83,7 @@ class TestFlexibleElementwiseFunction(TestCaseWithSimulator):
                     in2 = random.randrange(2**self.elen - 1)
                     returned_out = yield from self.yield_signals(C(in1, self.elen), C(in2, self.elen), eew)
                     mask = 2**self.elen - 1
-                    correct_out = op_flex(op, in1 & mask, in2 & mask, self.elen, eew) & mask
+                    correct_out = execute_flexible_operation(op, in1 & mask, in2 & mask, self.elen, eew) & mask
                     self.assertEqual(returned_out, correct_out)
 
         return process

@@ -134,13 +134,17 @@ def generate_register_set(max_bits: int, *, support_vector=False):
     }
 
 
-def generate_exec_fn(optypes: Optional[Iterable[OpType]] = None):
+def generate_exec_fn(optypes: Optional[Iterable[OpType]] = None, funct7 : Optional[Iterable[Funct7] | Iterable[int]] = None, funct3 : Optional[Iterable[Funct3]] = None):
     if optypes is None:
         optypes = list(OpType)
+    if funct7 is None:
+        funct7 = list(Funct7)
+    if funct3 is None:
+        funct3= list(Funct3)
     return {
         "op_type": random.choice(list(optypes)),
-        "funct3": random.choice(list(Funct3)),
-        "funct7": random.choice(list(Funct7)),
+        "funct3": random.choice(list(funct3)),
+        "funct7": random.choice(list(funct7)),
     }
 
 
@@ -315,6 +319,11 @@ def signed_to_int(x: int, xlen: int) -> int:
     """
     return x | -(x & (2 ** (xlen - 1)))
 
+def int_to_unsigned(x: int, xlen : int):
+    """
+    Interpret `x` as a unsigned value.
+    """
+    return x % 2**xlen
 
 def guard_nested_collection(cont: Any, t: Type[T]) -> TypeGuard[_T_nested_collection[T]]:
     if isinstance(cont, (list, dict)):
