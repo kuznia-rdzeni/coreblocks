@@ -94,8 +94,8 @@ tiny_core_config = CoreConfiguration(
         RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
         LSUBlockComponent(),
     ),
-    phys_regs_bits=basic_core_config.phys_regs_bits // 2,
-    rob_entries_bits=basic_core_config.rob_entries_bits // 2,
+    phys_regs_bits=basic_core_config.phys_regs_bits - 1,
+    rob_entries_bits=basic_core_config.rob_entries_bits - 1,
 )
 
 # Core configuration with all supported components
