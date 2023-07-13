@@ -9,7 +9,7 @@ from parameterized import parameterized
 from ...common import TestCaseWithSimulator
 
 from coreblocks.params.isa import *
-from coreblocks.fu.vector_unit.flexible_alu import FlexibleAdder, FlexibleElementwiseFunction
+from coreblocks.fu.vector_unit.flexible_functions import FlexibleAdder, FlexibleElementwiseFunction
 
 
 def split_flex(n: int, elen: int, eew: EEW):
