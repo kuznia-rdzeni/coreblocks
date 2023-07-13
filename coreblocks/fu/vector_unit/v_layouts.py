@@ -168,6 +168,7 @@ class VectorAluLayouts:
 
 class VectorBackendLayouts:
     def __init__(self, gen_params: GenParams):
+        common = gen_params.get(CommonLayouts)
         frontend = VectorFrontendLayouts(gen_params)
         v_params = gen_params.v_params
 
@@ -200,3 +201,8 @@ class VectorBackendLayouts:
         self.uploader_old_dst_in = [("old_dst_val", v_params.elen)]
 
         self.mask_extractor_in = [ ("v0", v_params.elen), ("elen_index", v_params.elens_in_bank), ("eew", EEW), ("vm", 1)]
+
+        self.ender_init_in = [
+            ("rob_id", gen_params.rob_entries_bits),
+            ("rp_dst", common.p_register_entry),
+            ]

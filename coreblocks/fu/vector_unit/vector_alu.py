@@ -2,12 +2,9 @@ from amaranth import *
 from typing import Callable
 from enum import IntFlag, auto
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import *
 from coreblocks.utils import *
 from coreblocks.params import *
-from coreblocks.utils.fifo import *
 from coreblocks.fu.vector_unit.v_layouts import *
-from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.flexible_functions import *
 from coreblocks.fu.fu_decoder import DecoderManager
 
