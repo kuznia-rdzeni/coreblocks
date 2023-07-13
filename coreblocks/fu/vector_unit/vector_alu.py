@@ -136,11 +136,11 @@ class FlexibleAluExecutor(Elaboratable):
             with OneHotCase(VectorAluFn.Fn.SEQ):   # Set if equal
                 self.create_flexible_elementwise_function(m, "flexible_seq", lambda x, y: Mux(x == y, 1, 0))
             with OneHotCase(VectorAluFn.Fn.XOR):   # Bitwise xor
-                self.create_flexible_elementwise_function(m, "flexible_xor", lambda x, y: x ^ y) # TODO REMOVE
+                m.d.comb += self.out.eq(self.in1 ^ self.in2)
             with OneHotCase(VectorAluFn.Fn.OR):   # Bitwise or
-                self.create_flexible_elementwise_function(m, "flexible_or", lambda x, y: x | y)
+                m.d.comb += self.out.eq(self.in1 | self.in2)
             with OneHotCase(VectorAluFn.Fn.AND):   # Bitwise and
-                self.create_flexible_elementwise_function(m, "flexible_and", lambda x, y: x & y)
+                m.d.comb += self.out.eq(self.in1 & self.in2)
             with OneHotCase(VectorAluFn.Fn.MIN): 
                 self.create_flexible_elementwise_function(m, "flexible_min", lambda x, y: Mux(x.as_signed() < y.as_signed(), x, y))
             with OneHotCase(VectorAluFn.Fn.MINU): 
