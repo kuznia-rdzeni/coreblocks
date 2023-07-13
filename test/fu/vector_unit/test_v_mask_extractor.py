@@ -15,7 +15,7 @@ class TestVectorMaskExtractor(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
         self.gen_params = GenParams(test_vector_core_config)
-        self.test_number = 10
+        self.test_number = 100
         self.v_params = self.gen_params.v_params
 
         self.layout = VectorBackendLayouts(self.gen_params)
@@ -31,30 +31,32 @@ class TestVectorMaskExtractor(TestCaseWithSimulator):
         self.received_data = mask
 
     def generate_input(self):
+        while True:
+            eew = random.choice(list(EEW))
+            if eew_to_bits(eew) <= self.v_params.elen:
+                break
         return {
-                "s3" : random.randrange(2**self.v_params.elen),
+                "v0" : random.randrange(2**self.v_params.elen),
                 "elen_index" : random.randrange(self.v_params.elens_in_bank),
-                "eew" : random.choice(list(EEW)),
+                "eew" : eew,
                 "vm" : random.randrange(2),
                 }
 
     def check(self, input):
-        print(input, self.received_data)
-        print(hex(input["s3"]))
         if input["vm"]:
             self.assertEqual(self.received_data, 2**self.v_params.bytes_in_elen -1)
             return
         part_width = self.v_params.elen // eew_to_bits(input["eew"])
         parts_in_elen = self.v_params.elen // part_width # for each `input` this is equal to eew_to_bits(input["eew"])
         idx = input["elen_index"] % parts_in_elen
-        mask = (input["s3"] >> (idx*part_width)) & (2**part_width - 1)
+        elem_mask = (input["v0"] >> (idx*part_width)) & (2**part_width - 1)
+        mask = elem_mask_to_byte_mask(self.v_params.elen, elem_mask, input["eew"])
         self.assertEqual(mask, self.received_data)
 
 
     def process(self):
         for _ in range(self.test_number):
             input = self.generate_input()
-            print("issue", input)
             yield from self.circ.issue.call(input)
             self.assertIsNotNone(self.received_data)
             self.check(input)

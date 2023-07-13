@@ -87,3 +87,16 @@ def expand_mask(mask):
         if b == "1":
             m |= 0xFF
     return m
+
+def elem_mask_to_byte_mask(elen, mask, eew):
+    m = 0
+    bits = eew_to_bits(eew)
+    mask = ("{:0" + str(elen//bits) + "b}").format(mask)
+    while elen !=0:
+        elen -= bits
+        m <<= (bits // 8)
+        if mask[0] == "1":
+            m |= 2**(bits // 8) - 1
+        mask = mask[1:]
+    return m
+

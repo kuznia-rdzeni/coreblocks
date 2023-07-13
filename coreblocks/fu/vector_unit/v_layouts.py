@@ -187,4 +187,4 @@ class VectorBackendLayouts:
         self.mask_extractor_out = self.uploader_mask_in = [ ("mask", v_params.bytes_in_elen) ]
         self.uploader_old_dst_in = [("old_dst_val", v_params.elen)]
 
-        self.mask_extractor_in = [ ("s3", v_params.elen), ("elen_index", v_params.elens_in_bank), ("eew", EEW), ("vm", 1)]
+        self.mask_extractor_in = [ ("v0", v_params.elen), ("elen_index", v_params.elens_in_bank), ("eew", EEW), ("vm", 1)]

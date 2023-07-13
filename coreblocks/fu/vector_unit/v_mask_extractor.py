@@ -14,7 +14,7 @@ def elem_mask_to_byte_mask(m : TModule, v_params : VectorParameters, elem_mask :
     with m.Switch(eew):
         for eew_iter in EEW:
             with m.Case(eew_iter):
-                m.d.av_comb += result.eq(Cat([Repl(bit, int(eew_iter) + 1) for bit in elem_mask[:v_params.elen//eew_to_bits(eew_iter)]]))
+                m.d.av_comb += result.eq(Cat([Repl(bit, 2**int(eew_iter)) for bit in elem_mask[:v_params.elen//eew_to_bits(eew_iter)]]))
     return result
                 
 
@@ -32,16 +32,19 @@ class VectorMaskExtractor(Elaboratable):
 
         # elen_index - index from which standard operands have been fetched
         @def_method(m, self.issue)
-        def _(s3 : Value, elen_index : Value, eew : Value, vm : Value):
-            number_of_described_elements = 8<<eew
-            rest = elen_index & (1- number_of_described_elements)
+        def _(v0 : Value, elen_index : Value, eew : Value, vm : Value):
+            number_of_described_elements=Signal(6)
+            m.d.comb += number_of_described_elements.eq( 8<<eew)
+            rest = Signal(32, name = "rest")
+            m.d.comb += rest.eq(elen_index & (number_of_described_elements - 1))
             start = Signal(log2_int(self.v_params.elen))
-            m.d.top_comb += start.eq(rest << eew)
+            m.d.comb += start.eq((rest << bits_to_eew(self.v_params.elen) ) >> eew)
             mask = Signal(self.v_params.bytes_in_elen)
             with m.Switch(eew):
                 for eew_iter in EEW:
-                    with m.Case(eew_iter):
-                        m.d.comb += mask.eq(s3.bit_select(start, self.v_params.elen // eew_to_bits(eew_iter)))
+                    if eew_to_bits(eew_iter)<=self.v_params.elen:
+                        with m.Case(eew_iter):
+                            m.d.comb += mask.eq(v0.bit_select(start, self.v_params.elen // eew_to_bits(eew_iter)))
             out_mask = Signal(self.v_params.bytes_in_elen)
             with m.If(vm==0):
                 m.d.comb += out_mask.eq(elem_mask_to_byte_mask(m, self.v_params, mask, eew))
