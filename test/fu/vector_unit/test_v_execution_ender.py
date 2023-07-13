@@ -4,7 +4,6 @@ from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_execution_ender import *
-from coreblocks.transactions.lib import *
 from test.fu.vector_unit.common import *
 from collections import deque
 
