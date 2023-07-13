@@ -130,7 +130,7 @@ class FlexibleElementwiseFunction(Elaboratable):
         Results of the application `op` on `in1` and `in2`.
     """
 
-    def __init__(self, out_width: EEW, op: Callable[[ValueLike, ValueLike], ValueLike]):
+    def __init__(self, out_width: EEW, op: Callable[[Value, Value], ValueLike]):
         """
         Parameters
         ----------
@@ -151,7 +151,7 @@ class FlexibleElementwiseFunction(Elaboratable):
         m = TModule()
 
         if self.out_width == EEW.w8:
-            m.d.comb += self.out_data.eq(self.op(self.in1, self.in2))
+            m.d.top_comb += self.out_data.eq(self.op(self.in1, self.in2))
         else:
             smaller_out_width_bits = self.out_width_bits // 2
 
@@ -166,9 +166,9 @@ class FlexibleElementwiseFunction(Elaboratable):
             m.d.top_comb += appl_up.in2.eq(self.in2 >> smaller_out_width_bits)
 
             with m.If(self.eew == self.out_width):
-                m.d.comb += self.out_data.eq(self.op(self.in1, self.in2))
+                m.d.av_comb += self.out_data.eq(self.op(self.in1, self.in2))
             with m.Else():
-                m.d.comb += self.out_data.eq((appl_up.out_data << smaller_out_width_bits) | appl_down.out_data)
+                m.d.av_comb += self.out_data.eq((appl_up.out_data << smaller_out_width_bits) | appl_down.out_data)
 
         return m
 

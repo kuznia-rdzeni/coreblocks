@@ -153,6 +153,16 @@ class VectorFrontendLayouts:
             ("rp_v0", [("id", gen_params.phys_regs_bits)]),
         ]
 
+class VectorAluLayouts:
+    def __init__(self, gen_params : GenParams):
+        common = gen_params.get(CommonLayouts)
+        v_params = gen_params.v_params
+        self.alu_in = [
+                ("s1", v_params.vrp_count_bits),
+                ("s2", v_params.vrp_count_bits),
+                ("s3", v_params.vrp_count_bits),
+            ("exec_fn", common.exec_fn),
+        ]
 
 class VectorBackendLayouts:
     def __init__(self, gen_params: GenParams):

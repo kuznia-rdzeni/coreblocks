@@ -31,7 +31,7 @@ class Decoder(Elaboratable):
 
         for op in self.ops:
             optype_match = self.exec_fn.op_type == op[1] if self.check_optype else 1
-            funct3_match = self.exec_fn.funct3 == op[2] if len(op) >= 3 else 1
+            funct3_match = self.exec_fn.funct3 == op[2] if len(op) >= 3 and op[2] is not None else 1
             funct7_match = self.exec_fn.funct7 == op[3] if len(op) >= 4 else 1
 
             cond = optype_match & funct3_match & funct7_match
