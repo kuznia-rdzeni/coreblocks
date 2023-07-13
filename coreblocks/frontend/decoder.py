@@ -402,10 +402,20 @@ class InstrDecoder(Elaboratable):
             self._extract(20, self.funct12),
         ]
 
+        rd_field = Signal(self.gen.isa.reg_field_bits)
+        rs1_field = Signal(self.gen.isa.reg_field_bits)
+        rs2_field = Signal(self.gen.isa.reg_field_bits)
+
         m.d.comb += [
-            self._extract(7, self.rd),
-            self._extract(15, self.rs1),
-            self._extract(20, self.rs2),
+            self._extract(7, rd_field),
+            self._extract(15, rs1_field),
+            self._extract(20, rs2_field),
+        ]
+
+        m.d.comb += [
+            self.rd.eq(rd_field),
+            self.rs1.eq(rs1_field),
+            self.rs2.eq(rs2_field),
         ]
 
         rd_invalid = Signal()
@@ -485,11 +495,13 @@ class InstrDecoder(Elaboratable):
             self._extract(28, self.fm),
         ]
 
+        # Check if register field bits outside of logical register space are zeroed
+
         register_space_invalid = Signal()
         m.d.comb += register_space_invalid.eq(
-            (self.rd_v & instr[7 + self.gen.isa.reg_cnt_log : 7 + self.gen.isa.reg_field_bits].any())
-            | (self.rs1_v & instr[15 + self.gen.isa.reg_cnt_log : 15 + self.gen.isa.reg_field_bits].any())
-            | (self.rs2_v & instr[20 + self.gen.isa.reg_cnt_log : 20 + self.gen.isa.reg_field_bits].any())
+            (self.rd_v & (rd_field[len(self.rd) :]).any())
+            | (self.rs1_v & (rs1_field[len(self.rs1) :]).any())
+            | (self.rs2_v & (rs2_field[len(self.rs2) :]).any())
         )
 
         # CSR address
