@@ -9,10 +9,12 @@ from coreblocks.fu.vector_unit.utils import *
 __all__ = ["VectorExecutionEnder"]
 
 class VectorExecutionEnder(Elaboratable):
-    def __init__(self, gen_params:GenParams, announce : Method):
+    def __init__(self, gen_params:GenParams, announce : Method, update_vvrs : Method, scoreboard_set : Method):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.announce = announce
+        self.update_vvrs = update_vvrs
+        self.scoreboard_set = scoreboard_set
 
         self.layouts = VectorBackendLayouts(self.gen_params)
         self.init = Method(i = self.layouts.ender_init_in)
@@ -32,6 +34,9 @@ class VectorExecutionEnder(Elaboratable):
             self.announce(m, exception = 0, result = 0, rob_id = rob_id_saved, rp_dst = rp_dst_saved)
             m.d.sync += valid.eq(0)
             m.d.sync += bank_ended.eq(0)
+            with m.If(rp_dst_saved.type == RegisterType.V):
+                self.scoreboard_set(m, id = rp_dst_saved.ip, dirty = 1)
+                self.update_vvrs(m, tag = rp_dst_saved)
 
         @loop_def_method(m, self.end_list, ready_list=lambda _:valid)
         def _(i):

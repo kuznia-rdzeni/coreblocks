@@ -9,18 +9,10 @@ from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.vrs import *
 from coreblocks.fu.vector_unit.v_insert_to_vvrs import *
 from coreblocks.structs_common.scoreboard import *
-from coreblocks.fu.vector_unit.v_needed_regs import *
-from coreblocks.fu.vector_unit.v_len_getter import *
-from coreblocks.fu.vector_unit.v_elems_downloader import *
-from coreblocks.fu.vector_unit.v_elems_uploader import *
-from coreblocks.fu.vector_unit.v_mask_extractor import *
 from coreblocks.fu.vector_unit.v_execution_ender import *
-from coreblocks.fu.vector_unit.vector_alu import *
-from coreblocks.fu.vector_unit.vrf import *
-from coreblocks.fu.vector_unit.v_execution_data_spliter import *
+from coreblocks.fu.vector_unit.v_executor import *
 
 # TODO optimise by allowing to start porcessing new register while old is still being uploaded
-
 # TODO - downloader should download v0 from address//8
 # TODO - initialize regs somewhere
 # TODO - handle rp_dst == RegisterType.X
@@ -41,20 +33,17 @@ class VectorBackend(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        # TODO pamiętać o podłączeniu rozgłaszania
         m.submodules.ready_scoreboard = ready_scoreboard = Scoreboard(self.v_params.vrp_count, superscalarity = 4)
         m.submodules.vvrs = vvrs = VVRS(self.gen_params, self.v_params.vvrs_entries_bits)
-        m.submodules.insert_to_vvrs = insert_to_vvrs = VectorInsertToVVRS(self.gen_params, vvrs.select, vvrs.insert, ready_scoreboard.get_dirty_list)
+        m.submodules.insert_to_vvrs = insert_to_vvrs = VectorInsertToVVRS(self.gen_params, vvrs.select, vvrs.insert, ready_scoreboard.get_dirty_list, ready_scoreboard.set_dirty_list[0])
         
         self.put_instr.proxy(m, insert_to_vvrs.issue)
 
-        m.submodules.ender = ender = VectorExecutionEnder(self.gen_params, self.announce)
-        needed_regs_write_to_fifos = []
+        m.submodules.ender = ender = VectorExecutionEnder(self.gen_params, self.announce, vvrs.update, ready_scoreboard.set_dirty_list[1])
+        executors = [VectorExecutor(self.gen_params, i, ender.end_list[i]) for i in range(self.v_params.register_bank_count)]
+        m.submodules.executors = ModuleConnector(*executors)
 
-            #TODO  ender
-        needed_regs_product_pusher = MethodProduct(needed_regs_write_to_fifos)
-        wakeup_select = WakeupSelect(gen_params = self.gen_params, get_ready = vvrs.get_ready_list[0], take_row = vvrs.take, issue = needed_regs_transformer.method, row_layout = self.layouts.vvrs_out)
-
-            
+        m.submodules.input_product = input_product = MethodProduct([executor.issue for executor in executors])
+        m.submodules.wakeup_select = wakeup_select = WakeupSelect(gen_params = self.gen_params, get_ready = vvrs.get_ready_list[0], take_row = vvrs.take, issue = input_product.method, row_layout = self.layouts.vvrs_out)
 
         return m

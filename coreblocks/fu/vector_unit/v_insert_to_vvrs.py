@@ -12,11 +12,12 @@ from coreblocks.structs_common.scoreboard import *
 __all__ = ["VectorInsertToVVRS"]
 
 class VectorInsertToVVRS(Elaboratable):
-    def __init__(self, gen_params : GenParams, select : Method, insert : Method, scoreboard_get_list : list[Method]):
+    def __init__(self, gen_params : GenParams, select : Method, insert : Method, scoreboard_get_list : list[Method], scoreboard_set : Method):
         self.gen_params = gen_params
         self.select = select
         self.insert = insert
         self.scoreboard_get_list = scoreboard_get_list
+        self.scoreboard_set = scoreboard_set
 
         if len(self.scoreboard_get_list) < 4:
             raise ValueError("VectorInsertToVVRS need minimum 4 methods to read scoreboard.")
@@ -36,6 +37,8 @@ class VectorInsertToVVRS(Elaboratable):
             m.d.comb += assign(rs_data, arg)
             for i, rp in enumerate(["rp_s1_rdy", "rp_s2_rdy", "rp_s3_rdy", "rp_v0_rdy"]):
                 m.d.comb += rs_data[rp].eq(self.scoreboard_get_list[1](m).dirty)
+            with m.If(arg.rp_dst.type == RegisterType.V):
+                self.scoreboard_set(m, id = arg.rp_dst.id, dirty=0)
             insert_data = { "rs_entry_id" : rs_entry_id, "rs_data" : rs_data }
             self.insert(m, insert_data)
 
