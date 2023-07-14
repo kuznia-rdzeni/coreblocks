@@ -175,7 +175,7 @@ class VectorBackendLayouts:
 
         self.executor_in = self.vvrs_out = self.vvrs_in = frontend.instr_to_vvrs
 
-        self.len_getter_out = [("elems_len", gen_params.v_params.elens_in_bank), ("last_mask", v_params.bytes_in_elen)]
+        self.len_getter_out = [("elens_len", gen_params.v_params.elens_in_bank_bits), ("last_mask", v_params.bytes_in_elen)]
         self.needed_regs_out = [("rp_s1", 1), ("rp_s2", 1), ("rp_s3", 1), ("rp_dst", 1)]
         self.downloader_in = [
                 ("s1", v_params.vrp_count_bits),

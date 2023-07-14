@@ -21,8 +21,8 @@ class TestVectorLenGetter(TestCaseWithSimulator):
     def setUp(self):
         random.seed(self.seed)
         self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = test_bank_count)))
-        self.test_number = 30
-        self.max_vl = 1024
+        self.test_number = 50
+        self.max_vl = 128
         self.v_params = self.gen_params.v_params
 
         self.layout = VectorBackendLayouts(self.gen_params)
@@ -39,11 +39,32 @@ class TestVectorLenGetter(TestCaseWithSimulator):
     def process(self):
         for _ in range(self.test_number):
             instr, _ = self.generate_vector_instr(self.gen_params, self.layout.executor_in, max_vl = self.max_vl)
-            elems_len = (yield from self.circ.issue.call(instr))["elems_len"]
+            result = (yield from self.circ.issue.call(instr))
             elems_in_bank = self.gen_params.v_params.eew_to_elems_in_bank[instr["vtype"]["sew"]]
-            end_fragment = instr["vtype"]["vl"] // elems_in_bank
-            expected_len = instr["vtype"]["vl"] % elems_in_bank if end_fragment == self.fragment_index else (0 if end_fragment <self.fragment_index else elems_in_bank)
-            self.assertEqual(elems_len, expected_len)
+            end_fragment = (instr["vtype"]["vl"] - 1) // elems_in_bank
+
+            elems_in_fragment = (instr["vtype"]["vl"] % elems_in_bank)
+            elems_in_elen = self.v_params.elen // eew_to_bits(instr["vtype"]["sew"])
+
+            if end_fragment == self.fragment_index:
+                if elems_in_fragment == 0:
+                    expected_len = self.v_params.elens_in_bank
+                else:
+                    expected_len = elems_in_fragment // elems_in_elen 
+                expected_last_mask = int("0"+"1"*(elems_in_fragment % elems_in_elen), 2) 
+                if elems_in_fragment % elems_in_elen !=0:
+                    expected_len += 1
+                else:
+                    expected_last_mask = 2**elems_in_elen - 1
+            elif end_fragment <self.fragment_index:
+                expected_len = 0
+                expected_last_mask = 0
+            else:
+                expected_len = self.v_params.elens_in_bank
+                expected_last_mask = 2**elems_in_elen - 1
+           
+            self.assertEqual(result["elens_len"], expected_len)
+            self.assertEqual(result["last_mask"], expected_last_mask)
 
     def test_random(self):
         with self.run_simulation(self.circ) as sim:

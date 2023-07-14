@@ -34,7 +34,7 @@ class VectorParameters:
             raise ValueError("Number of elements in vector register not divisable by number of banks.")
 
         self.elens_in_bank = self.elens_in_vlen // self.register_bank_count
-        self.elens_in_bank_bits = log2_int(self.elens_in_bank, False)
+        self.elens_in_bank_bits = bits_for(self.elens_in_bank, False)
 
         self.eew_to_elems_in_bank = {eew: self.vlen // eew_to_bits(eew) // self.register_bank_count for eew in EEW}
         self.eew_to_elems_in_bank_bits = {eew: bits_for(self.eew_to_elems_in_bank[eew]) for eew in EEW}

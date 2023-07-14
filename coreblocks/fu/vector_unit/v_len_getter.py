@@ -23,7 +23,7 @@ class VectorLenGetter(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.binary_to_onehot =binary_to_onehot = Decoder(self.v_params.bytes_in_elen)
+        m.submodules.binary_to_onehot =binary_to_onehot = Decoder(self.v_params.bytes_in_elen+1)
 
         elens_len = Signal(self.v_params.elens_in_bank_bits)
         last_mask = Signal(self.v_params.bytes_in_elen)
@@ -31,22 +31,24 @@ class VectorLenGetter(Elaboratable):
         def _ (arg):
             with m.Switch(arg.vtype.sew):
                 for sew in SEW:
-                    with m.Case(sew):
-                        with m.If(arg.vtype.vl > self.end_element[sew]):
-                            m.d.comb += elens_len.eq(self.v_params.elens_in_bank)
-                            m.d.comb += last_mask.eq(2**(self.v_params.elen // eew_to_bits(sew)) - 1)
-                        with m.Elif(arg.vtype.vl > self.first_element[sew]):
-                            # TODO optimisation: If the number of elements in register bank is power of two,
-                            # then we can use `k`-last bits instead of doing subtraction
-                            elems_count = Signal().like(arg.vtype.vl)
-                            elems_count.eq(arg.vtype.vl - self.first_element[sew])
-                            m.d.comb += elens_len.eq( elems_count >> (bits_to_eew(self.v_params.elen) - sew))
-                            elem_count_modulo = elems_count & (2**(bits_to_eew(self.v_params.elen) - sew) - 1)
-                            m.d.top_comb += binary_to_onehot.i.eq(elem_count_modulo)
-                            m.d.comb += last_mask.eq(binary_to_onehot.o - 1)
-                        with m.Else():
-                            m.d.comb += elens_len.eq(0)
-                            m.d.comb += last_mask.eq(0)
+                    if eew_to_bits(sew)<=self.v_params.elen:
+                        with m.Case(sew):
+                            with m.If(arg.vtype.vl > self.end_element[sew]):
+                                m.d.comb += elens_len.eq(self.v_params.elens_in_bank)
+                                m.d.comb += last_mask.eq(2**(self.v_params.elen // eew_to_bits(sew)) - 1)
+                            with m.Elif(arg.vtype.vl > self.first_element[sew]):
+                                # TODO optimisation: If the number of elements in register bank is power of two,
+                                # then we can use `k`-last bits instead of doing subtraction
+                                elems_count = Signal().like(arg.vtype.vl)
+                                m.d.top_comb += elems_count.eq(arg.vtype.vl - self.first_element[sew])
+                                elem_count_modulo = Signal(bits_for(self.v_params.bytes_in_elen))
+                                m.d.top_comb += elem_count_modulo.eq(elems_count & (2**(bits_to_eew(self.v_params.elen) - sew) - 1))
+                                m.d.comb += elens_len.eq( (elems_count >> (bits_to_eew(self.v_params.elen) - sew)) + elem_count_modulo.any())
+                                m.d.comb += binary_to_onehot.i.eq(elem_count_modulo)
+                                m.d.comb += last_mask.eq(Mux( elem_count_modulo.any(), binary_to_onehot.o - 1 , 2**(self.v_params.elen // eew_to_bits(sew)) - 1))
+                            with m.Else():
+                                m.d.comb += elens_len.eq(0)
+                                m.d.comb += last_mask.eq(0)
             #last_mask is in elems mask format
             return {"elens_len" : elens_len, "last_mask" : last_mask}
 

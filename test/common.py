@@ -29,7 +29,7 @@ from amaranth.sim.core import Command
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans, Adapter, MethodLayout
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode, SEW, LMUL
+from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode, SEW, LMUL, eew_to_bits
 from coreblocks.utils import (
     ValueLike,
     HasElaborate,
@@ -165,7 +165,7 @@ def convert_vtype_to_imm(vtype) -> int:
 
 
 def generate_vtype(gen_params: GenParams, max_vl : Optional[int] = None):
-    sew = random.choice(list(SEW))
+    sew = random.choice([sew for sew in list(SEW) if eew_to_bits(sew) <= gen_params.v_params.elen])
     lmul = random.choice(list(LMUL))
     ta = random.randrange(2)
     ma = random.randrange(2)
