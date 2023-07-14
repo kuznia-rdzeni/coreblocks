@@ -37,7 +37,7 @@ class VectorElemsUploader(Elaboratable):
 
             mask_expanded = Signal(self.v_params.elen)
             m.d.top_comb += mask_expanded.eq(expand_mask(self.v_params, mask))
-            addr = Signal().like(write_counter)
+            addr = Signal(range(self.v_params.elens_in_bank))
             m.d.top_comb += addr.eq(write_counter - 1)
 
             #this implements mask undisturbed policy
@@ -46,12 +46,12 @@ class VectorElemsUploader(Elaboratable):
 
         end_reporter = Transaction()
         self.issue.schedule_before(end_reporter)
-        with end_reporter.body(m, request = write_counter==1 & self.issue.run):
+        with end_reporter.body(m, request = (write_counter==1) & self.issue.run):
             self.report_end(m)
         
         @def_method(m, self.init)
-        def _(vrp_id, ma, elems_len):
-            m.d.sync += write_counter.eq(elems_len)
+        def _(vrp_id, ma, elens_len):
+            m.d.sync += write_counter.eq(elens_len)
             m.d.sync += vrp_id_saved.eq(vrp_id)
 
         return m
