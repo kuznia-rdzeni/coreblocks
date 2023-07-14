@@ -56,7 +56,7 @@ class VectorElemsDownloader(Elaboratable):
                 barrier.write_list[i](m, self.read_resp_list[i].method(m, arg))
 
         with Transaction(name = "downloader_request_trans").body(m, request = instr_valid & (req_counter != 0)):
-            addr = Signal().like(req_counter)
+            addr = Signal(range(self.v_params.elens_in_bank))
             m.d.top_comb += addr.eq(req_counter - 1)
             for i, field_name in enumerate(regs_fields):
                 with m.If (uniqness_checker.valids[i] & instr[field_name + "_needed"]):
@@ -96,10 +96,8 @@ class VectorElemsDownloader(Elaboratable):
         def _(arg):
             m.d.sync += instr.eq(arg)
             m.d.sync += instr_valid.eq(1)
-            counter_start_value = Signal().like(req_counter)
-            m.d.top_comb += counter_start_value.eq
-            m.d.sync += req_counter.eq(counter_start_value)
-            m.d.sync += resp_counter.eq(counter_start_value)
+            m.d.sync += req_counter.eq(arg.elens_len)
+            m.d.sync += resp_counter.eq(arg.elens_len)
             m.d.sync += set_valids_to_barrier.eq(1)
 
         return m

@@ -24,7 +24,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
         self.layout = VectorBackendLayouts(self.gen_params)
 
         vrf = VRFFragment(gen_params = self.gen_params)
-        self.fu_receiver = MethodMock(i=self.layout.fu_data_in)
+        self.fu_receiver = MethodMock(i=self.layout.downloader_data_out)
         self.circ = SimpleTestCircuit(VectorElemsDownloader(self.gen_params, vrf.read_req, vrf.read_resp, self.fu_receiver.get_method()))
         self.write = TestbenchIO(AdapterTrans(vrf.write))
 
@@ -47,7 +47,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
 
     def generate_input(self):
         return {
-            "elems_len" : random.randrange(1, self.v_params.elens_in_bank),
+            "elens_len" : random.randrange(1, self.v_params.elens_in_bank),
             "s1" : random.randrange(self.v_params.vrp_count),
             "s2" : random.randrange(self.v_params.vrp_count),
             "s3" : random.randrange(self.v_params.vrp_count),
@@ -74,7 +74,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
             self.received_data.clear()
             input = self.generate_input()
             yield from self.circ.issue.call(input)
-            while len(self.received_data) < input["elems_len"]:
+            while len(self.received_data) < input["elens_len"]:
                 yield
 
             for field_name in ["s1", "s2", "s3", "v0"]:
