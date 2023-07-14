@@ -43,10 +43,11 @@ class VectorLenGetter(Elaboratable):
                             m.d.comb += elens_len.eq( elems_count >> (bits_to_eew(self.v_params.elen) - sew))
                             elem_count_modulo = elems_count & (2**(bits_to_eew(self.v_params.elen) - sew) - 1)
                             m.d.top_comb += binary_to_onehot.i.eq(elem_count_modulo)
-                            m.d.comb += last_mask.eq(binary_to_onehot.o)
+                            m.d.comb += last_mask.eq(binary_to_onehot.o - 1)
                         with m.Else():
                             m.d.comb += elens_len.eq(0)
                             m.d.comb += last_mask.eq(0)
+            #last_mask is in elems mask format
             return {"elens_len" : elens_len, "last_mask" : last_mask}
 
         return m

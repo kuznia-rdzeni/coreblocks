@@ -29,7 +29,8 @@ class VectorMaskExtractor(Elaboratable):
 
         # elen_index - index from which standard operands have been fetched
         @def_method(m, self.issue)
-        def _(v0 : Value, elen_index : Value, eew : Value, vm : Value):
+        def _(v0 : Value, elen_index : Value, eew : Value, vm : Value, last_mask : Value):
+            #TODO last_mask
             number_of_described_elements = 8<<eew
             rest =elen_index & (number_of_described_elements - 1)
             start = Signal(log2_int(self.v_params.elen))
@@ -42,8 +43,8 @@ class VectorMaskExtractor(Elaboratable):
                             m.d.comb += mask.eq(v0.bit_select(start, self.v_params.elen // eew_to_bits(eew_iter)))
             out_mask = Signal(self.v_params.bytes_in_elen)
             with m.If(vm==0):
-                m.d.comb += out_mask.eq(elem_mask_to_byte_mask(m, self.v_params, mask, eew))
+                m.d.comb += out_mask.eq(mask)
             with m.Else():
                 m.d.comb += out_mask.eq(2**self.v_params.bytes_in_elen-1)
-            self.put_mask(m, mask = out_mask)
+            self.put_mask(m, mask = elem_mask_to_byte_mask(m, self.v_params, out_mask & last_mask, eew))
         return m

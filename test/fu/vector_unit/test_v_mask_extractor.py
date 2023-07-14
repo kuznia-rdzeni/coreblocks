@@ -37,17 +37,19 @@ class TestVectorMaskExtractor(TestCaseWithSimulator):
                 "elen_index" : random.randrange(self.v_params.elens_in_bank),
                 "eew" : eew,
                 "vm" : random.randrange(2),
+                "last_mask" : random.randrange(2**(self.v_params.elen // eew_to_bits(eew))),
                 }
 
     def check(self, input):
+        byte_mask_last = elem_mask_to_byte_mask(self.v_params.elen, input["last_mask"], input["eew"])
         if input["vm"]:
-            self.assertEqual(self.received_data, 2**self.v_params.bytes_in_elen -1)
+            self.assertEqual(self.received_data, (2**self.v_params.bytes_in_elen -1) & byte_mask_last)
             return
         part_width = self.v_params.elen // eew_to_bits(input["eew"])
         parts_in_elen = self.v_params.elen // part_width # for each `input` this is equal to eew_to_bits(input["eew"])
         idx = input["elen_index"] % parts_in_elen
         elem_mask = (input["v0"] >> (idx*part_width)) & (2**part_width - 1)
-        mask = elem_mask_to_byte_mask(self.v_params.elen, elem_mask, input["eew"])
+        mask = elem_mask_to_byte_mask(self.v_params.elen, elem_mask, input["eew"]) & byte_mask_last
         self.assertEqual(mask, self.received_data)
 
 
