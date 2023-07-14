@@ -96,8 +96,10 @@ class VectorElemsDownloader(Elaboratable):
         def _(arg):
             m.d.sync += instr.eq(arg)
             m.d.sync += instr_valid.eq(1)
-            m.d.sync += req_counter.eq(arg.elems_len)
-            m.d.sync += resp_counter.eq(arg.elems_len)
+            counter_start_value = Signal().like(req_counter)
+            m.d.top_comb += counter_start_value.eq
+            m.d.sync += req_counter.eq(counter_start_value)
+            m.d.sync += resp_counter.eq(counter_start_value)
             m.d.sync += set_valids_to_barrier.eq(1)
 
         return m

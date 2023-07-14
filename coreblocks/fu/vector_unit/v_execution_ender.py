@@ -9,13 +9,14 @@ from coreblocks.fu.vector_unit.utils import *
 __all__ = ["VectorExecutionEnder"]
 
 class VectorExecutionEnder(Elaboratable):
-    def __init__(self, gen_params:GenParams, retire : Method):
+    def __init__(self, gen_params:GenParams, announce : Method):
         self.gen_params = gen_params
-        self.retire = retire
+        self.v_params = self.gen_params.v_params
+        self.announce = announce
 
         self.layouts = VectorBackendLayouts(self.gen_params)
         self.init = Method(i = self.layouts.ender_init_in)
-        self.end = Method()
+        self.end_list = [Method() for _ in range(self.v_params.register_bank_count)]
 
     def elaborate(self, platform):
         m = TModule()
@@ -23,14 +24,20 @@ class VectorExecutionEnder(Elaboratable):
         rp_dst_saved = Record(self.gen_params.get(CommonLayouts).p_register_entry)
         rob_id_saved = Signal(self.gen_params.rob_entries_bits)
         valid = Signal()
+        bank_ended = Signal(self.v_params.register_bank_count)
 
-        self.end.schedule_before(self.init)
-        @def_method(m, self.end, ready=valid)
-        def _():
-            self.retire(m, exception = 0, result = 0, rob_id = rob_id_saved, rp_dst = rp_dst_saved)
+        end_transaction = Transaction()
+        end_transaction.schedule_before(self.init)
+        with end_transaction.body(m, request = bank_ended.all()):
+            self.announce(m, exception = 0, result = 0, rob_id = rob_id_saved, rp_dst = rp_dst_saved)
             m.d.sync += valid.eq(0)
+            m.d.sync += bank_ended.eq(0)
 
-        @def_method(m, self.init, ready = ~valid | self.end.run)
+        @loop_def_method(m, self.end_list, ready_list=lambda _:valid)
+        def _(i):
+            m.d.sync += bank_ended[i].eq(1)
+
+        @def_method(m, self.init, ready = ~valid | end_transaction.grant)
         def _(rp_dst, rob_id):
             m.d.sync += rp_dst_saved.eq(rp_dst)
             m.d.sync += rob_id_saved.eq(rob_id)

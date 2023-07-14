@@ -169,12 +169,13 @@ class VectorAluLayouts:
 class VectorBackendLayouts:
     def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)
+        common_vector = gen_params.get(VectorCommonLayouts)
         frontend = VectorFrontendLayouts(gen_params)
         v_params = gen_params.v_params
 
         self.executor_in = self.vvrs_out = self.vvrs_in = frontend.instr_to_vvrs
 
-        self.len_getter_out = [("elems_len", gen_params.v_params.eew_to_elems_in_bank_bits[EEW.w8])]
+        self.len_getter_out = [("elems_len", gen_params.v_params.elens_in_bank), ("last_mask", v_params.bytes_in_elen)]
         self.needed_regs_out = [("rp_s1", 1), ("rp_s2", 1), ("rp_s3", 1), ("rp_dst", 1)]
         self.downloader_in = [
                 ("s1", v_params.vrp_count_bits),
@@ -185,22 +186,26 @@ class VectorBackendLayouts:
                 ("s3_needed", 1),
                 ("v0", v_params.vrp_count_bits),
                 ("v0_needed", 1),
-                ("elems_len", v_params.elens_in_bank_bits),
+                ("elens_len", v_params.elens_in_bank_bits),
+                ("last_mask", v_params.bytes_in_elen),
                 ]
 
-        self.fu_data_in = self.downloader_data_out = [
+        self.data_splitter_in = self.downloader_data_out = [
                 ("s1", v_params.elen),
                 ("s2", v_params.elen),
                 ("s3", v_params.elen),
                 ("v0", v_params.elen),
+                ("elen_index", v_params.elens_in_bank),
+                ("last_mask", v_params.bytes_in_elen),
                 ]
+        self.data_splitter_init_in = [ ("vtype", common_vector.vtype), ("exec_fn", common.exec_fn), ("s1_val", gen_params.isa.xlen)]
 
-        self.uploader_result_in = [ ("dst_val", v_params.elen) ] 
-        self.uploader_init_in = [ ("vrp_id", v_params.vrp_count_bits), ("ma", 1), ("elems_len", v_params.elens_in_bank_bits)]
+        self.uploader_result_in = self.fu_data_out = [ ("dst_val", v_params.elen) ] 
+        self.uploader_init_in = [ ("vrp_id", v_params.vrp_count_bits), ("ma", 1), ("elens_len", v_params.elens_in_bank_bits)]
         self.mask_extractor_out = self.uploader_mask_in = [ ("mask", v_params.bytes_in_elen) ]
         self.uploader_old_dst_in = [("old_dst_val", v_params.elen)]
 
-        self.mask_extractor_in = [ ("v0", v_params.elen), ("elen_index", v_params.elens_in_bank), ("eew", EEW), ("vm", 1)]
+        self.mask_extractor_in = [ ("v0", v_params.elen), ("elen_index", v_params.elens_in_bank), ("eew", EEW), ("vm", 1), ("last_mask", v_params.bytes_in_elen)]
 
         self.ender_init_in = [
             ("rob_id", gen_params.rob_entries_bits),

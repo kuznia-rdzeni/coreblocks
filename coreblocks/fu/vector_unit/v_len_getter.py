@@ -1,12 +1,9 @@
 from amaranth import *
+from amaranth.lib.coding import Decoder
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import *
 from coreblocks.utils import *
 from coreblocks.params import *
-from coreblocks.utils.fifo import *
 from coreblocks.fu.vector_unit.v_layouts import *
-from coreblocks.fu.vector_unit.vrs import *
-from coreblocks.structs_common.scoreboard import *
 
 __all__ = ["VectorLenGetter"]
 
@@ -26,24 +23,30 @@ class VectorLenGetter(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        wskaznik = Signal(2, name="wskaznik")
-        elems_len = Signal(self.v_params.eew_to_elems_in_bank_bits[EEW.w8])
+        m.submodules.binary_to_onehot =binary_to_onehot = Decoder(self.v_params.bytes_in_elen)
+
+        elens_len = Signal(self.v_params.elens_in_bank_bits)
+        last_mask = Signal(self.v_params.bytes_in_elen)
         @def_method(m, self.issue)
         def _ (arg):
             with m.Switch(arg.vtype.sew):
                 for sew in SEW:
                     with m.Case(sew):
                         with m.If(arg.vtype.vl > self.end_element[sew]):
-                            m.d.comb += wskaznik.eq(1)
-                            m.d.comb += elems_len.eq(self.v_params.eew_to_elems_in_bank[sew])
+                            m.d.comb += elens_len.eq(self.v_params.elens_in_bank)
+                            m.d.comb += last_mask.eq(2**(self.v_params.elen // eew_to_bits(sew)) - 1)
                         with m.Elif(arg.vtype.vl > self.first_element[sew]):
-                            m.d.comb += wskaznik.eq(2)
                             # TODO optimisation: If the number of elements in register bank is power of two,
                             # then we can use `k`-last bits instead of doing subtraction
-                            m.d.comb += elems_len.eq(arg.vtype.vl - self.first_element[sew])
+                            elems_count = Signal().like(arg.vtype.vl)
+                            elems_count.eq(arg.vtype.vl - self.first_element[sew])
+                            m.d.comb += elens_len.eq( elems_count >> (bits_to_eew(self.v_params.elen) - sew))
+                            elem_count_modulo = elems_count & (2**(bits_to_eew(self.v_params.elen) - sew) - 1)
+                            m.d.top_comb += binary_to_onehot.i.eq(elem_count_modulo)
+                            m.d.comb += last_mask.eq(binary_to_onehot.o)
                         with m.Else():
-                            m.d.comb += wskaznik.eq(3)
-                            m.d.comb += elems_len.eq(0)
-            return {"elems_len" : elems_len}
+                            m.d.comb += elens_len.eq(0)
+                            m.d.comb += last_mask.eq(0)
+            return {"elens_len" : elens_len, "last_mask" : last_mask}
 
         return m

@@ -908,7 +908,8 @@ class CatTrans(Elaboratable):
             ddata = Record.like(self.dst.data_in)
             self.dst(m, ddata)
 
-            m.d.comb += ddata.eq(Cat(sdata1, sdata2))
+            m.d.top_comb += assign(ddata, sdata1, fields = AssignType.ALL)
+            m.d.top_comb += assign(ddata, sdata2, fields = AssignType.ALL)
 
         return m
 
