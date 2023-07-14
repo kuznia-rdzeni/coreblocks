@@ -1039,7 +1039,7 @@ class MemoryBank(Elaboratable):
         self.elem_count = elem_count
         self.granularity = granularity
         self.width = len(Record(self.data_layout))
-        self.addr_width = bits_for(self.elem_count - 1)
+        self.addr_width = log2_int(self.elem_count, False)
         self.safe_writes = safe_writes
 
         self.read_req_layout = [("addr", self.addr_width)]
