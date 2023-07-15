@@ -433,7 +433,7 @@ class CondVar():
         yield Settle()
         self.var = False
 
-class Barrier():
+class SimBarrier():
     """
     No support for situation, where there can be more process which want to use Barrier
     that `count`. In other words number of process using this barrier must be `count`.

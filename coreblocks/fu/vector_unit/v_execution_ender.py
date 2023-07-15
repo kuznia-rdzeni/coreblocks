@@ -35,8 +35,9 @@ class VectorExecutionEnder(Elaboratable):
             m.d.sync += valid.eq(0)
             m.d.sync += bank_ended.eq(0)
             with m.If(rp_dst_saved.type == RegisterType.V):
-                self.scoreboard_set(m, id = rp_dst_saved.ip, dirty = 1)
-                self.update_vvrs(m, tag = rp_dst_saved)
+                # dirty isn't the best name - 1 marks simply that register is ready
+                self.scoreboard_set(m, id = rp_dst_saved.id, dirty = 1)
+                self.update_vvrs(m, tag = rp_dst_saved, value=0)
 
         @loop_def_method(m, self.end_list, ready_list=lambda _:valid)
         def _(i):
