@@ -24,8 +24,8 @@ from ..common import (
     MethodMock,
     CondVar,
     Now,
+    SimBarrier,
 )
-from ..common import Barrier as SimBarrier
 
 
 class RevConnect(Elaboratable):
