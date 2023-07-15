@@ -18,6 +18,8 @@ from coreblocks.fu.vector_unit.v_executor import *
 # TODO - handle rp_dst == RegisterType.X
 # TODO - handle tail undisturbed elements
 
+__all__ = ["VectorBackend"]
+
 class VectorBackend(Elaboratable):
     def __init__(self, gen_params: GenParams, announce : Method):
         self.gen_params = gen_params
