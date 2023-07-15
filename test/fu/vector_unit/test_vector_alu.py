@@ -7,28 +7,6 @@ from coreblocks.fu.vector_unit.vector_alu import *
 from test.fu.vector_unit.common import *
 import itertools
 
-def get_funct6_to_op(eew):
-    eew_bits = eew_to_bits(eew)
-    return {
-    Funct6.VADD : lambda x, y: x+y,
-    Funct6.VSUB : lambda x, y: x-y,
-    Funct6.VSRA : lambda x, y: signed_to_int(x, eew_bits)>> (y % 2**log2_int(eew_bits)),
-    Funct6.VSLL : lambda x, y: x<< (y% 2**log2_int(eew_bits)),
-    Funct6.VSRL : lambda x, y: x >> (y % 2**log2_int(eew_bits)),
-    Funct6.VMSLE : lambda x, y: int(signed_to_int(x, eew_bits)<=signed_to_int(y, eew_bits)),
-    Funct6.VMSLEU : lambda x, y: int(x<=y),
-    Funct6.VMSLT : lambda x, y: int(signed_to_int(x, eew_bits)<signed_to_int(y, eew_bits)),
-    Funct6.VMSLTU : lambda x, y: int(x<y),
-    Funct6.VMSEQ : lambda x, y: int(x==y),
-    Funct6.VXOR : lambda x, y: x^y,
-    Funct6.VOR : lambda x, y: x|y,
-    Funct6.VAND : lambda x, y: x&y,
-    Funct6.VMIN : lambda x, y: min(signed_to_int(x, eew_bits),signed_to_int(y, eew_bits)),
-    Funct6.VMINU : lambda x, y: min(x,y),
-    Funct6.VMAX : lambda x, y: max(signed_to_int(x, eew_bits),signed_to_int(y, eew_bits)),
-    Funct6.VMAXU : lambda x, y: max(x, y),
-    }
-
 class TestVectorBasicFlexibleAlu(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)

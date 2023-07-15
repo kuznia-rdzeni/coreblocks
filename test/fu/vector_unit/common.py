@@ -121,3 +121,33 @@ def execute_flexible_operation(op: Callable, in1: int, in2: int, elen: int, eew:
     for elem1, elem2 in zip(split_flex(in1, elen, eew), split_flex(in2, elen, eew)):
         out_elems.append(op(elem1, elem2))
     return glue_flex(out_elems, elen, eew)
+
+
+def get_funct6_to_op(eew):
+    eew_bits = eew_to_bits(eew)
+    return {
+    Funct6.VADD : lambda x, y: x+y,
+    Funct6.VSUB : lambda x, y: x-y,
+    Funct6.VSRA : lambda x, y: signed_to_int(x, eew_bits)>> (y % 2**log2_int(eew_bits)),
+    Funct6.VSLL : lambda x, y: x<< (y% 2**log2_int(eew_bits)),
+    Funct6.VSRL : lambda x, y: x >> (y % 2**log2_int(eew_bits)),
+    Funct6.VMSLE : lambda x, y: int(signed_to_int(x, eew_bits)<=signed_to_int(y, eew_bits)),
+    Funct6.VMSLEU : lambda x, y: int(x<=y),
+    Funct6.VMSLT : lambda x, y: int(signed_to_int(x, eew_bits)<signed_to_int(y, eew_bits)),
+    Funct6.VMSLTU : lambda x, y: int(x<y),
+    Funct6.VMSEQ : lambda x, y: int(x==y),
+    Funct6.VXOR : lambda x, y: x^y,
+    Funct6.VOR : lambda x, y: x|y,
+    Funct6.VAND : lambda x, y: x&y,
+    Funct6.VMIN : lambda x, y: min(signed_to_int(x, eew_bits),signed_to_int(y, eew_bits)),
+    Funct6.VMINU : lambda x, y: min(x,y),
+    Funct6.VMAX : lambda x, y: max(signed_to_int(x, eew_bits),signed_to_int(y, eew_bits)),
+    Funct6.VMAXU : lambda x, y: max(x, y),
+    }
+
+
+def generate_funct7_from_funct6(funct6 : Iterable[Funct6 | int]) -> list[int]:
+    output = []
+    for x in funct6:
+        output += [x*2, x*2 + 1]
+    return output

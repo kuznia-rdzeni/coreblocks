@@ -189,11 +189,13 @@ def generate_instr(
     max_bits: Optional[int] = None,
     support_vector=False,
     optypes: Optional[Iterable[OpType]] = None,
+    funct7 : Optional[Iterable[Funct7] | Iterable[int]] = None,
+    funct3 : Optional[Iterable[Funct3]] = None,
     max_imm: int = 2**32,
     generate_illegal: bool = False,
     non_uniform_s2_val=True,
     overwriting: dict = {},
-    max_vl : Optional[int] = None
+    max_vl : Optional[int] = None,
 ):
     rec = {}
     if max_bits is None:
@@ -214,7 +216,7 @@ def generate_instr(
             if label in field[0]:
                 rec[label] = generate_register_entry(reg_phys_width, support_vector=support_vector)
         if "exec_fn" in field[0]:
-            rec["exec_fn"] = generate_exec_fn(optypes)
+            rec["exec_fn"] = generate_exec_fn(optypes, funct7, funct3)
         if "opcode" in field[0]:
             rec["opcode"] = random.choice(list(Opcode))
         if "imm" in field[0]:
