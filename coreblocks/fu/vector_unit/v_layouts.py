@@ -176,15 +176,15 @@ class VectorBackendLayouts:
         self.executor_in = self.vvrs_out = self.vvrs_in = frontend.instr_to_vvrs
 
         self.len_getter_out = [("elens_len", gen_params.v_params.elens_in_bank_bits), ("last_mask", v_params.bytes_in_elen)]
-        self.needed_regs_out = [("rp_s1", 1), ("rp_s2", 1), ("rp_s3", 1), ("rp_dst", 1)]
+        self.needed_regs_out = [("s1_needed", 1), ("s2_needed", 1), ("s3_needed", 1), ("v0_needed", 1)]
         self.downloader_in = [
-                ("s1", v_params.vrp_count_bits),
+                ("s1", gen_params.phys_regs_bits),
                 ("s1_needed", 1),
-                ("s2", v_params.vrp_count_bits),
+                ("s2", gen_params.phys_regs_bits),
                 ("s2_needed", 1),
-                ("s3", v_params.vrp_count_bits),
+                ("s3", gen_params.phys_regs_bits),
                 ("s3_needed", 1),
-                ("v0", v_params.vrp_count_bits),
+                ("v0", gen_params.phys_regs_bits),
                 ("v0_needed", 1),
                 ("elens_len", v_params.elens_in_bank_bits),
                 ("last_mask", v_params.bytes_in_elen),
@@ -201,7 +201,7 @@ class VectorBackendLayouts:
         self.data_splitter_init_in = [ ("vtype", common_vector.vtype), ("exec_fn", common.exec_fn), ("s1_val", gen_params.isa.xlen)]
 
         self.uploader_result_in = self.fu_data_out = [ ("dst_val", v_params.elen) ] 
-        self.uploader_init_in = [ ("vrp_id", v_params.vrp_count_bits), ("ma", 1), ("elens_len", v_params.elens_in_bank_bits)]
+        self.uploader_init_in = [ ("vrp_id", gen_params.phys_regs_bits), ("ma", 1), ("elens_len", v_params.elens_in_bank_bits)]
         self.mask_extractor_out = self.uploader_mask_in = [ ("mask", v_params.bytes_in_elen) ]
         self.uploader_old_dst_in = [("old_dst_val", v_params.elen)]
 

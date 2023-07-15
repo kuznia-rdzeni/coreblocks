@@ -62,7 +62,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
         vrp_id = input[field_name]
         for i,elem in enumerate(reversed(self.received_data)):
             if input[field_name + "_needed"]:
-                self.assertEqual(elem[field_name], self.memory[vrp_id][i])
+                self.assertEqual(elem[field_name], self.memory[vrp_id][i], field_name)
             else:
                 self.assertEqual(elem[field_name], 0)
 

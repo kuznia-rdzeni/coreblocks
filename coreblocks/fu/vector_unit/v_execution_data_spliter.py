@@ -34,21 +34,22 @@ class VectorExecutionDataSplitter(Elaboratable):
             m.d.sync += s1_val_saved.eq(s1_val)
 
         @def_method(m, self.issue)
-        def _(s1,s2,s3,v0, elen_index):
+        def _(s1,s2,s3,v0, elen_index, last_mask):
             fu_data = Record(self.alu_layouts.alu_in)
             imm_or_scalar = Signal()
             m.d.top_comb += imm_or_scalar.eq((exec_fn_saved.funct3 == Funct3.OPIVI) | (exec_fn_saved.funct3 == Funct3.OPIVX))
             m.d.top_comb += fu_data.s1.eq(Mux(imm_or_scalar, s1_val_saved, s1))
             m.d.top_comb += fu_data.s2.eq(s2)
-            m.d.top_comb += fu_data.eew.eq(vtype_saved.eew)
+            m.d.top_comb += fu_data.eew.eq(vtype_saved.sew)
             m.d.top_comb += fu_data.exec_fn.eq(exec_fn_saved)
             self.put_fu(m, fu_data)
 
             mask_data = Record(self.layouts.mask_extractor_in)
             m.d.top_comb += mask_data.elen_index.eq(elen_index)
             m.d.top_comb += mask_data.v0.eq(v0)
-            m.d.top_comb += mask_data.eew.eq(vtype_saved.eew)
-            m.d.top_comb += mask_data.vm.eq(vtype_saved.vm)
+            m.d.top_comb += mask_data.eew.eq(vtype_saved.sew)
+            m.d.top_comb += mask_data.vm.eq(exec_fn_saved.funct7[0])
+            m.d.top_comb += mask_data.last_mask.eq(last_mask)
             self.put_mask(m,mask_data)
 
             old_dst_data = Record(self.layouts.uploader_old_dst_in)

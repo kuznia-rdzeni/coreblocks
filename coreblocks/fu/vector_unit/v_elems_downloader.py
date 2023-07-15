@@ -29,6 +29,7 @@ class VectorElemsDownloader(Elaboratable):
         instr_valid = Signal(name = "instr_valid")
         req_counter = Signal(self.v_params.elens_in_bank_bits, name= "req_counter")
         resp_counter = Signal(self.v_params.elens_in_bank_bits, name="resp_counter")
+        last_mask_saved = Signal(self.v_params.bytes_in_elen)
         m.submodules.uniqness_checker = uniqness_checker = PriorityUniqnessChecker(regs_number, self.gen_params.phys_regs_bits)
 
         regs_fields = ["s1", "s2", "s3", "v0"]
@@ -60,12 +61,15 @@ class VectorElemsDownloader(Elaboratable):
             m.d.top_comb += addr.eq(req_counter - 1)
             for i, field_name in enumerate(regs_fields):
                 with m.If (uniqness_checker.valids[i] & instr[field_name + "_needed"]):
-                    fifos_to_vrf[i].write(m, vrp_id = instr[field_name], addr = addr)
-                    fifos_to_resp_in[i].write(m, vrp_id = instr[field_name])
+                    vrp_id = Signal(self.v_params.vrp_count_bits)
+                    m.d.comb += vrp_id.eq(instr[field_name])
+                    fifos_to_vrf[i].write(m, vrp_id = vrp_id, addr = addr)
+                    fifos_to_resp_in[i].write(m, vrp_id = vrp_id)
             m.d.sync += req_counter.eq(addr)
 
 
         data_to_fu = Record(self.layouts.downloader_data_out)
+        m.d.comb += data_to_fu.last_mask.eq(2**self.v_params.bytes_in_elen-1)
         with Transaction(name = "downloader_response_trans").body(m, request = instr_valid & (resp_counter != 0)):
             barrier_out = barrier.read(m)
             for i, field in enumerate(regs_fields):
@@ -82,6 +86,7 @@ class VectorElemsDownloader(Elaboratable):
             with m.If(resp_counter == 1):
                 m.d.sync += instr_valid.eq(0)
                 barrier.set_valids(m, valids = (2**regs_number-1))
+                m.d.comb += data_to_fu.last_mask.eq(last_mask_saved)
 
 
         uniq= Signal(4, name="uniq")
@@ -99,5 +104,6 @@ class VectorElemsDownloader(Elaboratable):
             m.d.sync += req_counter.eq(arg.elens_len)
             m.d.sync += resp_counter.eq(arg.elens_len)
             m.d.sync += set_valids_to_barrier.eq(1)
+            m.d.sync += last_mask_saved.eq(arg.last_mask)
 
         return m

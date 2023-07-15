@@ -25,10 +25,10 @@ class VectorNeededRegs(Elaboratable):
         @def_method(m, self.issue)
         def _(arg):
             m.d.top_comb += [
-                    rec_out.vp_v0.eq(arg.vtype.ma == 0),
-                    rec_out.rp_s1.eq(arg.rp_s1.type == RegisterType.V),
-                    rec_out.rp_s2.eq(1),
-                    rec_out.rp_s3.eq(0) # There is no support for three source instructions yet (interger multiply-add)
+                    rec_out.v0_needed.eq(arg.vtype.ma == 0),
+                    rec_out.s1_needed.eq(arg.rp_s1.type == RegisterType.V),
+                    rec_out.s2_needed.eq(1),
+                    rec_out.s3_needed.eq(0) # There is no support for three source instructions yet (interger multiply-add)
             ]
             return rec_out
 

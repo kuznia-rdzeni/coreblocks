@@ -59,8 +59,8 @@ class VectorExecutor(Elaboratable):
             len_out = len_getter.issue(m,instr)
             needed_regs_out = needed_regs.issue(m, instr)
             downloader_in_data = Record(self.layouts.downloader_in)
-            m.d.top_comb += assign(downloader_in_data, len_out, fields= AssignType.ALL)
-            m.d.top_comb += assign(downloader_in_data, needed_regs_out, fields=AssignType.ALL)
+            m.d.top_comb += assign(downloader_in_data, len_out, fields= AssignType.RHS)
+            m.d.top_comb += assign(downloader_in_data, needed_regs_out, fields=AssignType.RHS)
             m.d.top_comb += [
                     downloader_in_data.s1.eq(instr.rp_s1.id),
                     downloader_in_data.s2.eq(instr.rp_s2.id),
@@ -73,9 +73,7 @@ class VectorExecutor(Elaboratable):
             splitter.init(m, vtype = instr.vtype, exec_fn = instr.exec_fn, s1_val = instr.s1_val)
 
         alu = VectorBasicFlexibleAlu(self.gen_params, fu_out_fifo.write)
-        with Transaction(name="connect_alu").body(m):
-            data_in = fu_in_fifo.read(m)
-            fu_out_fifo.write(m, alu.issue(m, data_in))
+        connect_alu_out = ConnectTrans(fu_in_fifo.read, alu.issue)
 
         mask_extractor = VectorMaskExtractor(self.gen_params, mask_out_fifo.write)
         connect_mask_extractor_in = ConnectTrans(mask_in_fifo.read, mask_extractor.issue)
@@ -96,5 +94,6 @@ class VectorExecutor(Elaboratable):
         m.submodules.alu = alu
         m.submodules.mask_extractor = mask_extractor
         m.submodules.connect_mask_extractor_in = connect_mask_extractor_in
+        m.submodules.connect_alu_out = connect_alu_out
 
         return m

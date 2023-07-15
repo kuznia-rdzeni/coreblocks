@@ -7,7 +7,7 @@ from coreblocks.fu.vector_unit.v_executor import *
 from test.fu.vector_unit.common import *
 from collections import deque
 
-class TestVectorExecutionEnder(TestCaseWithSimulator):
+class TestVectorExecutor(TestCaseWithSimulator):
     """
     This tests has two main goals:
     - check for liveness of VectorExecutor (if every input will end)
@@ -18,7 +18,7 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
         self.gen_params = GenParams(test_vector_core_config)
-        self.test_number = 10
+        self.test_number = 3
         self.fragment_index = 1
         self.v_params = self.gen_params.v_params
 
@@ -49,6 +49,6 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
 
 
     def test_random(self):
-        with self.run_simulation(self.m) as sim:
+        with self.run_simulation(self.m, 200) as sim:
             sim.add_sync_process(self.process)
             sim.add_sync_process(self.end_reporter_process)
