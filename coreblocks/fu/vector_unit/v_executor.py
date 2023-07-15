@@ -33,6 +33,7 @@ class VectorExecutor(Elaboratable):
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
+        end_pending_to_report = Signal()
 
         # TODO Check if it is worth moving needed_regs to backend so to don't have
         # unneeded copies, at the cost of pushing more data.
@@ -54,7 +55,8 @@ class VectorExecutor(Elaboratable):
         issue_connect = Connect(self.layouts.executor_in)
         self.issue.proxy(m, issue_connect.write)
 
-        with Transaction(name="connect_input_data").body(m):
+        connect_input_data = Transaction(name="connect_input_data")
+        with connect_input_data.body(m, request = ~end_pending_to_report):
             instr = issue_connect.read(m)
             len_out = len_getter.issue(m,instr)
             needed_regs_out = needed_regs.issue(m, instr)
@@ -67,13 +69,22 @@ class VectorExecutor(Elaboratable):
                     downloader_in_data.s3.eq(instr.rp_s3.id),
                     downloader_in_data.v0.eq(instr.rp_v0.id),
                     ]
-            downloader.issue(m, downloader_in_data)
+            with m.If(len_out.elens_len != 0):
+                # hot path
+                downloader.issue(m, downloader_in_data)
+                uploader.init(m, vrp_id = instr.rp_dst.id, ma = instr.vtype.ma , elens_len = len_out.elens_len)
+                splitter.init(m, vtype = instr.vtype, exec_fn = instr.exec_fn, s1_val = instr.s1_val)
+            with m.Else():
+                # cold path
+                m.d.sync += end_pending_to_report.eq(1)
 
-            uploader.init(m, vrp_id = instr.rp_dst.id, ma = instr.vtype.ma , elens_len = len_out.elens_len)
-            splitter.init(m, vtype = instr.vtype, exec_fn = instr.exec_fn, s1_val = instr.s1_val)
+        with Transaction().body(m, request = end_pending_to_report):
+            m.d.sync += end_pending_to_report.eq(0)
+            self.end(m)
 
         alu = VectorBasicFlexibleAlu(self.gen_params, fu_out_fifo.write)
-        connect_alu_out = ConnectTrans(fu_in_fifo.read, alu.issue)
+        connect_alu_in = ConnectTrans(fu_in_fifo.read, alu.issue)
+        connect_alu_out = ConnectTrans(fu_out_fifo.read, uploader.issue)
 
         mask_extractor = VectorMaskExtractor(self.gen_params, mask_out_fifo.write)
         connect_mask_extractor_in = ConnectTrans(mask_in_fifo.read, mask_extractor.issue)
@@ -94,6 +105,7 @@ class VectorExecutor(Elaboratable):
         m.submodules.alu = alu
         m.submodules.mask_extractor = mask_extractor
         m.submodules.connect_mask_extractor_in = connect_mask_extractor_in
+        m.submodules.connect_alu_in = connect_alu_in
         m.submodules.connect_alu_out = connect_alu_out
 
         return m

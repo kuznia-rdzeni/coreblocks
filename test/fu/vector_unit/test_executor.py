@@ -6,6 +6,7 @@ from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_executor import *
 from test.fu.vector_unit.common import *
 from collections import deque
+import time
 
 class TestVectorExecutor(TestCaseWithSimulator):
     """
@@ -17,8 +18,8 @@ class TestVectorExecutor(TestCaseWithSimulator):
     """
     def setUp(self):
         random.seed(14)
-        self.gen_params = GenParams(test_vector_core_config)
-        self.test_number = 3
+        self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(vrp_count = 8)))
+        self.test_number = 40
         self.fragment_index = 1
         self.v_params = self.gen_params.v_params
 
@@ -36,7 +37,8 @@ class TestVectorExecutor(TestCaseWithSimulator):
 
     def generate_input(self):
         instr = generate_instr(self.gen_params, self.layout.executor_in, support_vector = True, optypes = [OpType.V_ARITHMETIC], funct7 = generate_funct7_from_funct6(get_funct6_to_op(EEW.w8).keys()),
-                                     funct3 = [Funct3.OPIVI, Funct3.OPIVV, Funct3.OPIVX], overwriting = {"rp_s2" : {"type": RegisterType.V}})
+                               max_vl = self.v_params.vlen // 8,
+                               funct3 = [Funct3.OPIVI, Funct3.OPIVV, Funct3.OPIVX], overwriting = {"rp_s2" : {"type": RegisterType.V}, "rp_dst" : {"type": RegisterType.V}, "rp_s3" : {"type": RegisterType.V}})
         return instr
 
     def process(self):
@@ -49,6 +51,6 @@ class TestVectorExecutor(TestCaseWithSimulator):
 
 
     def test_random(self):
-        with self.run_simulation(self.m, 200) as sim:
+        with self.run_simulation(self.m, 5000) as sim:
             sim.add_sync_process(self.process)
             sim.add_sync_process(self.end_reporter_process)
