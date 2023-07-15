@@ -47,7 +47,6 @@ class VectorRegisterBank(Elaboratable):
             data_layout=self.layouts.read_resp, elem_count=self.v_params.elens_in_bank, granularity=8
         )
 
-        self.eew = Signal(EEW)
         # improvement: move to async memory
         self.byte_mask = Signal(self.v_params.bytes_in_vlen // self.v_params.register_bank_count)
 
@@ -56,7 +55,7 @@ class VectorRegisterBank(Elaboratable):
         self.write = Method(i=self.layouts.write)
         self.write_scalar = Method()
         self.write_mask = Method()
-        self.initialise = Method(i=self.layouts.initialize)
+        self.initialise = Method(i=self.layouts.initialise)
         self.clear = Method()
 
         self.initialise.add_conflict(self.read_req, Priority.LEFT)
@@ -95,9 +94,8 @@ class VectorRegisterBank(Elaboratable):
             m.d.sync += mask_part.eq(mask_part | valid_mask)
 
         @def_method(m, self.initialise)
-        def _(eew: Signal):
+        def _():
             m.d.sync += self.byte_mask.eq(0)
-            m.d.sync += self.eew.eq(eew)
             mask_forward.clear(m)
 
         @def_method(m, self.clear)

@@ -16,7 +16,7 @@ class VectorRegisterBankLayouts:
         ]
         self.write_scalar = [("value", v_params.elen)]
 
-        self.initialize = [("eew", EEW)]
+        self.initialise = []
 
 
 class VRFFragmentLayouts:

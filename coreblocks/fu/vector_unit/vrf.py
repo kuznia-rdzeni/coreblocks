@@ -30,6 +30,9 @@ class VRFFragment(Elaboratable):
         always returns the last results, regardless of which `read_req` method was used to issue the request.
         So it is possible to issue a request using `read_req[0]` and receive results from it using
         `read_resp[1]`.
+    initialise_list : list[Method]
+        List with initialisation methods for register banks, `initialise_list[i]` initialises
+        bank of `i`-th register.
     """
 
     def __init__(self, *, gen_params: GenParams):
@@ -49,6 +52,7 @@ class VRFFragment(Elaboratable):
 
         self.clear_module = MethodProduct([reg.clear for reg in self.regs])
         self.clear = self.clear_module.method
+        self.initialise_list = [reg.initialise for reg in self.regs]
 
     def elaborate(self, platform):
         m = TModule()

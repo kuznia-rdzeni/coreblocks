@@ -28,8 +28,10 @@ class VectorExecutor(Elaboratable):
 
         self.layouts = VectorBackendLayouts(self.gen_params)
         self.alu_layouts = VectorAluLayouts(self.gen_params)
+        self.vreg_layout = VectorRegisterBankLayouts(self.gen_params)
 
         self.issue = Method(i = self.layouts.executor_in)
+        self.initialise_regs = [Method(i = self.vreg_layout.initialise) for _ in range(self.v_params.vrp_count)]
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -41,6 +43,8 @@ class VectorExecutor(Elaboratable):
         len_getter = VectorLenGetter(self.gen_params, self.fragment_index)
 
         vrf = VRFFragment(gen_params = self.gen_params)
+        for i in range(self.v_params.vrp_count):
+            self.initialise_regs[i].proxy(m, vrf.initialise_list[i])
 
         fu_in_fifo = BasicFifo(self.alu_layouts.alu_in, 2)
         mask_in_fifo = BasicFifo(self.layouts.mask_extractor_in, 2)
