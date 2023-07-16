@@ -3,10 +3,10 @@ from test.common import *
 from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
-from coreblocks.fu.vector_unit.v_pre_announcer import *
+from coreblocks.fu.vector_unit.v_announcer import *
 from test.fu.vector_unit.common import *
 
-class TestVectorPreAnnouncer(TestCaseWithSimulator):
+class TestVectorAnnouncer(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
         self.gen_params = GenParams(test_vector_core_config)
@@ -16,7 +16,7 @@ class TestVectorPreAnnouncer(TestCaseWithSimulator):
 
         self.layout = FuncUnitLayouts(self.gen_params)
 
-        self.circ = SimpleTestCircuit(VectorPreAnnouncer(self.gen_params, self.input_count))
+        self.circ = SimpleTestCircuit(VectorAnnouncer(self.gen_params, self.input_count))
 
         self.received = []
         self.send = []
@@ -31,7 +31,7 @@ class TestVectorPreAnnouncer(TestCaseWithSimulator):
         def f():
             for _ in range(self.test_number):
                 input = self.generate_input()
-                yield from self.circ.retire_list[k].call(input)
+                yield from self.circ.announce_list[k].call(input)
                 self.send.append(input)
             self.end[k+1]=True
         return f
