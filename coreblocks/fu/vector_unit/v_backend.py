@@ -50,7 +50,7 @@ class VectorBackend(Elaboratable):
         executors = [VectorExecutor(self.gen_params, i, ender.end_list[i]) for i in range(self.v_params.register_bank_count)]
         m.submodules.executors = ModuleConnector(*executors)
 
-        connect_init_ender = Connect(self.layouts.executor_in)
+        m.submodules.connect_init_ender = connect_init_ender = Connect(self.layouts.executor_in)
         with Transaction(name="backend_init_ender").body(m):
             instr = connect_init_ender.read(m)
             ender.init(m, rp_dst = instr.rp_dst, rob_id = instr.rob_id)

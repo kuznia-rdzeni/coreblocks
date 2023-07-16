@@ -55,14 +55,17 @@ def generate_vsetvl(
 def get_vector_instr_generator():
     last_vtype = {"vl": 0, "ma": 0, "ta": 0, "sew": 0, "lmul": 0}
     first_instr = True
+    last_rob_id = 0
 
     def f(
         gen_params: GenParams,
         layout: LayoutLike,
         not_balanced_vsetvl=False,
-        vsetvl_different_rp_id: bool = False,
+        vsetvl_different_rp_id: bool = False, # useful when doing updates in RS which should be tracked
         const_lmul: Optional[LMUL] = None,
-        max_vl : Optional[int] = None
+        max_vl : Optional[int] = None,
+        random_rob_id = True,
+        **kwargs
     ):
         nonlocal last_vtype
         nonlocal first_instr
@@ -71,11 +74,17 @@ def get_vector_instr_generator():
             first_instr = False
             return instr, last_vtype
 
-        instr = generate_instr(gen_params, layout, support_vector=True, max_vl = max_vl)
+        instr = generate_instr(gen_params, layout, max_vl = max_vl, **kwargs)
         if instr["exec_fn"]["op_type"] == OpType.V_CONTROL or (not_balanced_vsetvl and random.randrange(2)):
             instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl)
             while vsetvl_different_rp_id and instr["rp_s1"]["id"] == instr["rp_s2"]["id"]:
                 instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl)
+
+        if not random_rob_id:
+            nonlocal last_rob_id
+            last_rob_id +=1
+            last_rob_id %= 2**gen_params.rob_entries_bits
+            instr["rob_id"] = last_rob_id 
         return instr, last_vtype
 
     return f

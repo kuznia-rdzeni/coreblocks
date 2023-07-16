@@ -60,7 +60,7 @@ class WakeupSelect(Elaboratable):
 
             row = self.take_row(m, last)
             issue_rec = Record(self.row_layout)
-            m.d.comb += assign(issue_rec, row, fields=AssignType.ALL)
+            m.d.comb += assign(issue_rec, row, fields=AssignType.COMMON)
             self.issue(m, issue_rec)
 
         return m

@@ -46,8 +46,6 @@ class VectorUnitConfiguration:
         The number of physical vector registers.
     register_bank_count : int
         Number of banks to which an physical register should be split.
-    vxrs_entries : int
-        Number of entries in VXRS (reservation station for scalars).
     vvrs_entries : int
         Number of entries in VVRS (reservation station for vector registers).
     """
@@ -56,7 +54,6 @@ class VectorUnitConfiguration:
     elen: int = 32
     vrp_count: int = 40
     register_bank_count: int = 4
-    vxrs_entries: int = 8
     vvrs_entries: int = 8
 
 

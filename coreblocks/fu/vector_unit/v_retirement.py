@@ -27,19 +27,19 @@ class VectorRetirement(Elaboratable):
         camemory = ContentAddressableMemory([("rob_id", self.gen_params.rob_entries_bits)], [("rp_dst", self.gen_params.get(CommonLayouts).p_register_entry)], self.instr_to_retire_count)
         m.submodules.camemory = camemory
 
-        rob = self.gen_params.get(DependencyManager).get_dependency(ROBKey())
+        rob_peek = self.gen_params.get(DependencyManager).get_dependency(ROBPeekKey())
 
         @def_method(m, self.report_end)
         def _(rob_id, rp_dst):
-            camemory.push(m, addr = rob_id, rp_dst = rp_dst)
+            camemory.push(m, addr = rob_id, data = {"rp_dst" : rp_dst})
 
 
         @def_method(m, self.precommit)
         def _(rob_id):
             response = camemory.pop(m, addr = rob_id)
-            rob_response = rob.peek(m)
-            with m.If(~response.not_found & (response.rp_dst.type == RegisterType.V)):
-                self.v_rrat_commit(m, rp_dst = response.rp_dst.id, rl_dst = rob_response.rob_data.rl_dst.id)
+            rob_response = rob_peek(m)
+            with m.If(~response.not_found & (response.data.rp_dst.type == RegisterType.V)):
+                self.v_rrat_commit(m, rp_dst = response.data.rp_dst.id, rl_dst = rob_response.rob_data.rl_dst.id)
 
 
         return m

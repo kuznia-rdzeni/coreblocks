@@ -15,7 +15,7 @@ class VectorParameters:
         self.vrp_count = cfg.vrp_count
         self.vrp_count_bits = log2_int(self.vrp_count, False)
         self.register_bank_count = cfg.register_bank_count
-        self.vxrs_entries = cfg.vxrs_entries
+        self.vxrs_entries = 8 # placeholder to be updated by VectorBlockComponent
         self.vvrs_entries = cfg.vvrs_entries
 
         self.bytes_in_vlen = self.vlen // 8
