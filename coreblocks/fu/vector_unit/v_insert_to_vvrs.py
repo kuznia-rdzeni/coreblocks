@@ -40,16 +40,16 @@ class VectorInsertToVVRS(Elaboratable):
                 with m.If(arg[rp].type == RegisterType.V):
                     cast_rp = Signal(self.v_params.vrp_count_bits)
                     m.d.top_comb += cast_rp.eq(arg[rp].id)
-                    m.d.comb += rs_data[rp_rdy].eq(self.scoreboard_get_list[i](m, id = cast_rp).dirty)
+                    m.d.comb += rs_data[rp_rdy].eq(~self.scoreboard_get_list[i](m, id = cast_rp).dirty)
                 with m.Else():
                     m.d.comb += rs_data[rp_rdy].eq(1)
             cast_v0 = Signal(self.v_params.vrp_count_bits)
             m.d.top_comb += cast_v0.eq(arg.rp_v0.id)
-            m.d.comb += rs_data.rp_v0_rdy.eq(self.scoreboard_get_list[3](m, id = cast_v0).dirty)
+            m.d.comb += rs_data.rp_v0_rdy.eq(~self.scoreboard_get_list[3](m, id = cast_v0).dirty)
             with m.If(arg.rp_dst.type == RegisterType.V):
                 cast_rp_dst = Signal(self.v_params.vrp_count_bits)
                 m.d.top_comb += cast_rp_dst.eq(arg.rp_dst.id)
-                self.scoreboard_set(m, id = cast_rp_dst, dirty=0)
+                self.scoreboard_set(m, id = cast_rp_dst, dirty=1)
             insert_data = { "rs_entry_id" : rs_entry_id, "rs_data" : rs_data }
             self.insert(m, insert_data)
 

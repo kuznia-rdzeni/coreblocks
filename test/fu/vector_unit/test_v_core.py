@@ -85,6 +85,7 @@ class TestVectorCore(TestCaseWithSimulator):
         for _ in range(self.test_number):
             result = yield from self.circ.get_result.call()
             self.instr_ended_q.append(result)
+            print("CYCLE:", (yield Now()))
             print("ENDED:", result)
 
     def find_rob_id_in_ended(self, rob_id):

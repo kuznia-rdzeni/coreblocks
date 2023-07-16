@@ -39,8 +39,7 @@ class VectorExecutionEnder(Elaboratable):
             with m.If(rp_dst_saved.type == RegisterType.V):
                 cast_rp_dst = Signal(self.v_params.vrp_count_bits)
                 m.d.top_comb += cast_rp_dst.eq(rp_dst_saved.id)
-                # dirty isn't the best name - 1 marks simply that register is ready
-                self.scoreboard_set(m, id = cast_rp_dst, dirty = 1)
+                self.scoreboard_set(m, id = cast_rp_dst, dirty = 0)
                 self.update_vvrs(m, tag = rp_dst_saved, value=0)
                 self.report_end(m, rp_dst = rp_dst_saved, rob_id = rob_id_saved)
 

@@ -41,7 +41,7 @@ class RS(Elaboratable, Generic[T]):
         if self.superscalarity < 1:
             raise ValueError("Requested less than 1 input port.")
 
-        self.insert_list = [Method(i=self.layouts.insert_in, name="insert{i}") for i in range(self.superscalarity)]
+        self.insert_list = [Method(i=self.layouts.insert_in, name=f"insert{i}") for i in range(self.superscalarity)]
         self.insert = self.insert_list[0]
         self.select_list = [Method(o=self.layouts.select_out) for _ in range(self.superscalarity)]
         self.select = self.select_list[0]
