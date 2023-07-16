@@ -125,7 +125,8 @@ class VectorFrontendLayouts:
         self.alloc_rename_out = self.alloc_rename_in = self.translator_out
         self.get_vill = [("vill", 1)]
         self.get_vstart = [("vstart", v_params.vstart_bits)]
-        self.translator_report_multiplier = [("mult", 4)]
+        self.translator_report_multiplier = [("mult", 4),
+            ("rob_id", gen_params.rob_entries_bits)]
 
         self.instr_to_mem = [
             ("rp_s1", common.p_register_entry),

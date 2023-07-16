@@ -17,16 +17,19 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
         self.layout = VectorBackendLayouts(self.gen_params)
         self.vvrs_layouts = VectorVRSLayout(self.gen_params, rs_entries_bits=self.v_params.vvrs_entries_bits)
         self.scoreboard_layout = ScoreboardLayouts(2**self.gen_params.phys_regs_bits)
+        self.v_retirement_layout = VectorRetirementLayouts(self.gen_params)
 
         self.put = MethodMock(i = self.gen_params.get(FuncUnitLayouts).accept)
         self.update_vvrs = MethodMock(i = self.vvrs_layouts.update_in)
         self.scoreboard_set = MethodMock(i = self.scoreboard_layout.set_dirty_in)
-        self.circ = SimpleTestCircuit(VectorExecutionEnder(self.gen_params, self.put.get_method(), self.update_vvrs.get_method(), self.scoreboard_set.get_method()))
-        self.m = ModuleConnector(circ=self.circ, put=self.put, update_vvrs = self.update_vvrs, scoreboard_set= self.scoreboard_set)
+        self.report_end = MethodMock(i = self.v_retirement_layout.report_end)
+        self.circ = SimpleTestCircuit(VectorExecutionEnder(self.gen_params, self.put.get_method(), self.update_vvrs.get_method(), self.scoreboard_set.get_method(), self.report_end.get_method()))
+        self.m = ModuleConnector(circ=self.circ, put=self.put, update_vvrs = self.update_vvrs, scoreboard_set= self.scoreboard_set, report_end = self.report_end)
         
         self.received_data = None
         self.received_vvrs_update = None
         self.received_scoreboard_set = None
+        self.received_report_end = None
         self.send_data = deque()
         self.enders_barrier = SimBarrier(self.v_params.register_bank_count)
 
@@ -44,6 +47,10 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
     def scoreboard_set_process(self, arg):
         self.assertIsNone(self.received_scoreboard_set)
         self.received_scoreboard_set = arg
+
+    @def_method_mock(lambda self: self.report_end, sched_prio = 2)
+    def report_end_process(self, arg):
+        self.received_report_end = arg
 
     def init_process(self):
         for _ in range(self.test_number):
@@ -69,17 +76,23 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
                     if expected["rp_dst"]["type"] == RegisterType.V:
                         assert self.received_vvrs_update is not None
                         assert self.received_scoreboard_set is not None
+                        assert self.received_report_end is not None
                         self.assertEqual(self.received_scoreboard_set["id"], expected["rp_dst"]["id"])
                         self.assertEqual(self.received_scoreboard_set["dirty"], 1)
 
                         self.assertEqual(self.received_vvrs_update["tag"], expected["rp_dst"])
+
+                        self.assertEqual(self.received_report_end["rob_id"], expected["rob_id"])
+                        self.assertEqual(self.received_report_end["rp_dst"], expected["rp_dst"])
                     else:
                         self.assertIsNone(self.received_vvrs_update)
                         self.assertIsNone(self.received_scoreboard_set)
+                        self.assertIsNone(self.received_report_end)
 
                     self.received_data = None
                     self.received_vvrs_update = None
                     self.received_scoreboard_set = None
+                    self.received_report_end = None
                 yield Settle()
         return f
 
@@ -89,5 +102,6 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
             sim.add_sync_process(self.put_process)
             sim.add_sync_process(self.update_vvrs_process)
             sim.add_sync_process(self.scoreboard_set_process)
+            sim.add_sync_process(self.report_end_process)
             for k in range(self.v_params.register_bank_count):
                 sim.add_sync_process(self.end_process_generator(k))

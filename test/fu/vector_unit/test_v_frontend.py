@@ -116,8 +116,8 @@ class TestVectorFrontend(TestCaseWithSimulator):
         self.received_announce.append(arg)
 
     @def_method_mock(lambda self: self.announce_mult)
-    def mult_process(self, mult):
-        self.received_mult.append(mult)
+    def mult_process(self, arg):
+        self.received_mult.append(arg)
 
     def input_process(self, generator):
         def f():

@@ -53,6 +53,15 @@ class VectorCore(Elaboratable):
         connect_data_to_vvrs = ConnectTrans(fifo_to_vvrs.read, backend.put_instr)
 
 
-        # TODO add to submodules
+        m.submodules.v_freerf = v_freerf
+        m.submodules.v_frat = v_frat
+        m.submodules.v_rrat = v_rrat
+        m.submodules.v_retirement = v_retirement
+        m.submodules.announcer = announcer
+        m.submodules.backend = backend
+        m.submodules.fifo_to_vvrs = fifo_to_vvrs
+        m.submodules.fifo_to_mem = fifo_to_mem
+        m.submodules.frontend = frontend
+        m.submodules.connect_data_to_vvrs = connect_data_to_vvrs
 
         return m
