@@ -777,7 +777,7 @@ def def_method_mock(
             tb = getter()
             if isinstance(tb, MethodMock):
                 tb = tb.tb
-            assert isinstance(tb, TestbenchIO)
+            assert isinstance(tb, TestbenchIO), str(type(tb))
             yield from tb.method_handle_loop(f, extra_settle_count=sched_prio, **kw)
 
         return mock

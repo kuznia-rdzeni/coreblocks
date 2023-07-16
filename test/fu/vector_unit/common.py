@@ -55,7 +55,8 @@ def generate_vsetvl(
 def get_vector_instr_generator():
     last_vtype = {"vl": 0, "ma": 0, "ta": 0, "sew": 0, "lmul": 0}
     first_instr = True
-    last_rob_id = 0
+    next_rob_id = 0
+
 
     def f(
         gen_params: GenParams,
@@ -67,11 +68,20 @@ def get_vector_instr_generator():
         random_rob_id = True,
         **kwargs
     ):
+        def edit_rob_id(instr):
+            if not random_rob_id:
+                nonlocal next_rob_id
+                instr["rob_id"] = next_rob_id 
+                next_rob_id +=1
+                next_rob_id %= 2**gen_params.rob_entries_bits
+            return instr
+
         nonlocal last_vtype
         nonlocal first_instr
         if first_instr:
             instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl)
             first_instr = False
+            instr = edit_rob_id(instr)
             return instr, last_vtype
 
         instr = generate_instr(gen_params, layout, max_vl = max_vl, **kwargs)
@@ -80,11 +90,7 @@ def get_vector_instr_generator():
             while vsetvl_different_rp_id and instr["rp_s1"]["id"] == instr["rp_s2"]["id"]:
                 instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl)
 
-        if not random_rob_id:
-            nonlocal last_rob_id
-            last_rob_id +=1
-            last_rob_id %= 2**gen_params.rob_entries_bits
-            instr["rob_id"] = last_rob_id 
+        instr = edit_rob_id(instr)
         return instr, last_vtype
 
     return f
