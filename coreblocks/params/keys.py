@@ -7,6 +7,7 @@ from coreblocks.peripherals.wishbone import WishboneMaster
 
 if TYPE_CHECKING:
     from coreblocks.structs_common.csr_generic import GenericCSRRegisters  # noqa: F401
+    from coreblocks.structs_common.rob import ReorderBuffer # noqa: F401
 
 __all__ = [
     "WishboneDataKey",
@@ -14,6 +15,7 @@ __all__ = [
     "BranchResolvedKey",
     "ExceptionReportKey",
     "GenericCSRRegistersKey",
+    "ROBKey",
 ]
 
 
@@ -39,4 +41,8 @@ class ExceptionReportKey(SimpleKey[Method]):
 
 @dataclass(frozen=True)
 class GenericCSRRegistersKey(SimpleKey["GenericCSRRegisters"]):
+    pass
+
+@dataclass(frozen=True)
+class ROBKey(SimpleKey["ReorderBuffer"]):
     pass

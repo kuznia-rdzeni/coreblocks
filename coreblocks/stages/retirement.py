@@ -1,9 +1,6 @@
 from amaranth import *
-from coreblocks.params.dependencies import DependencyManager
-from coreblocks.params.keys import GenericCSRRegistersKey
-
+from coreblocks.params import RegisterType, DependencyManager, GenericCSRRegistersKey, GenParams
 from coreblocks.transactions.core import Method, Transaction, TModule
-from coreblocks.params.genparams import GenParams
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
 
 
@@ -55,14 +52,15 @@ class Retirement(Elaboratable):
                 m.d.comb += entry.eq(cause | (1 << (self.gen_params.isa.xlen - 1)))
                 mcause.write(m, entry)
 
-            # set rl_dst -> rp_dst in R-RAT
-            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst.id, rp_dst=rob_entry.rob_data.rp_dst.id)
+            with m.If(rob_entry.rob_data.rp_dst.type == RegisterType.X):
+                # set rl_dst -> rp_dst in R-RAT
+                rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst.id, rp_dst=rob_entry.rob_data.rp_dst.id)
 
-            self.rf_free(m, rat_out.old_rp_dst)
+                self.rf_free(m, rat_out.old_rp_dst)
 
-            # put old rp_dst to free RF list
-            with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
-                self.free_rf_put(m, rat_out.old_rp_dst)
+                # put old rp_dst to free RF list
+                with m.If(rat_out.old_rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
+                    self.free_rf_put(m, rat_out.old_rp_dst)
 
             self.instret_csr.increment(m)
 

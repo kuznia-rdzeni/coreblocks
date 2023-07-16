@@ -6,13 +6,12 @@ from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_frontend import *
 from coreblocks.fu.vector_unit.v_backend import *
 from coreblocks.fu.vector_unit.v_announcer import *
+from coreblocks.fu.vector_unit.v_retirement import *
 from coreblocks.structs_common.superscalar_freerf import *
 from coreblocks.structs_common.rat import *
 from utils.fifo import *
 
 __all__ = ["VectorCore"]
-
-# TODO retirement - listining on precommit
 
 class VectorCore(Elaboratable):
     def __init__(self, gen_params : GenParams):
@@ -35,15 +34,23 @@ class VectorCore(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        announcer = VectorAnnouncer(self.gen_params, 3)
-        backend = VectorBackend(self.gen_params, announcer.announce_list[0])
+        rob = self.gen_params.get(DependencyManager).get_dependency(ROBKey())
+
         v_freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1)
         v_frat = FRAT(gen_params = self.gen_params, superscalarity = 2)
         v_rrat = RRAT(gen_params = self.gen_params)
+
+        v_retirement = VectorRetirement(self.gen_params, self.v_params.vrp_count, v_rrat.commit)
+        announcer = VectorAnnouncer(self.gen_params, 3)
+        self.precommit.proxy(m, v_retirement.precommit)
+        self.get_result.proxy(m, announcer.accept)
+
+        backend = VectorBackend(self.gen_params, announcer.announce_list[0], v_retirement.report_end)
         fifo_to_vvrs = BasicFifo(self.v_frontend_layouts.instr_to_vvrs, 2)
         fifo_to_mem = BasicFifo(self.v_frontend_layouts.instr_to_mem, 2)
-        frontend = VectorFrontend(self.gen_params, rob_block_interrupts, announcer.announce_list[1], announcer.announce_list[2], backend.report_mult, v_freerf.allocate, v_frat.get_rename_list[0], v_frat.get_rename_list[1],
+        frontend = VectorFrontend(self.gen_params, rob.block_interrupts, announcer.announce_list[1], announcer.announce_list[2], backend.report_mult, v_freerf.allocate, v_frat.get_rename_list[0], v_frat.get_rename_list[1],
                                   v_frat.set_rename_list[0], fifo_to_mem.write, fifo_to_vvrs.write, backend.initialise_regs)
+        connect_data_to_vvrs = ConnectTrans(fifo_to_vvrs.read, backend.put_instr)
 
 
         # TODO add to submodules

@@ -1,0 +1,45 @@
+from amaranth import *
+from coreblocks.transactions import *
+from coreblocks.transactions.lib import *
+from coreblocks.utils import *
+from coreblocks.params import *
+from coreblocks.utils.fifo import BasicFifo
+from coreblocks.fu.vector_unit.v_layouts import *
+
+__all__ = ["VectorRetirement"]
+
+class VectorRetirement(Elaboratable):
+    def __init__(self, gen_params:GenParams, instr_to_retire_count : int, v_rrat_commit : Method):
+        self.gen_params = gen_params
+        self.instr_to_retire_count = instr_to_retire_count
+        self.v_rrat_commit = v_rrat_commit
+
+        self.x_retirement_layouts = self.gen_params.get(RetirementLayouts)
+        self.v_retirement_layouts = self.gen_params.get(VectorRetirementLayouts)
+
+        self.precommit = Method(i=self.x_retirement_layouts.precommit)
+        self.report_end = Method(i = self.v_retirement_layouts.report_end)
+
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        camemory = ContentAddressableMemory([("rob_id", self.gen_params.rob_entries_bits)], [("rp_dst", self.gen_params.get(CommonLayouts).p_register_entry)], self.instr_to_retire_count)
+        m.submodules.camemory = camemory
+
+        rob = self.gen_params.get(DependencyManager).get_dependency(ROBKey())
+
+        @def_method(m, self.report_end)
+        def _(rob_id, rp_dst):
+            camemory.push(m, addr = rob_id, rp_dst = rp_dst)
+
+
+        @def_method(m, self.precommit)
+        def _(rob_id):
+            response = camemory.pop(m, addr = rob_id)
+            rob_response = rob.peek(m)
+            with m.If(~response.not_found & (response.rp_dst.type == RegisterType.V)):
+                self.v_rrat_commit(m, rp_dst = response.rp_dst.id, rl_dst = rob_response.rob_data.rl_dst.id)
+
+
+        return m

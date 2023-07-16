@@ -21,10 +21,11 @@ from coreblocks.fu.vector_unit.v_executor import *
 __all__ = ["VectorBackend"]
 
 class VectorBackend(Elaboratable):
-    def __init__(self, gen_params: GenParams, announce : Method):
+    def __init__(self, gen_params: GenParams, announce : Method, report_end : Method):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.announce = announce
+        self.report_end = report_end
 
         self.layouts = VectorBackendLayouts(self.gen_params)
         self.vvrs_layouts = VectorVRSLayout(self.gen_params, rs_entries_bits=self.v_params.vvrs_entries_bits)
@@ -44,7 +45,7 @@ class VectorBackend(Elaboratable):
         
         self.put_instr.proxy(m, insert_to_vvrs.issue)
 
-        m.submodules.ender = ender = VectorExecutionEnder(self.gen_params, self.announce, vvrs.update, ready_scoreboard.set_dirty_list[1])
+        m.submodules.ender = ender = VectorExecutionEnder(self.gen_params, self.announce, vvrs.update, ready_scoreboard.set_dirty_list[1], self.report_end)
         self.report_mult.proxy(m, ender.report_mult)
         executors = [VectorExecutor(self.gen_params, i, ender.end_list[i]) for i in range(self.v_params.register_bank_count)]
         m.submodules.executors = ModuleConnector(*executors)
