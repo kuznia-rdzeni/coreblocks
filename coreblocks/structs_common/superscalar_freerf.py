@@ -46,10 +46,10 @@ class SuperscalarFreeRF(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        self.used = Signal(self.entries_count, reset=2**self.entries_count - 1)
+        self.not_used = Signal(self.entries_count, reset=2**self.entries_count - 1)
 
         m.submodules.priority_encoder = encoder = MultiPriorityEncoder(self.entries_count, self.outputs_count)
-        m.d.top_comb += encoder.input.eq(self.used)
+        m.d.top_comb += encoder.input.eq(self.not_used)
 
         free_count = Signal(log2_int(self.entries_count, False), name="free_count")
         m.d.top_comb += free_count.eq(count_trailing_zeros(~Cat(encoder.valids)))
@@ -66,13 +66,13 @@ class SuperscalarFreeRF(Elaboratable):
                     mask = (1 << reg_count) - 1
                     for j in range(self.outputs_count):
                         used_bit = Signal()
-                        m.d.comb += used_bit.eq(self.used.bit_select(encoder.outputs[j], 1))
-                        m.d.sync += self.used.bit_select(encoder.outputs[j], 1).eq(used_bit & (~mask[j]))
+                        m.d.comb += used_bit.eq(self.not_used.bit_select(encoder.outputs[j], 1))
+                        m.d.sync += self.not_used.bit_select(encoder.outputs[j], 1).eq(used_bit & (~mask[j]))
                         m.d.comb += regs[j].eq(encoder.outputs[j])
             return {f"reg{i}": regs[i] for i in range(self.outputs_count)}
 
         @loop_def_method(m, self.deallocates)
         def _(_, reg):
-            m.d.sync += self.used.bit_select(reg, 1).eq(1)
+            m.d.sync += self.not_used.bit_select(reg, 1).eq(1)
 
         return m

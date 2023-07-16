@@ -140,7 +140,6 @@ class VectorFrontend(Elaboratable):
         """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
-        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.rob_block_interrupts = rob_block_interrupts
         self.announce = announce
         self.announce2 = announce2
@@ -153,6 +152,7 @@ class VectorFrontend(Elaboratable):
         self.put_to_vvrs = put_to_vvrs
         self.initialise_regs = initialise_regs
 
+        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.vxrs_layouts = VectorXRSLayout(
             self.gen_params, rs_entries_bits=log2_int(self.v_params.vxrs_entries, False)
         )

@@ -207,7 +207,7 @@ class VectorTranslateLMUL(Elaboratable):
                 with m.Case():
                     mb_writes[0](arg)
                     m.d.comb += mult.eq(1)
-            return {"mult": mult}
+            return {"mult": mult, "rob_id" : arg.rob_id}
 
         return m
 

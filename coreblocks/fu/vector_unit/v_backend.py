@@ -33,6 +33,7 @@ class VectorBackend(Elaboratable):
 
         self.put_instr = Method(i=self.layouts.vvrs_in)
         self.initialise_regs = [Method(i = self.vreg_layout.initialise) for _ in range(self.v_params.vrp_count)]
+        self.report_mult = Method(i=self.layouts.ender_report_mult)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -44,6 +45,7 @@ class VectorBackend(Elaboratable):
         self.put_instr.proxy(m, insert_to_vvrs.issue)
 
         m.submodules.ender = ender = VectorExecutionEnder(self.gen_params, self.announce, vvrs.update, ready_scoreboard.set_dirty_list[1])
+        self.report_mult.proxy(m, ender.report_mult)
         executors = [VectorExecutor(self.gen_params, i, ender.end_list[i]) for i in range(self.v_params.register_bank_count)]
         m.submodules.executors = ModuleConnector(*executors)
 

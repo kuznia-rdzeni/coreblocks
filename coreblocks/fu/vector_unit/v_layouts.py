@@ -211,3 +211,15 @@ class VectorBackendLayouts:
             ("rob_id", gen_params.rob_entries_bits),
             ("rp_dst", common.p_register_entry),
             ]
+        self.ender_report_mult = [
+            ("rob_id", gen_params.rob_entries_bits),
+            ("mult", 4),
+            ]
+
+class VectorRetirementLayouts:
+    def __init__(self, gen_params : GenParams):
+        common = gen_params.get(CommonLayouts)
+        self.report_end = [
+            ("rob_id", gen_params.rob_entries_bits),
+            ("rp_dst", common.p_register_entry),
+                ]

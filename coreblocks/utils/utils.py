@@ -443,7 +443,9 @@ class MultiPriorityEncoder(Elaboratable):
     """Priority encoder with more outputs
 
     This is an extension of the `PriorityEncoder` from amaranth, that supports
-    generating more than one output from an input signal.
+    generating more than one output from an input signal. In other words
+    it decodes multi-hot encoded signal to lists of signals in binary
+    format, each with index of a different high bit in input.
 
     Attributes
     ----------
@@ -466,8 +468,8 @@ class MultiPriorityEncoder(Elaboratable):
         self.outputs_count = outputs_count
 
         self.input = Signal(self.input_width)
-        self.outputs = [Signal(range(self.input_width)) for _ in range(self.outputs_count)]
-        self.valids = [Signal() for _ in range(self.outputs_count)]
+        self.outputs = [Signal(range(self.input_width), name= "output") for _ in range(self.outputs_count)]
+        self.valids = [Signal(name="valid") for _ in range(self.outputs_count)]
 
     def elaborate(self, platform):
         m = Module()

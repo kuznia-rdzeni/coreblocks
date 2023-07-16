@@ -62,7 +62,7 @@ class MethodMock(Elaboratable):
         return self.tb.adapter.iface
 
 
-def data_layout(val: int) -> LayoutLike:
+def data_layout(val: int) -> SimpleLayout:
     return [("data", val)]
 
 

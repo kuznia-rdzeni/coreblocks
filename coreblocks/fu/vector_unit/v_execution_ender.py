@@ -19,6 +19,7 @@ class VectorExecutionEnder(Elaboratable):
         self.layouts = VectorBackendLayouts(self.gen_params)
         self.init = Method(i = self.layouts.ender_init_in)
         self.end_list = [Method() for _ in range(self.v_params.register_bank_count)]
+        self.report_mult = Method(i=self.layouts.ender_report_mult)
 
     def elaborate(self, platform):
         m = TModule()
@@ -49,4 +50,8 @@ class VectorExecutionEnder(Elaboratable):
             m.d.sync += rob_id_saved.eq(rob_id)
             m.d.sync += valid.eq(1)
 
+        #No support for LMUL!=1 yet
+        @def_method(m, self.report_mult)
+        def _(arg):
+            pass
         return m

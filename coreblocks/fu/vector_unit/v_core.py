@@ -8,6 +8,7 @@ from coreblocks.fu.vector_unit.v_backend import *
 from coreblocks.fu.vector_unit.v_announcer import *
 from coreblocks.structs_common.superscalar_freerf import *
 from coreblocks.structs_common.rat import *
+from utils.fifo import *
 
 __all__ = ["VectorCore"]
 
@@ -23,6 +24,7 @@ class VectorCore(Elaboratable):
         )
         self.x_retirement_layouts = gen_params.get(RetirementLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
+        self.v_frontend_layouts = VectorFrontendLayouts(self.gen_params)
 
         self.insert = Method(i=self.vxrs_layouts.insert_in)
         self.select = Method(o=self.vxrs_layouts.select_out)
@@ -37,7 +39,13 @@ class VectorCore(Elaboratable):
         backend = VectorBackend(self.gen_params, announcer.announce_list[0])
         v_freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1)
         v_frat = FRAT(gen_params = self.gen_params, superscalarity = 2)
-        frontend = VectorFrontend(self.gen_params, rob_block_interrupts, announcer.announce_list[1], announcer.announce_list[2], announce_mult, v_freerf.allocate, )
+        v_rrat = RRAT(gen_params = self.gen_params)
+        fifo_to_vvrs = BasicFifo(self.v_frontend_layouts.instr_to_vvrs, 2)
+        fifo_to_mem = BasicFifo(self.v_frontend_layouts.instr_to_mem, 2)
+        frontend = VectorFrontend(self.gen_params, rob_block_interrupts, announcer.announce_list[1], announcer.announce_list[2], backend.report_mult, v_freerf.allocate, v_frat.get_rename_list[0], v_frat.get_rename_list[1],
+                                  v_frat.set_rename_list[0], fifo_to_mem.write, fifo_to_vvrs.write, backend.initialise_regs)
 
+
+        # TODO add to submodules
 
         return m

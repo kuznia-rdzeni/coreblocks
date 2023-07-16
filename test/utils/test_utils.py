@@ -208,9 +208,10 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
                 else:
                     self.assertEqual((yield valid), 1)
                     self.assertEqual((yield real), ex)
+            yield Delay(1e-7)
 
     def test_random(self):
-        with self.run_simulation(self.circ, max_cycles=100) as sim:
+        with self.run_simulation(self.circ,) as sim:
             sim.add_process(self.process)
 
 

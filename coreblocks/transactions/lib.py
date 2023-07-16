@@ -7,7 +7,7 @@ from .core import *
 from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
 from ..utils.fifo import BasicFifo
-from ..utils import ValueLike, assign, AssignType, ModuleConnector
+from ..utils import ValueLike, assign, AssignType, ModuleConnector, MultiPriorityEncoder
 from ..utils.protocols import RoutingBlock
 from ..utils._typing import LayoutLike
 
@@ -44,6 +44,7 @@ __all__ = [
     "NotMethod",
     "DownCounter",
     "Barrier",
+    "ContentAddressableMemory",
 ]
 
 # FIFOs
@@ -1936,4 +1937,49 @@ class Barrier(Elaboratable):
         def _(arg):
             m.d.sync += valids.eq(arg.valids)
 
+        return m
+
+class ContentAddressableMemory(Elaboratable):
+    # This module can be optimised to have O(log n) critical path instead of O(n)
+    def __init__(self, address_layout : LayoutLike, data_layout : LayoutLike, entries_number : int):
+        self.address_layout = address_layout
+        self.data_layout = data_layout
+        self.entries_number = entries_number
+
+        self.pop= Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])
+        self.push = Method(i=[("addr", self.address_layout), ("data", self.data_layout)])
+
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        address_array = Array([Record(self.address_layout) for _ in range(self.entries_number)])
+        data_array = Array([Record(self.data_layout) for _ in range(self.entries_number)])
+        valids = Signal(self.entries_number, name = "valids")
+
+        m.submodules.encoder_addr = encoder_addr = MultiPriorityEncoder(self.entries_number, 1)
+        m.submodules.encoder_valids = encoder_valids = MultiPriorityEncoder(self.entries_number, 1)
+        m.d.comb += encoder_valids.input.eq(~valids)
+
+        @def_method(m, self.push, ready=~valids.all())
+        def _(addr, data):
+            id = Signal(range(self.entries_number), name = "id_push")
+            m.d.comb += id.eq(encoder_valids.outputs[0])
+            m.d.sync += address_array[id].eq(addr)
+            m.d.sync += data_array[id].eq(data)
+            m.d.sync += valids.bit_select(id, 1).eq(1)
+
+        if_addr = Signal(self.entries_number, name="if_addr")
+        data_to_send = Record(self.data_layout)
+        @def_method(m, self.pop)
+        def _(addr):
+            m.d.top_comb += if_addr.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
+            id = encoder_addr.outputs[0]
+            with m.If(if_addr.any()):
+                m.d.comb += data_to_send.eq(data_array[id])
+                m.d.sync += valids.bit_select(id, 1).eq(0)
+
+            return {"data": data_to_send, "not_found": ~if_addr.any()}
+        m.d.comb += encoder_addr.input.eq(if_addr)
+        
         return m
