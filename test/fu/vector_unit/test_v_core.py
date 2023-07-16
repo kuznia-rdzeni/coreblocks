@@ -9,9 +9,9 @@ from collections import deque
 
 class TestVectorCore(TestCaseWithSimulator):
     def setUp(self):
-        random.seed(14)
-        self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = 1, vrp_count = 8)))
-        self.test_number = 5
+        random.seed(15)
+        self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = 1, vrp_count = 36)))
+        self.test_number = 10
         self.v_params = self.gen_params.v_params
 
         self.vxrs_layouts = VectorXRSLayout(
@@ -48,6 +48,8 @@ class TestVectorCore(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.exception_report)
     def exception_report_process(self, arg):
+        print("EXCEPTION!")
+        print(arg)
         self.assertFalse(True)
 
     def generate_input(self):
@@ -56,6 +58,7 @@ class TestVectorCore(TestCaseWithSimulator):
                                       funct3 = [Funct3.OPIVI, Funct3.OPIVV, Funct3.OPIVX],
                                       not_balanced_vsetvl = True,
                                       const_lmul = LMUL.m1,
+                                      vsetvl_different_rp_id = True,
                                       random_rob_id = False)
         to_correct = {}
         if instr["exec_fn"]["op_type"] ==OpType.V_ARITHMETIC:
@@ -64,6 +67,7 @@ class TestVectorCore(TestCaseWithSimulator):
             to_correct |= {"rp_s1" : {"type" : RegisterType.V}}
         if instr["exec_fn"]["funct3"] in [Funct3.OPIVI, Funct3.OPIVX]:
             to_correct |= {"rp_s1" : {"type" : RegisterType.X}}
+        print(instr["rob_id"], vtype)
         return overwrite_dict_values(instr, to_correct)
 
     def input_process(self):
@@ -119,7 +123,7 @@ class TestVectorCore(TestCaseWithSimulator):
             self.instr_q.popleft()
 
     def test_liveness(self):
-        with self.run_simulation(self.m, 300) as sim:
+        with self.run_simulation(self.m, 6000) as sim:
             sim.add_sync_process(self.input_process)
             sim.add_sync_process(self.output_process)
             sim.add_sync_process(self.precommit_process)
