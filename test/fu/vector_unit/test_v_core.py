@@ -6,12 +6,15 @@ from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_core import *
 from test.fu.vector_unit.common import *
 from collections import deque
+from parameterized import parameterized_class
 
+#@parameterized_class(["seed"], [ (i,) for i in range(52, 56)])
 class TestVectorCore(TestCaseWithSimulator):
+    seed : int
     def setUp(self):
-        random.seed(17)
+        random.seed(53)
         self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = 1, vrp_count = 36)))
-        self.test_number = 250
+        self.test_number = 350
         self.v_params = self.gen_params.v_params
 
         self.vxrs_layouts = VectorXRSLayout(
@@ -40,7 +43,9 @@ class TestVectorCore(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.rob_peek, sched_prio = 1)
     def rob_peek_process(self):
+#        print("INSTR   ", self.instr_q)
         if self.instr_q:
+#            print("ZNALEZIONO")
             rob_oldest = self.instr_q[0]
             return {"rob_data" : {"rp_dst" : rob_oldest["rp_dst"], "rl_dst" : rob_oldest["rp_dst"] }, "rob_id" : rob_oldest["rob_id"], "exception" : 0}
         else:
@@ -138,12 +143,14 @@ class TestVectorCore(TestCaseWithSimulator):
                 yield
             rob_oldest = self.instr_q[0]
             self.assertEqual(self.lowest_used_rob_id, rob_oldest["rob_id"])
-            while not self.find_rob_id_in_ended(rob_oldest["rob_id"]):
+            while True:
                 res = yield from self.circ.precommit.call_try(rob_id = rob_oldest["rob_id"])
-                self.assertIsNotNone(res)
+                if not self.find_rob_id_in_ended(rob_oldest["rob_id"]):
+                    self.assertIsNotNone(res)
+                else:
+                    break
+            print("CYCLE:", (yield Now()))
             print("Commiting:", rob_oldest)
-            yield Settle()
-            yield Settle()
             self.check_ordering()
             self.remove_rob_id_from_ended(rob_oldest["rob_id"])
             self.lowest_used_rob_id = (self.lowest_used_rob_id + 1) % 2**self.gen_params.rob_entries_bits
