@@ -38,11 +38,12 @@ class VectorCore(Elaboratable):
 
         rob_block_interrupts = self.gen_params.get(DependencyManager).get_dependency(ROBBlockInterruptsKey())
 
-        v_freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1)
+        #TODO add deallocating
+        v_freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1, reset_state = 2**self.v_params.vrl_count - 1)
         v_frat = FRAT(gen_params = self.gen_params, superscalarity = 2)
-        v_rrat = RRAT(gen_params = self.gen_params)
+        v_rrat = RRAT(gen_params = self.gen_params, zero_init = False)
 
-        v_retirement = VectorRetirement(self.gen_params, self.v_params.vrp_count, v_rrat.commit)
+        v_retirement = VectorRetirement(self.gen_params, self.v_params.vrp_count, v_rrat.commit, v_freerf.deallocates[0])
         announcer = VectorAnnouncer(self.gen_params, 3)
 
         backend = VectorBackend(self.gen_params, announcer.announce_list[0], v_retirement.report_end)

@@ -9,7 +9,7 @@ from collections import deque
 
 class TestVectorCore(TestCaseWithSimulator):
     def setUp(self):
-        random.seed(16)
+        random.seed(17)
         self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = 1, vrp_count = 36)))
         self.test_number = 250
         self.v_params = self.gen_params.v_params

@@ -83,7 +83,7 @@ class RRAT(Elaboratable):
         Layout: RATLayouts.rat_commit_*
     """
 
-    def __init__(self, *, gen_params: GenParams, superscalarity: int = 1):
+    def __init__(self, *, gen_params: GenParams, superscalarity: int = 1, zero_init : bool = True):
         """
         Parameters
         ----------
@@ -91,14 +91,19 @@ class RRAT(Elaboratable):
             Core configuration.
         superscalarity : int
             Number of `commit` methods to create.
+        zero_init : int
+            If True initialise content on reset with 0, else initialise with register
+            logical id.
         """
         self.gen_params = gen_params
         self.superscalarity = superscalarity
+        self.zero_init = zero_init
+
         layouts = gen_params.get(RATLayouts)
         self.commit_input_layout = layouts.rat_commit_in
         self.commit_output_layout = layouts.rat_commit_out
 
-        self.entries = Array(Signal(self.gen_params.phys_regs_bits) for _ in range(self.gen_params.isa.reg_cnt))
+        self.entries = Array(Signal(self.gen_params.phys_regs_bits, reset = 0 if self.zero_init else i) for i in range(self.gen_params.isa.reg_cnt))
 
         if self.superscalarity < 1:
             raise ValueError(f"FRAT should have minimum one method, so superscalarity>=1, got: {self.superscalarity}")

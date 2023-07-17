@@ -26,7 +26,7 @@ class SuperscalarFreeRF(Elaboratable):
         one register in one cycle.
     """
 
-    def __init__(self, entries_count: int, outputs_count: int):
+    def __init__(self, entries_count: int, outputs_count: int, *, reset_state : int = 0):
         """
         Parameters
         ----------
@@ -35,9 +35,12 @@ class SuperscalarFreeRF(Elaboratable):
         outputs_count : int
             Number of the deallocate methods that should be created to allow for
             superscalar freeing of registers.
+        reset_state : int
+            Mask of registers which should be treated as allocated on reset.
         """
         self.entries_count = entries_count
         self.outputs_count = outputs_count
+        self.reset_state = reset_state
 
         self.layouts = SuperscalarFreeRFLayouts(self.entries_count, self.outputs_count)
         self.allocate = Method(i=self.layouts.allocate_in, o=self.layouts.allocate_out)
@@ -46,7 +49,7 @@ class SuperscalarFreeRF(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        self.not_used = Signal(self.entries_count, reset=2**self.entries_count - 1)
+        self.not_used = Signal(self.entries_count, reset=(2**self.entries_count - 1) & ~self.reset_state)
 
         m.submodules.priority_encoder = encoder = MultiPriorityEncoder(self.entries_count, self.outputs_count)
         m.d.top_comb += encoder.input.eq(self.not_used)

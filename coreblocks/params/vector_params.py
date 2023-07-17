@@ -13,6 +13,7 @@ class VectorParameters:
         self.elen = cfg.elen
         self.vlen = cfg.vlen
         self.vrp_count = cfg.vrp_count
+        self.vrl_count = 32
         self.vrp_count_bits = log2_int(self.vrp_count, False)
         self.register_bank_count = cfg.register_bank_count
         self.vxrs_entries = 8 # placeholder to be updated by VectorBlockComponent
@@ -27,6 +28,9 @@ class VectorParameters:
 
         if self.vlen % self.elen != 0:
             raise ValueError("Wrong vectors parameters. VLEN should be divisable by ELEN")
+
+        if self.vrp_count <= self.vrl_count:
+            raise ValueError("To little number of physical vector registers.")
 
         self.elens_in_vlen = self.vlen // self.elen
 
