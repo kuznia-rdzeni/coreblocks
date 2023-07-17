@@ -9,9 +9,9 @@ from collections import deque
 
 class TestVectorCore(TestCaseWithSimulator):
     def setUp(self):
-        random.seed(15)
+        random.seed(16)
         self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = 1, vrp_count = 36)))
-        self.test_number = 10
+        self.test_number = 250
         self.v_params = self.gen_params.v_params
 
         self.vxrs_layouts = VectorXRSLayout(
@@ -105,6 +105,32 @@ class TestVectorCore(TestCaseWithSimulator):
                 return
         self.assertFalse(True)
 
+    def find_instr_in_rob(self, rob_id):
+        for instr in self.instr_q:
+            if instr["rob_id"] == rob_id:
+                return instr
+        self.assertFalse(True, "Expected instruction not found.")
+        assert False
+
+    def check_ordering(self):
+        current = self.instr_q[0]
+        rob_id = current["rob_id"]
+        self.assertEqual(current["rob_id"], rob_id, "Expected rob_id not on head of rob.")
+        for ended in self.instr_ended_q:
+            if ended["rob_id"] == rob_id:
+                break
+            earlier_ended_instr = self.find_instr_in_rob(ended["rob_id"])
+
+            if current["rp_dst"]["id"] == 0 and current["rp_dst"]["type"] == RegisterType.V:
+                # check that writing to V0 serialise vector arithmetic instructions (as all vector instructions
+                # potentialy depends on vector mask from v0) in other words no V_ARITHMETIC
+                # instruction ended execution earlier
+                self.assertEqual(earlier_ended_instr["exec_fn"]["op_type"], OpType.V_CONTROL)
+            else:
+                for field in ["rp_s1", "rp_s2", "rp_dst"]:
+                    # check that each instruction that was executed earlier hasn't
+                    # depended on currently calculated value
+                    self.assertNotEqual(earlier_ended_instr[field], current["rp_dst"])
 
     def precommit_process(self):
         for _ in range(self.test_number):
@@ -118,6 +144,7 @@ class TestVectorCore(TestCaseWithSimulator):
             print("Commiting:", rob_oldest)
             yield Settle()
             yield Settle()
+            self.check_ordering()
             self.remove_rob_id_from_ended(rob_oldest["rob_id"])
             self.lowest_used_rob_id = (self.lowest_used_rob_id + 1) % 2**self.gen_params.rob_entries_bits
             self.instr_q.popleft()
