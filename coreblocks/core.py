@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.transactions.core import Transaction, TModule, Method
+from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey

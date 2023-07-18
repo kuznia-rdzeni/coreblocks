@@ -469,7 +469,7 @@ class TestDummyLSUFence(TestCaseWithSimulator):
             yield from self.test_module.io_in.slave_wait()
             yield from self.test_module.io_in.slave_respond(1)
             yield Settle()
-        v = yield from self.test_module.get_result.call()
+        v = yield from self.test_module.send_result.call()
         if instr["exec_fn"]["op_type"] == OpType.LOAD:
             self.assertEqual(v["result"], 1)
 
