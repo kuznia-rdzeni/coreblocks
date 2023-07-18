@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from amaranth.build.dsl import Subsignal
 from amaranth.vendor.lattice_ecp5 import LatticeECP5Platform
 from amaranth.build import Resource, Attrs, Pins, Clock, PinsN
@@ -31,17 +33,52 @@ def WishboneResource(  # noqa: N802
     return Resource.family(*args, default_name="wishbone", ios=io)
 
 
-def make_ecp5_platform(wb_params: WishboneParameters):
-    pin_bag = ecp5_bg381_pins[:]
+class ResourceBuilder(ABC):
+    def p(self, count: int = 1):
+        return " ".join([self.pin_bag.pop() for _ in range(count)])
 
-    def p(count: int = 1):
-        return " ".join([pin_bag.pop() for _ in range(count)])
-
-    def named_pin(names: list[str]):
+    def named_pin(self,names: list[str]):
         for name in names:
-            if name in pin_bag:
-                pin_bag.remove(name)
+            if name in self.pin_bag:
+                self.pin_bag.remove(name)
                 return name
+
+    def set_pins(self, pins: Iterable[str]):
+        self.pin_bag = list(pins)
+
+    @abstractmethod
+    def resources(self) -> list[Resource]:
+        raise NotImplementedError
+
+
+class WishboneResourceBuilder(ResourceBuilder):
+    def __init__(self, wb_params: WishboneParameters):
+        self.wb_params = wb_params
+
+    def resources(self) -> list[Resource]:
+        return [
+            WishboneResource(
+                0,
+                dat_r=self.p(self.wb_params.data_width),
+                dat_w=self.p(self.wb_params.data_width),
+                rst=self.p(),
+                ack=self.p(),
+                adr=self.p(self.wb_params.addr_width),
+                cyc=self.p(),
+                stall=self.p(),
+                err=self.p(),
+                lock=self.p(),
+                rty=self.p(),
+                sel=self.p(self.wb_params.data_width // self.wb_params.granularity),
+                stb=self.p(),
+                we=self.p(),
+            ),
+        ]
+
+
+
+def make_ecp5_platform(builder: ResourceBuilder):
+    builder.set_pins(ecp5_bg381_pins)
 
     # Tutorial for synthesis in amaranth:
     # https://github.com/RobertBaruch/amaranth-tutorial/blob/main/9_synthesis.md
@@ -53,25 +90,9 @@ def make_ecp5_platform(wb_params: WishboneParameters):
         default_rst = "rst"
 
         resources = [
-            Resource("rst", 0, PinsN(p(), dir="i"), Attrs(IO_TYPE="LVCMOS33")),
-            Resource("clk", 0, Pins(named_pin(ecp5_bg381_pclk), dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
-            WishboneResource(
-                0,
-                dat_r=p(wb_params.data_width),
-                dat_w=p(wb_params.data_width),
-                rst=p(),
-                ack=p(),
-                adr=p(wb_params.addr_width),
-                cyc=p(),
-                stall=p(),
-                err=p(),
-                lock=p(),
-                rty=p(),
-                sel=p(wb_params.data_width // wb_params.granularity),
-                stb=p(),
-                we=p(),
-            ),
-        ]
+            Resource("rst", 0, PinsN(builder.p(), dir="i"), Attrs(IO_TYPE="LVCMOS33")),
+            Resource("clk", 0, Pins(builder.named_pin(ecp5_bg381_pclk), dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
+        ] + builder.resources()
 
         connectors = []
 
