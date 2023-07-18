@@ -1,10 +1,10 @@
-from typing import Dict
+from parameterized import parameterized_class
 
 from coreblocks.fu.zbc import ZbcFn, ZbcComponent
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 
-from test.fu.functional_common import GenericFunctionalTestUnit
+from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 # Instruction semantics are based on pseudocode from the spec
@@ -33,67 +33,39 @@ def clmulr(i1: int, i2: int, xlen: int) -> int:
     return output % (2**xlen)
 
 
-def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbcFn.Fn, xlen: int) -> Dict[str, int]:
-    match fn:
-        case ZbcFn.Fn.CLMUL:
-            return {"result": clmul(i1, i2, xlen)}
-        case ZbcFn.Fn.CLMULH:
-            return {"result": clmulh(i1, i2, xlen)}
-        case ZbcFn.Fn.CLMULR:
-            return {"result": clmulr(i1, i2, xlen)}
-
-
-ops = {
-    ZbcFn.Fn.CLMUL: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMUL, "funct7": Funct7.CLMUL},
-    ZbcFn.Fn.CLMULH: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMULH, "funct7": Funct7.CLMUL},
-    ZbcFn.Fn.CLMULR: {"op_type": OpType.CLMUL, "funct3": Funct3.CLMULR, "funct7": Funct7.CLMUL},
-}
-
-
-class IterativeZbcUnitTest(GenericFunctionalTestUnit):
-    def test_test(self):
-        self.run_pipeline()
-
-    def __init__(self, method_name: str = "runTest"):
-        super().__init__(
-            ops,
+@parameterized_class(
+    ("name", "func_unit"),
+    [
+        (
+            "iterative",
             ZbcComponent(recursion_depth=0),
-            compute_result,
-            gen=GenParams(test_core_config),
-            number_of_tests=400,
-            seed=323262,
-            method_name=method_name,
-        )
-
-
-class RecursiveZbcUnitTestDepth3(GenericFunctionalTestUnit):
-    def test_test(self):
-        self.run_pipeline()
-
-    def __init__(self, method_name: str = "runTest"):
-        super().__init__(
-            ops,
+        ),
+        (
+            "recursive_3",
             ZbcComponent(recursion_depth=3),
-            compute_result,
-            gen=GenParams(test_core_config),
-            number_of_tests=400,
-            seed=323262,
-            method_name=method_name,
-        )
+        ),
+        (
+            "recursive_full",
+            ZbcComponent(recursion_depth=test_core_config.xlen.bit_length() - 1),
+        ),
+    ],
+)
+class ZbcUnitTest(FunctionalUnitTestCase[ZbcFn.Fn]):
+    ops = {
+        ZbcFn.Fn.CLMUL: ExecFn(OpType.CLMUL, Funct3.CLMUL, Funct7.CLMUL),
+        ZbcFn.Fn.CLMULH: ExecFn(OpType.CLMUL, Funct3.CLMULH, Funct7.CLMUL),
+        ZbcFn.Fn.CLMULR: ExecFn(OpType.CLMUL, Funct3.CLMULR, Funct7.CLMUL),
+    }
 
+    @staticmethod
+    def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbcFn.Fn, xlen: int) -> dict[str, int]:
+        match fn:
+            case ZbcFn.Fn.CLMUL:
+                return {"result": clmul(i1, i2, xlen)}
+            case ZbcFn.Fn.CLMULH:
+                return {"result": clmulh(i1, i2, xlen)}
+            case ZbcFn.Fn.CLMULR:
+                return {"result": clmulr(i1, i2, xlen)}
 
-class RecursiveZbcUnitTestFullDepth(GenericFunctionalTestUnit):
-    def test_test(self):
-        self.run_pipeline()
-
-    def __init__(self, method_name: str = "runTest"):
-        gen = GenParams(test_core_config)
-        super().__init__(
-            ops,
-            ZbcComponent(recursion_depth=gen.isa.xlen_log),
-            compute_result,
-            gen=gen,
-            number_of_tests=300,
-            seed=323262,
-            method_name=method_name,
-        )
+    def test_fu(self):
+        self.run_standard_fu_test()

@@ -446,3 +446,49 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             sim.add_sync_process(self.get_resulter)
             sim.add_sync_process(self.precommiter)
             sim.add_sync_process(exception_consumer)
+
+
+class TestDummyLSUFence(TestCaseWithSimulator):
+    def get_instr(self, exec_fn):
+        return {
+            "rp_s1": 0,
+            "rp_s2": 0,
+            "rp_dst": 1,
+            "rob_id": 1,
+            "exec_fn": exec_fn,
+            "s1_val": 4,
+            "s2_val": 1,
+            "imm": 8,
+        }
+
+    def push_one_instr(self, instr):
+        yield from self.test_module.select.call()
+        yield from self.test_module.insert.call(rs_data=instr, rs_entry_id=1)
+
+        if instr["exec_fn"]["op_type"] == OpType.LOAD:
+            yield from self.test_module.io_in.slave_wait()
+            yield from self.test_module.io_in.slave_respond(1)
+            yield Settle()
+        v = yield from self.test_module.get_result.call()
+        if instr["exec_fn"]["op_type"] == OpType.LOAD:
+            self.assertEqual(v["result"], 1)
+
+    def process(self):
+        # just tests if FENCE doens't hang up the LSU
+        load_fn = {"op_type": OpType.LOAD, "funct3": Funct3.W, "funct7": 0}
+        fence_fn = {"op_type": OpType.FENCE, "funct3": 0, "funct7": 0}
+        yield from self.push_one_instr(self.get_instr(load_fn))
+        yield from self.push_one_instr(self.get_instr(fence_fn))
+        yield from self.push_one_instr(self.get_instr(load_fn))
+
+    def test_fence(self):
+        self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.test_module = DummyLSUTestCircuit(self.gp)
+
+        @def_method_mock(lambda: self.test_module.exception_report)
+        def exception_consumer(arg):
+            self.assertTrue(False)
+
+        with self.run_simulation(self.test_module) as sim:
+            sim.add_sync_process(self.process)
+            sim.add_sync_process(exception_consumer)
