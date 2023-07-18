@@ -3,9 +3,11 @@ from parameterized import parameterized_class
 
 from coreblocks.params import *
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
-from coreblocks.transactions import Method, def_method, TModule
+from coreblocks.transactions import Method, Transaction, TModule
+from coreblocks.transactions.lib import FIFO
 from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
 from coreblocks.utils.protocols import FuncUnit
+from coreblocks.utils.utils import assign
 
 from test.common import signed_to_int
 
@@ -13,35 +15,32 @@ from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 class JumpBranchWrapper(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.jb = JumpBranchFuncUnit(gen_params)
-        self.issue = self.jb.issue
-        self.accept = Method(o=gen_params.get(FuncUnitLayouts).accept + gen_params.get(FetchLayouts).branch_verify)
+    def __init__(self, gen_params: GenParams, send_result: Method):
+        self.gen_params = gen_params
+        self.send_result = send_result
+        self.issue = Method(i=self.gen_params.get(FuncUnitLayouts).issue)
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.jb_unit = self.jb
+        m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).send_result, 2)
 
-        @def_method(m, self.accept)
-        def _(arg):
-            res = self.jb.accept(m)
-            br = self.jb.branch_result(m)
-            return {
-                "from_pc": br.from_pc,
-                "next_pc": br.next_pc,
-                "result": res.result,
-                "rob_id": res.rob_id,
-                "rp_dst": res.rp_dst,
-                "exception": res.exception,
-            }
+        m.submodules.jb_unit = self.jb = JumpBranchFuncUnit(self.gen_params, send_result=fifo.write)
+
+        self.issue.proxy(m, self.jb.issue)
+
+        with Transaction().body(m):
+            new_arg = Record.like(self.send_result.data_in)
+            m.d.comb += assign(new_arg, fifo.read(m))
+            m.d.comb += assign(new_arg, self.jb.branch_result(m))
+            self.send_result(m, new_arg)
 
         return m
 
 
 class JumpBranchWrapperComponent(FunctionalComponentParams):
-    def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return JumpBranchWrapper(gen_params)
+    def get_module(self, gen_params: GenParams, send_result: Method) -> FuncUnit:
+        return JumpBranchWrapper(gen_params, send_result)
 
     def get_optypes(self) -> set[OpType]:
         return JumpBranchFn().get_op_types()
@@ -115,20 +114,16 @@ ops_auipc = {
 
 
 @parameterized_class(
-    ("name", "ops", "func_unit", "compute_result"),
+    ("name", "ops", "func_unit", "compute_result", "result_layout_additional"),
     [
         (
             "branches_and_jumps",
             ops,
             JumpBranchWrapperComponent(),
             compute_result,
+            lambda _, gen: gen.get(FetchLayouts).branch_verify,
         ),
-        (
-            "auipc",
-            ops_auipc,
-            JumpComponent(),
-            compute_result_auipc,
-        ),
+        ("auipc", ops_auipc, JumpComponent(), compute_result_auipc, lambda _, gen: []),
     ],
 )
 class JumpBranchUnitTest(FunctionalUnitTestCase[JumpBranchFn.Fn]):

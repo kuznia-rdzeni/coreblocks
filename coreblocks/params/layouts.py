@@ -285,7 +285,7 @@ class FuncUnitLayouts:
             ("pc", gen_params.isa.xlen),
         ]
 
-        self.accept = [
+        self.send_result = [
             ("rob_id", gen_params.rob_entries_bits),
             ("result", gen_params.isa.xlen),
             ("rp_dst", gen_params.phys_regs_bits),

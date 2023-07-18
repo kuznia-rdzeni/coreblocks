@@ -1,6 +1,6 @@
 from amaranth import *
+from coreblocks.params.layouts import FuncUnitLayouts
 
-from coreblocks.transactions.lib import Adapter
 from coreblocks.structs_common.csr import CSRUnit, CSRRegister
 from coreblocks.params import GenParams
 from coreblocks.params.isa import Funct3, ExceptionCause
@@ -9,6 +9,7 @@ from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.frontend.decoder import OpType
+from coreblocks.transactions.lib import Adapter
 
 from ..common import *
 
@@ -24,12 +25,15 @@ class CSRUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.dut = self.dut = CSRUnit(self.gen_params)
+        m.submodules.send_result_mock = self.send_result = TestbenchIO(
+            Adapter(i=self.gen_params.get(FuncUnitLayouts).send_result)
+        )
+
+        m.submodules.dut = self.dut = CSRUnit(self.gen_params, self.send_result.adapter.iface)
 
         m.submodules.select = self.select = TestbenchIO(AdapterTrans(self.dut.select))
         m.submodules.insert = self.insert = TestbenchIO(AdapterTrans(self.dut.insert))
         m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
-        m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
         m.submodules.precommit = self.precommit = TestbenchIO(AdapterTrans(self.dut.precommit))
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
@@ -133,7 +137,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             yield from self.dut.precommit.call()
 
             yield from self.random_wait()
-            res = yield from self.dut.accept.call()
+            res = yield from self.dut.send_result.call()
 
             self.assertTrue(self.dut.fetch_continue.done())
             self.assertEqual(res["rp_dst"], op["exp"]["exp_read"]["rp_dst"])
@@ -186,7 +190,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             yield from self.dut.precommit.call(rob_id=rob_id)
 
             yield from self.random_wait()
-            res = yield from self.dut.accept.call()
+            res = yield from self.dut.send_result.call()
 
             self.assertEqual(res["exception"], 1)
             report = yield from self.dut.exception_report.call_result()

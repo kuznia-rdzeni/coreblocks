@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 from collections.abc import Collection, Iterable
 
+from coreblocks.transactions.core import Method
 from coreblocks.utils.protocols import FuncBlock, FuncUnit
 from coreblocks.params.isa import Extension, extension_implications
 from coreblocks.params.optypes import optypes_required_by_extensions
@@ -22,7 +23,7 @@ __all__ = [
 
 class BlockComponentParams(ABC):
     @abstractmethod
-    def get_module(self, gen_params: "GenParams") -> FuncBlock:
+    def get_module(self, gen_params: "GenParams", send_result: Method) -> FuncBlock:
         raise NotImplementedError()
 
     @abstractmethod
@@ -36,7 +37,7 @@ class BlockComponentParams(ABC):
 
 class FunctionalComponentParams(ABC):
     @abstractmethod
-    def get_module(self, gen_params: "GenParams") -> FuncUnit:
+    def get_module(self, gen_params: "GenParams", send_result: Method) -> FuncUnit:
         raise NotImplementedError()
 
     @abstractmethod

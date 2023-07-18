@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from itertools import product
 import random
@@ -13,7 +14,8 @@ from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params.isa import Funct3, Funct7
 from coreblocks.params.keys import ExceptionReportKey
-from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.params.layouts import ExceptionRegisterLayouts, FuncUnitLayouts
+from coreblocks.transactions import MethodLayout
 from coreblocks.params.optypes import OpType
 from coreblocks.transactions.lib import AdapterTrans, Adapter
 from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator
@@ -31,9 +33,10 @@ class FunctionalTestCircuit(Elaboratable):
         Class of functional unit to be tested.
     """
 
-    def __init__(self, gen: GenParams, func_unit: FunctionalComponentParams):
+    def __init__(self, gen: GenParams, func_unit: FunctionalComponentParams, result_layout_additional: MethodLayout):
         self.gen = gen
         self.func_unit = func_unit
+        self.result_layout_additional = result_layout_additional
 
     def elaborate(self, platform):
         m = Module()
@@ -43,11 +46,17 @@ class FunctionalTestCircuit(Elaboratable):
         )
         self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
 
-        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen)
+        # mocked output
+        m.submodules.send_result_mock = self.send_result_mock = TestbenchIO(
+            Adapter(i=self.gen.get(FuncUnitLayouts).send_result + list(self.result_layout_additional))
+        )
 
-        # mocked input and output
+        m.submodules.func_unit = func_unit = self.func_unit.get_module(
+            self.gen, send_result=self.send_result_mock.adapter.iface
+        )
+
+        # mocked input
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
 
         return m
 
@@ -81,6 +90,9 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         Whether to set 'imm' to 0 or not in case 2nd operand comes from 's2_val'
     core_config: CoreConfiguration
         Core generation parameters.
+    result_layout_additional: Callable[[GenParams], MethodLayout]
+        Additional fields for the result layout. Helpful for units with a side channel,
+        like e.g. the jump-branch unit.
     """
 
     ops: dict[_T, ExecFn]
@@ -89,6 +101,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     seed = 40
     zero_imm = True
     core_config = test_core_config
+    result_layout_additional: Callable[[GenParams], MethodLayout] = staticmethod(lambda _: [])
 
     @staticmethod
     def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: _T, xlen: int) -> dict[str, int]:
@@ -114,7 +127,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
 
     def setUp(self):
         gen = GenParams(test_core_config)
-        self.m = FunctionalTestCircuit(gen, self.func_unit)
+        self.m = FunctionalTestCircuit(gen, self.func_unit, self.result_layout_additional(gen))
 
         random.seed(self.seed)
         self.requests = deque[RecordIntDict]()
@@ -163,7 +176,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     def consumer(self):
         while self.responses:
             expected = self.responses.pop()
-            result = yield from self.m.accept.call()
+            result = yield from self.m.send_result_mock.call()
             self.assertDictEqual(expected, result)
             yield from self.random_wait()
 

@@ -11,7 +11,7 @@ from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import *
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
-from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.params.layouts import ExceptionRegisterLayouts, FuncUnitLayouts
 from coreblocks.peripherals.wishbone import *
 from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock, int_to_signed, signed_to_int
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
@@ -86,18 +86,21 @@ class DummyLSUTestCircuit(Elaboratable):
 
         self.bus = WishboneMaster(wb_params)
 
+        m.submodules.send_result_mock = self.send_result = TestbenchIO(
+            Adapter(i=self.gen.get(FuncUnitLayouts).send_result)
+        )
+
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
         )
 
         self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
-        m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus)
+        m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus, self.send_result.adapter.iface)
 
         m.submodules.select_mock = self.select = TestbenchIO(AdapterTrans(func_unit.select))
         m.submodules.insert_mock = self.insert = TestbenchIO(AdapterTrans(func_unit.insert))
         m.submodules.update_mock = self.update = TestbenchIO(AdapterTrans(func_unit.update))
-        m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
         m.submodules.precommit_mock = self.precommit = TestbenchIO(AdapterTrans(func_unit.precommit))
         self.io_in = WishboneInterfaceWrapper(self.bus.wbMaster)
         m.submodules.bus = self.bus
@@ -237,7 +240,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
     def consumer(self):
         for i in range(self.tests_number):
-            v = yield from self.test_module.get_result.call()
+            v = yield from self.test_module.send_result.call()
             exc = self.exception_result.pop()
             if not exc:
                 self.assertEqual(v["result"], self.returned_data.pop())
@@ -303,7 +306,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         yield from self.test_module.io_in.slave_respond(data)
         yield Settle()
 
-        v = yield from self.test_module.get_result.call()
+        v = yield from self.test_module.send_result.call()
         self.assertEqual(v["result"], data)
 
     def test(self):
@@ -417,7 +420,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
 
     def get_resulter(self):
         for i in range(self.tests_number):
-            v = yield from self.test_module.get_result.call()
+            v = yield from self.test_module.send_result.call()
             rob_id = self.get_result_data.pop()
             self.assertEqual(v["rob_id"], rob_id)
             self.assertEqual(v["rp_dst"], 0)
@@ -466,7 +469,7 @@ class TestDummyLSUFence(TestCaseWithSimulator):
             yield from self.test_module.io_in.slave_wait()
             yield from self.test_module.io_in.slave_respond(1)
             yield Settle()
-        v = yield from self.test_module.get_result.call()
+        v = yield from self.test_module.send_result.call()
         if instr["exec_fn"]["op_type"] == OpType.LOAD:
             self.assertEqual(v["result"], 1)
 

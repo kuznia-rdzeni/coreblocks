@@ -115,13 +115,13 @@ class JumpBranch(Elaboratable):
 
 
 class JumpBranchFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen: GenParams, jb_fn=JumpBranchFn()):
+    def __init__(self, gen: GenParams, send_result: Method, jb_fn=JumpBranchFn()):
         self.gen = gen
 
         layouts = gen.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.send_result = send_result
         self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
 
         self.jb_fn = jb_fn
@@ -132,13 +132,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         m = TModule()
 
         m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
-        m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
-
-        @def_method(m, self.accept)
-        def _():
-            return fifo_res.read(m)
 
         @def_method(m, self.branch_result)
         def _():
@@ -166,7 +161,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 report = self.dm.get_dependency(ExceptionReportKey())
                 report(m, rob_id=arg.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED)
 
-            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
+            self.send_result(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
 
             # skip writing next branch target for auipc
             with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):
@@ -179,8 +174,8 @@ class JumpComponent(FunctionalComponentParams):
     def __init__(self):
         self.jb_fn = JumpBranchFn()
 
-    def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
+    def get_module(self, gen_params: GenParams, send_result: Method) -> FuncUnit:
+        unit = JumpBranchFuncUnit(gen_params, send_result, self.jb_fn)
         connections = gen_params.get(DependencyManager)
         connections.add_dependency(BranchResolvedKey(), unit.branch_result)
         return unit

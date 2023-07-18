@@ -5,7 +5,7 @@ from amaranth import *
 from coreblocks.params import GenParams, BlockComponentParams, DependencyManager
 from coreblocks.params.dependencies import UnifierKey
 from coreblocks.transactions import Method, TModule
-from coreblocks.transactions.lib import MethodProduct, Collector
+from coreblocks.transactions.lib import MethodProduct
 from coreblocks.utils.protocols import Unifier
 
 __all__ = ["FuncBlocksUnifier"]
@@ -16,14 +16,12 @@ class FuncBlocksUnifier(Elaboratable):
         self,
         *,
         gen_params: GenParams,
+        send_result: Method,
         blocks: Iterable[BlockComponentParams],
         extra_methods_required: Iterable[UnifierKey],
     ):
-        self.rs_blocks = [(block.get_module(gen_params), block.get_optypes()) for block in blocks]
+        self.rs_blocks = [(block.get_module(gen_params, send_result), block.get_optypes()) for block in blocks]
         self.extra_methods_required = extra_methods_required
-
-        self.result_collector = Collector([block.get_result for block, _ in self.rs_blocks])
-        self.get_result = self.result_collector.method
 
         self.update_combiner = MethodProduct([block.update for block, _ in self.rs_blocks])
         self.update = self.update_combiner.method
@@ -50,7 +48,6 @@ class FuncBlocksUnifier(Elaboratable):
         for n, (unit, _) in enumerate(self.rs_blocks):
             m.submodules[f"rs_block_{n}"] = unit
 
-        m.submodules["result_collector"] = self.result_collector
         m.submodules["update_combiner"] = self.update_combiner
 
         for name, unifier in self.unifiers.items():

@@ -63,17 +63,19 @@ class Core(Elaboratable):
         connections = gen_params.get(DependencyManager)
         connections.add_dependency(WishboneDataKey(), self.wb_master_data)
 
+        self.fifo_send_result = FIFO(gen_params.get(FuncUnitLayouts).send_result, 2)
+
         self.exception_cause_register = ExceptionCauseRegister(self.gen_params, rob_get_indices=self.ROB.get_indices)
 
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
+            send_result=self.fifo_send_result.write,
             blocks=gen_params.func_units_config,
             extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
         )
 
         self.announcement = ResultAnnouncement(
-            gen=self.gen_params,
-            get_result=self.func_blocks_unifier.get_result,
+            gen_params=self.gen_params,
             rob_mark_done=self.ROB.mark_done,
             rs_write_val=self.func_blocks_unifier.update,
             rf_write_val=self.RF.write,
@@ -137,6 +139,9 @@ class Core(Elaboratable):
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
             exception_cause_get=self.exception_cause_register.get,
         )
+
+        m.submodules.fifo_send_result = self.fifo_send_result
+        m.submodules.send_result = ConnectTrans(self.fifo_send_result.read, self.announcement.send_result)
 
         m.submodules.csr_generic = self.csr_generic
 
