@@ -8,13 +8,14 @@ from test.fu.vector_unit.common import *
 from collections import deque
 from parameterized import parameterized_class
 
-@parameterized_class(["seed"], [ (i,) for i in range(82, 89)])
+@parameterized_class( ["seed", "register_bank_count", "test_number"], [(14, 1, 70),(15, 2, 40)])
 class TestVectorCore(TestCaseWithSimulator):
     seed : int
+    register_bank_count : int
+    test_number : int
     def setUp(self):
         random.seed(self.seed)
-        self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = 1, vrp_count = 36)))
-        self.test_number = 350
+        self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = self.register_bank_count, vrp_count = 36)))
         self.v_params = self.gen_params.v_params
 
         self.vxrs_layouts = VectorXRSLayout(
@@ -43,9 +44,7 @@ class TestVectorCore(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.rob_peek, sched_prio = 1)
     def rob_peek_process(self):
-#        print("INSTR   ", self.instr_q)
         if self.instr_q:
-#            print("ZNALEZIONO")
             rob_oldest = self.instr_q[0]
             return {"rob_data" : {"rp_dst" : rob_oldest["rp_dst"], "rl_dst" : rob_oldest["rp_dst"] }, "rob_id" : rob_oldest["rob_id"], "exception" : 0}
         else:
@@ -53,8 +52,6 @@ class TestVectorCore(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.exception_report)
     def exception_report_process(self, arg):
-        print("EXCEPTION!")
-        print(arg)
         self.assertFalse(True)
 
     def generate_input(self):
@@ -72,14 +69,11 @@ class TestVectorCore(TestCaseWithSimulator):
             to_correct |= {"rp_s1" : {"type" : RegisterType.V}}
         if instr["exec_fn"]["funct3"] in [Funct3.OPIVI, Funct3.OPIVX]:
             to_correct |= {"rp_s1" : {"type" : RegisterType.X}}
-        print(instr["rob_id"], vtype)
         return overwrite_dict_values(instr, to_correct)
 
     def input_process(self):
         for _ in range(self.test_number):
-            print("----------------")
             input = self.generate_input()
-            print(input)
             while input["rob_id"] + 1 == self.lowest_used_rob_id:
                 yield
             self.instr_q.append(input)
@@ -94,8 +88,6 @@ class TestVectorCore(TestCaseWithSimulator):
         for _ in range(self.test_number):
             result = yield from self.circ.get_result.call()
             self.instr_ended_q.append(result)
-            print("CYCLE:", (yield Now()))
-            print("ENDED:", result)
 
     def find_rob_id_in_ended(self, rob_id):
         for ended in self.instr_ended_q:
@@ -149,15 +141,13 @@ class TestVectorCore(TestCaseWithSimulator):
                     self.assertIsNotNone(res)
                 else:
                     break
-            print("CYCLE:", (yield Now()))
-            print("Commiting:", rob_oldest)
             self.check_ordering()
             self.remove_rob_id_from_ended(rob_oldest["rob_id"])
             self.lowest_used_rob_id = (self.lowest_used_rob_id + 1) % 2**self.gen_params.rob_entries_bits
             self.instr_q.popleft()
 
     def test_liveness(self):
-        with self.run_simulation(self.m, 7000) as sim:
+        with self.run_simulation(self.m, 9000) as sim:
             sim.add_sync_process(self.input_process)
             sim.add_sync_process(self.output_process)
             sim.add_sync_process(self.precommit_process)

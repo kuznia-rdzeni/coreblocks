@@ -103,7 +103,7 @@ def generate_based_on_layout(layout: SimpleLayout, *, max_bits: Optional[int] = 
 
 def generate_phys_register_id(*, gen_params: Optional[GenParams] = None, max_bits: Optional[int] = None):
     if max_bits is not None:
-        return random.randrange(max_bits)
+        return random.randrange(2**max_bits)
     if gen_params is not None:
         return random.randrange(2**gen_params.phys_regs_bits)
     raise ValueError("gen_params and max_bits can not be both None")
@@ -111,14 +111,14 @@ def generate_phys_register_id(*, gen_params: Optional[GenParams] = None, max_bit
 
 def generate_l_register_id(*, gen_params: Optional[GenParams] = None, max_bits: Optional[int] = None):
     if max_bits is not None:
-        return random.randrange(max_bits)
+        return random.randrange(2**max_bits)
     if gen_params is not None:
         return random.randrange(gen_params.isa.reg_cnt)
     raise ValueError("gen_params and max_bits can not be both None")
 
 
 def generate_register_entry(max_bits: int, *, support_vector=False):
-    rp = random.randrange(max_bits)
+    rp = random.randrange(2**max_bits)
     if support_vector:
         rp_rf = random.choice(list(RegisterType))
     else:
