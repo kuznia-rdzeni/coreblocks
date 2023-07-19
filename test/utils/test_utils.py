@@ -227,7 +227,7 @@ class TestPriorityUniqnessChecker(TestCaseWithSimulator):
         s = set()
         valids = []
         for v, in_valid in zip(vals, inputs_valid):
-            valids.append(int(v not in s))
+            valids.append(int((v not in s) and in_valid))
             if in_valid:
                 s.add(v)
         return valids

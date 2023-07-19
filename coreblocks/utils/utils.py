@@ -526,6 +526,8 @@ class PriorityUniqnessChecker(Elaboratable):
             Width of an input element in bits.
         input_count : int
             Number of inputs to create.
+        non_valid_ok : bool
+            TODO
         """
         self.input_width = input_width
         self.inputs_count = inputs_count
@@ -538,7 +540,7 @@ class PriorityUniqnessChecker(Elaboratable):
         m = Module()
 
         for i in range(self.inputs_count):
-            cond = Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any()
+            cond = Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any() | ~self.input_valids[i]
             with m.If(cond):
                 m.d.comb += self.valids[i].eq(0)
 

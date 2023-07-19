@@ -8,11 +8,11 @@ from test.fu.vector_unit.common import *
 from collections import deque
 from parameterized import parameterized_class
 
-#@parameterized_class(["seed"], [ (i,) for i in range(52, 56)])
+#@parameterized_class(["seed"], [ (i,) for i in range(82, 89)])
 class TestVectorCore(TestCaseWithSimulator):
     seed : int
     def setUp(self):
-        random.seed(54)
+        random.seed(75)
         self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = 1, vrp_count = 36)))
         self.test_number = 350
         self.v_params = self.gen_params.v_params
@@ -157,7 +157,7 @@ class TestVectorCore(TestCaseWithSimulator):
             self.instr_q.popleft()
 
     def test_liveness(self):
-        with self.run_simulation(self.m, 6000) as sim:
+        with self.run_simulation(self.m, 7000) as sim:
             sim.add_sync_process(self.input_process)
             sim.add_sync_process(self.output_process)
             sim.add_sync_process(self.precommit_process)

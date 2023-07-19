@@ -31,7 +31,7 @@ class VectorExecutor(Elaboratable):
         self.vreg_layout = VectorRegisterBankLayouts(self.gen_params)
 
         self.issue = Method(i = self.layouts.executor_in)
-        self.initialise_regs = [Method(i = self.vreg_layout.initialise) for _ in range(self.v_params.vrp_count)]
+        self.initialise_regs = [Method(i = self.vreg_layout.initialise, name=f"initialise{i}") for i in range(self.v_params.vrp_count)]
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -82,7 +82,7 @@ class VectorExecutor(Elaboratable):
                 # cold path
                 m.d.sync += end_pending_to_report.eq(1)
 
-        with Transaction().body(m, request = end_pending_to_report):
+        with Transaction(name = "trans_end_pending_report").body(m, request = end_pending_to_report):
             m.d.sync += end_pending_to_report.eq(0)
             self.end(m)
 
