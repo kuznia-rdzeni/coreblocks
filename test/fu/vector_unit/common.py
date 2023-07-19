@@ -13,10 +13,11 @@ def generate_vsetvl(
     last_vl: int = 0,
     const_lmul: Optional[LMUL] = None,
     allow_illegal: bool = False,
-    max_vl : Optional[int] = None
+    max_vl : Optional[int] = None,
+    **kwargs
 ):
     v_params = gen_params.v_params
-    instr = generate_instr(gen_params, layout, max_vl = max_vl)
+    instr = generate_instr(gen_params, layout, max_vl = max_vl, **kwargs)
     vtype = generate_vtype(gen_params, max_vl = max_vl)
     if const_lmul is not None:
         vtype["lmul"] = const_lmul
@@ -79,16 +80,16 @@ def get_vector_instr_generator():
         nonlocal last_vtype
         nonlocal first_instr
         if first_instr:
-            instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl)
+            instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl, **kwargs)
             first_instr = False
             instr = edit_rob_id(instr)
             return instr, last_vtype
 
         instr = generate_instr(gen_params, layout, max_vl = max_vl, **kwargs)
         if instr["exec_fn"]["op_type"] == OpType.V_CONTROL or (not_balanced_vsetvl and random.randrange(2)):
-            instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl)
+            instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl, **kwargs)
             while vsetvl_different_rp_id and instr["rp_s1"]["id"] == instr["rp_s2"]["id"]:
-                instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl)
+                instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl, **kwargs)
 
         instr = edit_rob_id(instr)
         return instr, last_vtype
