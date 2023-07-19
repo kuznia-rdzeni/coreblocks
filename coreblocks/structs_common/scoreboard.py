@@ -1,8 +1,7 @@
 from amaranth import *
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import *
 from coreblocks.params import *
-from coreblocks.utils.utils import PriorityUniqnessChecker, assign
+from coreblocks.utils.utils import PriorityUniqnessChecker
 
 __all__ = ["Scoreboard"]
 

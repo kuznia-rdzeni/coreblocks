@@ -23,7 +23,6 @@ from ..common import (
     def_method_mock,
     MethodMock,
     CondVar,
-    Now,
     SimBarrier,
     generate_based_on_layout,
 )

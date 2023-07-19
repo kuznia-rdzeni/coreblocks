@@ -1,9 +1,7 @@
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
-from coreblocks.utils import *
 from coreblocks.params import *
-from coreblocks.utils.fifo import BasicFifo
 from coreblocks.fu.vector_unit.v_layouts import *
 
 __all__ = ["VectorRetirement"]

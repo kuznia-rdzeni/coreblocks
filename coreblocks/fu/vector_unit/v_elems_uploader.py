@@ -31,7 +31,6 @@ class VectorElemsUploader(Elaboratable):
 
         vrp_id_saved = Signal(self.v_params.vrp_count_bits)
         write_counter = Signal(self.v_params.elens_in_bank_bits, name="write_counter")
-        uploader_ready = Signal()
         end_to_report = Signal()
 
         @def_method(m, self.issue, ready=write_counter != 0)
@@ -64,7 +63,7 @@ class VectorElemsUploader(Elaboratable):
 
         end_reporter.schedule_before(self.init)
 
-        @def_method(m, self.init, ready=end_reporter.grant | (end_to_report == 0))
+        @def_method(m, self.init, ready=end_reporter.grant | ~end_to_report)
         def _(vrp_id, ma, elens_len):
             m.d.sync += write_counter.eq(elens_len)
             m.d.sync += vrp_id_saved.eq(vrp_id)

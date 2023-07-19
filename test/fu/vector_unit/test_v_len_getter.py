@@ -1,13 +1,8 @@
 from amaranth import *
 from test.common import *
-from coreblocks.fu.vector_unit.vrs import *
-from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_len_getter import *
-from coreblocks.transactions.lib import *
-from coreblocks.structs_common.rat import FRAT
-from coreblocks.structs_common.superscalar_freerf import SuperscalarFreeRF
 from test.fu.vector_unit.common import *
 from parameterized import parameterized_class
 

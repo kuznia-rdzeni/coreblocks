@@ -1,4 +1,3 @@
-from time import time
 from collections import defaultdict, deque
 from collections.abc import Sequence, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager

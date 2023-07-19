@@ -1,8 +1,7 @@
-from typing import Sequence, Callable
+from typing import Callable
 from amaranth import *
 
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils._typing import ValueLike
 

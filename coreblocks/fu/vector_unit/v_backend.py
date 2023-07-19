@@ -72,7 +72,7 @@ class VectorBackend(Elaboratable):
         m.submodules.input_product = input_product = MethodProduct(
             [executor.issue for executor in executors] + [connect_init_ender.write]
         )
-        m.submodules.wakeup_select = wakeup_select = WakeupSelect(
+        m.submodules.wakeup_select = WakeupSelect(
             gen_params=self.gen_params,
             get_ready=vvrs.get_ready_list[0],
             take_row=vvrs.take,

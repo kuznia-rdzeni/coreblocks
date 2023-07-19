@@ -1,6 +1,5 @@
 import random
 from collections import deque
-from typing import Callable
 from parameterized import parameterized
 from amaranth import *
 from amaranth.sim import *
