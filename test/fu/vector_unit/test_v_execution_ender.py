@@ -54,7 +54,7 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
 
     def init_process(self):
         for _ in range(self.test_number):
-            input = generate_instr(self.gen_params, self.layout.ender_init_in, support_vector = True)
+            input = generate_instr(self.gen_params, self.layout.ender_init_in, support_vector = True, max_reg_bits = 5)
             yield from self.circ.init.call(input)
             self.send_data.append(input)
 

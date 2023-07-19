@@ -26,7 +26,7 @@ class FRAT(Elaboratable):
         Layout: RATLayouts.rat_rename_*
     """
 
-    def __init__(self, *, gen_params: GenParams, superscalarity: int = 1, zero_init : bool = False):
+    def __init__(self, *, gen_params: GenParams, superscalarity: int = 1, zero_init : bool = True):
         """
         Parameters
         ----------

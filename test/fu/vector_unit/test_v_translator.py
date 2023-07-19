@@ -45,7 +45,7 @@ class TestLMULTranslator(TestCaseWithSimulator):
     def process(self, waiter):
         def f():
             for _ in range(self.test_number):
-                instr = generate_instr(self.gen_params, self.layouts.translator_inner, support_vector=True)
+                instr = generate_instr(self.gen_params, self.layouts.translator_inner, support_vector=True, max_reg_bits = 5)
                 received_mult = (yield from self.circ.issue.call(instr))["mult"]
                 expected_mult = lmul_to_int(instr["vtype"]["lmul"])
                 expected_list = self.generate_expected_list(instr)

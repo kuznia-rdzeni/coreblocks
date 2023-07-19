@@ -186,7 +186,7 @@ def generate_instr(
     gen_params: GenParams,
     layout: LayoutLike,
     *,
-    max_bits: Optional[int] = None,
+    max_reg_bits: Optional[int] = None,
     support_vector=False,
     optypes: Optional[Iterable[OpType]] = None,
     funct7 : Optional[Iterable[Funct7] | Iterable[int]] = None,
@@ -198,17 +198,17 @@ def generate_instr(
     max_vl : Optional[int] = None,
 ):
     rec = {}
-    if max_bits is None:
+    if max_reg_bits is None:
         reg_phys_width = gen_params.phys_regs_bits
     else:
-        reg_phys_width = max_bits
+        reg_phys_width = max_reg_bits
 
     for field in layout:
         if "regs_l" in field[0]:
-            if max_bits is None:
+            if max_reg_bits is None:
                 width = gen_params.isa.reg_cnt_log
             else:
-                width = max_bits
+                width = max_reg_bits
             rec["regs_l"] = generate_register_set(width, support_vector=support_vector)
         if "regs_p" in field[0]:
             rec["regs_p"] = generate_register_set(reg_phys_width, support_vector=support_vector)
