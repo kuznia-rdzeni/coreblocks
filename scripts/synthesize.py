@@ -18,6 +18,11 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.core import Core
 from coreblocks.fu.alu import ALUComponent
+from coreblocks.fu.div_unit import DivComponent
+from coreblocks.fu.mul_unit import MulComponent, MulType
+from coreblocks.fu.shift_unit import ShiftUnitComponent
+from coreblocks.fu.zbc import ZbcComponent
+from coreblocks.fu.zbs import ZbsComponent
 from coreblocks.transactions import TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneBus
@@ -118,6 +123,14 @@ core_units = {
     "core": unit_core,
     "alu_basic": unit_fu(ALUComponent(False, False)),
     "alu_full": unit_fu(ALUComponent(True, True)),
+    "mul_shift": unit_fu(MulComponent(MulType.SHIFT_MUL)),
+    "mul_sequence": unit_fu(MulComponent(MulType.SEQUENCE_MUL)),
+    "mul_recursive": unit_fu(MulComponent(MulType.RECURSIVE_MUL)),
+    "div": unit_fu(DivComponent()),
+    "shift_basic": unit_fu(ShiftUnitComponent(False)),
+    "shift_full": unit_fu(ShiftUnitComponent(False)),
+    "zbs": unit_fu(ZbsComponent()),
+    "zbc": unit_fu(ZbcComponent()),
 }
 
 

@@ -138,7 +138,7 @@ class DivUnit(FuncUnit, Elaboratable):
 @dataclass
 class DivComponent(FunctionalComponentParams):
     _: KW_ONLY
-    ipc: int = 4  # iterations per cycle
+    ipc: int = 3  # iterations per cycle
     div_fn = DivFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
