@@ -6,7 +6,7 @@ import sys
 import argparse
 
 from amaranth.build import Platform
-from amaranth import Module, Elaboratable
+from amaranth import *
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -51,7 +51,9 @@ class WishboneConnector(Elaboratable):
     def elaborate(self, platform: Platform):
         m = Module()
 
-        pins = platform.request("wishbone", self.number)
+        pins: Record = platform.request("wishbone", self.number)
+        assert isinstance(pins, Record)
+
         m.d.comb += self.wb.connect(pins)
 
         return m
@@ -72,6 +74,7 @@ class AdapterConnector(Elaboratable):
         m.submodules.adapter = self.adapter
 
         pins = platform.request("adapter", self.number)
+        assert isinstance(pins, Record)
 
         m.d.comb += self.adapter.en.eq(pins.en)
         m.d.comb += pins.done.eq(self.adapter.done)
