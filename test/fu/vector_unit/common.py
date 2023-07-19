@@ -57,6 +57,7 @@ def get_vector_instr_generator():
     last_vtype = {"vl": 0, "ma": 0, "ta": 0, "sew": 0, "lmul": 0}
     first_instr = True
     next_rob_id = 0
+    last_vl = 0
 
 
     def f(
@@ -79,6 +80,7 @@ def get_vector_instr_generator():
 
         nonlocal last_vtype
         nonlocal first_instr
+        nonlocal last_vl
         if first_instr:
             instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl, **kwargs)
             first_instr = False
@@ -87,9 +89,10 @@ def get_vector_instr_generator():
 
         instr = generate_instr(gen_params, layout, max_vl = max_vl, **kwargs)
         if instr["exec_fn"]["op_type"] == OpType.V_CONTROL or (not_balanced_vsetvl and random.randrange(2)):
-            instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl, **kwargs)
+            instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl, last_vl = last_vl, **kwargs)
             while vsetvl_different_rp_id and instr["rp_s1"]["id"] == instr["rp_s2"]["id"]:
-                instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl, **kwargs)
+                instr, last_vtype = generate_vsetvl(gen_params, layout, const_lmul=const_lmul, max_vl = max_vl, last_vl = last_vl, **kwargs)
+            last_vl = last_vtype["vl"]
 
         instr = edit_rob_id(instr)
         return instr, last_vtype

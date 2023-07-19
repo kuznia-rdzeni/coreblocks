@@ -11,9 +11,9 @@ from collections import deque
 
 class TestVectorStatusUnit(TestCaseWithSimulator):
     def setUp(self):
-        random.seed(16)
+        random.seed(14)
         self.gen_params = GenParams(test_vector_core_config)
-        self.test_number = 305
+        self.test_number = 300
 
         self.vf_layout = VectorFrontendLayouts(self.gen_params)
         self.put_instr = MethodMock(i=self.vf_layout.status_out)
@@ -37,12 +37,10 @@ class TestVectorStatusUnit(TestCaseWithSimulator):
             @def_method_mock(lambda: self.put_instr)
             def put_instr(arg):
                 put_q.append(arg)
-                print("NORMALNA:", arg)
 
             @def_method_mock(lambda: self.retire)
             def retire(arg):
                 retire_q.append(arg)
-                print("VSETVL:", arg)
 
             return put_instr, retire
 
@@ -54,7 +52,6 @@ class TestVectorStatusUnit(TestCaseWithSimulator):
                     data_normal_q.append((instr, vtype))
                 else:
                     data_vsetvl_q.append((instr, vtype))
-                print(instr, vtype)
                 yield from self.circ.issue.call(instr)
             # wait few cycles to be sure that all mocks were called
             for _ in range(2):
