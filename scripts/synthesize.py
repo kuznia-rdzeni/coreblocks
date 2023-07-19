@@ -17,7 +17,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.core import Core
 from coreblocks.transactions import TransactionModule
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneBus
-from constants.ecp5_platforms import WishboneResourceBuilder, make_ecp5_platform
+from constants.ecp5_platforms import wishbone_resources, make_ecp5_platform
 
 from coreblocks.params.configurations import *
 
@@ -61,7 +61,7 @@ def synthesize(core_config: CoreConfiguration, platform: str):
     gen_params = GenParams(core_config)
 
     if platform == "ecp5":
-        make_ecp5_platform(WishboneResourceBuilder(gen_params.wb_params))().build(TestElaboratable(gen_params))
+        make_ecp5_platform(wishbone_resources(gen_params.wb_params))().build(TestElaboratable(gen_params))
 
 
 def main():
