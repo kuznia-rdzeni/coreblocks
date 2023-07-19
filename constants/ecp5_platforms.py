@@ -1,5 +1,6 @@
 from collections.abc import Callable, Iterable
 from itertools import chain
+from typing import TypeAlias
 from amaranth.build.dsl import Subsignal
 from amaranth.vendor.lattice_ecp5 import LatticeECP5Platform
 from amaranth.build import Resource, Attrs, Pins, Clock, PinsN
@@ -7,7 +8,7 @@ from amaranth.build import Resource, Attrs, Pins, Clock, PinsN
 from constants.ecp5_pinout import ecp5_bg381_pins, ecp5_bg381_pclk
 
 from coreblocks.peripherals.wishbone import WishboneParameters
-from coreblocks.transactions import Method
+from coreblocks.transactions.lib import AdapterBase
 
 __all__ = ["make_ecp5_platform"]
 
@@ -34,17 +35,17 @@ def WishboneResource(  # noqa: N802
     return Resource.family(*args, default_name="wishbone", ios=io)
 
 
-def MethodResource(*args, ready, run, data_in, data_out, invert=False, conn=None):  # noqa: N802
+def AdapterResource(*args, en, done, data_in, data_out, conn=None):  # noqa: N802
     io = []
 
-    i_dir, o_dir = ("i", "o") if not invert else ("o", "i")
+    io.append(Subsignal("en", Pins(en, dir="i", conn=conn, assert_width=1)))
+    io.append(Subsignal("done", Pins(done, dir="o", conn=conn, assert_width=1)))
+    if data_in:
+        io.append(Subsignal("data_in", Pins(data_in, dir="i", conn=conn)))
+    if data_out:
+        io.append(Subsignal("data_out", Pins(data_out, dir="o", conn=conn)))
 
-    io.append(Subsignal("ready", Pins(ready, dir=o_dir, conn=conn, assert_width=1)))
-    io.append(Subsignal("run", Pins(run, dir=i_dir, conn=conn, assert_width=1)))
-    io.append(Subsignal("data_in", Pins(data_in, dir=i_dir, conn=conn)))
-    io.append(Subsignal("data_out", Pins(data_out, dir=o_dir, conn=conn)))
-
-    return Resource.family(*args, default_name="method", ios=io)
+    return Resource.family(*args, default_name="adapter", ios=io)
 
 
 class PinManager:
@@ -61,8 +62,11 @@ class PinManager:
                 return name
 
 
+ResourceBuilder: TypeAlias = Callable[[PinManager], list[Resource]]
+
+
 def wishbone_resources(wb_params: WishboneParameters):
-    def make_resources(pins: PinManager):
+    def make_resources(pins: PinManager) -> list[Resource]:
         return [
             WishboneResource(
                 0,
@@ -85,29 +89,29 @@ def wishbone_resources(wb_params: WishboneParameters):
     return make_resources
 
 
-def method_resources(method: Method):
-    def make_resources(pins: PinManager):
+def adapter_resources(adapter: AdapterBase, number: int):
+    def make_resources(pins: PinManager) -> list[Resource]:
         return [
-            MethodResource(
-                method.name,
-                ready=pins.p(),
-                run=pins.p(),
-                data_in=pins.p(method.data_in.shape().width),
-                data_out=pins.p(method.data_out.shape().width),
+            AdapterResource(
+                number,
+                en=pins.p(),
+                done=pins.p(),
+                data_in=pins.p(adapter.data_in.shape().width),
+                data_out=pins.p(adapter.data_out.shape().width),
             )
         ]
 
     return make_resources
 
 
-def append_resources(*args: Callable[[PinManager], list[Resource]]):
+def append_resources(*args: ResourceBuilder):
     def make_resources(pins: PinManager):
         return list(chain.from_iterable(map(lambda f: f(pins), args)))
 
     return make_resources
 
 
-def make_ecp5_platform(make_resources: Callable[[PinManager], list[Resource]]):
+def make_ecp5_platform(resource_builder: ResourceBuilder):
     pins = PinManager(ecp5_bg381_pins)
 
     # Tutorial for synthesis in amaranth:
@@ -122,7 +126,7 @@ def make_ecp5_platform(make_resources: Callable[[PinManager], list[Resource]]):
         resources = [
             Resource("rst", 0, PinsN(pins.p(), dir="i"), Attrs(IO_TYPE="LVCMOS33")),
             Resource("clk", 0, Pins(pins.named_pin(ecp5_bg381_pclk), dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
-        ] + make_resources(pins)
+        ] + resource_builder(pins)
 
         connectors = []
 
