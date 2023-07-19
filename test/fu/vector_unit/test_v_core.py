@@ -135,7 +135,7 @@ class TestVectorCore(TestCaseWithSimulator):
                 for field in ["rp_s1", "rp_s2", "rp_dst"]:
                     # check that each instruction that was executed earlier hasn't
                     # depended on currently calculated value
-                    self.assertNotEqual(earlier_ended_instr[field], current["rp_dst"])
+                    self.assertNotEqual(earlier_ended_instr[field], current["rp_dst"], f"{field}; head rob_id: {rob_id}, ended rob_id: {ended['rob_id']}")
 
     def precommit_process(self):
         for _ in range(self.test_number):

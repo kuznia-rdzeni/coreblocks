@@ -41,14 +41,14 @@ class Scoreboard(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        data = Signal(self.entries_number)
+        data = Signal(self.entries_number, name = "data")
         m.submodules.checker = checker = PriorityUniqnessChecker(
             self.superscalarity, len(Record(self.layouts.set_dirty_in).id)
         )
 
         if self.data_forward:
-            data_forward = Signal(self.entries_number)#, name= "data_forward")
-            data_forward_valid = Signal(self.entries_number)#, name="data_forward_valid")
+            data_forward = Signal(self.entries_number, name= "data_forward")
+            data_forward_valid = Signal(self.entries_number, name="data_forward_valid")
 
         @loop_def_method(m, self.set_dirty_list, ready_list=checker.valids)
         def _(i, id, dirty):

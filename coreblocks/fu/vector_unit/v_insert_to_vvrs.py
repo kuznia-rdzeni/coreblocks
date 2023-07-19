@@ -26,9 +26,16 @@ class VectorInsertToVVRS(Elaboratable):
         self.layouts = VectorBackendLayouts(self.gen_params)
         self.vvrs_layouts = VectorVRSLayout(self.gen_params, rs_entries_bits=self.gen_params.v_params.vvrs_entries_bits)
         self.issue = Method(i = self.layouts.vvrs_in)
+        self.update = Method(i = self.vvrs_layouts.update_in)
 
     def elaborate(self, platform):
         m = TModule()
+
+        currently_updated_reg = Record(self.gen_params.get(CommonLayouts).p_register_entry)
+
+        @def_method(m, self.update)
+        def _(tag, value):
+            m.d.top_comb += currently_updated_reg.eq(tag)
 
         
         @def_method(m, self.issue)
@@ -36,16 +43,24 @@ class VectorInsertToVVRS(Elaboratable):
             rs_entry_id = self.select(m)
             rs_data = Record(self.vvrs_layouts.data_layout)
             m.d.comb += assign(rs_data, arg)
+            #check s1,s2,s3 registers
             for i, (rp, rp_rdy) in enumerate([(f"rp_{r}",f"rp_{r}_rdy") for r in ["s1", "s2", "s3"]]):
-                with m.If(arg[rp].type == RegisterType.V):
+                with m.If((arg[rp].type == RegisterType.V) & ~(self.update.run & (arg[rp] == currently_updated_reg))):
                     cast_rp = Signal(self.v_params.vrp_count_bits)
                     m.d.top_comb += cast_rp.eq(arg[rp].id)
                     m.d.comb += rs_data[rp_rdy].eq(~self.scoreboard_get_list[i](m, id = cast_rp).dirty)
                 with m.Else():
                     m.d.comb += rs_data[rp_rdy].eq(1)
-            cast_v0 = Signal(self.v_params.vrp_count_bits)
-            m.d.top_comb += cast_v0.eq(arg.rp_v0.id)
-            m.d.comb += rs_data.rp_v0_rdy.eq(~self.scoreboard_get_list[3](m, id = cast_v0).dirty)
+
+            # check v0
+            with m.If(self.update.run & (arg.rp_v0.id == currently_updated_reg.id)):
+                m.d.comb += rs_data.rp_v0_rdy.eq(1)
+            with m.Else():
+                cast_v0 = Signal(self.v_params.vrp_count_bits)
+                m.d.top_comb += cast_v0.eq(arg.rp_v0.id)
+                m.d.comb += rs_data.rp_v0_rdy.eq(~self.scoreboard_get_list[3](m, id = cast_v0).dirty)
+
+            # process rp_dst
             with m.If(arg.rp_dst.type == RegisterType.V):
                 cast_rp_dst = Signal(self.v_params.vrp_count_bits)
                 m.d.top_comb += cast_rp_dst.eq(arg.rp_dst.id)

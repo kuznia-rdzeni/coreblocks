@@ -39,13 +39,14 @@ class VectorBackend(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        m.submodules.ready_scoreboard = ready_scoreboard = Scoreboard(self.v_params.vrp_count, superscalarity = 4, data_forward = True)
+        m.submodules.ready_scoreboard = ready_scoreboard = Scoreboard(self.v_params.vrp_count, superscalarity = 4, data_forward = False)
         m.submodules.vvrs = vvrs = VVRS(self.gen_params, self.v_params.vvrs_entries)
         m.submodules.insert_to_vvrs = insert_to_vvrs = VectorInsertToVVRS(self.gen_params, vvrs.select, vvrs.insert, ready_scoreboard.get_dirty_list, ready_scoreboard.set_dirty_list[0])
         
         self.put_instr.proxy(m, insert_to_vvrs.issue)
 
-        m.submodules.ender = ender = VectorExecutionEnder(self.gen_params, self.announce, vvrs.update, ready_scoreboard.set_dirty_list[1], self.report_end)
+        m.submodules.update_product = update_product = MethodProduct([vvrs.update, insert_to_vvrs.update])
+        m.submodules.ender = ender = VectorExecutionEnder(self.gen_params, self.announce, update_product.method, ready_scoreboard.set_dirty_list[1], self.report_end)
         self.report_mult.proxy(m, ender.report_mult)
         executors = [VectorExecutor(self.gen_params, i, ender.end_list[i]) for i in range(self.v_params.register_bank_count)]
         m.submodules.executors = ModuleConnector(*executors)

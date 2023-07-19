@@ -15,8 +15,6 @@ from coreblocks.utils.protocols import FuncBlock
 
 __all__ = ["VectorCore"]
 
-#TODO czyżby brakowało forwardingu z scoreboardu?
-
 class VectorCore(Elaboratable):
     def __init__(self, gen_params : GenParams):
         self.gen_params = gen_params
@@ -40,7 +38,6 @@ class VectorCore(Elaboratable):
 
         rob_block_interrupts = self.gen_params.get(DependencyManager).get_dependency(ROBBlockInterruptsKey())
 
-        #TODO add deallocating
         v_freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1, reset_state = 2**self.v_params.vrl_count - 1)
         v_frat = FRAT(gen_params = self.gen_params, superscalarity = 2)
         v_rrat = RRAT(gen_params = self.gen_params, zero_init = False)
