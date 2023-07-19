@@ -909,8 +909,8 @@ class CatTrans(Elaboratable):
             ddata = Record.like(self.dst.data_in)
             self.dst(m, ddata)
 
-            m.d.top_comb += assign(ddata, sdata1, fields = AssignType.ALL)
-            m.d.top_comb += assign(ddata, sdata2, fields = AssignType.ALL)
+            m.d.top_comb += assign(ddata, sdata1, fields=AssignType.ALL)
+            m.d.top_comb += assign(ddata, sdata2, fields=AssignType.ALL)
 
         return m
 
@@ -1280,8 +1280,9 @@ def condition_switch(
             with branch(variable == i):
                 yield i
 
+
 @contextmanager
-def connected_conditions(m : TModule, *, nonblocking = False):
+def connected_conditions(m: TModule, *, nonblocking=False):
     """
     All conditions for which branch is True has to execute simultanuesly.
 
@@ -1293,19 +1294,22 @@ def connected_conditions(m : TModule, *, nonblocking = False):
         - if nonblocking=False and there is no branch evaluated to `True` in any condition
         then transaction is not ready
     """
-    priority = False # hardcoded till issue #436 will be closed
+    priority = False  # hardcoded till issue #436 will be closed
     all_not_conds_list = []
+
     @contextmanager
     def _internal_condition():
         condition_conds = []
         true_branch_f = None
+
         @contextmanager
         def _internal_branch(cond: ValueLike):
             condition_conds.append(cond)
             assert true_branch_f is not None
             with true_branch_f(cond):
                 yield
-        with condition(m, nonblocking = False, priority = priority) as branch:
+
+        with condition(m, nonblocking=False, priority=priority) as branch:
             true_branch_f = branch
             yield _internal_branch
 
@@ -1316,7 +1320,7 @@ def connected_conditions(m : TModule, *, nonblocking = False):
                 pass
 
     all_conds = Signal()
-    with condition(m, nonblocking = False) as branch:
+    with condition(m, nonblocking=False) as branch:
         with branch(all_conds):
             yield _internal_condition
 
@@ -1864,13 +1868,12 @@ class NotMethod:
 
 
 class DownCounter(Elaboratable):
-    def __init__(self, width : int, callback : Method):
+    def __init__(self, width: int, callback: Method):
         self.width = width
         self.callback = callback
 
         self.set_start = Method(i=[("start", width)])
         self.tick = Method()
-
 
     def elaborate(self, platform):
         m = TModule()
@@ -1879,33 +1882,34 @@ class DownCounter(Elaboratable):
         running = Signal()
 
         @def_method(m, self.set_start)
-        def _ (start):
+        def _(start):
             m.d.sync += value.eq(start)
-            with m.If(start!=0):
+            with m.If(start != 0):
                 m.d.sync += running.eq(1)
 
         @def_method(m, self.tick)
         def _():
             cond_signal = Signal()
-            with condition(m, nonblocking= False) as branch:
+            with condition(m, nonblocking=False) as branch:
                 m.d.top_comb += cond_signal.eq((value == 1) & running)
                 with branch(cond_signal):
                     self.callback(m)
                     m.d.sync += running.eq(0)
                 with branch(~cond_signal):
-                    m.d.sync += value.eq(value-1)
+                    m.d.sync += value.eq(value - 1)
 
         return m
 
+
 class Barrier(Elaboratable):
-    def __init__(self, layout, port_count : int):
+    def __init__(self, layout, port_count: int):
         self.layout = layout
         self.port_count = port_count
-        self.layout_out = [(f"out{i}", self.layout) for i in  range(self.port_count)]
+        self.layout_out = [(f"out{i}", self.layout) for i in range(self.port_count)]
 
-        self.write_list = [Method(i = self.layout) for _ in range(self.port_count)]
-        self.read = Method(o = self.layout_out)
-        self.set_valids = Method(i =[("valids", self.port_count)])
+        self.write_list = [Method(i=self.layout) for _ in range(self.port_count)]
+        self.read = Method(o=self.layout_out)
+        self.set_valids = Method(i=[("valids", self.port_count)])
 
     def elaborate(self, platform):
         m = TModule()
@@ -1914,10 +1918,11 @@ class Barrier(Elaboratable):
         data = [Record(self.layout) for _ in range(self.port_count)]
         data_current = [Record(self.layout) for _ in range(self.port_count)]
         data_valids = [Signal() for _ in range(self.port_count)]
-        
+
         for write in self.write_list:
             write.schedule_before(self.read)
-        @loop_def_method(m, self.write_list, ready_list = lambda i: ~data_valids[i])
+
+        @loop_def_method(m, self.write_list, ready_list=lambda i: ~data_valids[i])
         def _(i, arg):
             m.d.sync += data_valids[i].eq(1)
             m.d.sync += data[i].eq(arg)
@@ -1926,11 +1931,14 @@ class Barrier(Elaboratable):
         all_ready = Signal()
         m.d.top_comb += all_ready.eq((~valids | Cat(data_valids) | Cat([w.run for w in self.write_list])).all())
         out_data = Record(self.layout_out)
-        @def_method(m, self.read, ready = all_ready)
+
+        @def_method(m, self.read, ready=all_ready)
         def _():
             for i in range(self.port_count):
                 m.d.sync += data_valids[i].eq(0)
-                m.d.top_comb += out_data[f"out{i}"].eq(Mux(data_valids[i], data[i], Mux(self.write_list[i].run, data_current[i], 0)))
+                m.d.top_comb += out_data[f"out{i}"].eq(
+                    Mux(data_valids[i], data[i], Mux(self.write_list[i].run, data_current[i], 0))
+                )
             return out_data
 
         @def_method(m, self.set_valids)
@@ -1939,23 +1947,23 @@ class Barrier(Elaboratable):
 
         return m
 
+
 class ContentAddressableMemory(Elaboratable):
     # This module can be optimised to have O(log n) critical path instead of O(n)
-    def __init__(self, address_layout : LayoutLike, data_layout : LayoutLike, entries_number : int):
+    def __init__(self, address_layout: LayoutLike, data_layout: LayoutLike, entries_number: int):
         self.address_layout = address_layout
         self.data_layout = data_layout
         self.entries_number = entries_number
 
-        self.pop= Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])
+        self.pop = Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])
         self.push = Method(i=[("addr", self.address_layout), ("data", self.data_layout)])
-
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
         address_array = Array([Record(self.address_layout) for _ in range(self.entries_number)])
         data_array = Array([Record(self.data_layout) for _ in range(self.entries_number)])
-        valids = Signal(self.entries_number, name = "valids")
+        valids = Signal(self.entries_number, name="valids")
 
         m.submodules.encoder_addr = encoder_addr = MultiPriorityEncoder(self.entries_number, 1)
         m.submodules.encoder_valids = encoder_valids = MultiPriorityEncoder(self.entries_number, 1)
@@ -1963,7 +1971,7 @@ class ContentAddressableMemory(Elaboratable):
 
         @def_method(m, self.push, ready=~valids.all())
         def _(addr, data):
-            id = Signal(range(self.entries_number), name = "id_push")
+            id = Signal(range(self.entries_number), name="id_push")
             m.d.comb += id.eq(encoder_valids.outputs[0])
             m.d.sync += address_array[id].eq(addr)
             m.d.sync += data_array[id].eq(data)
@@ -1971,6 +1979,7 @@ class ContentAddressableMemory(Elaboratable):
 
         if_addr = Signal(self.entries_number, name="if_addr")
         data_to_send = Record(self.data_layout)
+
         @def_method(m, self.pop)
         def _(addr):
             m.d.top_comb += if_addr.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
@@ -1980,6 +1989,7 @@ class ContentAddressableMemory(Elaboratable):
                 m.d.sync += valids.bit_select(id, 1).eq(0)
 
             return {"data": data_to_send, "not_found": ~if_addr.any()}
+
         m.d.comb += encoder_addr.input.eq(if_addr)
-        
+
         return m

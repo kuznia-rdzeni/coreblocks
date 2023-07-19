@@ -26,7 +26,7 @@ class SuperscalarFreeRF(Elaboratable):
         one register in one cycle.
     """
 
-    def __init__(self, entries_count: int, outputs_count: int, *, reset_state : int = 0):
+    def __init__(self, entries_count: int, outputs_count: int, *, reset_state: int = 0):
         """
         Parameters
         ----------
@@ -44,7 +44,9 @@ class SuperscalarFreeRF(Elaboratable):
 
         self.layouts = SuperscalarFreeRFLayouts(self.entries_count, self.outputs_count)
         self.allocate = Method(i=self.layouts.allocate_in, o=self.layouts.allocate_out)
-        self.deallocates = [Method(i=self.layouts.deallocate_in, name = f"deallocate{i}") for i in range(self.outputs_count)]
+        self.deallocates = [
+            Method(i=self.layouts.deallocate_in, name=f"deallocate{i}") for i in range(self.outputs_count)
+        ]
 
     def elaborate(self, platform) -> TModule:
         m = TModule()

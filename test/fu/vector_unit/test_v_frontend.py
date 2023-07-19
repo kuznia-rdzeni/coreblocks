@@ -47,7 +47,7 @@ class TestVectorFrontend(TestCaseWithSimulator):
                 self.frat.set_rename_list[0],
                 self.put_mem.get_method(),
                 self.put_vvrs.get_method(),
-                [mock.get_method() for mock in self.initialise_list]
+                [mock.get_method() for mock in self.initialise_list],
             )
         )
         self.m = ModuleConnector(
@@ -62,8 +62,8 @@ class TestVectorFrontend(TestCaseWithSimulator):
             announce_mult=self.announce_mult,
             exception_report=self.exception_report,
             deallocate=self.deallocate,
-            initialise = ModuleConnector(*self.initialise_list),
-       )
+            initialise=ModuleConnector(*self.initialise_list),
+        )
 
         self.orginal_instr = deque()
         self.to_dealocate = deque()
@@ -79,10 +79,12 @@ class TestVectorFrontend(TestCaseWithSimulator):
         for i in range(self.v_params.vrp_count):
 
             def create_mock(i):
-                @def_method_mock(lambda: self.initialise_list[i], sched_prio = 1)
+                @def_method_mock(lambda: self.initialise_list[i], sched_prio=1)
                 def f():
                     self.initialise_requests.append(i)
+
                 return f
+
             self.initialise_process_list.append(create_mock(i))
 
     @def_method_mock(lambda self: self.exception_report)

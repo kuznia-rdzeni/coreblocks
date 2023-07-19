@@ -24,7 +24,13 @@ class VectorAllocRename(Elaboratable):
     """
 
     def __init__(
-            self, gen_params: GenParams, alloc: Method, get_rename1: Method, get_rename2: Method, set_rename: Method, initialise_regs : list[Method]
+        self,
+        gen_params: GenParams,
+        alloc: Method,
+        get_rename1: Method,
+        get_rename2: Method,
+        set_rename: Method,
+        initialise_regs: list[Method],
     ):
         """
         Parameters

@@ -468,7 +468,7 @@ class MultiPriorityEncoder(Elaboratable):
         self.outputs_count = outputs_count
 
         self.input = Signal(self.input_width)
-        self.outputs = [Signal(range(self.input_width), name= "output") for _ in range(self.outputs_count)]
+        self.outputs = [Signal(range(self.input_width), name="output") for _ in range(self.outputs_count)]
         self.valids = [Signal(name="valid") for _ in range(self.outputs_count)]
 
     def elaborate(self, platform):
@@ -518,7 +518,7 @@ class PriorityUniqnessChecker(Elaboratable):
         has 1 bit and all others have 0.
     """
 
-    def __init__(self, inputs_count: int, input_width: int, *, non_valid_ok : bool = False):
+    def __init__(self, inputs_count: int, input_width: int, *, non_valid_ok: bool = False):
         """
         Parameters
         ----------
@@ -544,8 +544,11 @@ class PriorityUniqnessChecker(Elaboratable):
             if self.non_valid_ok:
                 cond = Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any()
             else:
-                cond = Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any() | ~self.input_valids[i]
+                cond = (
+                    Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any()
+                    | ~self.input_valids[i]
+                )
             with m.If(cond):
-                    m.d.comb += self.valids[i].eq(0)
+                m.d.comb += self.valids[i].eq(0)
 
         return m

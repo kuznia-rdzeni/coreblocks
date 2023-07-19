@@ -20,8 +20,9 @@ from coreblocks.fu.vector_unit.v_executor import *
 
 __all__ = ["VectorBackend"]
 
+
 class VectorBackend(Elaboratable):
-    def __init__(self, gen_params: GenParams, announce : Method, report_end : Method):
+    def __init__(self, gen_params: GenParams, announce: Method, report_end: Method):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.announce = announce
@@ -33,31 +34,51 @@ class VectorBackend(Elaboratable):
         self.alu_layouts = VectorAluLayouts(self.gen_params)
 
         self.put_instr = Method(i=self.layouts.vvrs_in)
-        self.initialise_regs = [Method(i = self.vreg_layout.initialise) for _ in range(self.v_params.vrp_count)]
+        self.initialise_regs = [Method(i=self.vreg_layout.initialise) for _ in range(self.v_params.vrp_count)]
         self.report_mult = Method(i=self.layouts.ender_report_mult)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        m.submodules.ready_scoreboard = ready_scoreboard = Scoreboard(self.v_params.vrp_count, superscalarity = 4, data_forward = False)
+        m.submodules.ready_scoreboard = ready_scoreboard = Scoreboard(
+            self.v_params.vrp_count, superscalarity=4, data_forward=False
+        )
         m.submodules.vvrs = vvrs = VVRS(self.gen_params, self.v_params.vvrs_entries)
-        m.submodules.insert_to_vvrs = insert_to_vvrs = VectorInsertToVVRS(self.gen_params, vvrs.select, vvrs.insert, ready_scoreboard.get_dirty_list, ready_scoreboard.set_dirty_list[0])
-        
+        m.submodules.insert_to_vvrs = insert_to_vvrs = VectorInsertToVVRS(
+            self.gen_params,
+            vvrs.select,
+            vvrs.insert,
+            ready_scoreboard.get_dirty_list,
+            ready_scoreboard.set_dirty_list[0],
+        )
+
         self.put_instr.proxy(m, insert_to_vvrs.issue)
 
         m.submodules.update_product = update_product = MethodProduct([vvrs.update, insert_to_vvrs.update])
-        m.submodules.ender = ender = VectorExecutionEnder(self.gen_params, self.announce, update_product.method, ready_scoreboard.set_dirty_list[1], self.report_end)
+        m.submodules.ender = ender = VectorExecutionEnder(
+            self.gen_params, self.announce, update_product.method, ready_scoreboard.set_dirty_list[1], self.report_end
+        )
         self.report_mult.proxy(m, ender.report_mult)
-        executors = [VectorExecutor(self.gen_params, i, ender.end_list[i]) for i in range(self.v_params.register_bank_count)]
+        executors = [
+            VectorExecutor(self.gen_params, i, ender.end_list[i]) for i in range(self.v_params.register_bank_count)
+        ]
         m.submodules.executors = ModuleConnector(*executors)
 
         m.submodules.connect_init_ender = connect_init_ender = Connect(self.layouts.executor_in)
         with Transaction(name="backend_init_ender").body(m):
             instr = connect_init_ender.read(m)
-            ender.init(m, rp_dst = instr.rp_dst, rob_id = instr.rob_id)
+            ender.init(m, rp_dst=instr.rp_dst, rob_id=instr.rob_id)
 
-        m.submodules.input_product = input_product = MethodProduct([executor.issue for executor in executors] + [connect_init_ender.write])
-        m.submodules.wakeup_select = wakeup_select = WakeupSelect(gen_params = self.gen_params, get_ready = vvrs.get_ready_list[0], take_row = vvrs.take, issue = input_product.method, row_layout = self.layouts.vvrs_out)
+        m.submodules.input_product = input_product = MethodProduct(
+            [executor.issue for executor in executors] + [connect_init_ender.write]
+        )
+        m.submodules.wakeup_select = wakeup_select = WakeupSelect(
+            gen_params=self.gen_params,
+            get_ready=vvrs.get_ready_list[0],
+            take_row=vvrs.take,
+            issue=input_product.method,
+            row_layout=self.layouts.vvrs_out,
+        )
 
         connect_init_banks_list = []
         for i in range(self.v_params.vrp_count):
@@ -65,6 +86,5 @@ class VectorBackend(Elaboratable):
             connect_init_banks_list.append(MethodProduct(init_banks_list))
             self.initialise_regs[i].proxy(m, connect_init_banks_list[-1].method)
         m.submodules.connect_init_banks = ModuleConnector(*connect_init_banks_list)
-
 
         return m

@@ -19,8 +19,9 @@ from coreblocks.fu.vector_unit.vector_alu import *
 from coreblocks.fu.vector_unit.vrf import *
 from coreblocks.fu.vector_unit.v_execution_data_spliter import *
 
+
 class VectorExecutor(Elaboratable):
-    def __init__(self, gen_params: GenParams, fragment_index : int, end : Method):
+    def __init__(self, gen_params: GenParams, fragment_index: int, end: Method):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.fragment_index = fragment_index
@@ -30,8 +31,10 @@ class VectorExecutor(Elaboratable):
         self.alu_layouts = VectorAluLayouts(self.gen_params)
         self.vreg_layout = VectorRegisterBankLayouts(self.gen_params)
 
-        self.issue = Method(i = self.layouts.executor_in)
-        self.initialise_regs = [Method(i = self.vreg_layout.initialise, name=f"initialise{i}") for i in range(self.v_params.vrp_count)]
+        self.issue = Method(i=self.layouts.executor_in)
+        self.initialise_regs = [
+            Method(i=self.vreg_layout.initialise, name=f"initialise{i}") for i in range(self.v_params.vrp_count)
+        ]
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -42,7 +45,7 @@ class VectorExecutor(Elaboratable):
         needed_regs = VectorNeededRegs(self.gen_params)
         len_getter = VectorLenGetter(self.gen_params, self.fragment_index)
 
-        vrf = VRFFragment(gen_params = self.gen_params)
+        vrf = VRFFragment(gen_params=self.gen_params)
         for i in range(self.v_params.vrp_count):
             self.initialise_regs[i].proxy(m, vrf.initialise_list[i])
 
@@ -52,7 +55,9 @@ class VectorExecutor(Elaboratable):
         fu_out_fifo = BasicFifo(self.layouts.fu_data_out, 2)
         mask_out_fifo = BasicFifo(self.layouts.mask_extractor_out, 2)
 
-        splitter = VectorExecutionDataSplitter(self.gen_params, fu_in_fifo.write, old_dst_fifo.write, mask_in_fifo.write)
+        splitter = VectorExecutionDataSplitter(
+            self.gen_params, fu_in_fifo.write, old_dst_fifo.write, mask_in_fifo.write
+        )
         downloader = VectorElemsDownloader(self.gen_params, vrf.read_req, vrf.read_resp, splitter.issue)
         uploader = VectorElemsUploader(self.gen_params, vrf.write, old_dst_fifo.read, mask_out_fifo.read, self.end)
 
@@ -60,29 +65,29 @@ class VectorExecutor(Elaboratable):
         self.issue.proxy(m, issue_connect.write)
 
         connect_input_data = Transaction(name="connect_input_data")
-        with connect_input_data.body(m, request = ~end_pending_to_report):
+        with connect_input_data.body(m, request=~end_pending_to_report):
             instr = issue_connect.read(m)
-            len_out = len_getter.issue(m,instr)
+            len_out = len_getter.issue(m, instr)
             needed_regs_out = needed_regs.issue(m, instr)
             downloader_in_data = Record(self.layouts.downloader_in)
-            m.d.top_comb += assign(downloader_in_data, len_out, fields= AssignType.RHS)
+            m.d.top_comb += assign(downloader_in_data, len_out, fields=AssignType.RHS)
             m.d.top_comb += assign(downloader_in_data, needed_regs_out, fields=AssignType.RHS)
             m.d.top_comb += [
-                    downloader_in_data.s1.eq(instr.rp_s1.id),
-                    downloader_in_data.s2.eq(instr.rp_s2.id),
-                    downloader_in_data.s3.eq(instr.rp_s3.id),
-                    downloader_in_data.v0.eq(instr.rp_v0.id),
-                    ]
+                downloader_in_data.s1.eq(instr.rp_s1.id),
+                downloader_in_data.s2.eq(instr.rp_s2.id),
+                downloader_in_data.s3.eq(instr.rp_s3.id),
+                downloader_in_data.v0.eq(instr.rp_v0.id),
+            ]
             with m.If(len_out.elens_len != 0):
                 # hot path
                 downloader.issue(m, downloader_in_data)
-                uploader.init(m, vrp_id = instr.rp_dst.id, ma = instr.vtype.ma , elens_len = len_out.elens_len)
-                splitter.init(m, vtype = instr.vtype, exec_fn = instr.exec_fn, s1_val = instr.s1_val)
+                uploader.init(m, vrp_id=instr.rp_dst.id, ma=instr.vtype.ma, elens_len=len_out.elens_len)
+                splitter.init(m, vtype=instr.vtype, exec_fn=instr.exec_fn, s1_val=instr.s1_val)
             with m.Else():
                 # cold path
                 m.d.sync += end_pending_to_report.eq(1)
 
-        with Transaction(name = "trans_end_pending_report").body(m, request = end_pending_to_report):
+        with Transaction(name="trans_end_pending_report").body(m, request=end_pending_to_report):
             m.d.sync += end_pending_to_report.eq(0)
             self.end(m)
 
@@ -94,7 +99,7 @@ class VectorExecutor(Elaboratable):
         connect_mask_extractor_in = ConnectTrans(mask_in_fifo.read, mask_extractor.issue)
 
         # Add everything to submodules
-        m.submodules.needed_regs = needed_regs 
+        m.submodules.needed_regs = needed_regs
         m.submodules.len_getter = len_getter
         m.submodules.vrf = vrf
         m.submodules.fu_in_fifo = fu_in_fifo

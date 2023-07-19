@@ -211,19 +211,22 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
             yield Delay(1e-7)
 
     def test_random(self):
-        with self.run_simulation(self.circ,) as sim:
+        with self.run_simulation(
+            self.circ,
+        ) as sim:
             sim.add_process(self.process)
 
 
 @parameterized_class(["non_valid_ok"], [(False,), (True,)])
 class TestPriorityUniqnessChecker(TestCaseWithSimulator):
-    non_valid_ok : bool
+    non_valid_ok: bool
+
     def setUp(self):
         random.seed(14)
         self.test_number = 50
         self.input_width = 4
         self.input_count = 9
-        self.circ = PriorityUniqnessChecker(self.input_count, self.input_width, non_valid_ok = self.non_valid_ok)
+        self.circ = PriorityUniqnessChecker(self.input_count, self.input_width, non_valid_ok=self.non_valid_ok)
 
     def generate_mask(self, vals, inputs_valid):
         s = set()

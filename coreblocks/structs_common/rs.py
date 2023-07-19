@@ -22,7 +22,7 @@ class RS(Elaboratable, Generic[T]):
         *,
         layout_class: Type[T] = RSLayouts,
         custom_rec_ready_setter: Optional[Callable[[Self, TModule], None]] = None,
-        superscalarity: int = 1
+        superscalarity: int = 1,
     ) -> None:
         self.superscalarity = superscalarity
         self.custom_rec_ready_setter = custom_rec_ready_setter

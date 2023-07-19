@@ -43,9 +43,11 @@ class ExceptionReportKey(SimpleKey[Method]):
 class GenericCSRRegistersKey(SimpleKey["GenericCSRRegisters"]):
     pass
 
+
 @dataclass(frozen=True)
 class ROBBlockInterruptsKey(SimpleKey[Method]):
     pass
+
 
 @dataclass(frozen=True)
 class ROBPeekKey(SimpleKey[Method]):

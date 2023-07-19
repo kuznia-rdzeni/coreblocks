@@ -6,6 +6,7 @@ from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_announcer import *
 from test.fu.vector_unit.common import *
 
+
 class TestVectorAnnouncer(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
@@ -20,11 +21,11 @@ class TestVectorAnnouncer(TestCaseWithSimulator):
 
         self.received = []
         self.send = []
-        self.end = [False for _ in range(self.input_count+1)]
+        self.end = [False for _ in range(self.input_count + 1)]
 
     def generate_input(self):
         input = generate_instr(self.gen_params, self.layout.accept)
-        input |= {"exception" : random.randrange(2), "result" : random.randrange(2**self.gen_params.isa.xlen)}
+        input |= {"exception": random.randrange(2), "result": random.randrange(2**self.gen_params.isa.xlen)}
         return input
 
     def input_process(self, k):
@@ -33,11 +34,12 @@ class TestVectorAnnouncer(TestCaseWithSimulator):
                 input = self.generate_input()
                 yield from self.circ.announce_list[k].call(input)
                 self.send.append(input)
-            self.end[k+1]=True
+            self.end[k + 1] = True
+
         return f
 
     def accept_process(self):
-        for _ in range(self.input_count*self.test_number):
+        for _ in range(self.input_count * self.test_number):
             out = yield from self.circ.accept.call()
             self.received.append(out)
         self.end[0] = True

@@ -15,8 +15,9 @@ from coreblocks.utils.protocols import FuncBlock
 
 __all__ = ["VectorCore"]
 
+
 class VectorCore(Elaboratable):
-    def __init__(self, gen_params : GenParams):
+    def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
 
@@ -30,7 +31,7 @@ class VectorCore(Elaboratable):
         self.insert = Method(i=self.vxrs_layouts.insert_in)
         self.select = Method(o=self.vxrs_layouts.select_out)
         self.update = Method(i=self.vxrs_layouts.update_in)
-        self.precommit = Method(i = self.x_retirement_layouts.precommit)
+        self.precommit = Method(i=self.x_retirement_layouts.precommit)
         self.get_result = Method(o=self.fu_layouts.accept)
 
     def elaborate(self, platform) -> TModule:
@@ -38,18 +39,32 @@ class VectorCore(Elaboratable):
 
         rob_block_interrupts = self.gen_params.get(DependencyManager).get_dependency(ROBBlockInterruptsKey())
 
-        v_freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1, reset_state = 2**self.v_params.vrl_count - 1)
-        v_frat = FRAT(gen_params = self.gen_params, superscalarity = 2, zero_init = False)
-        v_rrat = RRAT(gen_params = self.gen_params, zero_init = False)
+        v_freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1, reset_state=2**self.v_params.vrl_count - 1)
+        v_frat = FRAT(gen_params=self.gen_params, superscalarity=2, zero_init=False)
+        v_rrat = RRAT(gen_params=self.gen_params, zero_init=False)
 
-        v_retirement = VectorRetirement(self.gen_params, self.v_params.vrp_count, v_rrat.commit, v_freerf.deallocates[0])
+        v_retirement = VectorRetirement(
+            self.gen_params, self.v_params.vrp_count, v_rrat.commit, v_freerf.deallocates[0]
+        )
         announcer = VectorAnnouncer(self.gen_params, 3)
 
         backend = VectorBackend(self.gen_params, announcer.announce_list[0], v_retirement.report_end)
         fifo_to_vvrs = BasicFifo(self.v_frontend_layouts.instr_to_vvrs, 2)
         fifo_to_mem = BasicFifo(self.v_frontend_layouts.instr_to_mem, 2)
-        frontend = VectorFrontend(self.gen_params, rob_block_interrupts, announcer.announce_list[1], announcer.announce_list[2], backend.report_mult, v_freerf.allocate, v_frat.get_rename_list[0], v_frat.get_rename_list[1],
-                                  v_frat.set_rename_list[0], fifo_to_mem.write, fifo_to_vvrs.write, backend.initialise_regs)
+        frontend = VectorFrontend(
+            self.gen_params,
+            rob_block_interrupts,
+            announcer.announce_list[1],
+            announcer.announce_list[2],
+            backend.report_mult,
+            v_freerf.allocate,
+            v_frat.get_rename_list[0],
+            v_frat.get_rename_list[1],
+            v_frat.set_rename_list[0],
+            fifo_to_mem.write,
+            fifo_to_vvrs.write,
+            backend.initialise_regs,
+        )
         connect_data_to_vvrs = ConnectTrans(fifo_to_vvrs.read, backend.put_instr)
 
         self.precommit.proxy(m, v_retirement.precommit)
@@ -57,7 +72,6 @@ class VectorCore(Elaboratable):
         self.insert.proxy(m, frontend.insert)
         self.select.proxy(m, frontend.select)
         self.update.proxy(m, frontend.update)
-
 
         m.submodules.v_freerf = v_freerf
         m.submodules.v_frat = v_frat
@@ -73,9 +87,10 @@ class VectorCore(Elaboratable):
         return m
 
 
-@dataclass(frozen = True)
+@dataclass(frozen=True)
 class VectorBlockComponent(BlockComponentParams):
     rs_entries: int
+
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         gen_params.v_params.vxrs_entries = self.rs_entries
         unit = VectorCore(gen_params)

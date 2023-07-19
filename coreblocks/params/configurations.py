@@ -57,7 +57,7 @@ class VectorUnitConfiguration:
     vrp_count: int = 40
     register_bank_count: int = 4
     vvrs_entries: int = 8
-    _vrl_count : int = 32
+    _vrl_count: int = 32
 
 
 @dataclass(kw_only=True)

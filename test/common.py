@@ -134,13 +134,17 @@ def generate_register_set(max_bits: int, *, support_vector=False):
     }
 
 
-def generate_exec_fn(optypes: Optional[Iterable[OpType]] = None, funct7 : Optional[Iterable[Funct7] | Iterable[int]] = None, funct3 : Optional[Iterable[Funct3]] = None):
+def generate_exec_fn(
+    optypes: Optional[Iterable[OpType]] = None,
+    funct7: Optional[Iterable[Funct7] | Iterable[int]] = None,
+    funct3: Optional[Iterable[Funct3]] = None,
+):
     if optypes is None:
         optypes = list(OpType)
     if funct7 is None:
         funct7 = list(Funct7)
     if funct3 is None:
-        funct3= list(Funct3)
+        funct3 = list(Funct3)
     return {
         "op_type": random.choice(list(optypes)),
         "funct3": random.choice(list(funct3)),
@@ -164,7 +168,7 @@ def convert_vtype_to_imm(vtype) -> int:
     return imm
 
 
-def generate_vtype(gen_params: GenParams, max_vl : Optional[int] = None):
+def generate_vtype(gen_params: GenParams, max_vl: Optional[int] = None):
     sew = random.choice([sew for sew in list(SEW) if eew_to_bits(sew) <= gen_params.v_params.elen])
     lmul = random.choice(list(LMUL))
     ta = random.randrange(2)
@@ -189,13 +193,13 @@ def generate_instr(
     max_reg_bits: Optional[int] = None,
     support_vector=False,
     optypes: Optional[Iterable[OpType]] = None,
-    funct7 : Optional[Iterable[Funct7] | Iterable[int]] = None,
-    funct3 : Optional[Iterable[Funct3]] = None,
+    funct7: Optional[Iterable[Funct7] | Iterable[int]] = None,
+    funct3: Optional[Iterable[Funct3]] = None,
     max_imm: int = 2**32,
     generate_illegal: bool = False,
     non_uniform_s2_val=True,
     overwriting: dict = {},
-    max_vl : Optional[int] = None,
+    max_vl: Optional[int] = None,
 ):
     rec = {}
     if max_reg_bits is None:
@@ -238,7 +242,7 @@ def generate_instr(
                 s2_val = random.randrange(2**gen_params.isa.xlen)
             rec["s2_val"] = s2_val
         if "vtype" in field[0]:
-            rec["vtype"] = generate_vtype(gen_params, max_vl = max_vl)
+            rec["vtype"] = generate_vtype(gen_params, max_vl=max_vl)
         if "rp_v0" in field[0]:
             rec["rp_v0"] = {"id": random.randrange(gen_params.v_params.vrp_count)}
     return overwrite_dict_values(rec, overwriting)
@@ -321,11 +325,13 @@ def signed_to_int(x: int, xlen: int) -> int:
     """
     return x | -(x & (2 ** (xlen - 1)))
 
-def int_to_unsigned(x: int, xlen : int):
+
+def int_to_unsigned(x: int, xlen: int):
     """
     Interpret `x` as a unsigned value.
     """
     return x % 2**xlen
+
 
 def guard_nested_collection(cont: Any, t: Type[T]) -> TypeGuard[_T_nested_collection[T]]:
     if isinstance(cont, (list, dict)):
@@ -405,12 +411,14 @@ class TestModule(Elaboratable):
 
         return m
 
-class CondVar():
+
+class CondVar:
     """
     Simple CondVar. It has some limitations e.g. it can not notify other process
     without waiting a cycle.
     """
-    def __init__(self, notify_prio : bool = False, transparent : bool = True):
+
+    def __init__(self, notify_prio: bool = False, transparent: bool = True):
         self.var = False
         self.notify_prio = notify_prio
         self.transparent = transparent
@@ -435,11 +443,13 @@ class CondVar():
         yield Settle()
         self.var = False
 
-class SimBarrier():
+
+class SimBarrier:
     """
     No support for situation, where there can be more process which want to use Barrier
     that `count`. In other words number of process using this barrier must be `count`.
     """
+
     def __init__(self, count):
         self.count = count
         self._counter = count
@@ -452,11 +462,12 @@ class SimBarrier():
         # wait a cycle so that in case when _counter is now 0,
         # processes inside a loop get this information
         yield
-        while self._counter >0 :
+        while self._counter > 0:
             yield
         # wait till all processes waiting on barrier will be woken up
         yield Settle()
         self._counter += 1
+
 
 class CoreblockCommand:
     pass

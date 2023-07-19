@@ -47,7 +47,9 @@ class TestVectorStatusUnit(TestCaseWithSimulator):
         def process():
             self.assertEqual((yield from self.circ.get_vill.call())["vill"], 1)
             for _ in range(self.test_number):
-                instr, vtype = self.vector_instr_generator(self.gen_params, self.vf_layout.verification_in, not_balanced_vsetvl = True, max_reg_bits = 5)
+                instr, vtype = self.vector_instr_generator(
+                    self.gen_params, self.vf_layout.verification_in, not_balanced_vsetvl=True, max_reg_bits=5
+                )
                 if instr["exec_fn"]["op_type"] != OpType.V_CONTROL:
                     data_normal_q.append((instr, vtype))
                 else:

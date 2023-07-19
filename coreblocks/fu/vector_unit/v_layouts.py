@@ -91,7 +91,7 @@ class VectorVRSLayout(RSLayouts):
 
 class VectorCommonLayouts:
     def __init__(self, gen_params: GenParams):
-        #TODO optimisation use 16 bits for VL
+        # TODO optimisation use 16 bits for VL
         self.vtype = [("lmul", LMUL), ("sew", SEW), ("ta", 1), ("ma", 1), ("vl", gen_params.isa.xlen)]
 
 
@@ -125,8 +125,7 @@ class VectorFrontendLayouts:
         self.alloc_rename_out = self.alloc_rename_in = self.translator_out
         self.get_vill = [("vill", 1)]
         self.get_vstart = [("vstart", v_params.vstart_bits)]
-        self.translator_report_multiplier = [("mult", 4),
-            ("rob_id", gen_params.rob_entries_bits)]
+        self.translator_report_multiplier = [("mult", 4), ("rob_id", gen_params.rob_entries_bits)]
 
         self.instr_to_mem = [
             ("rp_s1", common.p_register_entry),
@@ -154,18 +153,15 @@ class VectorFrontendLayouts:
             ("rp_v0", [("id", gen_params.phys_regs_bits)]),
         ]
 
+
 class VectorAluLayouts:
-    def __init__(self, gen_params : GenParams):
+    def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)
         v_params = gen_params.v_params
-        self.alu_in = [
-                ("s1", v_params.elen),
-                ("s2", v_params.elen),
-            ("exec_fn", common.exec_fn),
-            ("eew", EEW)
-        ]
+        self.alu_in = [("s1", v_params.elen), ("s2", v_params.elen), ("exec_fn", common.exec_fn), ("eew", EEW)]
 
         self.alu_out = [("dst_val", v_params.elen)]
+
 
 class VectorBackendLayouts:
     def __init__(self, gen_params: GenParams):
@@ -176,51 +172,69 @@ class VectorBackendLayouts:
 
         self.executor_in = self.vvrs_out = self.vvrs_in = frontend.instr_to_vvrs
 
-        self.len_getter_out = [("elens_len", gen_params.v_params.elens_in_bank_bits), ("last_mask", v_params.bytes_in_elen)]
+        self.len_getter_out = [
+            ("elens_len", gen_params.v_params.elens_in_bank_bits),
+            ("last_mask", v_params.bytes_in_elen),
+        ]
         self.needed_regs_out = [("s1_needed", 1), ("s2_needed", 1), ("s3_needed", 1), ("v0_needed", 1)]
         self.downloader_in = [
-                ("s1", gen_params.phys_regs_bits),
-                ("s1_needed", 1),
-                ("s2", gen_params.phys_regs_bits),
-                ("s2_needed", 1),
-                ("s3", gen_params.phys_regs_bits),
-                ("s3_needed", 1),
-                ("v0", gen_params.phys_regs_bits),
-                ("v0_needed", 1),
-                ("elens_len", v_params.elens_in_bank_bits),
-                ("last_mask", v_params.bytes_in_elen),
-                ]
+            ("s1", gen_params.phys_regs_bits),
+            ("s1_needed", 1),
+            ("s2", gen_params.phys_regs_bits),
+            ("s2_needed", 1),
+            ("s3", gen_params.phys_regs_bits),
+            ("s3_needed", 1),
+            ("v0", gen_params.phys_regs_bits),
+            ("v0_needed", 1),
+            ("elens_len", v_params.elens_in_bank_bits),
+            ("last_mask", v_params.bytes_in_elen),
+        ]
 
         self.data_splitter_in = self.downloader_data_out = [
-                ("s1", v_params.elen),
-                ("s2", v_params.elen),
-                ("s3", v_params.elen),
-                ("v0", v_params.elen),
-                ("elen_index", v_params.elens_in_bank),
-                ("last_mask", v_params.bytes_in_elen),
-                ]
-        self.data_splitter_init_in = [ ("vtype", common_vector.vtype), ("exec_fn", common.exec_fn), ("s1_val", gen_params.isa.xlen)]
+            ("s1", v_params.elen),
+            ("s2", v_params.elen),
+            ("s3", v_params.elen),
+            ("v0", v_params.elen),
+            ("elen_index", v_params.elens_in_bank),
+            ("last_mask", v_params.bytes_in_elen),
+        ]
+        self.data_splitter_init_in = [
+            ("vtype", common_vector.vtype),
+            ("exec_fn", common.exec_fn),
+            ("s1_val", gen_params.isa.xlen),
+        ]
 
-        self.uploader_result_in = self.fu_data_out = [ ("dst_val", v_params.elen) ] 
-        self.uploader_init_in = [ ("vrp_id", gen_params.phys_regs_bits), ("ma", 1), ("elens_len", v_params.elens_in_bank_bits)]
-        self.mask_extractor_out = self.uploader_mask_in = [ ("mask", v_params.bytes_in_elen) ]
+        self.uploader_result_in = self.fu_data_out = [("dst_val", v_params.elen)]
+        self.uploader_init_in = [
+            ("vrp_id", gen_params.phys_regs_bits),
+            ("ma", 1),
+            ("elens_len", v_params.elens_in_bank_bits),
+        ]
+        self.mask_extractor_out = self.uploader_mask_in = [("mask", v_params.bytes_in_elen)]
         self.uploader_old_dst_in = [("old_dst_val", v_params.elen)]
 
-        self.mask_extractor_in = [ ("v0", v_params.elen), ("elen_index", v_params.elens_in_bank), ("eew", EEW), ("vm", 1), ("last_mask", v_params.bytes_in_elen)]
+        self.mask_extractor_in = [
+            ("v0", v_params.elen),
+            ("elen_index", v_params.elens_in_bank),
+            ("eew", EEW),
+            ("vm", 1),
+            ("last_mask", v_params.bytes_in_elen),
+        ]
 
         self.ender_init_in = [
             ("rob_id", gen_params.rob_entries_bits),
             ("rp_dst", common.p_register_entry),
-            ]
+        ]
         self.ender_report_mult = [
             ("rob_id", gen_params.rob_entries_bits),
             ("mult", 4),
-            ]
+        ]
+
 
 class VectorRetirementLayouts:
-    def __init__(self, gen_params : GenParams):
+    def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)
         self.report_end = [
             ("rob_id", gen_params.rob_entries_bits),
             ("rp_dst", common.p_register_entry),
-                ]
+        ]

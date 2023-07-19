@@ -51,10 +51,14 @@ class TestFlexibleAdder(TestCaseWithSimulator):
             sim.add_process(process)
 
     def test_add(self):
-        self.check_fn(False, lambda in1, in2, eew: execute_flexible_operation(lambda x, y: x + y, in1, in2, self.elen, eew))
+        self.check_fn(
+            False, lambda in1, in2, eew: execute_flexible_operation(lambda x, y: x + y, in1, in2, self.elen, eew)
+        )
 
     def test_substract(self):
-        self.check_fn(True, lambda in1, in2, eew: execute_flexible_operation(lambda x, y: x - y, in1, in2, self.elen, eew))
+        self.check_fn(
+            True, lambda in1, in2, eew: execute_flexible_operation(lambda x, y: x - y, in1, in2, self.elen, eew)
+        )
 
 
 class TestFlexibleElementwiseFunction(TestCaseWithSimulator):

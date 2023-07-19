@@ -33,21 +33,29 @@ class TestVectorAllocRename(TestCaseWithSimulator):
                 self.frat.get_rename_list[0],
                 self.frat.get_rename_list[1],
                 self.frat.set_rename_list[0],
-                [mock.get_method() for mock in self.initialise_list]
+                [mock.get_method() for mock in self.initialise_list],
             )
         )
-        self.m = ModuleConnector(circ=self.circ, frat=self.frat, freerf=self.freerf, dealocate=self.deallocate, initialise = ModuleConnector(*self.initialise_list))
+        self.m = ModuleConnector(
+            circ=self.circ,
+            frat=self.frat,
+            freerf=self.freerf,
+            dealocate=self.deallocate,
+            initialise=ModuleConnector(*self.initialise_list),
+        )
 
         self.generate_vector_instr = get_vector_instr_generator()
         self.initialise_requests = deque()
-    
+
         for i in range(self.v_params.vrp_count):
 
             def create_mock(i):
-                @def_method_mock(lambda: self.initialise_list[i], sched_prio = 1)
+                @def_method_mock(lambda: self.initialise_list[i], sched_prio=1)
                 def f():
                     self.initialise_requests.append(i)
+
                 return f
+
             self.initialise_process_list.append(create_mock(i))
 
     def process(self):
@@ -64,7 +72,9 @@ class TestVectorAllocRename(TestCaseWithSimulator):
 
     def test_random(self):
         assert self.initialise_process_list[0] is not self.initialise_process_list[1]
-        with self.run_simulation(self.m, ) as sim:
+        with self.run_simulation(
+            self.m,
+        ) as sim:
             sim.add_sync_process(self.process)
             for f in self.initialise_process_list:
                 sim.add_sync_process(f)

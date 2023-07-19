@@ -336,6 +336,7 @@ def lmul_to_int(lmul: LMUL) -> int:
     """
     return math.ceil(lmul_to_float(lmul))
 
+
 @unique
 class Extension(enum.IntFlag):
     """

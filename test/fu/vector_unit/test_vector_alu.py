@@ -7,6 +7,7 @@ from coreblocks.fu.vector_unit.vector_alu import *
 from test.fu.vector_unit.common import *
 import itertools
 
+
 class TestVectorBasicFlexibleAlu(TestCaseWithSimulator):
     def setUp(self):
         random.seed(14)
@@ -16,13 +17,13 @@ class TestVectorBasicFlexibleAlu(TestCaseWithSimulator):
 
         self.layout = VectorAluLayouts(self.gen_params)
 
-        self.put = MethodMock(i = self.layout.alu_out)
+        self.put = MethodMock(i=self.layout.alu_out)
         self.circ = SimpleTestCircuit(VectorBasicFlexibleAlu(self.gen_params, self.put.get_method()))
         self.m = ModuleConnector(circ=self.circ, put=self.put)
-        
+
         self.received_data = None
 
-    @def_method_mock(lambda self: self.put, sched_prio = 1)
+    @def_method_mock(lambda self: self.put, sched_prio=1)
     def put_process(self, dst_val):
         self.received_data = dst_val
 
@@ -32,11 +33,11 @@ class TestVectorBasicFlexibleAlu(TestCaseWithSimulator):
             if eew_to_bits(eew) <= self.v_params.elen:
                 break
         return {
-                "s1" : random.randrange(2**self.v_params.elen),
-                "s2" : random.randrange(2**self.v_params.elen),
-                "eew" : eew,
-                "exec_fn" : generate_exec_fn([OpType.V_ARITHMETIC], [funct6*2, funct6*2+1])
-                }
+            "s1": random.randrange(2**self.v_params.elen),
+            "s2": random.randrange(2**self.v_params.elen),
+            "eew": eew,
+            "exec_fn": generate_exec_fn([OpType.V_ARITHMETIC], [funct6 * 2, funct6 * 2 + 1]),
+        }
 
     def process(self):
         for funct6 in get_funct6_to_op(EEW.w8).keys():
@@ -45,7 +46,9 @@ class TestVectorBasicFlexibleAlu(TestCaseWithSimulator):
                 yield from self.circ.issue.call(input)
                 yield Settle()
                 self.assertIsNotNone(self.received_data)
-                expected_out = execute_flexible_operation(get_funct6_to_op(input["eew"])[funct6], input["s1"], input["s2"], self.v_params.elen, input["eew"])
+                expected_out = execute_flexible_operation(
+                    get_funct6_to_op(input["eew"])[funct6], input["s1"], input["s2"], self.v_params.elen, input["eew"]
+                )
                 self.assertEqual(expected_out, self.received_data)
                 self.received_data = None
 

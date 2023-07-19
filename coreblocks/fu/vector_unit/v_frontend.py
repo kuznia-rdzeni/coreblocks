@@ -194,7 +194,12 @@ class VectorFrontend(Elaboratable):
         m.submodules.from_status_to_tranlator = ConnectTrans(fifo_from_v_status.read, translator.issue)
 
         m.submodules.alloc_rename = alloc_rename = VectorAllocRename(
-            self.gen_params, self.alloc_reg.method, self.get_rename1_frat, self.get_rename2_frat, self.set_rename_frat, self.initialise_regs
+            self.gen_params,
+            self.alloc_reg.method,
+            self.get_rename1_frat,
+            self.get_rename2_frat,
+            self.set_rename_frat,
+            self.initialise_regs,
         )
         m.submodules.splitter = splitter = VectorMemoryVVRSSplitter(self.gen_params, self.put_to_mem, self.put_to_vvrs)
 

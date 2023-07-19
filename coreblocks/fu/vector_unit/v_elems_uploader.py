@@ -9,8 +9,11 @@ from coreblocks.fu.vector_unit.utils import *
 
 __all__ = ["VectorElemsUploader"]
 
+
 class VectorElemsUploader(Elaboratable):
-    def __init__(self, gen_params : GenParams, write : Method, read_old_dst : Method, read_mask : Method, report_end : Method):
+    def __init__(
+        self, gen_params: GenParams, write: Method, read_old_dst: Method, read_mask: Method, report_end: Method
+    ):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.write = write
@@ -20,18 +23,18 @@ class VectorElemsUploader(Elaboratable):
 
         self.layouts = VectorBackendLayouts(self.gen_params)
         self.vrf_layout = VRFFragmentLayouts(self.gen_params)
-        self.issue = Method(i = self.layouts.uploader_result_in)
-        self.init = Method(i = self.layouts.uploader_init_in)
+        self.issue = Method(i=self.layouts.uploader_result_in)
+        self.init = Method(i=self.layouts.uploader_init_in)
 
     def elaborate(self, platform):
         m = TModule()
 
         vrp_id_saved = Signal(self.v_params.vrp_count_bits)
-        write_counter = Signal(self.v_params.elens_in_bank_bits, name= "write_counter")
+        write_counter = Signal(self.v_params.elens_in_bank_bits, name="write_counter")
         uploader_ready = Signal()
         end_to_report = Signal()
 
-        @def_method(m, self.issue, ready = write_counter != 0)
+        @def_method(m, self.issue, ready=write_counter != 0)
         def _(dst_val):
             old_dst_val = self.read_old_dst(m)
             mask = self.read_mask(m).mask
@@ -41,18 +44,27 @@ class VectorElemsUploader(Elaboratable):
             addr = Signal(range(self.v_params.elens_in_bank))
             m.d.top_comb += addr.eq(write_counter - 1)
 
-            #this implements mask undisturbed policy
-            self.write(m, vrp_id = vrp_id_saved , addr = addr, valid_mask = 2 ** self.v_params.bytes_in_elen - 1, data = (mask_expanded & dst_val) | (~mask_expanded & old_dst_val))
+            # this implements mask undisturbed policy
+            self.write(
+                m,
+                vrp_id=vrp_id_saved,
+                addr=addr,
+                valid_mask=2**self.v_params.bytes_in_elen - 1,
+                data=(mask_expanded & dst_val) | (~mask_expanded & old_dst_val),
+            )
             m.d.sync += write_counter.eq(addr)
 
         end_reporter = Transaction()
         self.issue.schedule_before(end_reporter)
-        with end_reporter.body(m, request = ((write_counter==1) & self.issue.run) | (end_to_report & (write_counter == 0))):
+        with end_reporter.body(
+            m, request=((write_counter == 1) & self.issue.run) | (end_to_report & (write_counter == 0))
+        ):
             self.report_end(m)
             m.d.sync += end_to_report.eq(0)
-        
+
         end_reporter.schedule_before(self.init)
-        @def_method(m, self.init, ready = end_reporter.grant | (end_to_report==0))
+
+        @def_method(m, self.init, ready=end_reporter.grant | (end_to_report == 0))
         def _(vrp_id, ma, elens_len):
             m.d.sync += write_counter.eq(elens_len)
             m.d.sync += vrp_id_saved.eq(vrp_id)

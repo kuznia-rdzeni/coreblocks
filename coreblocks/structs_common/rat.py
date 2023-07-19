@@ -26,7 +26,7 @@ class FRAT(Elaboratable):
         Layout: RATLayouts.rat_rename_*
     """
 
-    def __init__(self, *, gen_params: GenParams, superscalarity: int = 1, zero_init : bool = True):
+    def __init__(self, *, gen_params: GenParams, superscalarity: int = 1, zero_init: bool = True):
         """
         Parameters
         ----------
@@ -43,7 +43,10 @@ class FRAT(Elaboratable):
         self.layouts = gen_params.get(RATLayouts)
         self.zero_init = zero_init
 
-        self.entries = Array(Signal(self.gen_params.phys_regs_bits, reset = 0 if self.zero_init else i) for i in range(self.gen_params.isa.reg_cnt))
+        self.entries = Array(
+            Signal(self.gen_params.phys_regs_bits, reset=0 if self.zero_init else i)
+            for i in range(self.gen_params.isa.reg_cnt)
+        )
 
         if self.superscalarity < 1:
             raise ValueError(f"FRAT should have minimum one method, so superscalarity>=1, got: {self.superscalarity}")
@@ -87,7 +90,7 @@ class RRAT(Elaboratable):
         Layout: RATLayouts.rat_commit_*
     """
 
-    def __init__(self, *, gen_params: GenParams, superscalarity: int = 1, zero_init : bool = True):
+    def __init__(self, *, gen_params: GenParams, superscalarity: int = 1, zero_init: bool = True):
         """
         Parameters
         ----------
@@ -107,7 +110,10 @@ class RRAT(Elaboratable):
         self.commit_input_layout = layouts.rat_commit_in
         self.commit_output_layout = layouts.rat_commit_out
 
-        self.entries = Array(Signal(self.gen_params.phys_regs_bits, reset = 0 if self.zero_init else i) for i in range(self.gen_params.isa.reg_cnt))
+        self.entries = Array(
+            Signal(self.gen_params.phys_regs_bits, reset=0 if self.zero_init else i)
+            for i in range(self.gen_params.isa.reg_cnt)
+        )
 
         if self.superscalarity < 1:
             raise ValueError(f"FRAT should have minimum one method, so superscalarity>=1, got: {self.superscalarity}")
