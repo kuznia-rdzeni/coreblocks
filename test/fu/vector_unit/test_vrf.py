@@ -32,7 +32,7 @@ class TestVRFFragment(TestCaseWithSimulator):
     def setUp(self):
         gp = GenParams(
             test_vector_core_config.replace(
-                vector_config=VectorUnitConfiguration(vlen=128, elen=32, vrp_count=8, register_bank_count=1)
+                vector_config=VectorUnitConfiguration(vlen=128, elen=32, vrp_count=8, register_bank_count=1, _vrl_count = 7)
             )
         )
         self.vp = gp.v_params

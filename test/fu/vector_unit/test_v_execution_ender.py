@@ -16,7 +16,7 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
 
         self.layout = VectorBackendLayouts(self.gen_params)
         self.vvrs_layouts = VectorVRSLayout(self.gen_params, rs_entries_bits=self.v_params.vvrs_entries_bits)
-        self.scoreboard_layout = ScoreboardLayouts(2**self.gen_params.phys_regs_bits)
+        self.scoreboard_layout = ScoreboardLayouts(self.v_params.vrp_count)
         self.v_retirement_layout = VectorRetirementLayouts(self.gen_params)
 
         self.put = MethodMock(i = self.gen_params.get(FuncUnitLayouts).accept)
@@ -33,22 +33,22 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
         self.send_data = deque()
         self.enders_barrier = SimBarrier(self.v_params.register_bank_count)
 
-    @def_method_mock(lambda self: self.put, sched_prio = 2)
+    @def_method_mock(lambda self: self.put, sched_prio = 1)
     def put_process(self, arg):
         self.assertIsNone(self.received_data)
         self.received_data = arg
 
-    @def_method_mock(lambda self: self.update_vvrs, sched_prio = 2)
+    @def_method_mock(lambda self: self.update_vvrs, sched_prio = 1)
     def update_vvrs_process(self, arg):
         self.assertIsNone(self.received_vvrs_update)
         self.received_vvrs_update = arg
 
-    @def_method_mock(lambda self: self.scoreboard_set, sched_prio = 2)
+    @def_method_mock(lambda self: self.scoreboard_set, sched_prio = 1)
     def scoreboard_set_process(self, arg):
         self.assertIsNone(self.received_scoreboard_set)
         self.received_scoreboard_set = arg
 
-    @def_method_mock(lambda self: self.report_end, sched_prio = 2)
+    @def_method_mock(lambda self: self.report_end, sched_prio = 1)
     def report_end_process(self, arg):
         self.received_report_end = arg
 
@@ -78,7 +78,7 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
                         assert self.received_scoreboard_set is not None
                         assert self.received_report_end is not None
                         self.assertEqual(self.received_scoreboard_set["id"], expected["rp_dst"]["id"])
-                        self.assertEqual(self.received_scoreboard_set["dirty"], 1)
+                        self.assertEqual(self.received_scoreboard_set["dirty"], 0)
 
                         self.assertEqual(self.received_vvrs_update["tag"], expected["rp_dst"])
 
@@ -93,7 +93,6 @@ class TestVectorExecutionEnder(TestCaseWithSimulator):
                     self.received_vvrs_update = None
                     self.received_scoreboard_set = None
                     self.received_report_end = None
-                yield Settle()
         return f
 
     def test_random(self):

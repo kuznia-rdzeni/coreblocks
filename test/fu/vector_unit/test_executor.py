@@ -18,7 +18,7 @@ class TestVectorExecutor(TestCaseWithSimulator):
     """
     def setUp(self):
         random.seed(14)
-        self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(vrp_count = 8)))
+        self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(vrp_count = 8, _vrl_count = 7)))
         self.test_number = 40
         self.fragment_index = 1
         self.v_params = self.gen_params.v_params

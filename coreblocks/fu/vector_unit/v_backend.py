@@ -39,7 +39,7 @@ class VectorBackend(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        m.submodules.ready_scoreboard = ready_scoreboard = Scoreboard(self.v_params.vrp_count, superscalarity = 4)
+        m.submodules.ready_scoreboard = ready_scoreboard = Scoreboard(self.v_params.vrp_count, superscalarity = 4, data_forward = True)
         m.submodules.vvrs = vvrs = VVRS(self.gen_params, self.v_params.vvrs_entries)
         m.submodules.insert_to_vvrs = insert_to_vvrs = VectorInsertToVVRS(self.gen_params, vvrs.select, vvrs.insert, ready_scoreboard.get_dirty_list, ready_scoreboard.set_dirty_list[0])
         

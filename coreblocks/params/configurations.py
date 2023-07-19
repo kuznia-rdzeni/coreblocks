@@ -48,6 +48,8 @@ class VectorUnitConfiguration:
         Number of banks to which an physical register should be split.
     vvrs_entries : int
         Number of entries in VVRS (reservation station for vector registers).
+    _vrl_count : int
+        Number of logical vector registers. Used in internal tests.
     """
 
     vlen: int = 1024
@@ -55,6 +57,7 @@ class VectorUnitConfiguration:
     vrp_count: int = 40
     register_bank_count: int = 4
     vvrs_entries: int = 8
+    _vrl_count : int = 32
 
 
 @dataclass(kw_only=True)

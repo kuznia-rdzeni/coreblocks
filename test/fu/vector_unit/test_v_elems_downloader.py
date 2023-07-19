@@ -17,7 +17,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
     def setUp(self):
         random.seed(self.seed)
         self.vrp_count = 8
-        self.gen_params = GenParams(test_vector_core_config.replace(vector_config=VectorUnitConfiguration(vrp_count = self.vrp_count)))
+        self.gen_params = GenParams(test_vector_core_config.replace(vector_config=VectorUnitConfiguration(vrp_count = self.vrp_count, _vrl_count = 7)))
         self.test_number = 30
         self.v_params = self.gen_params.v_params
 

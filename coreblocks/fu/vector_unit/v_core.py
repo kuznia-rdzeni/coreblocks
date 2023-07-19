@@ -15,6 +15,8 @@ from coreblocks.utils.protocols import FuncBlock
 
 __all__ = ["VectorCore"]
 
+#TODO czyżby brakowało forwardingu z scoreboardu?
+
 class VectorCore(Elaboratable):
     def __init__(self, gen_params : GenParams):
         self.gen_params = gen_params
