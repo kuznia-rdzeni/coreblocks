@@ -10,7 +10,7 @@ __all__ = ["Scoreboard"]
 class Scoreboard(Elaboratable):
     """
     This module implements a scoreboard. A simple structure that allows
-    to store a dirty bit for each of the indicies..
+    to store a dirty bit for each of the indicies.
 
     Attributes
     ----------
@@ -47,8 +47,8 @@ class Scoreboard(Elaboratable):
         )
 
         if self.data_forward:
-            data_forward = Signal(self.entries_number)
-            data_forward_valid = Signal(self.entries_number)
+            data_forward = Signal(self.entries_number, name= "dato_forward")
+            data_forward_valid = Signal(self.entries_number, name="data_forward_valid")
 
         @loop_def_method(m, self.set_dirty_list, ready_list=checker.valids)
         def _(i, id, dirty):
