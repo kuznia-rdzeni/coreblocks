@@ -8,6 +8,7 @@ from test.fu.vector_unit.common import *
 from collections import deque
 from parameterized import parameterized_class
 
+
 @parameterized_class( ["seed", "register_bank_count", "test_number"], [(14, 1, 70),(15, 2, 40)])
 class TestVectorCore(TestCaseWithSimulator):
     seed : int
