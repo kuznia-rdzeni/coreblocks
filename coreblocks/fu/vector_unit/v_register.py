@@ -58,14 +58,6 @@ class VectorRegisterBank(Elaboratable):
         self.initialise = Method(i=self.layouts.initialise)
         self.clear = Method()
 
-        self.initialise.add_conflict(self.read_req, Priority.LEFT)
-        self.initialise.add_conflict(self.read_resp, Priority.LEFT)
-        self.initialise.add_conflict(self.write, Priority.LEFT)
-        self.clear.add_conflict(self.read_req, Priority.LEFT)
-        self.clear.add_conflict(self.read_resp, Priority.LEFT)
-        self.clear.add_conflict(self.write, Priority.LEFT)
-        self.clear.add_conflict(self.initialise, Priority.LEFT)
-
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
