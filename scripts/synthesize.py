@@ -51,7 +51,7 @@ class WishboneConnector(Elaboratable):
     def elaborate(self, platform: Platform):
         m = Module()
 
-        pins: Record = platform.request("wishbone", self.number)
+        pins = platform.request("wishbone", self.number)
         assert isinstance(pins, Record)
 
         m.d.comb += self.wb.connect(pins)
