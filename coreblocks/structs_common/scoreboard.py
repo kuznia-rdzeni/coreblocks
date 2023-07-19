@@ -47,7 +47,7 @@ class Scoreboard(Elaboratable):
         )
 
         if self.data_forward:
-            data_forward = Signal(self.entries_number, name= "dato_forward")
+            data_forward = Signal(self.entries_number, name= "data_forward")
             data_forward_valid = Signal(self.entries_number, name="data_forward_valid")
 
         @loop_def_method(m, self.set_dirty_list, ready_list=checker.valids)
