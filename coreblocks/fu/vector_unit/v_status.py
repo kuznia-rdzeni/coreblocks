@@ -182,7 +182,7 @@ class VectorStatusUnit(Elaboratable):
             with condition(m, nonblocking=False) as branch:
                 with branch(arg.exec_fn.op_type == OpType.V_CONTROL):
                     self.process_vsetvl(m, arg)
-                with branch():
+                with branch(arg.exec_fn.op_type != OpType.V_CONTROL):
                     self.process_normal_instr(m, arg)
 
         @def_method(m, self.clear)

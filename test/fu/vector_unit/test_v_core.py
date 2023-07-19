@@ -12,7 +12,7 @@ from parameterized import parameterized_class
 class TestVectorCore(TestCaseWithSimulator):
     seed : int
     def setUp(self):
-        random.seed(53)
+        random.seed(54)
         self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = 1, vrp_count = 36)))
         self.test_number = 350
         self.v_params = self.gen_params.v_params
