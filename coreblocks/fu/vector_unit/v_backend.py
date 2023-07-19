@@ -22,7 +22,38 @@ __all__ = ["VectorBackend"]
 
 
 class VectorBackend(Elaboratable):
+    """ Vector unit backend
+
+    This module is responsible for executing vector instructions which were processed by the VectorFrontend.
+    The processed instructions are placed in the VVRS, where they wait until all operands are ready. The readiness
+    of the operands is tracked by a scoreboard, which is updated on issuing and completing of each instructions.
+    The VVRS inserter listens for `update`\\s to implement the forwarding of the readiness of instructions that
+    have been completed.
+
+    Ready instructions are read out of order and sent to `VectorExecutor`\\s for execution. Each `VectorExecutor`
+    informs the `VectorExecutionEnder` when it has finished processing the instruction. When all executors have finished processing
+    `VectorExecutionEnder` updates the scoreboard, the VVRS and informs `VectorRetirement` and `VectorAnnouncer` about
+    this fact.
+
+    Attributes
+    ----------
+    put_instr : Method
+        The method to insert instructions from the vector frontend.
+    initialise_regs : list[Method]
+        List with one method for each register, to initialise it on allocation.
+    """
     def __init__(self, gen_params: GenParams, announce: Method, report_end: Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        announce : Method
+            The method called when an instruction has been processed, to forward that information to the
+            scalar core.
+        report_end : Method
+            Used to report the end of instruction execution to `VectorRetirement`.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.announce = announce

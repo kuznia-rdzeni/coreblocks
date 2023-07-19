@@ -9,7 +9,25 @@ __all__ = ["VectorAnnouncer"]
 
 
 class VectorAnnouncer(Elaboratable):
+    """ Collects announces about end of instruction processing and sends them to the scalar core
+
+    Attributes
+    ----------
+    announce_list : list[Method]
+        Methods to be called when the vector unit has finished processing of an instruction.
+        Layout: FuncUnitLayouts.accept
+    accept : Method
+        Method to be called by the scalar core to get information about completed instructions.
+    """
     def __init__(self, gen_params: GenParams, announce_method_count: int):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        announce_method_count : int
+            The number of methods to created in the `announce_list`.
+        """
         self.gen_params = gen_params
         self.announce_method_count = announce_method_count
 

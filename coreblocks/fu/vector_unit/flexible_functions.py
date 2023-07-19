@@ -135,7 +135,7 @@ class FlexibleElementwiseFunction(Elaboratable):
         ----------
         out_width : EEW
             Maximum supported width of operands.
-        op : Callable[[ValueLike, ValueLike], ValueLike]
+        op : Callable[[Value, Value], ValueLike]
             Function to be applied over operands.
         """
         self.out_width = out_width
