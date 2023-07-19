@@ -8,11 +8,11 @@ from test.fu.vector_unit.common import *
 from collections import deque
 from parameterized import parameterized_class
 
-#@parameterized_class(["seed"], [ (i,) for i in range(82, 89)])
+@parameterized_class(["seed"], [ (i,) for i in range(82, 89)])
 class TestVectorCore(TestCaseWithSimulator):
     seed : int
     def setUp(self):
-        random.seed(75)
+        random.seed(self.seed)
         self.gen_params = GenParams(test_vector_core_config.replace(vector_config = VectorUnitConfiguration(register_bank_count = 1, vrp_count = 36)))
         self.test_number = 350
         self.v_params = self.gen_params.v_params

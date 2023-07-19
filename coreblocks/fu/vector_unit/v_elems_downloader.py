@@ -60,7 +60,7 @@ class VectorElemsDownloader(Elaboratable):
             addr = Signal(range(self.v_params.elens_in_bank))
             m.d.top_comb += addr.eq(req_counter - 1)
             for i, field_name in enumerate(regs_fields):
-                with m.If (uniqness_checker.valids[i] & instr[field_name + "_needed"]):
+                with m.If (uniqness_checker.valids[i]):
                     vrp_id = Signal(self.v_params.vrp_count_bits)
                     m.d.comb += vrp_id.eq(instr[field_name])
                     fifos_to_vrf[i].write(m, vrp_id = vrp_id, addr = addr)
@@ -78,7 +78,7 @@ class VectorElemsDownloader(Elaboratable):
                         m.d.comb += data_to_fu[field].eq(barrier_out[f"out{i}"])
                     with m.Else():
                         for j in reversed(range(i)):
-                            with m.If(uniqness_checker.valids[j] & needed_signals.bit_select(j, 1) & (instr[field] == instr[regs_fields[j]])):
+                            with m.If(uniqness_checker.valids[j] & (instr[field] == instr[regs_fields[j]])):
                                 m.d.comb += data_to_fu[field].eq(barrier_out[f"out{j}"])
 
             m.d.sync += resp_counter.eq(resp_counter-1)
@@ -93,7 +93,7 @@ class VectorElemsDownloader(Elaboratable):
         m.d.top_comb += uniq.eq(Cat(uniqness_checker.valids))
         set_valids_to_barrier = Signal()
         with Transaction().body(m, request = set_valids_to_barrier):
-            barrier.set_valids(m, valids = uniq & needed_signals)
+            barrier.set_valids(m, valids = uniq)
             m.d.sync += set_valids_to_barrier.eq(0)
 
 

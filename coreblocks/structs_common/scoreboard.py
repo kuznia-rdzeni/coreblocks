@@ -43,7 +43,7 @@ class Scoreboard(Elaboratable):
 
         data = Signal(self.entries_number, name = "data")
         m.submodules.checker = checker = PriorityUniqnessChecker(
-            self.superscalarity, len(Record(self.layouts.set_dirty_in).id)
+            self.superscalarity, len(Record(self.layouts.set_dirty_in).id), non_valid_ok = True
         )
 
         if self.data_forward:
