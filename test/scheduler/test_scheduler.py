@@ -12,7 +12,7 @@ from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
-from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, OpType
+from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.utils.protocols import FuncBlock

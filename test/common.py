@@ -3,6 +3,7 @@ import random
 import unittest
 import os
 import functools
+import random
 from contextlib import contextmanager, nullcontext
 from collections import defaultdict
 from typing import (
@@ -505,15 +506,17 @@ class SyncProcessWrapper:
 
 class PysimSimulator(Simulator):
     def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
-        super().__init__(TestModule(module, add_transaction_module))
+        test_module = TestModule(module, add_transaction_module)
+        tested_module = test_module.tested_module
+        super().__init__(test_module)
 
         clk_period = 1e-6
         self.add_clock(clk_period)
 
-        if isinstance(module, HasDebugSignals):
-            extra_signals = module.debug_signals
+        if isinstance(tested_module, HasDebugSignals):
+            extra_signals = tested_module.debug_signals
         else:
-            extra_signals = functools.partial(auto_debug_signals, module)
+            extra_signals = functools.partial(auto_debug_signals, tested_module)
 
         if traces_file:
             traces_dir = "test/__traces__"
@@ -575,6 +578,11 @@ class TestCaseWithSimulator(unittest.TestCase):
     def assertFieldsEqual(self, dict1, dict2, fields: Iterable):  # noqa: N802
         for field in fields:
             self.assertEqual(dict1[field], dict2[field], field)
+    def random_wait(self, max_cycle_cnt):
+        """
+        Wait for a random amount of cycles in range [1, max_cycle_cnt)
+        """
+        yield from self.tick(random.randrange(max_cycle_cnt))
 
 
 class TestbenchIO(Elaboratable):

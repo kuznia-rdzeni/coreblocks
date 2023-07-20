@@ -485,6 +485,11 @@ class InstrDecoder(Elaboratable):
         m = Module()
 
         extensions = self.gen.isa.extensions
+
+        # We need to support all I instructions in E extension, but this is not extension implication
+        if Extension.E in extensions:
+            extensions |= Extension.I
+
         supported_encodings: set[Encoding] = set()
         encoding_to_optype: dict[Encoding, OpType] = dict()
         for ext, optypes in optypes_by_extensions.items():
@@ -526,10 +531,20 @@ class InstrDecoder(Elaboratable):
             self._extract(20, self.funct12),
         ]
 
+        rd_field = Signal(self.gen.isa.reg_field_bits)
+        rs1_field = Signal(self.gen.isa.reg_field_bits)
+        rs2_field = Signal(self.gen.isa.reg_field_bits)
+
         m.d.comb += [
-            self._extract(7, self.rd),
-            self._extract(15, self.rs1),
-            self._extract(20, self.rs2),
+            self._extract(7, rd_field),
+            self._extract(15, rs1_field),
+            self._extract(20, rs2_field),
+        ]
+
+        m.d.comb += [
+            self.rd.eq(rd_field),
+            self.rs1.eq(rs1_field),
+            self.rs2.eq(rs2_field),
         ]
 
         rd_invalid = Signal()
@@ -636,6 +651,15 @@ class InstrDecoder(Elaboratable):
             self._extract(28, self.fm),
         ]
 
+        # Check if register field bits outside of logical register space are zeroed
+
+        register_space_invalid = Signal()
+        m.d.comb += register_space_invalid.eq(
+            (self.rd_v & (rd_field[len(self.rd) :]).any())
+            | (self.rs1_v & (rs1_field[len(self.rs1) :]).any())
+            | (self.rs2_v & (rs2_field[len(self.rs2) :]).any())
+        )
+
         # CSR address and constant for vector control instructions
 
         m.d.comb += self._extract(20, self.imm2)
@@ -671,7 +695,9 @@ class InstrDecoder(Elaboratable):
             m.d.comb += self.opcode.eq(opcode)
 
         # Illegal instruction detection
-
-        m.d.comb += self.illegal.eq(self.optype == OpType.UNKNOWN)
+        # 0b11 at field [0:2] of instruction specify standard 32-bit instruction encoding space (not checked by opcode)
+        encoding_space = Signal(2)
+        m.d.comb += self._extract(0, encoding_space)
+        m.d.comb += self.illegal.eq((self.optype == OpType.UNKNOWN) | (encoding_space != 0b11) | register_space_invalid)
 
         return m

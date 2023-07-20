@@ -11,6 +11,9 @@ from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.fu.jumpbranch import JumpComponent
 from coreblocks.fu.mul_unit import MulComponent, MulType
+from coreblocks.fu.div_unit import DivComponent
+from coreblocks.fu.zbc import ZbcComponent
+from coreblocks.fu.zbs import ZbsComponent
 from coreblocks.fu.exception import ExceptionUnitComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
 from coreblocks.structs_common.csr import CSRBlockComponent
@@ -113,7 +116,7 @@ class CoreConfiguration:
     icache_sets_bits: int = 7
     icache_block_size_bits: int = 5
 
-    allow_partial_extensions: bool = True  # TODO: Change to False when I extension will be fully supported
+    allow_partial_extensions: bool = False
 
     vector_config: Optional[VectorUnitConfiguration] = None
 
@@ -128,11 +131,14 @@ basic_core_config = CoreConfiguration()
 
 # Minimal core configuration
 tiny_core_config = CoreConfiguration(
+    embedded=True,
     func_units_config=(
         rs_func_block.RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
         LSUBlockComponent(),
     ),
-    rob_entries_bits=6,
+    phys_regs_bits=basic_core_config.phys_regs_bits - 1,
+    rob_entries_bits=basic_core_config.rob_entries_bits - 1,
+    allow_partial_extensions=True,  # No exception unit
 )
 
 # Core configuration with all supported components
@@ -142,15 +148,24 @@ full_core_config = CoreConfiguration(
             [
                 ALUComponent(zba_enable=True, zbb_enable=True),
                 ShiftUnitComponent(zbb_enable=True),
+                ZbcComponent(),
+                ZbsComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
             ],
             rs_entries=4,
         ),
-        rs_func_block.RSBlockComponent([MulComponent(mul_unit_type=MulType.SEQUENCE_MUL)], rs_entries=2),
+        rs_func_block.RSBlockComponent(
+            [
+                MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+                DivComponent(ipc=3),
+            ],
+            rs_entries=2,
+        ),
         LSUBlockComponent(),
         CSRBlockComponent(),
     ),
+    compressed=True,
 )
 
 # Core configuration used in internal testbenches

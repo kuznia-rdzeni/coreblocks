@@ -48,13 +48,14 @@ def load_regression_tests() -> list[str]:
             print("Couldn't build regression tests")
             sys.exit(1)
 
-    exclude = {"rv32ui-ma_data", "rv32ui-fence_i", "rv32um-div", "rv32um-divu", "rv32um-rem", "rv32um-remu"}
+    exclude = {"rv32ui-ma_data", "rv32ui-fence_i"}
 
     return list(all_tests - exclude)
 
 
 def run_regressions_with_cocotb(tests: list[str], traces: bool) -> bool:
-    arglist = ["make", "-C", "test/regression/cocotb", "-f", "test.Makefile"]
+    cpu_count = len(os.sched_getaffinity(0))
+    arglist = ["make", "-C", "test/regression/cocotb", "-f", "test.Makefile", f"-j{cpu_count}"]
 
     test_cases = ",".join(tests)
     arglist += [f"TESTCASE={test_cases}"]

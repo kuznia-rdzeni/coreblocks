@@ -1,59 +1,41 @@
-from coreblocks.params import Funct3, Funct7, GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import Funct3, Funct7
 from coreblocks.fu.zbs import ZbsFunction, ZbsComponent
+from coreblocks.params.optypes import OpType
 
-from test.fu.functional_common import GenericFunctionalTestUnit
-
-
-def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbsFunction.Fn, xlen: int) -> dict[str, int]:
-    val2 = i_imm if i_imm else i2
-
-    if fn == ZbsFunction.Fn.BCLR:
-        index = val2 & (xlen - 1)
-        return {"result": i1 & ~(1 << index)}
-    if fn == ZbsFunction.Fn.BEXT:
-        index = val2 & (xlen - 1)
-        return {"result": (i1 >> index) & 1}
-    if fn == ZbsFunction.Fn.BINV:
-        index = val2 & (xlen - 1)
-        return {"result": i1 ^ (1 << index)}
-    if fn == ZbsFunction.Fn.BSET:
-        index = val2 & (xlen - 1)
-        return {"result": i1 | (1 << index)}
+from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
-ops = {
-    ZbsFunction.Fn.BCLR: {
-        "funct3": Funct3.BCLR,
-        "funct7": Funct7.BCLR,
-    },
-    ZbsFunction.Fn.BEXT: {
-        "funct3": Funct3.BEXT,
-        "funct7": Funct7.BEXT,
-    },
-    ZbsFunction.Fn.BINV: {
-        "funct3": Funct3.BINV,
-        "funct7": Funct7.BINV,
-    },
-    ZbsFunction.Fn.BSET: {
-        "funct3": Funct3.BSET,
-        "funct7": Funct7.BSET,
-    },
-}
+class ZbsUnitTest(FunctionalUnitTestCase[ZbsFunction.Fn]):
+    func_unit = ZbsComponent()
+    zero_imm = False
 
+    ops = {
+        ZbsFunction.Fn.BCLR: ExecFn(OpType.SINGLE_BIT_MANIPULATION, Funct3.BCLR, Funct7.BCLR),
+        ZbsFunction.Fn.BEXT: ExecFn(OpType.SINGLE_BIT_MANIPULATION, Funct3.BEXT, Funct7.BEXT),
+        ZbsFunction.Fn.BINV: ExecFn(OpType.SINGLE_BIT_MANIPULATION, Funct3.BINV, Funct7.BINV),
+        ZbsFunction.Fn.BSET: ExecFn(OpType.SINGLE_BIT_MANIPULATION, Funct3.BSET, Funct7.BSET),
+    }
 
-class ZbsUnitTest(GenericFunctionalTestUnit):
-    def test_test(self):
-        self.run_pipeline()
+    @staticmethod
+    def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: ZbsFunction.Fn, xlen: int) -> dict[str, int]:
+        val2 = i_imm if i_imm else i2
 
-    def __init__(self, method_name: str = "runTest"):
-        super().__init__(
-            ops,
-            ZbsComponent(),
-            compute_result,
-            gen=GenParams(test_core_config),
-            number_of_tests=600,
-            seed=32323,
-            method_name=method_name,
-            zero_imm=False,
-        )
+        match fn:
+            case ZbsFunction.Fn.BCLR:
+                index = val2 & (xlen - 1)
+                return {"result": i1 & ~(1 << index)}
+            case ZbsFunction.Fn.BEXT:
+                index = val2 & (xlen - 1)
+                return {"result": (i1 >> index) & 1}
+            case ZbsFunction.Fn.BINV:
+                index = val2 & (xlen - 1)
+                return {"result": i1 ^ (1 << index)}
+            case ZbsFunction.Fn.BSET:
+                index = val2 & (xlen - 1)
+                return {"result": i1 | (1 << index)}
+
+    def test_fu(self):
+        self.run_standard_fu_test()
+
+    def test_pipeline(self):
+        self.run_standard_fu_test(pipeline_test=True)

@@ -195,9 +195,7 @@ class TransactionManager(Elaboratable):
         self.transactions.append(transaction)
 
     @staticmethod
-    def _conflict_graph(
-        method_map: MethodMap, relations: list[Relation]
-    ) -> Tuple[TransactionGraph, TransactionGraph, PriorityOrder]:
+    def _conflict_graph(method_map: MethodMap) -> Tuple[TransactionGraph, TransactionGraph, PriorityOrder]:
         """_conflict_graph
 
         This function generates the graph of transaction conflicts. Conflicts
@@ -257,6 +255,12 @@ class TransactionManager(Elaboratable):
                 for transaction2 in method_map.transactions_for(method):
                     if transaction1 is not transaction2:
                         add_edge(transaction1, transaction2, Priority.UNDEFINED, True)
+
+        relations = [
+            Relation(**relation, start=elem)
+            for elem in method_map.methods_and_transactions
+            for relation in elem.relations
+        ]
 
         for relation in relations:
             start = relation["start"]
@@ -413,12 +417,7 @@ class TransactionManager(Elaboratable):
             merge_manager = self._simultaneous()
 
             method_map = MethodMap(self.transactions)
-            relations = [
-                Relation(**relation, start=elem)
-                for elem in method_map.methods_and_transactions
-                for relation in elem.relations
-            ]
-            cgr, rgr, porder = TransactionManager._conflict_graph(method_map, relations)
+            cgr, rgr, porder = TransactionManager._conflict_graph(method_map)
 
         m = Module()
         m.submodules.merge_manager = merge_manager
@@ -439,6 +438,9 @@ class TransactionManager(Elaboratable):
             if len(method_args[method]) == 1:
                 m.d.comb += method.data_in.eq(method_args[method][0])
             else:
+                if method.single_caller:
+                    raise RuntimeError(f"Single-caller method '{method.name}' called more than once")
+
                 runs = Cat(method_runs[method])
                 for i in OneHotSwitchDynamic(m, runs):
                     m.d.comb += method.data_in.eq(method_args[method][i])
@@ -461,6 +463,25 @@ class TransactionManager(Elaboratable):
                 graph.insert_edge(transaction, method, direction)
 
         return graph
+
+    def debug_signals(self) -> SignalBundle:
+        method_map = MethodMap(self.transactions)
+        cgr, _, _ = TransactionManager._conflict_graph(method_map)
+
+        def transaction_debug(t: Transaction):
+            return (
+                [t.request, t.grant]
+                + [m.ready for m in method_map.methods_by_transaction[t]]
+                + [t2.grant for t2 in cgr[t]]
+            )
+
+        def method_debug(m: Method):
+            return [m.ready, m.run, {t.name: transaction_debug(t) for t in method_map.transactions_by_method[m]}]
+
+        return {
+            "transactions": {t.name: transaction_debug(t) for t in method_map.transactions},
+            "methods": {m.owned_name: method_debug(m) for m in method_map.methods},
+        }
 
 
 class TransactionContext:
@@ -659,6 +680,7 @@ class TransactionBase(Owned):
     def_counter: ClassVar[count] = count()
     def_order: int
     defined: bool = False
+    name: str
 
     def __init__(self):
         self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
@@ -781,6 +803,13 @@ class TransactionBase(Owned):
             raise RuntimeError(f"Current body not a {cls.__name__}")
         return TransactionBase.stack[-1]
 
+    @property
+    def owned_name(self):
+        if self.owner is not None and self.owner.__class__.__name__ != self.name:
+            return f"{self.owner.__class__.__name__}_{self.name}"
+        else:
+            return self.name
+
 
 class Transaction(TransactionBase):
     """Transaction.
@@ -837,8 +866,8 @@ class Transaction(TransactionBase):
         if manager is None:
             manager = TransactionContext.get()
         manager.add_transaction(self)
-        self.request = Signal(name=self.name + "_request")
-        self.grant = Signal(name=self.name + "_grant")
+        self.request = Signal(name=self.owned_name + "_request")
+        self.grant = Signal(name=self.owned_name + "_grant")
 
     @contextmanager
     def body(self, m: TModule, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
@@ -916,7 +945,13 @@ class Method(TransactionBase):
     """
 
     def __init__(
-        self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = (), nonexclusive: bool = False
+        self,
+        *,
+        name: Optional[str] = None,
+        i: MethodLayout = (),
+        o: MethodLayout = (),
+        nonexclusive: bool = False,
+        single_caller: bool = False,
     ):
         """
         Parameters
@@ -935,15 +970,20 @@ class Method(TransactionBase):
             transactions in the same clock cycle. If such a situation happens,
             the method still is executed only once, and each of the callers
             receive its output. Nonexclusive methods cannot have inputs.
+        single_caller: bool
+            If true, this method is intended to be called from a single
+            transaction. An error will be thrown if called from multiple
+            transactions.
         """
         super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
-        self.ready = Signal(name=self.name + "_ready")
-        self.run = Signal(name=self.name + "_run")
+        self.ready = Signal(name=self.owned_name + "_ready")
+        self.run = Signal(name=self.owned_name + "_run")
         self.data_in = Record(i)
         self.data_out = Record(o)
         self.nonexclusive = nonexclusive
+        self.single_caller = single_caller
         if nonexclusive:
             assert len(self.data_in) == 0
 
@@ -1098,7 +1138,7 @@ class Method(TransactionBase):
         if arg is None:
             arg = kwargs
 
-        enable_sig = Signal(name=self.name + "_enable")
+        enable_sig = Signal(name=self.owned_name + "_enable")
         m.d.av_comb += enable_sig.eq(enable)
         m.d.top_comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)

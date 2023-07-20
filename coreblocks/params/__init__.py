@@ -7,3 +7,4 @@ from .keys import *  # noqa: F401
 from .icache_params import *  # noqa: F401
 from .dependencies import *  # noqa: F401
 from .vector_params import *  # noqa: F401
+from .instr import *  # noqa: F401

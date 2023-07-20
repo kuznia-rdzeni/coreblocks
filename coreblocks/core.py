@@ -7,6 +7,7 @@ from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import *
 from coreblocks.params.genparams import GenParams
+from coreblocks.params.isa import Extension
 from coreblocks.frontend.decode import Decode
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.structs_common.rob import ReorderBuffer
@@ -18,7 +19,7 @@ from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
-from coreblocks.frontend.fetch import Fetch
+from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from coreblocks.utils.fifo import BasicFifo
 
 __all__ = ["Core"]
@@ -49,7 +50,10 @@ class Core(Elaboratable):
         else:
             self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
 
-        self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
+        if Extension.C in gen_params.isa.extensions:
+            self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fifo_fetch.write)
+        else:
+            self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)

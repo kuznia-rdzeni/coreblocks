@@ -1,5 +1,6 @@
 import math
 from itertools import takewhile
+
 from amaranth.lib.enum import unique, Enum, IntEnum, IntFlag, auto
 import enum
 
@@ -26,6 +27,7 @@ __all__ = [
     "eew_div_2",
     "lmul_to_float",
     "lmul_to_int",
+    "Registers",
 ]
 
 
@@ -45,10 +47,13 @@ class InstrType(Enum):
 @unique
 class Opcode(IntEnum, shape=5):
     LOAD = 0b00000
+    LOAD_FP = 0b00001
     MISC_MEM = 0b00011
     OP_IMM = 0b00100
     AUIPC = 0b00101
+    OP_IMM_32 = 0b00110
     STORE = 0b01000
+    STORE_FP = 0b01001
     OP = 0b01100
     LUI = 0b01101
     OP32 = 0b01110
@@ -64,12 +69,11 @@ class Funct3(IntEnum, shape=3):
     BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL \
             = SEXTB = SEXTH = CLMUL = _EILLEGALINSTR = OPFVV = 0b001  # fmt: skip
     W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT = OPMVV = 0b010
-    SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = OPIVI = 0b011
+    D = SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = OPIVI = 0b011
     BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = OPIVX = 0b100
     BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = OPFVF = 0b101
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = OPMVX = 0b110
     BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = OPCFG = 0b111
-
 
 class Funct6(IntEnum, shape=6):
     VADD = 0b000000
@@ -157,6 +161,41 @@ class Funct12(IntEnum, shape=12):
     SEXTB = 0b011000000100
     SEXTH = 0b011000000101
     ZEXTH = 0b000010000000
+
+
+class Registers(IntEnum, shape=5):
+    X0 = ZERO = 0b00000  # hardwired zero
+    X1 = RA = 0b00001  # return address
+    X2 = SP = 0b00010  # stack pointer
+    X3 = GP = 0b00011  # global pointer
+    X4 = TP = 0b00100  # thread pointer
+    X5 = T0 = 0b00101  # temporary register 0
+    X6 = T1 = 0b00110  # temporary register 1
+    X7 = T2 = 0b00111  # temporary register 2
+    X8 = S0 = FP = 0b01000  # saved register 0 / frame pointer
+    X9 = S1 = 0b01001  # saved register 1
+    X10 = A0 = 0b01010  # function argument 0 / return value 0
+    X11 = A1 = 0b01011  # function argument 1 / return value 1
+    X12 = A2 = 0b01100  # function argument 2
+    X13 = A3 = 0b01101  # function argument 3
+    X14 = A4 = 0b01110  # function argument 4
+    X15 = A5 = 0b01111  # function argument 5
+    X16 = A6 = 0b10000  # function argument 6
+    X17 = A7 = 0b10001  # function argument 7
+    X18 = S2 = 0b10010  # saved register 2
+    X19 = S3 = 0b10011  # saved register 3
+    X20 = S4 = 0b10100  # saved register 4
+    X21 = S5 = 0b10101  # saved register 5
+    X22 = S6 = 0b10110  # saved register 6
+    X23 = S7 = 0b10111  # saved register 7
+    X24 = S8 = 0b11000  # saved register 8
+    X25 = S9 = 0b11001  # saved register 9
+    X26 = S10 = 0b11010  # saved register 10
+    X27 = S11 = 0b11011  # saved register 11
+    X28 = T3 = 0b11100  # temporary register 3
+    X29 = T4 = 0b11101  # temporary register 4
+    X30 = T5 = 0b11110  # temporary register 5
+    X31 = T6 = 0b11111  # temporary register 6
 
 
 @unique
@@ -417,11 +456,6 @@ class Extension(enum.IntFlag):
     G = I | M | A | F | D | ZICSR | ZIFENCEI
 
 
-# Extensions which are mutually exclusive
-_extension_exclusive = [
-    [Extension.I, Extension.E],
-]
-
 # Extensions which explicitly require another extension in order to be valid (can be joined using | operator)
 _extension_requirements = {
     Extension.D: Extension.F,
@@ -439,6 +473,11 @@ extension_implications = {
     Extension.F: Extension.ZICSR,
     Extension.M: Extension.ZMMUL,
     Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
+}
+
+# Extensions (not aliases) that only imply other sub-extensions, but don't add any new OpTypes.
+extension_only_implies = {
+    Extension.B,
 }
 
 
@@ -519,14 +558,6 @@ class ISA:
             if ext in self.extensions:
                 self.extensions |= imply
 
-        for exclusive in _extension_exclusive:
-            for i in range(len(exclusive)):
-                for j in range(i + 1, len(exclusive)):
-                    if exclusive[i] | exclusive[j] in self.extensions:
-                        raise RuntimeError(
-                            f"ISA extensions {exclusive[i].name} and {exclusive[j].name} are mutually exclusive"
-                        )
-
         for ext, requirements in _extension_requirements.items():
             if ext in self.extensions and requirements not in self.extensions:
                 for req in Extension:
@@ -535,7 +566,8 @@ class ISA:
                             f"ISA extension {ext.name} requires the {req.name} extension to be supported"
                         )
 
-        if self.extensions & Extension.E:
+        # I & E extensions can coexist if I extenstion can be disableable at runtime
+        if self.extensions & Extension.E and not self.extensions & Extension.I:
             self.reg_cnt = 16
         else:
             self.reg_cnt = 32
@@ -544,6 +576,8 @@ class ISA:
         self.ilen = 32
         self.ilen_bytes = self.ilen // 8
         self.ilen_log = self.ilen.bit_length() - 1
+
+        self.reg_field_bits = 5
 
         self.csr_alen = 12
 

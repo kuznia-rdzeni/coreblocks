@@ -53,6 +53,7 @@ class JumpBranch(Elaboratable):
         self.in2 = Signal(xlen)
         self.in_pc = Signal(xlen)
         self.in_imm = Signal(xlen)
+        self.in_rvc = Signal()
         self.jmp_addr = Signal(xlen)
         self.reg_res = Signal(xlen)
         self.taken = Signal()
@@ -68,6 +69,10 @@ class JumpBranch(Elaboratable):
         m.d.comb += branch_target.eq(self.in_pc + self.in_imm[:13].as_signed())
 
         m.d.comb += self.reg_res.eq(self.in_pc + 4)
+
+        if Extension.C in self.gen_params.isa.extensions:
+            with m.If(self.in_rvc):
+                m.d.comb += self.reg_res.eq(self.in_pc + 2)
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(JumpBranchFn.Fn.JAL):
@@ -121,6 +126,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
         self.jb_fn = jb_fn
 
+        self.dm = gen.get(DependencyManager)
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -139,15 +146,27 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
-            m.d.comb += jb.fn.eq(decoder.decode_fn)
+            m.d.top_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.top_comb += jb.fn.eq(decoder.decode_fn)
 
-            m.d.comb += jb.in1.eq(arg.s1_val)
-            m.d.comb += jb.in2.eq(arg.s2_val)
-            m.d.comb += jb.in_pc.eq(arg.pc)
-            m.d.comb += jb.in_imm.eq(arg.imm)
+            m.d.top_comb += jb.in1.eq(arg.s1_val)
+            m.d.top_comb += jb.in2.eq(arg.s2_val)
+            m.d.top_comb += jb.in_pc.eq(arg.pc)
+            m.d.top_comb += jb.in_imm.eq(arg.imm)
 
-            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=0)
+            m.d.top_comb += jb.in_rvc.eq(arg.exec_fn.funct7)
+
+            # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
+            # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
+            # generated for a conditional branch that is not taken."
+            exception = Signal()
+            jmp_addr_misaligned = (jb.jmp_addr & (0b1 if Extension.C in self.gen.isa.extensions else 0b11)) != 0
+            with m.If((decoder.decode_fn != JumpBranchFn.Fn.AUIPC) & jb.taken & jmp_addr_misaligned):
+                m.d.comb += exception.eq(1)
+                report = self.dm.get_dependency(ExceptionReportKey())
+                report(m, rob_id=arg.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED)
+
+            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
 
             # skip writing next branch target for auipc
             with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):
