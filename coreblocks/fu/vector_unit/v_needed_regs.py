@@ -6,6 +6,15 @@ __all__ = ["VectorNeededRegs"]
 
 
 class VectorNeededRegs(Elaboratable):
+    """ Module to check which registers are needed to execute the instruction.
+
+    Actually only arithmetic two source instructions are supported.
+
+    Attributes
+    ----------
+    issue : Method
+        Get the required registers for a new instruction.
+    """
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
@@ -24,9 +33,8 @@ class VectorNeededRegs(Elaboratable):
                 rec_out.v0_needed.eq(arg.vtype.ma == 0),
                 rec_out.s1_needed.eq(arg.rp_s1.type == RegisterType.V),
                 rec_out.s2_needed.eq(1),
-                rec_out.s3_needed.eq(
-                    0
-                ),  # There is no support for three source instructions yet (interger multiply-add)
+                # There is no support for three source instructions yet (interger multiply-add)
+                rec_out.s3_needed.eq(0),
             ]
             return rec_out
 

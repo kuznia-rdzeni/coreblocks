@@ -8,7 +8,33 @@ __all__ = ["VectorRetirement"]
 
 
 class VectorRetirement(Elaboratable):
+    """ Retirement of the vector instructions
+
+    The module stores completed vector instructions in the
+    content adressable memory and checks on each precommit call
+    whether the currently retired instruction is in the memory.
+    If is is, then it is removed from it, VRRAT is updated,
+    and the old VRRAT entr is dealocated.
+
+    Attributes
+    ----------
+    precommit : Method
+        Method called by the scalar retirement to notify that a
+        instruction is being to be committed.
+    report_end : Method
+        Called by the `VectorExecutionEnder` to mark that the
+        instruction finished execution.
+    """
     def __init__(self, gen_params: GenParams, instr_to_retire_count: int, v_rrat_commit: Method, deallocate: Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration
+        instr_to_retire_count : int
+            Number of slots to prepare in content addressable
+            memory to store instructions that waiting to be retired.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.instr_to_retire_count = instr_to_retire_count

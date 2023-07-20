@@ -19,17 +19,17 @@ class VectorAluFn(DecoderManager):
         SLL = auto()  # Logic left shift
         SRL = auto()  # Logic right shift
         SLE = auto()  # Set if less or equal than (signed)
-        SLEU = auto()  # Set if less or equal than (unsigned)
+        SLEU = auto() # Set if less or equal than (unsigned)
         SLT = auto()  # Set if less than (signed)
-        SLTU = auto()  # Set if less than (unsigned)
+        SLTU = auto() # Set if less than (unsigned)
         SEQ = auto()  # Set if equal
         XOR = auto()  # Bitwise xor
-        OR = auto()  # Bitwise or
+        OR = auto()   # Bitwise or
         AND = auto()  # Bitwise and
-        MIN = auto()
-        MINU = auto()
-        MAX = auto()
-        MAXU = auto()
+        MIN = auto()  # Elementwise minimum
+        MINU = auto() # Elementwise unsigned minimum
+        MAX = auto()  # Elementwise maximum
+        MAXU = auto() # Elementwise unsigned maximum
 
     def get_instructions(self) -> Sequence[tuple]:
         funct6_list = [
@@ -55,6 +55,26 @@ class VectorAluFn(DecoderManager):
 
 
 class FlexibleAluExecutor(Elaboratable):
+    """
+    Module responsible for performing an operation in a flexible way.
+    It takes two operands, each of `ELEN` width, and an EEW to be used during
+    the calculations. It then passes request to the appropriate flexible unit.
+
+    Output of the mask instructions is generated in extended elem mask format.
+
+    Attributes
+    ----------
+    in1 : Signal(ELEN), in
+        The first input operand.
+    in2 : Signal(ELEN), in
+        The second input operand.
+    exec_fn : Record(CommonLayouts.exec_fn), in
+        The operation to execute.
+    eew : Signal(EEW), in
+        The width of the operation to execute.
+    out : Signal(ELEN), out
+        Results of the operation.
+    """
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
@@ -167,7 +187,22 @@ class FlexibleAluExecutor(Elaboratable):
 
 
 class VectorBasicFlexibleAlu(Elaboratable):
+    """ Transactron wrapper over the flexible vector alu
+
+    Attributes
+    ----------
+    issue : Method
+        Called to execute a new instruction.
+    """
     def __init__(self, gen_params: GenParams, put_output: Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        put_output : Method
+            The method to call with the result of the operation.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.put_output = put_output
