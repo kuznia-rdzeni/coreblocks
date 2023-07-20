@@ -9,7 +9,7 @@ __all__ = ["VectorAnnouncer"]
 
 
 class VectorAnnouncer(Elaboratable):
-    """ Collects announces about end of instruction processing and sends them to the scalar core
+    """Collects announces about end of instruction processing and sends them to the scalar core
 
     Attributes
     ----------
@@ -19,6 +19,7 @@ class VectorAnnouncer(Elaboratable):
     accept : Method
         Method to be called by the scalar core to get information about completed instructions.
     """
+
     def __init__(self, gen_params: GenParams, announce_method_count: int):
         """
         Parameters

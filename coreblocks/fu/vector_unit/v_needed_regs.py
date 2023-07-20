@@ -6,7 +6,7 @@ __all__ = ["VectorNeededRegs"]
 
 
 class VectorNeededRegs(Elaboratable):
-    """ Module to check which registers are needed to execute the instruction.
+    """Module to check which registers are needed to execute the instruction.
 
     Actually only arithmetic two source instructions are supported.
 
@@ -15,6 +15,7 @@ class VectorNeededRegs(Elaboratable):
     issue : Method
         Get the required registers for a new instruction.
     """
+
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params

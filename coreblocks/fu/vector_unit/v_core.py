@@ -17,7 +17,7 @@ __all__ = ["VectorCore"]
 
 
 class VectorCore(Elaboratable):
-    """ Vector functional block
+    """Vector functional block
 
     This is the top level module, that connects all the parts that create a vector
     processing unit.
@@ -44,6 +44,7 @@ class VectorCore(Elaboratable):
         The method used by the scalar core, to get information that an instruction
         has finished the execution.
     """
+
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params

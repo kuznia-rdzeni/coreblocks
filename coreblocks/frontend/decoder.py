@@ -647,11 +647,7 @@ class InstrDecoder(Elaboratable):
                 self.rs2_rf.eq(RegisterType.V),
                 self.rd_rf.eq(RegisterType.V),
             ]
-        with m.If(
-            (self.opcode == Opcode.OP_V)
-            & (self.funct3 == Funct3.OPIVX)
-            
-        ):
+        with m.If((self.opcode == Opcode.OP_V) & (self.funct3 == Funct3.OPIVX)):
             m.d.comb += self.rs1_rf.eq(RegisterType.X)
         with m.If((self.opcode == Opcode.OP_V) & (self.funct3 == Funct3.OPCFG)):
             m.d.comb += [

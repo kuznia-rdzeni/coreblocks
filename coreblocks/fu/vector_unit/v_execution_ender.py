@@ -10,7 +10,7 @@ __all__ = ["VectorExecutionEnder"]
 
 
 class VectorExecutionEnder(Elaboratable):
-    """ Module to coordinate the end of execution of all `VectorExecutor`\\s
+    """Module to coordinate the end of execution of all `VectorExecutor`\\s
 
     Each `VectorExecutor` can end its work at a different time, so this
     module is responsible for coordinating this and terminating the instruction
@@ -30,6 +30,7 @@ class VectorExecutionEnder(Elaboratable):
         List of methods for each executor to report that it has
         finished its work.
     """
+
     def __init__(
         self, gen_params: GenParams, announce: Method, update_vvrs: Method, scoreboard_set: Method, report_end: Method
     ):

@@ -8,7 +8,7 @@ __all__ = ["VectorMaskExtractor"]
 
 
 def elem_mask_to_byte_mask(m: TModule, v_params: VectorParameters, elem_mask: Value, eew: Value):
-    """ Generate a circuit to convert the mask from the elem format to the byte format.
+    """Generate a circuit to convert the mask from the elem format to the byte format.
 
     The elem format always has valid first `k` bits where `k = ELEN/EEW` and each
     bit describes whether an element is valid or not. The byte format has always `ELEN//8`
@@ -40,7 +40,7 @@ def elem_mask_to_byte_mask(m: TModule, v_params: VectorParameters, elem_mask: Va
 
 
 class VectorMaskExtractor(Elaboratable):
-    """ Module used to extract mask from the vector register entry
+    """Module used to extract mask from the vector register entry
 
     The vector mask is always downloaded from `v0`, and the `VectorElemsDownloader`
     always downloads `ELEN` bits. From that only `ELEN/EEW` bits are
@@ -54,6 +54,7 @@ class VectorMaskExtractor(Elaboratable):
     issue : Method
         Request extracting of the mask.
     """
+
     def __init__(self, gen_params: GenParams, put_mask: Method):
         """
         Parameters

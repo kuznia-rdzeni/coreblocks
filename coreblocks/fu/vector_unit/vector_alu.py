@@ -19,17 +19,17 @@ class VectorAluFn(DecoderManager):
         SLL = auto()  # Logic left shift
         SRL = auto()  # Logic right shift
         SLE = auto()  # Set if less or equal than (signed)
-        SLEU = auto() # Set if less or equal than (unsigned)
+        SLEU = auto()  # Set if less or equal than (unsigned)
         SLT = auto()  # Set if less than (signed)
-        SLTU = auto() # Set if less than (unsigned)
+        SLTU = auto()  # Set if less than (unsigned)
         SEQ = auto()  # Set if equal
         XOR = auto()  # Bitwise xor
-        OR = auto()   # Bitwise or
+        OR = auto()  # Bitwise or
         AND = auto()  # Bitwise and
         MIN = auto()  # Elementwise minimum
-        MINU = auto() # Elementwise unsigned minimum
+        MINU = auto()  # Elementwise unsigned minimum
         MAX = auto()  # Elementwise maximum
-        MAXU = auto() # Elementwise unsigned maximum
+        MAXU = auto()  # Elementwise unsigned maximum
 
     def get_instructions(self) -> Sequence[tuple]:
         funct6_list = [
@@ -75,6 +75,7 @@ class FlexibleAluExecutor(Elaboratable):
     out : Signal(ELEN), out
         Results of the operation.
     """
+
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
@@ -187,13 +188,14 @@ class FlexibleAluExecutor(Elaboratable):
 
 
 class VectorBasicFlexibleAlu(Elaboratable):
-    """ Transactron wrapper over the flexible vector alu
+    """Transactron wrapper over the flexible vector alu
 
     Attributes
     ----------
     issue : Method
         Called to execute a new instruction.
     """
+
     def __init__(self, gen_params: GenParams, put_output: Method):
         """
         Parameters

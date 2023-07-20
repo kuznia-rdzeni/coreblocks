@@ -26,6 +26,7 @@ class VectorInsertToVVRS(Elaboratable):
     update : Method
         The method to be called for each update in the VVRS.
     """
+
     def __init__(
         self,
         gen_params: GenParams,

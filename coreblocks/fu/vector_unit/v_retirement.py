@@ -8,7 +8,7 @@ __all__ = ["VectorRetirement"]
 
 
 class VectorRetirement(Elaboratable):
-    """ Retirement of the vector instructions
+    """Retirement of the vector instructions
 
     The module stores completed vector instructions in the
     content adressable memory and checks on each precommit call
@@ -25,6 +25,7 @@ class VectorRetirement(Elaboratable):
         Called by the `VectorExecutionEnder` to mark that the
         instruction finished execution.
     """
+
     def __init__(self, gen_params: GenParams, instr_to_retire_count: int, v_rrat_commit: Method, deallocate: Method):
         """
         Parameters

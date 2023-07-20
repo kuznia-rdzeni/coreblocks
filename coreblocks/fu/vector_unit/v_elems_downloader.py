@@ -10,7 +10,7 @@ __all__ = ["VectorElemsDownloader"]
 
 
 class VectorElemsDownloader(Elaboratable):
-    """ The module responsible for downloading elements from vector register
+    """The module responsible for downloading elements from vector register
 
     The vector instruction can perform a variable number of element operations
     depending on the vector status registers. To handle this, this module gets
@@ -21,7 +21,7 @@ class VectorElemsDownloader(Elaboratable):
     There is a minimum of 4 cycles of delay between the issuing of the start
     of downloading and the availability of first data.
 
-    This unit makes a register request deduplication. If there are two or more 
+    This unit makes a register request deduplication. If there are two or more
     the same registers in the instruction, then only one request is sent for that
     register.
 
@@ -30,6 +30,7 @@ class VectorElemsDownloader(Elaboratable):
     issue : Method
         The method called to start downloading of arguments for a new instruction.
     """
+
     def __init__(
         self, gen_params: GenParams, read_req_list: list[Method], read_resp_list: list[Method], send_to_fu: Method
     ):

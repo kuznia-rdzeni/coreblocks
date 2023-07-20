@@ -21,7 +21,7 @@ from coreblocks.fu.vector_unit.v_execution_data_spliter import *
 
 
 class VectorExecutor(Elaboratable):
-    """ Module that executes vector instructions
+    """Module that executes vector instructions
 
     This module takes an instruction and executes it on its own part of the register file.
     First the required registers and their length are determined. Then there are initialised:
@@ -42,6 +42,7 @@ class VectorExecutor(Elaboratable):
         A list of methods, one for each vector register, to initialise its
         content on vector register allocation.
     """
+
     def __init__(self, gen_params: GenParams, fragment_index: int, end: Method):
         """
         Parameters

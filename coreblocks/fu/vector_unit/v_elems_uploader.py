@@ -11,7 +11,7 @@ __all__ = ["VectorElemsUploader"]
 
 
 class VectorElemsUploader(Elaboratable):
-    """ Module responsible for sending data back to the vector register.
+    """Module responsible for sending data back to the vector register.
 
     Once initiated, this module will get the old value stored in the destination
     register downloaded by the vector downloader, the mask in the byte format
@@ -32,6 +32,7 @@ class VectorElemsUploader(Elaboratable):
         Called to pass the instruction configuration at the start of
         execution of the new instruction.
     """
+
     def __init__(
         self, gen_params: GenParams, write: Method, read_old_dst: Method, read_mask: Method, report_end: Method
     ):

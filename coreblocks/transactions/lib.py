@@ -1868,7 +1868,7 @@ class NotMethod:
 
 
 class DownCounter(Elaboratable):
-    """ Countdown and invoke callback on 0
+    """Countdown and invoke callback on 0
 
     This module implements a trasactron wrapper on counter
     which counts down. At the end of the counting the callback is
@@ -1881,6 +1881,7 @@ class DownCounter(Elaboratable):
     set_start : Method
         Sets a new counter value.
     """
+
     def __init__(self, width: int, callback: Method):
         """
         Parameters
@@ -1923,7 +1924,7 @@ class DownCounter(Elaboratable):
 
 
 class Barrier(Elaboratable):
-    """ Synchronisation barrier
+    """Synchronisation barrier
 
     This module implements a synchronisation barrier. New values
     can be written at any time, but can only be read if all slots are filled.
@@ -1935,7 +1936,8 @@ class Barrier(Elaboratable):
     read : Method
         Reads all slots in the barrier at once.
     """
-    def __init__(self, layout : LayoutLike, port_count: int):
+
+    def __init__(self, layout: LayoutLike, port_count: int):
         """
         Parameters
         ----------
@@ -1990,7 +1992,7 @@ class Barrier(Elaboratable):
 
 
 class ContentAddressableMemory(Elaboratable):
-    """ Content addresable memory
+    """Content addresable memory
 
     This module implements a transactorn interface for the content addressable memory.
 
@@ -2001,6 +2003,7 @@ class ContentAddressableMemory(Elaboratable):
     push : Method
         Insert new data.
     """
+
     # This module can be optimised to have O(log n) critical path instead of O(n)
     def __init__(self, address_layout: LayoutLike, data_layout: LayoutLike, entries_number: int):
         """

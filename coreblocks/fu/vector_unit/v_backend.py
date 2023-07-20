@@ -22,7 +22,7 @@ __all__ = ["VectorBackend"]
 
 
 class VectorBackend(Elaboratable):
-    """ Vector unit backend
+    """Vector unit backend
 
     This module is responsible for executing vector instructions which were processed by the VectorFrontend.
     The processed instructions are placed in the VVRS, where they wait until all operands are ready. The readiness
@@ -31,9 +31,9 @@ class VectorBackend(Elaboratable):
     have been completed.
 
     Ready instructions are read out of order and sent to `VectorExecutor`\\s for execution. Each `VectorExecutor`
-    informs the `VectorExecutionEnder` when it has finished processing the instruction. When all executors have finished processing
-    `VectorExecutionEnder` updates the scoreboard, the VVRS and informs `VectorRetirement` and `VectorAnnouncer` about
-    this fact.
+    informs the `VectorExecutionEnder` when it has finished processing the instruction. When all executors have
+    finished processing `VectorExecutionEnder` updates the scoreboard, the VVRS and informs `VectorRetirement`
+    and `VectorAnnouncer` about this fact.
 
     Attributes
     ----------
@@ -42,6 +42,7 @@ class VectorBackend(Elaboratable):
     initialise_regs : list[Method]
         List with one method for each register, to initialise it on allocation.
     """
+
     def __init__(self, gen_params: GenParams, announce: Method, report_end: Method):
         """
         Parameters
