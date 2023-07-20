@@ -1,11 +1,9 @@
 from amaranth import *
 from test.common import *
 from coreblocks.fu.vector_unit.vrs import *
-from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_input_verification import *
-from coreblocks.transactions.lib import *
 from collections import deque, defaultdict
 
 

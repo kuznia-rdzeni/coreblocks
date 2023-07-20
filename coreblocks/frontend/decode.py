@@ -83,15 +83,15 @@ class Decode(Elaboratable):
                         # read/writes to phys reg 0 make no effect
                         "dst": {
                             "id": Mux(instr_decoder.rd_v & (~exception_override), instr_decoder.rd, 0),
-                            "type": Mux(instr_decoder.rd_v & (~exception_override), instr_decoder.rd_rf, 0),
+                            "type": Mux(instr_decoder.rd_v & (~exception_override), instr_decoder.rd_type, 0),
                         },
                         "s1": {
                             "id": Mux(instr_decoder.rs1_v & (~exception_override), instr_decoder.rs1, 0),
-                            "type": Mux(instr_decoder.rs1_v & (~exception_override), instr_decoder.rs1_rf, 0),
+                            "type": Mux(instr_decoder.rs1_v & (~exception_override), instr_decoder.rs1_type, 0),
                         },
                         "s2": {
                             "id": Mux(instr_decoder.rs2_v & (~exception_override), instr_decoder.rs2, 0),
-                            "type": Mux(instr_decoder.rs2_v & (~exception_override), instr_decoder.rs2_rf, 0),
+                            "type": Mux(instr_decoder.rs2_v & (~exception_override), instr_decoder.rs2_type, 0),
                         },
                     },
                     "imm": instr_decoder.imm,

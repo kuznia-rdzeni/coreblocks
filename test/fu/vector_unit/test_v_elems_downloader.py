@@ -4,7 +4,6 @@ from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_elems_downloader import *
 from coreblocks.fu.vector_unit.vrf import *
-from coreblocks.transactions.lib import *
 from test.fu.vector_unit.common import *
 from collections import deque
 from parameterized import parameterized_class

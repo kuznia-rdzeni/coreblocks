@@ -1,10 +1,7 @@
 from amaranth import *
 from test.common import *
-from coreblocks.fu.vector_unit.vrs import *
-from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
-from coreblocks.fu.vector_unit.v_status import *
 from coreblocks.fu.vector_unit.v_translator import VectorTranslateLMUL, VectorTranslateRS3
 from collections import deque
 import copy

@@ -831,14 +831,7 @@ class ConnectedConditionTestCircuit(Elaboratable):
 
 
 class ConnectedConditionTest(TestCaseWithSimulator):
-    @parameterized.expand(
-        product(
-            [False, True],
-            [
-                False,
-            ],
-        )
-    )  # priority = True cause cycles in graph
+    @parameterized.expand(product([False, True], [False]))  # priority = True cause cycles in graph
     def test_condition(self, nonblocking: bool, priority: bool):
         target1 = MethodMock(i=[("cond", 2)])
         target2 = MethodMock(i=[("cond", 2)])

@@ -167,13 +167,13 @@ class ZbcUnit(Elaboratable):
     """
 
     def __init__(self, gen_params: GenParams, recursion_depth: int, zbc_fn: ZbcFn):
-        self.layouts = gen_params.get(FuncUnitLayouts)
+        layouts = gen_params.get(FuncUnitLayouts)
 
         self.zbc_fn = zbc_fn
         self.recursion_depth = recursion_depth
         self.gen_params = gen_params
-        self.issue = Method(i=self.layouts.issue)
-        self.accept = Method(o=self.layouts.accept)
+        self.issue = Method(i=layouts.issue)
+        self.accept = Method(o=layouts.accept)
 
     def elaborate(self, platform):
         m = TModule()

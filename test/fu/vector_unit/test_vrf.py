@@ -1,14 +1,10 @@
-from collections import deque
 from amaranth.sim import *
-from test.common import *
-from coreblocks.fu.vector_unit.vrf import *
-from coreblocks.params import *
-from coreblocks.params.configurations import *
-from coreblocks.transactions.core import *
-from coreblocks.transactions.lib import *
-import random
+from collections import deque
 from parameterized import parameterized_class
+from test.common import *
 from test.fu.vector_unit.common import *
+from coreblocks.fu.vector_unit.vrf import *
+from coreblocks.params.configurations import *
 
 
 def generate_write(vp: VectorParameters):

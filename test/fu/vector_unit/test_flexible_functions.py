@@ -1,9 +1,7 @@
 import random
 from collections import deque
 from parameterized import parameterized
-from amaranth import *
 from amaranth.sim import *
-from coreblocks.params.isa import *
 from coreblocks.fu.vector_unit.flexible_functions import FlexibleAdder, FlexibleElementwiseFunction
 from test.common import TestCaseWithSimulator
 from test.fu.vector_unit.common import *

@@ -373,14 +373,20 @@ class InstrDecoder(Elaboratable):
         Signals if decoded instruction has funct12 identifier.
     rd: Signal(gen.isa.reg_cnt_log), out
         Address of register to write instruction result.
+    rd_type: Signal(RegisterType), out
+        Type of destination register.
     rd_v: Signal(1), out
         Signal if instruction writes to register.
     rs1: Signal(gen.isa.reg_cnt_log), out
         Address of register holding first input value.
+    rs1_type: Signal(RegisterType), out
+        Type of the first input register.
     rs1_v: Signal(1), out
         Signal if instruction takes first input value form register.
     rs2: Signal(gen.isa.reg_cnt_log), out
         Address of register holding second input value.
+    rs2_type: Signal(RegisterType), out
+        Type of the second input register.
     rs2_v: Signal(1), out
         Signal if instruction takes second input value form register.
     imm: Signal(gen.isa.xlen), out
@@ -433,17 +439,17 @@ class InstrDecoder(Elaboratable):
 
         # Destination register
         self.rd = Signal(gen.isa.reg_cnt_log)
-        self.rd_rf = Signal(RegisterType, reset=RegisterType.X)
+        self.rd_type = Signal(RegisterType, reset=RegisterType.X)
         self.rd_v = Signal()
 
         # First source register
         self.rs1 = Signal(gen.isa.reg_cnt_log)
-        self.rs1_rf = Signal(RegisterType, reset=RegisterType.X)
+        self.rs1_type = Signal(RegisterType, reset=RegisterType.X)
         self.rs1_v = Signal()
 
         # Second source register
         self.rs2 = Signal(gen.isa.reg_cnt_log)
-        self.rs2_rf = Signal(RegisterType, reset=RegisterType.X)
+        self.rs2_type = Signal(RegisterType, reset=RegisterType.X)
         self.rs2_v = Signal()
 
         # Immediate
@@ -667,17 +673,17 @@ class InstrDecoder(Elaboratable):
         # Register types
         with m.If((self.opcode == Opcode.OP_V)):
             m.d.comb += [
-                self.rs1_rf.eq(RegisterType.V),
-                self.rs2_rf.eq(RegisterType.V),
-                self.rd_rf.eq(RegisterType.V),
+                self.rs1_type.eq(RegisterType.V),
+                self.rs2_type.eq(RegisterType.V),
+                self.rd_type.eq(RegisterType.V),
             ]
         with m.If((self.opcode == Opcode.OP_V) & (self.funct3 == Funct3.OPIVX)):
-            m.d.comb += self.rs1_rf.eq(RegisterType.X)
+            m.d.comb += self.rs1_type.eq(RegisterType.X)
         with m.If((self.opcode == Opcode.OP_V) & (self.funct3 == Funct3.OPCFG)):
             m.d.comb += [
-                self.rs1_rf.eq(RegisterType.X),
-                self.rs2_rf.eq(RegisterType.X),
-                self.rd_rf.eq(RegisterType.X),
+                self.rs1_type.eq(RegisterType.X),
+                self.rs2_type.eq(RegisterType.X),
+                self.rd_type.eq(RegisterType.X),
             ]
 
         # Instruction simplification

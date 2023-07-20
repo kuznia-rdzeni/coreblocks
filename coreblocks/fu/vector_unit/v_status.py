@@ -6,6 +6,8 @@ from coreblocks.utils import *
 from coreblocks.params import *
 from coreblocks.fu.vector_unit.v_layouts import *
 
+__all__ = ["VectorStatusUnit"]
+
 
 def get_vlmax(m: ModuleLike, sew: Value, lmul: Value, gen_params: GenParams) -> Signal:
     """Generates circuit to calculate VLMAX

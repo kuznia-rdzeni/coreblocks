@@ -92,10 +92,6 @@ class FlexibleAdder(Elaboratable):
                 result = (adder_high.out_data << smaller_out_width_bits) | adder_down.out_data
                 m.d.comb += self.out_data.eq(result)
 
-        # so that Amaranth allows us to use add_clock
-        dummy = Signal()
-        m.d.sync += dummy.eq(1)
-
         return m
 
 

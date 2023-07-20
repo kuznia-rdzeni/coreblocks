@@ -3,9 +3,9 @@ from collections.abc import Collection
 import dataclasses
 from dataclasses import dataclass
 
-import coreblocks.params.isa as isa
-import coreblocks.params.fu_params as fu_params
-import coreblocks.stages.rs_func_block as rs_func_block
+from coreblocks.params.isa import Extension
+from coreblocks.params.fu_params import BlockComponentParams
+from coreblocks.stages.rs_func_block import RSBlockComponent
 
 from coreblocks.fu.alu import ALUComponent
 from coreblocks.fu.shift_unit import ShiftUnitComponent
@@ -28,10 +28,8 @@ __all__ = [
     "test_vector_core_config",
 ]
 
-basic_configuration: tuple[fu_params.BlockComponentParams, ...] = (
-    rs_func_block.RSBlockComponent(
-        [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=4
-    ),
+basic_configuration: tuple[BlockComponentParams, ...] = (
+    RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=4),
     LSUBlockComponent(),
 )
 
@@ -104,7 +102,7 @@ class CoreConfiguration:
     """
 
     xlen: int = 32
-    func_units_config: Collection[fu_params.BlockComponentParams] = basic_configuration
+    func_units_config: Collection[BlockComponentParams] = basic_configuration
 
     compressed: bool = False
     embedded: bool = False
@@ -122,7 +120,7 @@ class CoreConfiguration:
 
     vector_config: Optional[VectorUnitConfiguration] = None
 
-    _implied_extensions: isa.Extension = isa.Extension(0)
+    _implied_extensions: Extension = Extension(0)
 
     def replace(self, **kwargs):
         return dataclasses.replace(self, **kwargs)
@@ -135,7 +133,7 @@ basic_core_config = CoreConfiguration()
 tiny_core_config = CoreConfiguration(
     embedded=True,
     func_units_config=(
-        rs_func_block.RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
+        RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
         LSUBlockComponent(),
     ),
     phys_regs_bits=basic_core_config.phys_regs_bits - 1,
@@ -146,7 +144,7 @@ tiny_core_config = CoreConfiguration(
 # Core configuration with all supported components
 full_core_config = CoreConfiguration(
     func_units_config=(
-        rs_func_block.RSBlockComponent(
+        RSBlockComponent(
             [
                 ALUComponent(zba_enable=True, zbb_enable=True),
                 ShiftUnitComponent(zbb_enable=True),
@@ -157,7 +155,7 @@ full_core_config = CoreConfiguration(
             ],
             rs_entries=4,
         ),
-        rs_func_block.RSBlockComponent(
+        RSBlockComponent(
             [
                 MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
                 DivComponent(ipc=3),
@@ -172,20 +170,20 @@ full_core_config = CoreConfiguration(
 
 # Core configuration used in internal testbenches
 test_core_config = CoreConfiguration(
-    func_units_config=tuple(rs_func_block.RSBlockComponent([], rs_entries=4) for _ in range(2)),
+    func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(2)),
     rob_entries_bits=7,
     phys_regs_bits=7,
-    _implied_extensions=isa.Extension.I,
+    _implied_extensions=Extension.I,
 )
 
 # Core configuration used in internal testbenches with vector extension
 test_vector_core_config = CoreConfiguration(
-    func_units_config=tuple(rs_func_block.RSBlockComponent([], rs_entries=4) for _ in range(2)),
+    func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(2)),
     rob_entries_bits=7,
     phys_regs_bits=7,
-    _implied_extensions=isa.Extension.I | isa.Extension.V,
+    _implied_extensions=Extension.I | Extension.V,
     vector_config=VectorUnitConfiguration(),
 )
 
 # Core configuration with vector extension
-vector_core_config = CoreConfiguration(_implied_extensions=isa.Extension.V)
+vector_core_config = CoreConfiguration(_implied_extensions=Extension.V)

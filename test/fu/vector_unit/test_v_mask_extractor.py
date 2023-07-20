@@ -1,10 +1,8 @@
 from amaranth import *
 from test.common import *
-from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_mask_extractor import *
-from coreblocks.transactions.lib import *
 from test.fu.vector_unit.common import *
 
 

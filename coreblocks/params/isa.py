@@ -121,14 +121,6 @@ class Funct6(IntEnum, shape=6):
     VWREDSUM = 0b110001
 
 
-v_narrowing_to_normal_map = {
-    Funct6.VNSRA: Funct6.VSRA,
-    Funct6.VNSRL: Funct6.VSRL,
-}
-
-v_widening_to_normal_map = {}
-
-
 class Funct7(IntEnum, shape=7):
     SL = SLT = ADD = XOR = OR = AND = 0b0000000
     SA = SUB = ANDN = ORN = XNOR = 0b0100000

@@ -1294,7 +1294,7 @@ def connected_conditions(m: TModule, *, nonblocking=False):
     - if nonblocking=False and there is no branch evaluated to `True` in any condition
     then transaction is not ready
     """
-    priority = False  # hardcoded till issue #436 will be closed
+    priority = False
     all_not_conds_list = []
 
     @contextmanager
