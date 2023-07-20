@@ -3,7 +3,6 @@ import random
 import unittest
 import os
 import functools
-import random
 from contextlib import contextmanager, nullcontext
 from collections import defaultdict
 from typing import (
@@ -578,6 +577,7 @@ class TestCaseWithSimulator(unittest.TestCase):
     def assertFieldsEqual(self, dict1, dict2, fields: Iterable):  # noqa: N802
         for field in fields:
             self.assertEqual(dict1[field], dict2[field], field)
+
     def random_wait(self, max_cycle_cnt):
         """
         Wait for a random amount of cycles in range [1, max_cycle_cnt)

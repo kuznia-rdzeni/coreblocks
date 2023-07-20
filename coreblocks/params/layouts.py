@@ -1,5 +1,5 @@
 from amaranth.utils import *
-from coreblocks.params import GenParams, OpType, Funct7, Funct3, Opcode, RegisterType
+from coreblocks.params import GenParams, OpType, Funct7, Funct3, RegisterType
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.utils.utils import layout_subset
 from coreblocks.utils._typing import LayoutLike, LayoutList

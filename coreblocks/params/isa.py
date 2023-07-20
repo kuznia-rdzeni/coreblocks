@@ -75,6 +75,7 @@ class Funct3(IntEnum, shape=3):
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = OPMVX = 0b110
     BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = OPCFG = 0b111
 
+
 class Funct6(IntEnum, shape=6):
     VADD = 0b000000
     VSUB = 0b000010

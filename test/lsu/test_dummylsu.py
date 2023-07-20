@@ -13,7 +13,14 @@ from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock, int_to_signed, signed_to_int, generate_register_entry
+from test.common import (
+    TestbenchIO,
+    TestCaseWithSimulator,
+    def_method_mock,
+    int_to_signed,
+    signed_to_int,
+    generate_register_entry,
+)
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
