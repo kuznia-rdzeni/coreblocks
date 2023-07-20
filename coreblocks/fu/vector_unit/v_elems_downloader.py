@@ -10,9 +10,43 @@ __all__ = ["VectorElemsDownloader"]
 
 
 class VectorElemsDownloader(Elaboratable):
+    """ The module responsible for downloading elements from vector register
+
+    The vector instruction can perform a variable number of element operations
+    depending on the vector status registers. To handle this, this module gets
+    the number of elements to be downloaded from the register, downloads
+    them and sends them to the vector functional unit. Elements are downloaded from the
+    last requested to the first requested.
+
+    There is a minimum of 4 cycles of delay between the issuing of the start
+    of downloading and the availability of first data.
+
+    This unit makes a register request deduplication. If there are two or more 
+    the same registers in the instruction, then only one request is sent for that
+    register.
+
+    Attributes
+    ----------
+    issue : Method
+        The method called to start downloading of arguments for a new instruction.
+    """
     def __init__(
         self, gen_params: GenParams, read_req_list: list[Method], read_resp_list: list[Method], send_to_fu: Method
     ):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        read_req_list : list[Method]
+            List of methods used to send requests to the vector register file.
+            There should be at least 4 entries.
+        read_resp_list : list[Method]
+            List of methods used to read the response to the requests
+            previously send to VRF. There should be at least 4 entries.
+        send_to_fu : Method
+            The method called to pass the downloaded data to the vector FU.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.read_req_list = [NotMethod(m) for m in read_req_list]

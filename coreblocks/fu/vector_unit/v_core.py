@@ -17,6 +17,33 @@ __all__ = ["VectorCore"]
 
 
 class VectorCore(Elaboratable):
+    """ Vector functional block
+
+    This is the top level module, that connects all the parts that create a vector
+    processing unit.
+
+    Instructions from the scalar core are inserted into the scalar RS, where they wait until
+    all scalar operands are ready. They are then processed by the `VectorFrontend`
+    which handles vector status CSR's, rename and allocate physical registers. The
+    instructions are passed to the `VectorBackend` where they are executed. `VectorAnnouncer`
+    is used to pass information that the instruction has finished execution to the scalar core, and
+    `VectorRetirement` listen for incomming `precommit` calls, to release vector
+    internal resources on vector instruction retirement.
+
+    Attributes
+    ----------
+    insert : Method
+        Insert the instruction to RS.
+    select : Method
+        Get the id of a free RS entry.
+    update : Method
+        Called to inform about the change of the scalar register status.
+    precommit : Method
+        An notification from retirement, about currently committed instructions.
+    get_result : Method
+        The method used by the scalar core, to get information that an instruction
+        has finished the execution.
+    """
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
