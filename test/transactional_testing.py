@@ -13,7 +13,7 @@ from coreblocks.transactions._utils import method_def_helper
 
 
 _T = TypeVar("_T")
-TTestGen: TypeAlias = Coroutine["Action | Exit | Skip", Any, _T]
+TTestGen: TypeAlias = Coroutine["Action | Exit | Skip | Passive", Any, _T]
 OptSelfCallable: TypeAlias = Callable[[], _T] | Callable[[Any], _T]
 ActionFun: TypeAlias = Callable[[], TestGen[Any] | Any]
 Process: TypeAlias = Callable[[], TTestGen[None]]
@@ -49,6 +49,11 @@ class Skip(SelfAwaitable):
 
 
 @dataclass
+class Passive(SelfAwaitable):
+    pass
+
+
+@dataclass
 class Action(SelfAwaitable):
     kind: ActionKind
     subject: Any
@@ -66,7 +71,7 @@ class SimFIFO(Generic[_T]):
         await Action(ActionKind.PUT_FINAL, self._queue, action)
 
     async def empty(self) -> bool:
-        return await Action(ActionKind.GET, self, lambda: bool(self._queue))
+        return await Action(ActionKind.GET, self, lambda: not self._queue)
 
     async def peek(self) -> _T:
         return await Action(ActionKind.GET, self, lambda: self._queue[0])
@@ -116,20 +121,22 @@ class Sim:
         process_map = {id(process): process for process in self.processes}
 
         active = list(map(id, self.processes))
+        run = bool(active)
 
-        while active:
+        while run:
             # Set to true when a signal is modified. A settle will be performed before next signal read.
             need_settle = False
             # Maps entity IDs to sets of process IDs which read that entity.
             gets = defaultdict[int, set[int]](set)
-            # Maps Values to values read from the Value. Used to decide when to restart processes.
-            get_results = dict[Value, int]()
+            # Maps Value IDs to values read from the Value. Used to decide when to restart processes.
+            get_results = dict[int, tuple[Value, int]]()
             # Maps entity IDs to single process IDs which write that entity.
             puts = dict[int, int]()
             # Maps process IDs to actions to perform on process completion.
             put_finals = defaultdict[int, list[Action]](list)
             get_completes = defaultdict[int, list[Action]](list)
             exits = set[int]()
+            passives = set[int]()
             # Which processes were started. If a process needs to be restarted, it is removed from this list.
             already_run = list[int]()
             # Processes ready for execution.
@@ -147,50 +154,52 @@ class Sim:
             def perform_settle():
                 yield Settle()
                 to_restart = set[int]()
-                for subject, v in get_results.items():
-                    new_v = yield subject
+                for subject, (value, v) in get_results.items():
+                    new_v = yield value
                     if new_v != v:
-                        get_results[subject] = new_v
+                        get_results[subject] = (value, new_v)
                         to_restart.update(gets[id(subject)])
                 restart_processes(to_restart)
 
             while to_run:
                 process = to_run.popleft()
-                already_run.append(id(process))
+                already_run.append(process)
                 running = process_map[process]()
                 to_send = None
                 try:
                     while True:
                         cmd = running.send(to_send)
                         match cmd:
+                            case Passive():
+                                passives.add(process)
                             case Skip():
                                 running.close()
                                 break
                             case Exit():
-                                exits.add(id(process))
+                                exits.add(process)
                                 running.close()
                                 break
                             case Action(ActionKind.GET, subject, action):
-                                gets[id(subject)].add(id(process))
+                                gets[id(subject)].add(process)
                                 if isinstance(subject, Value) and need_settle:
                                     need_settle = False
                                     yield from perform_settle()
                                 to_send = yield from run_action(action)
                                 if isinstance(subject, Value):
-                                    get_results[subject] = to_send
+                                    get_results[id(subject)] = (subject, to_send)
                             case Action(ActionKind.PUT, subject, action):
-                                if id(subject) in puts and puts[id(subject)] != id(process):
+                                if id(subject) in puts and puts[id(subject)] != process:
                                     raise RuntimeError
-                                puts[id(subject)] = id(process)
+                                puts[id(subject)] = process
                                 if isinstance(subject, Value):
                                     need_settle = True
                                 restart_processes(gets[id(subject)])
                                 gets[id(subject)] = set()
                                 yield from run_action(action)
                             case Action(ActionKind.PUT_FINAL, subject, action):
-                                put_finals[id(process)].append(cmd)
+                                put_finals[process].append(cmd)
                             case Action(ActionKind.GET_COMPLETE, subject, action):
-                                get_completes[id(process)].append(cmd)
+                                get_completes[process].append(cmd)
                 except StopIteration:
                     pass
                 if not to_run and need_settle:
@@ -214,6 +223,8 @@ class Sim:
             # In next iteration, run processes in the order they were run in this one.
             # Hopefully this reduces the number of process restarts.
             active = [i for i in already_run if i not in exits]
+
+            run = any(i not in passives for i in active)
 
             yield
 
@@ -298,6 +309,8 @@ class Sim:
 
                 adapter = r_getter()
                 assert isinstance(adapter, AdapterBase)
+
+                await Passive()
 
                 if r_enable is not None and not await r_enable():
                     await Sim.set(adapter.en, 0)
