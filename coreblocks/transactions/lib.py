@@ -1287,12 +1287,12 @@ def connected_conditions(m: TModule, *, nonblocking=False):
     All conditions for which branch is True has to execute simultanuesly.
 
     This is a wrapper over `connection` that allows to define set of condtions in a transaction such that:
-        - all conditions with a minimum one branch evaluated to `True` have to execute
-        (if they can not because e.g. method is not ready then all conditions stalls)
-        - if there is a branch which evaluated to True, transaction will be ready
-            all conditions whith all barnches evaluated to False will be ignored
-        - if nonblocking=False and there is no branch evaluated to `True` in any condition
-        then transaction is not ready
+    - all conditions with a minimum one branch evaluated to `True` have to execute
+    (if they can not because e.g. method is not ready then all conditions stalls)
+    - if there is a branch which evaluated to True, transaction will be ready
+    all conditions whith all barnches evaluated to False will be ignored
+    - if nonblocking=False and there is no branch evaluated to `True` in any condition
+    then transaction is not ready
     """
     priority = False  # hardcoded till issue #436 will be closed
     all_not_conds_list = []
