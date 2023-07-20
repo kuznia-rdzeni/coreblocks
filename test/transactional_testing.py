@@ -1,4 +1,5 @@
 
+import functools
 from collections import defaultdict, deque
 from amaranth import *
 from collections.abc import Callable, Generator, Iterable
@@ -7,12 +8,14 @@ from enum import Enum, auto
 from typing import Any, Generic, Optional, TypeAlias, TypeVar
 
 from amaranth.sim import Settle
-from .common import TestGen
+from .common import RecordIntDict, TestGen
+from coreblocks.transactions.lib import AdapterBase
 
 
 _T = TypeVar("_T")
 TTestGen: TypeAlias = Generator["Action | Exit", Any, _T]
 ActionFun: TypeAlias = Callable[[], TestGen[Any] | Any]
+Process: TypeAlias = Callable[[], TTestGen[None]]
 
 
 class ActionKind(Enum):
@@ -87,20 +90,43 @@ class Sim:
         process_map = {id(process): process for process in self.processes}
 
         active = list(map(id, self.processes))
-        exited = set[int]()
-
-        # TODO nie zadziała!
-        # Sygnały mogą się zmieniać po settlu. Trzeba pamiętać, jakie były wartości
-        # dla ostatnich odczytów, i restartować te procesy, którym odczyty się zmieniły.
 
         while active:
+            # Set to true when a signal is modified. A settle will be performed before next signal read.
             need_settle = False
+            # Maps entity IDs to sets of process IDs which read that entity.
             gets = defaultdict[int, set[int]](set)
+            # Maps Values to values read from the Value. Used to decide when to restart processes.
+            get_results = dict[Value, int]()
+            # Maps entity IDs to single process IDs which write that entity.
             puts = dict[int, int]()
+            # Maps process IDs to actions to perform on process completion.
             put_finals = defaultdict[int, list[Action]](list)
             get_completes = defaultdict[int, list[Action]](list)
+            exits = set[int]()
+            # Which processes were started. If a process needs to be restarted, it is removed from this list.
             already_run = list[int]()
+            # Processes ready for execution.
             to_run = deque(active)
+
+            def restart_processes(processes: Iterable[int]):
+                nonlocal already_run
+                to_run.extend(gets[id(subject)])
+                for i in gets[id(subject)]:
+                    del put_finals[i]
+                    del get_completes[i]
+                    exits.remove(i)
+                already_run = [i for i in already_run if i not in gets[id(subject)]]
+
+            def perform_settle():
+                yield Settle()
+                to_restart = set[int]()
+                for subject, v in get_results.items():
+                    new_v = (yield subject)
+                    if new_v != v:
+                        get_results[subject] = new_v
+                        to_restart.update(gets[id(subject)])
+                restart_processes(to_restart)
 
             while to_run:
                 process = to_run.popleft()
@@ -112,25 +138,24 @@ class Sim:
                         cmd = running.send(to_send)
                         match cmd:
                             case Exit():
-                                exited.add(id(process))
+                                exits.add(id(process))
+                                running.close()
                                 break
                             case Action(ActionKind.GET, subject, action):
                                 gets[id(subject)].add(id(process))
                                 if isinstance(subject, Value) and need_settle:
-                                    yield Settle()
                                     need_settle = False
+                                    yield from perform_settle()
                                 to_send = (yield from run_action(action))
+                                if isinstance(subject, Value):
+                                    get_results[subject] = to_send
                             case Action(ActionKind.PUT, subject, action):
                                 if id(subject) in puts and puts[id(subject)] != id(process):
                                     raise RuntimeError
                                 puts[id(subject)] = id(process)
                                 if isinstance(subject, Value):
                                     need_settle = True
-                                to_run.extend(gets[id(subject)])
-                                for i in gets[id(subject)]:
-                                    del put_finals[i]
-                                    del get_completes[i]
-                                already_run = [i for i in already_run if i not in gets[id(subject)]]
+                                restart_processes(gets[id(subject)])
                                 gets[id(subject)] = set()
                                 yield from run_action(action)
                             case Action(ActionKind.PUT_FINAL, subject, action):
@@ -139,6 +164,8 @@ class Sim:
                                 get_completes[id(process)].append(cmd)
                 except StopIteration:
                     pass
+                if not to_run and need_settle:
+                    yield from perform_settle()
 
             get_completes_subjects = set[int]()
             for i, cmds in get_completes.items():
@@ -155,7 +182,9 @@ class Sim:
                     puts[id(cmd.subject)] = i
                     yield from run_action(cmd.action)
 
-            active = already_run
+            # In next iteration, run processes in the order they were run in this one.
+            # Hopefully this reduces the number of process restarts.
+            active = [i for i in already_run if i not in exits]
 
             yield
 
@@ -178,3 +207,23 @@ class Sim:
     @staticmethod
     def set_final(signal: Signal, value: int) -> TTestGen[None]:
         return Sim.set(signal, value, final=True)
+
+
+def def_method_mock(
+    tb_getter: Callable[[], AdapterBase] | Callable[[Any], AdapterBase]
+) -> Callable[[Callable[..., Optional[RecordIntDict]]], Process]:
+    def decorator(func: Callable[..., Optional[RecordIntDict]]) -> Process:
+        @functools.wraps(func)
+        def mock(func_self=None, /):
+            f = func
+            getter: Any = tb_getter
+            if func_self is not None:
+                getter = getter.__get__(func_self)
+                f = f.__get__(func_self)
+            adapter = getter()
+            assert isinstance(adapter, AdapterBase)
+            
+            yield from Sim.set(adapter.en, 1)
+
+        return mock
+    return decorator
