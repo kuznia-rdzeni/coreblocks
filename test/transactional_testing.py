@@ -7,13 +7,13 @@ from enum import Enum, auto
 from typing import Any, Generic, Optional, TypeAlias, TypeVar, cast
 
 from amaranth.sim import Settle
-from .common import RecordIntDict, TestGen
+from .common import RecordIntDict, RecordIntDictRet, TestGen
 from coreblocks.transactions.lib import AdapterBase
 from coreblocks.transactions._utils import method_def_helper
 
 
 _T = TypeVar("_T")
-TTestGen: TypeAlias = Coroutine["Action | Exit", Any, _T]
+TTestGen: TypeAlias = Coroutine["Action | Exit | Skip", Any, _T]
 OptSelfCallable: TypeAlias = Callable[[], _T] | Callable[[Any], _T]
 ActionFun: TypeAlias = Callable[[], TestGen[Any] | Any]
 Process: TypeAlias = Callable[[], TTestGen[None]]
@@ -40,6 +40,11 @@ class SelfAwaitable:
 
 @dataclass
 class Exit(SelfAwaitable):
+    pass
+
+
+@dataclass
+class Skip(SelfAwaitable):
     pass
 
 
@@ -72,6 +77,11 @@ class SimFIFO(Generic[_T]):
 
         await Action(ActionKind.GET_COMPLETE, self._queue, complete)
         return await Action(ActionKind.GET, self, lambda: self._queue[0])
+
+    async def pop_or_exit(self) -> _T:
+        if await self.empty():
+            await Exit()
+        return await self.pop()
 
 
 class SimSignal(Generic[_T]):
@@ -153,6 +163,9 @@ class Sim:
                     while True:
                         cmd = running.send(to_send)
                         match cmd:
+                            case Skip():
+                                running.close()
+                                break
                             case Exit():
                                 exits.add(id(process))
                                 running.close()
@@ -245,30 +258,57 @@ class Sim:
             else:
                 await Sim.set(getattr(rec, name), value)
 
+    @staticmethod
+    async def call_try(
+        adapter: AdapterBase, data: RecordIntDict = {}, /, **kwdata: int | RecordIntDict
+    ) -> Optional[RecordIntDictRet]:
+        if data and kwdata:
+            raise TypeError("call() takes either a single dict or keyword arguments")
+        if not data:
+            data = kwdata
 
-def def_method_mock(
-    tb_getter: OptSelfCallable[AdapterBase], *, enable: Optional[OptSelfCallable[TTestGen[bool]]] = None
-) -> Callable[[Callable[..., TTestGen[Optional[RecordIntDict]]]], Process]:
-    def decorator(func: Callable[..., TTestGen[Optional[RecordIntDict]]]) -> Process:
-        @functools.wraps(func)
-        async def mock(func_self=None, /):
-            r_func = opt_self_resolve(func_self, func)
-            r_getter = opt_self_resolve(func_self, tb_getter)
-            r_enable = opt_self_resolve(func_self, enable) if enable is not None else None
+        await Sim.set(adapter.en, 1)
+        await Sim.set_record(adapter.data_in, data)
+        if await Sim.get(adapter.done):
+            return await Sim.get_record(adapter.data_out)
+        else:
+            return None
 
-            adapter = r_getter()
-            assert isinstance(adapter, AdapterBase)
+    @staticmethod
+    async def call(
+        adapter: AdapterBase, data: RecordIntDict = {}, /, **kwdata: int | RecordIntDict
+    ) -> RecordIntDictRet:
+        result = await Sim.call_try(adapter, data, **kwdata)
+        if result is None:
+            await Skip()
+            assert False
+        else:
+            return result
 
-            if r_enable is not None and not await r_enable():
-                await Sim.set(adapter.en, 0)
-                return
+    @staticmethod
+    def def_method_mock(
+        tb_getter: OptSelfCallable[AdapterBase], *, enable: Optional[OptSelfCallable[TTestGen[bool]]] = None
+    ) -> Callable[[Callable[..., TTestGen[Optional[RecordIntDict]]]], Process]:
+        def decorator(func: Callable[..., TTestGen[Optional[RecordIntDict]]]) -> Process:
+            @functools.wraps(func)
+            async def mock(func_self=None, /):
+                r_func = opt_self_resolve(func_self, func)
+                r_getter = opt_self_resolve(func_self, tb_getter)
+                r_enable = opt_self_resolve(func_self, enable) if enable is not None else None
 
-            await Sim.set(adapter.en, 1)
-            if await Sim.get(adapter.done):
-                arg = await Sim.get_record(adapter.data_out)
-                res = await method_def_helper(adapter, r_func, **arg)
-                await Sim.set_record(adapter.data_in, res or {})
+                adapter = r_getter()
+                assert isinstance(adapter, AdapterBase)
 
-        return mock
+                if r_enable is not None and not await r_enable():
+                    await Sim.set(adapter.en, 0)
+                    return
 
-    return decorator
+                await Sim.set(adapter.en, 1)
+                if await Sim.get(adapter.done):
+                    arg = await Sim.get_record(adapter.data_out)
+                    res = await method_def_helper(adapter, r_func, **arg)
+                    await Sim.set_record(adapter.data_in, res or {})
+
+            return mock
+
+        return decorator
