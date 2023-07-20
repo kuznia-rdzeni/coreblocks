@@ -459,10 +459,8 @@ class TestMethodFilter(TestCaseWithSimulator):
     async def source(self):
         i = await self.queue.pop_or_exit()
         v = await Sim.call(self.tc.method.adapter, data=i)
-        if i & 1:
-            self.assertEqual(v["data"], (i + 1) & ((1 << self.iosize) - 1))
-        else:
-            self.assertEqual(v["data"], 0)
+        # TODO: execute this finally
+        self.assertEqual(v["data"], (i + 1) & ((1 << self.iosize) - 1) if i & 1 else 0)
 
     @Sim.def_method_mock(lambda self: self.target)
     async def target_mock(self, data):

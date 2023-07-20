@@ -146,9 +146,14 @@ class Sim:
                 nonlocal already_run
                 to_run.extend(processes)
                 for i in processes:
-                    del put_finals[i]
-                    del get_completes[i]
-                    exits.remove(i)
+                    if i in put_finals:
+                        del put_finals[i]
+                    if i in get_completes:
+                        del get_completes[i]
+                    if i in exits:
+                        exits.remove(i)
+                    if i in passives:
+                        passives.remove(i)
                 already_run = [i for i in already_run if i not in processes]
 
             def perform_settle():
@@ -158,7 +163,7 @@ class Sim:
                     new_v = yield value
                     if new_v != v:
                         get_results[subject] = (value, new_v)
-                        to_restart.update(gets[id(subject)])
+                        to_restart.update(gets[subject])
                 restart_processes(to_restart)
 
             while to_run:
