@@ -21,7 +21,39 @@ from coreblocks.fu.vector_unit.v_execution_data_spliter import *
 
 
 class VectorExecutor(Elaboratable):
+    """ Module that executes vector instructions
+
+    This module takes an instruction and executes it on its own part of the register file.
+    First the required registers and their length are determined. Then there are initialised:
+    - `VectorElemsDownloader`
+    - `VectorExecutionDataSplitter`
+    - `VectorElemsUploader`
+
+    Data downloaded by the `VectorElemsDownloader` is passed to the `VectorExecutionDataSplitter`,
+    which uses it to prepare data for `VectorBasicFlexibleAlu`, `VectorMaskExtractor`
+    and `VectorElemsUploader`. The results of the vector alu calculation are passed to
+    the `VectorElemsUploader` which sends them to the vector register.
+
+    Attributes
+    ----------
+    issue : Method
+        Used to pass a new instruction to process.
+    initialise_regs : list[Method]
+        A list of methods, one for each vector register, to initialise its
+        content on vector register allocation.
+    """
     def __init__(self, gen_params: GenParams, fragment_index: int, end: Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        fragment_index : int
+            Index of the executor. It has to fulfil:
+            `0 <= fragment_index < register_bank_count`
+        end : Method
+            The method called to notify the `VectorExecutionEnder` that the execution has ended.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.fragment_index = fragment_index

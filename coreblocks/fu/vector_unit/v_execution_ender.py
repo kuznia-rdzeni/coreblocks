@@ -10,9 +10,43 @@ __all__ = ["VectorExecutionEnder"]
 
 
 class VectorExecutionEnder(Elaboratable):
+    """ Module to coordinate the end of execution of all `VectorExecutor`\\s
+
+    Each `VectorExecutor` can end its work at a different time, so this
+    module is responsible for coordinating this and terminating the instruction
+    when all executors have finished their work.
+
+    As part of terminating, the following actions are performed:
+    - clearing the dirty bit in the vector register scoreboard
+    - updating the rediness in the VVRS
+    - announcing the end to the `VectorAnnouncer`
+    - passing information about the end to the `VectorRetirement`
+
+    Attributes
+    ----------
+    init : Method
+        Called before the executors start working to initialise internal data.
+    end_list : list[Method]
+        List of methods for each executor to report that it has
+        finished its work.
+    """
     def __init__(
         self, gen_params: GenParams, announce: Method, update_vvrs: Method, scoreboard_set: Method, report_end: Method
     ):
+        """
+        Paramters
+        ---------
+        gen_params : GenParams
+            Core configuration.
+        announce : Method
+            The method to notify the `VectorAnnouncer` that execution has ended.
+        update_vvrs : Method
+            Called to update the rediness of the vector operands in the VVRS.
+        scoreboard_set : Method
+            Used to clear the dirty bit in the vector register readinnes scoreboard.
+        report_end : Method
+            Forwards data about completed instruction to the `VectorRetirement`.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.announce = announce
