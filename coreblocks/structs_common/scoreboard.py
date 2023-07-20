@@ -24,6 +24,16 @@ class Scoreboard(Elaboratable):
     """
 
     def __init__(self, entries_number: int, superscalarity: int = 1, *, data_forward=False):
+        """
+        Parameters
+        ----------
+        entries_number : int
+            The number of entries to store in the scoreboard.
+        superscalarity : int
+            The number of get/set method pairs to create.
+        data_forward : bool
+            Forward data between set and get methods.
+        """
         self.entries_number = entries_number
         self.superscalarity = superscalarity
         self.data_forward = data_forward

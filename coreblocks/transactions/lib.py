@@ -1868,7 +1868,28 @@ class NotMethod:
 
 
 class DownCounter(Elaboratable):
+    """ Countdown and invoke callback on 0
+
+    This module implements a trasactron wrapper on counter
+    which counts down. At the end of the counting the callback is
+    called.
+
+    Attributes
+    ----------
+    tick : Method
+        Decrement the counter by 1.
+    set_start : Method
+        Sets a new counter value.
+    """
     def __init__(self, width: int, callback: Method):
+        """
+        Parameters
+        ----------
+        width : int
+            Counter width
+        callback : Method
+            Method to be called when the counter is decremented to 0.
+        """
         self.width = width
         self.callback = callback
 
@@ -1902,7 +1923,27 @@ class DownCounter(Elaboratable):
 
 
 class Barrier(Elaboratable):
-    def __init__(self, layout, port_count: int):
+    """ Synchronisation barrier
+
+    This module implements a synchronisation barrier. New values
+    can be written at any time, but can only be read if all slots are filled.
+
+    Attributes
+    ----------
+    write_list : list[Method]
+        Methods called to write to the slots of the barrier.
+    read : Method
+        Reads all slots in the barrier at once.
+    """
+    def __init__(self, layout : LayoutLike, port_count: int):
+        """
+        Parameters
+        ----------
+        layout : LayoutLike
+            Layout of th data to be stored in the barrier slots.
+        port_count : int
+            The number of slots in the barrier to create.
+        """
         self.layout = layout
         self.port_count = port_count
         self.layout_out = [(f"out{i}", self.layout) for i in range(self.port_count)]
@@ -1949,8 +1990,29 @@ class Barrier(Elaboratable):
 
 
 class ContentAddressableMemory(Elaboratable):
+    """ Content addresable memory
+
+    This module implements a transactorn interface for the content addressable memory.
+
+    Attributes
+    ----------
+    pop : Method
+        Look for the data in memory and, if found, returns it and removes it.
+    push : Method
+        Insert new data.
+    """
     # This module can be optimised to have O(log n) critical path instead of O(n)
     def __init__(self, address_layout: LayoutLike, data_layout: LayoutLike, entries_number: int):
+        """
+        Parameters
+        ----------
+        address_layout : LayoutLike
+            The layout of the address records.
+        data_layout : LayoutLike
+            The layout of the data.
+        entries_number : int
+            The number of slots to create in memory.
+        """
         self.address_layout = address_layout
         self.data_layout = data_layout
         self.entries_number = entries_number
