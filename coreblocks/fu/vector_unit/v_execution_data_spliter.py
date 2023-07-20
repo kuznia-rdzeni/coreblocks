@@ -8,7 +8,40 @@ __all__ = ["VectorExecutionDataSplitter"]
 
 
 class VectorExecutionDataSplitter(Elaboratable):
+    """
+    A support module used to convert the layout of the downloaded data, 
+    fill it with the additional fields that are constant for the
+    duration of the whole instruction, and send it to the appropriate
+    modules in the `VectorExecutor`. Each input record generates
+    one record for:
+    - `VectorAlu`
+    - `VectorMaskExtractor`
+    - old destination value fifo
+
+    This module also prepars input data for the vector FU
+    if the first operand is a scalar or an immediate.
+
+    Attributes
+    ----------
+    issue : Method
+        Used to pass the newly downloaded entry from the vector register.
+    init : Method
+        The method called to pass data that is constant for the duration
+        of the entire instruction.
+    """
     def __init__(self, gen_params: GenParams, put_fu: Method, put_old_dst: Method, put_mask: Method):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        put_fu : Method
+            The method called to pass arguments to `VectorAlu`.
+        put_old_dst : Method
+            Called to pass the old register destination value.
+        put_mask : Method
+            Passes data to be processed by the `VectorMaskExtractor`.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.put_fu = put_fu

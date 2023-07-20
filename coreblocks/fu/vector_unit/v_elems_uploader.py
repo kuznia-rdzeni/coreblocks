@@ -11,9 +11,47 @@ __all__ = ["VectorElemsUploader"]
 
 
 class VectorElemsUploader(Elaboratable):
+    """ Module responsible for sending data back to the vector register.
+
+    Once initiated, this module will get the old value stored in the destination
+    register downloaded by the vector downloader, the mask in the byte format
+    and the results of the vector FU. It combines this data and sends
+    results to the vector destination register using the mask undisturbed
+    policy.
+
+    When all elements requested to be seny on initialisation have been
+    sent, the `VectorElemsUploader` reports this fact to the
+    `VectorExecutionEnder`.
+
+    Attributes
+    ----------
+    issue : Method
+        The method to call when new results from the vector FU are
+        ready to be sent to the register.
+    init : Method
+        Called to pass the instruction configuration at the start of
+        execution of the new instruction.
+    """
     def __init__(
         self, gen_params: GenParams, write: Method, read_old_dst: Method, read_mask: Method, report_end: Method
     ):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        write : Method
+            The method called to write a new entry into the vector register.
+        read_old_dst : Method
+            Called to get the old register destination value of the element
+            currently being processed.
+        read_mask : Method
+            Get the byte mask to be applied to the results calculated
+            by the vector FU before sending them to the register. Invalid
+            bytes are substituted with the old register destination value.
+        report_end : Method
+            Used to inform about the end of instruction execution.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.write = write
