@@ -98,6 +98,7 @@ class BasicFifo(Elaboratable):
         def _() -> None:
             m.d.sync += self.read_idx.eq(0)
             m.d.sync += self.write_idx.eq(0)
+            m.d.sync += self.level.eq(0)
 
         return m
 

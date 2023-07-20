@@ -443,7 +443,9 @@ class MultiPriorityEncoder(Elaboratable):
     """Priority encoder with more outputs
 
     This is an extension of the `PriorityEncoder` from amaranth, that supports
-    generating more than one output from an input signal.
+    generating more than one output from an input signal. In other words
+    it decodes multi-hot encoded signal to lists of signals in binary
+    format, each with index of a different high bit in input.
 
     Attributes
     ----------
@@ -466,8 +468,8 @@ class MultiPriorityEncoder(Elaboratable):
         self.outputs_count = outputs_count
 
         self.input = Signal(self.input_width)
-        self.outputs = [Signal(range(self.input_width)) for _ in range(self.outputs_count)]
-        self.valids = [Signal() for _ in range(self.outputs_count)]
+        self.outputs = [Signal(range(self.input_width), name="output") for _ in range(self.outputs_count)]
+        self.valids = [Signal(name="valid") for _ in range(self.outputs_count)]
 
     def elaborate(self, platform):
         m = Module()
@@ -516,7 +518,7 @@ class PriorityUniqnessChecker(Elaboratable):
         has 1 bit and all others have 0.
     """
 
-    def __init__(self, inputs_count: int, input_width: int):
+    def __init__(self, inputs_count: int, input_width: int, *, non_valid_ok: bool = False):
         """
         Parameters
         ----------
@@ -524,9 +526,12 @@ class PriorityUniqnessChecker(Elaboratable):
             Width of an input element in bits.
         input_count : int
             Number of inputs to create.
+        non_valid_ok : bool
+            If set to True output for non valid input will be set to 1.
         """
         self.input_width = input_width
         self.inputs_count = inputs_count
+        self.non_valid_ok = non_valid_ok
 
         self.inputs = [Signal(self.input_width) for _ in range(self.inputs_count)]
         self.input_valids = [Signal() for _ in range(self.inputs_count)]
@@ -536,7 +541,13 @@ class PriorityUniqnessChecker(Elaboratable):
         m = Module()
 
         for i in range(self.inputs_count):
-            cond = Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any()
+            if self.non_valid_ok:
+                cond = Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any()
+            else:
+                cond = (
+                    Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any()
+                    | ~self.input_valids[i]
+                )
             with m.If(cond):
                 m.d.comb += self.valids[i].eq(0)
 

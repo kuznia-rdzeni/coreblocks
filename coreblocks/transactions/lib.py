@@ -7,7 +7,7 @@ from .core import *
 from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
 from ..utils.fifo import BasicFifo
-from ..utils import ValueLike, assign, AssignType, ModuleConnector
+from ..utils import ValueLike, assign, AssignType, ModuleConnector, MultiPriorityEncoder
 from ..utils.protocols import RoutingBlock
 from ..utils._typing import LayoutLike
 
@@ -32,6 +32,7 @@ __all__ = [
     "Serializer",
     "MethodTryProduct",
     "condition",
+    "connected_conditions",
     "condition_switch",
     "AnyToAnySimpleRoutingBlock",
     "OmegaRoutingNetwork",
@@ -41,6 +42,9 @@ __all__ = [
     "ShiftRegister",
     "MethodBrancherIn",
     "NotMethod",
+    "DownCounter",
+    "Barrier",
+    "ContentAddressableMemory",
 ]
 
 # FIFOs
@@ -905,7 +909,8 @@ class CatTrans(Elaboratable):
             ddata = Record.like(self.dst.data_in)
             self.dst(m, ddata)
 
-            m.d.comb += ddata.eq(Cat(sdata1, sdata2))
+            m.d.top_comb += assign(ddata, sdata1, fields=AssignType.ALL)
+            m.d.top_comb += assign(ddata, sdata2, fields=AssignType.ALL)
 
         return m
 
@@ -1035,7 +1040,7 @@ class MemoryBank(Elaboratable):
         self.elem_count = elem_count
         self.granularity = granularity
         self.width = len(Record(self.data_layout))
-        self.addr_width = bits_for(self.elem_count - 1)
+        self.addr_width = log2_int(self.elem_count, False)
         self.safe_writes = safe_writes
 
         self.read_req_layout = [("addr", self.addr_width)]
@@ -1175,9 +1180,9 @@ class Serializer(Elaboratable):
             self.serialized_req_method(m, arg)
 
         @loop_def_method(m, self.serialize_out, ready_list=lambda i: pending_requests.head.id == i)
-        def _(_):
+        def _(_, arg):
             pending_requests.read(m)
-            return self.serialized_resp_method(m)
+            return self.serialized_resp_method(m, arg)
 
         self.clear.proxy(m, pending_requests.clear)
 
@@ -1265,7 +1270,7 @@ def condition(m: TModule, *, nonblocking: bool = True, priority: bool = True):
 
 
 def condition_switch(
-    m: TModule, variable: Signal, branch_number: int, *, nonblocking: bool = True, priority: bool = True
+    m: TModule, variable: Signal, branch_number: int, *, nonblocking: bool = False, priority: bool = False
 ):
     """
     Syntax sugar to easy define condition which compares given signal to first `branch_number` integers.
@@ -1274,6 +1279,55 @@ def condition_switch(
         for i in range(branch_number):
             with branch(variable == i):
                 yield i
+
+
+@contextmanager
+def connected_conditions(m: TModule, *, nonblocking=False):
+    """
+    All conditions for which branch is True has to execute simultanuesly.
+
+    This is a wrapper over `connection` that allows to define set of condtions in a transaction such that:
+        - all conditions with a minimum one branch evaluated to `True` have to execute
+        (if they can not because e.g. method is not ready then all conditions stalls)
+        - if there is a branch which evaluated to True, transaction will be ready
+            all conditions whith all barnches evaluated to False will be ignored
+        - if nonblocking=False and there is no branch evaluated to `True` in any condition
+        then transaction is not ready
+    """
+    priority = False  # hardcoded till issue #436 will be closed
+    all_not_conds_list = []
+
+    @contextmanager
+    def _internal_condition():
+        condition_conds = []
+        true_branch_f = None
+
+        @contextmanager
+        def _internal_branch(cond: ValueLike):
+            condition_conds.append(cond)
+            assert true_branch_f is not None
+            with true_branch_f(cond):
+                yield
+
+        with condition(m, nonblocking=False, priority=priority) as branch:
+            true_branch_f = branch
+            yield _internal_branch
+
+            not_conds = Signal()
+            m.d.top_comb += not_conds.eq(~Cat(condition_conds).any())
+            all_not_conds_list.append(not_conds)
+            with branch(not_conds):
+                pass
+
+    all_conds = Signal()
+    with condition(m, nonblocking=False) as branch:
+        with branch(all_conds):
+            yield _internal_condition
+
+    if nonblocking:
+        m.d.top_comb += all_conds.eq(1)
+    else:
+        m.d.top_comb += all_conds.eq(~Cat(all_not_conds_list).all())
 
 
 def def_one_caller_wrapper(method_to_wrap: Method, wrapper: Method) -> TModule:
@@ -1603,7 +1657,7 @@ class RegisterPipe(Elaboratable):
     all ports are ready, but data can be read one by one.
     This is useful if we need to process batches of data
     where order within batch doesn't matter, but the order
-    between batches does..
+    between batches does.
 
     Attributes
     ----------
@@ -1811,3 +1865,196 @@ class NotMethod:
 
     def __init__(self, method: Method):
         self.method = method
+
+
+class DownCounter(Elaboratable):
+    """Countdown and invoke callback on 0
+
+    This module implements a trasactron wrapper on counter
+    which counts down. At the end of the counting the callback is
+    called.
+
+    Attributes
+    ----------
+    tick : Method
+        Decrement the counter by 1.
+    set_start : Method
+        Sets a new counter value.
+    """
+
+    def __init__(self, width: int, callback: Method):
+        """
+        Parameters
+        ----------
+        width : int
+            Counter width
+        callback : Method
+            Method to be called when the counter is decremented to 0.
+        """
+        self.width = width
+        self.callback = callback
+
+        self.set_start = Method(i=[("start", width)])
+        self.tick = Method()
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        value = Signal(self.width)
+        running = Signal()
+
+        @def_method(m, self.set_start)
+        def _(start):
+            m.d.sync += value.eq(start)
+            with m.If(start != 0):
+                m.d.sync += running.eq(1)
+
+        @def_method(m, self.tick)
+        def _():
+            cond_signal = Signal()
+            with condition(m, nonblocking=False) as branch:
+                m.d.top_comb += cond_signal.eq((value == 1) & running)
+                with branch(cond_signal):
+                    self.callback(m)
+                    m.d.sync += running.eq(0)
+                with branch(~cond_signal):
+                    m.d.sync += value.eq(value - 1)
+
+        return m
+
+
+class Barrier(Elaboratable):
+    """Synchronisation barrier
+
+    This module implements a synchronisation barrier. New values
+    can be written at any time, but can only be read if all slots are filled.
+
+    Attributes
+    ----------
+    write_list : list[Method]
+        Methods called to write to the slots of the barrier.
+    read : Method
+        Reads all slots in the barrier at once.
+    """
+
+    def __init__(self, layout: LayoutLike, port_count: int):
+        """
+        Parameters
+        ----------
+        layout : LayoutLike
+            Layout of th data to be stored in the barrier slots.
+        port_count : int
+            The number of slots in the barrier to create.
+        """
+        self.layout = layout
+        self.port_count = port_count
+        self.layout_out = [(f"out{i}", self.layout) for i in range(self.port_count)]
+
+        self.write_list = [Method(i=self.layout) for _ in range(self.port_count)]
+        self.read = Method(o=self.layout_out)
+        self.set_valids = Method(i=[("valids", self.port_count)])
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        valids = Signal(self.port_count)
+        data = [Record(self.layout) for _ in range(self.port_count)]
+        data_current = [Record(self.layout) for _ in range(self.port_count)]
+        data_valids = [Signal() for _ in range(self.port_count)]
+
+        for write in self.write_list:
+            write.schedule_before(self.read)
+
+        @loop_def_method(m, self.write_list, ready_list=lambda i: ~data_valids[i])
+        def _(i, arg):
+            m.d.sync += data_valids[i].eq(1)
+            m.d.sync += data[i].eq(arg)
+            m.d.top_comb += data_current[i].eq(arg)
+
+        all_ready = Signal()
+        m.d.top_comb += all_ready.eq((~valids | Cat(data_valids) | Cat([w.run for w in self.write_list])).all())
+        out_data = Record(self.layout_out)
+
+        @def_method(m, self.read, ready=all_ready)
+        def _():
+            for i in range(self.port_count):
+                m.d.sync += data_valids[i].eq(0)
+                m.d.top_comb += out_data[f"out{i}"].eq(
+                    Mux(data_valids[i], data[i], Mux(self.write_list[i].run, data_current[i], 0))
+                )
+            return out_data
+
+        @def_method(m, self.set_valids)
+        def _(arg):
+            m.d.sync += valids.eq(arg.valids)
+
+        return m
+
+
+class ContentAddressableMemory(Elaboratable):
+    """Content addresable memory
+
+    This module implements a transactorn interface for the content addressable memory.
+
+    Attributes
+    ----------
+    pop : Method
+        Look for the data in memory and, if found, returns it and removes it.
+    push : Method
+        Insert new data.
+    """
+
+    # This module can be optimised to have O(log n) critical path instead of O(n)
+    def __init__(self, address_layout: LayoutLike, data_layout: LayoutLike, entries_number: int):
+        """
+        Parameters
+        ----------
+        address_layout : LayoutLike
+            The layout of the address records.
+        data_layout : LayoutLike
+            The layout of the data.
+        entries_number : int
+            The number of slots to create in memory.
+        """
+        self.address_layout = address_layout
+        self.data_layout = data_layout
+        self.entries_number = entries_number
+
+        self.pop = Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])
+        self.push = Method(i=[("addr", self.address_layout), ("data", self.data_layout)])
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        address_array = Array([Record(self.address_layout) for _ in range(self.entries_number)])
+        data_array = Array([Record(self.data_layout) for _ in range(self.entries_number)])
+        valids = Signal(self.entries_number, name="valids")
+
+        m.submodules.encoder_addr = encoder_addr = MultiPriorityEncoder(self.entries_number, 1)
+        m.submodules.encoder_valids = encoder_valids = MultiPriorityEncoder(self.entries_number, 1)
+        m.d.comb += encoder_valids.input.eq(~valids)
+
+        @def_method(m, self.push, ready=~valids.all())
+        def _(addr, data):
+            id = Signal(range(self.entries_number), name="id_push")
+            m.d.comb += id.eq(encoder_valids.outputs[0])
+            m.d.sync += address_array[id].eq(addr)
+            m.d.sync += data_array[id].eq(data)
+            m.d.sync += valids.bit_select(id, 1).eq(1)
+
+        if_addr = Signal(self.entries_number, name="if_addr")
+        data_to_send = Record(self.data_layout)
+
+        @def_method(m, self.pop)
+        def _(addr):
+            m.d.top_comb += if_addr.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
+            id = encoder_addr.outputs[0]
+            with m.If(if_addr.any()):
+                m.d.comb += data_to_send.eq(data_array[id])
+                m.d.sync += valids.bit_select(id, 1).eq(0)
+
+            return {"data": data_to_send, "not_found": ~if_addr.any()}
+
+        m.d.comb += encoder_addr.input.eq(if_addr)
+
+        return m

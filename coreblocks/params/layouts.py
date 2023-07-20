@@ -12,6 +12,7 @@ __all__ = [
     "DecodeLayouts",
     "FuncUnitLayouts",
     "RSInterfaceLayouts",
+    "RetirementLayouts",
     "RSLayouts",
     "RFLayouts",
     "UnsignedMulUnitLayouts",

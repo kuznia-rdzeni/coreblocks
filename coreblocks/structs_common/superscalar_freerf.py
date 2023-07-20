@@ -1,10 +1,9 @@
 from amaranth import *
+from amaranth.utils import log2_int
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 from coreblocks.utils import *
 from coreblocks.params import *
-from coreblocks.fu.vector_unit.utils import *
-from coreblocks.fu.vector_unit.v_layouts import *
 
 __all__ = ["SuperscalarFreeRF"]
 
@@ -27,7 +26,7 @@ class SuperscalarFreeRF(Elaboratable):
         one register in one cycle.
     """
 
-    def __init__(self, entries_count: int, outputs_count: int):
+    def __init__(self, entries_count: int, outputs_count: int, *, reset_state: int = 0):
         """
         Parameters
         ----------
@@ -36,21 +35,26 @@ class SuperscalarFreeRF(Elaboratable):
         outputs_count : int
             Number of the deallocate methods that should be created to allow for
             superscalar freeing of registers.
+        reset_state : int
+            Mask of registers which should be treated as allocated on reset.
         """
         self.entries_count = entries_count
         self.outputs_count = outputs_count
+        self.reset_state = reset_state
 
         self.layouts = SuperscalarFreeRFLayouts(self.entries_count, self.outputs_count)
         self.allocate = Method(i=self.layouts.allocate_in, o=self.layouts.allocate_out)
-        self.deallocates = [Method(i=self.layouts.deallocate_in) for _ in range(self.outputs_count)]
+        self.deallocates = [
+            Method(i=self.layouts.deallocate_in, name=f"deallocate{i}") for i in range(self.outputs_count)
+        ]
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        self.used = Signal(self.entries_count, reset=2**self.entries_count - 1)
+        self.not_used = Signal(self.entries_count, reset=(2**self.entries_count - 1) & ~self.reset_state)
 
         m.submodules.priority_encoder = encoder = MultiPriorityEncoder(self.entries_count, self.outputs_count)
-        m.d.top_comb += encoder.input.eq(self.used)
+        m.d.top_comb += encoder.input.eq(self.not_used)
 
         free_count = Signal(log2_int(self.entries_count, False), name="free_count")
         m.d.top_comb += free_count.eq(count_trailing_zeros(~Cat(encoder.valids)))
@@ -67,13 +71,13 @@ class SuperscalarFreeRF(Elaboratable):
                     mask = (1 << reg_count) - 1
                     for j in range(self.outputs_count):
                         used_bit = Signal()
-                        m.d.comb += used_bit.eq(self.used.bit_select(encoder.outputs[j], 1))
-                        m.d.sync += self.used.bit_select(encoder.outputs[j], 1).eq(used_bit & (~mask[j]))
+                        m.d.comb += used_bit.eq(self.not_used.bit_select(encoder.outputs[j], 1))
+                        m.d.sync += self.not_used.bit_select(encoder.outputs[j], 1).eq(used_bit & (~mask[j]))
                         m.d.comb += regs[j].eq(encoder.outputs[j])
             return {f"reg{i}": regs[i] for i in range(self.outputs_count)}
 
         @loop_def_method(m, self.deallocates)
         def _(_, reg):
-            m.d.sync += self.used.bit_select(reg, 1).eq(1)
+            m.d.sync += self.not_used.bit_select(reg, 1).eq(1)
 
         return m

@@ -1,38 +1,11 @@
-from typing import Sequence, Callable
+from typing import Callable
 from amaranth import *
-from enum import IntFlag, auto
 
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils._typing import ValueLike
-from coreblocks.fu.fu_decoder import DecoderManager
-from coreblocks.fu.vector_unit.utils import *
 
 __all__ = ["FlexibleAdder", "FlexibleElementwiseFunction"]
-
-
-class FlexibleAluFn(DecoderManager):
-    class Fn(IntFlag):
-        SUB = auto()  # Subtraction
-        ADD = auto()  # Addition
-        SRA = auto()  # Arithmetic right shift
-        SLL = auto()  # Logic left shift
-        SRL = auto()  # Logic right shift
-        SLET = auto()  # Set if less or equal than (signed)
-        SLETU = auto()  # Set if less or equal than (unsigned)
-        SLT = auto()  # Set if less than (signed)
-        SLTU = auto()  # Set if less than (unsigned)
-        SEQ = auto()  # Set if equal
-        XOR = auto()  # Bitwise xor
-        OR = auto()  # Bitwise or
-        AND = auto()  # Bitwise and
-
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
-        return [
-            # TODO fill after extending instruction decoder
-        ]
 
 
 class FlexibleAdder(Elaboratable):
@@ -156,13 +129,13 @@ class FlexibleElementwiseFunction(Elaboratable):
         Results of the application `op` on `in1` and `in2`.
     """
 
-    def __init__(self, out_width: EEW, op: Callable[[ValueLike, ValueLike], ValueLike]):
+    def __init__(self, out_width: EEW, op: Callable[[Value, Value], ValueLike]):
         """
         Parameters
         ----------
         out_width : EEW
             Maximum supported width of operands.
-        op : Callable[[ValueLike, ValueLike], ValueLike]
+        op : Callable[[Value, Value], ValueLike]
             Function to be applied over operands.
         """
         self.out_width = out_width
@@ -177,7 +150,7 @@ class FlexibleElementwiseFunction(Elaboratable):
         m = TModule()
 
         if self.out_width == EEW.w8:
-            m.d.comb += self.out_data.eq(self.op(self.in1, self.in2))
+            m.d.top_comb += self.out_data.eq(self.op(self.in1, self.in2))
         else:
             smaller_out_width_bits = self.out_width_bits // 2
 
@@ -192,21 +165,23 @@ class FlexibleElementwiseFunction(Elaboratable):
             m.d.top_comb += appl_up.in2.eq(self.in2 >> smaller_out_width_bits)
 
             with m.If(self.eew == self.out_width):
-                m.d.comb += self.out_data.eq(self.op(self.in1, self.in2))
+                m.d.av_comb += self.out_data.eq(self.op(self.in1, self.in2))
             with m.Else():
-                m.d.comb += self.out_data.eq((appl_up.out_data << smaller_out_width_bits) | appl_down.out_data)
+                m.d.av_comb += self.out_data.eq((appl_up.out_data << smaller_out_width_bits) | appl_down.out_data)
 
         return m
 
 
 def compress_mask(m: TModule, val: Value, eew: Value) -> Value:
-    """Compress masks created with `FlexibleElementwiseFunction`
+    """Compress elems extended masks format created with `FlexibleElementwiseFunction`
 
     This function takes `val` with `out_width_bits` from `FlexibleElementwiseFunction` and
     assumes that mask bits are set on the first bit of each output element. As an output it
     returns the mask compressed to one bit per bajt. If operands where processed
     with element eew bigger the EEW.w8, then only the first `k` bits are valid, where
     `k = out_width/eew`.
+
+    In other words it converts elems extended mask format to elems mask format.
 
     Parameters
     ----------
@@ -223,25 +198,3 @@ def compress_mask(m: TModule, val: Value, eew: Value) -> Value:
             with m.Case(EEW(i)):
                 m.d.top_comb += result.eq(val[:: eew_to_bits(EEW(i))])
     return result
-
-
-class BasicFlexibleAlu(Elaboratable):
-    """
-    FlexibleAlu without any hand-made optimisations.
-
-    TODO
-    """
-
-    def __init__(self, gen_params: GenParams, v_params: VectorParameters):
-        self.gen_params = gen_params
-        self.v_params = v_params
-
-        self.fn = FlexibleAluFn().get_function()
-        self.eew = Signal(EEW)
-        self.in1 = Signal(self.v_params.elen)
-        self.in2 = Signal(self.v_params.elen)
-
-    def elaborate(self, platform) -> TModule:
-        m = TModule()
-        # TODO Implement under separate PR
-        return m

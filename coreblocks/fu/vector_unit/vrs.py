@@ -46,7 +46,7 @@ class VVRS(RS):
         rs_entries: int,
         ready_for: Optional[Iterable[Iterable[OpType]]] = None,
     ) -> None:
-        super().__init__(gen_params, rs_entries, ready_for, layout_class=VectorVRSLayout, superscalarity=8)
+        super().__init__(gen_params, rs_entries, ready_for, layout_class=VectorVRSLayout, superscalarity=1)
 
     def generate_rec_ready_setters(self, m: TModule):
         for record in self.data:
@@ -60,7 +60,7 @@ class VVRS(RS):
 
     def define_update_method(self, m: TModule):
         @def_method(m, self.update)
-        def _(tag: Value, value: Value) -> None:
+        def _(tag, value) -> None:
             for record in self.data:
                 with m.If(record.rec_full.bool()):
                     with m.If(record.rs_data.rp_s1 == tag):
@@ -72,5 +72,5 @@ class VVRS(RS):
                     with m.If(record.rs_data.rp_s3 == tag):
                         m.d.sync += record.rs_data.rp_s3_rdy.eq(1)
 
-                    with m.If(record.rs_data.rp_v0 == tag):
+                    with m.If(record.rs_data.rp_v0.id == tag.id):
                         m.d.sync += record.rs_data.rp_v0_rdy.eq(1)

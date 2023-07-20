@@ -21,6 +21,10 @@ from ..common import (
     TestbenchIO,
     data_layout,
     def_method_mock,
+    MethodMock,
+    CondVar,
+    SimBarrier,
+    generate_based_on_layout,
 )
 
 
@@ -800,6 +804,111 @@ class ConditionTest(TestCaseWithSimulator):
             sim.add_sync_process(process)
 
 
+class ConnectedConditionTestCircuit(Elaboratable):
+    def __init__(self, target1: Method, target2: Method, *, priority: bool, nonblocking: bool):
+        self.target1 = target1
+        self.target2 = target2
+        self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)])
+        self.priority = priority
+        self.nonblocking = nonblocking
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        @def_method(m, self.source)
+        def _(cond1, cond2, cond3):
+            with connected_conditions(m, nonblocking=self.nonblocking) as cond:
+                with cond() as branch:
+                    with branch(cond1):
+                        self.target1(m, cond=1)
+                with cond() as branch:
+                    with branch(cond2):
+                        self.target2(m, cond=2)
+                    with branch(cond3):
+                        self.target2(m, cond=3)
+
+        return m
+
+
+class ConnectedConditionTest(TestCaseWithSimulator):
+    @parameterized.expand(
+        product(
+            [False, True],
+            [
+                False,
+            ],
+        )
+    )  # priority = True cause cycles in graph
+    def test_condition(self, nonblocking: bool, priority: bool):
+        target1 = MethodMock(i=[("cond", 2)])
+        target2 = MethodMock(i=[("cond", 2)])
+
+        circ = SimpleTestCircuit(
+            ConnectedConditionTestCircuit(
+                target1.get_method(), target2.get_method(), nonblocking=nonblocking, priority=priority
+            )
+        )
+        m = ModuleConnector(test_circuit=circ, target1=target1, target2=target2)
+
+        selection1: Optional[int]
+        selection2: Optional[int]
+
+        t1_active = True
+        t2_active = True
+
+        @def_method_mock(lambda: target1, enable=lambda: t1_active, sched_prio=1)
+        def target1_process(cond):
+            nonlocal selection1
+            selection1 = cond
+
+        @def_method_mock(lambda: target2, enable=lambda: t2_active, sched_prio=1)
+        def target2_process(cond):
+            nonlocal selection2
+            selection2 = cond
+
+        def process():
+            nonlocal selection1, selection2
+            nonlocal t1_active, t2_active
+            for ta1, ta2 in product([False, True], [False, True]):
+                t1_active, t2_active = ta1, ta2
+                for c1, c2, c3 in product([0, 1], [0, 1], [0, 1]):
+                    selection1 = None
+                    selection2 = None
+                    res = yield from circ.source.call_try(cond1=c1, cond2=c2, cond3=c3)
+                    yield Settle()
+
+                    if res is None:
+                        self.assertIsNone(selection1)
+                        self.assertIsNone(selection2)
+                        if c1 + c2 + c3 == 0:
+                            self.assertFalse(nonblocking)
+                        else:
+                            self.assertTrue((not t1_active and c1 == 1) or (not t2_active and c2 + c3 > 0))
+                        continue
+                    if selection1 is None and selection2 is None:
+                        self.assertTrue(nonblocking)
+                        self.assertEqual((c1, c2, c3), (0, 0, 0))
+                        continue
+                    if selection1 is None:
+                        self.assertEqual(c1, 0)
+                        self.assertTrue(c2 != 0 or c3 != 0)
+                    else:
+                        self.assertEqual(c1, 1)
+                    if selection2 is None:
+                        self.assertEqual((c2, c3), (0, 0))
+                        self.assertEqual(c1, 1)
+                    else:
+                        if priority:
+                            self.assertEqual(selection2, 2 * c2 + 3 * c3 * (1 - c2))
+                        else:
+                            self.assertIn(selection2, [2 * c2, 3 * c3])
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(target1_process)
+            sim.add_sync_process(target2_process)
+            sim.add_sync_process(process)
+
+
 class TestRoutingBlock(TestCaseWithSimulator):
     @staticmethod
     def prepare_any_to_any_circuit(input_count, output_count, layout):
@@ -1076,3 +1185,178 @@ class TestShiftRegister(TestCaseWithSimulator):
         with self.run_simulation(self.m, 3000) as sim:
             sim.add_sync_process(self.input_process(self.check_random))
             sim.add_sync_process(self.put_process)
+
+
+class TestDownCounter(TestCaseWithSimulator):
+    def setUp(self):
+        random.seed(15)
+        self.test_number = 10
+        self.width = 5
+
+        self.callback_mock = MethodMock()
+        self.circ = SimpleTestCircuit(DownCounter(self.width, self.callback_mock.get_method()))
+        self.m = ModuleConnector(circ=self.circ, callback=self.callback_mock)
+
+        self.called = False
+
+    @def_method_mock(lambda self: self.callback_mock)
+    def callback_process(self):
+        self.called = True
+
+    def process(self):
+        for _ in range(self.test_number):
+            start = random.randrange(1, 2**self.width)
+            yield from self.circ.set_start.call(start=start)
+            while start != 0:
+                self.assertFalse(self.called)
+                yield from self.circ.tick.call()
+                start -= 1
+            yield Settle()
+            self.assertTrue(self.called)
+            self.called = False
+
+    def test_random(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.process)
+            sim.add_sync_process(self.callback_process)
+
+
+@parameterized_class(
+    ["port_count", "writer_max_wait_time"],
+    itertools.product(
+        [
+            1,
+            2,
+            3,
+        ],
+        [0, 4],
+    ),
+)
+class TestBarrier(TestCaseWithSimulator):
+    port_count: int
+    writer_max_wait_time: int
+
+    def setUp(self):
+        random.seed(14 + self.port_count + self.writer_max_wait_time)
+        self.mask_count = 10
+        self.test_number = 10
+        self.width = 5
+        self.layout = data_layout(self.width)
+
+        self.circ = SimpleTestCircuit(Barrier(self.layout, self.port_count))
+
+        self.mask_cond_var = CondVar(transparent=False)
+        self.mask_barrier = SimBarrier(1 + self.port_count)
+
+        self.valids = 0
+        self.sent = [False for _ in range(self.port_count)]
+        self.data = {}
+
+    def set_mask(self):
+        self.valids = random.randrange(2**self.port_count)
+        yield from self.circ.set_valids.call(valids=self.valids)
+
+    def check_if_all_send(self):
+        for i, b in enumerate(self.sent):
+            if (self.valids & (1 << i)) and not b:
+                return False
+        return True
+
+    def check_received_data(self, res):
+        for i in range(self.port_count):
+            field_name = f"out{i}"
+            if not self.valids & (1 << i):
+                self.assertEqual(res[field_name]["data"], 0)
+            else:
+                self.assertEqual(res[field_name]["data"], self.data[i])
+
+    def write_process_generator(self, k):
+        def f():
+            for mi in range(self.mask_count):
+                yield from self.mask_barrier.wait()
+                yield from self.mask_cond_var.wait()
+                for _ in range(self.test_number):
+                    if self.valids & (1 << k):
+                        val = random.randrange(2**self.width)
+                        yield from self.circ.write_list[k].call(data=val)
+                        self.data[k] = val
+                        self.sent[k] = True
+
+                    yield from self.tick(random.randrange(self.writer_max_wait_time + 1))
+
+        return f
+
+    def read_process(self):
+        for mi in range(self.mask_count):
+            yield from self.mask_barrier.wait()
+            yield from self.set_mask()
+            yield from self.mask_cond_var.notify()
+            for _ in range(self.test_number):
+                while True:
+                    res = yield from self.circ.read.call_try()
+                    yield Settle()
+                    all_send = self.check_if_all_send()
+                    if all_send:
+                        self.assertIsNotNone(res)
+                        break
+                    else:
+                        self.assertIsNone(res)
+                self.check_received_data(res)
+                self.sent = [False for _ in range(self.port_count)]
+                self.data.clear()
+                yield from self.tick(random.randrange(3))
+
+    def test_random(self):
+        with self.run_simulation(
+            self.circ,
+        ) as sim:
+            sim.add_sync_process(self.read_process)
+            for k in range(self.port_count):
+                sim.add_sync_process(self.write_process_generator(k))
+
+
+class TestContentAddressableMemory(TestCaseWithSimulator):
+    def setUp(self):
+        random.seed(14)
+        self.test_number = 50
+        self.addr_width = 4
+        self.content_width = 5
+        self.entries_count = 8
+        self.addr_layout = data_layout(self.addr_width)
+        self.content_layout = data_layout(self.content_width)
+
+        self.circ = SimpleTestCircuit(
+            ContentAddressableMemory(self.addr_layout, self.content_layout, self.entries_count)
+        )
+
+        self.memory = {}
+
+    def input_process(self):
+        for _ in range(self.test_number):
+            while True:
+                addr = generate_based_on_layout(self.addr_layout)
+                frozen_addr = frozenset(addr.items())
+                if frozen_addr not in self.memory:
+                    break
+            content = generate_based_on_layout(self.content_layout)
+            yield from self.circ.push.call(addr=addr, data=content)
+            yield Settle()
+            self.memory[frozen_addr] = content
+
+    def output_process(self):
+        yield Passive()
+        while True:
+            addr = generate_based_on_layout(self.addr_layout)
+            res = yield from self.circ.pop.call(addr=addr)
+            frozen_addr = frozenset(addr.items())
+            if frozen_addr in self.memory:
+                self.assertEqual(res["not_found"], 0)
+                self.assertEqual(res["data"], self.memory[frozen_addr])
+                self.memory.pop(frozen_addr)
+            else:
+                self.assertEqual(res["not_found"], 1)
+
+    def test_random(self):
+        with self.run_simulation(self.circ) as sim:
+            sim.add_sync_process(self.input_process)
+            sim.add_sync_process(self.output_process)

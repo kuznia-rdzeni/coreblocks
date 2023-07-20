@@ -2,7 +2,6 @@ from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 from coreblocks.params import *
-from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.utils.fifo import BasicFifo
 

@@ -4,7 +4,6 @@ from coreblocks.fu.vector_unit.vrs import *
 from coreblocks.params import *
 from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
-from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_status import *
 from coreblocks.fu.vector_unit.v_translator import VectorTranslateLMUL, VectorTranslateRS3
 from collections import deque
@@ -46,7 +45,9 @@ class TestLMULTranslator(TestCaseWithSimulator):
     def process(self, waiter):
         def f():
             for _ in range(self.test_number):
-                instr = generate_instr(self.gen_params, self.layouts.translator_inner, support_vector=True)
+                instr = generate_instr(
+                    self.gen_params, self.layouts.translator_inner, support_vector=True, max_reg_bits=5
+                )
                 received_mult = (yield from self.circ.issue.call(instr))["mult"]
                 expected_mult = lmul_to_int(instr["vtype"]["lmul"])
                 expected_list = self.generate_expected_list(instr)

@@ -71,7 +71,7 @@ class MethodMap:
             for method in source.method_uses.keys():
                 if not method.defined:
                     raise RuntimeError(
-                        f"Trying to use method '{method.name}' which is not defined yet."
+                        f"Trying to use method '{method.name}' which is not defined yet. "
                         + "Are you sure that it was added to proper submodule?"
                     )
                 if method in self.methods_by_transaction[transaction]:
@@ -404,7 +404,6 @@ class TransactionManager(Elaboratable):
             with Transaction(manager=self, name=name).body(m):
                 for transaction in group:
                     methods[transaction](m)
-
         return m
 
     def elaborate(self, platform):

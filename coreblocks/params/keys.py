@@ -14,6 +14,8 @@ __all__ = [
     "BranchResolvedKey",
     "ExceptionReportKey",
     "GenericCSRRegistersKey",
+    "ROBBlockInterruptsKey",
+    "ROBPeekKey",
 ]
 
 
@@ -39,4 +41,14 @@ class ExceptionReportKey(SimpleKey[Method]):
 
 @dataclass(frozen=True)
 class GenericCSRRegistersKey(SimpleKey["GenericCSRRegisters"]):
+    pass
+
+
+@dataclass(frozen=True)
+class ROBBlockInterruptsKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class ROBPeekKey(SimpleKey[Method]):
     pass

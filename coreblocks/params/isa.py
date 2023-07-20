@@ -1,3 +1,4 @@
+import math
 from itertools import takewhile
 from amaranth.lib.enum import unique, Enum, IntEnum, IntFlag, auto
 import enum
@@ -16,6 +17,15 @@ __all__ = [
     "ISA",
     "RegisterType",
     "funct6_to_funct7",
+    "SEW",
+    "EEW",
+    "EMUL",
+    "LMUL",
+    "eew_to_bits",
+    "bits_to_eew",
+    "eew_div_2",
+    "lmul_to_float",
+    "lmul_to_int",
 ]
 
 
@@ -62,8 +72,8 @@ class Funct3(IntEnum, shape=3):
 
 
 class Funct6(IntEnum, shape=6):
-    VADD = _VWIDEN = 0b000000
-    VSUB = _VNARROW = 0b000010
+    VADD = 0b000000
+    VSUB = 0b000010
     VRSUB = 0b000011
     VMINU = 0b000100
     VMIN = 0b000101
@@ -185,6 +195,146 @@ class ExceptionCause(IntEnum, shape=4):
     INSTRUCTION_PAGE_FAULT = 12
     LOAD_PAGE_FAULT = 13
     STORE_PAGE_FAULT = 15
+
+
+class SEW(IntEnum):
+    """Representation of possible SEW
+
+    This enum represents SEWs as defined by the V extension, that
+    we are able to support in our core.
+
+    Possible values are represented by the small integer numbers to
+    compress the representation as much as possible. So it dosn't
+    take much HW resources to represent an SEW.
+    """
+
+    w8 = 0
+    w16 = 1
+    w32 = 2
+    w64 = 3
+
+
+EEW = SEW
+
+
+class LMUL(IntEnum):
+    m1 = 0
+    m2 = 1
+    m4 = 2
+    m8 = 3
+    mf2 = 7  # multiply fractional 2 --> LMUL=1/2
+    mf4 = 6
+    mf8 = 5
+
+
+EMUL = LMUL
+
+
+def eew_to_bits(eew: EEW) -> int:
+    """Convert EEW to number of bits
+
+    This function takes an eew in the form of enum and converts it to an
+    integer representing the width in bits of an element for the given eew.
+
+    Parameters
+    ----------
+    eew : EEW
+        EEW to convert to bit length.
+
+    Returns
+    -------
+    width : int
+        The width in bits of an element for the given eew.
+    """
+    if eew == EEW.w8:
+        return 8
+    elif eew == EEW.w16:
+        return 16
+    elif eew == EEW.w32:
+        return 32
+    elif eew == EEW.w64:
+        return 64
+    else:
+        raise ValueError(f"Not known EEW: {eew}")
+
+
+def bits_to_eew(bits: int) -> EEW:
+    """Convert width in bits to EEW
+
+    Parameters
+    ----------
+    bits : int
+        The width of an element in bits.
+
+    Returns
+    -------
+    eew : EEW
+        EEW representing elements with the given width.
+    """
+    if bits == 8:
+        return EEW.w8
+    elif bits == 16:
+        return EEW.w16
+    elif bits == 32:
+        return EEW.w32
+    elif bits == 64:
+        return EEW.w64
+    else:
+        raise ValueError(f"Not known EEW: {bits}")
+
+
+def eew_div_2(eew: EEW) -> EEW:
+    """Reduce EEW by 2
+
+    This function is a shortcut to easily reduce the EEW width by a factor of 2.
+
+    Parameters
+    ----------
+    eew : EEW
+        EEW to be divided by 2.
+    """
+    return bits_to_eew(eew_to_bits(eew) // 2)
+
+
+def lmul_to_float(lmul: LMUL) -> float:
+    """Converts LMUL to float
+
+    Parameters
+    ----------
+    lmul : LMUL
+        The lmul to convert.
+
+    Returns
+    -------
+    float
+        The multiplier that is represented by `lmul`.
+    """
+    match lmul:
+        case LMUL.m1:
+            return 1
+        case LMUL.m2:
+            return 2
+        case LMUL.m4:
+            return 4
+        case LMUL.m8:
+            return 8
+        case LMUL.mf2:
+            return 0.5
+        case LMUL.mf4:
+            return 0.25
+        case LMUL.mf8:
+            return 0.125
+
+
+def lmul_to_int(lmul: LMUL) -> int:
+    """Convert LMUL to int by rounding up.
+
+    Parameters
+    ----------
+    lmul : LMUL
+        Value to convert.
+    """
+    return math.ceil(lmul_to_float(lmul))
 
 
 @unique

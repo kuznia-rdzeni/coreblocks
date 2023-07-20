@@ -5,7 +5,6 @@ from coreblocks.utils import *
 from coreblocks.params import *
 from coreblocks.utils.fifo import *
 from coreblocks.scheduler.wakeup_select import *
-from coreblocks.fu.vector_unit.utils import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.vrs import *
 from coreblocks.fu.vector_unit.v_input_verification import *
@@ -97,14 +96,16 @@ class VectorFrontend(Elaboratable):
         self,
         gen_params: GenParams,
         rob_block_interrupts: Method,
-        retire: Method,
-        retire_mult: Method,
+        announce: Method,
+        announce2: Method,
+        announce_mult: Method,
         alloc_reg: Method,
         get_rename1_frat: Method,
         get_rename2_frat: Method,
         set_rename_frat: Method,
         put_to_mem: Method,
         put_to_vvrs: Method,
+        initialise_regs: list[Method],
     ):
         """
         Parameters
@@ -113,11 +114,13 @@ class VectorFrontend(Elaboratable):
             Core configuration.
         rob_block_interrupts : Method
             Method to block interrupts on a given `rob_id`. Layout: RobLayouts.block_interrupts
-        retire : Method
-            Method to retire a vector instruction. Used to retire `vset{i}vl{i}` and
+        announce : Method
+            Method to announce a vector instruction. Used to announce `vset{i}vl{i}` and
             illegal instructions.
-        retire_mult : Method
-            Method to report to the vector retirement module the number of internal instructions
+        announce2 : Method
+            The same as above. Second instance.
+        announce_mult : Method
+            Method to report to the vector announcement module the number of internal instructions
             generated from an original vector instruction.
         alloc_reg : Method
             Allocate a new vector register.
@@ -132,21 +135,24 @@ class VectorFrontend(Elaboratable):
         put_to_vvrs : Method
             Method to be called, if an instruction should be put iton VVRS and processed as common
             arithmetical-logical-permutation instruction.
+        initialise_regs : list[Method]
+            Methods to be called when a new register is being allocated to initialise its content.
         """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
-        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.rob_block_interrupts = rob_block_interrupts
-        # TODO Prepare more retire methods to use in different places
-        self.retire = retire
-        self.retire_mult = retire_mult
+        self.announce = announce
+        self.announce2 = announce2
+        self.announce_mult = announce_mult
         self.alloc_reg = NotMethod(alloc_reg)
         self.get_rename1_frat = get_rename1_frat
         self.get_rename2_frat = get_rename2_frat
         self.set_rename_frat = set_rename_frat
         self.put_to_mem = put_to_mem
         self.put_to_vvrs = put_to_vvrs
+        self.initialise_regs = initialise_regs
 
+        self.layouts = VectorFrontendLayouts(self.gen_params)
         self.vxrs_layouts = VectorXRSLayout(
             self.gen_params, rs_entries_bits=log2_int(self.v_params.vxrs_entries, False)
         )
@@ -158,14 +164,14 @@ class VectorFrontend(Elaboratable):
         m = TModule()
 
         m.submodules.fifo_from_v_status = fifo_from_v_status = BasicFifo(self.layouts.status_out, 2)
-        m.submodules.v_status = v_status = VectorStatusUnit(self.gen_params, fifo_from_v_status.write, self.retire)
+        m.submodules.v_status = v_status = VectorStatusUnit(self.gen_params, fifo_from_v_status.write, self.announce)
         m.submodules.verificator = verificator = VectorInputVerificator(
             self.gen_params,
             self.rob_block_interrupts,
             v_status.issue,
             v_status.get_vill,
             v_status.get_vstart,
-            self.retire,
+            self.announce2,
         )
 
         m.submodules.vxrs = vxrs = VXRS(self.gen_params, self.v_params.vxrs_entries)
@@ -182,13 +188,18 @@ class VectorFrontend(Elaboratable):
 
         m.submodules.fifo_from_translator = fifo_from_translator = BasicFifo(self.layouts.translator_out, 2)
         m.submodules.translator = translator = VectorTranslator(
-            self.gen_params, fifo_from_translator.write, self.retire_mult
+            self.gen_params, fifo_from_translator.write, self.announce_mult
         )
 
         m.submodules.from_status_to_tranlator = ConnectTrans(fifo_from_v_status.read, translator.issue)
 
         m.submodules.alloc_rename = alloc_rename = VectorAllocRename(
-            self.gen_params, self.alloc_reg.method, self.get_rename1_frat, self.get_rename2_frat, self.set_rename_frat
+            self.gen_params,
+            self.alloc_reg.method,
+            self.get_rename1_frat,
+            self.get_rename2_frat,
+            self.set_rename_frat,
+            self.initialise_regs,
         )
         m.submodules.splitter = splitter = VectorMemoryVVRSSplitter(self.gen_params, self.put_to_mem, self.put_to_vvrs)
 

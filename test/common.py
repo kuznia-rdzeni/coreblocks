@@ -29,8 +29,7 @@ from amaranth.sim.core import Command
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans, Adapter, MethodLayout
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode
-from coreblocks.fu.vector_unit.utils import SEW, LMUL
+from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode, SEW, LMUL, eew_to_bits
 from coreblocks.utils import (
     ValueLike,
     HasElaborate,
@@ -63,7 +62,7 @@ class MethodMock(Elaboratable):
         return self.tb.adapter.iface
 
 
-def data_layout(val: int) -> LayoutLike:
+def data_layout(val: int) -> SimpleLayout:
     return [("data", val)]
 
 
@@ -104,7 +103,7 @@ def generate_based_on_layout(layout: SimpleLayout, *, max_bits: Optional[int] = 
 
 def generate_phys_register_id(*, gen_params: Optional[GenParams] = None, max_bits: Optional[int] = None):
     if max_bits is not None:
-        return random.randrange(max_bits)
+        return random.randrange(2**max_bits)
     if gen_params is not None:
         return random.randrange(2**gen_params.phys_regs_bits)
     raise ValueError("gen_params and max_bits can not be both None")
@@ -112,14 +111,14 @@ def generate_phys_register_id(*, gen_params: Optional[GenParams] = None, max_bit
 
 def generate_l_register_id(*, gen_params: Optional[GenParams] = None, max_bits: Optional[int] = None):
     if max_bits is not None:
-        return random.randrange(max_bits)
+        return random.randrange(2**max_bits)
     if gen_params is not None:
         return random.randrange(gen_params.isa.reg_cnt)
     raise ValueError("gen_params and max_bits can not be both None")
 
 
 def generate_register_entry(max_bits: int, *, support_vector=False):
-    rp = random.randrange(max_bits)
+    rp = random.randrange(2**max_bits)
     if support_vector:
         rp_rf = random.choice(list(RegisterType))
     else:
@@ -135,13 +134,21 @@ def generate_register_set(max_bits: int, *, support_vector=False):
     }
 
 
-def generate_exec_fn(optypes: Optional[Iterable[OpType]] = None):
+def generate_exec_fn(
+    optypes: Optional[Iterable[OpType]] = None,
+    funct7: Optional[Iterable[Funct7] | Iterable[int]] = None,
+    funct3: Optional[Iterable[Funct3]] = None,
+):
     if optypes is None:
         optypes = list(OpType)
+    if funct7 is None:
+        funct7 = list(Funct7)
+    if funct3 is None:
+        funct3 = list(Funct3)
     return {
         "op_type": random.choice(list(optypes)),
-        "funct3": random.choice(list(Funct3)),
-        "funct7": random.choice(list(Funct7)),
+        "funct3": random.choice(list(funct3)),
+        "funct7": random.choice(list(funct7)),
     }
 
 
@@ -161,12 +168,15 @@ def convert_vtype_to_imm(vtype) -> int:
     return imm
 
 
-def generate_vtype(gen_params: GenParams):
-    sew = random.choice(list(SEW))
+def generate_vtype(gen_params: GenParams, max_vl: Optional[int] = None):
+    sew = random.choice([sew for sew in list(SEW) if eew_to_bits(sew) <= gen_params.v_params.elen])
     lmul = random.choice(list(LMUL))
     ta = random.randrange(2)
     ma = random.randrange(2)
-    vl = random.randrange(2**gen_params.isa.xlen)
+    if max_vl is not None:
+        vl = random.randrange(max_vl)
+    else:
+        vl = random.randrange(2**16)
     return {
         "sew": sew,
         "lmul": lmul,
@@ -180,26 +190,29 @@ def generate_instr(
     gen_params: GenParams,
     layout: LayoutLike,
     *,
-    max_bits: Optional[int] = None,
+    max_reg_bits: Optional[int] = None,
     support_vector=False,
     optypes: Optional[Iterable[OpType]] = None,
+    funct7: Optional[Iterable[Funct7] | Iterable[int]] = None,
+    funct3: Optional[Iterable[Funct3]] = None,
     max_imm: int = 2**32,
     generate_illegal: bool = False,
     non_uniform_s2_val=True,
     overwriting: dict = {},
+    max_vl: Optional[int] = None,
 ):
     rec = {}
-    if max_bits is None:
+    if max_reg_bits is None:
         reg_phys_width = gen_params.phys_regs_bits
     else:
-        reg_phys_width = max_bits
+        reg_phys_width = max_reg_bits
 
     for field in layout:
         if "regs_l" in field[0]:
-            if max_bits is None:
+            if max_reg_bits is None:
                 width = gen_params.isa.reg_cnt_log
             else:
-                width = max_bits
+                width = max_reg_bits
             rec["regs_l"] = generate_register_set(width, support_vector=support_vector)
         if "regs_p" in field[0]:
             rec["regs_p"] = generate_register_set(reg_phys_width, support_vector=support_vector)
@@ -207,7 +220,7 @@ def generate_instr(
             if label in field[0]:
                 rec[label] = generate_register_entry(reg_phys_width, support_vector=support_vector)
         if "exec_fn" in field[0]:
-            rec["exec_fn"] = generate_exec_fn(optypes)
+            rec["exec_fn"] = generate_exec_fn(optypes, funct7, funct3)
         if "opcode" in field[0]:
             rec["opcode"] = random.choice(list(Opcode))
         if "imm" in field[0]:
@@ -229,9 +242,9 @@ def generate_instr(
                 s2_val = random.randrange(2**gen_params.isa.xlen)
             rec["s2_val"] = s2_val
         if "vtype" in field[0]:
-            rec["vtype"] = generate_vtype(gen_params)
+            rec["vtype"] = generate_vtype(gen_params, max_vl=max_vl)
         if "rp_v0" in field[0]:
-            rec["rp_v0"] = {"id": generate_phys_register_id(gen_params=gen_params)}
+            rec["rp_v0"] = {"id": random.randrange(gen_params.v_params.vrp_count)}
     return overwrite_dict_values(rec, overwriting)
 
 
@@ -313,6 +326,13 @@ def signed_to_int(x: int, xlen: int) -> int:
     return x | -(x & (2 ** (xlen - 1)))
 
 
+def int_to_unsigned(x: int, xlen: int):
+    """
+    Interpret `x` as a unsigned value.
+    """
+    return x % 2**xlen
+
+
 def guard_nested_collection(cont: Any, t: Type[T]) -> TypeGuard[_T_nested_collection[T]]:
     if isinstance(cont, (list, dict)):
         if isinstance(cont, dict):
@@ -390,6 +410,63 @@ class TestModule(Elaboratable):
         m.submodules.tested_module = self.tested_module
 
         return m
+
+
+class CondVar:
+    """
+    Simple CondVar. It has some limitations e.g. it can not notify other process
+    without waiting a cycle.
+    """
+
+    def __init__(self, notify_prio: bool = False, transparent: bool = True):
+        self.var = False
+        self.notify_prio = notify_prio
+        self.transparent = transparent
+
+    def wait(self):
+        yield Settle()
+        if not self.transparent:
+            yield Settle()
+        while not self.var:
+            yield
+            yield Settle()
+        if self.notify_prio:
+            yield Settle()
+            yield Settle()
+
+    def notify(self):
+        # We need to wait a cycle because we have a race between notify and wait
+        # waiting process could already call the `yield` so it would skip our notification
+        yield
+        self.var = True
+        yield Settle()
+        yield Settle()
+        self.var = False
+
+
+class SimBarrier:
+    """
+    No support for situation, where there can be more process which want to use Barrier
+    that `count`. In other words number of process using this barrier must be `count`.
+    """
+
+    def __init__(self, count):
+        self.count = count
+        self._counter = count
+
+    def wait(self):
+        # allow other processes to leave barrier
+        yield Settle()
+        yield Settle()
+        self._counter -= 1
+        # wait a cycle so that in case when _counter is now 0,
+        # processes inside a loop get this information
+        yield
+        while self._counter > 0:
+            yield
+        # wait till all processes waiting on barrier will be woken up
+        yield Settle()
+        self._counter += 1
 
 
 class CoreblockCommand:
@@ -711,7 +788,7 @@ def def_method_mock(
             tb = getter()
             if isinstance(tb, MethodMock):
                 tb = tb.tb
-            assert isinstance(tb, TestbenchIO)
+            assert isinstance(tb, TestbenchIO), str(type(tb))
             yield from tb.method_handle_loop(f, extra_settle_count=sched_prio, **kw)
 
         return mock

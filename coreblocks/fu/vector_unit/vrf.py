@@ -21,15 +21,18 @@ class VRFFragment(Elaboratable):
 
     Attributes
     ----------
-    write : Method
+    write : Method(one_caller = True)
         Method to write to the physical vector register. Use the `VRFFragmentLayouts.write` layout.
-    read_req : list[Method]
+    read_req : list[Method(one_caller = True)]
         Methods that can be used to issue read requests to physical vector registers.
-    read_resp : list[Method]
+    read_resp : list[Method(one_caller = True)]
         Methods to receive the last issued read for the given physical vector register. This will
         always returns the last results, regardless of which `read_req` method was used to issue the request.
         So it is possible to issue a request using `read_req[0]` and receive results from it using
         `read_resp[1]`.
+    initialise_list : list[Method]
+        List with initialisation methods for register banks, `initialise_list[i]` initialises
+        bank of `i`-th register.
     """
 
     def __init__(self, *, gen_params: GenParams):
@@ -38,7 +41,7 @@ class VRFFragment(Elaboratable):
 
         self.layout = VRFFragmentLayouts(self.gen_params)
 
-        self.read_ports_count = 3
+        self.read_ports_count = 4
         self.read_req = [Method(i=self.layout.read_req) for _ in range(self.read_ports_count)]
         self.read_resp = [
             Method(i=self.layout.read_resp_i, o=self.layout.read_resp_o) for _ in range(self.read_ports_count)
@@ -49,6 +52,7 @@ class VRFFragment(Elaboratable):
 
         self.clear_module = MethodProduct([reg.clear for reg in self.regs])
         self.clear = self.clear_module.method
+        self.initialise_list = [reg.initialise for reg in self.regs]
 
     def elaborate(self, platform):
         m = TModule()
@@ -57,9 +61,9 @@ class VRFFragment(Elaboratable):
         m.submodules.clear_product = self.clear_module
 
         @def_method(m, self.write)
-        def _(vrp_id, addr, data, mask):
+        def _(vrp_id, addr, data, valid_mask):
             for j in condition_switch(m, vrp_id, self.v_params.vrp_count, nonblocking=False):
-                self.regs[j].write(m, data=data, addr=addr, mask=mask)
+                self.regs[j].write(m, data=data, addr=addr, valid_mask=valid_mask)
 
         @loop_def_method(m, self.read_req)
         def _(_, vrp_id, addr):
