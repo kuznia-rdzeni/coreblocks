@@ -175,9 +175,9 @@ class TestCSRUnit(TestCaseWithSimulator):
                     "rp_s1": 0,
                     "rp_s1_reg": 1,
                     "s1_val": 1,
-                    "rp_dst": 2,
+                    "rp_dst": {"id": 2, "type": RegisterType.X},
                     "imm": 0,
-                    "csr": csr,
+                    "imm2": csr,
                     "rob_id": rob_id,
                 }
             )

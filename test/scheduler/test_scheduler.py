@@ -316,7 +316,7 @@ class TestScheduler(TestCaseWithSimulator):
                         "rl_dst": rl_dst,
                         "rp_dst_id": rp_dst_id,
                     }
-                    | get_dict_subset(instr, ["opcode", "exec_fn"])
+                    | get_dict_subset(instr, ["exec_fn"])
                 )
                 self.current_RAT[rl_dst["id"]] = rp_dst_id
 

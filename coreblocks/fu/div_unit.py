@@ -5,7 +5,7 @@ from typing import Sequence, Tuple
 from amaranth import *
 
 from coreblocks.params.fu_params import FunctionalComponentParams
-from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
+from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, CommonLayouts
 from coreblocks.transactions import *
 from coreblocks.transactions.core import def_method
 from coreblocks.transactions.lib import *
@@ -58,7 +58,7 @@ class DivUnit(FuncUnit, Elaboratable):
         m.submodules.params_fifo = params_fifo = FIFO(
             [
                 ("rob_id", self.gen_params.rob_entries_bits),
-                ("rp_dst", self.gen_params.phys_regs_bits),
+                ("rp_dst", self.gen_params.get(CommonLayouts).p_register_entry),
                 ("flip_sign", 1),
                 ("rem_res", 1),
             ],

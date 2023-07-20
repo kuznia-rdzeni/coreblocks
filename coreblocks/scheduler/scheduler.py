@@ -113,7 +113,7 @@ class Renaming(Elaboratable):
 
             renamed_regs = self.get_rename(m, rl_s1=instr.regs_l.s1.id, rl_s2=instr.regs_l.s2.id)
 
-            m.d.comb += assign(data_out, instr, fields={"opcode", "exec_fn", "imm", "imm2", "pc"})
+            m.d.comb += assign(data_out, instr, fields={"exec_fn", "imm", "imm2", "pc"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
             m.d.comb += data_out.regs_p.dst.eq(instr.regs_p.dst)
 
