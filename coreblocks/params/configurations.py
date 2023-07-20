@@ -29,7 +29,9 @@ __all__ = [
 ]
 
 basic_configuration: tuple[fu_params.BlockComponentParams, ...] = (
-    rs_func_block.RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=4),
+    rs_func_block.RSBlockComponent(
+        [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=4
+    ),
     LSUBlockComponent(),
 )
 
