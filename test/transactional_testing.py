@@ -4,7 +4,7 @@ from amaranth import *
 from collections.abc import Callable, Coroutine, Generator, Iterable, Mapping
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Generic, Optional, TypeAlias, TypeVar
+from typing import Any, Generic, Optional, TypeAlias, TypeVar, cast
 
 from amaranth.sim import Settle
 from .common import RecordIntDict, TestGen
@@ -14,8 +14,16 @@ from coreblocks.transactions._utils import method_def_helper
 
 _T = TypeVar("_T")
 TTestGen: TypeAlias = Coroutine["Action | Exit", Any, _T]
+OptSelfCallable: TypeAlias = Callable[[], _T] | Callable[[Any], _T]
 ActionFun: TypeAlias = Callable[[], TestGen[Any] | Any]
 Process: TypeAlias = Callable[[], TTestGen[None]]
+
+
+def opt_self_resolve(func_self: Any, func: OptSelfCallable[_T]) -> Callable[[], _T]:
+    if func_self is None:
+        return cast(Any, func)
+    else:
+        return func.__get__(func_self)
 
 
 class ActionKind(Enum):
@@ -239,23 +247,26 @@ class Sim:
 
 
 def def_method_mock(
-    tb_getter: Callable[[], AdapterBase] | Callable[[Any], AdapterBase]
+    tb_getter: OptSelfCallable[AdapterBase], *, enable: Optional[OptSelfCallable[TTestGen[bool]]] = None
 ) -> Callable[[Callable[..., TTestGen[Optional[RecordIntDict]]]], Process]:
     def decorator(func: Callable[..., TTestGen[Optional[RecordIntDict]]]) -> Process:
         @functools.wraps(func)
         async def mock(func_self=None, /):
-            f = func
-            getter: Any = tb_getter
-            if func_self is not None:
-                getter = getter.__get__(func_self)
-                f = f.__get__(func_self)
-            adapter = getter()
+            r_func = opt_self_resolve(func_self, func)
+            r_getter = opt_self_resolve(func_self, tb_getter)
+            r_enable = opt_self_resolve(func_self, enable) if enable is not None else None
+
+            adapter = r_getter()
             assert isinstance(adapter, AdapterBase)
+
+            if r_enable is not None and not await r_enable():
+                await Sim.set(adapter.en, 0)
+                return
 
             await Sim.set(adapter.en, 1)
             if await Sim.get(adapter.done):
                 arg = await Sim.get_record(adapter.data_out)
-                res = await method_def_helper(adapter, f, **arg)
+                res = await method_def_helper(adapter, r_func, **arg)
                 await Sim.set_record(adapter.data_in, res or {})
 
         return mock
