@@ -1,8 +1,7 @@
-
 import functools
 from collections import defaultdict, deque
 from amaranth import *
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Coroutine, Generator, Iterable, Mapping
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, Generic, Optional, TypeAlias, TypeVar
@@ -10,10 +9,11 @@ from typing import Any, Generic, Optional, TypeAlias, TypeVar
 from amaranth.sim import Settle
 from .common import RecordIntDict, TestGen
 from coreblocks.transactions.lib import AdapterBase
+from coreblocks.transactions._utils import method_def_helper
 
 
 _T = TypeVar("_T")
-TTestGen: TypeAlias = Generator["Action | Exit", Any, _T]
+TTestGen: TypeAlias = Coroutine["Action | Exit", Any, _T]
 ActionFun: TypeAlias = Callable[[], TestGen[Any] | Any]
 Process: TypeAlias = Callable[[], TTestGen[None]]
 
@@ -25,13 +25,18 @@ class ActionKind(Enum):
     PUT_FINAL = auto()
 
 
+class SelfAwaitable:
+    def __await__(self):
+        return (yield self)
+
+
 @dataclass
-class Exit:
+class Exit(SelfAwaitable):
     pass
 
 
 @dataclass
-class Action:
+class Action(SelfAwaitable):
     kind: ActionKind
     subject: Any
     action: ActionFun
@@ -41,38 +46,41 @@ class SimFIFO(Generic[_T]):
     def __init__(self, init: Iterable[_T] = ()):
         self._queue = deque(init)
 
-    def push(self, value: _T) -> TTestGen[None]:
+    async def push(self, value: _T) -> None:
         def action():
             self._queue.append(value)
-        yield Action(ActionKind.PUT_FINAL, self._queue, action)
 
-    def empty(self) -> TTestGen[bool]:
-        return (yield Action(ActionKind.GET, self, lambda: bool(self._queue)))
+        await Action(ActionKind.PUT_FINAL, self._queue, action)
 
-    def peek(self) -> TTestGen[_T]:
-        return (yield Action(ActionKind.GET, self, lambda: self._queue[0]))
+    async def empty(self) -> bool:
+        return await Action(ActionKind.GET, self, lambda: bool(self._queue))
 
-    def pop(self) -> TTestGen[_T]:
+    async def peek(self) -> _T:
+        return await Action(ActionKind.GET, self, lambda: self._queue[0])
+
+    async def pop(self) -> _T:
         def complete():
             self._queue.popleft()
-        yield Action(ActionKind.GET_COMPLETE, self._queue, complete)
-        return (yield Action(ActionKind.GET, self, lambda: self._queue[0]))
+
+        await Action(ActionKind.GET_COMPLETE, self._queue, complete)
+        return await Action(ActionKind.GET, self, lambda: self._queue[0])
 
 
 class SimSignal(Generic[_T]):
     def __init__(self):
         self._value = None
 
-    def get(self) -> TTestGen[_T]:
-        return (yield Action(ActionKind.GET, self, lambda: self._value))
+    async def get(self) -> _T:
+        return await Action(ActionKind.GET, self, lambda: self._value)
 
-    def set(self, value: _T, *, final: bool = False) -> TTestGen[None]:
+    async def set(self, value: _T, *, final: bool = False) -> None:
         def action():
             self._value = value
-        yield Action(ActionKind.PUT_FINAL if final else ActionKind.PUT, self, action)
 
-    def set_final(self, value: _T) -> TTestGen[None]:
-        return self.set(value, final=True)
+        await Action(ActionKind.PUT_FINAL if final else ActionKind.PUT, self, action)
+
+    async def set_final(self, value: _T) -> None:
+        await self.set(value, final=True)
 
 
 class Sim:
@@ -109,20 +117,20 @@ class Sim:
             # Processes ready for execution.
             to_run = deque(active)
 
-            def restart_processes(processes: Iterable[int]):
+            def restart_processes(processes: set[int]):
                 nonlocal already_run
-                to_run.extend(gets[id(subject)])
-                for i in gets[id(subject)]:
+                to_run.extend(processes)
+                for i in processes:
                     del put_finals[i]
                     del get_completes[i]
                     exits.remove(i)
-                already_run = [i for i in already_run if i not in gets[id(subject)]]
+                already_run = [i for i in already_run if i not in processes]
 
             def perform_settle():
                 yield Settle()
                 to_restart = set[int]()
                 for subject, v in get_results.items():
-                    new_v = (yield subject)
+                    new_v = yield subject
                     if new_v != v:
                         get_results[subject] = new_v
                         to_restart.update(gets[id(subject)])
@@ -146,7 +154,7 @@ class Sim:
                                 if isinstance(subject, Value) and need_settle:
                                     need_settle = False
                                     yield from perform_settle()
-                                to_send = (yield from run_action(action))
+                                to_send = yield from run_action(action)
                                 if isinstance(subject, Value):
                                     get_results[subject] = to_send
                             case Action(ActionKind.PUT, subject, action):
@@ -189,32 +197,53 @@ class Sim:
             yield
 
     @staticmethod
-    def exit() -> TTestGen[Any]:
+    async def exit() -> Any:
         yield Exit()
 
     @staticmethod
-    def get(value: Value) -> TTestGen[int]:
+    async def get(value: Value) -> int:
         def action():
             return (yield value)
-        return (yield Action(ActionKind.GET, value, action))
+
+        return await Action(ActionKind.GET, value, action)
 
     @staticmethod
-    def set(signal: Signal, value: int, *, final: bool = False) -> TTestGen[None]:
+    async def set(signal: Signal, value: int, *, final: bool = False) -> None:
         def action():
             yield signal.eq(value)
-        yield Action(ActionKind.PUT_FINAL if final else ActionKind.PUT, signal, action)
+
+        await Action(ActionKind.PUT_FINAL if final else ActionKind.PUT, signal, action)
 
     @staticmethod
-    def set_final(signal: Signal, value: int) -> TTestGen[None]:
-        return Sim.set(signal, value, final=True)
+    async def set_final(signal: Signal, value: int) -> None:
+        await Sim.set(signal, value, final=True)
+
+    @staticmethod
+    async def get_record(rec: Record) -> RecordIntDict:
+        result = {}
+        for name, _, _ in rec.layout:
+            val = getattr(rec, name)
+            if isinstance(val, Signal):
+                result[name] = await Sim.get(val)
+            else:  # field is a Record
+                result[name] = await Sim.get_record(val)
+        return result
+
+    @staticmethod
+    async def set_record(rec: Record, values: RecordIntDict) -> None:
+        for name, value in values.items():
+            if isinstance(value, Mapping):
+                await Sim.set_record(getattr(rec, name), value)
+            else:
+                await Sim.set(getattr(rec, name), value)
 
 
 def def_method_mock(
     tb_getter: Callable[[], AdapterBase] | Callable[[Any], AdapterBase]
-) -> Callable[[Callable[..., Optional[RecordIntDict]]], Process]:
-    def decorator(func: Callable[..., Optional[RecordIntDict]]) -> Process:
+) -> Callable[[Callable[..., TTestGen[Optional[RecordIntDict]]]], Process]:
+    def decorator(func: Callable[..., TTestGen[Optional[RecordIntDict]]]) -> Process:
         @functools.wraps(func)
-        def mock(func_self=None, /):
+        async def mock(func_self=None, /):
             f = func
             getter: Any = tb_getter
             if func_self is not None:
@@ -222,8 +251,13 @@ def def_method_mock(
                 f = f.__get__(func_self)
             adapter = getter()
             assert isinstance(adapter, AdapterBase)
-            
-            yield from Sim.set(adapter.en, 1)
+
+            await Sim.set(adapter.en, 1)
+            if await Sim.get(adapter.done):
+                arg = await Sim.get_record(adapter.data_out)
+                res = await method_def_helper(adapter, f, **arg)
+                await Sim.set_record(adapter.data_in, res or {})
 
         return mock
+
     return decorator
