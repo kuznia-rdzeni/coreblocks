@@ -13,6 +13,19 @@ __all__ = ["VectorInsertToVVRS"]
 
 
 class VectorInsertToVVRS(Elaboratable):
+    """
+    Module responsible for inserting instructions into the VVRS. It takes
+    an instruction from the `VectorFrontend`, checks the readiness of its
+    operands (with forward from the VVRS update method) and inserts them
+    into the VVRS.
+
+    Attributes
+    ----------
+    issue : Method
+        Called to give the VVRS a new instruction to insert.
+    update : Method
+        The method to be called for each update in the VVRS.
+    """
     def __init__(
         self,
         gen_params: GenParams,
@@ -21,6 +34,21 @@ class VectorInsertToVVRS(Elaboratable):
         scoreboard_get_list: list[Method],
         scoreboard_set: Method,
     ):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        select : Method
+            The method to retrieve an empty register entry id from the VVRS.
+        insert : Method
+            Called to insert a new instruction into the VVRS.
+        scoreboard_get_list : list[Method]
+            Methods used to read the current state of readiness from the
+            scoreboard.  It should contain at least 4 items.
+        scoreboard_set : Method
+            Used to mark a register as dirty.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.select = select

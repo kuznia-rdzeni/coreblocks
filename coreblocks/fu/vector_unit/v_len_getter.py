@@ -9,7 +9,29 @@ __all__ = ["VectorLenGetter"]
 
 
 class VectorLenGetter(Elaboratable):
+    """ Calculate number of entries to download from vector registry
+
+    This module takes a `vl` set in vector status and a register bank id
+    and calculates based on that the number of entries (each ELEN width) rounded
+    up to download from registers in that bank.
+
+    In addition, it produces a mask in the elems format, indicating which elements
+    from the last entry are valid.
+
+    Attributes
+    ----------
+    issue : Method
+        Used to request a calculation of the elens length.
+    """
     def __init__(self, gen_params: GenParams, fragment_index: int):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core configuration.
+        fragment_index : int
+            Index of the register bank for which calculations are to be performed.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.fragment_index = fragment_index
