@@ -13,7 +13,7 @@ from coreblocks.transactions._utils import method_def_helper
 
 
 _T = TypeVar("_T")
-TTestGen: TypeAlias = Coroutine["Action | Exit | Skip | Passive", Any, _T]
+TTestGen: TypeAlias = Coroutine["Action | Exit | Skip | Wait | Passive", Any, _T]
 OptSelfCallable: TypeAlias = Callable[[], _T] | Callable[[Any], _T]
 ActionFun: TypeAlias = Callable[[], TestGen[Any] | Any]
 Process: TypeAlias = Callable[[], TTestGen[None]]
@@ -45,6 +45,11 @@ class Exit(SelfAwaitable):
 
 @dataclass
 class Skip(SelfAwaitable):
+    pass
+
+
+@dataclass
+class Wait(SelfAwaitable):
     pass
 
 
@@ -137,14 +142,16 @@ class Sim:
             get_completes = defaultdict[int, list[Action]](list)
             exits = set[int]()
             passives = set[int]()
-            # Which processes were started. If a process needs to be restarted, it is removed from this list.
-            already_run = list[int]()
             # Processes ready for execution.
-            to_run = deque(active)
+            to_run = deque[tuple[int, TTestGen[None]]]()
+            # Suspended processes.
+            suspended = dict[int, TTestGen[None]]()
+
+            def schedule(processes: Iterable[int]):
+                to_run.extend((process, process_map[process]()) for process in processes)
 
             def restart_processes(processes: set[int]):
-                nonlocal already_run
-                to_run.extend(processes)
+                schedule(processes)
                 for i in processes:
                     if i in put_finals:
                         del put_finals[i]
@@ -154,7 +161,9 @@ class Sim:
                         exits.remove(i)
                     if i in passives:
                         passives.remove(i)
-                already_run = [i for i in already_run if i not in processes]
+                    if i in suspended:
+                        suspended[i].close()
+                        del suspended[i]
 
             def perform_settle():
                 yield Settle()
@@ -166,10 +175,10 @@ class Sim:
                         to_restart.update(gets[subject])
                 restart_processes(to_restart)
 
+            schedule(active)
+
             while to_run:
-                process = to_run.popleft()
-                already_run.append(process)
-                running = process_map[process]()
+                process, running = to_run.popleft()
                 to_send = None
                 try:
                     while True:
@@ -179,6 +188,9 @@ class Sim:
                                 passives.add(process)
                             case Skip():
                                 running.close()
+                                break
+                            case Wait():
+                                suspended[process] = running
                                 break
                             case Exit():
                                 exits.add(process)
@@ -209,6 +221,9 @@ class Sim:
                     pass
                 if not to_run and need_settle:
                     yield from perform_settle()
+                if not to_run and suspended:
+                    to_run.extend(suspended.items())
+                    suspended = {}
 
             get_completes_subjects = set[int]()
             for i, cmds in get_completes.items():
@@ -225,10 +240,7 @@ class Sim:
                     puts[id(cmd.subject)] = i
                     yield from run_action(cmd.action)
 
-            # In next iteration, run processes in the order they were run in this one.
-            # Hopefully this reduces the number of process restarts.
-            active = [i for i in already_run if i not in exits]
-
+            active = [i for i in active if i not in exits]
             run = any(i not in passives for i in active)
 
             yield
