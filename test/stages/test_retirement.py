@@ -9,7 +9,6 @@ from coreblocks.params.configurations import test_core_config
 
 from ..common import *
 from ..transactional_testing import Exit, Sim, SimFIFO, SimSignal, Wait
-from collections import deque
 import random
 
 
@@ -145,5 +144,15 @@ class RetirementTest(TestCaseWithSimulator):
             return {"cause": 0, "rob_id": 0}  # keep exception cause method enabled
 
         with self.run_simulation(retc) as sim:
-            tsim = Sim([retire_process, peek_process, rf_free_process, precommit_process, exception_cause_process, free_reg_process, rat_process])
+            tsim = Sim(
+                [
+                    retire_process,
+                    peek_process,
+                    rf_free_process,
+                    precommit_process,
+                    exception_cause_process,
+                    free_reg_process,
+                    rat_process,
+                ]
+            )
             sim.add_sync_process(tsim.process)
