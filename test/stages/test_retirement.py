@@ -8,6 +8,7 @@ from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, Sche
 from coreblocks.params.configurations import test_core_config
 
 from ..common import *
+from ..transactional_testing import Exit, Sim, SimFIFO, SimSignal, Wait
 from collections import deque
 import random
 
@@ -30,30 +31,30 @@ class RetirementTestCircuit(Elaboratable):
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
 
-        m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(Adapter(o=rob_layouts.peek_layout))
+        m.submodules.mock_rob_peek = self.mock_rob_peek = Adapter(o=rob_layouts.peek_layout)
 
-        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.retire_layout))
+        m.submodules.mock_rob_retire = self.mock_rob_retire = Adapter(o=rob_layouts.retire_layout)
 
-        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
+        m.submodules.mock_rf_free = self.mock_rf_free = Adapter(i=rf_layouts.rf_free)
 
-        m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
+        m.submodules.mock_precommit = self.mock_precommit = Adapter(i=lsu_layouts.precommit)
 
-        m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(Adapter(o=exception_layouts.get))
+        m.submodules.mock_exception_cause = self.mock_exception_cause = Adapter(o=exception_layouts.get)
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
         self.gen_params.get(DependencyManager).add_dependency(GenericCSRRegistersKey(), self.generic_csr)
 
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
-            rob_retire=self.mock_rob_retire.adapter.iface,
-            rob_peek=self.mock_rob_peek.adapter.iface,
+            rob_retire=self.mock_rob_retire.iface,
+            rob_peek=self.mock_rob_peek.iface,
             r_rat_commit=self.rat.commit,
             free_rf_put=self.free_rf.write,
-            rf_free=self.mock_rf_free.adapter.iface,
-            precommit=self.mock_precommit.adapter.iface,
-            exception_cause_get=self.mock_exception_cause.adapter.iface,
+            rf_free=self.mock_rf_free.iface,
+            precommit=self.mock_precommit.iface,
+            exception_cause_get=self.mock_exception_cause.iface,
         )
 
-        m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
+        m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = AdapterTrans(self.free_rf.read)
 
         return m
 
@@ -61,11 +62,11 @@ class RetirementTestCircuit(Elaboratable):
 class RetirementTest(TestCaseWithSimulator):
     def setUp(self):
         self.gen_params = GenParams(test_core_config)
-        self.rf_exp_q = deque()
-        self.rat_map_q = deque()
-        self.submit_q = deque()
-        self.rf_free_q = deque()
-        self.precommit_q = deque()
+        self.rf_exp_q = SimFIFO()
+        self.rat_map_q = SimFIFO()
+        self.submit_q = SimFIFO()
+        self.rf_free_q = SimFIFO()
+        self.precommit_q = SimFIFO()
 
         random.seed(8)
         self.cycles = 256
@@ -78,12 +79,12 @@ class RetirementTest(TestCaseWithSimulator):
             rob_id = random.randrange(2**self.gen_params.rob_entries_bits)
             if rl != 0:
                 if rat_state[rl] != 0:  # phys reg 0 shouldn't be marked as free
-                    self.rf_exp_q.append(rat_state[rl])
-                self.rf_free_q.append(rat_state[rl])
+                    self.rf_exp_q.init_push(rat_state[rl])
+                self.rf_free_q.init_push(rat_state[rl])
                 rat_state[rl] = rp
-                self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
-                self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id, "exception": 0})
-                self.precommit_q.append(rob_id)
+                self.rat_map_q.init_push({"rl_dst": rl, "rp_dst": rp})
+                self.submit_q.init_push({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id, "exception": 0})
+                self.precommit_q.init_push(rob_id)
             # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
@@ -91,50 +92,58 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
-        @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q), sched_prio=1)
-        def retire_process():
-            return self.submit_q.popleft()
+        @Sim.def_method_mock(lambda: retc.mock_rob_retire, enable=self.submit_q.not_empty)
+        async def retire_process():
+            return await self.submit_q.pop()
 
         # TODO: mocking really seems to dislike nonexclusive methods for some reason
-        @def_method_mock(lambda: retc.mock_rob_peek, enable=lambda: bool(self.submit_q))
-        def peek_process():
-            return self.submit_q[0]
+        @Sim.def_method_mock(lambda: retc.mock_rob_peek, enable=self.submit_q.not_empty)
+        async def peek_process():
+            return await self.submit_q.peek()
 
-        def free_reg_process():
-            while self.rf_exp_q:
-                reg = yield from retc.free_rf_adapter.call()
-                self.assertEqual(reg["reg_id"], self.rf_exp_q.popleft())
+        async def free_reg_process():
+            if await self.rf_exp_q.not_empty():
+                reg = await Sim.call(retc.free_rf_adapter)
+                await Wait()
+                self.assertEqual(reg["reg_id"], await self.rf_exp_q.pop())
+            else:
+                await Exit()
 
-        def rat_process():
-            while self.rat_map_q:
-                current_map = self.rat_map_q.popleft()
-                wait_cycles = 0
-                # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
-                while (yield retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
-                    wait_cycles += 1
-                    if wait_cycles >= self.cycles + 10:
+        wait_cycles = SimSignal(0)
+
+        # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
+        async def rat_process():
+            nonlocal wait_cycles
+            if await self.rat_map_q.not_empty():
+                current_map = await self.rat_map_q.peek()
+                val = await Sim.get(retc.rat.entries[current_map["rl_dst"]])
+                await Wait()
+                if val == current_map["rp_dst"]:
+                    await self.rat_map_q.pop()
+                    await wait_cycles.set_final(0)
+                else:
+                    await wait_cycles.set_final(await wait_cycles.get())
+                    if await wait_cycles.get() >= self.cycles + 10:
                         self.fail("RAT entry was not updated")
-                    yield
-            self.assertFalse(self.submit_q)
-            self.assertFalse(self.rf_free_q)
+            else:
+                self.assertFalse(await self.submit_q.not_empty())
+                self.assertFalse(await self.rf_free_q.not_empty())
+                await Exit()
 
-        @def_method_mock(lambda: retc.mock_rf_free, sched_prio=2)
-        def rf_free_process(reg_id):
-            self.assertEqual(reg_id, self.rf_free_q.popleft())
+        @Sim.def_method_mock(lambda: retc.mock_rf_free)
+        async def rf_free_process(reg_id):
+            await Wait()
+            self.assertEqual(reg_id, await self.rf_free_q.pop())
 
-        @def_method_mock(lambda: retc.mock_precommit, sched_prio=2)
-        def precommit_process(rob_id):
-            self.assertEqual(rob_id, self.precommit_q.popleft())
+        @Sim.def_method_mock(lambda: retc.mock_precommit)
+        async def precommit_process(rob_id):
+            await Wait()
+            self.assertEqual(rob_id, await self.precommit_q.pop())
 
-        @def_method_mock(lambda: retc.mock_exception_cause)
-        def exception_cause_process():
+        @Sim.def_method_mock(lambda: retc.mock_exception_cause)
+        async def exception_cause_process():
             return {"cause": 0, "rob_id": 0}  # keep exception cause method enabled
 
         with self.run_simulation(retc) as sim:
-            sim.add_sync_process(retire_process)
-            sim.add_sync_process(peek_process)
-            sim.add_sync_process(free_reg_process)
-            sim.add_sync_process(rat_process)
-            sim.add_sync_process(rf_free_process)
-            sim.add_sync_process(precommit_process)
-            sim.add_sync_process(exception_cause_process)
+            tsim = Sim([retire_process, peek_process, rf_free_process, precommit_process, exception_cause_process, free_reg_process, rat_process])
+            sim.add_sync_process(tsim.process)

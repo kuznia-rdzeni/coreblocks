@@ -1,10 +1,10 @@
 import functools
 from collections import defaultdict, deque
 from amaranth import *
-from collections.abc import Callable, Coroutine, Generator, Iterable, Mapping
+from collections.abc import Awaitable, Callable, Coroutine, Generator, Iterable, Mapping
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Generic, Optional, TypeAlias, TypeVar, cast
+from typing import Any, ClassVar, Generic, Optional, TypeAlias, TypeVar, cast
 
 from amaranth.sim import Settle
 from .common import RecordIntDict, RecordIntDictRet, TestGen
@@ -69,6 +69,14 @@ class SimFIFO(Generic[_T]):
     def __init__(self, init: Iterable[_T] = ()):
         self._queue = deque(init)
 
+    def __bool__(self):
+        raise TypeError("Attempted to convert SimFIFO to boolean")
+
+    def init_push(self, value: _T) -> None:
+        if Sim._is_running:
+            raise RuntimeError("SimFifo.init_push should not be used inside simulation")
+        self._queue.append(value)
+
     async def push(self, value: _T) -> None:
         def action():
             self._queue.append(value)
@@ -77,6 +85,9 @@ class SimFIFO(Generic[_T]):
 
     async def empty(self) -> bool:
         return await Action(ActionKind.GET, self, lambda: not self._queue)
+
+    async def not_empty(self) -> bool:
+        return await Action(ActionKind.GET, self, lambda: bool(self._queue))
 
     async def peek(self) -> _T:
         return await Action(ActionKind.GET, self, lambda: self._queue[0])
@@ -95,8 +106,11 @@ class SimFIFO(Generic[_T]):
 
 
 class SimSignal(Generic[_T]):
-    def __init__(self):
-        self._value = None
+    def __init__(self, init: _T):
+        self._value = init
+
+    def __bool__(self):
+        raise TypeError("Attempted to convert SimSignal to boolean")
 
     async def get(self) -> _T:
         return await Action(ActionKind.GET, self, lambda: self._value)
@@ -112,6 +126,8 @@ class SimSignal(Generic[_T]):
 
 
 class Sim:
+    _is_running: ClassVar[bool] = False
+
     def __init__(self, processes: Iterable[Callable[[], TTestGen[None]]]):
         self.processes = list(processes)
 
@@ -182,7 +198,10 @@ class Sim:
                 to_send = None
                 try:
                     while True:
+                        Sim._is_running = True
                         cmd = running.send(to_send)
+                        Sim._is_running = False
+
                         match cmd:
                             case Passive():
                                 passives.add(process)
@@ -312,6 +331,11 @@ class Sim:
             assert False
         else:
             return result
+
+    @staticmethod
+    async def with_wait(awaitable: Awaitable[_T]) -> _T:
+        await Wait()
+        return await awaitable
 
     @staticmethod
     def def_method_mock(
