@@ -34,6 +34,7 @@ __all__ = [
     "condition",
     "connected_conditions",
     "condition_switch",
+    "def_one_caller_wrapper",
     "AnyToAnySimpleRoutingBlock",
     "OmegaRoutingNetwork",
     "PriorityOrderingTransProxyTrans",

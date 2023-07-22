@@ -69,6 +69,9 @@ class VectorExecutor(Elaboratable):
         self.initialise_regs = [
             Method(i=self.vreg_layout.initialise, name=f"initialise{i}") for i in range(self.v_params.vrp_count)
         ]
+        self.write_vrf = Method(i = self.vrf_layout.write)
+        self.read_req = Method(i = self.vrf_layout.read_req)
+        self.read_resp = Method(o = self.vrf_layout.read_resp_o)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -94,12 +97,16 @@ class VectorExecutor(Elaboratable):
         )
 
         vrf_buffors = [BufferedReqResp(vrf.read_req[i], vrf.read_resp[i], 4, (self.vrf_layout.read_req, lambda _, arg: {"vrp_id" : arg.vrp_id})) for i in range(vrf.read_ports_count)]
+        serializers = [Serializer(port_count = 2, serialized_req_method = vrf_buffors[i].req, serialized_resp_method = vrf_buffors[i].resp) for i in range(vrf.read_ports_count)]
+        write_wrapper = def_one_caller_wrapper(vrf.write, self.write_vrf)
 
-        downloader = VectorElemsDownloader(self.gen_params, [b.req for b in vrf_buffors], [b.resp for b in vrf_buffors], splitter.issue)
-        uploader = VectorElemsUploader(self.gen_params, vrf.write, old_dst_fifo.read, mask_out_fifo.read, self.end)
+        downloader = VectorElemsDownloader(self.gen_params, [ser.serialize_in[0] for ser in serializers], [ser.serialize_out[0] for ser in serializers], splitter.issue)
+        uploader = VectorElemsUploader(self.gen_params,self.write_vrf, old_dst_fifo.read, mask_out_fifo.read, self.end)
 
         issue_connect = Connect(self.layouts.executor_in)
         self.issue.proxy(m, issue_connect.write)
+        self.read_req.proxy(m, serializers[2].serialize_in[1])
+        self.read_resp.proxy(m, serializers[2].serialize_out[1])
 
         connect_input_data = Transaction(name="connect_input_data")
         with connect_input_data.body(m, request=~end_pending_to_report):
@@ -154,5 +161,7 @@ class VectorExecutor(Elaboratable):
         m.submodules.connect_alu_in = connect_alu_in
         m.submodules.connect_alu_out = connect_alu_out
         m.submodules.vrf_buffors = ModuleConnector(*vrf_buffors)
+        m.submodules.serializers = ModuleConnector(*serializers)
+        m.submodules.write_wrapper = write_wrapper
 
         return m
