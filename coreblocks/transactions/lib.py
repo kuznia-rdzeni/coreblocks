@@ -45,6 +45,8 @@ __all__ = [
     "DownCounter",
     "Barrier",
     "ContentAddressableMemory",
+    "BufferedMethodCall",
+    "BufferedReqResp",
 ]
 
 # FIFOs
@@ -2056,5 +2058,63 @@ class ContentAddressableMemory(Elaboratable):
             return {"data": data_to_send, "not_found": ~if_addr.any()}
 
         m.d.comb += encoder_addr.input.eq(if_addr)
+
+        return m
+
+class BufferedMethodCall(Elaboratable):
+    def __init__(self, called_method : Method, buffor_depth : int = 2):
+        self.called_method = called_method
+        self.buffor_depth = buffor_depth
+
+        self.call_in = Method(i = self.called_method.data_in.layout)
+        self.call_out = Method(o = self.called_method.data_out.layout)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        fifo_in = BasicFifo(self.called_method.data_in.layout, self.buffor_depth)
+        #TODO add posibility to use outside buffor to reduce latency
+        fifo_out = BasicFifo(self.called_method.data_out.layout, self.buffor_depth)
+
+        self.call_in.proxy(m, fifo_in.write)
+        self.call_out.proxy(m, fifo_out.read)
+
+        with Transaction().body(m):
+            fifo_out.write(m, self.called_method(m, fifo_in.read(m)))
+
+        m.submodules.fifo_in = fifo_in
+        m.submodules.fifo_out = fifo_out
+        return m
+
+class BufferedReqResp(Elaboratable):
+    def __init__(self, req_method : Method, resp_method : Method, buffor_depth : int = 2, resp_in_transform : Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None):
+        self.req_method = req_method
+        self.resp_method = resp_method
+        self.buffor_depth = buffor_depth
+        self.resp_in_transform = resp_in_transform
+
+        self.req = Method(i = self.req_method.data_in.layout)
+        self.resp = Method(o = self.resp_method.data_out.layout)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        fifo_req = BasicFifo(self.req_method.data_in.layout, 2)
+        buffered_resp = BufferedMethodCall(self.resp_method, self.buffor_depth)
+        resp_in_transformer = MethodTransformer(buffered_resp.call_in, i_transform = self.resp_in_transform)
+
+        with Transaction().body(m):
+            self.req_method(m, fifo_req.read(m))
+
+        @def_method(m, self.req)
+        def _(arg):
+            fifo_req.write(m, arg)
+            resp_in_transformer.method(m, arg)
+
+        self.resp.proxy(m, buffered_resp.call_out)
+
+        m.submodules.fifo_req = fifo_req
+        m.submodules.buffered_resp = buffered_resp
+        m.submodules.resp_in_transformer = resp_in_transformer
 
         return m

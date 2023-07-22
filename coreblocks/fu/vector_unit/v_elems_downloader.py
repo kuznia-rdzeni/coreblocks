@@ -82,22 +82,13 @@ class VectorElemsDownloader(Elaboratable):
         )
         m.d.top_comb += Cat(uniqness_checker.input_valids).eq(needed_signals)
 
-        fifos_to_vrf = [FIFO(self.vrf_layout.read_req, 2) for _ in range(regs_number)]
-        m.submodules.fifos_to_vrf = ModuleConnector(*fifos_to_vrf)
-
-        fifos_to_resp_in = [FIFO(self.vrf_layout.read_resp_i, 4) for _ in range(regs_number)]
-        m.submodules.fifos_to_resp_in = ModuleConnector(*fifos_to_resp_in)
+        vrf_buffors = [BufferedReqResp(self.read_req_list[i].method, self.read_resp_list[i].method, 4, (self.vrf_layout.read_req, lambda _, arg: {"vrp_id" : arg.vrp_id})) for i in range(regs_number)]
+        m.submodules.vrf_buffors = ModuleConnector(*vrf_buffors)
 
         barrier = Barrier(self.vrf_layout.read_resp_o, regs_number)
         m.submodules.barrier = barrier
 
-        m.submodules.connect_req = ModuleConnector(
-            *[ConnectTrans(fifos_to_vrf[i].read, self.read_req_list[i].method) for i in range(regs_number)]
-        )
-        for i in range(regs_number):
-            with Transaction().body(m):
-                arg = fifos_to_resp_in[i].read(m)
-                barrier.write_list[i](m, self.read_resp_list[i].method(m, arg))
+        m.submodules.connect_barrier = ModuleConnector(*[ConnectTrans(vrf_buffors[i].resp, barrier.write_list[i]) for i in range(regs_number)])
 
         with Transaction(name="downloader_request_trans").body(m, request=instr_valid & (req_counter != 0)):
             addr = Signal(range(self.v_params.elens_in_bank))
@@ -106,8 +97,7 @@ class VectorElemsDownloader(Elaboratable):
                 with m.If(uniqness_checker.valids[i]):
                     vrp_id = Signal(self.v_params.vrp_count_bits)
                     m.d.comb += vrp_id.eq(instr[field_name])
-                    fifos_to_vrf[i].write(m, vrp_id=vrp_id, addr=addr)
-                    fifos_to_resp_in[i].write(m, vrp_id=vrp_id)
+                    vrf_buffors[i].req(m, vrp_id=vrp_id, addr=addr)
             m.d.sync += req_counter.eq(addr)
 
         data_to_fu = Record(self.layouts.downloader_data_out)

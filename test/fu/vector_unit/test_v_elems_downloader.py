@@ -22,7 +22,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
                 vector_config=VectorUnitConfiguration(vrp_count=self.vrp_count, _vrl_count=7)
             )
         )
-        self.test_number = 30
+        self.test_number = 50
         self.v_params = self.gen_params.v_params
 
         self.layout = VectorBackendLayouts(self.gen_params)
