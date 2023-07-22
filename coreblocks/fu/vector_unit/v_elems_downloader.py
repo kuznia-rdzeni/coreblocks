@@ -41,17 +41,17 @@ class VectorElemsDownloader(Elaboratable):
             Core configuration.
         read_req_list : list[Method]
             List of methods used to send requests to the vector register file.
-            There should be at least 4 entries.
+            These methods should be already buffered. There should be at least 4 entries.
         read_resp_list : list[Method]
-            List of methods used to read the response to the requests
+            List of buffered methods used to read the response to the requests
             previously send to VRF. There should be at least 4 entries.
         send_to_fu : Method
             The method called to pass the downloaded data to the vector FU.
         """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
-        self.read_req_list = [NotMethod(m) for m in read_req_list]
-        self.read_resp_list = [NotMethod(m) for m in read_resp_list]
+        self.read_req_list = read_req_list
+        self.read_resp_list = read_resp_list
         self.send_to_fu = send_to_fu
 
         self.layouts = VectorBackendLayouts(self.gen_params)
@@ -82,13 +82,11 @@ class VectorElemsDownloader(Elaboratable):
         )
         m.d.top_comb += Cat(uniqness_checker.input_valids).eq(needed_signals)
 
-        vrf_buffors = [BufferedReqResp(self.read_req_list[i].method, self.read_resp_list[i].method, 4, (self.vrf_layout.read_req, lambda _, arg: {"vrp_id" : arg.vrp_id})) for i in range(regs_number)]
-        m.submodules.vrf_buffors = ModuleConnector(*vrf_buffors)
-
         barrier = Barrier(self.vrf_layout.read_resp_o, regs_number)
         m.submodules.barrier = barrier
 
-        m.submodules.connect_barrier = ModuleConnector(*[ConnectTrans(vrf_buffors[i].resp, barrier.write_list[i]) for i in range(regs_number)])
+        # TODO Use barrier dirrectly inside BufferedReqResp to reduce latency
+        m.submodules.connect_barrier = ModuleConnector(*[ConnectTrans(self.read_resp_list[i], barrier.write_list[i]) for i in range(regs_number)])
 
         with Transaction(name="downloader_request_trans").body(m, request=instr_valid & (req_counter != 0)):
             addr = Signal(range(self.v_params.elens_in_bank))
@@ -97,7 +95,7 @@ class VectorElemsDownloader(Elaboratable):
                 with m.If(uniqness_checker.valids[i]):
                     vrp_id = Signal(self.v_params.vrp_count_bits)
                     m.d.comb += vrp_id.eq(instr[field_name])
-                    vrf_buffors[i].req(m, vrp_id=vrp_id, addr=addr)
+                    self.read_req_list[i](m, vrp_id=vrp_id, addr=addr)
             m.d.sync += req_counter.eq(addr)
 
         data_to_fu = Record(self.layouts.downloader_data_out)

@@ -63,6 +63,7 @@ class VectorExecutor(Elaboratable):
         self.layouts = VectorBackendLayouts(self.gen_params)
         self.alu_layouts = VectorAluLayouts(self.gen_params)
         self.vreg_layout = VectorRegisterBankLayouts(self.gen_params)
+        self.vrf_layout = VRFFragmentLayouts(self.gen_params)
 
         self.issue = Method(i=self.layouts.executor_in)
         self.initialise_regs = [
@@ -91,7 +92,10 @@ class VectorExecutor(Elaboratable):
         splitter = VectorExecutionDataSplitter(
             self.gen_params, fu_in_fifo.write, old_dst_fifo.write, mask_in_fifo.write
         )
-        downloader = VectorElemsDownloader(self.gen_params, vrf.read_req, vrf.read_resp, splitter.issue)
+
+        vrf_buffors = [BufferedReqResp(vrf.read_req[i], vrf.read_resp[i], 4, (self.vrf_layout.read_req, lambda _, arg: {"vrp_id" : arg.vrp_id})) for i in range(vrf.read_ports_count)]
+
+        downloader = VectorElemsDownloader(self.gen_params, [b.req for b in vrf_buffors], [b.resp for b in vrf_buffors], splitter.issue)
         uploader = VectorElemsUploader(self.gen_params, vrf.write, old_dst_fifo.read, mask_out_fifo.read, self.end)
 
         issue_connect = Connect(self.layouts.executor_in)
@@ -149,5 +153,6 @@ class VectorExecutor(Elaboratable):
         m.submodules.connect_mask_extractor_in = connect_mask_extractor_in
         m.submodules.connect_alu_in = connect_alu_in
         m.submodules.connect_alu_out = connect_alu_out
+        m.submodules.vrf_buffors = ModuleConnector(*vrf_buffors)
 
         return m

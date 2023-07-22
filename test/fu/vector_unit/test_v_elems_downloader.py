@@ -4,6 +4,7 @@ from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_elems_downloader import *
 from coreblocks.fu.vector_unit.vrf import *
+from coreblocks.transactions.lib import *
 from test.fu.vector_unit.common import *
 from collections import deque
 from parameterized import parameterized_class
@@ -15,7 +16,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
     wait_ppb: float
 
     def setUp(self):
-        random.seed(self.seed)
+        random.seed(self.seed+20)
         self.vrp_count = 8
         self.gen_params = GenParams(
             test_vector_core_config.replace(
@@ -26,15 +27,17 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
         self.v_params = self.gen_params.v_params
 
         self.layout = VectorBackendLayouts(self.gen_params)
+        self.vrf_layout = VRFFragmentLayouts(self.gen_params)
 
         vrf = VRFFragment(gen_params=self.gen_params)
+        vrf_buffors = [BufferedReqResp(vrf.read_req[i], vrf.read_resp[i], 4, (self.vrf_layout.read_req, lambda _, arg: {"vrp_id" : arg.vrp_id})) for i in range(vrf.read_ports_count)]
         self.fu_receiver = MethodMock(i=self.layout.downloader_data_out)
         self.circ = SimpleTestCircuit(
-            VectorElemsDownloader(self.gen_params, vrf.read_req, vrf.read_resp, self.fu_receiver.get_method())
+            VectorElemsDownloader(self.gen_params, [b.req for b in vrf_buffors], [b.resp for b in vrf_buffors], self.fu_receiver.get_method())
         )
         self.write = TestbenchIO(AdapterTrans(vrf.write))
 
-        self.m = ModuleConnector(circ=self.circ, fu_receiver=self.fu_receiver, vrf=vrf, vrf_write=self.write)
+        self.m = ModuleConnector(circ=self.circ, fu_receiver=self.fu_receiver, vrf=vrf, vrf_write=self.write, vrf_buffors = ModuleConnector(*vrf_buffors))
 
         self.received_data = deque()
 
