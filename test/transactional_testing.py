@@ -153,6 +153,7 @@ class Sim:
             get_results = dict[int, tuple[Value, int]]()
             # Maps entity IDs to single process IDs which write that entity.
             puts = dict[int, int]()
+            puts_rev = defaultdict[int, set[int]](set)
             # Maps process IDs to actions to perform on process completion.
             put_finals = defaultdict[int, list[Action]](list)
             get_completes = defaultdict[int, list[Action]](list)
@@ -169,6 +170,10 @@ class Sim:
             def restart_processes(processes: set[int]):
                 schedule(processes)
                 for i in processes:
+                    if i in puts_rev:
+                        for j in puts_rev[i]:
+                            del puts[j]
+                        del puts_rev[i]
                     if i in put_finals:
                         del put_finals[i]
                     if i in get_completes:
@@ -224,9 +229,10 @@ class Sim:
                                 if isinstance(subject, Value):
                                     get_results[id(subject)] = (subject, to_send)
                             case Action(ActionKind.PUT, subject, action):
-                                if id(subject) in puts and puts[id(subject)] != process:
+                                if id(subject) in puts:
                                     raise RuntimeError
                                 puts[id(subject)] = process
+                                puts_rev[process].add(id(subject))
                                 if isinstance(subject, Value):
                                     need_settle = True
                                 restart_processes(gets[id(subject)])
