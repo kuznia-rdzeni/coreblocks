@@ -179,6 +179,10 @@ class Sim:
                         for j in states[i].puts:
                             del puts[j]
                         del states[i]
+                    if i in put_finals:
+                        del put_finals[i]
+                    if i in get_completes:
+                        del get_completes[i]
                     if i in suspended:
                         suspended[i].close()
                         del suspended[i]
