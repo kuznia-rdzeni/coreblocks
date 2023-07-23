@@ -128,7 +128,6 @@ class VectorFrontendLayouts:
         self.translator_report_multiplier = [("mult", 4), ("rob_id", gen_params.rob_entries_bits)]
 
         self.instr_to_mem = [
-            ("rp_s1", common.p_register_entry),
             ("rp_s2", common.p_register_entry),
             ("rp_dst", common.p_register_entry),
             ("rob_id", gen_params.rob_entries_bits),
@@ -238,3 +237,35 @@ class VectorRetirementLayouts:
             ("rob_id", gen_params.rob_entries_bits),
             ("rp_dst", common.p_register_entry),
         ]
+
+class VectorLSULayouts:
+    def __init__(self, gen_params: GenParams):
+        common = gen_params.get(CommonLayouts)
+        common_vector = VectorCommonLayouts(gen_params)
+        retirement = gen_params.get(RetirementLayouts)
+        self.rs_entries_bits = 0
+
+        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits)
+        self.rs_data_layout = [
+            ("rp_s2", common.p_register_entry),
+            ("rp_dst", common.p_register_entry),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("exec_fn", common.exec_fn),
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
+            ("imm2", gen_params.imm2_width),
+            ("vtype", common_vector.vtype),
+            ("rp_s3", common.p_register_entry),
+            ("rp_v0", [("id", gen_params.phys_regs_bits)]),
+            ("rp_s2_rdy", 1),
+            ("rp_s3_rdy", 1),
+            ("rp_v0_rdy", 1),
+        ]
+
+        self.rs_insert_in = [("rs_data", self.rs_data_layout), ("rs_entry_id", self.rs_entries_bits)]
+
+        self.rs_select_out = rs_interface.select_out
+
+        self.rs_update_in = rs_interface.update_in
+
+        self.precommit = retirement.precommit

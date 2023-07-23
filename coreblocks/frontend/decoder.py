@@ -344,15 +344,17 @@ _instructions_by_optype = {
     OpType.V_CONTROL: [
         Encoding(Opcode.OP_V, Funct3.OPCFG),
     ],
-    OpType.V_MEMORY: [
-        Encoding(Opcode.STORE_FP, Funct3.VMEM8),
-        Encoding(Opcode.STORE_FP, Funct3.VMEM16),
-        Encoding(Opcode.STORE_FP, Funct3.VMEM32),
-        Encoding(Opcode.STORE_FP, Funct3.VMEM64),
+    OpType.V_LOAD: [
         Encoding(Opcode.LOAD_FP, Funct3.VMEM8),
         Encoding(Opcode.LOAD_FP, Funct3.VMEM16),
         Encoding(Opcode.LOAD_FP, Funct3.VMEM32),
         Encoding(Opcode.LOAD_FP, Funct3.VMEM64),
+    ],
+    OpType.V_STORE: [
+        Encoding(Opcode.STORE_FP, Funct3.VMEM8),
+        Encoding(Opcode.STORE_FP, Funct3.VMEM16),
+        Encoding(Opcode.STORE_FP, Funct3.VMEM32),
+        Encoding(Opcode.STORE_FP, Funct3.VMEM64),
     ],
 }
 

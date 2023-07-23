@@ -1,8 +1,9 @@
 from amaranth import *
 from coreblocks.params import *
 from coreblocks.utils import *
+from coreblocks.transactions import *
 
-__all__ = ["expand_mask", "load_store_width_to_eew"]
+__all__ = ["expand_mask", "load_store_width_to_eew", "elem_mask_to_byte_mask"]
 
 
 def expand_mask(v_params, mask: Value) -> Value:
@@ -20,6 +21,39 @@ def expand_mask(v_params, mask: Value) -> Value:
         The mask which should be expanded.
     """
     return Cat(Mux(mask[i], 0xFF, 0x00) for i in range(v_params.bytes_in_elen))
+
+def elem_mask_to_byte_mask(m: TModule, v_params: VectorParameters, elem_mask: Value, eew: Value):
+    """Generate a circuit to convert the mask from the elem format to the byte format.
+
+    The elem format always has valid first `k` bits where `k = ELEN/EEW` and each
+    bit describes whether an element is valid or not. The byte format has always `ELEN//8`
+    bits and each bit represents wheter a byte is valid or not.
+
+    Parameters
+    ----------
+    m : TModule
+        Module to connect the circuit to.
+    v_params : VectorParameters
+        Vector unit configuration.
+    elem_mask : Value
+        Mask in elem format to be converted.
+    eew : Value(EEW)
+        The EEW for which the `elem_mask` was generated.
+
+    Returns
+    -------
+    Mask in byte format.
+    """
+    result = Signal(v_params.bytes_in_elen)
+    with m.Switch(eew):
+        for eew_iter in EEW:
+            with m.Case(eew_iter):
+                m.d.av_comb += result.eq(
+                    Cat([Repl(bit, 2 ** int(eew_iter)) for bit in elem_mask[: v_params.elen // eew_to_bits(eew_iter)]])
+                )
+    return result
+
+
 
 def load_store_width_to_eew(m : ModuleLike, width : Value) -> Signal:
     eew = Signal(EEW)
