@@ -3,7 +3,7 @@ from collections import defaultdict, deque
 from amaranth import *
 from collections.abc import Awaitable, Callable, Coroutine, Generator, Iterable, Mapping
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import IntEnum, auto
 from typing import Any, ClassVar, Generic, Optional, TypeAlias, TypeVar, cast
 
 from amaranth.sim import Settle
@@ -26,7 +26,7 @@ def opt_self_resolve(func_self: Any, func: OptSelfCallable[_T]) -> Callable[[], 
         return func.__get__(func_self)
 
 
-class ActionKind(Enum):
+class ActionKind(IntEnum):
     GET = auto()
     GET_COMPLETE = auto()
     PUT = auto()
@@ -88,7 +88,7 @@ class SimFIFO(Generic[_T]):
         def action():
             self._queue.append(value)
 
-        await Action(ActionKind.PUT_FINAL, self._queue, action)
+        await Action(ActionKind.PUT_FINAL, self, action)
 
     async def empty(self) -> bool:
         return await Action(ActionKind.GET, self, lambda: not self._queue)
@@ -103,7 +103,7 @@ class SimFIFO(Generic[_T]):
         def complete():
             self._queue.popleft()
 
-        await Action(ActionKind.GET_COMPLETE, self._queue, complete)
+        await Action(ActionKind.GET_COMPLETE, self, complete)
         return await Action(ActionKind.GET, self, lambda: self._queue[0])
 
     async def pop_or_exit(self) -> _T:
@@ -161,8 +161,8 @@ class Sim:
             # Maps entity IDs to single process IDs which write that entity.
             puts = dict[int, int]()
             # Maps process IDs to actions to perform on process completion.
-            put_finals = defaultdict[int, list[Action]](list)
-            get_completes = defaultdict[int, list[Action]](list)
+            last_things = defaultdict[int, list[tuple[ActionKind, Action]]](list)
+            # Various data about effects performed by processes
             states = defaultdict[int, ProcessState](ProcessState)
             # Processes ready for execution.
             to_run = deque[tuple[int, TTestGen[None]]]()
@@ -179,10 +179,8 @@ class Sim:
                         for j in states[i].puts:
                             del puts[j]
                         del states[i]
-                    if i in put_finals:
-                        del put_finals[i]
-                    if i in get_completes:
-                        del get_completes[i]
+                    if i in last_things:
+                        del last_things[i]
                     if i in suspended:
                         suspended[i].close()
                         del suspended[i]
@@ -239,10 +237,8 @@ class Sim:
                                 restart_processes(gets[id(subject)])
                                 gets[id(subject)] = set()
                                 yield from run_action(action)
-                            case Action(ActionKind.PUT_FINAL, subject, action):
-                                put_finals[process].append(cmd)
-                            case Action(ActionKind.GET_COMPLETE, subject, action):
-                                get_completes[process].append(cmd)
+                            case Action(ActionKind.PUT_FINAL | ActionKind.GET_COMPLETE as kind, subject, action):
+                                last_things[process].append((kind, cmd))
                 except StopIteration:
                     pass
                 if not to_run and need_settle:
@@ -251,20 +247,21 @@ class Sim:
                     to_run.extend(suspended.items())
                     suspended = {}
 
-            get_completes_subjects = set[int]()
-            for i, cmds in get_completes.items():
-                for cmd in cmds:
-                    if id(cmd.subject) in get_completes_subjects:
-                        raise RuntimeError
-                    get_completes_subjects.add(id(cmd.subject))
-                    yield from run_action(cmd.action)
+            last_things_list = list[tuple[ActionKind, int, Action]]()
 
-            for i, cmds in put_finals.items():
-                for cmd in cmds:
-                    if id(cmd.subject) in puts:
-                        raise RuntimeError
-                    puts[id(cmd.subject)] = i
-                    yield from run_action(cmd.action)
+            for process, things in last_things.items():
+                for kind, cmd in things:
+                    last_things_list.append((kind, process, cmd))
+
+            last_things_list.sort(key=lambda k: k[0])
+
+            subjects_for_kind = {ActionKind.GET_COMPLETE: dict[int, int](), ActionKind.PUT_FINAL: puts}
+
+            for kind, process, cmd in last_things_list:
+                if id(cmd.subject) in subjects_for_kind[kind]:
+                    raise RuntimeError(f"Action {str(kind)} performed twice on {cmd.subject}")
+                subjects_for_kind[kind][id(cmd.subject)] = process
+                yield from run_action(cmd.action)
 
             active = [i for i in active if not states[i].exit]
             run = any(not states[i].passive for i in active)
