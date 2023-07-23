@@ -44,7 +44,7 @@ class TestVectorLSU(TestCaseWithSimulator):
         self.gen_params = GenParams(
             test_vector_core_config.replace(vector_config=VectorUnitConfiguration(vrp_count=8, _vrl_count=7))
         )
-        self.test_number = 4
+        self.test_number = 40
         self.v_params = self.gen_params.v_params
         wb_params = WishboneParameters( data_width=self.v_params.elen, addr_width=32)
         self.layouts = self.gen_params.get(VectorLSULayouts)
@@ -71,9 +71,7 @@ class TestVectorLSU(TestCaseWithSimulator):
         yield Passive()
         current_elen = 0
         while True:
-            print(current_elen)
             yield from self.wishbone.slave_wait()
-            print(current_elen)
             self.assertIsNotNone(self.current_instr)
             assert self.current_instr is not None
             elems_in_elen = self.v_params.elen // eew_to_bits(self.current_instr["vtype"]["sew"])
@@ -95,7 +93,7 @@ class TestVectorLSU(TestCaseWithSimulator):
 
             if is_load:
                 resp_data = random.randrange(2**self.v_params.elen)
-                self.vrfs[current_elen//self.v_params.elens_in_bank].regs[self.current_instr["rp_s3"]["id"]][current_elen%self.v_params.elens_in_bank] = resp_data
+                self.vrfs[current_elen//self.v_params.elens_in_bank].regs[self.current_instr["rp_dst"]["id"]][current_elen%self.v_params.elens_in_bank] = resp_data
             else:
                 resp_data = 0
             yield from self.wishbone.slave_respond(resp_data)
@@ -107,11 +105,10 @@ class TestVectorLSU(TestCaseWithSimulator):
 
     def insert_process(self):
         for _ in range(self.test_number):
-            instr = generate_instr(self.gen_params, self.layouts.rs_data_layout,
+            instr = generate_instr(self.gen_params, self.layouts.rs_data_layout, const_lmul = LMUL.m1,
                                    optypes=[OpType.V_LOAD, OpType.V_STORE], funct3 = [Funct3.VMEM8, Funct3.VMEM16, Funct3.VMEM32], max_reg_bits = 3,
                                    overwriting = {"rp_s3" : {"type": RegisterType.V},"rp_dst" : {"type": RegisterType.V}})
             instr["s1_val"] &= ~0x3
-            print(instr)
             self.current_instr = instr
             elems_in_elen = self.v_params.elen // eew_to_bits(self.current_instr["vtype"]["sew"])
             self.elens_to_send = math.ceil(self.current_instr["vtype"]["vl"]/elems_in_elen)
@@ -138,7 +135,7 @@ class TestVectorLSU(TestCaseWithSimulator):
                 yield from self.circ.precommit.call(rob_id = self.current_instr["rob_id"])
 
     def test_random(self):
-        with self.run_simulation(self.m, 500) as sim:
+        with self.run_simulation(self.m, ) as sim:
             sim.add_sync_process(self.insert_process)
             sim.add_sync_process(self.wishbone_process)
             sim.add_sync_process(self.precommit_process)

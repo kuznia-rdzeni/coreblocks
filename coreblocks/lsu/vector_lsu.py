@@ -98,15 +98,15 @@ class VectorLSUDummyInternals(Elaboratable):
                     m.d.sync += self.bank_id.eq(0)
                     m.d.sync += self.elems_counter.eq(0)
                     m.d.sync += self.elen_counter.eq(0)
-                with Transaction().body(m, request = request & ~self.result_ready):
-                    with m.If(self.elems_counter >= self.current_instr.vtype.vl):
-                        m.d.sync += self.op_exception.eq(0)
-                        m.d.sync += self.result_ready.eq(1)
-                    with m.Else():
+                with m.If((self.elems_counter >= self.current_instr.vtype.vl) & request & ~self.result_ready):
+                    m.d.sync += self.op_exception.eq(0)
+                    m.d.sync += self.result_ready.eq(1)
+                with m.Else():
+                    with Transaction(name = "load_req_from_mem_trans").body(m, request = request & ~self.result_ready):
                         self.bus.request(m, addr=addr >> 2, we=0, sel=0, data=0)
                         m.next = "RespFromMem"
             with m.State("RespFromMem"):
-                with Transaction().body(m, request = request):
+                with Transaction(name= "load_resp_from_mem_trans").body(m, request = request):
                     fetched = self.bus.result(m)
                     with m.If(fetched.err):
                         cause = ExceptionCause.LOAD_ACCESS_FAULT
@@ -131,15 +131,13 @@ class VectorLSUDummyInternals(Elaboratable):
                     m.d.sync += self.bank_id.eq(0)
                     m.d.sync += self.elems_counter.eq(0)
                     m.d.sync += self.elen_counter.eq(0)
-                with Transaction(name= "store_req_reg_trans").body(m, request = request & ~self.result_ready):
-                    with m.If(self.elems_counter >= self.current_instr.vtype.vl):
-                        m.d.sync += self.op_exception.eq(0)
-                        m.d.sync += self.result_ready.eq(1)
-                    with m.Else():
-                        with m.Switch(self.bank_id):
-                            for i in range(self.v_params.register_bank_count):
-                                with m.Case(i):
-                                    self.read_req_vrf[i](m, addr = self.local_addr, vrp_id = cast_s3_vrp_id)
+                with m.If((self.elems_counter >= self.current_instr.vtype.vl) & request & ~self.result_ready):
+                    m.d.sync += self.op_exception.eq(0)
+                    m.d.sync += self.result_ready.eq(1)
+                with m.Else():
+                    with Transaction(name= "store_req_reg_trans").body(m, request = request & ~self.result_ready):
+                        for i in condition_switch(m,self.bank_id, self.v_params.register_bank_count):
+                            self.read_req_vrf[i](m, addr = self.local_addr, vrp_id = cast_s3_vrp_id)
                         m.next = "RespFromReg"
             with m.State("RespFromReg"):
                 with Transaction(name = "store_resp_reg_trans").body(m, request = request):
@@ -149,7 +147,7 @@ class VectorLSUDummyInternals(Elaboratable):
                     self.bus.request(m, addr=addr >> 2, we=1, sel=bytes_mask, data=resp.data)
                     m.next = "RespFromMem"
             with m.State("RespFromMem"):
-                with Transaction(name = "store_resp_from_mem").body(m, request = request):
+                with Transaction(name = "store_resp_from_mem_trans").body(m, request = request):
                     fetched = self.bus.result(m)
                     with m.If(fetched.err):
                         cause = ExceptionCause.STORE_ACCESS_FAULT

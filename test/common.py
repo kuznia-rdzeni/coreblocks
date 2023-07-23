@@ -200,6 +200,7 @@ def generate_instr(
     non_uniform_s2_val=True,
     overwriting: dict = {},
     max_vl: Optional[int] = None,
+    const_lmul : Optional[LMUL] = None,
 ):
     rec = {}
     if max_reg_bits is None:
@@ -242,7 +243,7 @@ def generate_instr(
                 s2_val = random.randrange(2**gen_params.isa.xlen)
             rec["s2_val"] = s2_val
         if "vtype" in field[0]:
-            rec["vtype"] = generate_vtype(gen_params, max_vl=max_vl)
+            rec["vtype"] = generate_vtype(gen_params, max_vl=max_vl, const_lmul =  const_lmul)
         if "rp_v0" in field[0]:
             rec["rp_v0"] = {"id": random.randrange(gen_params.v_params.vrp_count)}
     return overwrite_dict_values(rec, overwriting)
