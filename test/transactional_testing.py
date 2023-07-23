@@ -2,7 +2,7 @@ import functools
 from collections import defaultdict, deque
 from amaranth import *
 from collections.abc import Awaitable, Callable, Coroutine, Generator, Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, ClassVar, Generic, Optional, TypeAlias, TypeVar, cast
 
@@ -63,6 +63,13 @@ class Action(SelfAwaitable):
     kind: ActionKind
     subject: Any
     action: ActionFun
+
+
+@dataclass
+class ProcessState:
+    puts: list[int] = field(default_factory=list)
+    exit = False
+    passive = False
 
 
 class SimFIFO(Generic[_T]):
@@ -153,12 +160,10 @@ class Sim:
             get_results = dict[int, tuple[Value, int]]()
             # Maps entity IDs to single process IDs which write that entity.
             puts = dict[int, int]()
-            puts_rev = defaultdict[int, set[int]](set)
             # Maps process IDs to actions to perform on process completion.
             put_finals = defaultdict[int, list[Action]](list)
             get_completes = defaultdict[int, list[Action]](list)
-            exits = set[int]()
-            passives = set[int]()
+            states = defaultdict[int, ProcessState](ProcessState)
             # Processes ready for execution.
             to_run = deque[tuple[int, TTestGen[None]]]()
             # Suspended processes.
@@ -170,18 +175,10 @@ class Sim:
             def restart_processes(processes: set[int]):
                 schedule(processes)
                 for i in processes:
-                    if i in puts_rev:
-                        for j in puts_rev[i]:
+                    if i in states:
+                        for j in states[i].puts:
                             del puts[j]
-                        del puts_rev[i]
-                    if i in put_finals:
-                        del put_finals[i]
-                    if i in get_completes:
-                        del get_completes[i]
-                    if i in exits:
-                        exits.remove(i)
-                    if i in passives:
-                        passives.remove(i)
+                        del states[i]
                     if i in suspended:
                         suspended[i].close()
                         del suspended[i]
@@ -209,7 +206,7 @@ class Sim:
 
                         match cmd:
                             case Passive():
-                                passives.add(process)
+                                states[process].passive = True
                             case Skip():
                                 running.close()
                                 break
@@ -217,7 +214,7 @@ class Sim:
                                 suspended[process] = running
                                 break
                             case Exit():
-                                exits.add(process)
+                                states[process].exit = True
                                 running.close()
                                 break
                             case Action(ActionKind.GET, subject, action):
@@ -232,7 +229,7 @@ class Sim:
                                 if id(subject) in puts:
                                     raise RuntimeError
                                 puts[id(subject)] = process
-                                puts_rev[process].add(id(subject))
+                                states[process].puts.append(id(subject))
                                 if isinstance(subject, Value):
                                     need_settle = True
                                 restart_processes(gets[id(subject)])
@@ -265,8 +262,8 @@ class Sim:
                     puts[id(cmd.subject)] = i
                     yield from run_action(cmd.action)
 
-            active = [i for i in active if i not in exits]
-            run = any(i not in passives for i in active)
+            active = [i for i in active if not states[i].exit]
+            run = any(not states[i].passive for i in active)
 
             yield
 
