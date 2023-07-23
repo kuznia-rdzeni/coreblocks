@@ -159,7 +159,7 @@ class TestVectorFrontend(TestCaseWithSimulator):
             if org_instr["exec_fn"]["op_type"] == OpType.V_CONTROL:
                 announced_instr = self.received_announce.popleft()
                 self.assertFieldsEqual(org_instr, announced_instr, ["rob_id", "rp_dst"])
-            elif org_instr["exec_fn"]["op_type"] == OpType.V_MEMORY:
+            elif org_instr["exec_fn"]["op_type"] in [OpType.V_LOAD, OpType.V_STORE]:
                 compare_fields(org_instr, vtype, self.received_instr_mem)
             else:
                 compare_fields(org_instr, vtype, self.received_instr)

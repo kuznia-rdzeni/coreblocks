@@ -93,7 +93,8 @@ class VectorInputVerificator(Elaboratable):
             m.d.comb += illegal_because_vstart.eq(1)
 
         illegal_because_LS_width = Signal()
-        with m.If(load_store_width_to_eew(m, instr.exec_fn.funct3) > bits_to_eew(self.v_params.elen)):
+        with m.If((load_store_width_to_eew(m, instr.exec_fn.funct3) > bits_to_eew(self.v_params.elen)) &
+                  ( (instr.exec_fn.op_type == OpType.V_LOAD) | (instr.exec_fn.op_type == OpType.V_STORE))):
             m.d.comb += illegal_because_LS_width.eq(1)
         return illegal_because_vill | illegal_because_vstart | illegal_because_LS_width
 

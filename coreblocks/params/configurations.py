@@ -186,4 +186,17 @@ test_vector_core_config = CoreConfiguration(
 )
 
 # Core configuration with vector extension
-vector_core_config = CoreConfiguration(_implied_extensions=Extension.V)
+vector_core_config = CoreConfiguration(_implied_extensions=Extension.V,
+    func_units_config=(
+        RSBlockComponent(
+            [
+                ALUComponent(zba_enable=True, zbb_enable=True),
+                JumpComponent(),
+                ExceptionUnitComponent(),
+            ],
+            rs_entries=4,
+        ),
+        LSUBlockComponent(),
+        CSRBlockComponent(),
+    ),
+    )

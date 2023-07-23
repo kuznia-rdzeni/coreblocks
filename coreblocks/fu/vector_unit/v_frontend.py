@@ -55,7 +55,7 @@ class VectorMemoryVVRSSplitter(Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            with m.If(arg.exec_fn.op_type == OpType.V_MEMORY):
+            with m.If((arg.exec_fn.op_type == OpType.V_LOAD) | (arg.exec_fn.op_type == OpType.V_STORE)):
                 rec_mem = Record(self.layouts.instr_to_mem)
                 m.d.top_comb += assign(rec_mem, arg, fields=AssignType.COMMON)
                 self.put_to_mem(m, rec_mem)

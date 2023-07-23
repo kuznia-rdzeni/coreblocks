@@ -164,7 +164,7 @@ class VectorTranslateRewirteImm(Elaboratable):
         def _(arg):
             rec = Record(self.layouts.translator_inner)
             m.d.comb += assign(rec, arg, fields=AssignType.COMMON)
-            with m.If((arg.exec_fn.funct3 == Funct3.OPIVI) & (arg.exec_fn.op_type != OpType.V_MEMORY)):
+            with m.If((arg.exec_fn.funct3 == Funct3.OPIVI) & ((arg.exec_fn.op_type != OpType.V_LOAD) & (arg.exec_fn.op_type != OpType.V_STORE))):
                 m.d.comb += rec.s1_val.eq(arg.imm)
                 m.d.comb += rec.rp_s1.type.eq(RegisterType.X)
             return rec

@@ -18,6 +18,7 @@ __all__ = [
     "ISA",
     "RegisterType",
     "funct6_to_funct7",
+    "load_store_width_to_eew",
     "SEW",
     "EEW",
     "EMUL",
@@ -367,6 +368,19 @@ def lmul_to_int(lmul: LMUL) -> int:
         Value to convert.
     """
     return math.ceil(lmul_to_float(lmul))
+
+def load_store_width_to_eew(funct3 : Funct3 | int) -> EEW:
+    match funct3:
+        # constants taken from RISC-V V extension specification
+        case 0:
+            return EEW.w8
+        case 5:
+            return EEW.w16
+        case 6:
+            return EEW.w32
+        case 7:
+            return EEW.w64
+    raise ValueError("Wrong vector load/store width.")
 
 
 @unique
