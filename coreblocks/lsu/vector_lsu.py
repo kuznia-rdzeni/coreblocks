@@ -2,6 +2,7 @@ from amaranth import *
 from amaranth.lib.coding import Decoder
 
 from coreblocks.transactions import Method, def_method, Transaction, TModule
+from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign, ModuleLike, AssignType
@@ -24,7 +25,6 @@ class VectorLSUDummyInternals(Elaboratable):
         self.dependency_manager = self.gen_params.get(DependencyManager)
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
 
-        self.loadedData = Signal(self.gen_params.v_params.elen)
         self.get_result_ack = Signal()
         self.result_ready = Signal()
         self.execute = Signal()
@@ -33,11 +33,11 @@ class VectorLSUDummyInternals(Elaboratable):
         self.elems_counter = Signal(bits_for(self.gen_params.v_params.bytes_in_vlen))
         self.elen_counter =  Signal(bits_for(self.gen_params.v_params.elens_in_vlen))
         self.bank_id = Signal(log2_int(self.v_params.register_bank_count, False))
-        self.local_addr = Signal(bits_for(self.gen_params.v_params.elens_in_bank))
+        self.local_addr = Signal(log2_int(self.gen_params.v_params.elens_in_bank, False))
 
     def calculate_addr(self, m: ModuleLike):
         addr = Signal(self.gen_params.isa.xlen)
-        m.d.comb += addr.eq(self.current_instr.s1_val + self.elen_counter)
+        m.d.comb += addr.eq(self.current_instr.s1_val + (self.elen_counter << 2))
         return addr
 
     def prepare_bytes_mask(self, m: TModule, addr: Signal) -> Signal:
@@ -59,7 +59,7 @@ class VectorLSUDummyInternals(Elaboratable):
                     2 ** (self.v_params.elen // eew_to_bits(EEW.w8)) - 1,
                     )
                 )
-        m.d.top_comb += elem_mask_to_byte_mask(m, self.v_params, elem_mask, self.current_instr.vtype.eew)
+        m.d.top_comb += mask.eq(elem_mask_to_byte_mask(m, self.v_params, elem_mask, self.current_instr.vtype.sew))
         return mask
 
     def check_align(self, m: TModule, addr: Signal):
@@ -80,7 +80,7 @@ class VectorLSUDummyInternals(Elaboratable):
         with m.Switch(self.current_instr.vtype.sew):
             for sew_iter in SEW:
                 with m.Case(sew_iter):
-                    m.d.sync += self.elems_counter.eq(self.elems_counter + self.v_params.eew_to_elems_in_bank[sew_iter])
+                    m.d.sync += self.elems_counter.eq(self.elems_counter + self.v_params.elen // eew_to_bits(sew_iter))
         m.d.sync += self.elen_counter.eq(self.elen_counter + 1)
         with m.If(self.local_addr + 1 == self.v_params.elens_in_bank):
             m.d.sync += self.local_addr.eq(0)
@@ -89,6 +89,8 @@ class VectorLSUDummyInternals(Elaboratable):
             m.d.sync += self.local_addr.eq(self.local_addr + 1)
 
     def handle_load(self, m : TModule, request : Value, bytes_mask, addr, restart : Value):
+        cast_dst_vrp_id = Signal(range(self.v_params.vrp_count))
+        m.d.top_comb += cast_dst_vrp_id.eq(self.current_instr.rp_dst.id)
         with m.FSM():
             with m.State("ReqFromMem"):
                 with m.If(restart):
@@ -96,11 +98,11 @@ class VectorLSUDummyInternals(Elaboratable):
                     m.d.sync += self.bank_id.eq(0)
                     m.d.sync += self.elems_counter.eq(0)
                     m.d.sync += self.elen_counter.eq(0)
-                with m.If(self.elems_counter >= self.current_instr.vtype.vl):
-                    m.d.sync += self.op_exception.eq(0)
-                    m.d.sync += self.result_ready.eq(1)
-                with m.Else():
-                    with Transaction().body(m, request = request & ~self.result_ready):
+                with Transaction().body(m, request = request & ~self.result_ready):
+                    with m.If(self.elems_counter >= self.current_instr.vtype.vl):
+                        m.d.sync += self.op_exception.eq(0)
+                        m.d.sync += self.result_ready.eq(1)
+                    with m.Else():
                         self.bus.request(m, addr=addr >> 2, we=0, sel=0, data=0)
                         m.next = "RespFromMem"
             with m.State("RespFromMem"):
@@ -115,11 +117,13 @@ class VectorLSUDummyInternals(Elaboratable):
                         with m.Switch(self.bank_id):
                             for i in range(self.v_params.register_bank_count):
                                 with m.Case(i):
-                                    self.write_vrf[i](m, addr = self.local_addr, vrp_id = self.current_instr.rp_dst.id, valid_mask = bytes_mask, value = fetched.data)
+                                    self.write_vrf[i](m, addr = self.local_addr, vrp_id = cast_dst_vrp_id, valid_mask = bytes_mask, data = fetched.data)
                         self.counters_increase(m)
                     m.next = "ReqFromMem"
 
     def handle_store(self, m : TModule, request : Value, bytes_mask, addr, restart : Value):
+        cast_s3_vrp_id = Signal(range(self.v_params.vrp_count))
+        m.d.top_comb += cast_s3_vrp_id.eq(self.current_instr.rp_s3.id)
         with m.FSM():
             with m.State("ReqFromReg"):
                 with m.If(restart):
@@ -127,27 +131,25 @@ class VectorLSUDummyInternals(Elaboratable):
                     m.d.sync += self.bank_id.eq(0)
                     m.d.sync += self.elems_counter.eq(0)
                     m.d.sync += self.elen_counter.eq(0)
-                with m.If(self.elems_counter >= self.current_instr.vtype.vl):
-                    m.d.sync += self.op_exception.eq(0)
-                    m.d.sync += self.result_ready.eq(1)
-                with m.Else():
-                    with Transaction().body(m, request = request & ~self.result_ready):
+                with Transaction(name= "store_req_reg_trans").body(m, request = request & ~self.result_ready):
+                    with m.If(self.elems_counter >= self.current_instr.vtype.vl):
+                        m.d.sync += self.op_exception.eq(0)
+                        m.d.sync += self.result_ready.eq(1)
+                    with m.Else():
                         with m.Switch(self.bank_id):
                             for i in range(self.v_params.register_bank_count):
                                 with m.Case(i):
-                                    self.read_req_vrf[i](m, addr = self.local_addr, vrp_id = self.current_instr.rp_dst.id)
+                                    self.read_req_vrf[i](m, addr = self.local_addr, vrp_id = cast_s3_vrp_id)
                         m.next = "RespFromReg"
             with m.State("RespFromReg"):
-                with Transaction().body(m, request = request):
+                with Transaction(name = "store_resp_reg_trans").body(m, request = request):
                     resp = Record(self.read_resp_vrf[0].data_out.layout)
-                    with m.Switch(self.bank_id):
-                        for i in range(self.v_params.register_bank_count):
-                            with m.Case(i):
-                                m.d.comb += assign(resp, self.read_resp_vrf[i](m), fields = AssignType.ALL)
+                    for i in condition_switch(m,self.bank_id, self.v_params.register_bank_count):
+                        m.d.comb += assign(resp, self.read_resp_vrf[i](m), fields = AssignType.ALL)
                     self.bus.request(m, addr=addr >> 2, we=1, sel=bytes_mask, data=resp.data)
                     m.next = "RespFromMem"
             with m.State("RespFromMem"):
-                with Transaction().body(m, request = request):
+                with Transaction(name = "store_resp_from_mem").body(m, request = request):
                     fetched = self.bus.result(m)
                     with m.If(fetched.err):
                         cause = ExceptionCause.STORE_ACCESS_FAULT
@@ -178,7 +180,7 @@ class VectorLSUDummyInternals(Elaboratable):
 
         self.handle_load(m,  instr_ready & is_load & aligned, bytes_mask, addr, self.get_result_ack)
         self.handle_store(m,  instr_ready & self.execute & aligned & ~is_load, bytes_mask, addr, self.get_result_ack)
-        with Transaction().body(m, request = instr_ready & (is_load | self.execute) & ~aligned):
+        with Transaction(name= "miss_align_trans").body(m, request = instr_ready & (is_load | self.execute) & ~aligned):
             m.d.sync += self.op_exception.eq(1)
             m.d.sync += self.result_ready.eq(1)
 
@@ -212,8 +214,8 @@ class VectorLSU(FuncBlock, Elaboratable):
         self.read_req_vrf = read_req_vrf
         self.read_resp_vrf = read_resp_vrf
         
-        if self.gen_params.isa.xlen != self.gen_params.v_params.elen:
-            raise ValueError("Vector LSU don't support XLEN != ELEN yet.")
+        if self.gen_params.isa.xlen != self.gen_params.v_params.elen or self.gen_params.v_params.elen != 32:
+            raise ValueError("Vector LSU don't support XLEN != ELEN != 32 yet.")
 
     def elaborate(self, platform):
         m = TModule()
@@ -257,7 +259,7 @@ class VectorLSU(FuncBlock, Elaboratable):
             return {
                 "rob_id": current_instr.rob_id,
                 "rp_dst": current_instr.rp_dst,
-                "result": internal.loadedData,
+                "result": 0,
                 "exception": internal.op_exception,
             }
 

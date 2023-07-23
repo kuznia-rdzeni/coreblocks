@@ -35,6 +35,8 @@ class WishboneInterfaceWrapper:
     def slave_verify(self, exp_addr, exp_data, exp_we, exp_sel=0):
         assert (yield self.wb.stb) and (yield self.wb.cyc)
 
+        print((yield self.wb.adr), (yield self.wb.we), (yield self.wb.sel))
+        print(exp_addr, exp_we, exp_sel)
         assert (yield self.wb.adr) == exp_addr
         assert (yield self.wb.we == exp_we)
         assert (yield self.wb.sel == exp_sel)
