@@ -101,7 +101,7 @@ class VectorLSUDummyInternals(Elaboratable):
                     m.d.sync += self.result_ready.eq(1)
                 with m.Else():
                     with Transaction().body(m, request = request & ~self.result_ready):
-                        self.bus.request(m, addr=addr >> 2, we=0, sel=bytes_mask, data=0)
+                        self.bus.request(m, addr=addr >> 2, we=0, sel=0, data=0)
                         m.next = "RespFromMem"
             with m.State("RespFromMem"):
                 with Transaction().body(m, request = request):

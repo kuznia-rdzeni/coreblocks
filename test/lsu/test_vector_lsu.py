@@ -18,7 +18,7 @@ class VRFStub():
 
         self.methods = ModuleConnector(write = self.write, read_req = self.read_req, read_resp = self.read_resp)
 
-        self.regs = [[0 for __ in range(self.v_params.elens_in_bank)] for _ in range(self.v_params.register_bank_count)]
+        self.regs = [[0 for __ in range(self.v_params.elens_in_bank)] for _ in range(self.v_params.vrp_count)]
         self.reqs = deque()
 
     @def_method_mock(lambda self: self.write)
@@ -48,7 +48,7 @@ class TestVectorLSU(TestCaseWithSimulator):
         self.layouts = self.gen_params.get(VectorLSULayouts)
 
         self.exception_report = MethodMock(i=self.gen_params.get(ExceptionRegisterLayouts).report)
-        self.vrfs = [VRFStub(self.gen_params) for _ in range(self.v_params.vrp_count)]
+        self.vrfs = [VRFStub(self.gen_params) for _ in range(self.v_params.register_bank_count)]
 
         self.bus = WishboneMaster(wb_params)
         self.wishbone = WishboneInterfaceWrapper(self.bus)
@@ -64,6 +64,31 @@ class TestVectorLSU(TestCaseWithSimulator):
     def exception_process(self, arg):
         pass
 
+
+    def wishbone_process(self):
+        yield Passive()
+        current_elen = 0
+        while True:
+            yield from self.wishbone.slave_wait()
+            self.assertIsNotNone(self.current_instr)
+            assert self.current_instr is not None
+            elens_to_check = self.current_instr["vtype"]["vl"]/(self.v_params.elen // eew_to_bits(self.current_instr["vtype"]["sew"]))
+
+            is_load = self.current_instr["exec_fn"]["op_type"] == OpType.V_LOAD
+            if is_load:
+                exp_data = 0
+                exp_sel = 0
+            else:
+                exp_data = self.vrfs[current_elen//self.v_params.elens_in_bank].regs[self.current_instr["rp_s3"]["id"]][current_elen%self.v_params.elens_in_bank]
+                if current_elen + 1 == elens_to_check:
+                    #kilka ostatnich
+                else:
+                    exp_sel = 2**self.v_params.bytes_in_elen -1
+
+            yield from self.wishbone.slave_verify(self.current_instr["s1_val"]//4 + current_elen, exp_data, is_load, exp_sel)
+            current_elen += 1
+            if current_elen == elens_to_check:
+                pass
 
     def insert_process(self):
         for _ in range(self.test_number):
