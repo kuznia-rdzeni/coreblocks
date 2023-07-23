@@ -168,15 +168,15 @@ def convert_vtype_to_imm(vtype) -> int:
     return imm
 
 
-def generate_vtype(gen_params: GenParams, max_vl: Optional[int] = None):
+def generate_vtype(gen_params: GenParams, max_vl: Optional[int] = None, const_lmul : Optional[LMUL] = None):
     sew = random.choice([sew for sew in list(SEW) if eew_to_bits(sew) <= gen_params.v_params.elen])
-    lmul = random.choice(list(LMUL))
+    lmul = random.choice(list(LMUL)) if const_lmul is None else const_lmul
     ta = random.randrange(2)
     ma = random.randrange(2)
-    if max_vl is not None:
-        vl = random.randrange(max_vl)
-    else:
-        vl = random.randrange(2**16)
+    vl_lim = gen_params.v_params.vlen // eew_to_bits(sew) * lmul
+    if max_vl is not None and max_vl < vl_lim:
+        vl_lim = max_vl
+    vl = random.randrange(vl_lim)
     return {
         "sew": sew,
         "lmul": lmul,

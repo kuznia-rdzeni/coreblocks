@@ -4,15 +4,15 @@ from amaranth.lib.coding import Decoder
 from coreblocks.transactions import Method, def_method, Transaction, TModule
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
-from coreblocks.utils import assign, ModuleLike
+from coreblocks.utils import assign, ModuleLike, AssignType
 from coreblocks.utils.protocols import FuncBlock
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.utils import *
 
-
+__all__ = ["VectorLSU"]
 
 class VectorLSUDummyInternals(Elaboratable):
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: Record, write_vrf : list[Method], read_req_vrf : Method, read_resp_vrf : Method) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: Record, write_vrf : list[Method], read_req_vrf : list[Method], read_resp_vrf : list[Method]) -> None:
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.current_instr = current_instr
@@ -76,16 +76,26 @@ class VectorLSUDummyInternals(Elaboratable):
                 m.d.comb += aligned.eq(1)
         return aligned
 
+    def counters_increase(self, m:TModule):
+        with m.Switch(self.current_instr.vtype.sew):
+            for sew_iter in SEW:
+                with m.Case(sew_iter):
+                    m.d.sync += self.elems_counter.eq(self.elems_counter + self.v_params.eew_to_elems_in_bank[sew_iter])
+        m.d.sync += self.elen_counter.eq(self.elen_counter + 1)
+        with m.If(self.local_addr + 1 == self.v_params.elens_in_bank):
+            m.d.sync += self.local_addr.eq(0)
+            m.d.sync += self.bank_id.eq(self.bank_id + 1)
+        with m.Else():
+            m.d.sync += self.local_addr.eq(self.local_addr + 1)
+
     def handle_load(self, m : TModule, request : Value, bytes_mask, addr, restart : Value):
         with m.FSM():
             with m.State("ReqFromMem"):
                 with m.If(restart):
-                    m.d.sync += [
-                            self.local_addr.eq(0),
-                            self.bank_id.eq(0),
-                            self.elems_counter.eq(0),
-                            self.elen_counter.eq(0)
-                            ]
+                    m.d.sync += self.local_addr.eq(0)
+                    m.d.sync += self.bank_id.eq(0)
+                    m.d.sync += self.elems_counter.eq(0)
+                    m.d.sync += self.elen_counter.eq(0)
                 with m.If(self.elems_counter >= self.current_instr.vtype.vl):
                     m.d.sync += self.op_exception.eq(0)
                     m.d.sync += self.result_ready.eq(1)
@@ -106,18 +116,47 @@ class VectorLSUDummyInternals(Elaboratable):
                             for i in range(self.v_params.register_bank_count):
                                 with m.Case(i):
                                     self.write_vrf[i](m, addr = self.local_addr, vrp_id = self.current_instr.rp_dst.id, valid_mask = bytes_mask, value = fetched.data)
-                        with m.Switch(self.current_instr.vtype.sew):
-                            for sew_iter in SEW:
-                                with m.Case(sew_iter):
-                                    m.d.sync += self.elems_counter.eq(self.elems_counter + self.v_params.eew_to_elems_in_bank[sew_iter])
-                        m.d.sync += self.elen_counter.eq(self.elen_counter + 1)
-                        with m.If(self.local_addr + 1 == self.v_params.elens_in_bank):
-                            m.d.sync += self.local_addr.eq(0)
-                            m.d.sync += self.bank_id.eq(self.bank_id + 1)
-                        with m.Else():
-                            m.d.sync += self.local_addr.eq(self.local_addr + 1)
+                        self.counters_increase(m)
                     m.next = "ReqFromMem"
 
+    def handle_store(self, m : TModule, request : Value, bytes_mask, addr, restart : Value):
+        with m.FSM():
+            with m.State("ReqFromReg"):
+                with m.If(restart):
+                    m.d.sync += self.local_addr.eq(0)
+                    m.d.sync += self.bank_id.eq(0)
+                    m.d.sync += self.elems_counter.eq(0)
+                    m.d.sync += self.elen_counter.eq(0)
+                with m.If(self.elems_counter >= self.current_instr.vtype.vl):
+                    m.d.sync += self.op_exception.eq(0)
+                    m.d.sync += self.result_ready.eq(1)
+                with m.Else():
+                    with Transaction().body(m, request = request & ~self.result_ready):
+                        with m.Switch(self.bank_id):
+                            for i in range(self.v_params.register_bank_count):
+                                with m.Case(i):
+                                    self.read_req_vrf[i](m, addr = self.local_addr, vrp_id = self.current_instr.rp_dst.id)
+                        m.next = "RespFromReg"
+            with m.State("RespFromReg"):
+                with Transaction().body(m, request = request):
+                    resp = Record(self.read_resp_vrf[0].data_out.layout)
+                    with m.Switch(self.bank_id):
+                        for i in range(self.v_params.register_bank_count):
+                            with m.Case(i):
+                                m.d.comb += assign(resp, self.read_resp_vrf[i](m), fields = AssignType.ALL)
+                    self.bus.request(m, addr=addr >> 2, we=1, sel=bytes_mask, data=resp.data)
+                    m.next = "RespFromMem"
+            with m.State("RespFromMem"):
+                with Transaction().body(m, request = request):
+                    fetched = self.bus.result(m)
+                    with m.If(fetched.err):
+                        cause = ExceptionCause.STORE_ACCESS_FAULT
+                        self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
+                        m.d.sync += self.op_exception.eq(fetched.err)
+                        m.d.sync += self.result_ready.eq(1)
+                    with m.Else():
+                        self.counters_increase(m)
+                    m.next = "ReqFromReg"
 
 
     def elaborate(self, platform):
@@ -137,62 +176,27 @@ class VectorLSUDummyInternals(Elaboratable):
         aligned = self.check_align(m, addr)
         bytes_mask = self.prepare_bytes_mask(m, addr)
 
-        with m.FSM("Start"):
-            with m.State("Start"):
-                request_cond = Signal()
-                m.d.top_comb += request_cond.eq(instr_ready & (self.execute | is_load))
-                with Transaction().body(m, request = request_cond & aligned):
-                    self.bus.request(m, addr=addr >> 2, we=~is_load, sel=bytes_mask, data=data)
-                    m.next = "End"
+        self.handle_load(m,  instr_ready & is_load & aligned, bytes_mask, addr, self.get_result_ack)
+        self.handle_store(m,  instr_ready & self.execute & aligned & ~is_load, bytes_mask, addr, self.get_result_ack)
+        with Transaction().body(m, request = instr_ready & (is_load | self.execute) & ~aligned):
+            m.d.sync += self.op_exception.eq(1)
+            m.d.sync += self.result_ready.eq(1)
 
-                with Transaction().body(m, request = request_cond & ~aligned):
-                    m.d.sync += self.op_exception.eq(1)
-                    m.d.sync += self.result_ready.eq(1)
+            cause = Mux(
+                is_load, ExceptionCause.LOAD_ADDRESS_MISALIGNED, ExceptionCause.STORE_ADDRESS_MISALIGNED
+            )
+            self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
 
-                    cause = Mux(
-                        is_load, ExceptionCause.LOAD_ADDRESS_MISALIGNED, ExceptionCause.STORE_ADDRESS_MISALIGNED
-                    )
-                    self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
-
-                    m.next = "End"
-
-            with m.State("End"):
-                with Transaction().body(m):
-                    fetched = self.bus.result(m)
-
-                    m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
-
-                    with m.If(fetched.err):
-                        cause = Mux(is_load, ExceptionCause.LOAD_ACCESS_FAULT, ExceptionCause.STORE_ACCESS_FAULT)
-                        self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
-
-                    m.d.sync += self.op_exception.eq(fetched.err)
-                    m.d.sync += self.result_ready.eq(1)
-
-                with m.If(self.get_result_ack):
-                    m.d.sync += self.result_ready.eq(0)
-                    m.d.sync += self.op_exception.eq(0)
-                    m.next = "Start"
-
-        return m
-
-class HandleLoad(Elaboratable):
-    def __init__(self,  gen_params: GenParams, bus: WishboneMaster, write_vrf : Method ):
-        self.gen_params = gen_params
-        self.bus = bus
-        self.write_vrf = write_vrf
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        self.current_instr = current_instr
+        with m.If(self.get_result_ack):
+            m.d.sync += self.result_ready.eq(0)
+            m.d.sync += self.op_exception.eq(0)
 
 
         return m
 
 
 class VectorLSU(FuncBlock, Elaboratable):
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, write_vrf : Method, read_req_vrf : Method, read_resp_vrf : Method) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMaster, write_vrf : list[Method], read_req_vrf : list[Method], read_resp_vrf : list[Method]) -> None:
         self.gen_params = gen_params
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.v_lsu_layouts = gen_params.get(VectorLSULayouts)
@@ -216,7 +220,7 @@ class VectorLSU(FuncBlock, Elaboratable):
         reserved = Signal()  # means that current_instr is reserved
         current_instr = Record(self.v_lsu_layouts.rs_data_layout + [("valid", 1)])
 
-        m.submodules.internal = internal = VectorLSUDummyInternals(self.gen_params, self.bus, current_instr)
+        m.submodules.internal = internal = VectorLSUDummyInternals(self.gen_params, self.bus, current_instr, self.write_vrf, self.read_req_vrf, self.read_resp_vrf)
 
         result_ready = internal.result_ready 
 
@@ -259,9 +263,7 @@ class VectorLSU(FuncBlock, Elaboratable):
 
         @def_method(m, self.precommit)
         def _(rob_id: Value):
-            with m.If(
-                current_instr.valid & (rob_id == current_instr.rob_id) & (current_instr.exec_fn.op_type != OpType.FENCE)
-            ):
+            with m.If( current_instr.valid & (rob_id == current_instr.rob_id) ):
                 m.d.comb += internal.execute.eq(1)
 
         return m
