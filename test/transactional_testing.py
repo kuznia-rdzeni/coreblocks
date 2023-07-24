@@ -144,6 +144,41 @@ class SimSignal(Generic[_T]):
         await self.set(value, final=True)
 
 
+class SimPipe(Generic[_T]):
+    def __init__(self):
+        self._value = SimSignal[Optional[_T]](None)
+        self._can_push = SimSignal(True)
+
+    def __bool__(self):
+        raise TypeError("Attempted to convert SimPipe to boolean")
+
+    async def push(self, value: _T) -> None:
+        if not await self._can_push.get():
+            await Skip()
+        await self._value.set_final(value)
+        await self._can_push.set_final(False)
+
+    async def empty(self) -> bool:
+        return await self._value.get() is None
+
+    async def not_empty(self) -> bool:
+        return await self._value.get() is not None
+
+    async def peek(self) -> _T:
+        value = await self._value.get()
+        if value is None:
+            raise RuntimeError("Peek on empty SimPipe")
+        return value
+
+    async def pop(self) -> _T:
+        def clear_action():
+            self._value._value = None
+
+        await self._can_push.set(True)
+        await Action(ActionKind.GET_COMPLETE, self._value, clear_action)
+        return await self.peek()
+
+
 class Sim:
     _is_running: ClassVar[bool] = False
 
