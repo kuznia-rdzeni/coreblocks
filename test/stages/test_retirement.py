@@ -8,7 +8,7 @@ from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, Sche
 from coreblocks.params.configurations import test_core_config
 
 from ..common import *
-from ..transactional_testing import Exit, Sim, SimFIFO, SimSignal, Wait
+from ..transactional_testing import Exit, WaitSettled, Sim, SimFIFO, SimSignal
 import random
 
 
@@ -103,7 +103,7 @@ class RetirementTest(TestCaseWithSimulator):
         async def free_reg_process():
             if await self.rf_exp_q.not_empty():
                 reg = await Sim.call(retc.free_rf_adapter)
-                await Wait()
+                await WaitSettled()
                 self.assertEqual(reg["reg_id"], await self.rf_exp_q.pop())
             else:
                 await Exit()
@@ -116,7 +116,7 @@ class RetirementTest(TestCaseWithSimulator):
             if await self.rat_map_q.not_empty():
                 current_map = await self.rat_map_q.peek()
                 val = await Sim.get(retc.rat.entries[current_map["rl_dst"]])
-                await Wait()
+                await WaitSettled()
                 if val == current_map["rp_dst"]:
                     await self.rat_map_q.pop()
                     await wait_cycles.set_final(0)
@@ -131,12 +131,12 @@ class RetirementTest(TestCaseWithSimulator):
 
         @Sim.def_method_mock(lambda: retc.mock_rf_free)
         async def rf_free_process(reg_id):
-            await Wait()
+            await WaitSettled()
             self.assertEqual(reg_id, await self.rf_free_q.pop())
 
         @Sim.def_method_mock(lambda: retc.mock_precommit)
         async def precommit_process(rob_id):
-            await Wait()
+            await WaitSettled()
             self.assertEqual(rob_id, await self.precommit_q.pop())
 
         @Sim.def_method_mock(lambda: retc.mock_exception_cause)

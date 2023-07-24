@@ -1,7 +1,7 @@
 import functools
 from collections import defaultdict, deque
 from amaranth import *
-from collections.abc import Awaitable, Callable, Coroutine, Generator, Iterable, Mapping
+from collections.abc import Callable, Coroutine, Generator, Iterable, Mapping
 from dataclasses import dataclass, field
 from enum import IntEnum, auto
 from typing import Any, ClassVar, Generic, Optional, TypeAlias, TypeVar, cast
@@ -13,7 +13,7 @@ from coreblocks.transactions._utils import method_def_helper
 
 
 _T = TypeVar("_T")
-TTestGen: TypeAlias = Coroutine["Action | Exit | Skip | Wait | Passive", Any, _T]
+TTestGen: TypeAlias = Coroutine["Action | Exit | Skip | Wait | Passive | WaitSettled", Any, _T]
 OptSelfCallable: TypeAlias = Callable[[], _T] | Callable[[Any], _T]
 ActionFun: TypeAlias = Callable[[], TestGen[Any] | Any]
 Process: TypeAlias = Callable[[], TTestGen[None]]
@@ -51,6 +51,11 @@ class Skip(SelfAwaitable):
 
 @dataclass
 class Wait(SelfAwaitable):
+    pass
+
+
+@dataclass
+class WaitSettled(SelfAwaitable):
     pass
 
 
@@ -172,6 +177,9 @@ class Sim:
             to_run = deque[tuple[int, TTestGen[None]]]()
             # Suspended processes.
             suspended = dict[int, TTestGen[None]]()
+            suspended_settled = dict[int, TTestGen[None]]()
+            # In settled phase, PUT actions are rejected.
+            settled = False
 
             def schedule(processes: Iterable[int]):
                 to_run.extend((process, process_map[process]()) for process in processes)
@@ -219,6 +227,9 @@ class Sim:
                             case Wait():
                                 suspended[process] = running
                                 break
+                            case WaitSettled():
+                                suspended_settled[process] = running
+                                break
                             case Exit():
                                 states[process].exit = True
                                 running.close()
@@ -232,6 +243,8 @@ class Sim:
                                 if isinstance(subject, Value):
                                     get_results[id(subject)] = (subject, to_send)
                             case Action(ActionKind.PUT, subject, action):
+                                if settled:
+                                    raise RuntimeError(f"PUT on {subject} during settled phase")
                                 if id(subject) in puts:
                                     raise RuntimeError
                                 puts[id(subject)] = process
@@ -254,6 +267,10 @@ class Sim:
                 if not to_run and suspended:
                     to_run.extend(suspended.items())
                     suspended = {}
+                if not to_run and suspended_settled:
+                    to_run.extend(suspended_settled.items())
+                    suspended_settled = {}
+                    settled = True
 
             last_things_list = list[tuple[ActionKind, int, Action]]()
 
@@ -333,6 +350,7 @@ class Sim:
 
         await Sim.set(adapter.en, 1)
         await Sim.set_record(adapter.data_in, data)
+        await Wait()
         if await Sim.get(adapter.done):
             return await Sim.get_record(adapter.data_out)
         else:
@@ -348,11 +366,6 @@ class Sim:
             assert False
         else:
             return result
-
-    @staticmethod
-    async def with_wait(awaitable: Awaitable[_T]) -> _T:
-        await Wait()
-        return await awaitable
 
     @staticmethod
     def def_method_mock(
@@ -375,6 +388,7 @@ class Sim:
                     return
 
                 await Sim.set(adapter.en, 1)
+                await Wait()
                 if await Sim.get(adapter.done):
                     arg = await Sim.get_record(adapter.data_out)
                     res = await method_def_helper(adapter, r_func, **arg)
