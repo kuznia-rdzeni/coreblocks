@@ -15,7 +15,7 @@ from coreblocks.transactions.lib import *
 from coreblocks.utils import *
 from coreblocks.utils._typing import LayoutLike, ModuleLike
 from coreblocks.utils import ModuleConnector
-from ..transactional_testing import Sim, SimFIFO, Wait
+from ..transactional_testing import Sim, SimFIFO, Wait, WaitSettled
 from ..common import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
@@ -459,7 +459,7 @@ class TestMethodFilter(TestCaseWithSimulator):
     async def source(self):
         i = await self.queue.pop_or_exit()
         v = await Sim.call(self.tc.method.adapter, data=i)
-        await Wait()
+        await WaitSettled()
         self.assertEqual(v["data"], (i + 1) & ((1 << self.iosize) - 1) if i & 1 else 0)
 
     @Sim.def_method_mock(lambda self: self.target)
