@@ -1,10 +1,12 @@
+from abc import ABC, abstractmethod
 import functools
+import random
 from collections import defaultdict, deque
 from amaranth import *
 from collections.abc import Callable, Coroutine, Generator, Iterable, Mapping
 from dataclasses import dataclass, field
 from enum import IntEnum, auto
-from typing import Any, ClassVar, Generic, Optional, TypeAlias, TypeVar, cast
+from typing import Any, ClassVar, Concatenate, Generic, Optional, ParamSpec, TypeAlias, TypeVar, cast
 
 from amaranth.sim import Settle
 from .common import RecordIntDict, RecordIntDictRet, TestGen
@@ -12,15 +14,16 @@ from coreblocks.transactions.lib import AdapterBase
 from coreblocks.transactions._utils import method_def_helper
 
 
+_P = ParamSpec("_P")
 _T = TypeVar("_T")
 Command: TypeAlias = "Action | Exit | Skip | Wait | Passive | WaitSettled | CycleId"
 TTestGen: TypeAlias = Coroutine[Command, Any, _T]
-OptSelfCallable: TypeAlias = Callable[[], _T] | Callable[[Any], _T]
+OptSelfCallable: TypeAlias = Callable[_P, _T] | Callable[Concatenate[Any, _P], _T]
 ActionFun: TypeAlias = Callable[[], TestGen[Any] | Any]
 Process: TypeAlias = Callable[[], TTestGen[None]]
 
 
-def opt_self_resolve(func_self: Any, func: OptSelfCallable[_T]) -> Callable[[], _T]:
+def opt_self_resolve(func_self: Any, func: OptSelfCallable[[], _T]) -> Callable[[], _T]:
     if func_self is None:
         return cast(Any, func)
     else:
@@ -84,7 +87,38 @@ class ProcessState:
     passive = False
 
 
-class SimFIFO(Generic[_T]):
+class SimQueueBase(ABC, Generic[_T]):
+    @abstractmethod
+    async def not_empty(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def push(self, value: _T) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def peek(self) -> _T:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def pop(self) -> _T:
+        raise NotImplementedError
+
+    async def empty(self) -> bool:
+        return not await self.not_empty()
+
+    async def pop_or_exit(self) -> _T:
+        if await self.empty():
+            await Exit()
+        return await self.pop()
+
+    async def pop_or_skip(self) -> _T:
+        if await self.empty():
+            await Skip()
+        return await self.pop()
+
+
+class SimFIFO(SimQueueBase[_T]):
     def __init__(self, init: Iterable[_T] = ()):
         self._queue = deque(init)
 
@@ -102,9 +136,6 @@ class SimFIFO(Generic[_T]):
 
         await Action(ActionKind.PUT_FINAL, self, action)
 
-    async def empty(self) -> bool:
-        return await Action(ActionKind.GET, self, lambda: not self._queue)
-
     async def not_empty(self) -> bool:
         return await Action(ActionKind.GET, self, lambda: bool(self._queue))
 
@@ -116,12 +147,7 @@ class SimFIFO(Generic[_T]):
             self._queue.popleft()
 
         await Action(ActionKind.GET_COMPLETE, self, complete)
-        return await Action(ActionKind.GET, self, lambda: self._queue[0])
-
-    async def pop_or_exit(self) -> _T:
-        if await self.empty():
-            await Exit()
-        return await self.pop()
+        return await self.peek()
 
 
 class SimSignal(Generic[_T]):
@@ -144,7 +170,7 @@ class SimSignal(Generic[_T]):
         await self.set(value, final=True)
 
 
-class SimPipe(Generic[_T]):
+class SimPipe(SimQueueBase[_T]):
     def __init__(self):
         self._value = SimSignal[Optional[_T]](None)
         self._can_push = SimSignal(True)
@@ -157,9 +183,6 @@ class SimPipe(Generic[_T]):
             await Skip()
         await self._value.set_final(value)
         await self._can_push.set_final(False)
-
-    async def empty(self) -> bool:
-        return await self._value.get() is None
 
     async def not_empty(self) -> bool:
         return await self._value.get() is not None
@@ -177,6 +200,28 @@ class SimPipe(Generic[_T]):
         await self._can_push.set(True)
         await Action(ActionKind.GET_COMPLETE, self._value, clear_action)
         return await self.peek()
+
+
+class SimRandomDelay:
+    def __init__(self, max_delay: int):
+        self.max_delay = max_delay
+        self._counter = SimSignal[int](random.randint(0, max_delay))
+
+    def __bool__(self):
+        raise TypeError("Attempted to convert SimRandomDelay to boolean")
+
+    async def should_wait(self) -> bool:
+        val = await self._counter.get()
+        if val:
+            await self._counter.set_final(val - 1)
+            return True
+        else:
+            await self._counter.set_final(random.randint(0, self.max_delay))
+            return False
+
+    async def wait(self) -> None:
+        if await self.should_wait():
+            await Skip()
 
 
 class Sim:
@@ -270,8 +315,9 @@ class Sim:
                                 suspended[process] = running
                                 break
                             case WaitSettled():
-                                suspended_settled[process] = running
-                                break
+                                if not settled:
+                                    suspended_settled[process] = running
+                                    break
                             case Exit():
                                 states[process].exit = True
                                 running.close()
@@ -341,7 +387,15 @@ class Sim:
 
     @staticmethod
     async def exit() -> Any:
-        yield Exit()
+        await Exit()
+
+    @staticmethod
+    async def skip() -> Any:
+        await Skip()
+
+    @staticmethod
+    async def passive() -> Any:
+        await Passive()
 
     @staticmethod
     async def print(text: str) -> None:
@@ -377,12 +431,12 @@ class Sim:
         return result
 
     @staticmethod
-    async def set_record(rec: Record, values: RecordIntDict) -> None:
+    async def set_record(rec: Record, values: RecordIntDict, *, final: bool = False) -> None:
         for name, value in values.items():
             if isinstance(value, Mapping):
-                await Sim.set_record(getattr(rec, name), value)
+                await Sim.set_record(getattr(rec, name), value, final=final)
             else:
-                await Sim.set(getattr(rec, name), value)
+                await Sim.set(getattr(rec, name), value, final=final)
 
     @staticmethod
     async def call_try(
@@ -414,9 +468,15 @@ class Sim:
 
     @staticmethod
     def def_method_mock(
-        tb_getter: OptSelfCallable[AdapterBase], *, enable: Optional[OptSelfCallable[TTestGen[bool]]] = None
+        tb_getter: OptSelfCallable[[], AdapterBase],
+        *,
+        enable: Optional[OptSelfCallable[[], TTestGen[bool]]] = None,
+        max_delay: int = 0,
     ) -> Callable[[Callable[..., TTestGen[Optional[RecordIntDict]]]], Process]:
         def decorator(func: Callable[..., TTestGen[Optional[RecordIntDict]]]) -> Process:
+            if max_delay:
+                random_delay = SimRandomDelay(max_delay)
+
             @functools.wraps(func)
             async def mock(func_self=None, /):
                 r_func = opt_self_resolve(func_self, func)
@@ -428,7 +488,7 @@ class Sim:
 
                 await Passive()
 
-                if r_enable is not None and not await r_enable():
+                if r_enable is not None and not await r_enable() or max_delay and await random_delay.should_wait():
                     await Sim.set(adapter.en, 0)
                     return
 
@@ -440,5 +500,51 @@ class Sim:
                     await Sim.set_record(adapter.data_in, res or {})
 
             return mock
+
+        return decorator
+
+    @staticmethod
+    def with_random_delay(max_delay: int):
+        def decorator(func: Callable[..., TTestGen[None]]):
+            random_delay = SimRandomDelay(max_delay)
+
+            @functools.wraps(func)
+            async def process(func_self=None, /):
+                r_func = opt_self_resolve(func_self, func)
+                await random_delay.wait()
+                await r_func()
+
+            return process
+
+        return decorator
+
+    @staticmethod
+    def queue_reader(*queues: OptSelfCallable[[], SimQueueBase], max_delay: int = 0):
+        def decorator(func: Callable[..., TTestGen[None]]):
+            if max_delay:
+                random_delay = SimRandomDelay(max_delay)
+
+            @functools.wraps(func)
+            async def process(func_self=None, /):
+                r_func = opt_self_resolve(func_self, func)
+
+                args = []
+                for queue in queues:
+                    if await queue.not_empty():
+                        args.append(await queue.pop())
+
+                # Ending simulation possible only when queues empty
+                if not args:
+                    await Passive()
+
+                if len(args) < len(queues):
+                    await Skip()
+
+                if max_delay:
+                    await random_delay.wait()
+
+                await r_func(*args)
+
+            return process
 
         return decorator

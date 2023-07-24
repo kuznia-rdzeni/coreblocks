@@ -15,7 +15,7 @@ from coreblocks.transactions.lib import *
 from coreblocks.utils import *
 from coreblocks.utils._typing import LayoutLike, ModuleLike
 from coreblocks.utils import ModuleConnector
-from ..transactional_testing import Sim, SimFIFO, Wait, WaitSettled
+from ..transactional_testing import Sim, SimFIFO, WaitSettled
 from ..common import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
