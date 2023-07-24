@@ -144,15 +144,12 @@ class RetirementTest(TestCaseWithSimulator):
             return {"cause": 0, "rob_id": 0}  # keep exception cause method enabled
 
         with self.run_simulation(retc) as sim:
-            tsim = Sim(
-                [
-                    retire_process,
-                    peek_process,
-                    rf_free_process,
-                    precommit_process,
-                    exception_cause_process,
-                    free_reg_process,
-                    rat_process,
-                ]
-            )
+            tsim = Sim()
+            tsim.add_process(retire_process)
+            tsim.add_process(peek_process)
+            tsim.add_process(rf_free_process)
+            tsim.add_process(precommit_process)
+            tsim.add_process(exception_cause_process)
+            tsim.add_process(free_reg_process)
+            tsim.add_process(rat_process)
             sim.add_sync_process(tsim.process)

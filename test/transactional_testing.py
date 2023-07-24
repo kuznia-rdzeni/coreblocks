@@ -136,8 +136,11 @@ class SimSignal(Generic[_T]):
 class Sim:
     _is_running: ClassVar[bool] = False
 
-    def __init__(self, processes: Iterable[Callable[[], TTestGen[None]]]):
+    def __init__(self, processes: Iterable[Process] = ()):
         self.processes = list(processes)
+
+    def add_process(self, process: Process):
+        self.processes.append(process)
 
     def process(self) -> TestGen[None]:
         def run_action(action: ActionFun):
