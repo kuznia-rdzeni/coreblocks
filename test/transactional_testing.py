@@ -31,6 +31,7 @@ class ActionKind(IntEnum):
     GET_COMPLETE = auto()
     PUT = auto()
     PUT_FINAL = auto()
+    PRINT = auto()
 
 
 class SelfAwaitable:
@@ -237,7 +238,11 @@ class Sim:
                                 restart_processes(gets[id(subject)])
                                 gets[id(subject)] = set()
                                 yield from run_action(action)
-                            case Action(ActionKind.PUT_FINAL | ActionKind.GET_COMPLETE as kind, subject, action):
+                            case Action(
+                                ActionKind.PUT_FINAL | ActionKind.GET_COMPLETE | ActionKind.PRINT as kind,
+                                subject,
+                                action,
+                            ):
                                 last_things[process].append((kind, cmd))
                 except StopIteration:
                     pass
@@ -258,9 +263,10 @@ class Sim:
             subjects_for_kind = {ActionKind.GET_COMPLETE: dict[int, int](), ActionKind.PUT_FINAL: puts}
 
             for kind, process, cmd in last_things_list:
-                if id(cmd.subject) in subjects_for_kind[kind]:
-                    raise RuntimeError(f"Action {str(kind)} performed twice on {cmd.subject}")
-                subjects_for_kind[kind][id(cmd.subject)] = process
+                if kind in subjects_for_kind:
+                    if id(cmd.subject) in subjects_for_kind[kind]:
+                        raise RuntimeError(f"Action {str(kind)} performed twice on {cmd.subject}")
+                    subjects_for_kind[kind][id(cmd.subject)] = process
                 yield from run_action(cmd.action)
 
             active = [i for i in active if not states[i].exit]
@@ -271,6 +277,10 @@ class Sim:
     @staticmethod
     async def exit() -> Any:
         yield Exit()
+
+    @staticmethod
+    async def print(text: str) -> None:
+        return await Action(ActionKind.PRINT, None, lambda: print(text))
 
     @staticmethod
     async def get(value: Value) -> int:
