@@ -13,7 +13,8 @@ from coreblocks.transactions._utils import method_def_helper
 
 
 _T = TypeVar("_T")
-TTestGen: TypeAlias = Coroutine["Action | Exit | Skip | Wait | Passive | WaitSettled", Any, _T]
+Command: TypeAlias = "Action | Exit | Skip | Wait | Passive | WaitSettled | CycleId"
+TTestGen: TypeAlias = Coroutine[Command, Any, _T]
 OptSelfCallable: TypeAlias = Callable[[], _T] | Callable[[Any], _T]
 ActionFun: TypeAlias = Callable[[], TestGen[Any] | Any]
 Process: TypeAlias = Callable[[], TTestGen[None]]
@@ -61,6 +62,11 @@ class WaitSettled(SelfAwaitable):
 
 @dataclass
 class Passive(SelfAwaitable):
+    pass
+
+
+@dataclass
+class CycleId(SelfAwaitable):
     pass
 
 
@@ -159,6 +165,7 @@ class Sim:
 
         active = list(map(id, self.processes))
         run = bool(active)
+        cycle_id = 0
 
         while run:
             # Set to true when a signal is modified. A settle will be performed before next signal read.
@@ -234,6 +241,8 @@ class Sim:
                                 states[process].exit = True
                                 running.close()
                                 break
+                            case CycleId():
+                                to_send = cycle_id
                             case Action(ActionKind.GET, subject, action):
                                 gets[id(subject)].add(process)
                                 if isinstance(subject, Value) and need_settle:
@@ -291,6 +300,7 @@ class Sim:
 
             active = [i for i in active if not states[i].exit]
             run = any(not states[i].passive for i in active)
+            cycle_id = cycle_id + 1
 
             yield
 
