@@ -19,6 +19,7 @@ _T = TypeVar("_T")
 Command: TypeAlias = "Action | Exit | Skip | Wait | Passive | WaitSettled | CycleId"
 TTestGen: TypeAlias = Coroutine[Command, Any, _T]
 OptSelfCallable: TypeAlias = Callable[_P, _T] | Callable[Concatenate[Any, _P], _T]
+OptSelfThing: TypeAlias = Callable[[Any], _T] | _T
 ActionFun: TypeAlias = Callable[[], TestGen[Any] | Any]
 Process: TypeAlias = Callable[[], TTestGen[None]]
 
@@ -30,12 +31,22 @@ def opt_self_resolve(func_self: Any, func: OptSelfCallable[[], _T]) -> Callable[
         return func.__get__(func_self)
 
 
+def opt_self_thing_resolve(func_self: Any, thing: OptSelfThing[_T]) -> _T:
+    if func_self is None:
+        return cast(Any, thing)
+    else:
+        assert isinstance(thing, Callable)
+        return thing(func_self)
+
+
 class ActionKind(IntEnum):
     GET = auto()
     GET_COMPLETE = auto()
     PUT = auto()
     PUT_FINAL = auto()
     PRINT = auto()
+    _YIELD = auto()
+    RESET = auto()
 
 
 class SelfAwaitable:
@@ -309,6 +320,11 @@ class Sim:
                             case Passive():
                                 states[process].passive = True
                             case Skip():
+                                last_things[process] = [
+                                    (kind, action)
+                                    for (kind, action) in last_things[process]
+                                    if kind not in [ActionKind.GET_COMPLETE]
+                                ]
                                 running.close()
                                 break
                             case Wait():
@@ -345,7 +361,10 @@ class Sim:
                                 gets[id(subject)] = set()
                                 yield from run_action(action)
                             case Action(
-                                ActionKind.PUT_FINAL | ActionKind.GET_COMPLETE | ActionKind.PRINT as kind,
+                                ActionKind.PUT_FINAL
+                                | ActionKind.GET_COMPLETE
+                                | ActionKind.PRINT
+                                | ActionKind.RESET as kind,
                                 subject,
                                 action,
                             ):
@@ -363,6 +382,11 @@ class Sim:
                     settled = True
 
             last_things_list = list[tuple[ActionKind, int, Action]]()
+
+            def yield_action():
+                yield
+
+            last_things[id(self)].append((ActionKind._YIELD, Action(ActionKind._YIELD, self, yield_action)))
 
             for process, things in last_things.items():
                 for kind, cmd in things:
@@ -382,8 +406,6 @@ class Sim:
             active = [i for i in active if not states[i].exit]
             run = any(not states[i].passive for i in active)
             cycle_id = cycle_id + 1
-
-            yield
 
     @staticmethod
     async def exit() -> Any:
@@ -420,6 +442,13 @@ class Sim:
         await Sim.set(signal, value, final=True)
 
     @staticmethod
+    async def reset(signal: Signal, value: int) -> None:
+        def action():
+            yield signal.eq(value)
+
+        await Action(ActionKind.RESET, signal, action)
+
+    @staticmethod
     async def get_record(rec: Record) -> RecordIntDict:
         result = {}
         for name, _, _ in rec.layout:
@@ -448,6 +477,7 @@ class Sim:
             data = kwdata
 
         await Sim.set(adapter.en, 1)
+        await Sim.reset(adapter.en, 0)
         await Sim.set_record(adapter.data_in, data)
         await Wait()
         if await Sim.get(adapter.done):
@@ -471,6 +501,8 @@ class Sim:
         tb_getter: OptSelfCallable[[], AdapterBase],
         *,
         enable: Optional[OptSelfCallable[[], TTestGen[bool]]] = None,
+        active: Optional[OptSelfCallable[[], TTestGen[bool]]] = None,
+        enabled_active: bool = False,
         max_delay: int = 0,
     ) -> Callable[[Callable[..., TTestGen[Optional[RecordIntDict]]]], Process]:
         def decorator(func: Callable[..., TTestGen[Optional[RecordIntDict]]]) -> Process:
@@ -482,17 +514,23 @@ class Sim:
                 r_func = opt_self_resolve(func_self, func)
                 r_getter = opt_self_resolve(func_self, tb_getter)
                 r_enable = opt_self_resolve(func_self, enable) if enable is not None else None
+                r_active = opt_self_resolve(func_self, active) if active is not None else None
 
                 adapter = r_getter()
                 assert isinstance(adapter, AdapterBase)
 
-                await Passive()
+                enabled = r_enable is None or await r_enable()
+                stay_active = r_active is not None and await r_active()
+                should_wait = max_delay and await random_delay.should_wait()
 
-                if r_enable is not None and not await r_enable() or max_delay and await random_delay.should_wait():
-                    await Sim.set(adapter.en, 0)
+                if not stay_active and (not enabled or not enabled_active):
+                    await Passive()
+
+                if not enabled or should_wait:
                     return
 
                 await Sim.set(adapter.en, 1)
+                await Sim.reset(adapter.en, 0)
                 await Wait()
                 if await Sim.get(adapter.done):
                     arg = await Sim.get_record(adapter.data_out)
@@ -519,7 +557,7 @@ class Sim:
         return decorator
 
     @staticmethod
-    def queue_reader(*queues: OptSelfCallable[[], SimQueueBase], max_delay: int = 0):
+    def queue_reader(*queues: OptSelfThing[SimQueueBase], max_delay: int = 0):
         def decorator(func: Callable[..., TTestGen[None]]):
             if max_delay:
                 random_delay = SimRandomDelay(max_delay)
@@ -530,8 +568,9 @@ class Sim:
 
                 args = []
                 for queue in queues:
-                    if await queue.not_empty():
-                        args.append(await queue.pop())
+                    r_queue = opt_self_thing_resolve(func_self, queue)
+                    if await r_queue.not_empty():
+                        args.append(await r_queue.pop())
 
                 # Ending simulation possible only when queues empty
                 if not args:
