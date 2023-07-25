@@ -313,8 +313,10 @@ class Sim:
                 try:
                     while True:
                         Sim._is_running = True
-                        cmd = running.send(to_send)
-                        Sim._is_running = False
+                        try:
+                            cmd = running.send(to_send)
+                        finally:
+                            Sim._is_running = False
 
                         match cmd:
                             case Passive():
