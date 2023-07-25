@@ -188,15 +188,17 @@ class TestModule(Elaboratable):
 
 class PysimSimulator(Simulator):
     def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
-        super().__init__(TestModule(module, add_transaction_module))
+        test_module = TestModule(module, add_transaction_module)
+        tested_module = test_module.tested_module
+        super().__init__(test_module)
 
         clk_period = 1e-6
         self.add_clock(clk_period)
 
-        if isinstance(module, HasDebugSignals):
-            extra_signals = module.debug_signals
+        if isinstance(tested_module, HasDebugSignals):
+            extra_signals = tested_module.debug_signals
         else:
-            extra_signals = functools.partial(auto_debug_signals, module)
+            extra_signals = functools.partial(auto_debug_signals, tested_module)
 
         if traces_file:
             traces_dir = "test/__traces__"

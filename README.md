@@ -21,8 +21,9 @@ In the future, we would like to achieve the following goals:
 
 ## State of the project
 
-The core is currently incomplete and cannot be readily used in other projects.
-We plan to achieve full RV32I support soon and to make the core easily usable in [LiteX](https://github.com/enjoy-digital/litex).
+The core currently supports the full RV32I instruction set and several extensions, including M (multiplication and division) and C (compressed instructions).
+Interrupts and exceptions are currently not supported.
+Coreblocks can be used with [LiteX](https://github.com/enjoy-digital/litex) (currently using a [patched version](https://github.com/kuznia-rdzeni/litex/tree/coreblocks)).
 
 The transaction system we use as the foundation for the core is well-tested and usable.
 We plan to make it available as a separate Python package.

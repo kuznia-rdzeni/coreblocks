@@ -219,7 +219,7 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
 
-        result_ready = internal.result_ready
+        result_ready = internal.result_ready | ((current_instr.exec_fn.op_type == OpType.FENCE) & current_instr.valid)
 
         @def_method(m, self.select, ~reserved)
         def _():
@@ -257,7 +257,9 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         @def_method(m, self.precommit)
         def _(rob_id: Value):
-            with m.If(current_instr.valid & (rob_id == current_instr.rob_id)):
+            with m.If(
+                current_instr.valid & (rob_id == current_instr.rob_id) & (current_instr.exec_fn.op_type != OpType.FENCE)
+            ):
                 m.d.comb += internal.execute.eq(1)
 
         return m
@@ -272,7 +274,7 @@ class LSUBlockComponent(BlockComponentParams):
         return unit
 
     def get_optypes(self) -> set[OpType]:
-        return {OpType.LOAD, OpType.STORE}
+        return {OpType.LOAD, OpType.STORE, OpType.FENCE}
 
     def get_rs_entry_count(self) -> int:
         return 1
