@@ -131,7 +131,7 @@ core_units = {
     "mul_recursive": unit_fu(MulComponent(MulType.RECURSIVE_MUL)),
     "div": unit_fu(DivComponent()),
     "shift_basic": unit_fu(ShiftUnitComponent(False)),
-    "shift_full": unit_fu(ShiftUnitComponent(False)),
+    "shift_full": unit_fu(ShiftUnitComponent(True)),
     "zbs": unit_fu(ZbsComponent()),
     "zbc": unit_fu(ZbcComponent()),
 }
