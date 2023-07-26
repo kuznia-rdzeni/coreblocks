@@ -211,7 +211,10 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.precommit = Method(i=self.lsu_layouts.precommit)
 
         self.bus = bus
-        self._reserved = Signal()  # means that current_instr is reserved
+        self._reserved = Signal(name = "_reserved")  # means that current_instr is reserved
+        #TODO make vector and scalar LSU synchronisation cleaner
+        connections = self.gen_params.get(DependencyManager)
+        connections.add_dependency(LSUReservedSignal(), self._reserved)
 
     def elaborate(self, platform):
         m = TModule()
@@ -221,17 +224,13 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         result_ready = internal.result_ready | ((current_instr.exec_fn.op_type == OpType.FENCE) & current_instr.valid)
 
-        #TODO make vector and scalar LSU synchronisation cleaner
-        connections = self.gen_params.get(DependencyManager)
-        connections.add_dependency(LSUReservedSignal(), self._reserved)
-
         @def_method(m, self.select, ~self._reserved)
         def _():
             # We always return 0, because we have only one place in instruction storage.
             m.d.sync += self._reserved.eq(1)
             return {"rs_entry_id": 0}
 
-        @def_method(m, self.insert, self._reserved & ~current_instr.valid)
+        @def_method(m, self.insert)
         def _(rs_data: Record, rs_entry_id: Value):
             m.d.sync += assign(current_instr, rs_data)
             m.d.sync += current_instr.valid.eq(1)
