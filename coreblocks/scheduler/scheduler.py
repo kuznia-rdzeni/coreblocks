@@ -323,8 +323,8 @@ class RSInsertion(Elaboratable):
             data = {
                 # when operand value is valid the convention is to set operand source to 0
                 "rs_data": {
-                    "rp_s1": Mux(source1.valid, 0, instr.regs_p.s1),
-                    "rp_s2": Mux(source2.valid, 0, instr.regs_p.s2),
+                    "rp_s1": Mux(source1.valid & (instr.regs_p.s1.type == RegisterType.X), 0, instr.regs_p.s1),
+                    "rp_s2": Mux(source2.valid & (instr.regs_p.s2.type == RegisterType.X), 0, instr.regs_p.s2),
                     "rp_s1_reg": instr.regs_p.s1.id,
                     "rp_s2_reg": instr.regs_p.s2.id,
                     "rp_dst": instr.regs_p.dst,
