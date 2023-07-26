@@ -54,22 +54,26 @@ class TestVectorLSU(TestCaseWithSimulator):
 
         self.exception_report = MethodMock(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         self.insert_x= MethodMock(i = self.vxrs_layouts.insert_in)
+        self.get_reserved = MethodMock(o=[("reserved", 1)])
+        self.set_reserved = MethodMock(i=[("reserved", 1)])
         self.vrfs = [VRFStub(self.gen_params) for _ in range(self.v_params.register_bank_count)]
 
         self.bus = WishboneMaster(wb_params)
         self.wishbone = WishboneInterfaceWrapper(self.bus.wbMaster)
 
         self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.get_method())
-        self.gen_params.get(DependencyManager).add_dependency(LSUReservedSignal(), Signal())
+        self.gen_params.get(DependencyManager).add_dependency(LSUReservedKey(), (self.get_reserved.get_method(), self.set_reserved.get_method()))
         self.gen_params.get(DependencyManager).add_dependency(WishboneDataKey(), self.bus)
         self.gen_params.get(DependencyManager).add_dependency(VectorVRFAccessKey(), 
                                                               ([vrf.write.get_method() for vrf in self.vrfs], [vrf.read_req.get_method() for vrf in self.vrfs], [vrf.read_resp.get_method() for vrf in self.vrfs]))
         self.gen_params.get(DependencyManager).add_dependency(VectorFrontendInsertKey(), self.insert_x.get_method())
         self.circ = SimpleTestCircuit(VectorLSU(self.gen_params))
-        self.m = ModuleConnector(circ = self.circ, vrfs = ModuleConnector(*[vrf.methods for vrf in self.vrfs]), bus = self.bus, exception_report = self.exception_report, insert_x = self.insert_x)
+        self.m = ModuleConnector(circ = self.circ, vrfs = ModuleConnector(*[vrf.methods for vrf in self.vrfs]), bus = self.bus,
+                                 exception_report = self.exception_report, insert_x = self.insert_x, get_reserved = self.get_reserved, set_reserved = self.set_reserved)
 
         self.current_instr = None
         self.elens_to_send = -1
+        self.reserved = 0
 
     @def_method_mock(lambda self:self.exception_report)
     def exception_process(self, arg):
@@ -79,6 +83,14 @@ class TestVectorLSU(TestCaseWithSimulator):
     @def_method_mock(lambda self:self.insert_x)
     def insert_x_process(self, arg):
         pass
+
+    @def_method_mock(lambda self:self.get_reserved)
+    def get_reserved_process(self):
+        return {"reserved" : self.reserved}
+
+    @def_method_mock(lambda self:self.set_reserved, sched_prio = 1)
+    def set_reserved_process(self, reserved):
+        self.reserved = reserved
 
     def wishbone_process(self):
         yield Passive()
@@ -154,6 +166,8 @@ class TestVectorLSU(TestCaseWithSimulator):
             sim.add_sync_process(self.precommit_process)
             sim.add_sync_process(self.exception_process)
             sim.add_sync_process(self.insert_x_process)
+            sim.add_sync_process(self.get_reserved_process)
+            sim.add_sync_process(self.set_reserved_process)
             for i in range(self.v_params.register_bank_count):
                 sim.add_sync_process(self.vrfs[i].write_process)
                 sim.add_sync_process(self.vrfs[i].read_req_process)

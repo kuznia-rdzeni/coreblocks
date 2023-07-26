@@ -224,17 +224,20 @@ class VectorLSU(FuncBlock, Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-        reserved = self.connections.get_dependency(LSUReservedSignal())
+        reserved = Signal()
         current_instr = Record(self.v_lsu_layouts.rs_data_layout + [("valid", 1)])
+        _get_reserved, _set_reserved = self.connections.get_dependency(LSUReservedKey())
 
         m.submodules.internal = internal = VectorLSUDummyInternals(self.gen_params, self.bus, current_instr, self.write_vrf, self.read_req_vrf, self.read_resp_vrf)
-
         result_ready = internal.result_ready 
+
+        with Transaction().body(m):
+            m.d.comb += reserved.eq(_get_reserved(m).reserved)
 
         @def_method(m, self.select, ~reserved)
         def _():
             # We always return 0, because we have only one place in instruction storage.
-            m.d.sync += reserved.eq(1)
+            _set_reserved(m, reserved = 1)
             return {"rs_entry_id": 0}
 
         @def_method(m, self.insert_v, reserved & ~current_instr.valid)
@@ -267,7 +270,7 @@ class VectorLSU(FuncBlock, Elaboratable):
             m.d.comb += internal.get_result_ack.eq(1)
 
             m.d.sync += current_instr.eq(0)
-            m.d.sync += reserved.eq(0)
+            _set_reserved(m, reserved = 0)
 
             return {
                 "rob_id": current_instr.rob_id,

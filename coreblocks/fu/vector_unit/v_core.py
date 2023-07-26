@@ -55,6 +55,7 @@ class VectorCore(Elaboratable):
         self.x_retirement_layouts = gen_params.get(RetirementLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.v_frontend_layouts = VectorFrontendLayouts(self.gen_params)
+        self.vrf_layout = VRFFragmentLayouts(self.gen_params)
 
         self.insert = Method(i=self.vxrs_layouts.insert_in)
         self.select = Method(o=self.vxrs_layouts.select_out)
@@ -62,8 +63,12 @@ class VectorCore(Elaboratable):
         self.precommit = Method(i=self.x_retirement_layouts.precommit)
         self.get_result = Method(o=self.fu_layouts.accept)
 
+        self.vrf_write = [Method(i=self.vrf_layout.write) for _ in range(self.v_params.vrp_count)]
+        self.vrf_read_req = [Method(i=self.vrf_layout.read_req) for _ in range(self.v_params.vrp_count)]
+        self.vrf_read_resp = [Method(o=self.vrf_layout.read_resp_o) for _ in range(self.v_params.vrp_count)]
         self.connections =self.gen_params.get(DependencyManager)
         self.connections.add_dependency(VectorFrontendInsertKey(), self.insert)
+        self.connections.add_dependency(VectorVRFAccessKey(), (self.vrf_write, self.vrf_read_req, self.vrf_read_resp))
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -103,6 +108,11 @@ class VectorCore(Elaboratable):
         self.insert.proxy(m, frontend.insert)
         self.select.proxy(m, frontend.select)
         self.update.proxy(m, frontend.update)
+
+        for i in range(len(backend.vrf_write)):
+            self.vrf_write[i].proxy(m, backend.vrf_write[i])
+            self.vrf_read_req[i].proxy(m, backend.vrf_read_req[i])
+            self.vrf_read_resp[i].proxy(m, backend.vrf_read_resp[i])
 
         m.submodules.v_freerf = v_freerf
         m.submodules.v_frat = v_frat

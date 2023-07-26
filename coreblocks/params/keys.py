@@ -17,7 +17,7 @@ __all__ = [
     "GenericCSRRegistersKey",
     "ROBBlockInterruptsKey",
     "ROBPeekKey",
-    "LSUReservedSignal",
+    "LSUReservedKey",
     "VectorFrontendInsertKey",
     "VectorVRFAccessKey",
 ]
@@ -58,7 +58,7 @@ class ROBPeekKey(SimpleKey[Method]):
     pass
 
 @dataclass(frozen = True)
-class LSUReservedSignal(SimpleKey[Signal]):
+class LSUReservedKey(SimpleKey[tuple[Method,Method]]):
     pass
 
 # TODO rework vector core so that this key wouldn't be needed

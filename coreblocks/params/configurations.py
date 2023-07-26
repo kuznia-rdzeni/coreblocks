@@ -15,7 +15,9 @@ from coreblocks.fu.div_unit import DivComponent
 from coreblocks.fu.zbc import ZbcComponent
 from coreblocks.fu.zbs import ZbsComponent
 from coreblocks.fu.exception import ExceptionUnitComponent
+from coreblocks.fu.vector_unit.v_core import VectorBlockComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
+from coreblocks.lsu.vector_lsu import VectorLSUBlockComponent
 from coreblocks.structs_common.csr import CSRBlockComponent
 
 __all__ = [
@@ -186,7 +188,9 @@ test_vector_core_config = CoreConfiguration(
 )
 
 # Core configuration with vector extension
-vector_core_config = CoreConfiguration(_implied_extensions=Extension.V,
+vector_core_config = CoreConfiguration(
+    allow_partial_extensions=True,
+    vector_config=VectorUnitConfiguration(),
     func_units_config=(
         RSBlockComponent(
             [
@@ -197,6 +201,7 @@ vector_core_config = CoreConfiguration(_implied_extensions=Extension.V,
             rs_entries=4,
         ),
         LSUBlockComponent(),
-        CSRBlockComponent(),
+        VectorBlockComponent(8),
+        VectorLSUBlockComponent(),
     ),
     )

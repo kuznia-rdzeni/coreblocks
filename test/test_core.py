@@ -7,7 +7,7 @@ from .common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
+from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config, vector_core_config
 from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
 
 from typing import Optional, cast
@@ -243,6 +243,7 @@ class TestCoreRandomized(TestCoreBase):
         ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
         ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
+#        ("fibonacci_vcore", "fibonacci_mem.asm", 610, {3: 55}, vector_core_config),
     ],
 )
 class TestCoreAsmSource(TestCoreBase):

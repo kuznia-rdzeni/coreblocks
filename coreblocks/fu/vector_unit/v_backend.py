@@ -73,9 +73,6 @@ class VectorBackend(Elaboratable):
         self.vrf_read_req = [Method(i=self.vrf_layout.read_req) for _ in range(self.v_params.vrp_count)]
         self.vrf_read_resp = [Method(o=self.vrf_layout.read_resp_o) for _ in range(self.v_params.vrp_count)]
         
-        self.connections =self.gen_params.get(DependencyManager)
-        self.connections.add_dependency(VectorVRFAccessKey(), (self.vrf_write, self.vrf_read_req, self.vrf_read_resp))
-
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
