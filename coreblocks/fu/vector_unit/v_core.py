@@ -62,10 +62,13 @@ class VectorCore(Elaboratable):
         self.precommit = Method(i=self.x_retirement_layouts.precommit)
         self.get_result = Method(o=self.fu_layouts.accept)
 
+        self.connections =self.gen_params.get(DependencyManager)
+        self.connections.add_dependency(VectorFrontendInsertKey(), self.insert)
+
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        rob_block_interrupts = self.gen_params.get(DependencyManager).get_dependency(ROBBlockInterruptsKey())
+        rob_block_interrupts = self.connections.get_dependency(ROBBlockInterruptsKey())
 
         v_freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1, reset_state=2**self.v_params.vrl_count - 1)
         v_frat = FRAT(gen_params=self.gen_params, superscalarity=2, zero_init=False)
