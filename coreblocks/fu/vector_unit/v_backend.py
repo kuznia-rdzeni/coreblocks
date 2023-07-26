@@ -69,9 +69,9 @@ class VectorBackend(Elaboratable):
         self.put_instr = Method(i=self.layouts.vvrs_in)
         self.initialise_regs = [Method(i=self.vreg_layout.initialise) for _ in range(self.v_params.vrp_count)]
         self.report_mult = Method(i=self.layouts.ender_report_mult)
-        self.vrf_write = [Method(i=self.vrf_layout.write) for _ in range(self.v_params.vrp_count)]
-        self.vrf_read_req = [Method(i=self.vrf_layout.read_req) for _ in range(self.v_params.vrp_count)]
-        self.vrf_read_resp = [Method(o=self.vrf_layout.read_resp_o) for _ in range(self.v_params.vrp_count)]
+        self.vrf_write = [Method(i=self.vrf_layout.write) for _ in range(self.v_params.register_bank_count)]
+        self.vrf_read_req = [Method(i=self.vrf_layout.read_req) for _ in range(self.v_params.register_bank_count)]
+        self.vrf_read_resp = [Method(o=self.vrf_layout.read_resp_o) for _ in range(self.v_params.register_bank_count)]
         
     def elaborate(self, platform) -> TModule:
         m = TModule()
