@@ -48,16 +48,25 @@ class TestVectorLSU(TestCaseWithSimulator):
         self.v_params = self.gen_params.v_params
         wb_params = WishboneParameters( data_width=self.v_params.elen, addr_width=32)
         self.layouts = self.gen_params.get(VectorLSULayouts)
+        self.vxrs_layouts = VectorXRSLayout(
+            self.gen_params, rs_entries_bits=log2_int(self.v_params.vxrs_entries, False)
+        )
 
         self.exception_report = MethodMock(i=self.gen_params.get(ExceptionRegisterLayouts).report)
+        self.insert_x= MethodMock(i = self.vxrs_layouts.insert_in)
         self.vrfs = [VRFStub(self.gen_params) for _ in range(self.v_params.register_bank_count)]
 
         self.bus = WishboneMaster(wb_params)
         self.wishbone = WishboneInterfaceWrapper(self.bus.wbMaster)
 
         self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.get_method())
-        self.circ = SimpleTestCircuit(VectorLSU(self.gen_params, self.bus, [vrf.write.get_method() for vrf in self.vrfs], [vrf.read_req.get_method() for vrf in self.vrfs], [vrf.read_resp.get_method() for vrf in self.vrfs]))
-        self.m = ModuleConnector(circ = self.circ, vrfs = ModuleConnector(*[vrf.methods for vrf in self.vrfs]), bus = self.bus, exception_report = self.exception_report)
+        self.gen_params.get(DependencyManager).add_dependency(LSUReservedSignal(), Signal())
+        self.gen_params.get(DependencyManager).add_dependency(WishboneDataKey(), self.bus)
+        self.gen_params.get(DependencyManager).add_dependency(VectorVRFAccessKey(), 
+                                                              ([vrf.write.get_method() for vrf in self.vrfs], [vrf.read_req.get_method() for vrf in self.vrfs], [vrf.read_resp.get_method() for vrf in self.vrfs]))
+        self.gen_params.get(DependencyManager).add_dependency(VectorFrontendInsertKey(), self.insert_x.get_method())
+        self.circ = SimpleTestCircuit(VectorLSU(self.gen_params))
+        self.m = ModuleConnector(circ = self.circ, vrfs = ModuleConnector(*[vrf.methods for vrf in self.vrfs]), bus = self.bus, exception_report = self.exception_report, insert_x = self.insert_x)
 
         self.current_instr = None
         self.elens_to_send = -1
@@ -66,6 +75,10 @@ class TestVectorLSU(TestCaseWithSimulator):
     def exception_process(self, arg):
         self.assertTrue(False)
 
+    
+    @def_method_mock(lambda self:self.insert_x)
+    def insert_x_process(self, arg):
+        pass
 
     def wishbone_process(self):
         yield Passive()
@@ -113,8 +126,8 @@ class TestVectorLSU(TestCaseWithSimulator):
             elems_in_elen = self.v_params.elen // eew_to_bits(self.current_instr["vtype"]["sew"])
             self.elens_to_send = math.ceil(self.current_instr["vtype"]["vl"]/elems_in_elen)
             yield from self.circ.select.call()
-            yield from self.circ.insert.call(rs_data = instr, rs_entry_id = 0)
-            yield from self.circ.update.call(tag = instr["rp_s3"], value = 0)
+            yield from self.circ.insert_v.call(rs_data = instr, rs_entry_id = 0)
+            yield from self.circ.update_v.call(tag = instr["rp_s3"], value = 0)
 
             while self.elens_to_send!=0:
                 result = yield from self.circ.get_result.call_try()
@@ -140,6 +153,7 @@ class TestVectorLSU(TestCaseWithSimulator):
             sim.add_sync_process(self.wishbone_process)
             sim.add_sync_process(self.precommit_process)
             sim.add_sync_process(self.exception_process)
+            sim.add_sync_process(self.insert_x_process)
             for i in range(self.v_params.register_bank_count):
                 sim.add_sync_process(self.vrfs[i].write_process)
                 sim.add_sync_process(self.vrfs[i].read_req_process)

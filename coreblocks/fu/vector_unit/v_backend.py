@@ -64,10 +64,14 @@ class VectorBackend(Elaboratable):
         self.vvrs_layouts = VectorVRSLayout(self.gen_params, rs_entries_bits=self.v_params.vvrs_entries_bits)
         self.vreg_layout = VectorRegisterBankLayouts(self.gen_params)
         self.alu_layouts = VectorAluLayouts(self.gen_params)
+        self.vrf_layout = VRFFragmentLayouts(self.gen_params)
 
         self.put_instr = Method(i=self.layouts.vvrs_in)
         self.initialise_regs = [Method(i=self.vreg_layout.initialise) for _ in range(self.v_params.vrp_count)]
         self.report_mult = Method(i=self.layouts.ender_report_mult)
+        self.vrf_write = [Method(i=self.vrf_layout.write) for _ in range(self.v_params.vrp_count)]
+        self.vrf_read_req = [Method(i=self.vrf_layout.read_req) for _ in range(self.v_params.vrp_count)]
+        self.vrf_read_resp = [Method(o=self.vrf_layout.read_resp_o) for _ in range(self.v_params.vrp_count)]
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -117,6 +121,10 @@ class VectorBackend(Elaboratable):
             init_banks_list = [executor.initialise_regs[i] for executor in executors]
             connect_init_banks_list.append(MethodProduct(init_banks_list))
             self.initialise_regs[i].proxy(m, connect_init_banks_list[-1].method)
+        for i, executor in enumerate(executors):
+            self.vrf_write[i].proxy(m, executor.write_vrf)
+            self.vrf_read_req[i].proxy(m, executor.read_req)
+            self.vrf_read_resp[i].proxy(m, executor.read_resp)
         m.submodules.connect_init_banks = ModuleConnector(*connect_init_banks_list)
 
         return m

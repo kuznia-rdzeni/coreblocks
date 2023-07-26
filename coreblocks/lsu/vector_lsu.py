@@ -196,28 +196,35 @@ class VectorLSUDummyInternals(Elaboratable):
 
 
 class VectorLSU(FuncBlock, Elaboratable):
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, write_vrf : list[Method], read_req_vrf : list[Method], read_resp_vrf : list[Method]) -> None:
+    def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
+        self.v_params = self.gen_params.v_params
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.v_lsu_layouts = gen_params.get(VectorLSULayouts)
+        self.connections = self.gen_params.get(DependencyManager)
 
+        self.vxrs_layouts = VectorXRSLayout(
+            self.gen_params, rs_entries_bits=log2_int(self.v_params.vxrs_entries, False)
+        )
+
+        self.insert = Method(i=self.vxrs_layouts.insert_in)
+        self.update = Method(i=self.vxrs_layouts.update_in)
         self.select = Method(o=self.v_lsu_layouts.rs_select_out)
-        self.insert = Method(i=self.v_lsu_layouts.rs_insert_in)
-        self.update = Method(i=self.v_lsu_layouts.rs_update_in)
+        self.insert_v = Method(i=self.v_lsu_layouts.rs_insert_in)
+        self.update_v = Method(i=self.v_lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
         self.precommit = Method(i=self.v_lsu_layouts.precommit)
 
-        self.bus = bus
-        self.write_vrf = write_vrf
-        self.read_req_vrf = read_req_vrf
-        self.read_resp_vrf = read_resp_vrf
+        self.bus = self.connections.get_dependency(WishboneDataKey())
+        self.write_vrf, self.read_req_vrf, self.read_resp_vrf = self.connections.get_dependency(VectorVRFAccessKey())
         
         if self.gen_params.isa.xlen != self.gen_params.v_params.elen or self.gen_params.v_params.elen != 32:
             raise ValueError("Vector LSU don't support XLEN != ELEN != 32 yet.")
 
+
     def elaborate(self, platform):
         m = TModule()
-        reserved = Signal()  # means that current_instr is reserved
+        reserved = self.connections.get_dependency(LSUReservedSignal())
         current_instr = Record(self.v_lsu_layouts.rs_data_layout + [("valid", 1)])
 
         m.submodules.internal = internal = VectorLSUDummyInternals(self.gen_params, self.bus, current_instr, self.write_vrf, self.read_req_vrf, self.read_resp_vrf)
@@ -230,7 +237,7 @@ class VectorLSU(FuncBlock, Elaboratable):
             m.d.sync += reserved.eq(1)
             return {"rs_entry_id": 0}
 
-        @def_method(m, self.insert, reserved & ~current_instr.valid)
+        @def_method(m, self.insert_v, reserved & ~current_instr.valid)
         def _(rs_data: Record, rs_entry_id: Value):
             m.d.sync += assign(current_instr, rs_data)
             m.d.sync += current_instr.valid.eq(1)
@@ -238,7 +245,7 @@ class VectorLSU(FuncBlock, Elaboratable):
             m.d.sync += current_instr.rp_v0_rdy.eq(1)
             m.d.sync += current_instr.rp_s2_rdy.eq(1)
 
-        @def_method(m, self.update)
+        @def_method(m, self.update_v)
         def _(tag: Value, value: Value):
             with m.If(current_instr.rp_s2 == tag):
                 m.d.sync += current_instr.rp_s2_rdy.eq(1)
@@ -246,6 +253,14 @@ class VectorLSU(FuncBlock, Elaboratable):
                 m.d.sync += current_instr.rp_s3_rdy.eq(1)
             with m.If(current_instr.rp_v0 == tag):
                 m.d.sync += current_instr.rp_v0_rdy.eq(1)
+
+        frontend_insert = self.connections.get_dependency(VectorFrontendInsertKey())
+        self.insert.proxy(m, frontend_insert)
+
+        # Scalar updating will be handled by VectorFrontend
+        @def_method(m, self.update)
+        def _(arg):
+            pass
 
         @def_method(m, self.get_result, result_ready)
         def _():
@@ -267,3 +282,16 @@ class VectorLSU(FuncBlock, Elaboratable):
                 m.d.comb += internal.execute.eq(1)
 
         return m
+
+class VectorLSUBlockComponent(BlockComponentParams):
+    def get_module(self, gen_params: GenParams) -> FuncBlock:
+        connections = gen_params.get(DependencyManager)
+        unit = VectorLSU(gen_params)
+        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
+        return unit
+
+    def get_optypes(self) -> set[OpType]:
+        return {OpType.V_LOAD, OpType.V_STORE}
+
+    def get_rs_entry_count(self) -> int:
+        return 1

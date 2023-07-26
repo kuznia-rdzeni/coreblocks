@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from amaranth import Signal
 
 from coreblocks.params.dependencies import SimpleKey, UnifierKey
 from coreblocks.transactions.lib import MethodTryProduct, Collector, Method
@@ -16,6 +17,9 @@ __all__ = [
     "GenericCSRRegistersKey",
     "ROBBlockInterruptsKey",
     "ROBPeekKey",
+    "LSUReservedSignal",
+    "VectorFrontendInsertKey",
+    "VectorVRFAccessKey",
 ]
 
 
@@ -51,4 +55,18 @@ class ROBBlockInterruptsKey(SimpleKey[Method]):
 
 @dataclass(frozen=True)
 class ROBPeekKey(SimpleKey[Method]):
+    pass
+
+@dataclass(frozen = True)
+class LSUReservedSignal(SimpleKey[Signal]):
+    pass
+
+# TODO rework vector core so that this key wouldn't be needed
+@dataclass(frozen = True)
+class VectorFrontendInsertKey(SimpleKey[Method]):
+    pass
+
+# TODO This also should be refactored
+@dataclass(frozen = True)
+class VectorVRFAccessKey(SimpleKey[tuple[list[Method], list[Method], list[Method]]]):
     pass
