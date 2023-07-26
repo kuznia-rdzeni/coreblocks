@@ -530,7 +530,7 @@ class InstrDecoder(Elaboratable):
                 m.d.comb += instruction_type.eq(InstrType.I)
             with m.Case(Opcode.LUI, Opcode.AUIPC):
                 m.d.comb += instruction_type.eq(InstrType.U)
-            with m.Case(Opcode.OP, Opcode.OP_V):
+            with m.Case(Opcode.OP, Opcode.OP_V, Opcode.LOAD_FP, Opcode.STORE_FP):
                 m.d.comb += instruction_type.eq(InstrType.R)
             with m.Case(Opcode.JAL):
                 m.d.comb += instruction_type.eq(InstrType.J)
@@ -696,6 +696,26 @@ class InstrDecoder(Elaboratable):
                 self.rs2_type.eq(RegisterType.X),
                 self.rd_type.eq(RegisterType.X),
             ]
+        with m.If((self.opcode == Opcode.STORE_FP) | (self.opcode == Opcode.LOAD_FP)):
+            m.d.comb += [
+                self.rs1_type.eq(RegisterType.X),
+                self.rd_type.eq(RegisterType.V),
+            ]
+            mop = Signal(2)
+            m.d.comb += self._extract(26, mop)
+            with m.Switch(mop):
+                with m.Case(0): 
+                    # unit stride
+                    m.d.comb += self.rs2_v.eq(0)
+                with m.Case(1):
+                    # indexed unordered
+                    m.d.comb += self.rs2_type.eq(RegisterType.V)
+                with m.Case(2):
+                    # stride
+                    m.d.comb += self.rs2_type.eq(RegisterType.X)
+                with m.Case(3):
+                    # indexed ordered
+                    m.d.comb += self.rs2_type.eq(RegisterType.V)
 
         # Instruction simplification
 
@@ -717,4 +737,5 @@ class InstrDecoder(Elaboratable):
         m.d.comb += self._extract(0, encoding_space)
         m.d.comb += self.illegal.eq((self.optype == OpType.UNKNOWN) | (encoding_space != 0b11) | register_space_invalid)
 
+        #TODO typy rejestrów dla LOAD/STORE
         return m

@@ -51,25 +51,30 @@ class TestVectorLSU(TestCaseWithSimulator):
         self.vxrs_layouts = VectorXRSLayout(
             self.gen_params, rs_entries_bits=log2_int(self.v_params.vxrs_entries, False)
         )
+        self.scoreboard_layout = ScoreboardLayouts(self.v_params.vrp_count)
 
         self.exception_report = MethodMock(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         self.insert_x= MethodMock(i = self.vxrs_layouts.insert_in)
         self.get_reserved = MethodMock(o=[("reserved", 1)])
         self.set_reserved = MethodMock(i=[("reserved", 1)])
+        self.scoreboard_get_dirty = MethodMock(i=self.scoreboard_layout.get_dirty_in, o = self.scoreboard_layout.get_dirty_out)
+        self.scoreboard_set_dirty = MethodMock(i=self.scoreboard_layout.set_dirty_in)
         self.vrfs = [VRFStub(self.gen_params) for _ in range(self.v_params.register_bank_count)]
 
         self.bus = WishboneMaster(wb_params)
         self.wishbone = WishboneInterfaceWrapper(self.bus.wbMaster)
 
-        self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.get_method())
-        self.gen_params.get(DependencyManager).add_dependency(LSUReservedKey(), (self.get_reserved.get_method(), self.set_reserved.get_method()))
-        self.gen_params.get(DependencyManager).add_dependency(WishboneDataKey(), self.bus)
-        self.gen_params.get(DependencyManager).add_dependency(VectorVRFAccessKey(), 
-                                                              ([vrf.write.get_method() for vrf in self.vrfs], [vrf.read_req.get_method() for vrf in self.vrfs], [vrf.read_resp.get_method() for vrf in self.vrfs]))
-        self.gen_params.get(DependencyManager).add_dependency(VectorFrontendInsertKey(), self.insert_x.get_method())
+        self.connections = self.gen_params.get(DependencyManager)
+        self.connections.add_dependency(ExceptionReportKey(), self.exception_report.get_method())
+        self.connections.add_dependency(LSUReservedKey(), (self.get_reserved.get_method(), self.set_reserved.get_method()))
+        self.connections.add_dependency(WishboneDataKey(), self.bus)
+        self.connections.add_dependency(VectorVRFAccessKey(), ([vrf.write.get_method() for vrf in self.vrfs], [vrf.read_req.get_method() for vrf in self.vrfs], [vrf.read_resp.get_method() for vrf in self.vrfs]))
+        self.connections.add_dependency(VectorFrontendInsertKey(), self.insert_x.get_method())
+        self.connections.add_dependency(VectorScoreboardKey(), (self.scoreboard_get_dirty.get_method(), self.scoreboard_set_dirty.get_method()))
         self.circ = SimpleTestCircuit(VectorLSU(self.gen_params))
         self.m = ModuleConnector(circ = self.circ, vrfs = ModuleConnector(*[vrf.methods for vrf in self.vrfs]), bus = self.bus,
-                                 exception_report = self.exception_report, insert_x = self.insert_x, get_reserved = self.get_reserved, set_reserved = self.set_reserved)
+                                 exception_report = self.exception_report, insert_x = self.insert_x, get_reserved = self.get_reserved, set_reserved = self.set_reserved, scoreboard_get = self.scoreboard_get_dirty,
+                                 scoreboard_set = self.scoreboard_set_dirty)
 
         self.current_instr = None
         self.elens_to_send = -1
@@ -91,6 +96,14 @@ class TestVectorLSU(TestCaseWithSimulator):
     @def_method_mock(lambda self:self.set_reserved, sched_prio = 1)
     def set_reserved_process(self, reserved):
         self.reserved = reserved
+
+    @def_method_mock(lambda self : self.scoreboard_get_dirty)
+    def scoreboard_get_dirty_process(self, arg):
+        return {"dirty":0}
+
+    @def_method_mock(lambda self : self.scoreboard_set_dirty)
+    def scoreboard_set_dirty_process(self, arg):
+        pass
 
     def wishbone_process(self):
         yield Passive()
@@ -138,14 +151,14 @@ class TestVectorLSU(TestCaseWithSimulator):
             elems_in_elen = self.v_params.elen // eew_to_bits(self.current_instr["vtype"]["sew"])
             self.elens_to_send = math.ceil(self.current_instr["vtype"]["vl"]/elems_in_elen)
             yield from self.circ.select.call()
-            yield from self.circ.insert_v.call(rs_data = instr, rs_entry_id = 0)
+            yield from self.circ.insert_v.call(instr)
             yield from self.circ.update_v.call(tag = instr["rp_s3"], value = 0)
 
             while self.elens_to_send!=0:
-                result = yield from self.circ.get_result.call_try()
+                result = yield from self.circ.get_result_v.call_try()
                 self.assertIsNone(result)
 
-            result = yield from self.circ.get_result.call()
+            result = yield from self.circ.get_result_v.call()
             self.assertEqual(result["rob_id"], instr["rob_id"])
             self.assertEqual(result["rp_dst"], instr["rp_dst"])
             self.assertEqual(result["result"], 0)
@@ -168,6 +181,8 @@ class TestVectorLSU(TestCaseWithSimulator):
             sim.add_sync_process(self.insert_x_process)
             sim.add_sync_process(self.get_reserved_process)
             sim.add_sync_process(self.set_reserved_process)
+            sim.add_sync_process(self.scoreboard_get_dirty_process)
+            sim.add_sync_process(self.scoreboard_set_dirty_process)
             for i in range(self.v_params.register_bank_count):
                 sim.add_sync_process(self.vrfs[i].write_process)
                 sim.add_sync_process(self.vrfs[i].read_req_process)

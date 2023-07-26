@@ -8,6 +8,7 @@ from coreblocks.peripherals.wishbone import WishboneMaster
 
 if TYPE_CHECKING:
     from coreblocks.structs_common.csr_generic import GenericCSRRegisters  # noqa: F401
+    from coreblocks.lsu.vector_lsu import VectorLSU # noqa: F401
 
 __all__ = [
     "WishboneDataKey",
@@ -20,6 +21,8 @@ __all__ = [
     "LSUReservedKey",
     "VectorFrontendInsertKey",
     "VectorVRFAccessKey",
+    "VectorLSUKey",
+    "VectorScoreboardKey",
 ]
 
 
@@ -69,4 +72,12 @@ class VectorFrontendInsertKey(SimpleKey[Method]):
 # TODO This also should be refactored
 @dataclass(frozen = True)
 class VectorVRFAccessKey(SimpleKey[tuple[list[Method], list[Method], list[Method]]]):
+    pass
+
+@dataclass(frozen = True)
+class VectorLSUKey(SimpleKey["VectorLSU"]):
+    pass
+
+@dataclass(frozen = True)
+class VectorScoreboardKey(SimpleKey[tuple[Method,Method]]):
     pass

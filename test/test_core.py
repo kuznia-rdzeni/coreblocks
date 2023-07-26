@@ -243,7 +243,8 @@ class TestCoreRandomized(TestCoreBase):
         ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
         ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
-#        ("fibonacci_vcore", "fibonacci_mem.asm", 610, {3: 55}, vector_core_config),
+#        ("fibonacci_mem_v", "fibonacci_mem.asm", 610, {3: 55}, vector_core_config),
+        ("fibonacci_vcore", "vector.asm", 600, {1: 3, 2:6, 3:15, 4:30, 5:9, 6:0, 7:42, 8: 126, 9:0xDEADBEEF}, vector_core_config),
     ],
 )
 class TestCoreAsmSource(TestCoreBase):
@@ -271,7 +272,7 @@ class TestCoreAsmSource(TestCoreBase):
                     "-mabi=ilp32",
                     # Specified manually, because toolchains from most distributions don't support new extensioins
                     # and this test should be accessible locally.
-                    "-march=rv32im_zicsr",
+                    "-march=rv32im_zicsr_zve32x",
                     "-o",
                     asm_tmp.name,
                     self.base_dir + self.source_file,

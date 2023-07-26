@@ -32,7 +32,7 @@ class VectorLSUDummyInternals(Elaboratable):
 
         self.elems_counter = Signal(bits_for(self.gen_params.v_params.bytes_in_vlen))
         self.elen_counter =  Signal(bits_for(self.gen_params.v_params.elens_in_vlen))
-        self.bank_id = Signal(log2_int(self.v_params.register_bank_count, False))
+        self.bank_id = Signal(bits_for(self.v_params.register_bank_count))
         self.local_addr = Signal(log2_int(self.gen_params.v_params.elens_in_bank, False))
 
     def calculate_addr(self, m: ModuleLike):
@@ -206,18 +206,17 @@ class VectorLSU(FuncBlock, Elaboratable):
         self.vxrs_layouts = VectorXRSLayout(
             self.gen_params, rs_entries_bits=log2_int(self.v_params.vxrs_entries, False)
         )
+        self.frontend_layouts = VectorFrontendLayouts(self.gen_params)
 
         self.insert = Method(i=self.vxrs_layouts.insert_in)
         self.update = Method(i=self.vxrs_layouts.update_in)
         self.select = Method(o=self.v_lsu_layouts.rs_select_out)
-        self.insert_v = Method(i=self.v_lsu_layouts.rs_insert_in)
+        self.insert_v = Method(i=self.frontend_layouts.instr_to_mem)
         self.update_v = Method(i=self.v_lsu_layouts.rs_update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
+        self.get_result_v = Method(o=self.fu_layouts.accept)
         self.precommit = Method(i=self.v_lsu_layouts.precommit)
 
-        self.bus = self.connections.get_dependency(WishboneDataKey())
-        self.write_vrf, self.read_req_vrf, self.read_resp_vrf = self.connections.get_dependency(VectorVRFAccessKey())
-        
         if self.gen_params.isa.xlen != self.gen_params.v_params.elen or self.gen_params.v_params.elen != 32:
             raise ValueError("Vector LSU don't support XLEN != ELEN != 32 yet.")
 
@@ -227,6 +226,9 @@ class VectorLSU(FuncBlock, Elaboratable):
         reserved = Signal()
         current_instr = Record(self.v_lsu_layouts.rs_data_layout + [("valid", 1)])
         _get_reserved, _set_reserved = self.connections.get_dependency(LSUReservedKey())
+        self.bus = self.connections.get_dependency(WishboneDataKey())
+        scoreboard_get_dirty, scoreboard_set_dirty = self.connections.get_dependency(VectorScoreboardKey())
+        self.write_vrf, self.read_req_vrf, self.read_resp_vrf = self.connections.get_dependency(VectorVRFAccessKey())
 
         m.submodules.internal = internal = VectorLSUDummyInternals(self.gen_params, self.bus, current_instr, self.write_vrf, self.read_req_vrf, self.read_resp_vrf)
         result_ready = internal.result_ready 
@@ -240,13 +242,20 @@ class VectorLSU(FuncBlock, Elaboratable):
             _set_reserved(m, reserved = 1)
             return {"rs_entry_id": 0}
 
-        @def_method(m, self.insert_v, reserved & ~current_instr.valid)
-        def _(rs_data: Record, rs_entry_id: Value):
-            m.d.sync += assign(current_instr, rs_data)
+        # TODO poprawić ten layout
+        @def_method(m, self.insert_v)
+        def _(arg):
+            m.d.sync += assign(current_instr, arg)
             m.d.sync += current_instr.valid.eq(1)
             # no support for instructions which use v0 or vs2, so don't wait for them
             m.d.sync += current_instr.rp_v0_rdy.eq(1)
             m.d.sync += current_instr.rp_s2_rdy.eq(1)
+            cast_rp_s3 = Signal(self.v_params.vrp_count_bits)
+            m.d.top_comb += cast_rp_s3.eq(arg.rp_s3.id)
+            m.d.sync += current_instr.rp_s3_rdy.eq(~scoreboard_get_dirty(m, id = cast_rp_s3))
+            cast_rp_dst = Signal(self.v_params.vrp_count_bits)
+            m.d.top_comb += cast_rp_dst.eq(arg.rp_dst.id)
+            scoreboard_set_dirty(m, id = cast_rp_dst, dirty = 1)
 
         @def_method(m, self.update_v)
         def _(tag: Value, value: Value):
@@ -265,12 +274,23 @@ class VectorLSU(FuncBlock, Elaboratable):
         def _(arg):
             pass
 
-        @def_method(m, self.get_result, result_ready)
+        # Result announcements will be handled by VectorAnnouncer
+        @def_method(m, self.get_result, 0)
+        def _(arg):
+            pass
+
+        @def_method(m, self.get_result_v, result_ready)
         def _():
             m.d.comb += internal.get_result_ack.eq(1)
 
             m.d.sync += current_instr.eq(0)
             _set_reserved(m, reserved = 0)
+
+            # TODO vretirement
+            # TODO vupdate
+            cast_rp_dst = Signal(self.v_params.vrp_count_bits)
+            m.d.top_comb += cast_rp_dst.eq(current_instr.rp_dst.id)
+            scoreboard_set_dirty(m, id = cast_rp_dst, dirty = 0)
 
             return {
                 "rob_id": current_instr.rob_id,
@@ -291,6 +311,7 @@ class VectorLSUBlockComponent(BlockComponentParams):
         connections = gen_params.get(DependencyManager)
         unit = VectorLSU(gen_params)
         connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
+        connections.add_dependency(VectorLSUKey(), unit)
         return unit
 
     def get_optypes(self) -> set[OpType]:

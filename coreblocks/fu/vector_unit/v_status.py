@@ -156,7 +156,7 @@ class VectorStatusUnit(Elaboratable):
         with m.If(valid_rs1 & instr.rp_s1.id.bool()):
             m.d.comb += avl.eq(instr.s1_val)
 
-        with m.If(instr.rp_dst.id.bool() | instr.rp_s1.id.bool()):
+        with m.If(instr.rp_dst.id.bool() | instr.rp_s1.id.bool() | (instr.imm2[-2:] == 3)):
             m.d.sync += self.vl.eq(avl)
 
         self.retire(m, rob_id=instr.rob_id, exception=0, result=avl, rp_dst=instr.rp_dst)
