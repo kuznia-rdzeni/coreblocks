@@ -26,6 +26,7 @@ __all__ = [
     "basic_core_config",
     "tiny_core_config",
     "full_core_config",
+    "vector_core_config",
     "test_core_config",
     "test_vector_core_config",
 ]

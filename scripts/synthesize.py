@@ -25,6 +25,7 @@ str_to_coreconfig: dict[str, CoreConfiguration] = {
     "basic": basic_core_config,
     "tiny": tiny_core_config,
     "full": full_core_config,
+    "vector" : vector_core_config,
 }
 
 
