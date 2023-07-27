@@ -44,6 +44,7 @@ class ActionKind(IntEnum):
     GET_COMPLETE = auto()
     PUT = auto()
     PUT_FINAL = auto()
+    PUSH = auto()
     PRINT = auto()
     _YIELD = auto()
     RESET = auto()
@@ -145,7 +146,7 @@ class SimFIFO(SimQueueBase[_T]):
         def action():
             self._queue.append(value)
 
-        await Action(ActionKind.PUT_FINAL, self, action)
+        await Action(ActionKind.PUSH, self, action)
 
     async def not_empty(self) -> bool:
         return await Action(ActionKind.GET, self, lambda: bool(self._queue))
@@ -365,6 +366,7 @@ class Sim:
                             case Action(
                                 ActionKind.PUT_FINAL
                                 | ActionKind.GET_COMPLETE
+                                | ActionKind.PUSH
                                 | ActionKind.PRINT
                                 | ActionKind.RESET as kind,
                                 subject,

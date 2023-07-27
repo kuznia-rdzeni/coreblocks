@@ -17,48 +17,44 @@ from test.common import TestCaseWithSimulator, int_to_signed, signed_to_int
 from test.transactional_testing import Sim, SimFIFO, WaitSettled
 
 
-def generate_register(max_reg_val: int, phys_regs_bits: int) -> tuple[int, int, Optional[dict[str, int]], int]:
+def generate_register(xlen: int, phys_regs_bits: int) -> tuple[int, int, Optional[dict[str, int]], int]:
+    real_val = random.randrange(0, 2**xlen)
     if random.randint(0, 1):
         rp = random.randint(1, 2**phys_regs_bits - 1)
         val = 0
-        real_val = random.randint(0, max_reg_val // 4) * 4
         ann_data = {"tag": rp, "value": real_val}
     else:
         rp = 0
-        val = random.randint(0, max_reg_val // 4) * 4
-        real_val = val
+        val = real_val
         ann_data = None
     return rp, val, ann_data, real_val
 
 
-def generate_random_op(ops: dict[str, tuple[OpType, Funct3]]) -> tuple[tuple[OpType, Funct3], int, bool]:
-    ops_k = list(ops.keys())
-    op = ops[ops_k[random.randint(0, len(ops) - 1)]]
-    signess = False
-    mask = 0xF
+def generate_random_op(ops: list[tuple[OpType, Funct3]]) -> tuple[tuple[OpType, Funct3], int, bool]:
+    op = random.choice(ops)
+    signed = False
+    num_bytes = 4
     if op[1] in {Funct3.B, Funct3.BU}:
-        mask = 0x1
+        num_bytes = 1
     if op[1] in {Funct3.H, Funct3.HU}:
-        mask = 0x3
+        num_bytes = 2
     if op[1] in {Funct3.B, Funct3.H}:
-        signess = True
-    return (op, mask, signess)
+        signed = True
+    return (op, num_bytes, signed)
 
 
-def generate_imm(max_imm_val: int) -> int:
+def generate_imm() -> int:
     if random.randint(0, 1):
         return 0
     else:
-        return random.randint(0, max_imm_val)
+        return random.randint(-2**11, 2**11-1)
 
 
-def shift_mask_based_on_addr(mask: int, addr: int) -> int:
+def calculate_wb_sel(addr: int, num_bytes: int) -> tuple[int, int]:
     rest = addr % 4
-    if mask == 0x1:
-        mask = mask << rest
-    elif mask == 0x3:
-        mask = mask << rest
-    return mask
+    wb_addr = addr >> 2
+    wb_sel = (2 ** num_bytes - 1) << rest
+    return wb_addr, wb_sel
 
 
 def check_align(addr: int, op: tuple[OpType, Funct3]) -> bool:
@@ -132,27 +128,30 @@ class DummyLSUTestCircuit(Elaboratable):
         return m
 
 
-class TestDummyLSULoads(TestCaseWithSimulator):
-    def generate_instr(self, max_reg_val, max_imm_val):
-        ops = {
-            "LB": (OpType.LOAD, Funct3.B),
-            "LBU": (OpType.LOAD, Funct3.BU),
-            "LH": (OpType.LOAD, Funct3.H),
-            "LHU": (OpType.LOAD, Funct3.HU),
-            "LW": (OpType.LOAD, Funct3.W),
-        }
+class TestDummyLSU(TestCaseWithSimulator):
+    def generate_instr(self):
+        ops = [
+            (OpType.LOAD, Funct3.B),
+            (OpType.LOAD, Funct3.BU),
+            (OpType.LOAD, Funct3.H),
+            (OpType.LOAD, Funct3.HU),
+            (OpType.LOAD, Funct3.W),
+            (OpType.STORE, Funct3.B),
+            (OpType.STORE, Funct3.H),
+            (OpType.STORE, Funct3.W),
+        ]
         for i in range(self.tests_number):
             misaligned = False
             bus_err = random.random() < 0.1
 
-            # generate new instructions till we generate correct one
+            (op, num_bytes, signed) = generate_random_op(ops)
+
+            # generate addresses till we generate correct one
             while True:
-                # generate opcode
-                (op, mask, signess) = generate_random_op(ops)
                 # generate rp1, val1 which create addr
-                rp_s1, s1_val, ann_data, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
-                imm = generate_imm(max_imm_val)
-                addr += imm
+                rp_s1, s1_val, ann_data1, arg1_val = generate_register(self.gp.isa.xlen, self.gp.phys_regs_bits)
+                imm = generate_imm()
+                addr = arg1_val + imm
 
                 if check_align(addr, op):
                     break
@@ -161,40 +160,69 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                     misaligned = True
                     break
 
+            rp_s2 = 0
+            s2_val = 0
+            ann_data2 = None
+            req_data = 0
+            resp_data = 0
+            cause = None
+            if op[0] == OpType.STORE:
+                rp_s2, s2_val, ann_data2, arg2_val = generate_register(self.gp.isa.xlen, self.gp.phys_regs_bits)
+                if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
+                    ann_data2 = None
+                    arg2_val = arg1_val
+                req_data = arg2_val
+                we = True
+                if misaligned:
+                    cause = ExceptionCause.STORE_ADDRESS_MISALIGNED
+                elif bus_err:
+                    cause = ExceptionCause.STORE_ACCESS_FAULT
+            else:
+                resp_data = random.randint(0, 2**32 - 1)
+                we = False
+                if misaligned:
+                    cause = ExceptionCause.LOAD_ADDRESS_MISALIGNED
+                elif bus_err:
+                    cause = ExceptionCause.LOAD_ACCESS_FAULT
+
             exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
 
-            # calculate word address and mask
-            mask = shift_mask_based_on_addr(mask, addr)
-            addr = addr >> 2
-
-            rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
-            rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
+            rp_dst = random.randrange(0, 2**self.gp.phys_regs_bits)
+            rob_id = random.randrange(0, 2**self.gp.rob_entries_bits)
             instr_data = {
                 "rp_s1": rp_s1,
-                "rp_s2": 0,
+                "rp_s2": rp_s2,
                 "rp_dst": rp_dst,
                 "rob_id": rob_id,
                 "exec_fn": exec_fn,
                 "s1_val": s1_val,
-                "s2_val": 0,
+                "s2_val": s2_val,
                 "imm": imm,
             }
             mem_data = {
                 "addr": addr,
-                "mask": mask,
-                "sign": signess,
-                "rnd_bytes": random.randint(0, 2**32 - 1),
+                "num_bytes": num_bytes,
+                "sign": signed,
+                "we": we,
+                "req_data": req_data,
+                "resp_data": resp_data,
                 "misaligned": misaligned,
                 "err": bus_err,
             }
             exc_data = (
                 {
                     "rob_id": rob_id,
-                    "cause": ExceptionCause.LOAD_ADDRESS_MISALIGNED if misaligned else ExceptionCause.LOAD_ACCESS_FAULT,
+                    "cause": cause
                 }
-                if misaligned or bus_err
+                if cause is not None
                 else None
             )
+            ann_data = []
+            if ann_data1 is not None:
+                ann_data.append(ann_data1)
+            if ann_data2 is not None:
+                ann_data.append(ann_data2)
+            random.shuffle(ann_data)
             self.instr_queue.init_push({"instr": instr_data, "ann": ann_data, "mem": mem_data, "exc": exc_data})
 
     def setUp(self) -> None:
@@ -208,8 +236,9 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         self.returned_data = SimFIFO()
         self.exception_queue = SimFIFO()
         self.exception_result = SimFIFO()
-        self.generate_instr(2**7, 2**7)
+        self.generate_instr()
         self.announce_queue = SimFIFO()
+        self.precommit_queue = SimFIFO()
 
     @Sim.def_method_mock(
         lambda self: self.test_module.bus.request_adapter,
@@ -219,27 +248,29 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     )
     async def wishbone_request(self, addr, data, we, sel):
         generated_data = await self.mem_data_queue.pop()
-        mask = generated_data["mask"]
+        num_bytes = generated_data["num_bytes"]
         sign = generated_data["sign"]
+        exp_addr, exp_sel = calculate_wb_sel(generated_data["addr"], num_bytes)
 
         await WaitSettled()
 
-        self.assertEqual(addr, generated_data["addr"])
-        self.assertEqual(data, 0)
-        self.assertEqual(we, 0)
-        self.assertEqual(sel, mask)
+        resp_data = generated_data["resp_data"]
+        data_shift = (exp_sel & -exp_sel).bit_length() - 1
+        w_data = (generated_data["req_data"] & (2 ** (num_bytes * 8) - 1)) << (data_shift * 8)
 
-        resp_data = generated_data["rnd_bytes"]
-        data_shift = (mask & -mask).bit_length() - 1
-        assert mask.bit_length() == data_shift + mask.bit_count(), "Unexpected mask"
+        self.assertEqual(addr, exp_addr)
+        self.assertEqual(data, w_data)
+        self.assertEqual(we, generated_data["we"])
+        self.assertEqual(sel, exp_sel)
 
-        size = mask.bit_count() * 8
-        data_mask = 2**size - 1
-        data = (resp_data >> (data_shift * 8)) & data_mask
-        if sign:
-            data = int_to_signed(signed_to_int(data, size), 32)
+        assert exp_sel.bit_length() == data_shift + exp_sel.bit_count(), "Unexpected mask"
+
         if not generated_data["err"]:
-            await self.returned_data.push(data)
+            ret_data = resp_data >> (data_shift * 8)
+            ret_data &= (2 ** (num_bytes * 8) - 1)
+            if sign:
+                ret_data = int_to_signed(signed_to_int(ret_data, num_bytes*8), 32)
+            await self.returned_data.push(ret_data)
 
         await self.mem_result_queue.push({"data": resp_data, "err": generated_data["err"]})
 
@@ -258,10 +289,12 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
         await Sim.call(self.test_module.insert, rs_data=req["instr"], rs_entry_id=0)
 
+        await self.precommit_queue.push(req["instr"]["rob_id"])
         if not req["mem"]["misaligned"]:
             await self.mem_data_queue.push(req["mem"])
         if req["ann"] is not None:
-            await self.announce_queue.push(req["ann"])
+            for ann in req["ann"]:
+                await self.announce_queue.push(ann)
         await self.exception_result.push(req["exc"] is not None)
         if req["exc"] is not None:
             await self.exception_queue.push(req["exc"])
@@ -270,12 +303,19 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     async def announcer(self, announc):
         await Sim.call(self.test_module.update, announc)
 
+    async def precommitter(self):
+        await Sim.passive()
+        if await self.precommit_queue.not_empty():
+            rob_id = await self.precommit_queue.peek()
+            await Sim.call(self.test_module.precommit, rob_id=rob_id)
+
     @Sim.def_method_mock(
         lambda self: self.test_module.get_result, max_delay=10, active=lambda self: self.exception_result.not_empty()
     )
     async def consumer(self, arg):
         await WaitSettled()
         exc = await self.exception_result.pop()
+        await self.precommit_queue.pop()
         if not exc:
             self.assertEqual(arg["result"], await self.returned_data.pop())
         self.assertEqual(arg["exception"], exc)
@@ -295,6 +335,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             tsim.add_process(self.inserter)
             tsim.add_process(self.announcer)
             tsim.add_process(self.consumer)
+            tsim.add_process(self.precommitter)
             tsim.add_process(self.exception_consumer)
             sim.add_sync_process(tsim.process)
 
@@ -355,135 +396,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 #
 #        with self.run_simulation(self.test_module) as sim:
 #            sim.add_sync_process(self.one_instr_test)
-#            sim.add_sync_process(exception_consumer)
-#
-#
-# class TestDummyLSUStores(TestCaseWithSimulator):
-#    def generate_instr(self, max_reg_val, max_imm_val):
-#        ops = {
-#            "SB": (OpType.STORE, Funct3.B),
-#            "SH": (OpType.STORE, Funct3.H),
-#            "SW": (OpType.STORE, Funct3.W),
-#        }
-#        for i in range(self.tests_number):
-#            while True:
-#                # generate opcode
-#                (op, mask, _) = generate_random_op(ops)
-#                # generate rp1, val1 which create addr
-#                rp_s1, s1_val, ann_data1, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
-#                imm = generate_imm(max_imm_val)
-#                addr += imm
-#                if check_align(addr, op):
-#                    break
-#
-#            rp_s2, s2_val, ann_data2, data = generate_register(0xFFFFFFFF, self.gp.phys_regs_bits)
-#            if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
-#                ann_data2 = None
-#                data = ann_data1["value"]
-#            # decide in which order we would get announcments
-#            if random.randint(0, 1):
-#                self.announce_queue.append((ann_data1, ann_data2))
-#            else:
-#                self.announce_queue.append((ann_data2, ann_data1))
-#
-#            exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
-#
-#            # calculate word address and mask
-#            mask = shift_mask_based_on_addr(mask, addr)
-#            addr = addr >> 2
-#
-#            rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
-#            instr = {
-#                "rp_s1": rp_s1,
-#                "rp_s2": rp_s2,
-#                "rp_dst": 0,
-#                "rob_id": rob_id,
-#                "exec_fn": exec_fn,
-#                "s1_val": s1_val,
-#                "s2_val": s2_val,
-#                "imm": imm,
-#            }
-#            self.instr_queue.append(instr)
-#            self.mem_data_queue.append({"addr": addr, "mask": mask, "data": bytes.fromhex(f"{data:08x}")})
-#
-#    def setUp(self) -> None:
-#        random.seed(14)
-#        self.tests_number = 100
-#        self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
-#        self.test_module = DummyLSUTestCircuit(self.gp)
-#        self.instr_queue = deque()
-#        self.announce_queue = deque()
-#        self.mem_data_queue = deque()
-#        self.get_result_data = deque()
-#        self.precommit_data = deque()
-#        self.generate_instr(2**7, 2**7)
-#
-#    def random_wait(self):
-#        for i in range(random.randint(0, 8)):
-#            yield
-#
-#    def wishbone_slave(self):
-#        for i in range(self.tests_number):
-#            yield from self.test_module.io_in.slave_wait()
-#            generated_data = self.mem_data_queue.pop()
-#
-#            mask = generated_data["mask"]
-#            b_dict = {1: 0, 2: 8, 4: 16, 8: 24}
-#            h_dict = {3: 0, 0xC: 16}
-#            if mask in b_dict:
-#                data = (int(generated_data["data"][-1:].hex(), 16) & 0xFF) << b_dict[mask]
-#            elif mask in h_dict:
-#                data = (int(generated_data["data"][-2:].hex(), 16) & 0xFFFF) << h_dict[mask]
-#            else:
-#                data = int(generated_data["data"][-4:].hex(), 16)
-#            yield from self.test_module.io_in.slave_verify(generated_data["addr"], data, 1, mask)
-#            yield from self.random_wait()
-#
-#            yield from self.test_module.io_in.slave_respond(0)
-#            yield Settle()
-#
-#    def inserter(self):
-#        for i in range(self.tests_number):
-#            req = self.instr_queue.pop()
-#            self.get_result_data.appendleft(req["rob_id"])
-#            ret = yield from self.test_module.select.call()
-#            self.assertEqual(ret["rs_entry_id"], 0)
-#            yield from self.test_module.insert.call(rs_data=req, rs_entry_id=0)
-#            self.precommit_data.appendleft(req["rob_id"])
-#            announc = self.announce_queue.pop()
-#            for j in range(2):
-#                if announc[j] is not None:
-#                    yield from self.random_wait()
-#                    yield from self.test_module.update.call(announc[j])
-#            yield from self.random_wait()
-#
-#    def get_resulter(self):
-#        for i in range(self.tests_number):
-#            v = yield from self.test_module.get_result.call()
-#            rob_id = self.get_result_data.pop()
-#            self.assertEqual(v["rob_id"], rob_id)
-#            self.assertEqual(v["rp_dst"], 0)
-#            yield from self.random_wait()
-#            self.precommit_data.pop()  # retire
-#
-#    def precommiter(self):
-#        yield Passive()
-#        while True:
-#            while len(self.precommit_data) == 0:
-#                yield
-#            rob_id = self.precommit_data[-1]  # precommit is called continously until instruction is retired
-#            yield from self.test_module.precommit.call(rob_id=rob_id)
-#
-#    def test(self):
-#        @def_method_mock(lambda: self.test_module.exception_report)
-#        def exception_consumer(arg):
-#            self.assertTrue(False)
-#
-#        with self.run_simulation(self.test_module) as sim:
-#            sim.add_sync_process(self.wishbone_slave)
-#            sim.add_sync_process(self.inserter)
-#            sim.add_sync_process(self.get_resulter)
-#            sim.add_sync_process(self.precommiter)
 #            sim.add_sync_process(exception_consumer)
 #
 #
