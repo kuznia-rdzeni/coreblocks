@@ -3,24 +3,47 @@
 CoreBlocks synthesizes `Core` circuit to test how many resources it consumes as the project
 grows and more functionalities are added.
 
+
+## Benchmarks
+
+For each commit on `master` branch, CI runs the synthesis and saves the parameters collected by `parse_benchmark_info` script.
+
+Graphs generated from this information are available on a dedicated [benchmark subpage](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
+
 ## Documentation
+
+### Using pre-build container
+
+There is a pre-build container available that is being used in CI. You can
+download it and start the synthesis in it locally by executing the following commands:
+
+```bash
+sudo docker pull ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5
+sudo docker run -it --rm ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5 
+git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
+cd coreblocks
+python3 -m pip install --upgrade pip
+pip3 install -r requirements-dev.txt
+PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --config <your_config>
+./scripts/parse_benchmark_info.py
+cat benchmark.json
+```
 
 ### Requirements
 
-In order to perform synthesis you will need to install following tools:
+In order to perform synthesis without using the ready container you will need to install following tools:
   * [yosys](https://github.com/YosysHQ/yosys)
   * [prjtrellis](https://github.com/YosysHQ/prjtrellis)
   * [nextpnr-ecp5](https://github.com/YosysHQ/nextpnr.git)
 
 These tools may need manual compilation from git repository, that can take some time.
 
-You can use docker images that have installed all required tools to perform synthesis:
-  * [vuush/amaranth-synth:ecp5](https://hub.docker.com/r/vuush/amaranth-synth/tags)
-
-To build the `AmaranthSynthECP5.Dockerfile` yourself use following command:
+We also provides a dockerfile which can be used to reproduce image used in CI.
+To do that, build the `AmaranthSynthECP5.Dockerfile` yourself using following command:
 ```
 docker build --platform linux/amd64 -t "amaranth-synth:ecp5" -f ./docker/AmaranthSynthECP5.Dockerfile .
 ```
+
 
 ### Usage
 
@@ -41,9 +64,3 @@ following information:
   - Number of carry cells used
   - Number of RAM cells used
   - Number of DFF cells used
-
-## Benchmarks
-
-For each commit on `master` branch, CI runs the synthesis and saves the parameters collected by `parse_benchmark_info` script.
-
-Graphs generated from this information are available on a dedicated [subpage](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
