@@ -1,21 +1,21 @@
 initMem:
     # Initialise first 256 bits of memory with 32-bits values
     li x1, 1
-    sb x1, 0(x0)
+    sw x1, 0(x0)
     li x1, 2
-    sb x1, 4(x0)
+    sw x1, 4(x0)
     li x1, 5
-    sb x1, 8(x0)
+    sw x1, 8(x0)
     li x1, 10
-    sb x1, 12(x0)
+    sw x1, 12(x0)
     li x1, 3
-    sb x1, 16(x0)
+    sw x1, 16(x0)
     li x1, 0
-    sb x1, 20(x0)
+    sw x1, 20(x0)
     li x1, 14
-    sb x1, 24(x0)
+    sw x1, 24(x0)
     li x1, 42
-    sb x1, 28(x0) # done at cycle ~235
+    sw x1, 28(x0) # done at cycle ~235
 doVectorOperations:
     vsetivli x0, 8, e32,m1,ta,ma
     # Load 8 first 32-bits elements from address 0 from memory to registers v0 and v1
@@ -30,7 +30,7 @@ doVectorOperations:
     add x1, x20, x21
     # Add a canary on first entry which shouldn't be modified
     li x20, 0xDEADBEEF
-    sb x20, 64(x0)
+    sw x20, 64(x0)
     vse32.v v2, (x1)
 getFromMem:
     lw x1, 32(x0)
