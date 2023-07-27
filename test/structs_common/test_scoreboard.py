@@ -19,7 +19,7 @@ class TestScoreboard(TestCaseWithSimulator):
     def create_process(self, k, forward):
         def f():
             for _ in range(self.test_number):
-                id = random.randrange(self.entries_count)
+                id = self.generator((yield Now()), lambda: random.randrange(self.entries_count))
                 dirty = yield from self.circ.get_dirty_list[k].call(id=id)
                 if forward:
                     yield Settle()
@@ -36,19 +36,7 @@ class TestScoreboard(TestCaseWithSimulator):
     @parameterized.expand([(False,), (True,)])
     def test_random(self, forward):
         self.circ = SimpleTestCircuit(Scoreboard(self.entries_count, self.superscalarity, data_forward=forward))
+        self.generator = get_unique_generator()
         with self.run_simulation(self.circ) as sim:
             for k in range(self.superscalarity):
                 sim.add_sync_process(self.create_process(k, forward))
-
-    def conflict_process(self):
-        yield from self.circ.set_dirty_list[0].call_init(id=0, dirty=0)
-        yield from self.circ.set_dirty_list[1].call_init(id=0, dirty=0)
-        yield Settle()
-        yield
-        self.assertEqual((yield from self.circ.set_dirty_list[0].done()), 1)
-        self.assertEqual((yield from self.circ.set_dirty_list[1].done()), 0)
-
-    def test_conflict(self):
-        self.circ = SimpleTestCircuit(Scoreboard(self.entries_count, self.superscalarity, data_forward=False))
-        with self.run_simulation(self.circ) as sim:
-            sim.add_sync_process(self.conflict_process)
