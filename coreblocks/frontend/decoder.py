@@ -737,5 +737,4 @@ class InstrDecoder(Elaboratable):
         m.d.comb += self._extract(0, encoding_space)
         m.d.comb += self.illegal.eq((self.optype == OpType.UNKNOWN) | (encoding_space != 0b11) | register_space_invalid)
 
-        #TODO typy rejestrów dla LOAD/STORE
         return m

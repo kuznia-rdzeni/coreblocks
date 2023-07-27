@@ -1285,8 +1285,8 @@ class MethodFilter(Elaboratable):
     return value is interpreted as true. Alternatively to using a function,
     a `Method` can be passed as a condition.
 
-    Caveat: because of the limitations of transaction scheduling, the target
-    method is locked for usage even if it is not called.
+    By default the target method is locked for usage even if it is not called.
+    If this is not desired effect, set `use_condition` to True.
 
     Attributes
     ----------
@@ -2075,7 +2075,30 @@ class ContentAddressableMemory(Elaboratable):
         return m
 
 class BufferedMethodCall(Elaboratable):
+    """ Wrap method call with fifos
+
+    This module takes a method and calls it when it gets an argument, but
+    first storing the argument in the fifo buffer. Similarly, the results
+    of the call are also stored in the fifo buffer and are available after
+    a cycle.
+
+    Attributes
+    ----------
+    call_in : Method
+        Method to pass data to be buffered before forwarding them
+        to the target method.
+    call_out : Method
+        The method used to read the buffered results of the target method.
+    """
     def __init__(self, called_method : Method, buffor_depth : int = 2):
+        """
+        Parameters
+        ----------
+        called_method : Method
+            Target method for which input and output should be buffered.
+        buffor_depth : int
+            The depth of the buffers.
+        """
         self.called_method = called_method
         self.buffor_depth = buffor_depth
 
@@ -2100,6 +2123,23 @@ class BufferedMethodCall(Elaboratable):
         return m
 
 class BufferedReqResp(Elaboratable):
+    """ Wrap the request-response methods pair with the buffer
+
+    This module takes a request-response methods pair and provides
+    the wrappers that:
+
+    - passes request arguments to the original request method, 
+    - transforms the request arguments with the transformation specified by the user
+    - stores transformed arguments in the buffer
+    - passes transformed arguments from the buffer to the original response method to retrieve the response
+
+    Attributes
+    ----------
+    req : Method
+        The request method wrapper.
+    resp : Method
+        The response method wrapper.
+    """
     def __init__(self, req_method : Method, resp_method : Method, buffor_depth : int = 2, resp_in_transform : Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None):
         self.req_method = req_method
         self.resp_method = resp_method

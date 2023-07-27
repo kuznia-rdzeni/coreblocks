@@ -50,7 +50,6 @@ getFromMem:
     lw x6, 52(x0)
     lw x7, 56(x0)
     lw x8, 60(x0)
-    lw x9, 64(x0)
 infloop:
     j infloop
 

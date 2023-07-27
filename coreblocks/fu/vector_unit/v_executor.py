@@ -41,6 +41,12 @@ class VectorExecutor(Elaboratable):
     initialise_regs : list[Method]
         A list of methods, one for each vector register, to initialise its
         content on vector register allocation.
+    write_vrf : Method
+        The method to write to the register bank associated with this executor.
+    read_req : Method
+        The method to request a read from the register bank associated with this executor.
+    read_resp : Method
+        The method used to read the response to the previous issued request.
     """
 
     def __init__(self, gen_params: GenParams, fragment_index: int, end: Method):

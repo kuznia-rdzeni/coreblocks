@@ -13,7 +13,40 @@ from coreblocks.fu.vector_unit.utils import *
 __all__ = ["VectorLSU"]
 
 class VectorLSUDummyInternals(Elaboratable):
+    """
+    Internal implementation of `VectorLSU` it handles separatly load and stores and
+    issue proper requests to memory/vector register file as long as needed to process
+    all `vl` elements.
+
+    Attributes
+    ----------
+    get_result_ack : Signal, in
+        Instructs to clean the internal state after processing an instruction.
+    execute : Signal, in
+        Signals that side effects can be executed.
+    result_ready : Signal, out
+        Signals that `VectorLSUDummyInternals` ended instruction processing.
+    op_exception : Signal, out
+        Informs if there was an exception.
+    """
     def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: Record, write_vrf : list[Method], read_req_vrf : list[Method], read_resp_vrf : list[Method]) -> None:
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Parameters to be used during processor generation.
+        bus : WishboneMaster
+            An instance of the Wishbone master for interfacing with the data memory.
+        current_instr : Record, in
+            Reference to signal containing instruction currently processed by LSU.
+        write_vrf : list[Method]
+            List with one method for each register bank to write into it.
+        read_req_vrf : list[Method]
+            List with one method for each register bank to send a read request to it.
+        read_resp_vrf : list[Method]
+            List with one method for each register bank to receive the response for the
+            previous send read request.
+        """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.current_instr = current_instr
@@ -196,6 +229,57 @@ class VectorLSUDummyInternals(Elaboratable):
 
 
 class VectorLSU(FuncBlock, Elaboratable):
+    """ A Load Store Unit for handling operations on vector registers.
+
+    This module implements support for unit-stride vector memory operations.
+    At the moment it only supports ELEN=32 due to length dependencies between
+    `WishboneMaster`, `xlen` and `elen`. Additionally, each address must be
+    aligned to `elen` and alignment to `eew` may not be sufficient.
+
+    The `VectorLSU` is implemented as a `FunctionalBlock` to don't block the selection
+    of the `VectorBlockComponent` if the `VectorLSU` is currently processing an instruction.
+    To illustrate the problem, consider the following program:
+
+    .. highlight:: asm
+    .. code-block:: asm
+
+        vle32.v v3, (x0)
+        vadd.vv v2, v1, v0
+
+    In this programme `vadd` is independent of `vle32`, so it can be executed in parallel,
+    but the `VectorLSU` selection has to be blocked after the selection of `vle32`, so that no other
+    memory instructions are inserted (the assumption of the scheduler is that selection
+    can be blocked, but insertion not). If `VectorLSU` will be a part of `VectorBlockComponent`, then
+    selection of `vle32` will block selection of `vadd`, because in selection there is no
+    argument that can be used to do filtering, so `vadd` will be serialised. In the future
+    this should be refactored.
+
+    Selection of this block will block selection of `DummyLSU` to serialise memory accesses.
+
+    All `FunctionalBlock` methods in this block have vector versions, that should be used
+    by the `VectorCore`. Scalar versions are mostly a stubs for interface compatibility.
+
+    Attributes
+    ----------
+    insert : Method
+        Proxy for the `VectorCoreBlock` insert. It uses the fact that in `VectorCoreBlock`
+        there is a `FifoRS` which ignores `register_entry_id`.
+    select : Method
+        Select this block to execute the instruction. This also blocks execution of `LSUDummy`.
+        Not ready if `LSUDummy` is currently running.
+    update : Method
+        Stub
+    get_result : Method
+        Stub
+    insert_v : Method
+        The method for inserting memory instructions pre-processed by the VectorFrontend.
+    update_v : Method
+        Get the updates of the vector registers.
+    get_result_v : Method
+        Get the result of the memory instruction.
+    precommit : Method
+        Listen to precommit announcements.
+    """
     def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params

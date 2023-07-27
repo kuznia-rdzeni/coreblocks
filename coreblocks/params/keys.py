@@ -64,20 +64,22 @@ class ROBPeekKey(SimpleKey[Method]):
 class LSUReservedKey(SimpleKey[tuple[Method,Method]]):
     pass
 
-# TODO rework vector core so that this key wouldn't be needed
+#TODO To remove after refactor
 @dataclass(frozen = True)
 class VectorFrontendInsertKey(SimpleKey[Method]):
     pass
 
-# TODO This also should be refactored
+#TODO To remove after refactor
 @dataclass(frozen = True)
 class VectorVRFAccessKey(SimpleKey[tuple[list[Method], list[Method], list[Method]]]):
     pass
 
+#TODO To remove after refactor
 @dataclass(frozen = True)
 class VectorLSUKey(SimpleKey["VectorLSU"]):
     pass
 
+#TODO To remove after refactor
 @dataclass(frozen = True)
 class VectorScoreboardKey(SimpleKey[tuple[Method,Method]]):
     pass

@@ -41,6 +41,19 @@ class VectorBackend(Elaboratable):
         The method to insert instructions from the vector frontend.
     initialise_regs : list[Method]
         List with one method for each register, to initialise it on allocation.
+    vrf_write : list[Method]
+        List with one method for each register bank, to write data into it.
+    vrf_read_req : list[Method]
+        List with one method for each register bank, to request data to be read from it.
+    vrf_read_resp : list[Method]
+        List with one method for each register bank, to read requested data.
+    v_update : Method
+        The method to call to indicate that a vector register is ready.
+    scoreboard_get_dirty : Method
+        The method to check if the register is already ready.
+    scoreboard_set_dirty : Method
+        The method for setting the dirty bit for the register to indicate that it's not ready
+        and that there are no results yet.
     """
 
     def __init__(self, gen_params: GenParams, announce: Method, report_end: Method, v_update_methods : list[Method] =[]):
@@ -54,6 +67,8 @@ class VectorBackend(Elaboratable):
             scalar core.
         report_end : Method
             Used to report the end of instruction execution to `VectorRetirement`.
+        v_update_methods : list[Method]
+            Methods to be called with vector register updates.
         """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params

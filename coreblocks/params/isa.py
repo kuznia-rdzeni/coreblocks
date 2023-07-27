@@ -370,6 +370,13 @@ def lmul_to_int(lmul: LMUL) -> int:
     return math.ceil(lmul_to_float(lmul))
 
 def load_store_width_to_eew(funct3 : Funct3 | int) -> EEW:
+    """ Convert vector load/store funct3 to EEW.
+
+    Parameters
+    ----------
+    funct3 : Funct3 | int
+        Value to convert.
+    """
     match funct3:
         # constants taken from RISC-V V extension specification
         case 0:

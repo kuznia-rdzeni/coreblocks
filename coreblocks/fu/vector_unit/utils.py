@@ -56,6 +56,22 @@ def elem_mask_to_byte_mask(m: TModule, v_params: VectorParameters, elem_mask: Va
 
 
 def load_store_width_to_eew(m : ModuleLike, width : Value) -> Signal:
+    """Generate a converter from vector load/store width to EEW.
+
+    This function decodes `width` (which is simply a funct3) from vector
+    load/store instruction encodings and converts it to the corresponding data EEW.
+
+    Parameters
+    ----------
+    m : TModule
+        Module to connect the circuit to.
+    width : Value
+        Vector load/store width to decode.
+
+    Returns
+    -------
+    The EEW of data on which load/store is operating.
+    """
     eew = Signal(EEW)
     with m.Switch(width):
         # constants taken from RISC-V V extension specification
