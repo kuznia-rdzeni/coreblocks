@@ -116,6 +116,7 @@ class VectorElemsDownloader(Elaboratable):
             with m.If(resp_counter == 1):
                 m.d.sync += instr_valid.eq(0)
                 barrier.set_valids(m, valids=(2**regs_number - 1))
+            with m.If(instr.elens_len == resp_counter):
                 m.d.comb += data_to_fu.last_mask.eq(last_mask_saved)
 
         uniq = Signal(4, name="uniq")
