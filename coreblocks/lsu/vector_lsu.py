@@ -340,7 +340,6 @@ class VectorLSU(FuncBlock, Elaboratable):
             _set_reserved(m, reserved=1)
             return {"rs_entry_id": 0}
 
-        # TODO poprawić ten layout
         @def_method(m, self.insert_v)
         def _(arg):
             m.d.sync += assign(current_instr, arg)
@@ -384,8 +383,6 @@ class VectorLSU(FuncBlock, Elaboratable):
             m.d.sync += current_instr.eq(0)
             _set_reserved(m, reserved=0)
 
-            # TODO vretirement
-            # TODO vupdate
             cast_rp_dst = Signal(self.v_params.vrp_count_bits)
             m.d.top_comb += cast_rp_dst.eq(current_instr.rp_dst.id)
             scoreboard_set_dirty(m, id=cast_rp_dst, dirty=0)

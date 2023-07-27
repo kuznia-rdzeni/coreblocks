@@ -16,7 +16,7 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
     wait_ppb: float
 
     def setUp(self):
-        random.seed(self.seed + 20)
+        random.seed(self.seed)
         self.vrp_count = 8
         self.gen_params = GenParams(
             test_vector_core_config.replace(

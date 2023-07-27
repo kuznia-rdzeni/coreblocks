@@ -2116,7 +2116,7 @@ class BufferedMethodCall(Elaboratable):
         m = TModule()
 
         fifo_in = BasicFifo(self.called_method.data_in.layout, self.buffor_depth)
-        # TODO add posibility to use outside buffor to reduce latency
+        # TODO add posibility to use outside buffer to reduce latency
         fifo_out = BasicFifo(self.called_method.data_out.layout, self.buffor_depth)
 
         self.call_in.proxy(m, fifo_in.write)
