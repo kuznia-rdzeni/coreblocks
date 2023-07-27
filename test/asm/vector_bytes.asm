@@ -31,7 +31,7 @@ byteDataInit:
     vle8.v v3, (x0)
     vadd.vi v2, v3, 0
     vsetivli x0, 30, e8,m1,tu,ma
-    li x1, 1 # loop counter
+    li x1, 9 # loop counter
 byteLoop:
     vadd.vv v3, v3, v2
     addi x1, x1, -1
