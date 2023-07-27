@@ -704,7 +704,7 @@ class InstrDecoder(Elaboratable):
             mop = Signal(2)
             m.d.comb += self._extract(26, mop)
             with m.Switch(mop):
-                with m.Case(0): 
+                with m.Case(0):
                     # unit stride
                     m.d.comb += self.rs2_v.eq(0)
                 with m.Case(1):

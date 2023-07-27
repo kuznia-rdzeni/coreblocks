@@ -74,7 +74,7 @@ class Funct3(IntEnum, shape=3):
     BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = OPIVX = 0b100
     BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = OPFVF = VMEM16 = 0b101
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = OPMVX = VMEM32 = 0b110
-    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = OPCFG = VMEM64 =0b111
+    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = OPCFG = VMEM64 = 0b111
 
 
 class Funct6(IntEnum, shape=6):
@@ -369,8 +369,9 @@ def lmul_to_int(lmul: LMUL) -> int:
     """
     return math.ceil(lmul_to_float(lmul))
 
-def load_store_width_to_eew(funct3 : Funct3 | int) -> EEW:
-    """ Convert vector load/store funct3 to EEW.
+
+def load_store_width_to_eew(funct3: Funct3 | int) -> EEW:
+    """Convert vector load/store funct3 to EEW.
 
     Parameters
     ----------

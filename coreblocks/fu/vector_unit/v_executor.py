@@ -75,9 +75,9 @@ class VectorExecutor(Elaboratable):
         self.initialise_regs = [
             Method(i=self.vreg_layout.initialise, name=f"initialise{i}") for i in range(self.v_params.vrp_count)
         ]
-        self.write_vrf = Method(i = self.vrf_layout.write)
-        self.read_req = Method(i = self.vrf_layout.read_req)
-        self.read_resp = Method(o = self.vrf_layout.read_resp_o)
+        self.write_vrf = Method(i=self.vrf_layout.write)
+        self.read_req = Method(i=self.vrf_layout.read_req)
+        self.read_resp = Method(o=self.vrf_layout.read_resp_o)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -102,12 +102,27 @@ class VectorExecutor(Elaboratable):
             self.gen_params, fu_in_fifo.write, old_dst_fifo.write, mask_in_fifo.write
         )
 
-        vrf_buffors = [BufferedReqResp(vrf.read_req[i], vrf.read_resp[i], 4, (self.vrf_layout.read_req, lambda _, arg: {"vrp_id" : arg.vrp_id})) for i in range(vrf.read_ports_count)]
-        serializers = [Serializer(port_count = 2, serialized_req_method = vrf_buffors[i].req, serialized_resp_method = vrf_buffors[i].resp) for i in range(vrf.read_ports_count)]
+        vrf_buffors = [
+            BufferedReqResp(
+                vrf.read_req[i], vrf.read_resp[i], 4, (self.vrf_layout.read_req, lambda _, arg: {"vrp_id": arg.vrp_id})
+            )
+            for i in range(vrf.read_ports_count)
+        ]
+        serializers = [
+            Serializer(
+                port_count=2, serialized_req_method=vrf_buffors[i].req, serialized_resp_method=vrf_buffors[i].resp
+            )
+            for i in range(vrf.read_ports_count)
+        ]
         write_wrapper = def_one_caller_wrapper(vrf.write, self.write_vrf)
 
-        downloader = VectorElemsDownloader(self.gen_params, [ser.serialize_in[0] for ser in serializers], [ser.serialize_out[0] for ser in serializers], splitter.issue)
-        uploader = VectorElemsUploader(self.gen_params,self.write_vrf, old_dst_fifo.read, mask_out_fifo.read, self.end)
+        downloader = VectorElemsDownloader(
+            self.gen_params,
+            [ser.serialize_in[0] for ser in serializers],
+            [ser.serialize_out[0] for ser in serializers],
+            splitter.issue,
+        )
+        uploader = VectorElemsUploader(self.gen_params, self.write_vrf, old_dst_fifo.read, mask_out_fifo.read, self.end)
 
         issue_connect = Connect(self.layouts.executor_in)
         self.issue.proxy(m, issue_connect.write)

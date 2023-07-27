@@ -94,7 +94,10 @@ class TestVInstructionVerification(TestCaseWithSimulator):
         def process():
             for _ in range(self.test_number):
                 data = generate_instr(self.gen_params, self.vf_layout.verification_in, support_vector=True)
-                if data["exec_fn"]["op_type"] in [OpType.V_LOAD, OpType.V_STORE] and eew_to_bits(load_store_width_to_eew(data["exec_fn"]["funct3"])) > self.v_params.elen:
+                if (
+                    data["exec_fn"]["op_type"] in [OpType.V_LOAD, OpType.V_STORE]
+                    and eew_to_bits(load_store_width_to_eew(data["exec_fn"]["funct3"])) > self.v_params.elen
+                ):
                     retire_q.append(data)
                     report_q.append(data)
                 else:

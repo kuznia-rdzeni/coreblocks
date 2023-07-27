@@ -56,7 +56,9 @@ class VectorBackend(Elaboratable):
         and that there are no results yet.
     """
 
-    def __init__(self, gen_params: GenParams, announce: Method, report_end: Method, v_update_methods : list[Method] =[]):
+    def __init__(
+        self, gen_params: GenParams, announce: Method, report_end: Method, v_update_methods: list[Method] = []
+    ):
         """
         Parameters
         ----------
@@ -89,10 +91,12 @@ class VectorBackend(Elaboratable):
         self.vrf_write = [Method(i=self.vrf_layout.write) for _ in range(self.v_params.register_bank_count)]
         self.vrf_read_req = [Method(i=self.vrf_layout.read_req) for _ in range(self.v_params.register_bank_count)]
         self.vrf_read_resp = [Method(o=self.vrf_layout.read_resp_o) for _ in range(self.v_params.register_bank_count)]
-        self.scoreboard_get_dirty = Method(i=self.scoreboard_layout.get_dirty_in, o = self.scoreboard_layout.get_dirty_out)
+        self.scoreboard_get_dirty = Method(
+            i=self.scoreboard_layout.get_dirty_in, o=self.scoreboard_layout.get_dirty_out
+        )
         self.scoreboard_set_dirty = Method(i=self.scoreboard_layout.set_dirty_in)
-        self.v_update = Method(i = self.vvrs_layouts.update_in)
-        
+        self.v_update = Method(i=self.vvrs_layouts.update_in)
+
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
@@ -112,7 +116,9 @@ class VectorBackend(Elaboratable):
 
         self.put_instr.proxy(m, insert_to_vvrs.issue)
 
-        m.submodules.update_product = update_product = MethodProduct([vvrs.update, insert_to_vvrs.update] + self.v_update_methods)
+        m.submodules.update_product = update_product = MethodProduct(
+            [vvrs.update, insert_to_vvrs.update] + self.v_update_methods
+        )
         self.v_update.proxy(m, update_product.method)
         m.submodules.ender = ender = VectorExecutionEnder(
             self.gen_params, self.announce, self.v_update, ready_scoreboard.set_dirty_list[2], self.report_end

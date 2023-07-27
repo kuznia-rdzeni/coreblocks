@@ -86,7 +86,9 @@ class VectorElemsDownloader(Elaboratable):
         m.submodules.barrier = barrier
 
         # TODO Use barrier dirrectly inside BufferedReqResp to reduce latency
-        m.submodules.connect_barrier = ModuleConnector(*[ConnectTrans(self.read_resp_list[i], barrier.write_list[i]) for i in range(regs_number)])
+        m.submodules.connect_barrier = ModuleConnector(
+            *[ConnectTrans(self.read_resp_list[i], barrier.write_list[i]) for i in range(regs_number)]
+        )
 
         with Transaction(name="downloader_request_trans").body(m, request=instr_valid & (req_counter != 0)):
             addr = Signal(range(self.v_params.elens_in_bank))

@@ -204,4 +204,4 @@ vector_core_config = CoreConfiguration(
         VectorBlockComponent(8),
         VectorLSUBlockComponent(),
     ),
-    )
+)

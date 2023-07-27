@@ -338,7 +338,7 @@ class RSInsertion(Elaboratable):
                 },
             }
 
-            with condition(m, priority = False) as branch:
+            with condition(m, priority=False) as branch:
                 for i, rs_insert in enumerate(self.rs_insert):
                     # connect only matching fields
                     arg = Record.like(rs_insert.data_in)

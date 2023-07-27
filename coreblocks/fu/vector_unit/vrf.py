@@ -42,11 +42,12 @@ class VRFFragment(Elaboratable):
         self.layout = VRFFragmentLayouts(self.gen_params)
 
         self.read_ports_count = 4
-        self.read_req = [Method(i=self.layout.read_req, single_caller = True) for _ in range(self.read_ports_count)]
+        self.read_req = [Method(i=self.layout.read_req, single_caller=True) for _ in range(self.read_ports_count)]
         self.read_resp = [
-            Method(i=self.layout.read_resp_i, o=self.layout.read_resp_o, single_caller = True) for _ in range(self.read_ports_count)
+            Method(i=self.layout.read_resp_i, o=self.layout.read_resp_o, single_caller=True)
+            for _ in range(self.read_ports_count)
         ]
-        self.write = Method(i=self.layout.write, single_caller = True)
+        self.write = Method(i=self.layout.write, single_caller=True)
 
         self.regs = [VectorRegisterBank(gen_params=self.gen_params) for _ in range(self.v_params.vrp_count)]
 

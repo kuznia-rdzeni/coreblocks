@@ -29,7 +29,18 @@ from amaranth.sim.core import Command
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans, Adapter, MethodLayout
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode, SEW, LMUL, eew_to_bits, lmul_to_int
+from coreblocks.params import (
+    RegisterType,
+    Funct3,
+    Funct7,
+    OpType,
+    GenParams,
+    Opcode,
+    SEW,
+    LMUL,
+    eew_to_bits,
+    lmul_to_int,
+)
 from coreblocks.utils import (
     ValueLike,
     HasElaborate,
@@ -168,7 +179,7 @@ def convert_vtype_to_imm(vtype) -> int:
     return imm
 
 
-def generate_vtype(gen_params: GenParams, max_vl: Optional[int] = None, const_lmul : Optional[LMUL] = None):
+def generate_vtype(gen_params: GenParams, max_vl: Optional[int] = None, const_lmul: Optional[LMUL] = None):
     sew = random.choice([sew for sew in list(SEW) if eew_to_bits(sew) <= gen_params.v_params.elen])
     lmul = random.choice(list(LMUL)) if const_lmul is None else const_lmul
     ta = random.randrange(2)
@@ -200,7 +211,7 @@ def generate_instr(
     non_uniform_s2_val=True,
     overwriting: dict = {},
     max_vl: Optional[int] = None,
-    const_lmul : Optional[LMUL] = None,
+    const_lmul: Optional[LMUL] = None,
 ):
     rec = {}
     if max_reg_bits is None:
@@ -243,7 +254,7 @@ def generate_instr(
                 s2_val = random.randrange(2**gen_params.isa.xlen)
             rec["s2_val"] = s2_val
         if "vtype" in field[0]:
-            rec["vtype"] = generate_vtype(gen_params, max_vl=max_vl, const_lmul =  const_lmul)
+            rec["vtype"] = generate_vtype(gen_params, max_vl=max_vl, const_lmul=const_lmul)
         if "rp_v0" in field[0]:
             rec["rp_v0"] = {"id": random.randrange(gen_params.v_params.vrp_count)}
     return overwrite_dict_values(rec, overwriting)

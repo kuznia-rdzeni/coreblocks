@@ -1276,6 +1276,7 @@ def connected_conditions(m: TModule, *, nonblocking=False):
     else:
         m.d.top_comb += all_conds.eq(~Cat(all_not_conds_list).all())
 
+
 class MethodFilter(Elaboratable):
     """Method filter.
 
@@ -1295,7 +1296,11 @@ class MethodFilter(Elaboratable):
     """
 
     def __init__(
-            self, target: Method, condition: Callable[[TModule, Record], ValueLike], default: Optional[RecordDict] = None, use_condition : bool = False
+        self,
+        target: Method,
+        condition: Callable[[TModule, Record], ValueLike],
+        default: Optional[RecordDict] = None,
+        use_condition: bool = False,
     ):
         """
         Parameters
@@ -1317,7 +1322,7 @@ class MethodFilter(Elaboratable):
 
         self.target = target
         self.use_condition = use_condition
-        self.method = Method(i = target.data_in.layout, o = target.data_out.layout, single_caller = self.use_condition)
+        self.method = Method(i=target.data_in.layout, o=target.data_out.layout, single_caller=self.use_condition)
         self.condition = condition
         self.default = default
 
@@ -1332,7 +1337,7 @@ class MethodFilter(Elaboratable):
             if self.use_condition:
                 cond = Signal()
                 m.d.top_comb += cond.eq(self.condition(m, arg))
-                with condition(m, nonblocking= False) as branch:
+                with condition(m, nonblocking=False) as branch:
                     with branch(cond):
                         m.d.comb += ret.eq(self.target(m, arg))
                     with branch(~cond):
@@ -2074,8 +2079,9 @@ class ContentAddressableMemory(Elaboratable):
 
         return m
 
+
 class BufferedMethodCall(Elaboratable):
-    """ Wrap method call with fifos
+    """Wrap method call with fifos
 
     This module takes a method and calls it when it gets an argument, but
     first storing the argument in the fifo buffer. Similarly, the results
@@ -2090,7 +2096,8 @@ class BufferedMethodCall(Elaboratable):
     call_out : Method
         The method used to read the buffered results of the target method.
     """
-    def __init__(self, called_method : Method, buffor_depth : int = 2):
+
+    def __init__(self, called_method: Method, buffor_depth: int = 2):
         """
         Parameters
         ----------
@@ -2102,14 +2109,14 @@ class BufferedMethodCall(Elaboratable):
         self.called_method = called_method
         self.buffor_depth = buffor_depth
 
-        self.call_in = Method(i = self.called_method.data_in.layout)
-        self.call_out = Method(o = self.called_method.data_out.layout)
+        self.call_in = Method(i=self.called_method.data_in.layout)
+        self.call_out = Method(o=self.called_method.data_out.layout)
 
     def elaborate(self, platform):
         m = TModule()
 
         fifo_in = BasicFifo(self.called_method.data_in.layout, self.buffor_depth)
-        #TODO add posibility to use outside buffor to reduce latency
+        # TODO add posibility to use outside buffor to reduce latency
         fifo_out = BasicFifo(self.called_method.data_out.layout, self.buffor_depth)
 
         self.call_in.proxy(m, fifo_in.write)
@@ -2122,13 +2129,14 @@ class BufferedMethodCall(Elaboratable):
         m.submodules.fifo_out = fifo_out
         return m
 
+
 class BufferedReqResp(Elaboratable):
-    """ Wrap the request-response methods pair with the buffer
+    """Wrap the request-response methods pair with the buffer
 
     This module takes a request-response methods pair and provides
     the wrappers that:
 
-    - passes request arguments to the original request method, 
+    - passes request arguments to the original request method,
     - transforms the request arguments with the transformation specified by the user
     - stores transformed arguments in the buffer
     - passes transformed arguments from the buffer to the original response method to retrieve the response
@@ -2140,21 +2148,28 @@ class BufferedReqResp(Elaboratable):
     resp : Method
         The response method wrapper.
     """
-    def __init__(self, req_method : Method, resp_method : Method, buffor_depth : int = 2, resp_in_transform : Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None):
+
+    def __init__(
+        self,
+        req_method: Method,
+        resp_method: Method,
+        buffor_depth: int = 2,
+        resp_in_transform: Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
+    ):
         self.req_method = req_method
         self.resp_method = resp_method
         self.buffor_depth = buffor_depth
         self.resp_in_transform = resp_in_transform
 
-        self.req = Method(i = self.req_method.data_in.layout)
-        self.resp = Method(o = self.resp_method.data_out.layout)
+        self.req = Method(i=self.req_method.data_in.layout)
+        self.resp = Method(o=self.resp_method.data_out.layout)
 
     def elaborate(self, platform):
         m = TModule()
 
         fifo_req = BasicFifo(self.req_method.data_in.layout, 2)
         buffered_resp = BufferedMethodCall(self.resp_method, self.buffor_depth)
-        resp_in_transformer = MethodTransformer(buffered_resp.call_in, i_transform = self.resp_in_transform)
+        resp_in_transformer = MethodTransformer(buffered_resp.call_in, i_transform=self.resp_in_transform)
 
         with Transaction().body(m):
             self.req_method(m, fifo_req.read(m))

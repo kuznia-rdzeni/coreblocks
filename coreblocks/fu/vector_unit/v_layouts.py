@@ -238,6 +238,7 @@ class VectorRetirementLayouts:
             ("rp_dst", common.p_register_entry),
         ]
 
+
 class VectorLSULayouts:
     def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)

@@ -3,7 +3,7 @@ from coreblocks.params import *
 from coreblocks.utils import *
 from coreblocks.transactions import *
 
-__all__ = ["expand_mask", "load_store_width_to_eew", "elem_mask_to_byte_mask"]
+__all__ = ["expand_mask", "load_store_width_to_eew_circ", "elem_mask_to_byte_mask"]
 
 
 def expand_mask(v_params, mask: Value) -> Value:
@@ -21,6 +21,7 @@ def expand_mask(v_params, mask: Value) -> Value:
         The mask which should be expanded.
     """
     return Cat(Mux(mask[i], 0xFF, 0x00) for i in range(v_params.bytes_in_elen))
+
 
 def elem_mask_to_byte_mask(m: TModule, v_params: VectorParameters, elem_mask: Value, eew: Value):
     """Generate a circuit to convert the mask from the elem format to the byte format.
@@ -54,8 +55,7 @@ def elem_mask_to_byte_mask(m: TModule, v_params: VectorParameters, elem_mask: Va
     return result
 
 
-
-def load_store_width_to_eew(m : ModuleLike, width : Value) -> Signal:
+def load_store_width_to_eew_circ(m: ModuleLike, width: Value) -> Signal:
     """Generate a converter from vector load/store width to EEW.
 
     This function decodes `width` (which is simply a funct3) from vector

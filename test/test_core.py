@@ -243,8 +243,29 @@ class TestCoreRandomized(TestCoreBase):
         ("fibonacci", "fibonacci.asm", 830, {2: 2971215073}, basic_core_config),
         ("fibonacci_mem", "fibonacci_mem.asm", 570, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
-        ("vector", "vector.asm", 500, {1: 3, 2:6, 3:15, 4:30, 5:9, 6:0, 7:42, 8: 126, 9:0xDEADBEEF}, vector_core_config),
-        ("vector_bytes", "vector_bytes.asm", 630, {1: 10, 2: 20 + (300%256) * 2**8 + 250 * 2**16, 3:50, 4:100, 5:30, 6:0 + (2550 %256)*2**8, 7:140, 8: (420%256) + (1810 % 256) * 2**8 + 15 * 2**16 + 0x55 * 2**24 }, vector_core_config),
+        (
+            "vector",
+            "vector.asm",
+            500,
+            {1: 3, 2: 6, 3: 15, 4: 30, 5: 9, 6: 0, 7: 42, 8: 126, 9: 0xDEADBEEF},
+            vector_core_config,
+        ),
+        (
+            "vector_bytes",
+            "vector_bytes.asm",
+            630,
+            {
+                1: 10,
+                2: 20 + (300 % 256) * 2**8 + 250 * 2**16,
+                3: 50,
+                4: 100,
+                5: 30,
+                6: 0 + (2550 % 256) * 2**8,
+                7: 140,
+                8: (420 % 256) + (1810 % 256) * 2**8 + 15 * 2**16 + 0x55 * 2**24,
+            },
+            vector_core_config,
+        ),
     ],
 )
 class TestCoreAsmSource(TestCoreBase):

@@ -64,13 +64,23 @@ class VectorCore(Elaboratable):
         self.precommit = Method(i=self.x_retirement_layouts.precommit)
         self.get_result = Method(o=self.fu_layouts.accept)
 
-        self.vrf_write = [Method(i=self.vrf_layout.write, name=f"vrf_write{i}") for i in range(self.v_params.register_bank_count)]
-        self.vrf_read_req = [Method(i=self.vrf_layout.read_req, name=f"vrf_read_req{i}") for i in range(self.v_params.register_bank_count)]
-        self.vrf_read_resp = [Method(o=self.vrf_layout.read_resp_o, name=f"vrf_read_resp{i}") for i in range(self.v_params.register_bank_count)]
-        self.scoreboard_get_dirty = Method(i=self.scoreboard_layout.get_dirty_in, o = self.scoreboard_layout.get_dirty_out)
+        self.vrf_write = [
+            Method(i=self.vrf_layout.write, name=f"vrf_write{i}") for i in range(self.v_params.register_bank_count)
+        ]
+        self.vrf_read_req = [
+            Method(i=self.vrf_layout.read_req, name=f"vrf_read_req{i}")
+            for i in range(self.v_params.register_bank_count)
+        ]
+        self.vrf_read_resp = [
+            Method(o=self.vrf_layout.read_resp_o, name=f"vrf_read_resp{i}")
+            for i in range(self.v_params.register_bank_count)
+        ]
+        self.scoreboard_get_dirty = Method(
+            i=self.scoreboard_layout.get_dirty_in, o=self.scoreboard_layout.get_dirty_out
+        )
         self.scoreboard_set_dirty = Method(i=self.scoreboard_layout.set_dirty_in)
 
-        self.connections =self.gen_params.get(DependencyManager)
+        self.connections = self.gen_params.get(DependencyManager)
         self.connections.add_dependency(VectorFrontendInsertKey(), self.insert)
         self.connections.add_dependency(VectorVRFAccessKey(), (self.vrf_write, self.vrf_read_req, self.vrf_read_resp))
         self.connections.add_dependency(VectorScoreboardKey(), (self.scoreboard_get_dirty, self.scoreboard_set_dirty))
@@ -89,7 +99,7 @@ class VectorCore(Elaboratable):
         )
         announcer = VectorAnnouncer(self.gen_params, 4)
         vlsu = self.connections.get_dependency(VectorLSUKey())
-        
+
         backend = VectorBackend(self.gen_params, announcer.announce_list[0], v_retirement.report_end, [vlsu.update_v])
         fifo_to_vvrs = BasicFifo(self.v_frontend_layouts.instr_to_vvrs, 2)
         frontend = VectorFrontend(
@@ -111,8 +121,8 @@ class VectorCore(Elaboratable):
         with Transaction(name="vlsu_get_result_v_trans").body(m):
             data = vlsu.get_result_v(m)
             announcer.announce_list[3](m, data)
-            v_retirement.report_end(m, rob_id = data.rob_id, rp_dst = data.rp_dst)
-            backend.v_update(m, tag = data.rp_dst, value = 0)
+            v_retirement.report_end(m, rob_id=data.rob_id, rp_dst=data.rp_dst)
+            backend.v_update(m, tag=data.rp_dst, value=0)
 
         self.precommit.proxy(m, v_retirement.precommit)
         self.get_result.proxy(m, announcer.accept)

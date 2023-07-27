@@ -12,6 +12,7 @@ from coreblocks.fu.vector_unit.utils import *
 
 __all__ = ["VectorLSU"]
 
+
 class VectorLSUDummyInternals(Elaboratable):
     """
     Internal implementation of `VectorLSU` it handles separatly load and stores and
@@ -29,7 +30,16 @@ class VectorLSUDummyInternals(Elaboratable):
     op_exception : Signal, out
         Informs if there was an exception.
     """
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: Record, write_vrf : list[Method], read_req_vrf : list[Method], read_resp_vrf : list[Method]) -> None:
+
+    def __init__(
+        self,
+        gen_params: GenParams,
+        bus: WishboneMaster,
+        current_instr: Record,
+        write_vrf: list[Method],
+        read_req_vrf: list[Method],
+        read_resp_vrf: list[Method],
+    ) -> None:
         """
         Parameters
         ----------
@@ -64,7 +74,7 @@ class VectorLSUDummyInternals(Elaboratable):
         self.op_exception = Signal()
 
         self.elems_counter = Signal(bits_for(self.gen_params.v_params.bytes_in_vlen))
-        self.elen_counter =  Signal(bits_for(self.gen_params.v_params.elens_in_vlen))
+        self.elen_counter = Signal(bits_for(self.gen_params.v_params.elens_in_vlen))
         self.bank_id = Signal(bits_for(self.v_params.register_bank_count))
         self.local_addr = Signal(log2_int(self.gen_params.v_params.elens_in_bank, False))
 
@@ -80,24 +90,24 @@ class VectorLSUDummyInternals(Elaboratable):
         diff = Signal.like(self.current_instr.vtype.vl)
         m.d.top_comb += diff.eq(self.current_instr.vtype.vl - self.elems_counter)
         m.d.top_comb += binary_to_onehot.i.eq(diff)
-        last =Signal()
+        last = Signal()
         with m.Switch(self.current_instr.vtype.sew):
             for sew_iter in SEW:
                 with m.Case(sew_iter):
                     m.d.av_comb += last.eq(diff < self.v_params.elen // eew_to_bits(sew_iter))
         m.d.av_comb += elem_mask.eq(
-                Mux(
-                    last,
-                    binary_to_onehot.o - 1,
-                    2 ** (self.v_params.elen // eew_to_bits(EEW.w8)) - 1,
-                    )
-                )
+            Mux(
+                last,
+                binary_to_onehot.o - 1,
+                2 ** (self.v_params.elen // eew_to_bits(EEW.w8)) - 1,
+            )
+        )
         m.d.top_comb += mask.eq(elem_mask_to_byte_mask(m, self.v_params, elem_mask, self.current_instr.vtype.sew))
         return mask
 
     def check_align(self, m: TModule, addr: Signal):
         aligned = Signal()
-        #TODO Allow for aligments to elements instead of aligment to ELEN
+        # TODO Allow for aligments to elements instead of aligment to ELEN
         match self.v_params.elen:
             case 64:
                 m.d.comb += aligned.eq(addr[0:3] == 0)
@@ -109,7 +119,7 @@ class VectorLSUDummyInternals(Elaboratable):
                 m.d.comb += aligned.eq(1)
         return aligned
 
-    def counters_increase(self, m:TModule):
+    def counters_increase(self, m: TModule):
         with m.Switch(self.current_instr.vtype.sew):
             for sew_iter in SEW:
                 with m.Case(sew_iter):
@@ -121,7 +131,7 @@ class VectorLSUDummyInternals(Elaboratable):
         with m.Else():
             m.d.sync += self.local_addr.eq(self.local_addr + 1)
 
-    def handle_load(self, m : TModule, request : Value, bytes_mask, addr, restart : Value):
+    def handle_load(self, m: TModule, request: Value, bytes_mask, addr, restart: Value):
         cast_dst_vrp_id = Signal(range(self.v_params.vrp_count))
         m.d.top_comb += cast_dst_vrp_id.eq(self.current_instr.rp_dst.id)
         with m.FSM():
@@ -135,11 +145,11 @@ class VectorLSUDummyInternals(Elaboratable):
                     m.d.sync += self.op_exception.eq(0)
                     m.d.sync += self.result_ready.eq(1)
                 with m.Else():
-                    with Transaction(name = "load_req_from_mem_trans").body(m, request = request & ~self.result_ready):
+                    with Transaction(name="load_req_from_mem_trans").body(m, request=request & ~self.result_ready):
                         self.bus.request(m, addr=addr >> 2, we=0, sel=0, data=0)
                         m.next = "RespFromMem"
             with m.State("RespFromMem"):
-                with Transaction(name= "load_resp_from_mem_trans").body(m, request = request):
+                with Transaction(name="load_resp_from_mem_trans").body(m, request=request):
                     fetched = self.bus.result(m)
                     with m.If(fetched.err):
                         cause = ExceptionCause.LOAD_ACCESS_FAULT
@@ -150,11 +160,17 @@ class VectorLSUDummyInternals(Elaboratable):
                         with m.Switch(self.bank_id):
                             for i in range(self.v_params.register_bank_count):
                                 with m.Case(i):
-                                    self.write_vrf[i](m, addr = self.local_addr, vrp_id = cast_dst_vrp_id, valid_mask = bytes_mask, data = fetched.data)
+                                    self.write_vrf[i](
+                                        m,
+                                        addr=self.local_addr,
+                                        vrp_id=cast_dst_vrp_id,
+                                        valid_mask=bytes_mask,
+                                        data=fetched.data,
+                                    )
                         self.counters_increase(m)
                     m.next = "ReqFromMem"
 
-    def handle_store(self, m : TModule, request : Value, bytes_mask, addr, restart : Value):
+    def handle_store(self, m: TModule, request: Value, bytes_mask, addr, restart: Value):
         cast_s3_vrp_id = Signal(range(self.v_params.vrp_count))
         m.d.top_comb += cast_s3_vrp_id.eq(self.current_instr.rp_s3.id)
         with m.FSM():
@@ -168,19 +184,19 @@ class VectorLSUDummyInternals(Elaboratable):
                     m.d.sync += self.op_exception.eq(0)
                     m.d.sync += self.result_ready.eq(1)
                 with m.Else():
-                    with Transaction(name= "store_req_reg_trans").body(m, request = request & ~self.result_ready):
-                        for i in condition_switch(m,self.bank_id, self.v_params.register_bank_count):
-                            self.read_req_vrf[i](m, addr = self.local_addr, vrp_id = cast_s3_vrp_id)
+                    with Transaction(name="store_req_reg_trans").body(m, request=request & ~self.result_ready):
+                        for i in condition_switch(m, self.bank_id, self.v_params.register_bank_count):
+                            self.read_req_vrf[i](m, addr=self.local_addr, vrp_id=cast_s3_vrp_id)
                         m.next = "RespFromReg"
             with m.State("RespFromReg"):
-                with Transaction(name = "store_resp_reg_trans").body(m, request = request):
+                with Transaction(name="store_resp_reg_trans").body(m, request=request):
                     resp = Record(self.read_resp_vrf[0].data_out.layout)
-                    for i in condition_switch(m,self.bank_id, self.v_params.register_bank_count):
-                        m.d.comb += assign(resp, self.read_resp_vrf[i](m), fields = AssignType.ALL)
+                    for i in condition_switch(m, self.bank_id, self.v_params.register_bank_count):
+                        m.d.comb += assign(resp, self.read_resp_vrf[i](m), fields=AssignType.ALL)
                     self.bus.request(m, addr=addr >> 2, we=1, sel=bytes_mask, data=resp.data)
                     m.next = "RespFromMem"
             with m.State("RespFromMem"):
-                with Transaction(name = "store_resp_from_mem_trans").body(m, request = request):
+                with Transaction(name="store_resp_from_mem_trans").body(m, request=request):
                     fetched = self.bus.result(m)
                     with m.If(fetched.err):
                         cause = ExceptionCause.STORE_ACCESS_FAULT
@@ -190,7 +206,6 @@ class VectorLSUDummyInternals(Elaboratable):
                     with m.Else():
                         self.counters_increase(m)
                     m.next = "ReqFromReg"
-
 
     def elaborate(self, platform):
         m = TModule()
@@ -209,27 +224,24 @@ class VectorLSUDummyInternals(Elaboratable):
         aligned = self.check_align(m, addr)
         bytes_mask = self.prepare_bytes_mask(m, addr)
 
-        self.handle_load(m,  instr_ready & is_load & aligned, bytes_mask, addr, self.get_result_ack)
-        self.handle_store(m,  instr_ready & self.execute & aligned & ~is_load, bytes_mask, addr, self.get_result_ack)
-        with Transaction(name= "miss_align_trans").body(m, request = instr_ready & (is_load | self.execute) & ~aligned):
+        self.handle_load(m, instr_ready & is_load & aligned, bytes_mask, addr, self.get_result_ack)
+        self.handle_store(m, instr_ready & self.execute & aligned & ~is_load, bytes_mask, addr, self.get_result_ack)
+        with Transaction(name="miss_align_trans").body(m, request=instr_ready & (is_load | self.execute) & ~aligned):
             m.d.sync += self.op_exception.eq(1)
             m.d.sync += self.result_ready.eq(1)
 
-            cause = Mux(
-                is_load, ExceptionCause.LOAD_ADDRESS_MISALIGNED, ExceptionCause.STORE_ADDRESS_MISALIGNED
-            )
+            cause = Mux(is_load, ExceptionCause.LOAD_ADDRESS_MISALIGNED, ExceptionCause.STORE_ADDRESS_MISALIGNED)
             self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
 
         with m.If(self.get_result_ack):
             m.d.sync += self.result_ready.eq(0)
             m.d.sync += self.op_exception.eq(0)
 
-
         return m
 
 
 class VectorLSU(FuncBlock, Elaboratable):
-    """ A Load Store Unit for handling operations on vector registers.
+    """A Load Store Unit for handling operations on vector registers.
 
     This module implements support for unit-stride vector memory operations.
     At the moment it only supports ELEN=32 due to length dependencies between
@@ -280,6 +292,7 @@ class VectorLSU(FuncBlock, Elaboratable):
     precommit : Method
         Listen to precommit announcements.
     """
+
     def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
@@ -304,7 +317,6 @@ class VectorLSU(FuncBlock, Elaboratable):
         if self.gen_params.isa.xlen != self.gen_params.v_params.elen or self.gen_params.v_params.elen != 32:
             raise ValueError("Vector LSU don't support XLEN != ELEN != 32 yet.")
 
-
     def elaborate(self, platform):
         m = TModule()
         reserved = Signal()
@@ -314,8 +326,10 @@ class VectorLSU(FuncBlock, Elaboratable):
         scoreboard_get_dirty, scoreboard_set_dirty = self.connections.get_dependency(VectorScoreboardKey())
         self.write_vrf, self.read_req_vrf, self.read_resp_vrf = self.connections.get_dependency(VectorVRFAccessKey())
 
-        m.submodules.internal = internal = VectorLSUDummyInternals(self.gen_params, self.bus, current_instr, self.write_vrf, self.read_req_vrf, self.read_resp_vrf)
-        result_ready = internal.result_ready 
+        m.submodules.internal = internal = VectorLSUDummyInternals(
+            self.gen_params, self.bus, current_instr, self.write_vrf, self.read_req_vrf, self.read_resp_vrf
+        )
+        result_ready = internal.result_ready
 
         with Transaction().body(m):
             m.d.comb += reserved.eq(_get_reserved(m).reserved)
@@ -323,7 +337,7 @@ class VectorLSU(FuncBlock, Elaboratable):
         @def_method(m, self.select, ~reserved)
         def _():
             # We always return 0, because we have only one place in instruction storage.
-            _set_reserved(m, reserved = 1)
+            _set_reserved(m, reserved=1)
             return {"rs_entry_id": 0}
 
         # TODO poprawić ten layout
@@ -336,10 +350,10 @@ class VectorLSU(FuncBlock, Elaboratable):
             m.d.sync += current_instr.rp_s2_rdy.eq(1)
             cast_rp_s3 = Signal(self.v_params.vrp_count_bits)
             m.d.top_comb += cast_rp_s3.eq(arg.rp_s3.id)
-            m.d.sync += current_instr.rp_s3_rdy.eq(~scoreboard_get_dirty(m, id = cast_rp_s3))
+            m.d.sync += current_instr.rp_s3_rdy.eq(~scoreboard_get_dirty(m, id=cast_rp_s3))
             cast_rp_dst = Signal(self.v_params.vrp_count_bits)
             m.d.top_comb += cast_rp_dst.eq(arg.rp_dst.id)
-            scoreboard_set_dirty(m, id = cast_rp_dst, dirty = 1)
+            scoreboard_set_dirty(m, id=cast_rp_dst, dirty=1)
 
         @def_method(m, self.update_v)
         def _(tag: Value, value: Value):
@@ -368,13 +382,13 @@ class VectorLSU(FuncBlock, Elaboratable):
             m.d.comb += internal.get_result_ack.eq(1)
 
             m.d.sync += current_instr.eq(0)
-            _set_reserved(m, reserved = 0)
+            _set_reserved(m, reserved=0)
 
             # TODO vretirement
             # TODO vupdate
             cast_rp_dst = Signal(self.v_params.vrp_count_bits)
             m.d.top_comb += cast_rp_dst.eq(current_instr.rp_dst.id)
-            scoreboard_set_dirty(m, id = cast_rp_dst, dirty = 0)
+            scoreboard_set_dirty(m, id=cast_rp_dst, dirty=0)
 
             return {
                 "rob_id": current_instr.rob_id,
@@ -385,10 +399,11 @@ class VectorLSU(FuncBlock, Elaboratable):
 
         @def_method(m, self.precommit)
         def _(rob_id: Value):
-            with m.If( current_instr.valid & (rob_id == current_instr.rob_id) ):
+            with m.If(current_instr.valid & (rob_id == current_instr.rob_id)):
                 m.d.comb += internal.execute.eq(1)
 
         return m
+
 
 class VectorLSUBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
