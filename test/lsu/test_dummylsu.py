@@ -47,13 +47,13 @@ def generate_imm() -> int:
     if random.randint(0, 1):
         return 0
     else:
-        return random.randint(-2**11, 2**11-1)
+        return random.randint(-(2**11), 2**11 - 1)
 
 
 def calculate_wb_sel(addr: int, num_bytes: int) -> tuple[int, int]:
     rest = addr % 4
     wb_addr = addr >> 2
-    wb_sel = (2 ** num_bytes - 1) << rest
+    wb_sel = (2**num_bytes - 1) << rest
     return wb_addr, wb_sel
 
 
@@ -209,14 +209,7 @@ class TestDummyLSU(TestCaseWithSimulator):
                 "misaligned": misaligned,
                 "err": bus_err,
             }
-            exc_data = (
-                {
-                    "rob_id": rob_id,
-                    "cause": cause
-                }
-                if cause is not None
-                else None
-            )
+            exc_data = {"rob_id": rob_id, "cause": cause} if cause is not None else None
             ann_data = []
             if ann_data1 is not None:
                 ann_data.append(ann_data1)
@@ -267,9 +260,9 @@ class TestDummyLSU(TestCaseWithSimulator):
 
         if not generated_data["err"]:
             ret_data = resp_data >> (data_shift * 8)
-            ret_data &= (2 ** (num_bytes * 8) - 1)
+            ret_data &= 2 ** (num_bytes * 8) - 1
             if sign:
-                ret_data = int_to_signed(signed_to_int(ret_data, num_bytes*8), 32)
+                ret_data = int_to_signed(signed_to_int(ret_data, num_bytes * 8), 32)
             await self.returned_data.push(ret_data)
 
         await self.mem_result_queue.push({"data": resp_data, "err": generated_data["err"]})
