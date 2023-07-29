@@ -44,9 +44,6 @@ class Scoreboard(Elaboratable):
         ]
         self.set_dirty_list = [Method(i=self.layouts.set_dirty_in, name=f"set{i}") for i in range(self.superscalarity)]
 
-        for i in range(1, self.superscalarity):
-            self.set_dirty_list[i - 1].schedule_before(self.set_dirty_list[i])
-
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
