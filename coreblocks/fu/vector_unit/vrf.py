@@ -44,12 +44,9 @@ class VRFFragment(Elaboratable):
         self.layout = VRFFragmentLayouts(self.gen_params)
 
         self.read_ports_count = 4
-        self.read_req = [Method(i=self.layout.read_req, single_caller=True) for _ in range(self.read_ports_count)]
-        self.read_resp = [
-            Method(i=self.layout.read_resp_i, o=self.layout.read_resp_o, single_caller=True)
-            for _ in range(self.read_ports_count)
-        ]
-        self.write = Method(i=self.layout.write, single_caller=True)
+        self.read_req = [Method(i=self.layout.read_req) for _ in range(self.read_ports_count)]
+        self.read_resp = [ Method(o=self.layout.read_resp_o) for _ in range(self.read_ports_count) ]
+        self.write = Method(i=self.layout.write)
 
         self.regs = [VectorRegisterBank(gen_params=self.gen_params) for _ in range(self.v_params.vrp_count)]
 
@@ -104,7 +101,7 @@ class VRFFragment(Elaboratable):
 
 
         @loop_def_method(m, self.read_resp)
-        def _(i, vrp_id):
+        def _(i):
             return fifos_resp[i].read(m)
 
         return m

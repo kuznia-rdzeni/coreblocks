@@ -24,7 +24,6 @@ class VRFFragmentLayouts:
         v_params = gen_params.v_params
         self.read_req = [("vrp_id", v_params.vrp_count_bits), ("addr", range(v_params.elens_in_bank))]
 
-        self.read_resp_i = [("vrp_id", v_params.vrp_count_bits)]
         self.read_resp_o = [("data", v_params.elen)]
 
         self.write = [

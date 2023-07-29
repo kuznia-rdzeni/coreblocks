@@ -53,9 +53,6 @@ class BasicFifo(Elaboratable):
         # current fifo depth
         self.level = Signal((self.depth).bit_length())
 
-        self.clear.add_conflict(self.read, Priority.LEFT)
-        self.clear.add_conflict(self.write, Priority.LEFT)
-
         # for interface compatibility with MultiportFifo
         self.read_methods = [self.read]
         self.write_methods = [self.write]

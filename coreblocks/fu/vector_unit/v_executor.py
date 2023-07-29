@@ -102,15 +102,9 @@ class VectorExecutor(Elaboratable):
             self.gen_params, fu_in_fifo.write, old_dst_fifo.write, mask_in_fifo.write
         )
 
-        vrf_buffors = [
-            BufferedReqResp(
-                vrf.read_req[i], vrf.read_resp[i], 4, (self.vrf_layout.read_req, lambda _, arg: {"vrp_id": arg.vrp_id})
-            )
-            for i in range(vrf.read_ports_count)
-        ]
         serializers = [
             Serializer(
-                port_count=2, serialized_req_method=vrf_buffors[i].req, serialized_resp_method=vrf_buffors[i].resp
+                port_count=2, serialized_req_method=vrf.read_req[i], serialized_resp_method=vrf.read_resp[i]
             )
             for i in range(vrf.read_ports_count)
         ]
@@ -181,7 +175,6 @@ class VectorExecutor(Elaboratable):
         m.submodules.connect_mask_extractor_in = connect_mask_extractor_in
         m.submodules.connect_alu_in = connect_alu_in
         m.submodules.connect_alu_out = connect_alu_out
-        m.submodules.vrf_buffors = ModuleConnector(*vrf_buffors)
         m.submodules.serializers = ModuleConnector(*serializers)
         m.submodules.write_wrapper = write_wrapper
 
