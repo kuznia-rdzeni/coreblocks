@@ -214,13 +214,11 @@ class VectorTranslator(Elaboratable):
         m = TModule()
 
         m.submodules.transl_rp3 = transl_rp3 = VectorTranslateRS3(self.gen_params, self.put_instr)
-        m.submodules.transl_lmul = transl_lmul = VectorTranslateLMUL(self.gen_params, transl_rp3.issue)
         m.submodules.transl_rewrite_imm = transl_rewrite_imm = VectorTranslateRewirteImm(self.gen_params)
 
         @def_method(m, self.issue)
         def _(arg):
             rewrited_imm = transl_rewrite_imm.issue(m, arg)
-            mult = transl_lmul.issue(m, rewrited_imm)
-            self.retire_mult(m, mult)
+            transl_rp3.issue(m, rewrited_imm)
 
         return m
