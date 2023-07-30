@@ -2,7 +2,7 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import FIFO
+from coreblocks.transactions.lib import FIFO, Register
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
 from coreblocks.utils import HasElaborate, OneHotSwitch
@@ -220,7 +220,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
         m = TModule()
 
         m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.alu_fn)
-        m.submodules.fifo_in = fifo_in = FIFO(self.gen_params.get(FuncUnitLayouts).issue, 2)
+        m.submodules.fifo_in = fifo_in = Register(self.gen_params.get(FuncUnitLayouts).issue)
         m.submodules.fifo_out = fifo_out = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.alu_fn.get_decoder(self.gen_params)
 
