@@ -7,6 +7,7 @@ from coreblocks.utils import layout_subset, layout_difference
 class VectorRegisterBankLayouts:
     def __init__(self, gen_params: GenParams):
         v_params = gen_params.v_params
+        self.read_req = [("addr", range(v_params.elens_in_bank))]
         self.read_resp = [("data", v_params.elen)]
 
         self.write = [
