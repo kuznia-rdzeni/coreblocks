@@ -60,16 +60,15 @@ class VRFFragment(Elaboratable):
         m.submodules.regs = ModuleConnector(*self.regs)
         m.submodules.clear_product = self.clear_module
 
-        fifos_write = [BasicFifo(self.regs[0].write.data_in.layout, 2) for j in range(self.v_params.vrp_count)]
+        fifo_write = BasicFifo(self.layout.write, 2)
         fifos_req_port = [BasicFifo(self.layout.read_req, 2) for i in range(self.read_ports_count)] 
         fifos_resp = [BasicFifo(self.regs[0].read_resp.data_out.layout, 2) for i in range(self.read_ports_count)] 
         fifos_resp_id = [BasicFifo([("port_id", log2_int(self.read_ports_count, False))], 2) for j in range(self.v_params.vrp_count)]
 
-        m.submodules.fifos_write = ModuleConnector(ModuleConnector(*fifos_write))
+        m.submodules.fifo_write = fifo_write
         m.submodules.fifos_resp_id = ModuleConnector(ModuleConnector(*fifos_resp_id))
         m.submodules.fifos_req_port = ModuleConnector(*fifos_req_port)
         m.submodules.fifos_resp = ModuleConnector(*fifos_resp)
-        m.submodules.connect_writes = ModuleConnector(*[ConnectTrans(fifos_write[j].read, self.regs[j].write) for j in range(self.v_params.vrp_count)])
 
         for i in range(self.read_ports_count):
             for j in range(self.v_params.vrp_count):
@@ -85,12 +84,14 @@ class VRFFragment(Elaboratable):
                     data = self.regs[j].read_resp(m)
                     fifos_resp[i].write(m, data)
 
+        for j in range(self.v_params.vrp_count):
+            with Transaction().body(m, request = (fifo_write.head.vrp_id == j)):
+                arg = fifo_write.read(m)
+                self.regs[j].write(m, data = arg.data, addr = arg.addr, valid_mask = arg.valid_mask)
+
         @def_method(m, self.write)
-        def _(vrp_id, addr, data, valid_mask):
-            with m.Switch(vrp_id):
-                for j in range(self.v_params.vrp_count):
-                    with m.Case(j):
-                        fifos_write[j].write(m, data=data, addr=addr, valid_mask=valid_mask)
+        def _(arg):
+            fifo_write.write(m, arg)
 
         @loop_def_method(m, self.read_req)
         def _(i, arg):
