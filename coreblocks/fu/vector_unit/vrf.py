@@ -61,21 +61,21 @@ class VRFFragment(Elaboratable):
         m.submodules.clear_product = self.clear_module
 
         fifos_write = [BasicFifo(self.regs[0].write.data_in.layout, 2) for j in range(self.v_params.vrp_count)]
-        fifos_req = [[BasicFifo(self.regs[0].read_req.data_in.layout, 2) for j in range(self.v_params.vrp_count)] for i in range(self.read_ports_count)] 
+        fifos_req_port = [BasicFifo(self.layout.read_req, 2) for i in range(self.read_ports_count)] 
         fifos_resp = [BasicFifo(self.regs[0].read_resp.data_out.layout, 2) for i in range(self.read_ports_count)] 
         fifos_resp_id = [BasicFifo([("port_id", log2_int(self.read_ports_count, False))], 2) for j in range(self.v_params.vrp_count)]
 
         m.submodules.fifos_write = ModuleConnector(ModuleConnector(*fifos_write))
         m.submodules.fifos_resp_id = ModuleConnector(ModuleConnector(*fifos_resp_id))
-        m.submodules.fifos_req = ModuleConnector(*list(map(lambda x: ModuleConnector(*x), fifos_req)))
+        m.submodules.fifos_req_port = ModuleConnector(*fifos_req_port)
         m.submodules.fifos_resp = ModuleConnector(*fifos_resp)
         m.submodules.connect_writes = ModuleConnector(*[ConnectTrans(fifos_write[j].read, self.regs[j].write) for j in range(self.v_params.vrp_count)])
 
         for i in range(self.read_ports_count):
             for j in range(self.v_params.vrp_count):
-                with Transaction().body(m):
-                    arg = fifos_req[i][j].read(m)
-                    self.regs[j].read_req(m, arg)
+                with Transaction().body(m, request = (fifos_req_port[i].head.vrp_id == j)):
+                    arg = fifos_req_port[i].read(m)
+                    self.regs[j].read_req(m, addr=arg.addr)
                     fifos_resp_id[j].write(m, port_id = i)
 
         for i in range(self.read_ports_count):
@@ -94,10 +94,7 @@ class VRFFragment(Elaboratable):
 
         @loop_def_method(m, self.read_req)
         def _(i, arg):
-            with m.Switch(arg.vrp_id):
-                for j in range(self.v_params.vrp_count):
-                    with m.Case(j):
-                        fifos_req[i][j].write(m, addr = arg.addr)
+            fifos_req_port[i].write(m, arg)
 
 
         @loop_def_method(m, self.read_resp)
