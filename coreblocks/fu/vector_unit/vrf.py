@@ -60,10 +60,10 @@ class VRFFragment(Elaboratable):
         m.submodules.regs = ModuleConnector(*self.regs)
         m.submodules.clear_product = self.clear_module
 
-        fifo_write = Register(self.layout.write)
-        fifos_req_port = [Register(self.layout.read_req) for i in range(self.read_ports_count)] 
-        fifos_resp = [Register(self.regs[0].read_resp.data_out.layout) for i in range(self.read_ports_count)] 
-        fifos_resp_id = [Register([("port_id", log2_int(self.read_ports_count, False))]) for j in range(self.v_params.vrp_count)]
+        fifo_write = BasicFifo(self.layout.write, 2)
+        fifos_req_port = [BasicFifo(self.layout.read_req, 2) for i in range(self.read_ports_count)] 
+        fifos_resp = [BasicFifo(self.regs[0].read_resp.data_out.layout, 2) for i in range(self.read_ports_count)] 
+        fifos_resp_id = [BasicFifo([("port_id", log2_int(self.read_ports_count, False))], 3) for j in range(self.v_params.vrp_count)]
 
         m.submodules.fifo_write = fifo_write
         m.submodules.fifos_resp_id = ModuleConnector(ModuleConnector(*fifos_resp_id))

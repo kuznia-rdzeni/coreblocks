@@ -69,20 +69,40 @@ class VectorRegisterBank(Elaboratable):
         m.submodules.mask_forward = mask_forward
 
 
-        @def_method(m, self.read_resp, resp_ready)
-        def _():
+#        @def_method(m, self.read_resp, resp_ready)
+#        def _():
+#            mask = mask_forward.read(m)
+#            out_masked = Signal(self.v_params.elen)
+#            expanded_mask = ~expand_mask(self.v_params, mask.data)
+#            m.d.top_comb += out_masked.eq(read_port.data | expanded_mask)
+#            # Use enable signal to don't store last address in local register
+#            m.d.sync += resp_ready.eq(0)
+#            return {"data": out_masked}
+#
+#        # Schedule before allow us to don't have a support memory for the previously read
+#        # data, so we optimise resource usage at the cost of critical path
+#        self.read_resp.schedule_before(self.read_req)
+#        @def_method(m, self.read_req, ~resp_ready | self.read_resp.run)
+#        def _(addr):
+#            m.d.top_comb += read_port.addr.eq(addr)
+#            m.d.comb += read_port.en.eq(1)
+#            m.d.sync += resp_ready.eq(1)
+#            mask_forward.write(m, data=self.byte_mask.word_select(addr, self.v_params.bytes_in_elen))
+
+        m.submodules.data_out_fifo = data_out_fifo = BasicFifo(self.layouts.read_resp, 2)
+        self.read_resp.proxy(m, data_out_fifo.read)
+
+        with Transaction().body(m):
             mask = mask_forward.read(m)
             out_masked = Signal(self.v_params.elen)
             expanded_mask = ~expand_mask(self.v_params, mask.data)
             m.d.top_comb += out_masked.eq(read_port.data | expanded_mask)
             # Use enable signal to don't store last address in local register
             m.d.sync += resp_ready.eq(0)
-            return {"data": out_masked}
+            data_out_fifo.write(m, data = out_masked)
 
-        # Schedule before allow us to don't have a support memory for the previously read
-        # data, so we optimise resource usage at the cost of critical path
-        self.read_resp.schedule_before(self.read_req)
-        @def_method(m, self.read_req, ~resp_ready | self.read_resp.run)
+
+        @def_method(m, self.read_req, ~resp_ready | data_out_fifo.write.ready)
         def _(addr):
             m.d.top_comb += read_port.addr.eq(addr)
             m.d.comb += read_port.en.eq(1)

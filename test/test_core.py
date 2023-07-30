@@ -253,7 +253,7 @@ class TestCoreRandomized(TestCoreBase):
         (
             "vector_bytes",
             "vector_bytes.asm",
-            630, # 630
+            730, # 630
             {
                 1: 10,
                 2: 20 + (300 % 256) * 2**8 + 250 * 2**16,
