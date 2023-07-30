@@ -191,7 +191,7 @@ test_vector_core_config = CoreConfiguration(
 # Core configuration with vector extension
 vector_core_config = CoreConfiguration(
     allow_partial_extensions=True,
-    vector_config=VectorUnitConfiguration(register_bank_count=1),
+    vector_config=VectorUnitConfiguration(register_bank_count=2),
     func_units_config=(
         RSBlockComponent(
             [
