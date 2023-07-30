@@ -118,7 +118,7 @@ class VectorExecutor(Elaboratable):
         )
         uploader = VectorElemsUploader(self.gen_params, self.write_vrf, old_dst_fifo.read, mask_out_fifo.read, self.end)
 
-        issue_connect = Connect(self.layouts.executor_in)
+        issue_connect = BasicFifo(self.layouts.executor_in, 2)
         self.issue.proxy(m, issue_connect.write)
         self.read_req.proxy(m, serializers[2].serialize_in[1])
         self.read_resp.proxy(m, serializers[2].serialize_out[1])
