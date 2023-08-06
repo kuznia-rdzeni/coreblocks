@@ -93,8 +93,9 @@ class VectorLSUDummyInternals(Elaboratable):
         last = Signal()
         with m.Switch(self.current_instr.vtype.sew):
             for sew_iter in SEW:
-                with m.Case(sew_iter):
-                    m.d.av_comb += last.eq(diff < self.v_params.elen // eew_to_bits(sew_iter))
+                if eew_to_bits(sew_iter) <= self.v_params.elen:
+                    with m.Case(sew_iter):
+                        m.d.av_comb += last.eq(diff < self.v_params.elen // eew_to_bits(sew_iter))
         m.d.av_comb += elem_mask.eq(
             Mux(
                 last,

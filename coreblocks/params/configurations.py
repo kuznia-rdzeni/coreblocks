@@ -195,7 +195,8 @@ vector_core_config = CoreConfiguration(
     func_units_config=(
         RSBlockComponent(
             [
-                ALUComponent(zba_enable=True, zbb_enable=True),
+                ALUComponent(),
+                ShiftUnitComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
             ],

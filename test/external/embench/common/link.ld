@@ -5,8 +5,8 @@ _STACK_SIZE = 0x1000;
 
 MEMORY
 {
-    imem (rxai!w) : ORIGIN = 0x00000000, LENGTH = 64K
-    dmem (wxa!ri) : ORIGIN = 0x10000000, LENGTH = 128K
+    imem  : ORIGIN = 0x00000000, LENGTH = 64K
+    dmem  : ORIGIN = 0x10000000, LENGTH = 128K
 }
 
 SECTIONS
