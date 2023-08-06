@@ -91,13 +91,14 @@ class VectorRegisterBank(Elaboratable):
 
         m.submodules.data_out_fifo = data_out_fifo = BasicFifo(self.layouts.read_resp, 2)
         self.read_resp.proxy(m, data_out_fifo.read)
+        m.d.comb += read_port.en.eq(0)
 
         with Transaction().body(m):
             mask = mask_forward.read(m)
             out_masked = Signal(self.v_params.elen)
             expanded_mask = ~expand_mask(self.v_params, mask.data)
             m.d.top_comb += out_masked.eq(read_port.data | expanded_mask)
-            # Use enable signal to don't store last address in local register
+            # Use enable signal to avoid storing last address in local register
             m.d.sync += resp_ready.eq(0)
             data_out_fifo.write(m, data = out_masked)
 
