@@ -191,7 +191,7 @@ class VectorTranslator(Elaboratable):
         Send an instruction to transform.
     """
 
-    def __init__(self, gen_params: GenParams, put_instr: Method, retire_mult: Method):
+    def __init__(self, gen_params: GenParams, put_instr: Method):
         """
         Parameters
         ----------
@@ -199,13 +199,9 @@ class VectorTranslator(Elaboratable):
             Core configuration
         put_instr : Method
             The method used to pass the instruction to the next processing stage.
-        retire_mult : Method
-            The method used to report the number of internal instructions generated
-            from a programme instruction.
         """
         self.gen_params = gen_params
         self.put_instr = put_instr
-        self.retire_mult = retire_mult
 
         self.layouts = VectorFrontendLayouts(self.gen_params)
         self.issue = Method(i=self.layouts.translator_in)

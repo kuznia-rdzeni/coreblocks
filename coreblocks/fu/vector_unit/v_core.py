@@ -107,7 +107,6 @@ class VectorCore(Elaboratable):
             rob_block_interrupts,
             announcer.announce_list[1],
             announcer.announce_list[2],
-            backend.report_mult,
             v_freerf.allocate,
             v_frat.get_rename_list[0],
             v_frat.get_rename_list[1],

@@ -98,7 +98,6 @@ class VectorFrontend(Elaboratable):
         rob_block_interrupts: Method,
         announce: Method,
         announce2: Method,
-        announce_mult: Method,
         alloc_reg: Method,
         get_rename1_frat: Method,
         get_rename2_frat: Method,
@@ -119,9 +118,6 @@ class VectorFrontend(Elaboratable):
             illegal instructions.
         announce2 : Method
             The same as above. Second instance.
-        announce_mult : Method
-            Method to report to the vector announcement module the number of internal instructions
-            generated from an original vector instruction.
         alloc_reg : Method
             Allocate a new vector register.
         get_rename1_frat : Method
@@ -143,7 +139,6 @@ class VectorFrontend(Elaboratable):
         self.rob_block_interrupts = rob_block_interrupts
         self.announce = announce
         self.announce2 = announce2
-        self.announce_mult = announce_mult
         self.alloc_reg = NotMethod(alloc_reg)
         self.get_rename1_frat = get_rename1_frat
         self.get_rename2_frat = get_rename2_frat
@@ -188,7 +183,7 @@ class VectorFrontend(Elaboratable):
 
         m.submodules.fifo_from_translator = fifo_from_translator = BasicFifo(self.layouts.translator_out, 2)
         m.submodules.translator = translator = VectorTranslator(
-            self.gen_params, fifo_from_translator.write, self.announce_mult
+            self.gen_params, fifo_from_translator.write
         )
 
         m.submodules.from_status_to_tranlator = ConnectTrans(fifo_from_v_status.read, translator.issue)
