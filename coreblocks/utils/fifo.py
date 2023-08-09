@@ -63,9 +63,7 @@ class BasicFifo(Elaboratable):
         next_read_idx = Signal.like(self.read_idx)
         m.d.top_comb += next_read_idx.eq(mod_incr(self.read_idx, self.depth))
 
-        m.submodules.buff_rdport = self.buff_rdport = self.buff.read_port(
-            domain="sync", transparent=True
-        ) 
+        m.submodules.buff_rdport = self.buff_rdport = self.buff.read_port(domain="sync", transparent=True)
         m.submodules.buff_wrport = self.buff_wrport = self.buff.write_port()
 
         m.d.top_comb += self.read_ready.eq(self.level != 0)

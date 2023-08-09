@@ -182,9 +182,7 @@ class VectorFrontend(Elaboratable):
         )
 
         m.submodules.fifo_from_translator = fifo_from_translator = BasicFifo(self.layouts.translator_out, 2)
-        m.submodules.translator = translator = VectorTranslator(
-            self.gen_params, fifo_from_translator.write
-        )
+        m.submodules.translator = translator = VectorTranslator(self.gen_params, fifo_from_translator.write)
 
         m.submodules.from_status_to_tranlator = ConnectTrans(fifo_from_v_status.read, translator.issue)
 

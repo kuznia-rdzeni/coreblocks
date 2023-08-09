@@ -46,8 +46,8 @@ class TestVRFFragment(TestCaseWithSimulator):
         self.received_reads = deque()
         self.passive_requestors = 0
         self.passive_receivers = 0
-        self.barierr_writer = SimBarrier(1+self.read_port_count)
-        self.read_cond_var = CondVar(transparent = False)
+        self.barierr_writer = SimBarrier(1 + self.read_port_count)
+        self.read_cond_var = CondVar(transparent=False)
 
     def writer(self):
         for __ in range(self.test_iterations):
@@ -56,7 +56,9 @@ class TestVRFFragment(TestCaseWithSimulator):
                 yield from self.circ.write.call(req)
                 yield Settle()
                 current_val = self.reference_memory[req["vrp_id"]][req["addr"]]
-                new_val = (req["data"] & expand_mask(req["valid_mask"])) | (current_val & ~expand_mask(req["valid_mask"]))
+                new_val = (req["data"] & expand_mask(req["valid_mask"])) | (
+                    current_val & ~expand_mask(req["valid_mask"])
+                )
                 self.reference_memory[req["vrp_id"]][req["addr"]] = new_val
                 while random.random() < self.wait_chance:
                     yield
@@ -74,16 +76,18 @@ class TestVRFFragment(TestCaseWithSimulator):
                     while random.random() < self.wait_chance:
                         yield
                 yield from self.barierr_writer.wait()
+
         return f
 
     def generate_read_receiver(self, k):
         def f():
-            for _ in range(self.test_iterations*self.iteration_len):
+            for _ in range(self.test_iterations * self.iteration_len):
                 resp = yield from self.circ.read_resp[k].call()
                 self.assertIn(resp["data"], self.expected_reads[k])
                 self.expected_reads[k].remove(resp["data"])
                 while random.random() < self.wait_chance:
                     yield
+
         return f
 
     def test_random(self):

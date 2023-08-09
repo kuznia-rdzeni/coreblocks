@@ -9,7 +9,7 @@ from collections import deque, defaultdict
 
 class TestVInstructionVerification(TestCaseWithSimulator):
     def setUp(self):
-        self.maxDiff=None
+        self.maxDiff = None
         random.seed(14)
         self.gen_params = GenParams(test_vector_core_config)
         self.test_number = 100

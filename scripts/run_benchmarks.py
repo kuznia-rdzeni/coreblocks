@@ -16,14 +16,15 @@ sys.path.insert(0, str(topdir))
 
 import test.regression.benchmark  # noqa: E402
 from test.regression.pysim import PySimulation  # noqa: E402
-from coreblocks.params.configurations import *
+from coreblocks.params.configurations import *  # noqa: E402
 
 str_to_coreconfig: dict[str, CoreConfiguration] = {
     "basic": basic_core_config,
     "tiny": tiny_core_config,
     "full": full_core_config,
-    "vector" : vector_core_config,
+    "vector": vector_core_config,
 }
+
 
 def cd_to_topdir():
     os.chdir(str(topdir))
@@ -61,7 +62,15 @@ def load_benchmarks():
 
 def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
     cpu_count = len(os.sched_getaffinity(0))
-    arglist = ["make", "-C", "test/regression/cocotb", "-f", "benchmark.Makefile", "--no-print-directory", f"-j{cpu_count}"]
+    arglist = [
+        "make",
+        "-C",
+        "test/regression/cocotb",
+        "-f",
+        "benchmark.Makefile",
+        "--no-print-directory",
+        f"-j{cpu_count}",
+    ]
 
     test_cases = ",".join(benchmarks)
     arglist += [f"TESTCASE={test_cases}"]
@@ -74,7 +83,7 @@ def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
     return res.returncode == 0
 
 
-def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, verbose: bool, core_conf : CoreConfiguration) -> bool:
+def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, verbose: bool, core_conf: CoreConfiguration) -> bool:
     suite = unittest.TestSuite()
 
     def _gen_test(test_name: str):
@@ -83,7 +92,9 @@ def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, verbose: bool
             if traces:
                 traces_file = "benchmark." + test_name
             asyncio.run(
-                test.regression.benchmark.run_benchmark(PySimulation(verbose, traces_file=traces_file, core_conf=core_conf), test_name)
+                test.regression.benchmark.run_benchmark(
+                    PySimulation(verbose, traces_file=traces_file, core_conf=core_conf), test_name
+                )
             )
 
         test_fn.__name__ = test_name
@@ -100,7 +111,13 @@ def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, verbose: bool
     return result.wasSuccessful()
 
 
-def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], traces: bool, verbose: bool, core_conf : CoreConfiguration) -> bool:
+def run_benchmarks(
+    benchmarks: list[str],
+    backend: Literal["pysim", "cocotb"],
+    traces: bool,
+    verbose: bool,
+    core_conf: CoreConfiguration,
+) -> bool:
     if backend == "cocotb":
         return run_benchmarks_with_cocotb(benchmarks, traces)
     elif backend == "pysim":

@@ -103,9 +103,7 @@ class VectorExecutor(Elaboratable):
         )
 
         serializers = [
-            Serializer(
-                port_count=2, serialized_req_method=vrf.read_req[i], serialized_resp_method=vrf.read_resp[i]
-            )
+            Serializer(port_count=2, serialized_req_method=vrf.read_req[i], serialized_resp_method=vrf.read_resp[i])
             for i in range(vrf.read_ports_count)
         ]
         write_wrapper = def_one_caller_wrapper(vrf.write, self.write_vrf)

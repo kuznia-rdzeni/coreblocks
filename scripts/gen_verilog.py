@@ -24,7 +24,7 @@ str_to_coreconfig: dict[str, CoreConfiguration] = {
     "basic": basic_core_config,
     "tiny": tiny_core_config,
     "full": full_core_config,
-    "vector" : vector_core_config,
+    "vector": vector_core_config,
 }
 
 
@@ -50,13 +50,12 @@ def gen_output(core_config: CoreConfiguration, output_path, type):
     with open(output_path, "w") as f:
         signals = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
 
-        if type=="verilog":
+        if type == "verilog":
             f.write(verilog.convert(top, ports=signals, strip_internal_attrs=True))
-        elif type=="rtlil":
+        elif type == "rtlil":
             f.write(rtlil.convert(top, ports=signals))
         else:
             raise ValueError(f"Output type '{type}' not known.")
-
 
 
 def main():
@@ -82,7 +81,12 @@ def main():
     )
 
     parser.add_argument(
-            "-t", "--type", action="store", default="verilog", help="Choose generation target. Available values: 'verilog', 'rtlil'. Default: %(default)s")
+        "-t",
+        "--type",
+        action="store",
+        default="verilog",
+        help="Choose generation target. Available values: 'verilog', 'rtlil'. Default: %(default)s",
+    )
 
     args = parser.parse_args()
 

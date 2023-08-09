@@ -1,7 +1,6 @@
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.params import *
-from coreblocks.utils.utils import PriorityUniqnessChecker
 
 __all__ = ["Scoreboard"]
 
@@ -17,7 +16,7 @@ class Scoreboard(Elaboratable):
         Methods to get the dirty bit for the given index id.
         Layout: ScoreboardLayouts.get_dirty_*
     set_dirty_list : list[Method]
-        Methods to set the dirty bit for the given index id. 
+        Methods to set the dirty bit for the given index id.
         No conflict detection.
         Layout: ScoreboardLayouts.set_dirty_in
     """
@@ -53,7 +52,7 @@ class Scoreboard(Elaboratable):
             data_forward = Signal(self.entries_number, name="data_forward")
             data_forward_valid = Signal(self.entries_number, name="data_forward_valid")
 
-        #TODO add conflict detection
+        # TODO add conflict detection
         @loop_def_method(m, self.set_dirty_list)
         def _(i, id, dirty):
             m.d.sync += data.bit_select(id, 1).eq(dirty)

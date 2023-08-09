@@ -102,8 +102,6 @@ class FlexibleAluExecutor(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        out_width = bits_to_eew(self.v_params.elen)
-
         m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         m.d.top_comb += assign(decoder.exec_fn, self.exec_fn, fields=AssignType.ALL)

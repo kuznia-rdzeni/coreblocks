@@ -14,7 +14,9 @@ from coreblocks.peripherals.wishbone import WishboneBus
 
 
 class PySimulation(SimulationBackend):
-    def __init__(self, verbose: bool, traces_file: Optional[str] = None, core_conf : CoreConfiguration = full_core_config):
+    def __init__(
+        self, verbose: bool, traces_file: Optional[str] = None, core_conf: CoreConfiguration = full_core_config
+    ):
         self.gp = GenParams(core_conf)
         self.running = False
         self.cycle_cnt = 0

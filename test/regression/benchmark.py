@@ -60,7 +60,9 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
         raise RuntimeError("Simulation timed out")
 
     if mmio.return_code() != 0:
-        raise RuntimeError("The benchmark exited with a non-zero return code: {0:d} (hex: 0x{0:X})".format(mmio.return_code()))
+        raise RuntimeError(
+            "The benchmark exited with a non-zero return code: {0:d} (hex: 0x{0:X})".format(mmio.return_code())
+        )
 
     results = {"cycle": mmio.cycle_cnt(), "instr": mmio.instr_cnt()}
 

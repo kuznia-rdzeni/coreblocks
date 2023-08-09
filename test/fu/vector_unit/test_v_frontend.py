@@ -140,7 +140,9 @@ class TestVectorFrontend(TestCaseWithSimulator):
             yield
         # be sure that there is no other instructions in pipeline
         yield from self.tick(2)
-        self.assertEqual(len(self.received_instr) + len(self.received_instr_mem) + len(self.received_announce), self.test_number)
+        self.assertEqual(
+            len(self.received_instr) + len(self.received_instr_mem) + len(self.received_announce), self.test_number
+        )
 
         def compare_fields(org_instr, vtype, list_to_pop):
             announced_instr = list_to_pop.popleft()

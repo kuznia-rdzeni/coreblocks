@@ -258,7 +258,7 @@ def generate_instr(
         if "rp_v0" in field[0]:
             rec["rp_v0"] = {"id": random.randrange(gen_params.v_params.vrp_count)}
         if field[0] in ["rp_s1_reg", "rp_s2_reg"]:
-            rec[field[0]]=random.randrange(2**gen_params.phys_regs_bits)
+            rec[field[0]] = random.randrange(2**gen_params.phys_regs_bits)
     return overwrite_dict_values(rec, overwriting)
 
 
