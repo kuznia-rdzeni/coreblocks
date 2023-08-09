@@ -81,6 +81,6 @@ def load_store_width_to_eew_circ(m: ModuleLike, width: Value) -> Signal:
             m.d.comb += eew.eq(EEW.w16)
         with m.Case(6):
             m.d.comb += eew.eq(EEW.w32)
-        with m.Case(7):
+        with m.Case():
             m.d.comb += eew.eq(EEW.w64)
     return eew

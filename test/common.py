@@ -257,6 +257,8 @@ def generate_instr(
             rec["vtype"] = generate_vtype(gen_params, max_vl=max_vl, const_lmul=const_lmul)
         if "rp_v0" in field[0]:
             rec["rp_v0"] = {"id": random.randrange(gen_params.v_params.vrp_count)}
+        if field[0] in ["rp_s1_reg", "rp_s2_reg"]:
+            rec[field[0]]=random.randrange(2**gen_params.phys_regs_bits)
     return overwrite_dict_values(rec, overwriting)
 
 

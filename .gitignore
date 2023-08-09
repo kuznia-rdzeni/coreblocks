@@ -19,6 +19,8 @@ venv.bak/
 # Waveform dumps
 *.vcd
 *.gtkw
+*.fst
+*.fst.hier
 
 # Tests outputs
 test/__traces__

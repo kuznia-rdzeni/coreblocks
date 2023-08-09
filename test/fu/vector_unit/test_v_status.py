@@ -68,7 +68,7 @@ class TestVectorStatusUnit(TestCaseWithSimulator):
                     self.assertEqual(org_vtype["vl"], retire_data["result"])
 
             for (org_data, org_vtype), resp in zip(data_normal_q, put_q):
-                self.assertDictContainsSubset(get_dict_without(org_data, ["imm2"]), resp)
+                self.assertDictContainsSubset(get_dict_without(org_data, ["imm2", "rp_s1_reg"]), resp)
                 self.assertDictContainsSubset({"vtype": org_vtype}, resp)
 
         with self.run_simulation(self.m) as sim:

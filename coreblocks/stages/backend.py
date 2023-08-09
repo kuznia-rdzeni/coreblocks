@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.params import GenParams
+from coreblocks.params import GenParams, RegisterType
 from coreblocks.transactions import Method, Transaction, TModule
 
 __all__ = ["ResultAnnouncement"]
@@ -59,7 +59,7 @@ class ResultAnnouncement(Elaboratable):
             result = self.m_get_result(m)
             self.m_rob_mark_done(m, rob_id=result.rob_id, exception=result.exception)
 
-            with m.If(result.exception == 0):
+            with m.If((result.exception == 0) & (result.rp_dst.type == RegisterType.X)):
                 self.m_rf_write_val(m, reg_id=result.rp_dst.id, reg_val=result.result)
                 with m.If(result.rp_dst.id != 0):
                     self.m_rs_write_val(m, tag=result.rp_dst, value=result.result)

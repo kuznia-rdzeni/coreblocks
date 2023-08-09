@@ -203,6 +203,7 @@ vector_core_config = CoreConfiguration(
             rs_entries=4,
         ),
         LSUBlockComponent(),
+        CSRBlockComponent(),
         VectorBlockComponent(8),
         VectorLSUBlockComponent(),
     ),

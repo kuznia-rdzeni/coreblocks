@@ -1,17 +1,13 @@
 /* clang -DCPU_MHZ=0.01 -S vadd.c -I ../../embench-iot/support/ --target=riscv32 -march=rv32i_zve32x */
 #include "support.h"
 
-/* This scale factor will be changed to equalise the runtime of the
-   benchmarks. */
-#define LOCAL_SCALE_FACTOR 150
-
 /* Some basic types.  */
 typedef unsigned char BYTE;
 typedef unsigned long DWORD;
 typedef unsigned short WORD;
 
 const DWORD LEN = 32;
-const DWORD asm_start_counter = 10;
+const DWORD asm_start_counter = 20;
 void init_tab(DWORD *tab)
 {
   for(unsigned int i = 0; i < LEN; i++)
@@ -25,7 +21,9 @@ DWORD __attribute__((noinline)) vadd_body()
   DWORD tab[LEN];
   DWORD counter = asm_start_counter;
   init_tab(tab);
-  asm volatile ("vsetvli x0, %[LEN], e32,m1,ta,ma \n"
+  asm volatile (
+                "addi x0, x0, 0 \n"
+                "vsetvli x0, %[LEN], e32,m1,ta,ma \n"
                 "vle32.v v1, (%[tab]) \n"
                 "vadd.vi v2, v1, 0 \n"
                 "start_vadd_%=: \n"
@@ -63,15 +61,15 @@ static int __attribute__ ((noinline)) benchmark_body (int rpt)
 void initialise_benchmark (void)
 { }
 
-void warm_caches (int  heat)
+void warm_caches (int __attribute__((unused)) heat)
 {
-  benchmark_body (heat);
+  benchmark_body (1);
   return;
 }
 
 int benchmark (void)
 {
-  return benchmark_body (LOCAL_SCALE_FACTOR * CPU_MHZ);
+  return benchmark_body(5);
 }
 
 
@@ -84,6 +82,15 @@ int verify_benchmark (int r)
   {
     result += tab[i]*(asm_start_counter +1);
   }
+
+//  asm volatile(
+//  "li t0, 0x80000004 \n"
+//  "sw %[out], 0(t0) \n"
+//  "li t0, 0x80000000 \n"
+//  "sw a0, 0(t0) \n"
+//  :
+//  : [out] "r"(r)
+//  : "memory");
 
   return result == r;
 }

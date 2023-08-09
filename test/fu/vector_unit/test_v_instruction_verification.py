@@ -9,6 +9,7 @@ from collections import deque, defaultdict
 
 class TestVInstructionVerification(TestCaseWithSimulator):
     def setUp(self):
+        self.maxDiff=None
         random.seed(14)
         self.gen_params = GenParams(test_vector_core_config)
         self.test_number = 100
@@ -78,25 +79,31 @@ class TestVInstructionVerification(TestCaseWithSimulator):
 
             @def_method_mock(lambda: self.retire)
             def retire(rob_id, result, rp_dst, exception):
-                self.assertTrue(retire_q)
+                self.assertTrue(retire_q, f"rob_id: {rob_id}")
                 data = retire_q.popleft()
                 self.assertEqual(exception, 1)
                 self.assertEqual(rp_dst, data["rp_dst"])
 
             @def_method_mock(lambda: self.exception_report)
             def report(rob_id, cause):
-                self.assertTrue(report_q)
+                self.assertTrue(report_q, f"rob_id: {rob_id}")
                 report_q.popleft()
                 self.assertEqual(ExceptionCause.ILLEGAL_INSTRUCTION, cause)
 
             return rbi, put_instr, get_vill, get_vstart, retire, report
+
+        def _get_load_store_width(funct3):
+            try:
+                return eew_to_bits(load_store_width_to_eew(funct3))
+            except ValueError:
+                return 64
 
         def process():
             for _ in range(self.test_number):
                 data = generate_instr(self.gen_params, self.vf_layout.verification_in, support_vector=True)
                 if (
                     data["exec_fn"]["op_type"] in [OpType.V_LOAD, OpType.V_STORE]
-                    and eew_to_bits(load_store_width_to_eew(data["exec_fn"]["funct3"])) > self.v_params.elen
+                    and _get_load_store_width(data["exec_fn"]["funct3"]) > self.v_params.elen
                 ):
                     retire_q.append(data)
                     report_q.append(data)

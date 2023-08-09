@@ -46,6 +46,7 @@ class VectorXRSLayout(RSLayouts):
             rs_interface.data_layout,
             fields={
                 "rp_s1",
+                "rp_s1_reg",
                 "rp_s2",
                 "rp_dst",
                 "rob_id",
@@ -104,6 +105,7 @@ class VectorFrontendLayouts:
 
         self.verification_in = self.verification_out = self.status_in = [
             ("rp_s1", common.p_register_entry),
+            ("rp_s1_reg", gen_params.phys_regs_bits),
             ("rp_s2", common.p_register_entry),
             ("rp_dst", common.p_register_entry),
             ("rob_id", gen_params.rob_entries_bits),
@@ -114,7 +116,7 @@ class VectorFrontendLayouts:
             ("imm2", gen_params.imm2_width),
         ]
 
-        self.status_out = self.translator_in = layout_difference(self.status_in, fields={"imm2"}) + [
+        self.status_out = self.translator_in = layout_difference(self.status_in, fields={"imm2", "rp_s1_reg"}) + [
             ("vtype", self.vtype)
         ]
         self.translator_inner = layout_difference(self.translator_in, fields={"imm"})
