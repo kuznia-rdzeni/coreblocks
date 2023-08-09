@@ -2,7 +2,7 @@
 
 typedef unsigned long DWORD;
 const DWORD LEN = 32;
-const DWORD asm_start_counter = 20;
+const DWORD asm_start_counter = 1;
 void init_tab(DWORD *tab)
 {
   for(unsigned int i = 0; i < LEN; i++)
@@ -15,6 +15,7 @@ DWORD __attribute__((noinline)) vadd_body()
 {
   DWORD tab[LEN];
   DWORD counter = asm_start_counter;
+  DWORD buf1, buf2;
   init_tab(tab);
   asm volatile (
                 "addi x0, x0, 0 \n"
@@ -24,9 +25,16 @@ DWORD __attribute__((noinline)) vadd_body()
                 "start_vadd_%=: \n"
                 "vadd.vv v2, v2, v1 \n"
                 "addi %[counter], %[counter], -1 \n"
+                "li %[buf1], 2 \n"
+                "li %[buf2], 4 \n"
+                "add %[buf1], %[buf2], %[buf1] \n"
+                "add %[buf1], %[buf2], %[buf1] \n"
+                "addi %[buf1], %[buf1], -1 \n"
                 "bne x0, %[counter], start_vadd_%= \n"
-                "vse32.v v2, (%[tab])"
-                : [counter]"+r"(counter)
+                "vse32.v v2, (%[tab]) \n"
+                : [counter]"+r"(counter),
+                  [buf1] "+r" (buf1),
+                  [buf2] "+r" (buf2)
                 : [LEN]"r"(LEN),
                   [tab]"r"(tab)
                 : "v1", "v2", "memory");
@@ -75,14 +83,8 @@ int verify_benchmark (int r)
     result += tab[i]*(asm_start_counter +1);
   }
 
-//  asm volatile(
-//  "li t0, 0x80000004 \n"
-//  "sw %[out], 0(t0) \n"
-//  "li t0, 0x80000000 \n"
-//  "sw a0, 0(t0) \n"
-//  :
-//  : [out] "r"(r)
-//  : "memory");
-
   return result == r;
 }
+
+
+
