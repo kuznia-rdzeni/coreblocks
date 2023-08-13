@@ -142,7 +142,7 @@ def synthesize(core_config: CoreConfiguration, platform: str, core: UnitCore):
     resource_builder, module = core(gen_params)
 
     if platform == "ecp5":
-        make_ecp5_platform(resource_builder)().build(module)
+        make_ecp5_platform(resource_builder)().build(module, nextpnr_opts="--seed 0")
 
 
 def main():
