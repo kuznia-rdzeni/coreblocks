@@ -1,26 +1,19 @@
 #include "support.h"
 
 typedef unsigned long DWORD;
-const DWORD LEN = 32;
-const DWORD asm_start_counter = 1;
-void init_tab(DWORD *tab)
-{
-  for(unsigned int i = 0; i < LEN; i++)
-  {
-    tab[i]=i;
-  }
-}
+#define _LEN 32
+const DWORD LEN = _LEN;
+DWORD tab_in[_LEN];
+DWORD tab_out[_LEN];
+const unsigned int body_iterations = 50;
 
-DWORD __attribute__((noinline)) vadd_body()
+DWORD __attribute__((noinline)) vadd_body(DWORD counter)
 {
-  DWORD tab[LEN];
-  DWORD counter = asm_start_counter;
   DWORD buf1, buf2;
-  init_tab(tab);
   asm volatile (
                 "addi x0, x0, 0 \n"
                 "vsetvli x0, %[LEN], e32,m1,ta,ma \n"
-                "vle32.v v1, (%[tab]) \n"
+                "vle32.v v1, (%[tab_in]) \n"
                 "vadd.vi v2, v1, 0 \n"
                 "start_vadd_%=: \n"
                 "vadd.vv v2, v2, v1 \n"
@@ -31,60 +24,53 @@ DWORD __attribute__((noinline)) vadd_body()
                 "add %[buf1], %[buf2], %[buf1] \n"
                 "addi %[buf1], %[buf1], -1 \n"
                 "bne x0, %[counter], start_vadd_%= \n"
-                "vse32.v v2, (%[tab]) \n"
+                "vse32.v v2, (%[tab_out]) \n"
                 : [counter]"+r"(counter),
-                  [buf1] "+r" (buf1),
-                  [buf2] "+r" (buf2)
+                  [buf1] "=&r" (buf1),
+                  [buf2] "=&r" (buf2)
                 : [LEN]"r"(LEN),
-                  [tab]"r"(tab)
+                  [tab_in]"r"(tab_in),
+                  [tab_out]"r"(tab_out)
                 : "v1", "v2", "memory");
-  DWORD result = 0;
-  for(unsigned int i = 0; i < LEN; i++)
-  {
-    result += tab[i];
-  }
-  return result;
-}
-
-static int __attribute__ ((noinline)) benchmark_body (int rpt)
-{
-  int i;
-  DWORD r;
-
-  for (i = 0; i < rpt; i++)
-  {
-    r = vadd_body();
-  }
-
-  return (unsigned int) r;
+  return 0;
 }
 
 void initialise_benchmark (void)
-{ }
+{
+  for(unsigned int i = 0; i < LEN; i++)
+  {
+    tab_in[i]=i;
+  }
+}
 
 void warm_caches (int __attribute__((unused)) heat)
 {
-  benchmark_body (1);
+  vadd_body(4);
   return;
 }
 
 int benchmark (void)
 {
-  return benchmark_body(5);
+  return vadd_body(body_iterations);
 }
 
-int verify_benchmark (int r)
+int verify_benchmark (int __attribute__((unused)) r)
 {
-  DWORD tab[LEN];
-  init_tab(tab);
-  int result =0;
-  for (unsigned int i=0; i< LEN; i++)
+  int expected =0;
+  int got = 0;
+  for(unsigned int i = 0; i < LEN; i++)
   {
-    result += tab[i]*(asm_start_counter +1);
+    got += tab_out[i];
+    expected += tab_in[i]*(body_iterations+1);
   }
 
-  return result == r;
+//  asm volatile(
+//  "li t0, 0x80000004 \n"
+//  "sw %[out], 0(t0) \n"
+//  "li t0, 0x80000000 \n"
+//  "sw a0, 0(t0) \n"
+//  :
+//  : [out] "r"(r)
+//  : "memory");
+  return expected == got;
 }
-
-
-
