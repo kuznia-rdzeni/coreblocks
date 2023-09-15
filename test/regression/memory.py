@@ -4,7 +4,7 @@ from enum import Enum, IntFlag, auto
 from typing import Optional, TypeVar
 from dataclasses import dataclass, replace
 from elftools.elf.constants import P_FLAGS
-from elftools.elf.elffile import ELFFile
+from elftools.elf.elffile import ELFFile, Segment
 
 all = [
     "ReplyStatus",
@@ -137,6 +137,27 @@ class CoreMemoryModel:
             return WriteReply(status=ReplyStatus.ERROR)
 
 
+def load_segment(segment: Segment) -> RandomAccessMemory:
+    paddr = segment.header["p_paddr"]
+    memsz = segment.header["p_memsz"]
+    flags_raw = segment.header["p_flags"]
+
+    seg_start = paddr
+    seg_end = paddr + memsz
+
+    data = segment.data()
+
+    flags = SegmentFlags(0)
+    if flags_raw & P_FLAGS.PF_R == flags_raw & P_FLAGS.PF_R:
+        flags |= SegmentFlags.READ
+    if flags_raw & P_FLAGS.PF_W == flags_raw & P_FLAGS.PF_W:
+        flags |= SegmentFlags.WRITE
+    if flags_raw & P_FLAGS.PF_X == flags_raw & P_FLAGS.PF_X:
+        flags |= SegmentFlags.EXECUTABLE
+
+    return RandomAccessMemory(range(seg_start, seg_end), flags, data)
+
+
 def load_segments_from_elf(file_path: str) -> list[RandomAccessMemory]:
     segments: list[RandomAccessMemory] = []
 
@@ -145,28 +166,6 @@ def load_segments_from_elf(file_path: str) -> list[RandomAccessMemory]:
         for segment in elffile.iter_segments():
             if segment.header["p_type"] != "PT_LOAD":
                 continue
-
-            paddr = segment.header["p_paddr"]
-            alignment = segment.header["p_align"]
-            memsz = segment.header["p_memsz"]
-            flags_raw = segment.header["p_flags"]
-
-            def align_down(n: int) -> int:
-                return (n // alignment) * alignment
-
-            seg_start = align_down(paddr)
-            seg_end = align_down(paddr + memsz + alignment - 1)
-
-            data = b"\x00" * (paddr - seg_start) + segment.data() + b"\x00" * (seg_end - (paddr + len(segment.data())))
-
-            flags = SegmentFlags(0)
-            if flags_raw & P_FLAGS.PF_R == flags_raw & P_FLAGS.PF_R:
-                flags |= SegmentFlags.READ
-            if flags_raw & P_FLAGS.PF_W == flags_raw & P_FLAGS.PF_W:
-                flags |= SegmentFlags.WRITE
-            if flags_raw & P_FLAGS.PF_X == flags_raw & P_FLAGS.PF_X:
-                flags |= SegmentFlags.EXECUTABLE
-
-            segments.append(RandomAccessMemory(range(seg_start, seg_end), flags, data))
+            segments.append(load_segment(segment))
 
     return segments
