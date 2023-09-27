@@ -2,7 +2,7 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.keys import GenericCSRRegistersKey
 
-from coreblocks.transactions.core import Method, Transaction, TModule
+from transactron.core import Method, Transaction, TModule
 from coreblocks.params.genparams import GenParams
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
 

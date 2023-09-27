@@ -2,8 +2,8 @@ from typing import Sequence
 
 from amaranth import *
 
-from coreblocks.transactions import Method, Transaction, TModule
-from coreblocks.transactions.lib import FIFO, Forwarder
+from transactron import Method, Transaction, TModule
+from transactron.lib import FIFO, Forwarder
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from coreblocks.utils import assign, AssignType
 from coreblocks.utils.protocols import FuncBlock

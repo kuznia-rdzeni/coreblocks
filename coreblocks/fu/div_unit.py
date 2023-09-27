@@ -6,9 +6,9 @@ from amaranth import *
 
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
-from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
-from coreblocks.transactions.lib import *
+from transactron import *
+from transactron.core import def_method
+from transactron.lib import *
 
 from coreblocks.fu.fu_decoder import DecoderManager
 

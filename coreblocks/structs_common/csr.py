@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.enum import IntEnum
 from dataclasses import dataclass
 
-from coreblocks.transactions import Method, def_method, Transaction, TModule
+from transactron import Method, def_method, Transaction, TModule
 from coreblocks.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
