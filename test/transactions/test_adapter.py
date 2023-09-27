@@ -1,7 +1,7 @@
 from amaranth import *
 
-from coreblocks.transactions import Method, def_method, TModule
-from coreblocks.transactions.lib import AdapterTrans
+from transactron import Method, def_method, TModule
+from transactron.lib import AdapterTrans
 
 
 from ..common import TestCaseWithSimulator, TestbenchIO, data_layout

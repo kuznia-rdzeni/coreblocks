@@ -3,8 +3,8 @@ from amaranth.sim import *
 
 from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
-from coreblocks.transactions import *
-from coreblocks.transactions.lib import *
+from transactron import *
+from transactron.lib import *
 
 from parameterized import parameterized
 

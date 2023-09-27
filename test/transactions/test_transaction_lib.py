@@ -9,9 +9,9 @@ from parameterized import parameterized
 from collections import deque
 
 from amaranth import *
-from coreblocks.transactions import *
-from coreblocks.transactions.core import RecordDict
-from coreblocks.transactions.lib import *
+from transactron import *
+from transactron.core import RecordDict
+from transactron.lib import *
 from coreblocks.utils import *
 from coreblocks.utils._typing import LayoutLike, ModuleLike
 from coreblocks.utils import ModuleConnector

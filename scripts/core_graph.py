@@ -14,10 +14,10 @@ arg = par.parse_args()
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from coreblocks.params.genparams import GenParams  # noqa: E402
-from coreblocks.transactions.graph import TracingFragment  # noqa: E402
+from transactron.graph import TracingFragment  # noqa: E402
 from test.test_core import TestElaboratable  # noqa: E402
 from coreblocks.params.configurations import basic_core_config  # noqa: E402
-from coreblocks.transactions.core import TransactionModule  # noqa: E402
+from transactron.core import TransactionModule  # noqa: E402
 
 gp = GenParams(basic_core_config)
 elaboratable = TestElaboratable(gp)

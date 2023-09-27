@@ -4,7 +4,7 @@ from typing import Optional
 
 from amaranth.sim import Settle, Passive
 
-from coreblocks.transactions.lib import Adapter
+from transactron.lib import Adapter
 from coreblocks.params import OpType, GenParams
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config

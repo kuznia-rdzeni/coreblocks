@@ -1,7 +1,7 @@
 from amaranth import *
 from coreblocks.params import GenParams
 from coreblocks.params.layouts import DivUnitLayouts
-from coreblocks.transactions.core import Method
+from transactron.core import Method
 
 
 class DividerBase(Elaboratable):
