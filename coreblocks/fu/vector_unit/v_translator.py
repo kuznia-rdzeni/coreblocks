@@ -164,7 +164,10 @@ class VectorTranslateRewirteImm(Elaboratable):
         def _(arg):
             rec = Record(self.layouts.translator_inner)
             m.d.comb += assign(rec, arg, fields=AssignType.COMMON)
-            with m.If((arg.exec_fn.funct3 == Funct3.OPIVI) & (arg.exec_fn.op_type != OpType.V_MEMORY)):
+            with m.If(
+                (arg.exec_fn.funct3 == Funct3.OPIVI)
+                & ((arg.exec_fn.op_type != OpType.V_LOAD) & (arg.exec_fn.op_type != OpType.V_STORE))
+            ):
                 m.d.comb += rec.s1_val.eq(arg.imm)
                 m.d.comb += rec.rp_s1.type.eq(RegisterType.X)
             return rec
@@ -188,7 +191,7 @@ class VectorTranslator(Elaboratable):
         Send an instruction to transform.
     """
 
-    def __init__(self, gen_params: GenParams, put_instr: Method, retire_mult: Method):
+    def __init__(self, gen_params: GenParams, put_instr: Method):
         """
         Parameters
         ----------
@@ -196,13 +199,9 @@ class VectorTranslator(Elaboratable):
             Core configuration
         put_instr : Method
             The method used to pass the instruction to the next processing stage.
-        retire_mult : Method
-            The method used to report the number of internal instructions generated
-            from a programme instruction.
         """
         self.gen_params = gen_params
         self.put_instr = put_instr
-        self.retire_mult = retire_mult
 
         self.layouts = VectorFrontendLayouts(self.gen_params)
         self.issue = Method(i=self.layouts.translator_in)
@@ -211,13 +210,11 @@ class VectorTranslator(Elaboratable):
         m = TModule()
 
         m.submodules.transl_rp3 = transl_rp3 = VectorTranslateRS3(self.gen_params, self.put_instr)
-        m.submodules.transl_lmul = transl_lmul = VectorTranslateLMUL(self.gen_params, transl_rp3.issue)
         m.submodules.transl_rewrite_imm = transl_rewrite_imm = VectorTranslateRewirteImm(self.gen_params)
 
         @def_method(m, self.issue)
         def _(arg):
             rewrited_imm = transl_rewrite_imm.issue(m, arg)
-            mult = transl_lmul.issue(m, rewrited_imm)
-            self.retire_mult(m, mult)
+            transl_rp3.issue(m, rewrited_imm)
 
         return m

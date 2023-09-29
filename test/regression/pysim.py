@@ -9,13 +9,15 @@ from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import full_core_config
+from coreblocks.params.configurations import full_core_config, CoreConfiguration
 from coreblocks.peripherals.wishbone import WishboneBus
 
 
 class PySimulation(SimulationBackend):
-    def __init__(self, verbose: bool, traces_file: Optional[str] = None):
-        self.gp = GenParams(full_core_config)
+    def __init__(
+        self, verbose: bool, traces_file: Optional[str] = None, core_conf: CoreConfiguration = full_core_config
+    ):
+        self.gp = GenParams(core_conf)
         self.running = False
         self.cycle_cnt = 0
         self.verbose = verbose

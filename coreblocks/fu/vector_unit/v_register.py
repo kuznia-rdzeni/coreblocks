@@ -1,6 +1,5 @@
 from amaranth import *
 from coreblocks.transactions.core import *
-from coreblocks.transactions.lib import MemoryBank
 from coreblocks.params import *
 from coreblocks.utils.fifo import BasicFifo
 from coreblocks.fu.vector_unit.v_layouts import VectorRegisterBankLayouts
@@ -43,15 +42,11 @@ class VectorRegisterBank(Elaboratable):
 
         self.layouts = VectorRegisterBankLayouts(self.gen_params)
 
-        self.bank = MemoryBank(
-            data_layout=self.layouts.read_resp, elem_count=self.v_params.elens_in_bank, granularity=8
-        )
-
         # improvement: move to async memory
         self.byte_mask = Signal(self.v_params.bytes_in_vlen // self.v_params.register_bank_count)
 
-        self.read_req = Method.like(self.bank.read_req, name="read_req")
-        self.read_resp = Method.like(self.bank.read_resp, name="read_resp")
+        self.read_req = Method(i=self.layouts.read_req, name="read_req")
+        self.read_resp = Method(o=self.layouts.read_resp, name="read_resp")
         self.write = Method(i=self.layouts.write)
         self.write_scalar = Method()
         self.write_mask = Method()
@@ -61,27 +56,62 @@ class VectorRegisterBank(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
+        resp_ready = Signal()
+
+        data_mem = Memory(width=self.v_params.elen, depth=self.v_params.elens_in_bank)
+        # we have either bunch of writes or reads. Reads and writes can not be send interchangable
+        # so we can hav transparent=False
+        m.submodules.read_port = read_port = data_mem.read_port(transparent=False)
+        m.submodules.write_port = write_port = data_mem.write_port(granularity=8)
+
         mask_forward = BasicFifo([("data", self.v_params.bytes_in_elen)], 2)
         m.submodules.mask_forward = mask_forward
-        m.submodules.bank = self.bank
 
-        @def_method(m, self.read_req)
-        def _(arg):
-            self.bank.read_req(m, arg)
-            mask_forward.write(m, data=self.byte_mask.word_select(arg.addr, self.v_params.bytes_in_elen))
+        #        @def_method(m, self.read_resp, resp_ready)
+        #        def _():
+        #            mask = mask_forward.read(m)
+        #            out_masked = Signal(self.v_params.elen)
+        #            expanded_mask = ~expand_mask(self.v_params, mask.data)
+        #            m.d.top_comb += out_masked.eq(read_port.data | expanded_mask)
+        #            # Use enable signal to don't store last address in local register
+        #            m.d.sync += resp_ready.eq(0)
+        #            return {"data": out_masked}
+        #
+        #        # Schedule before allow us to don't have a support memory for the previously read
+        #        # data, so we optimise resource usage at the cost of critical path
+        #        self.read_resp.schedule_before(self.read_req)
+        #        @def_method(m, self.read_req, ~resp_ready | self.read_resp.run)
+        #        def _(addr):
+        #            m.d.top_comb += read_port.addr.eq(addr)
+        #            m.d.comb += read_port.en.eq(1)
+        #            m.d.sync += resp_ready.eq(1)
+        #            mask_forward.write(m, data=self.byte_mask.word_select(addr, self.v_params.bytes_in_elen))
 
-        @def_method(m, self.read_resp)
-        def _():
-            out = self.bank.read_resp(m)
+        m.submodules.data_out_fifo = data_out_fifo = BasicFifo(self.layouts.read_resp, 2)
+        self.read_resp.proxy(m, data_out_fifo.read)
+        m.d.comb += read_port.en.eq(0)
+
+        with Transaction().body(m):
             mask = mask_forward.read(m)
-            out_masked = Signal.like(out)
+            out_masked = Signal(self.v_params.elen)
             expanded_mask = ~expand_mask(self.v_params, mask.data)
-            m.d.top_comb += out_masked.eq(out | expanded_mask)
-            return {"data": out_masked}
+            m.d.top_comb += out_masked.eq(read_port.data | expanded_mask)
+            # Use enable signal to avoid storing last address in local register
+            m.d.sync += resp_ready.eq(0)
+            data_out_fifo.write(m, data=out_masked)
+
+        @def_method(m, self.read_req, ~resp_ready | data_out_fifo.write.ready)
+        def _(addr):
+            m.d.top_comb += read_port.addr.eq(addr)
+            m.d.comb += read_port.en.eq(1)
+            m.d.sync += resp_ready.eq(1)
+            mask_forward.write(m, data=self.byte_mask.word_select(addr, self.v_params.bytes_in_elen))
 
         @def_method(m, self.write)
         def _(addr, data, valid_mask):
-            self.bank.write(m, addr=addr, data=data, mask=valid_mask)
+            m.d.top_comb += write_port.addr.eq(addr)
+            m.d.top_comb += write_port.data.eq(data)
+            m.d.comb += write_port.en.eq(valid_mask)
             mask_part = self.byte_mask.word_select(addr, self.v_params.bytes_in_elen)
             m.d.sync += mask_part.eq(mask_part | valid_mask)
 

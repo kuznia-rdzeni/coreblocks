@@ -55,6 +55,8 @@ class VectorCore(Elaboratable):
         self.x_retirement_layouts = gen_params.get(RetirementLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.v_frontend_layouts = VectorFrontendLayouts(self.gen_params)
+        self.vrf_layout = VRFFragmentLayouts(self.gen_params)
+        self.scoreboard_layout = ScoreboardLayouts(self.v_params.vrp_count)
 
         self.insert = Method(i=self.vxrs_layouts.insert_in)
         self.select = Method(o=self.vxrs_layouts.select_out)
@@ -62,10 +64,31 @@ class VectorCore(Elaboratable):
         self.precommit = Method(i=self.x_retirement_layouts.precommit)
         self.get_result = Method(o=self.fu_layouts.accept)
 
+        self.vrf_write = [
+            Method(i=self.vrf_layout.write, name=f"vrf_write{i}") for i in range(self.v_params.register_bank_count)
+        ]
+        self.vrf_read_req = [
+            Method(i=self.vrf_layout.read_req, name=f"vrf_read_req{i}")
+            for i in range(self.v_params.register_bank_count)
+        ]
+        self.vrf_read_resp = [
+            Method(o=self.vrf_layout.read_resp_o, name=f"vrf_read_resp{i}")
+            for i in range(self.v_params.register_bank_count)
+        ]
+        self.scoreboard_get_dirty = Method(
+            i=self.scoreboard_layout.get_dirty_in, o=self.scoreboard_layout.get_dirty_out
+        )
+        self.scoreboard_set_dirty = Method(i=self.scoreboard_layout.set_dirty_in)
+
+        self.connections = self.gen_params.get(DependencyManager)
+        self.connections.add_dependency(VectorFrontendInsertKey(), self.insert)
+        self.connections.add_dependency(VectorVRFAccessKey(), (self.vrf_write, self.vrf_read_req, self.vrf_read_resp))
+        self.connections.add_dependency(VectorScoreboardKey(), (self.scoreboard_get_dirty, self.scoreboard_set_dirty))
+
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        rob_block_interrupts = self.gen_params.get(DependencyManager).get_dependency(ROBBlockInterruptsKey())
+        rob_block_interrupts = self.connections.get_dependency(ROBBlockInterruptsKey())
 
         v_freerf = SuperscalarFreeRF(self.v_params.vrp_count, 1, reset_state=2**self.v_params.vrl_count - 1)
         v_frat = FRAT(gen_params=self.gen_params, superscalarity=2, zero_init=False)
@@ -74,32 +97,44 @@ class VectorCore(Elaboratable):
         v_retirement = VectorRetirement(
             self.gen_params, self.v_params.vrp_count, v_rrat.commit, v_freerf.deallocates[0]
         )
-        announcer = VectorAnnouncer(self.gen_params, 3)
+        announcer = VectorAnnouncer(self.gen_params, 4)
+        vlsu = self.connections.get_dependency(VectorLSUKey())
 
-        backend = VectorBackend(self.gen_params, announcer.announce_list[0], v_retirement.report_end)
+        backend = VectorBackend(self.gen_params, announcer.announce_list[0], v_retirement.report_end, [vlsu.update_v])
         fifo_to_vvrs = BasicFifo(self.v_frontend_layouts.instr_to_vvrs, 2)
-        fifo_to_mem = BasicFifo(self.v_frontend_layouts.instr_to_mem, 2)
         frontend = VectorFrontend(
             self.gen_params,
             rob_block_interrupts,
             announcer.announce_list[1],
             announcer.announce_list[2],
-            backend.report_mult,
             v_freerf.allocate,
             v_frat.get_rename_list[0],
             v_frat.get_rename_list[1],
             v_frat.set_rename_list[0],
-            fifo_to_mem.write,
+            vlsu.insert_v,
             fifo_to_vvrs.write,
             backend.initialise_regs,
         )
         connect_data_to_vvrs = ConnectTrans(fifo_to_vvrs.read, backend.put_instr)
+        connect_mem_result = ConnectTrans(vlsu.get_result_v, announcer.announce_list[3])
+        with Transaction(name="vlsu_get_result_v_trans").body(m):
+            data = vlsu.get_result_v(m)
+            announcer.announce_list[3](m, data)
+            v_retirement.report_end(m, rob_id=data.rob_id, rp_dst=data.rp_dst)
+            backend.v_update(m, tag=data.rp_dst, value=0)
 
         self.precommit.proxy(m, v_retirement.precommit)
         self.get_result.proxy(m, announcer.accept)
         self.insert.proxy(m, frontend.insert)
         self.select.proxy(m, frontend.select)
         self.update.proxy(m, frontend.update)
+        self.scoreboard_get_dirty.proxy(m, backend.scoreboard_get_dirty)
+        self.scoreboard_set_dirty.proxy(m, backend.scoreboard_set_dirty)
+
+        for i in range(len(backend.vrf_write)):
+            self.vrf_write[i].proxy(m, backend.vrf_write[i])
+            self.vrf_read_req[i].proxy(m, backend.vrf_read_req[i])
+            self.vrf_read_resp[i].proxy(m, backend.vrf_read_resp[i])
 
         m.submodules.v_freerf = v_freerf
         m.submodules.v_frat = v_frat
@@ -108,9 +143,9 @@ class VectorCore(Elaboratable):
         m.submodules.announcer = announcer
         m.submodules.backend = backend
         m.submodules.fifo_to_vvrs = fifo_to_vvrs
-        m.submodules.fifo_to_mem = fifo_to_mem
         m.submodules.frontend = frontend
         m.submodules.connect_data_to_vvrs = connect_data_to_vvrs
+        m.submodules.connect_mem_result = connect_mem_result
 
         return m
 

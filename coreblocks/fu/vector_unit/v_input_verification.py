@@ -3,6 +3,7 @@ from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.fu.vector_unit.v_layouts import *
+from coreblocks.fu.vector_unit.utils import load_store_width_to_eew_circ
 from coreblocks.utils.fifo import BasicFifo
 
 __all__ = ["VectorInputVerificator"]
@@ -91,7 +92,13 @@ class VectorInputVerificator(Elaboratable):
         with m.If(self.vstart != 0):
             m.d.comb += illegal_because_vstart.eq(1)
 
-        return illegal_because_vill | illegal_because_vstart
+        illegal_because_ls_width = Signal()
+        with m.If(
+            (load_store_width_to_eew_circ(m, instr.exec_fn.funct3) > bits_to_eew(self.v_params.elen))
+            & ((instr.exec_fn.op_type == OpType.V_LOAD) | (instr.exec_fn.op_type == OpType.V_STORE))
+        ):
+            m.d.comb += illegal_because_ls_width.eq(1)
+        return illegal_because_vill | illegal_because_vstart | illegal_because_ls_width
 
     def elaborate(self, platform):
         m = TModule()

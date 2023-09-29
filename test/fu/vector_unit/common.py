@@ -18,14 +18,12 @@ def generate_vsetvl(
 ):
     v_params = gen_params.v_params
     instr = generate_instr(gen_params, layout, max_vl=max_vl, max_reg_bits=max_reg_bits)
-    vtype = generate_vtype(gen_params, max_vl=max_vl)
-    if const_lmul is not None:
-        vtype["lmul"] = const_lmul
+    if "rp_s1_reg" in instr:
+        instr["rp_s1_reg"] = instr["rp_s1"]["id"]
+    vtype = generate_vtype(gen_params, max_vl=max_vl, const_lmul=const_lmul)
     imm2 = convert_vtype_to_imm(vtype)
     while not allow_illegal and eew_to_bits(vtype["sew"]) > v_params.elen:
-        vtype = generate_vtype(gen_params, max_vl=max_vl)
-        if const_lmul is not None:
-            vtype["lmul"] = const_lmul
+        vtype = generate_vtype(gen_params, max_vl=max_vl, const_lmul=const_lmul)
         imm2 = convert_vtype_to_imm(vtype)
     vsetvl_type = random.randrange(4)
     if vsetvl_type == 2:

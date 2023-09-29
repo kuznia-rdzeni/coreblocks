@@ -7,6 +7,7 @@ from coreblocks.utils import layout_subset, layout_difference
 class VectorRegisterBankLayouts:
     def __init__(self, gen_params: GenParams):
         v_params = gen_params.v_params
+        self.read_req = [("addr", range(v_params.elens_in_bank))]
         self.read_resp = [("data", v_params.elen)]
 
         self.write = [
@@ -24,7 +25,6 @@ class VRFFragmentLayouts:
         v_params = gen_params.v_params
         self.read_req = [("vrp_id", v_params.vrp_count_bits), ("addr", range(v_params.elens_in_bank))]
 
-        self.read_resp_i = [("vrp_id", v_params.vrp_count_bits)]
         self.read_resp_o = [("data", v_params.elen)]
 
         self.write = [
@@ -46,6 +46,7 @@ class VectorXRSLayout(RSLayouts):
             rs_interface.data_layout,
             fields={
                 "rp_s1",
+                "rp_s1_reg",
                 "rp_s2",
                 "rp_dst",
                 "rob_id",
@@ -104,6 +105,7 @@ class VectorFrontendLayouts:
 
         self.verification_in = self.verification_out = self.status_in = [
             ("rp_s1", common.p_register_entry),
+            ("rp_s1_reg", gen_params.phys_regs_bits),
             ("rp_s2", common.p_register_entry),
             ("rp_dst", common.p_register_entry),
             ("rob_id", gen_params.rob_entries_bits),
@@ -114,7 +116,7 @@ class VectorFrontendLayouts:
             ("imm2", gen_params.imm2_width),
         ]
 
-        self.status_out = self.translator_in = layout_difference(self.status_in, fields={"imm2"}) + [
+        self.status_out = self.translator_in = layout_difference(self.status_in, fields={"imm2", "rp_s1_reg"}) + [
             ("vtype", self.vtype)
         ]
         self.translator_inner = layout_difference(self.translator_in, fields={"imm"})
@@ -128,7 +130,6 @@ class VectorFrontendLayouts:
         self.translator_report_multiplier = [("mult", 4), ("rob_id", gen_params.rob_entries_bits)]
 
         self.instr_to_mem = [
-            ("rp_s1", common.p_register_entry),
             ("rp_s2", common.p_register_entry),
             ("rp_dst", common.p_register_entry),
             ("rob_id", gen_params.rob_entries_bits),
@@ -238,3 +239,36 @@ class VectorRetirementLayouts:
             ("rob_id", gen_params.rob_entries_bits),
             ("rp_dst", common.p_register_entry),
         ]
+
+
+class VectorLSULayouts:
+    def __init__(self, gen_params: GenParams):
+        common = gen_params.get(CommonLayouts)
+        common_vector = VectorCommonLayouts(gen_params)
+        retirement = gen_params.get(RetirementLayouts)
+        self.rs_entries_bits = 0
+
+        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits)
+        self.rs_data_layout = [
+            ("rp_s2", common.p_register_entry),
+            ("rp_dst", common.p_register_entry),
+            ("rob_id", gen_params.rob_entries_bits),
+            ("exec_fn", common.exec_fn),
+            ("s1_val", gen_params.isa.xlen),
+            ("s2_val", gen_params.isa.xlen),
+            ("imm2", gen_params.imm2_width),
+            ("vtype", common_vector.vtype),
+            ("rp_s3", common.p_register_entry),
+            ("rp_v0", [("id", gen_params.phys_regs_bits)]),
+            ("rp_s2_rdy", 1),
+            ("rp_s3_rdy", 1),
+            ("rp_v0_rdy", 1),
+        ]
+
+        self.rs_insert_in = [("rs_data", self.rs_data_layout), ("rs_entry_id", self.rs_entries_bits)]
+
+        self.rs_select_out = rs_interface.select_out
+
+        self.rs_update_in = rs_interface.update_in
+
+        self.precommit = retirement.precommit

@@ -1573,6 +1573,379 @@ class TestDecoder(TestCaseWithSimulator):
         ),  # vsetivli x1, 8, e32,m8,ta,ma
     ]
 
+    DECODER_TESTS_V_MEMORY = [
+        InstrTest(
+            0x02008187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM8,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            imm2=0x020,
+            op=OpType.V_LOAD,
+        ),  # vle8.v v3, (x1)
+        InstrTest(
+            0x0200D187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM16,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            imm2=0x020,
+            op=OpType.V_LOAD,
+        ),  # vle16.v v3, (x1)
+        InstrTest(
+            0x0200E187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM32,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            imm2=0x020,
+            op=OpType.V_LOAD,
+        ),  # vle32.v v3, (x1)
+        InstrTest(
+            0x0200F187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM64,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            imm2=0x020,
+            op=OpType.V_LOAD,
+        ),  # vle64.v v3, (x1)
+        InstrTest(
+            0x02B08187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM8,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            imm2=0x02B,
+            op=OpType.V_LOAD,
+        ),  # vlm.v v3, (x1)
+        InstrTest(
+            0x0A208187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM8,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.X,
+            imm2=0x0A2,
+            op=OpType.V_LOAD,
+        ),  # vlse8.v v3, (x1), x2
+        InstrTest(
+            0x0A20D187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM16,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.X,
+            imm2=0x0A2,
+            op=OpType.V_LOAD,
+        ),  # vlse16.v v3, (x1), x2
+        InstrTest(
+            0x0A20E187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM32,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.X,
+            imm2=0x0A2,
+            op=OpType.V_LOAD,
+        ),  # vlse32.v v3, (x1), x2
+        InstrTest(
+            0x0A20F187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM64,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.X,
+            imm2=0x0A2,
+            op=OpType.V_LOAD,
+        ),  # vlse64.v v3, (x1), x2
+        InstrTest(
+            0x06208187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM8,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x062,
+            op=OpType.V_LOAD,
+        ),  # vluxei8.v v3, (x1), v2
+        InstrTest(
+            0x0620D187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM16,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x062,
+            op=OpType.V_LOAD,
+        ),  # vluxei16.v v3, (x1), v2
+        InstrTest(
+            0x0620E187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM32,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x062,
+            op=OpType.V_LOAD,
+        ),  # vluxei32.v v3, (x1), v2
+        InstrTest(
+            0x0E208187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM8,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x0E2,
+            op=OpType.V_LOAD,
+        ),  # vloxei8.v v3, (x1), v2
+        InstrTest(
+            0x0E20D187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM16,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x0E2,
+            op=OpType.V_LOAD,
+        ),  # vloxei16.v v3, (x1), v2
+        InstrTest(
+            0x0E20E187,
+            Opcode.LOAD_FP,
+            Funct3.VMEM32,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x0E2,
+            op=OpType.V_LOAD,
+        ),  # vloxei32.v v3, (x1), v2
+        InstrTest(
+            0x020081A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM8,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            imm2=0x020,
+            op=OpType.V_STORE,
+        ),  # vse8.v v3, (x1)
+        InstrTest(
+            0x0200D1A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM16,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            imm2=0x020,
+            op=OpType.V_STORE,
+        ),  # vse16.v v3, (x1)
+        InstrTest(
+            0x0200E1A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM32,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            imm2=0x020,
+            op=OpType.V_STORE,
+        ),  # vse32.v v3, (x1)
+        InstrTest(
+            0x0200F1A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM64,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            imm2=0x020,
+            op=OpType.V_STORE,
+        ),  # vse64.v v3, (x1)
+        InstrTest(
+            0x02B081A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM8,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            imm2=0x02B,
+            op=OpType.V_STORE,
+        ),  # vsm.v v3, (x1)
+        InstrTest(
+            0x0A2081A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM8,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.X,
+            imm2=0x0A2,
+            op=OpType.V_STORE,
+        ),  # vsse8.v v3, (x1), x2
+        InstrTest(
+            0x0A20D1A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM16,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.X,
+            imm2=0x0A2,
+            op=OpType.V_STORE,
+        ),  # vsse16.v v3, (x1), x2
+        InstrTest(
+            0x0A20E1A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM32,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.X,
+            imm2=0x0A2,
+            op=OpType.V_STORE,
+        ),  # vsse32.v v3, (x1), x2
+        InstrTest(
+            0x0A20F1A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM64,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.X,
+            imm2=0x0A2,
+            op=OpType.V_STORE,
+        ),  # vsse64.v v3, (x1), x2
+        InstrTest(
+            0x062081A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM8,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x062,
+            op=OpType.V_STORE,
+        ),  # vsuxei8.v v3, (x1), v2
+        InstrTest(
+            0x0620D1A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM16,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x062,
+            op=OpType.V_STORE,
+        ),  # vsuxei16.v v3, (x1), v2
+        InstrTest(
+            0x0620E1A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM32,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x062,
+            op=OpType.V_STORE,
+        ),  # vsuxei32.v v3, (x1), v2
+        InstrTest(
+            0x0E2081A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM8,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x0E2,
+            op=OpType.V_STORE,
+        ),  # vsoxei8.v v3, (x1), v2
+        InstrTest(
+            0x0E20D1A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM16,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x0E2,
+            op=OpType.V_STORE,
+        ),  # vsoxei16.v v3, (x1), v2
+        InstrTest(
+            0x0E20E1A7,
+            Opcode.STORE_FP,
+            Funct3.VMEM32,
+            rd=3,
+            rd_rf=RegisterType.V,
+            rs1=1,
+            rs1_rf=RegisterType.X,
+            rs2=2,
+            rs2_rf=RegisterType.V,
+            imm2=0x0E2,
+            op=OpType.V_STORE,
+        ),  # vsoxei32.v v3, (x1), v2
+    ]
+
     def setUp(self):
         gen = GenParams(
             test_core_config.replace(
@@ -1684,6 +2057,10 @@ class TestDecoder(TestCaseWithSimulator):
 
     def test_v_control(self):
         for test in self.DECODER_TESTS_V_CONTROL:
+            self.do_test(test)
+
+    def test_v_memory(self):
+        for test in self.DECODER_TESTS_V_MEMORY:
             self.do_test(test)
 
 

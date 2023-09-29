@@ -93,7 +93,8 @@ class TestBasicFifo(TestCaseWithSimulator):
                         yield
 
                     v = yield from fifoc.read_methods[port_id].call_try()
-                    if v is not None:
+                    yield Settle()
+                    if v is not None and (not clears or cycle != clears[-1]):
                         readed.append((cycle, port_id, v["data"]))
                         packet_counter -= 1
                     if packet_counter == 0:

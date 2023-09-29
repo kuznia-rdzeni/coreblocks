@@ -7,7 +7,7 @@ from .common import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
+from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config, vector_core_config
 from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
 
 from typing import Optional, cast
@@ -240,9 +240,32 @@ class TestCoreRandomized(TestCoreBase):
 @parameterized_class(
     ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
     [
-        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
-        ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
+        ("fibonacci", "fibonacci.asm", 900, {2: 2971215073}, basic_core_config),
+        ("fibonacci_mem", "fibonacci_mem.asm", 570, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
+        (
+            "vector",
+            "vector.asm",
+            500,  # 500
+            {1: 3, 2: 6, 3: 15, 4: 30, 5: 9, 6: 0, 7: 42, 8: 126, 9: 0xDEADBEEF},
+            vector_core_config,
+        ),
+        (
+            "vector_bytes",
+            "vector_bytes.asm",
+            730,  # 630
+            {
+                1: 10,
+                2: 20 + (300 % 256) * 2**8 + 250 * 2**16,
+                3: 50,
+                4: 100,
+                5: 30,
+                6: 0 + (2550 % 256) * 2**8,
+                7: 140,
+                8: (420 % 256) + (1810 % 256) * 2**8 + 15 * 2**16 + 0x55 * 2**24,
+            },
+            vector_core_config,
+        ),
     ],
 )
 class TestCoreAsmSource(TestCoreBase):
@@ -270,7 +293,7 @@ class TestCoreAsmSource(TestCoreBase):
                     "-mabi=ilp32",
                     # Specified manually, because toolchains from most distributions don't support new extensioins
                     # and this test should be accessible locally.
-                    "-march=rv32im_zicsr",
+                    "-march=rv32im_zicsr_zve32x",
                     "-o",
                     asm_tmp.name,
                     self.base_dir + self.source_file,

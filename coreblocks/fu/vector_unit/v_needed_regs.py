@@ -31,11 +31,11 @@ class VectorNeededRegs(Elaboratable):
         @def_method(m, self.issue)
         def _(arg):
             m.d.top_comb += [
-                rec_out.v0_needed.eq(arg.vtype.ma == 0),
+                rec_out.v0_needed.eq(arg.exec_fn.funct7[0] == 0),
                 rec_out.s1_needed.eq(arg.rp_s1.type == RegisterType.V),
                 rec_out.s2_needed.eq(1),
                 # There is no support for three source instructions yet (interger multiply-add)
-                rec_out.s3_needed.eq(0),
+                rec_out.s3_needed.eq((arg.vtype.ma == 0) | (arg.vtype.ta == 0)),
             ]
             return rec_out
 

@@ -1,7 +1,6 @@
 from amaranth import *
 from coreblocks.transactions import *
 from coreblocks.params import *
-from coreblocks.utils.utils import PriorityUniqnessChecker
 
 __all__ = ["Scoreboard"]
 
@@ -17,9 +16,8 @@ class Scoreboard(Elaboratable):
         Methods to get the dirty bit for the given index id.
         Layout: ScoreboardLayouts.get_dirty_*
     set_dirty_list : list[Method]
-        Methods to set the dirty bit for the given index id. If more than
-        one method try to write to the same index, the method
-        with the lowest index in list has a priority.
+        Methods to set the dirty bit for the given index id.
+        No conflict detection.
         Layout: ScoreboardLayouts.set_dirty_in
     """
 
@@ -45,25 +43,18 @@ class Scoreboard(Elaboratable):
         ]
         self.set_dirty_list = [Method(i=self.layouts.set_dirty_in, name=f"set{i}") for i in range(self.superscalarity)]
 
-        for i in range(1, self.superscalarity):
-            self.set_dirty_list[i - 1].schedule_before(self.set_dirty_list[i])
-
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
         data = Signal(self.entries_number, name="data")
-        m.submodules.checker = checker = PriorityUniqnessChecker(
-            self.superscalarity, len(Record(self.layouts.set_dirty_in).id), non_valid_ok=True
-        )
 
         if self.data_forward:
             data_forward = Signal(self.entries_number, name="data_forward")
             data_forward_valid = Signal(self.entries_number, name="data_forward_valid")
 
-        @loop_def_method(m, self.set_dirty_list, ready_list=checker.valids)
+        # TODO add conflict detection
+        @loop_def_method(m, self.set_dirty_list)
         def _(i, id, dirty):
-            m.d.top_comb += checker.inputs[i].eq(id)
-            m.d.top_comb += checker.input_valids[i].eq(self.set_dirty_list[i].run)
             m.d.sync += data.bit_select(id, 1).eq(dirty)
             if self.data_forward:
                 m.d.comb += data_forward.bit_select(id, 1).eq(dirty)

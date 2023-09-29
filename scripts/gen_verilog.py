@@ -5,7 +5,7 @@ import sys
 import argparse
 
 from amaranth.build import Platform
-from amaranth.back import verilog
+from amaranth.back import verilog, rtlil
 from amaranth import Module, Elaboratable
 
 if __name__ == "__main__":
@@ -24,6 +24,7 @@ str_to_coreconfig: dict[str, CoreConfiguration] = {
     "basic": basic_core_config,
     "tiny": tiny_core_config,
     "full": full_core_config,
+    "vector": vector_core_config,
 }
 
 
@@ -43,13 +44,18 @@ class Top(Elaboratable):
         return tm
 
 
-def gen_verilog(core_config: CoreConfiguration, output_path):
+def gen_output(core_config: CoreConfiguration, output_path, type):
     top = Top(GenParams(core_config))
 
     with open(output_path, "w") as f:
         signals = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
 
-        f.write(verilog.convert(top, ports=signals, strip_internal_attrs=True))
+        if type == "verilog":
+            f.write(verilog.convert(top, ports=signals, strip_internal_attrs=True))
+        elif type == "rtlil":
+            f.write(rtlil.convert(top, ports=signals))
+        else:
+            raise ValueError(f"Output type '{type}' not known.")
 
 
 def main():
@@ -74,6 +80,14 @@ def main():
         "-o", "--output", action="store", default="core.v", help="Output file path. Default: %(default)s"
     )
 
+    parser.add_argument(
+        "-t",
+        "--type",
+        action="store",
+        default="verilog",
+        help="Choose generation target. Available values: 'verilog', 'rtlil'. Default: %(default)s",
+    )
+
     args = parser.parse_args()
 
     os.environ["AMARANTH_verbose"] = "true" if args.verbose else "false"
@@ -81,7 +95,7 @@ def main():
     if args.config not in str_to_coreconfig:
         raise KeyError(f"Unknown config '{args.config}'")
 
-    gen_verilog(str_to_coreconfig[args.config], args.output)
+    gen_output(str_to_coreconfig[args.config], args.output, args.type)
 
 
 if __name__ == "__main__":

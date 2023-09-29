@@ -34,6 +34,7 @@ __all__ = [
     "condition",
     "connected_conditions",
     "condition_switch",
+    "def_one_caller_wrapper",
     "AnyToAnySimpleRoutingBlock",
     "OmegaRoutingNetwork",
     "PriorityOrderingTransProxyTrans",
@@ -45,6 +46,8 @@ __all__ = [
     "DownCounter",
     "Barrier",
     "ContentAddressableMemory",
+    "BufferedMethodCall",
+    "BufferedReqResp",
 ]
 
 # FIFOs
@@ -557,62 +560,6 @@ class MethodTransformer(Elaboratable):
         @def_method(m, self.method)
         def _(arg):
             return self.o_fun(m, self.target(m, self.i_fun(m, arg)))
-
-        return m
-
-
-class MethodFilter(Elaboratable):
-    """Method filter.
-
-    Takes a target method and creates a method which calls the target method
-    only when some condition is true. The condition function takes two
-    parameters, a module and the input `Record` of the method. Non-zero
-    return value is interpreted as true. Alternatively to using a function,
-    a `Method` can be passed as a condition.
-
-    Caveat: because of the limitations of transaction scheduling, the target
-    method is locked for usage even if it is not called.
-
-    Attributes
-    ----------
-    method: Method
-        The transformed method.
-    """
-
-    def __init__(
-        self, target: Method, condition: Callable[[TModule, Record], ValueLike], default: Optional[RecordDict] = None
-    ):
-        """
-        Parameters
-        ----------
-        target: Method
-            The target method.
-        condition: function or Method
-            The condition which, when true, allows the call to `target`. When
-            false, `default` is returned.
-        default: Value or dict, optional
-            The default value returned from the filtered method when the condition
-            is false. If omitted, zero is returned.
-        """
-        if default is None:
-            default = Record.like(target.data_out)
-
-        self.target = target
-        self.method = Method.like(target)
-        self.condition = condition
-        self.default = default
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        ret = Record.like(self.target.data_out)
-        m.d.comb += assign(ret, self.default, fields=AssignType.ALL)
-
-        @def_method(m, self.method)
-        def _(arg):
-            with m.If(self.condition(m, arg)):
-                m.d.comb += ret.eq(self.target(m, arg))
-            return ret
 
         return m
 
@@ -1328,6 +1275,79 @@ def connected_conditions(m: TModule, *, nonblocking=False):
         m.d.top_comb += all_conds.eq(1)
     else:
         m.d.top_comb += all_conds.eq(~Cat(all_not_conds_list).all())
+
+
+class MethodFilter(Elaboratable):
+    """Method filter.
+
+    Takes a target method and creates a method which calls the target method
+    only when some condition is true. The condition function takes two
+    parameters, a module and the input `Record` of the method. Non-zero
+    return value is interpreted as true. Alternatively to using a function,
+    a `Method` can be passed as a condition.
+
+    By default the target method is locked for usage even if it is not called.
+    If this is not desired effect, set `use_condition` to True.
+
+    Attributes
+    ----------
+    method: Method
+        The transformed method.
+    """
+
+    def __init__(
+        self,
+        target: Method,
+        condition: Callable[[TModule, Record], ValueLike],
+        default: Optional[RecordDict] = None,
+        use_condition: bool = False,
+    ):
+        """
+        Parameters
+        ----------
+        target: Method
+            The target method.
+        condition: function or Method
+            The condition which, when true, allows the call to `target`. When
+            false, `default` is returned.
+        default: Value or dict, optional
+            The default value returned from the filtered method when the condition
+            is false. If omitted, zero is returned.
+        use_condition : bool
+            Instead of `m.If` use simultaneus `condition` which allow to execute
+            this filter if the condition is False and target is not ready.
+        """
+        if default is None:
+            default = Record.like(target.data_out)
+
+        self.target = target
+        self.use_condition = use_condition
+        self.method = Method(i=target.data_in.layout, o=target.data_out.layout, single_caller=self.use_condition)
+        self.condition = condition
+        self.default = default
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        ret = Record.like(self.target.data_out)
+        m.d.comb += assign(ret, self.default, fields=AssignType.ALL)
+
+        @def_method(m, self.method)
+        def _(arg):
+            if self.use_condition:
+                cond = Signal()
+                m.d.top_comb += cond.eq(self.condition(m, arg))
+                with condition(m, nonblocking=False) as branch:
+                    with branch(cond):
+                        m.d.comb += ret.eq(self.target(m, arg))
+                    with branch(~cond):
+                        pass
+            else:
+                with m.If(self.condition(m, arg)):
+                    m.d.comb += ret.eq(self.target(m, arg))
+            return ret
+
+        return m
 
 
 def def_one_caller_wrapper(method_to_wrap: Method, wrapper: Method) -> TModule:
@@ -2056,5 +2076,113 @@ class ContentAddressableMemory(Elaboratable):
             return {"data": data_to_send, "not_found": ~if_addr.any()}
 
         m.d.comb += encoder_addr.input.eq(if_addr)
+
+        return m
+
+
+class BufferedMethodCall(Elaboratable):
+    """Wrap method call with fifos
+
+    This module takes a method and calls it when it gets an argument, but
+    first storing the argument in the fifo buffer. Similarly, the results
+    of the call are also stored in the fifo buffer and are available after
+    a cycle.
+
+    Attributes
+    ----------
+    call_in : Method
+        Method to pass data to be buffered before forwarding them
+        to the target method.
+    call_out : Method
+        The method used to read the buffered results of the target method.
+    """
+
+    def __init__(self, called_method: Method, buffor_depth: int = 2):
+        """
+        Parameters
+        ----------
+        called_method : Method
+            Target method for which input and output should be buffered.
+        buffor_depth : int
+            The depth of the buffers.
+        """
+        self.called_method = called_method
+        self.buffor_depth = buffor_depth
+
+        self.call_in = Method(i=self.called_method.data_in.layout)
+        self.call_out = Method(o=self.called_method.data_out.layout)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        fifo_in = BasicFifo(self.called_method.data_in.layout, self.buffor_depth)
+        # TODO add posibility to use outside buffer to reduce latency
+        fifo_out = BasicFifo(self.called_method.data_out.layout, self.buffor_depth)
+
+        self.call_in.proxy(m, fifo_in.write)
+        self.call_out.proxy(m, fifo_out.read)
+
+        with Transaction().body(m):
+            fifo_out.write(m, self.called_method(m, fifo_in.read(m)))
+
+        m.submodules.fifo_in = fifo_in
+        m.submodules.fifo_out = fifo_out
+        return m
+
+
+class BufferedReqResp(Elaboratable):
+    """Wrap the request-response methods pair with the buffer
+
+    This module takes a request-response methods pair and provides
+    the wrappers that:
+
+    - passes request arguments to the original request method,
+    - transforms the request arguments with the transformation specified by the user
+    - stores transformed arguments in the buffer
+    - passes transformed arguments from the buffer to the original response method to retrieve the response
+
+    Attributes
+    ----------
+    req : Method
+        The request method wrapper.
+    resp : Method
+        The response method wrapper.
+    """
+
+    def __init__(
+        self,
+        req_method: Method,
+        resp_method: Method,
+        buffor_depth: int = 2,
+        resp_in_transform: Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
+    ):
+        self.req_method = req_method
+        self.resp_method = resp_method
+        self.buffor_depth = buffor_depth
+        self.resp_in_transform = resp_in_transform
+
+        self.req = Method(i=self.req_method.data_in.layout)
+        self.resp = Method(o=self.resp_method.data_out.layout)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        fifo_req = BasicFifo(self.req_method.data_in.layout, 2)
+        buffered_resp = BufferedMethodCall(self.resp_method, self.buffor_depth)
+        resp_in_transformer = MethodTransformer(buffered_resp.call_in, i_transform=self.resp_in_transform)
+
+        with Transaction().body(m):
+            self.req_method(m, fifo_req.read(m))
+
+        @def_method(m, self.req)
+        def _(arg):
+            fifo_req.write(m, arg)
+            resp_in_transformer.method(m, arg)
+
+        self.resp.proxy(m, buffered_resp.call_out)
+
+        m.submodules.fifo_req = fifo_req
+        m.submodules.buffered_resp = buffered_resp
+        m.submodules.resp_in_transformer = resp_in_transformer
 
         return m

@@ -102,12 +102,12 @@ class FlexibleAluExecutor(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        out_width = bits_to_eew(self.v_params.elen)
-
         m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
-        m.submodules.adder = adder = FlexibleAdder(out_width)
 
         m.d.top_comb += assign(decoder.exec_fn, self.exec_fn, fields=AssignType.ALL)
+        subtract = Signal()
+        adder = FlexibleElementwiseFunction(bits_to_eew(self.v_params.elen), (lambda x, y: x + Mux(subtract, -y, y)))
+        m.submodules.adder = adder
         m.d.top_comb += adder.eew.eq(self.eew)
         m.d.top_comb += adder.in1.eq(self.in1)
         m.d.top_comb += adder.in2.eq(self.in2)
@@ -115,7 +115,7 @@ class FlexibleAluExecutor(Elaboratable):
             with OneHotCase(VectorAluFn.Fn.ADD):
                 m.d.comb += self.out.eq(adder.out_data)
             with OneHotCase(VectorAluFn.Fn.SUB):
-                m.d.comb += adder.subtract.eq(1)
+                m.d.comb += subtract.eq(1)
                 m.d.comb += self.out.eq(adder.out_data)
             with OneHotCase(VectorAluFn.Fn.SRA):  # Arithmetic right shift
                 with m.Switch(self.eew):

@@ -4,6 +4,7 @@ from coreblocks.params.configurations import *
 from coreblocks.fu.vector_unit.v_layouts import *
 from coreblocks.fu.vector_unit.v_elems_downloader import *
 from coreblocks.fu.vector_unit.vrf import *
+from coreblocks.transactions.lib import *
 from test.fu.vector_unit.common import *
 from collections import deque
 from parameterized import parameterized_class
@@ -22,19 +23,30 @@ class TestVectorElemsDownloader(TestCaseWithSimulator):
                 vector_config=VectorUnitConfiguration(vrp_count=self.vrp_count, _vrl_count=7)
             )
         )
-        self.test_number = 30
+        self.test_number = 50
         self.v_params = self.gen_params.v_params
 
         self.layout = VectorBackendLayouts(self.gen_params)
+        self.vrf_layout = VRFFragmentLayouts(self.gen_params)
 
         vrf = VRFFragment(gen_params=self.gen_params)
         self.fu_receiver = MethodMock(i=self.layout.downloader_data_out)
         self.circ = SimpleTestCircuit(
-            VectorElemsDownloader(self.gen_params, vrf.read_req, vrf.read_resp, self.fu_receiver.get_method())
+            VectorElemsDownloader(
+                self.gen_params,
+                vrf.read_req,
+                vrf.read_resp,
+                self.fu_receiver.get_method(),
+            )
         )
         self.write = TestbenchIO(AdapterTrans(vrf.write))
 
-        self.m = ModuleConnector(circ=self.circ, fu_receiver=self.fu_receiver, vrf=vrf, vrf_write=self.write)
+        self.m = ModuleConnector(
+            circ=self.circ,
+            fu_receiver=self.fu_receiver,
+            vrf=vrf,
+            vrf_write=self.write,
+        )
 
         self.received_data = deque()
 

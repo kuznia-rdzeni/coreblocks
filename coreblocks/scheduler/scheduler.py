@@ -3,7 +3,7 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import Method, Transaction, TModule
-from coreblocks.transactions.lib import FIFO, Forwarder
+from coreblocks.transactions.lib import FIFO, Forwarder, condition
 from coreblocks.params import SchedulerLayouts, GenParams, OpType, RegisterType
 from coreblocks.utils import assign, AssignType
 from coreblocks.utils.protocols import FuncBlock
@@ -315,8 +315,6 @@ class RSInsertion(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        # This transaction will not be stalled by single RS because insert methods do not use conditional calling,
-        # therefore we can use single transaction here.
         with Transaction().body(m):
             instr = self.get_instr(m)
             source1 = self.rf_read1(m, {"reg_id": instr.regs_p.s1.id})
@@ -325,8 +323,8 @@ class RSInsertion(Elaboratable):
             data = {
                 # when operand value is valid the convention is to set operand source to 0
                 "rs_data": {
-                    "rp_s1": Mux(source1.valid, 0, instr.regs_p.s1),
-                    "rp_s2": Mux(source2.valid, 0, instr.regs_p.s2),
+                    "rp_s1": Mux(source1.valid & (instr.regs_p.s1.type == RegisterType.X), 0, instr.regs_p.s1),
+                    "rp_s2": Mux(source2.valid & (instr.regs_p.s2.type == RegisterType.X), 0, instr.regs_p.s2),
                     "rp_s1_reg": instr.regs_p.s1.id,
                     "rp_s2_reg": instr.regs_p.s2.id,
                     "rp_dst": instr.regs_p.dst,
@@ -340,15 +338,16 @@ class RSInsertion(Elaboratable):
                 },
             }
 
-            for i, rs_insert in enumerate(self.rs_insert):
-                # connect only matching fields
-                arg = Record.like(rs_insert.data_in)
-                m.d.comb += assign(arg, data, fields=AssignType.COMMON)
-                # this assignment truncates signal width from max rs_entry_bits to target RS specific width
-                m.d.comb += arg.rs_entry_id.eq(instr.rs_entry_id)
+            with condition(m, priority=False) as branch:
+                for i, rs_insert in enumerate(self.rs_insert):
+                    # connect only matching fields
+                    arg = Record.like(rs_insert.data_in)
+                    m.d.top_comb += assign(arg, data, fields=AssignType.COMMON)
+                    # this assignment truncates signal width from max rs_entry_bits to target RS specific width
+                    m.d.top_comb += arg.rs_entry_id.eq(instr.rs_entry_id)
 
-                with m.If(instr.rs_selected == i):
-                    rs_insert(m, arg)
+                    with branch(instr.rs_selected == i):
+                        rs_insert(m, arg)
 
         return m
 

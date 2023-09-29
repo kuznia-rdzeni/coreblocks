@@ -51,6 +51,7 @@ class VectorLenGetter(Elaboratable):
         elens_len = Signal(self.v_params.elens_in_bank_bits)
         last_mask = Signal(self.v_params.bytes_in_elen)
 
+        # TODO add support for tail undisturbed policy
         @def_method(m, self.issue)
         def _(arg):
             with m.Switch(arg.vtype.sew):

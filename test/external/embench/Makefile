@@ -3,7 +3,10 @@ all: build
 copy-config:
 	cp -v -r -f board_config/coreblocks-sim embench-iot/config/riscv32/boards
 
-build: copy-config
+copy-coreblocks-benchmarks:
+	cp -v -r -f coreblocks_benchmarks/* embench-iot/src
+
+build: copy-config copy-coreblocks-benchmarks
 	embench-iot/build_all.py \
 		--builddir ../build \
 		--logdir ../logs \

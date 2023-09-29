@@ -1,10 +1,12 @@
 from amaranth import *
+from amaranth.utils import *
 from coreblocks.transactions import *
 from coreblocks.transactions.lib import *
 from coreblocks.params import *
 from coreblocks.utils import *
 from coreblocks.fu.vector_unit.v_layouts import VRFFragmentLayouts
 from coreblocks.fu.vector_unit.v_register import VectorRegisterBank
+from coreblocks.utils.fifo import *
 
 __all__ = ["VRFFragment"]
 
@@ -43,9 +45,7 @@ class VRFFragment(Elaboratable):
 
         self.read_ports_count = 4
         self.read_req = [Method(i=self.layout.read_req) for _ in range(self.read_ports_count)]
-        self.read_resp = [
-            Method(i=self.layout.read_resp_i, o=self.layout.read_resp_o) for _ in range(self.read_ports_count)
-        ]
+        self.read_resp = [Method(o=self.layout.read_resp_o) for _ in range(self.read_ports_count)]
         self.write = Method(i=self.layout.write)
 
         self.regs = [VectorRegisterBank(gen_params=self.gen_params) for _ in range(self.v_params.vrp_count)]
@@ -60,21 +60,47 @@ class VRFFragment(Elaboratable):
         m.submodules.regs = ModuleConnector(*self.regs)
         m.submodules.clear_product = self.clear_module
 
+        fifo_write = BasicFifo(self.layout.write, 2)
+        fifos_req_port = [BasicFifo(self.layout.read_req, 2) for i in range(self.read_ports_count)]
+        fifos_resp = [BasicFifo(self.regs[0].read_resp.data_out.layout, 2) for i in range(self.read_ports_count)]
+        fifos_resp_id = [
+            BasicFifo([("port_id", log2_int(self.read_ports_count, False))], 3) for j in range(self.v_params.vrp_count)
+        ]
+
+        m.submodules.fifo_write = fifo_write
+        m.submodules.fifos_resp_id = ModuleConnector(ModuleConnector(*fifos_resp_id))
+        m.submodules.fifos_req_port = ModuleConnector(*fifos_req_port)
+        m.submodules.fifos_resp = ModuleConnector(*fifos_resp)
+
+        for i in range(self.read_ports_count):
+            for j in range(self.v_params.vrp_count):
+                with Transaction().body(m, request=(fifos_req_port[i].head.vrp_id == j)):
+                    arg = fifos_req_port[i].read(m)
+                    self.regs[j].read_req(m, addr=arg.addr)
+                    fifos_resp_id[j].write(m, port_id=i)
+
+        for i in range(self.read_ports_count):
+            for j in range(self.v_params.vrp_count):
+                with Transaction().body(m, request=(fifos_resp_id[j].head == i)):
+                    id = fifos_resp_id[j].read(m)  # noqa: F841
+                    data = self.regs[j].read_resp(m)
+                    fifos_resp[i].write(m, data)
+
+        for j in range(self.v_params.vrp_count):
+            with Transaction().body(m, request=(fifo_write.head.vrp_id == j)):
+                arg = fifo_write.read(m)
+                self.regs[j].write(m, data=arg.data, addr=arg.addr, valid_mask=arg.valid_mask)
+
         @def_method(m, self.write)
-        def _(vrp_id, addr, data, valid_mask):
-            for j in condition_switch(m, vrp_id, self.v_params.vrp_count, nonblocking=False):
-                self.regs[j].write(m, data=data, addr=addr, valid_mask=valid_mask)
+        def _(arg):
+            fifo_write.write(m, arg)
 
         @loop_def_method(m, self.read_req)
-        def _(_, vrp_id, addr):
-            for j in condition_switch(m, vrp_id, self.v_params.vrp_count, nonblocking=False):
-                self.regs[j].read_req(m, addr=addr)
+        def _(i, arg):
+            fifos_req_port[i].write(m, arg)
 
         @loop_def_method(m, self.read_resp)
-        def _(_, vrp_id):
-            out = Record(self.layout.read_resp_o)
-            for j in condition_switch(m, vrp_id, self.v_params.vrp_count, nonblocking=False):
-                m.d.comb += assign(out, self.regs[j].read_resp(m), fields=AssignType.ALL)
-            return out
+        def _(i):
+            return fifos_resp[i].read(m)
 
         return m

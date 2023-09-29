@@ -29,7 +29,18 @@ from amaranth.sim.core import Command
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans, Adapter, MethodLayout
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.params import RegisterType, Funct3, Funct7, OpType, GenParams, Opcode, SEW, LMUL, eew_to_bits
+from coreblocks.params import (
+    RegisterType,
+    Funct3,
+    Funct7,
+    OpType,
+    GenParams,
+    Opcode,
+    SEW,
+    LMUL,
+    eew_to_bits,
+    lmul_to_int,
+)
 from coreblocks.utils import (
     ValueLike,
     HasElaborate,
@@ -168,15 +179,15 @@ def convert_vtype_to_imm(vtype) -> int:
     return imm
 
 
-def generate_vtype(gen_params: GenParams, max_vl: Optional[int] = None):
+def generate_vtype(gen_params: GenParams, max_vl: Optional[int] = None, const_lmul: Optional[LMUL] = None):
     sew = random.choice([sew for sew in list(SEW) if eew_to_bits(sew) <= gen_params.v_params.elen])
-    lmul = random.choice(list(LMUL))
+    lmul = random.choice(list(LMUL)) if const_lmul is None else const_lmul
     ta = random.randrange(2)
     ma = random.randrange(2)
-    if max_vl is not None:
-        vl = random.randrange(max_vl)
-    else:
-        vl = random.randrange(2**16)
+    vl_lim = gen_params.v_params.vlen // eew_to_bits(sew) * lmul_to_int(lmul)
+    if max_vl is not None and max_vl < vl_lim:
+        vl_lim = max_vl
+    vl = random.randrange(vl_lim)
     return {
         "sew": sew,
         "lmul": lmul,
@@ -200,6 +211,7 @@ def generate_instr(
     non_uniform_s2_val=True,
     overwriting: dict = {},
     max_vl: Optional[int] = None,
+    const_lmul: Optional[LMUL] = None,
 ):
     rec = {}
     if max_reg_bits is None:
@@ -208,43 +220,45 @@ def generate_instr(
         reg_phys_width = max_reg_bits
 
     for field in layout:
-        if "regs_l" in field[0]:
+        if "regs_l" == field[0]:
             if max_reg_bits is None:
                 width = gen_params.isa.reg_cnt_log
             else:
                 width = max_reg_bits
             rec["regs_l"] = generate_register_set(width, support_vector=support_vector)
-        if "regs_p" in field[0]:
+        if "regs_p" == field[0]:
             rec["regs_p"] = generate_register_set(reg_phys_width, support_vector=support_vector)
         for label in ["rp_dst", "rp_s1", "rp_s2", "rp_s3"]:
-            if label in field[0]:
+            if label == field[0]:
                 rec[label] = generate_register_entry(reg_phys_width, support_vector=support_vector)
-        if "exec_fn" in field[0]:
+        if "exec_fn" == field[0]:
             rec["exec_fn"] = generate_exec_fn(optypes, funct7, funct3)
-        if "opcode" in field[0]:
+        if "opcode" == field[0]:
             rec["opcode"] = random.choice(list(Opcode))
-        if "imm" in field[0]:
+        if "imm" == field[0]:
             rec["imm"] = random.randrange(max_imm)
-        if "imm2" in field[0]:
+        if "imm2" == field[0]:
             rec["imm2"] = random.randrange(2**gen_params.imm2_width)
-        if "rob_id" in field[0]:
+        if "rob_id" == field[0]:
             rec["rob_id"] = random.randrange(2**gen_params.rob_entries_bits)
-        if "pc" in field[0]:
+        if "pc" == field[0]:
             rec["pc"] = random.randrange(2**32)
-        if "illegal" in field[0]:
+        if "illegal" == field[0]:
             rec["illegal"] = random.randrange(2) if generate_illegal else 0
-        if "s1_val" in field[0]:
+        if "s1_val" == field[0]:
             rec["s1_val"] = random.randrange(2**gen_params.isa.xlen)
-        if "s2_val" in field[0]:
+        if "s2_val" == field[0]:
             if non_uniform_s2_val and random.random() < 0.5:
                 s2_val = 0
             else:
                 s2_val = random.randrange(2**gen_params.isa.xlen)
             rec["s2_val"] = s2_val
         if "vtype" in field[0]:
-            rec["vtype"] = generate_vtype(gen_params, max_vl=max_vl)
+            rec["vtype"] = generate_vtype(gen_params, max_vl=max_vl, const_lmul=const_lmul)
         if "rp_v0" in field[0]:
             rec["rp_v0"] = {"id": random.randrange(gen_params.v_params.vrp_count)}
+        if field[0] in ["rp_s1_reg", "rp_s2_reg"]:
+            rec[field[0]] = random.randrange(2**gen_params.phys_regs_bits)
     return overwrite_dict_values(rec, overwriting)
 
 

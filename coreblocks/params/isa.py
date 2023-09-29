@@ -18,6 +18,7 @@ __all__ = [
     "ISA",
     "RegisterType",
     "funct6_to_funct7",
+    "load_store_width_to_eew",
     "SEW",
     "EEW",
     "EMUL",
@@ -65,15 +66,15 @@ class Opcode(IntEnum, shape=5):
 
 
 class Funct3(IntEnum, shape=3):
-    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = _EINSTRACCESSFAULT = OPIVV = 0b000
+    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = _EINSTRACCESSFAULT = OPIVV = VMEM8 = 0b000
     BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL \
             = SEXTB = SEXTH = CLMUL = _EILLEGALINSTR = OPFVV = 0b001  # fmt: skip
     W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT = OPMVV = 0b010
     D = SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = OPIVI = 0b011
     BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = OPIVX = 0b100
-    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = OPFVF = 0b101
-    BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = OPMVX = 0b110
-    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = OPCFG = 0b111
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = OPFVF = VMEM16 = 0b101
+    BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = OPMVX = VMEM32 = 0b110
+    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = OPCFG = VMEM64 = 0b111
 
 
 class Funct6(IntEnum, shape=6):
@@ -367,6 +368,27 @@ def lmul_to_int(lmul: LMUL) -> int:
         Value to convert.
     """
     return math.ceil(lmul_to_float(lmul))
+
+
+def load_store_width_to_eew(funct3: Funct3 | int) -> EEW:
+    """Convert vector load/store funct3 to EEW.
+
+    Parameters
+    ----------
+    funct3 : Funct3 | int
+        Value to convert.
+    """
+    match funct3:
+        # constants taken from RISC-V V extension specification
+        case 0:
+            return EEW.w8
+        case 5:
+            return EEW.w16
+        case 6:
+            return EEW.w32
+        case 7:
+            return EEW.w64
+    raise ValueError("Wrong vector load/store width.")
 
 
 @unique

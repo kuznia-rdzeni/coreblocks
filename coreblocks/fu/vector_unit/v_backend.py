@@ -41,9 +41,24 @@ class VectorBackend(Elaboratable):
         The method to insert instructions from the vector frontend.
     initialise_regs : list[Method]
         List with one method for each register, to initialise it on allocation.
+    vrf_write : list[Method]
+        List with one method for each register bank, to write data into it.
+    vrf_read_req : list[Method]
+        List with one method for each register bank, to request data to be read from it.
+    vrf_read_resp : list[Method]
+        List with one method for each register bank, to read requested data.
+    v_update : Method
+        The method to call to indicate that a vector register is ready.
+    scoreboard_get_dirty : Method
+        The method to check if the register is already ready.
+    scoreboard_set_dirty : Method
+        The method for setting the dirty bit for the register to indicate that it's not ready
+        and that there are no results yet.
     """
 
-    def __init__(self, gen_params: GenParams, announce: Method, report_end: Method):
+    def __init__(
+        self, gen_params: GenParams, announce: Method, report_end: Method, v_update_methods: list[Method] = []
+    ):
         """
         Parameters
         ----------
@@ -54,41 +69,59 @@ class VectorBackend(Elaboratable):
             scalar core.
         report_end : Method
             Used to report the end of instruction execution to `VectorRetirement`.
+        v_update_methods : list[Method]
+            Methods to be called with vector register updates.
         """
         self.gen_params = gen_params
         self.v_params = self.gen_params.v_params
         self.announce = announce
         self.report_end = report_end
+        self.v_update_methods = v_update_methods
 
         self.layouts = VectorBackendLayouts(self.gen_params)
         self.vvrs_layouts = VectorVRSLayout(self.gen_params, rs_entries_bits=self.v_params.vvrs_entries_bits)
         self.vreg_layout = VectorRegisterBankLayouts(self.gen_params)
         self.alu_layouts = VectorAluLayouts(self.gen_params)
+        self.vrf_layout = VRFFragmentLayouts(self.gen_params)
+        self.scoreboard_layout = ScoreboardLayouts(self.v_params.vrp_count)
 
         self.put_instr = Method(i=self.layouts.vvrs_in)
         self.initialise_regs = [Method(i=self.vreg_layout.initialise) for _ in range(self.v_params.vrp_count)]
         self.report_mult = Method(i=self.layouts.ender_report_mult)
+        self.vrf_write = [Method(i=self.vrf_layout.write) for _ in range(self.v_params.register_bank_count)]
+        self.vrf_read_req = [Method(i=self.vrf_layout.read_req) for _ in range(self.v_params.register_bank_count)]
+        self.vrf_read_resp = [Method(o=self.vrf_layout.read_resp_o) for _ in range(self.v_params.register_bank_count)]
+        self.scoreboard_get_dirty = Method(
+            i=self.scoreboard_layout.get_dirty_in, o=self.scoreboard_layout.get_dirty_out
+        )
+        self.scoreboard_set_dirty = Method(i=self.scoreboard_layout.set_dirty_in)
+        self.v_update = Method(i=self.vvrs_layouts.update_in)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
         m.submodules.ready_scoreboard = ready_scoreboard = Scoreboard(
-            self.v_params.vrp_count, superscalarity=4, data_forward=False
+            self.v_params.vrp_count, superscalarity=5, data_forward=False
         )
         m.submodules.vvrs = vvrs = VVRS(self.gen_params, self.v_params.vvrs_entries)
         m.submodules.insert_to_vvrs = insert_to_vvrs = VectorInsertToVVRS(
             self.gen_params,
             vvrs.select,
             vvrs.insert,
-            ready_scoreboard.get_dirty_list,
+            ready_scoreboard.get_dirty_list[:4],
             ready_scoreboard.set_dirty_list[0],
         )
+        self.scoreboard_get_dirty.proxy(m, ready_scoreboard.get_dirty_list[4])
+        self.scoreboard_set_dirty.proxy(m, ready_scoreboard.set_dirty_list[1])
 
         self.put_instr.proxy(m, insert_to_vvrs.issue)
 
-        m.submodules.update_product = update_product = MethodProduct([vvrs.update, insert_to_vvrs.update])
+        m.submodules.update_product = update_product = MethodProduct(
+            [vvrs.update, insert_to_vvrs.update] + self.v_update_methods
+        )
+        self.v_update.proxy(m, update_product.method)
         m.submodules.ender = ender = VectorExecutionEnder(
-            self.gen_params, self.announce, update_product.method, ready_scoreboard.set_dirty_list[1], self.report_end
+            self.gen_params, self.announce, self.v_update, ready_scoreboard.set_dirty_list[2], self.report_end
         )
         self.report_mult.proxy(m, ender.report_mult)
         executors = [
@@ -117,6 +150,10 @@ class VectorBackend(Elaboratable):
             init_banks_list = [executor.initialise_regs[i] for executor in executors]
             connect_init_banks_list.append(MethodProduct(init_banks_list))
             self.initialise_regs[i].proxy(m, connect_init_banks_list[-1].method)
+        for i, executor in enumerate(executors):
+            self.vrf_write[i].proxy(m, executor.write_vrf)
+            self.vrf_read_req[i].proxy(m, executor.read_req)
+            self.vrf_read_resp[i].proxy(m, executor.read_resp)
         m.submodules.connect_init_banks = ModuleConnector(*connect_init_banks_list)
 
         return m

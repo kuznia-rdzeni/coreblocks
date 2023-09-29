@@ -53,9 +53,6 @@ class BasicFifo(Elaboratable):
         # current fifo depth
         self.level = Signal((self.depth).bit_length())
 
-        self.clear.add_conflict(self.read, Priority.LEFT)
-        self.clear.add_conflict(self.write, Priority.LEFT)
-
         # for interface compatibility with MultiportFifo
         self.read_methods = [self.read]
         self.write_methods = [self.write]
@@ -63,13 +60,14 @@ class BasicFifo(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.buff_rdport = self.buff_rdport = self.buff.read_port(
-            domain="comb", transparent=True
-        )  # FWFT behaviour
+        next_read_idx = Signal.like(self.read_idx)
+        m.d.top_comb += next_read_idx.eq(mod_incr(self.read_idx, self.depth))
+
+        m.submodules.buff_rdport = self.buff_rdport = self.buff.read_port(domain="sync", transparent=True)
         m.submodules.buff_wrport = self.buff_wrport = self.buff.write_port()
 
-        m.d.comb += self.read_ready.eq(self.level > 0)
-        m.d.comb += self.write_ready.eq(self.level < self.depth)
+        m.d.top_comb += self.read_ready.eq(self.level != 0)
+        m.d.top_comb += self.write_ready.eq(self.level != self.depth)
 
         with m.If(self.read.run & ~self.write.run):
             m.d.sync += self.level.eq(self.level - 1)
@@ -78,20 +76,20 @@ class BasicFifo(Elaboratable):
         with m.If(self.clear.run):
             m.d.sync += self.level.eq(0)
 
-        m.d.comb += self.buff_rdport.addr.eq(self.read_idx)
-        m.d.comb += self.head.eq(self.buff_rdport.data)
+        m.d.top_comb += self.buff_rdport.addr.eq(Mux(self.read.run, next_read_idx, self.read_idx))
+        m.d.top_comb += self.head.eq(self.buff_rdport.data)
 
         @def_method(m, self.write, ready=self.write_ready)
         def _(arg: Record) -> None:
-            m.d.comb += self.buff_wrport.addr.eq(self.write_idx)
-            m.d.comb += self.buff_wrport.data.eq(arg)
+            m.d.top_comb += self.buff_wrport.addr.eq(self.write_idx)
+            m.d.top_comb += self.buff_wrport.data.eq(arg)
             m.d.comb += self.buff_wrport.en.eq(1)
 
             m.d.sync += self.write_idx.eq(mod_incr(self.write_idx, self.depth))
 
         @def_method(m, self.read, self.read_ready)
         def _() -> ValueLike:
-            m.d.sync += self.read_idx.eq(mod_incr(self.read_idx, self.depth))
+            m.d.sync += self.read_idx.eq(next_read_idx)
             return self.head
 
         @def_method(m, self.clear)

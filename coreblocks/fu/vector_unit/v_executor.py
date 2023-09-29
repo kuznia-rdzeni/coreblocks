@@ -41,6 +41,12 @@ class VectorExecutor(Elaboratable):
     initialise_regs : list[Method]
         A list of methods, one for each vector register, to initialise its
         content on vector register allocation.
+    write_vrf : Method
+        The method to write to the register bank associated with this executor.
+    read_req : Method
+        The method to request a read from the register bank associated with this executor.
+    read_resp : Method
+        The method used to read the response to the previous issued request.
     """
 
     def __init__(self, gen_params: GenParams, fragment_index: int, end: Method):
@@ -63,11 +69,15 @@ class VectorExecutor(Elaboratable):
         self.layouts = VectorBackendLayouts(self.gen_params)
         self.alu_layouts = VectorAluLayouts(self.gen_params)
         self.vreg_layout = VectorRegisterBankLayouts(self.gen_params)
+        self.vrf_layout = VRFFragmentLayouts(self.gen_params)
 
         self.issue = Method(i=self.layouts.executor_in)
         self.initialise_regs = [
             Method(i=self.vreg_layout.initialise, name=f"initialise{i}") for i in range(self.v_params.vrp_count)
         ]
+        self.write_vrf = Method(i=self.vrf_layout.write)
+        self.read_req = Method(i=self.vrf_layout.read_req)
+        self.read_resp = Method(o=self.vrf_layout.read_resp_o)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -91,11 +101,25 @@ class VectorExecutor(Elaboratable):
         splitter = VectorExecutionDataSplitter(
             self.gen_params, fu_in_fifo.write, old_dst_fifo.write, mask_in_fifo.write
         )
-        downloader = VectorElemsDownloader(self.gen_params, vrf.read_req, vrf.read_resp, splitter.issue)
-        uploader = VectorElemsUploader(self.gen_params, vrf.write, old_dst_fifo.read, mask_out_fifo.read, self.end)
 
-        issue_connect = Connect(self.layouts.executor_in)
+        serializers = [
+            Serializer(port_count=2, serialized_req_method=vrf.read_req[i], serialized_resp_method=vrf.read_resp[i], depth = 6)
+            for i in range(vrf.read_ports_count)
+        ]
+        write_wrapper = def_one_caller_wrapper(vrf.write, self.write_vrf)
+
+        downloader = VectorElemsDownloader(
+            self.gen_params,
+            [ser.serialize_in[0] for ser in serializers],
+            [ser.serialize_out[0] for ser in serializers],
+            splitter.issue,
+        )
+        uploader = VectorElemsUploader(self.gen_params, self.write_vrf, old_dst_fifo.read, mask_out_fifo.read, self.end)
+
+        issue_connect = Register(self.layouts.executor_in)
         self.issue.proxy(m, issue_connect.write)
+        self.read_req.proxy(m, serializers[2].serialize_in[1])
+        self.read_resp.proxy(m, serializers[2].serialize_out[1])
 
         connect_input_data = Transaction(name="connect_input_data")
         with connect_input_data.body(m, request=~end_pending_to_report):
@@ -149,5 +173,7 @@ class VectorExecutor(Elaboratable):
         m.submodules.connect_mask_extractor_in = connect_mask_extractor_in
         m.submodules.connect_alu_in = connect_alu_in
         m.submodules.connect_alu_out = connect_alu_out
+        m.submodules.serializers = ModuleConnector(*serializers)
+        m.submodules.write_wrapper = write_wrapper
 
         return m

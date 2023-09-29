@@ -6,6 +6,9 @@ from coreblocks.fu.vector_unit.v_core import *
 from test.fu.vector_unit.common import *
 from collections import deque
 from parameterized import parameterized_class
+from coreblocks.lsu.vector_lsu import *
+from coreblocks.peripherals.wishbone import *
+from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
 @parameterized_class(["seed", "register_bank_count", "test_number"], [(14, 1, 70), (15, 2, 40)])
@@ -22,6 +25,7 @@ class TestVectorCore(TestCaseWithSimulator):
             )
         )
         self.v_params = self.gen_params.v_params
+        wb_params = WishboneParameters(data_width=self.v_params.elen, addr_width=32)
 
         self.vxrs_layouts = VectorXRSLayout(
             self.gen_params, rs_entries_bits=log2_int(self.v_params.vxrs_entries, False)
@@ -30,11 +34,21 @@ class TestVectorCore(TestCaseWithSimulator):
         self.rob_block_interrupt = MethodMock(i=self.gen_params.get(ROBLayouts).block_interrupts)
         self.rob_peek = MethodMock(o=self.gen_params.get(ROBLayouts).peek_layout)
         self.exception_report = MethodMock(i=self.gen_params.get(ExceptionRegisterLayouts).report)
+        self.get_reserved = MethodMock(o=[("reserved", 1)])
+        self.set_reserved = MethodMock(i=[("reserved", 1)])
+        self.bus = WishboneMaster(wb_params)
+        self.wishbone = WishboneInterfaceWrapper(self.bus.wbMaster)
         self.gen_params.get(DependencyManager).add_dependency(
             ROBBlockInterruptsKey(), self.rob_block_interrupt.get_method()
         )
         self.gen_params.get(DependencyManager).add_dependency(ROBPeekKey(), self.rob_peek.get_method())
         self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.get_method())
+        self.gen_params.get(DependencyManager).add_dependency(
+            LSUReservedKey(), (self.get_reserved.get_method(), self.set_reserved.get_method())
+        )
+        self.gen_params.get(DependencyManager).add_dependency(WishboneDataKey(), self.bus)
+        self.vlsu = VectorLSU(self.gen_params)
+        self.gen_params.get(DependencyManager).add_dependency(VectorLSUKey(), self.vlsu)
 
         self.circ = SimpleTestCircuit(VectorCore(self.gen_params))
         self.m = ModuleConnector(
@@ -42,12 +56,26 @@ class TestVectorCore(TestCaseWithSimulator):
             rob_block_interrupt=self.rob_block_interrupt,
             rob_peek=self.rob_peek,
             exception_report=self.exception_report,
+            get_reserved=self.get_reserved,
+            set_reserved=self.set_reserved,
+            vlsu=self.vlsu,
+            bus=self.bus,
         )
 
         self.generator = get_vector_instr_generator()
         self.instr_q = deque()
         self.instr_ended_q = deque()
         self.lowest_used_rob_id = 0
+        self.reserved = 0
+
+    @def_method_mock(lambda self: self.get_reserved)
+    def get_reserved_process(self):
+        return {"reserved": self.reserved}
+
+    @def_method_mock(lambda self: self.set_reserved, sched_prio=1)
+    def set_reserved_process(self, reserved):
+        self.assertTrue(False)
+        self.reserved = reserved
 
     @def_method_mock(lambda self: self.rob_block_interrupt)
     def rob_block_interrupt_process(self, arg):
@@ -179,3 +207,5 @@ class TestVectorCore(TestCaseWithSimulator):
             sim.add_sync_process(self.rob_block_interrupt_process)
             sim.add_sync_process(self.rob_peek_process)
             sim.add_sync_process(self.exception_report_process)
+            sim.add_sync_process(self.get_reserved_process)
+            sim.add_sync_process(self.set_reserved_process)
