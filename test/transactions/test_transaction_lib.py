@@ -132,14 +132,15 @@ class TestForwarder(TestFifoBase):
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
 
+
 class MemoryReproduce(TestCaseWithSimulator):
     class DUT(Elaboratable):
         def __init__(self):
             pass
 
         def elaborate(self, platform):
-            m=Module()
-            self.mem = Memory(width = 8, depth = 8)
+            m = Module()
+            self.mem = Memory(width=8, depth=8)
             m.submodules.read_port = self.read_port = self.mem.read_port()
             m.submodules.write_port = self.write_port = self.mem.write_port()
             return m
@@ -167,8 +168,6 @@ class MemoryReproduce(TestCaseWithSimulator):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
-
-
 
 
 class TestMemoryBank(TestCaseWithSimulator):
@@ -228,7 +227,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 d = read_req_queue.popleft()
                 print("read_resp", d)
                 yield from m.read_resp.call()
-                #self.assertEqual((yield from m.read_resp.call()), {"data": d})
+                # self.assertEqual((yield from m.read_resp.call()), {"data": d})
                 yield from random_wait(reader_resp_rand)
 
         def internal_reader_resp():
