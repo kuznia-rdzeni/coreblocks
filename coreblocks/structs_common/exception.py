@@ -72,7 +72,7 @@ class ExceptionCauseRegister(Elaboratable):
                 diff2 = Signal.like(rob_start_idx)
                 m.d.comb += diff1.eq((rob_id - rob_start_idx))
                 m.d.comb += diff2.eq((self.rob_id - rob_start_idx))
-                m.d.comb += should_write.eq(diff1<diff2)
+                m.d.comb += should_write.eq(diff1 < diff2)
             with m.Else():
                 m.d.comb += should_write.eq(1)
 
