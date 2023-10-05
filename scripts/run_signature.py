@@ -4,6 +4,7 @@ import asyncio
 import argparse
 import sys
 import os
+import subprocess
 from typing import Literal
 
 if __name__ == "__main__":
@@ -14,18 +15,18 @@ import test.regression.signature  # noqa: E402
 from test.regression.pysim import PySimulation  # noqa: E402
 
 
-# def run_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
-#    arglist = ["make", "-C", "test/regression/cocotb", "-f", "benchmark.Makefile", "--no-print-directory"]
-#
-#    test_cases = ",".join(benchmarks)
-#    arglist += [f"TESTCASE={test_cases}"]
-#
-#    if traces:
-# 3        arglist += ["TRACES=1"]
-#
-#    res = subprocess.run(arglist)
-#
-#    return res.returncode == 0
+def run_with_cocotb(test_name: str, traces: bool, output: str) -> bool:
+    arglist = ["make", "-C", "test/regression/cocotb", "-f", "signature.Makefile", "--no-print-directory"]
+
+    arglist += [f"TESTNAME={test_name}"]
+    arglist += [f"OUTPUT={output}"]
+
+    if traces:
+        arglist += ["TRACES=1"]
+
+    res = subprocess.run(arglist)
+
+    return res.returncode == 0
 
 
 def run_with_pysim(test_name: str, traces: bool, verbose: bool, output: str) -> bool:
@@ -43,11 +44,11 @@ def run_with_pysim(test_name: str, traces: bool, verbose: bool, output: str) -> 
 
 
 def run_test(test: str, backend: Literal["pysim", "cocotb"], traces: bool, verbose: bool, output: str) -> bool:
-    # if backend == "cocotb":
-    #    return run_benchmarks_with_cocotb(test, traces)
-    # elif backend == "pysim":
-    return run_with_pysim(test, traces, verbose, output)
-    # return False
+    if backend == "cocotb":
+        return run_with_cocotb(test, traces, output)
+    elif backend == "pysim":
+        return run_with_pysim(test, traces, verbose, output)
+    return False
 
 
 def main():

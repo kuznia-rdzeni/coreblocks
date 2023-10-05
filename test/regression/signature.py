@@ -49,9 +49,9 @@ async def run_test(sim_backend: SimulationBackend, test_path: str, signature_pat
     success = await sim_backend.run(mem_model, timeout_cycles=50000)
 
     if not success:
-        raise RuntimeError("Simulation timed out")
+        raise RuntimeError(f"{test_path}: Simulation timed out")
 
-    print("Program execution finished!")
+    print(f"{test_path}: Program execution finished! Signature: {signature_path}")
 
     # generate signature file in riscv-torture format (used also by riscof)
     # 32-bit little endian memory dump from data between .begin_signature and .end_signature
