@@ -20,7 +20,7 @@ from coreblocks.structs_common.csr import CSRBlockComponent
 __all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
-    RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=4),
+    RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=4),
     LSUBlockComponent(),
 )
 
@@ -76,7 +76,7 @@ class CoreConfiguration:
     icache_sets_bits: int = 7
     icache_block_size_bits: int = 5
 
-    allow_partial_extensions: bool = True  # TODO: Change to False when I extension will be fully supported
+    allow_partial_extensions: bool = False
 
     _implied_extensions: Extension = Extension(0)
 
@@ -94,6 +94,7 @@ tiny_core_config = CoreConfiguration(
         LSUBlockComponent(),
     ),
     rob_entries_bits=6,
+    allow_partial_extensions=True,  # No exception unit
 )
 
 # Core configuration with all supported components

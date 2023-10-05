@@ -714,7 +714,7 @@ class MethodTryProductTestCircuit(Elaboratable):
 class ConditionTestCircuit(Elaboratable):
     def __init__(self, target: Method, *, nonblocking: bool, priority: bool, catchall: bool):
         self.target = target
-        self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)])
+        self.source = Method(i=[("cond1", 1), ("cond2", 1), ("cond3", 1)], single_caller=True)
         self.nonblocking = nonblocking
         self.priority = priority
         self.catchall = catchall

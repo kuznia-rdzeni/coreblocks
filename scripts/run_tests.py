@@ -54,7 +54,8 @@ def load_regression_tests() -> list[str]:
 
 
 def run_regressions_with_cocotb(tests: list[str], traces: bool) -> bool:
-    arglist = ["make", "-C", "test/regression/cocotb", "-f", "test.Makefile"]
+    cpu_count = len(os.sched_getaffinity(0))
+    arglist = ["make", "-C", "test/regression/cocotb", "-f", "test.Makefile", f"-j{cpu_count}"]
 
     test_cases = ",".join(tests)
     arglist += [f"TESTCASE={test_cases}"]
