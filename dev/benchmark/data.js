@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1696514023316,
+  "lastUpdate": 1696531131911,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -2298,6 +2298,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "ud",
             "value": 0.29403051593959734,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.287102112304355,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "893202fc7afa3664723564c90f2e96e09045da76",
+          "message": "Autumn cleaning part 1 - move transactron (#460)",
+          "timestamp": "2023-10-05T20:06:04+02:00",
+          "tree_id": "a312571c91f9955f9118438f61df14018b6fa173",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/893202fc7afa3664723564c90f2e96e09045da76"
+        },
+        "date": 1696531129639,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.36868634053500093,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.21143582629957916,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.38400652367450455,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15476224925165344,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2159196483640026,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29403051593959734,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24225926200771405,
             "unit": "Instructions Per Cycle"
           },
           {
