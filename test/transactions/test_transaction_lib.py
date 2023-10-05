@@ -133,43 +133,6 @@ class TestForwarder(TestFifoBase):
             sim.add_sync_process(process)
 
 
-class MemoryReproduce(TestCaseWithSimulator):
-    class DUT(Elaboratable):
-        def __init__(self):
-            pass
-
-        def elaborate(self, platform):
-            m = Module()
-            self.mem = Memory(width=8, depth=8)
-            m.submodules.read_port = self.read_port = self.mem.read_port()
-            m.submodules.write_port = self.write_port = self.mem.write_port()
-            return m
-
-    def test_minimal(self):
-        m = self.DUT()
-
-        def process():
-            yield m.read_port.addr.eq(1)
-            yield m.read_port.en.eq(1)
-            yield
-            print((yield m.read_port.data))
-            yield
-            yield m.write_port.addr.eq(2)
-            yield m.write_port.data.eq(14)
-            yield m.write_port.en.eq(1)
-            print((yield m.read_port.data))
-            yield
-            yield m.write_port.en.eq(0)
-            print((yield m.read_port.data))
-            yield
-            print((yield m.read_port.data))
-            yield
-            print((yield m.read_port.data))
-
-        with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
-
-
 class TestMemoryBank(TestCaseWithSimulator):
     test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
 
