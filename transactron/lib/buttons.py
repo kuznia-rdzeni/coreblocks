@@ -3,6 +3,7 @@ from ..core import *
 
 __all__ = ["ClickIn", "ClickOut"]
 
+
 class ClickIn(Elaboratable):
     """Clicked input.
 
@@ -55,7 +56,6 @@ class ClickIn(Elaboratable):
             m.d.sync += get_data.eq(dat1)
 
         return m
-
 
 
 class ClickOut(Elaboratable):

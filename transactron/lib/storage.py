@@ -7,6 +7,7 @@ from .reqres import ArgumentsToResultsZipper
 
 __all__ = ["MemoryBank"]
 
+
 class MemoryBank(Elaboratable):
     """MemoryBank module.
 

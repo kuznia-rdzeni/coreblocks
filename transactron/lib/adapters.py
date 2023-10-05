@@ -6,7 +6,8 @@ from typing import Optional
 __all__ = [
     "AdapterTrans",
     "Adapter",
-    ]
+]
+
 
 class AdapterBase(Elaboratable):
     data_in: Record

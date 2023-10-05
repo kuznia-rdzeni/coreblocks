@@ -3,10 +3,11 @@ import amaranth.lib.fifo
 from ..core import *
 
 __all__ = [
-        "FIFO",
+    "FIFO",
     "Forwarder",
     "Connect",
-        ]
+]
+
 
 class FIFO(Elaboratable):
     """FIFO module.
@@ -183,4 +184,3 @@ class Connect(Elaboratable):
             return read_value
 
         return m
-

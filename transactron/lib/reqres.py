@@ -5,9 +5,10 @@ from coreblocks.utils.fifo import BasicFifo
 from amaranth.utils import *
 
 __all__ = [
-        "ArgumentsToResultsZipper",
+    "ArgumentsToResultsZipper",
     "Serializer",
-        ]
+]
+
 
 class ArgumentsToResultsZipper(Elaboratable):
     """Zips arguments used to call method with results, cutting critical path.

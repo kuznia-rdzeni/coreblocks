@@ -85,4 +85,3 @@ def condition(m: TModule, *, nonblocking: bool = False, priority: bool = True):
             pass
 
     this.simultaneous_alternatives(*transactions)
-

@@ -12,7 +12,8 @@ __all__ = [
     "MethodProduct",
     "MethodTryProduct",
     "Collector",
-    ]
+]
+
 
 class MethodTransformer(Elaboratable):
     """Method transformer.
@@ -224,6 +225,7 @@ class MethodTryProduct(Elaboratable):
             return self.combiner[1](m, results)
 
         return m
+
 
 class Collector(Elaboratable):
     """Single result collector.

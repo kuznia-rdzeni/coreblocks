@@ -9,7 +9,7 @@ __all__ = [
     "ConnectAndTransformTrans",
     "CatTrans",
     "ManyToOneConnectTrans",
-        ]
+]
 
 
 class ConnectTrans(Elaboratable):
