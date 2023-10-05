@@ -16,7 +16,7 @@ from test.regression.pysim import PySimulation  # noqa: E402
 
 
 def run_with_cocotb(test_name: str, traces: bool, output: str) -> bool:
-    arglist = ["make", "-C", "test/regression/cocotb", "-f", "signature.Makefile", "--no-print-directory"]
+    arglist = ["make", "-C", parent + "/test/regression/cocotb", "-f", "signature.Makefile", "--no-print-directory"]
 
     arglist += [f"TESTNAME={test_name}"]
     arglist += [f"OUTPUT={output}"]
@@ -65,7 +65,12 @@ def main():
 
     success = run_test(args.path, args.backend, args.trace, args.verbose, output)
     if not success:
-        print("Program execution failed")
+        print(f"{args.path}: Program execution failed")
+
+        if output is not None:  # create empty file on failure for checker scripts
+            with open(output, "w"):
+                pass
+
         sys.exit(1)
 
 
