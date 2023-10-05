@@ -158,7 +158,6 @@ def load_segment(segment: Segment) -> RandomAccessMemory:
         # append safe memory region for instruction fetch prediction
         seg_end += 0x10
         data += b"\0" * 0x10
-    print(f"seg {hex(paddr)} {flags_raw} {flags}")
 
     return RandomAccessMemory(range(seg_start, seg_end), flags, data)
 
