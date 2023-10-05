@@ -148,12 +148,17 @@ def load_segment(segment: Segment) -> RandomAccessMemory:
     data = segment.data()
 
     flags = SegmentFlags(0)
-    if flags_raw & P_FLAGS.PF_R == flags_raw & P_FLAGS.PF_R:
+    if flags_raw & P_FLAGS.PF_R:
         flags |= SegmentFlags.READ
-    if flags_raw & P_FLAGS.PF_W == flags_raw & P_FLAGS.PF_W:
+    if flags_raw & P_FLAGS.PF_W:
         flags |= SegmentFlags.WRITE
-    if flags_raw & P_FLAGS.PF_X == flags_raw & P_FLAGS.PF_X:
+    if flags_raw & P_FLAGS.PF_X:
         flags |= SegmentFlags.EXECUTABLE
+
+        # append safe memory region for instruction fetch prediction
+        seg_end += 0x10
+        data += b"\0" * 0x10
+    print(f"seg {hex(paddr)} {flags_raw} {flags}")
 
     return RandomAccessMemory(range(seg_start, seg_end), flags, data)
 
