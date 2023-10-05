@@ -3,7 +3,7 @@ from ..core import *
 from ..core import RecordDict
 from typing import Optional, Callable, Tuple
 from coreblocks.utils import ValueLike, assign, AssignType
-from .transactions import ManyToOneConnectTrans
+from . import transactions
 from .connections import Forwarder
 
 __all__ = [
@@ -260,7 +260,7 @@ class Collector(Elaboratable):
 
         m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout)
 
-        m.submodules.connect = ManyToOneConnectTrans(
+        m.submodules.connect = transactions.ManyToOneConnectTrans(
             get_results=[get for get in self.method_list], put_result=forwarder.write
         )
 

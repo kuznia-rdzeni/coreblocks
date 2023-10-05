@@ -4,6 +4,7 @@ from ..core import SignalBundle
 from typing import Optional
 
 __all__ = [
+    "AdapterBase",
     "AdapterTrans",
     "Adapter",
 ]
