@@ -23,8 +23,8 @@ from coreblocks.fu.mul_unit import MulComponent, MulType
 from coreblocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.fu.zbc import ZbcComponent
 from coreblocks.fu.zbs import ZbsComponent
-from coreblocks.transactions import TransactionModule
-from coreblocks.transactions.lib import AdapterBase, AdapterTrans
+from transactron import TransactionModule
+from transactron.lib import AdapterBase, AdapterTrans
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneBus
 from constants.ecp5_platforms import (
     ResourceBuilder,

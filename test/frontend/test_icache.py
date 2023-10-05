@@ -6,7 +6,7 @@ from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
 from amaranth.utils import log2_int
 
-from coreblocks.transactions.lib import AdapterTrans, Adapter
+from transactron.lib import AdapterTrans, Adapter
 from coreblocks.frontend.icache import SimpleWBCacheRefiller, ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters

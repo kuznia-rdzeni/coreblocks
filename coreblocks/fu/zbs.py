@@ -3,8 +3,8 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams
-from coreblocks.transactions import Method, TModule, def_method
-from coreblocks.transactions.lib import FIFO
+from transactron import Method, TModule, def_method
+from transactron.lib import FIFO
 from coreblocks.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 

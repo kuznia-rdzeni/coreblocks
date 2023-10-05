@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from coreblocks.params.dependencies import SimpleKey, UnifierKey
-from coreblocks.transactions.lib import MethodTryProduct, Collector, Method
+from transactron.lib import MethodTryProduct, Collector, Method
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 if TYPE_CHECKING:

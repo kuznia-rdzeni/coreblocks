@@ -15,7 +15,7 @@ from coreblocks.params.isa import Funct3, Funct7
 from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.optypes import OpType
-from coreblocks.transactions.lib import AdapterTrans, Adapter
+from transactron.lib import AdapterTrans, Adapter
 from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator
 
 

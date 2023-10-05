@@ -1,6 +1,6 @@
 from amaranth import Elaboratable, Module
 
-from coreblocks.transactions.lib import AdapterTrans, FIFO
+from transactron.lib import AdapterTrans, FIFO
 
 from ..common import TestCaseWithSimulator, TestbenchIO
 

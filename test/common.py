@@ -10,9 +10,9 @@ from amaranth.hdl.ast import Statement
 from amaranth.sim import *
 from amaranth.sim.core import Command
 
-from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
-from coreblocks.transactions.lib import AdapterBase, AdapterTrans
-from coreblocks.transactions._utils import method_def_helper
+from transactron.core import SignalBundle, Method, TransactionModule
+from transactron.lib import AdapterBase, AdapterTrans
+from transactron._utils import method_def_helper
 from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike, ModuleConnector
 from .gtkw_extension import write_vcd_ext
 

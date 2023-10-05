@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.transactions.lib import Adapter
+from transactron.lib import Adapter
 from coreblocks.structs_common.csr import CSRUnit, CSRRegister
 from coreblocks.params import GenParams
 from coreblocks.params.isa import Funct3, ExceptionCause

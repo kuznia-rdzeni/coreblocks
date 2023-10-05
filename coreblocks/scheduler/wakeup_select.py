@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.params import GenParams, FuncUnitLayouts
 from coreblocks.utils import assign, AssignType
-from coreblocks.transactions.core import *
+from transactron.core import *
 
 __all__ = ["WakeupSelect"]
 

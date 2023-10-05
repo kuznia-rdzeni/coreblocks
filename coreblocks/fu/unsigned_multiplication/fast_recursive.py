@@ -2,12 +2,12 @@ from amaranth import *
 
 from coreblocks.fu.unsigned_multiplication.common import MulBaseUnsigned, DSPMulUnit
 from coreblocks.params import GenParams
-from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
+from transactron import *
+from transactron.core import def_method
 
 __all__ = ["RecursiveUnsignedMul"]
 
-from coreblocks.transactions.lib import FIFO
+from transactron.lib import FIFO
 
 
 class FastRecursiveMul(Elaboratable):

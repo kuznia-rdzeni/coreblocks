@@ -5,7 +5,7 @@ from coreblocks.structs_common.exception import ExceptionCauseRegister
 from coreblocks.params import GenParams
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.configurations import test_core_config
-from coreblocks.transactions.lib import Adapter
+from transactron.lib import Adapter
 from coreblocks.utils.utils import ModuleConnector
 
 from ..common import *
