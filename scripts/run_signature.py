@@ -18,15 +18,18 @@ from test.regression.pysim import PySimulation  # noqa: E402
 def run_with_cocotb(test_name: str, traces: bool, output: str) -> bool:
     arglist = ["make", "-C", parent + "/test/regression/cocotb", "-f", "signature.Makefile", "--no-print-directory"]
 
+    if os.path.isfile(output):
+        os.remove(output)
+
     arglist += [f"TESTNAME={test_name}"]
     arglist += [f"OUTPUT={output}"]
 
     if traces:
         arglist += ["TRACES=1"]
 
-    res = subprocess.run(arglist)
+    subprocess.run(arglist)
 
-    return res.returncode == 0
+    return os.path.isfile(output)  # completed successfully if signature file was created
 
 
 def run_with_pysim(test_name: str, traces: bool, verbose: bool, output: str) -> bool:
