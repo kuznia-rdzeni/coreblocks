@@ -157,25 +157,21 @@ class TestMemoryBank(TestCaseWithSimulator):
             yield from self.tick(random.randrange(rand) + 1)
 
         def writer():
-            for i in range(test_count):
+            for cycle in range(test_count):
                 d = random.randrange(2**data_width)
                 a = random.randrange(max_addr)
-                print("write pocz", a, d)
                 yield from m.write.call(data=d, addr=a)
-                for i in range(2):
+                for _ in range(2):
                     yield Settle()
-                print("write kon")
                 data_dict[a] = d
                 yield from random_wait(writer_rand)
 
         def reader_req():
             for cycle in range(test_count):
                 a = random.randrange(max_addr)
-                print("read_req pocz", a)
                 yield from m.read_req.call(addr=a)
-                for i in range(1):
+                for _ in range(1):
                     yield Settle()
-                print("read_req kon")
                 if safe_writes:
                     d = data_dict[a]
                     read_req_queue.append(d)
@@ -184,13 +180,11 @@ class TestMemoryBank(TestCaseWithSimulator):
                 yield from random_wait(reader_req_rand)
 
         def reader_resp():
-            for i in range(test_count):
+            for cycle in range(test_count):
                 while not read_req_queue:
                     yield from random_wait(reader_resp_rand)
                 d = read_req_queue.popleft()
-                print("read_resp", d)
-                yield from m.read_resp.call()
-                # self.assertEqual((yield from m.read_resp.call()), {"data": d})
+                self.assertEqual((yield from m.read_resp.call()), {"data": d})
                 yield from random_wait(reader_resp_rand)
 
         def internal_reader_resp():
