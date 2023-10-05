@@ -516,7 +516,14 @@ class ValueCastable:
     def lowermethod(func): # -> (self: Unknown, *args: Unknown, **kwargs: Unknown) -> Unknown:
         """Decorator to memoize lowering me"""
         ...
-    
+
+    @abstractmethod
+    def as_value(self) -> Value:
+        ...
+
+    @abstractmethod
+    def shape(self) -> ShapeLike:
+        ...
 
 
 @final

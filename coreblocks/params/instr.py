@@ -28,6 +28,9 @@ class RISCVInstr(ABC, ValueCastable):
     def as_value(self):
         return self.pack()
 
+    def shape(self):
+        return self.as_value().shape()
+
 
 class RTypeInstr(RISCVInstr):
     def __init__(
