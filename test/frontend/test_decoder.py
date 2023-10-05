@@ -267,6 +267,31 @@ class TestDecoder(TestCaseWithSimulator):
             self.do_test(test)
 
 
+class TestDecoderEExtLegal(TestCaseWithSimulator):
+    E_TEST = [
+        (0x00000033, False),  # add x0, x0, x0
+        (0x00F787B3, False),  # add x15, x15, x15
+        (0x00F807B3, True),  # add x15, x16, x15
+        (0xFFF78793, False),  # addi x15, x15, -1
+        (0xFFF78813, True),  # addi x16, x15, -1
+        (0xFFFFF06F, False),  # jal x0, -2
+        (0xFFFFFF6F, True),  # jal x30, -2
+    ]
+
+    def test_e(self):
+        gen = GenParams(test_core_config.replace(embedded=True, _implied_extensions=Extension.E))
+        self.decoder = InstrDecoder(gen)
+
+        def process():
+            for encoding, illegal in self.E_TEST:
+                yield self.decoder.instr.eq(encoding)
+                yield Settle()
+                self.assertEqual((yield self.decoder.illegal), illegal)
+
+        with self.run_simulation(self.decoder) as sim:
+            sim.add_process(process)
+
+
 class TestEncodingUniqueness(TestCase):
     def test_encoding_uniqueness(self):
         code_type = tuple[Optional[int], Optional[int], Optional[int], Optional[int]]

@@ -3,7 +3,7 @@ from collections import deque
 
 from coreblocks.peripherals.wishbone import *
 
-from coreblocks.transactions.lib import AdapterTrans
+from transactron.lib import AdapterTrans
 
 from ..common import *
 

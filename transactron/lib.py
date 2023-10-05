@@ -5,8 +5,8 @@ from amaranth.utils import *
 from .core import *
 from .core import SignalBundle, RecordDict, TransactionBase
 from ._utils import MethodLayout
-from ..utils import ValueLike, assign, AssignType
-from ..utils.fifo import BasicFifo
+from coreblocks.utils import ValueLike, assign, AssignType
+from coreblocks.utils.fifo import BasicFifo
 
 __all__ = [
     "FIFO",

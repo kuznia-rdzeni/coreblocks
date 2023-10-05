@@ -1,8 +1,8 @@
 from amaranth import *
 
 from coreblocks.params import GenParams, UnsignedMulUnitLayouts
-from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
+from transactron import *
+from transactron.core import def_method
 
 __all__ = ["MulBaseUnsigned", "DSPMulUnit"]
 

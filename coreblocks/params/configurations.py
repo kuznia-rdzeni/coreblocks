@@ -89,11 +89,13 @@ basic_core_config = CoreConfiguration()
 
 # Minimal core configuration
 tiny_core_config = CoreConfiguration(
+    embedded=True,
     func_units_config=(
         RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
         LSUBlockComponent(),
     ),
-    rob_entries_bits=6,
+    phys_regs_bits=basic_core_config.phys_regs_bits - 1,
+    rob_entries_bits=basic_core_config.rob_entries_bits - 1,
     allow_partial_extensions=True,  # No exception unit
 )
 
@@ -114,7 +116,7 @@ full_core_config = CoreConfiguration(
         RSBlockComponent(
             [
                 MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
-                DivComponent(ipc=3),
+                DivComponent(),
             ],
             rs_entries=2,
         ),

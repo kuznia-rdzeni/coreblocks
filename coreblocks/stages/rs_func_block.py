@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from coreblocks.params import *
 from coreblocks.structs_common.rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
-from coreblocks.transactions import Method, TModule
+from transactron import Method, TModule
 from coreblocks.utils.protocols import FuncUnit, FuncBlock
-from coreblocks.transactions.lib import Collector
+from transactron.lib import Collector
 
 __all__ = ["RSFuncBlock", "RSBlockComponent"]
 

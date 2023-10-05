@@ -11,8 +11,8 @@ from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsign
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 
-from coreblocks.transactions import *
-from coreblocks.transactions.lib import *
+from transactron import *
+from transactron.lib import *
 
 from test.common import TestCaseWithSimulator, TestbenchIO
 

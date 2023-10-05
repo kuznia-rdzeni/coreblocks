@@ -5,7 +5,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import ExceptionReportKey
-from coreblocks.transactions.core import Priority, TModule, def_method, Method
+from transactron.core import Priority, TModule, def_method, Method
 
 
 def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) -> Value:
@@ -68,7 +68,9 @@ class ExceptionCauseRegister(Elaboratable):
                 m.d.comb += should_write.eq(should_update_prioriy(m, current_cause=self.cause, new_cause=cause))
             with m.Elif(self.valid):
                 rob_start_idx = self.rob_get_indices(m).start
-                m.d.comb += should_write.eq((rob_id - rob_start_idx) < (self.rob_id - rob_start_idx))
+                m.d.comb += should_write.eq(
+                    (rob_id - rob_start_idx).as_unsigned() < (self.rob_id - rob_start_idx).as_unsigned()
+                )
             with m.Else():
                 m.d.comb += should_write.eq(1)
 

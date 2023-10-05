@@ -4,8 +4,8 @@ from amaranth import *
 
 from coreblocks.params import GenParams, BlockComponentParams, DependencyManager
 from coreblocks.params.dependencies import UnifierKey
-from coreblocks.transactions import Method, TModule
-from coreblocks.transactions.lib import MethodProduct, Collector
+from transactron import Method, TModule
+from transactron.lib import MethodProduct, Collector
 from coreblocks.utils.protocols import Unifier
 
 __all__ = ["FuncBlocksUnifier"]

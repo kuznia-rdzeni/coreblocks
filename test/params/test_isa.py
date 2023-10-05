@@ -119,8 +119,8 @@ class TestISA(unittest.TestCase):
             | Extension.ZIFENCEI
             | Extension.ZICSR,
         ),
+        ISATestEntry("rv32ie", True, 32, 32, Extension.I | Extension.E),
         ISATestEntry("rv32", False),
-        ISATestEntry("rv32ie", False),
         ISATestEntry("rv64e", False),
         ISATestEntry("rv32fdc", False),
         ISATestEntry("rv32izicsrzmmul", False),

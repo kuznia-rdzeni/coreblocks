@@ -7,8 +7,8 @@ from amaranth.sim import Settle
 from parameterized import parameterized_class
 from coreblocks.stages.rs_func_block import RSBlockComponent
 
-from coreblocks.transactions.core import Method
-from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter
+from transactron.core import Method
+from transactron.lib import FIFO, AdapterTrans, Adapter
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
