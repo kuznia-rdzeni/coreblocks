@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.transactions import TModule
+from transactron import TModule
 from coreblocks.params import *
 from coreblocks.utils import ValueLike
 

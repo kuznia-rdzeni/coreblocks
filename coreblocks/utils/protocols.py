@@ -1,5 +1,5 @@
 from typing import Protocol
-from coreblocks.transactions import Method
+from transactron import Method
 from ._typing import HasElaborate
 
 

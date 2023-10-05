@@ -5,8 +5,8 @@ from functools import reduce
 from typing import List
 import operator
 
-from coreblocks.transactions import Method, def_method, TModule
-from coreblocks.transactions.lib import AdapterTrans
+from transactron import Method, def_method, TModule
+from transactron.lib import AdapterTrans
 from coreblocks.utils.utils import OneHotSwitchDynamic, assign
 from coreblocks.utils.fifo import BasicFifo
 

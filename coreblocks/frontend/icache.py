@@ -5,12 +5,12 @@ from typing import Protocol
 from amaranth import *
 from amaranth.utils import log2_int
 
-from coreblocks.transactions.core import def_method, Priority, TModule
-from coreblocks.transactions import Method, Transaction
+from transactron.core import def_method, Priority, TModule
+from transactron import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
 from coreblocks.utils import assign, OneHotSwitchDynamic
 from coreblocks.utils._typing import HasElaborate
-from coreblocks.transactions.lib import *
+from transactron.lib import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 
 

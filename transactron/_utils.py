@@ -3,8 +3,8 @@ import sys
 from inspect import Parameter, signature
 from typing import Callable, Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
-from ..utils._typing import LayoutLike
-from ..utils import OneHotSwitchDynamic
+from coreblocks.utils._typing import LayoutLike
+from coreblocks.utils import OneHotSwitchDynamic
 
 __all__ = [
     "Scheduler",

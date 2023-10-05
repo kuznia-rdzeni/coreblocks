@@ -11,11 +11,11 @@ from parameterized import parameterized, parameterized_class
 
 from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
-from coreblocks.transactions import *
-from coreblocks.transactions.lib import Adapter, AdapterTrans
-from coreblocks.transactions._utils import Scheduler
+from transactron import *
+from transactron.lib import Adapter, AdapterTrans
+from transactron._utils import Scheduler
 
-from coreblocks.transactions.core import (
+from transactron.core import (
     Priority,
     TransactionScheduler,
     trivial_roundrobin_cc_scheduler,

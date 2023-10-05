@@ -1,7 +1,7 @@
 from amaranth import *
 
 from coreblocks.params import GenParams
-from coreblocks.transactions import Method, Transaction, TModule
+from transactron import Method, Transaction, TModule
 
 __all__ = ["ResultAnnouncement"]
 

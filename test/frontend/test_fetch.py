@@ -5,8 +5,8 @@ import random
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
 
-from coreblocks.transactions.core import Method
-from coreblocks.transactions.lib import AdapterTrans, FIFO, Adapter
+from transactron.core import Method
+from transactron.lib import AdapterTrans, FIFO, Adapter
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.params import *

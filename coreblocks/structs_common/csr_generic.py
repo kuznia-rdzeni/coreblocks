@@ -4,8 +4,8 @@ from amaranth.lib.enum import IntEnum
 from typing import Optional
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.structs_common.csr import CSRRegister, TModule
-from coreblocks.transactions.core import Method, Transaction, def_method
+from coreblocks.structs_common.csr import CSRRegister
+from transactron.core import Method, Transaction, def_method, TModule
 
 
 class CSRAddress(IntEnum, shape=12):

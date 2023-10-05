@@ -4,7 +4,7 @@ from abc import abstractmethod, ABC
 from collections.abc import Callable
 from typing import Any, Generic, TypeVar
 
-from coreblocks.transactions import Method
+from transactron import Method
 from coreblocks.utils.protocols import Unifier
 
 

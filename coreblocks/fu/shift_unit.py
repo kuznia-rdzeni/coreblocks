@@ -1,8 +1,8 @@
 from typing import Sequence
 from amaranth import *
 
-from coreblocks.transactions import *
-from coreblocks.transactions.lib import FIFO
+from transactron import *
+from transactron.lib import FIFO
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
 from coreblocks.utils import OneHotSwitch

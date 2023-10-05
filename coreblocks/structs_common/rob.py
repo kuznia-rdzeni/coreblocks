@@ -1,5 +1,5 @@
 from amaranth import *
-from ..transactions import Method, def_method, TModule
+from transactron import Method, def_method, TModule
 from ..params import GenParams, ROBLayouts
 
 __all__ = ["ReorderBuffer"]

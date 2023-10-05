@@ -1,9 +1,9 @@
 from typing import Iterable, Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
-from coreblocks.transactions import Method, def_method, TModule
+from transactron import Method, def_method, TModule
 from coreblocks.params import RSLayouts, GenParams, OpType
-from coreblocks.transactions.core import RecordDict
+from transactron.core import RecordDict
 
 __all__ = ["RS"]
 
