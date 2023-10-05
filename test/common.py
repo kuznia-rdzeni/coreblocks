@@ -166,7 +166,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         return m
 
     def debug_signals(self):
-        sigs = {'_dut': auto_debug_signals(self._dut)}
+        sigs = {"_dut": auto_debug_signals(self._dut)}
         for name, io in self._io.items():
             sigs[name] = auto_debug_signals(io)
         return sigs
