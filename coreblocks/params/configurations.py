@@ -1,3 +1,4 @@
+from typing import Optional
 from collections.abc import Collection
 import dataclasses
 from dataclasses import dataclass
@@ -14,15 +15,55 @@ from coreblocks.fu.div_unit import DivComponent
 from coreblocks.fu.zbc import ZbcComponent
 from coreblocks.fu.zbs import ZbsComponent
 from coreblocks.fu.exception import ExceptionUnitComponent
+from coreblocks.fu.vector_unit.v_core import VectorBlockComponent
 from coreblocks.lsu.dummyLsu import LSUBlockComponent
+from coreblocks.lsu.vector_lsu import VectorLSUBlockComponent
 from coreblocks.structs_common.csr import CSRBlockComponent
 
-__all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
+__all__ = [
+    "CoreConfiguration",
+    "VectorUnitConfiguration",
+    "basic_core_config",
+    "tiny_core_config",
+    "full_core_config",
+    "vector_core_config",
+    "test_core_config",
+    "test_vector_core_config",
+]
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=4),
     LSUBlockComponent(),
 )
+
+
+@dataclass(kw_only=True)
+class VectorUnitConfiguration:
+    """Vector unit configuration parameters
+
+    Parameters
+    ----------
+    vlen : int
+        Length of one vector register in bits.
+    elen : int
+        Maximal supported element width by vector extension. It has to be
+        power of 2. Currently available values: {8,16,32,64}.
+    vrp_count : int
+        The number of physical vector registers.
+    register_bank_count : int
+        Number of banks to which an physical register should be split.
+    vvrs_entries : int
+        Number of entries in VVRS (reservation station for vector registers).
+    _vrl_count : int
+        Number of logical vector registers. Used in internal tests.
+    """
+
+    vlen: int = 1024
+    elen: int = 32
+    vrp_count: int = 40
+    register_bank_count: int = 4
+    vvrs_entries: int = 8
+    _vrl_count: int = 32
 
 
 @dataclass(kw_only=True)
@@ -57,6 +98,8 @@ class CoreConfiguration:
         Log of the cache line size (in bytes).
     allow_partial_extensions: bool
         Allow partial support of extensions.
+    vector_config: Optional[VectorUnitConfiguration]
+        Configuration of vector unit.
     _implied_extensions: Extenstion
         Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
     """
@@ -77,6 +120,8 @@ class CoreConfiguration:
     icache_block_size_bits: int = 5
 
     allow_partial_extensions: bool = False
+
+    vector_config: Optional[VectorUnitConfiguration] = None
 
     _implied_extensions: Extension = Extension(0)
 
@@ -132,4 +177,34 @@ test_core_config = CoreConfiguration(
     rob_entries_bits=7,
     phys_regs_bits=7,
     _implied_extensions=Extension.I,
+)
+
+# Core configuration used in internal testbenches with vector extension
+test_vector_core_config = CoreConfiguration(
+    func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(2)),
+    rob_entries_bits=7,
+    phys_regs_bits=7,
+    _implied_extensions=Extension.I | Extension.V,
+    vector_config=VectorUnitConfiguration(),
+)
+
+# Core configuration with vector extension
+vector_core_config = CoreConfiguration(
+    allow_partial_extensions=True,
+    vector_config=VectorUnitConfiguration(register_bank_count=1),
+    func_units_config=(
+        RSBlockComponent(
+            [
+                ALUComponent(),
+                ShiftUnitComponent(),
+                JumpComponent(),
+                ExceptionUnitComponent(),
+            ],
+            rs_entries=4,
+        ),
+        LSUBlockComponent(),
+        CSRBlockComponent(),
+        VectorBlockComponent(8),
+        VectorLSUBlockComponent(),
+    ),
 )

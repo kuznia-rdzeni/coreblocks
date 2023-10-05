@@ -253,7 +253,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, request=(ready_to_process & ~done)):
-            with m.Switch(instr.csr):
+            with m.Switch(instr.imm2):
                 for csr_number, methods in self.regfile.items():
                     read, write = methods
                     priv_level_required, read_only = csr_access_privilege(csr_number)

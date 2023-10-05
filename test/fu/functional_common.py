@@ -16,7 +16,7 @@ from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.optypes import OpType
 from coreblocks.transactions.lib import AdapterTrans, Adapter
-from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator
+from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator, generate_register_entry
 
 
 class FunctionalTestCircuit(Elaboratable):
@@ -113,6 +113,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         raise NotImplementedError
 
     def setUp(self):
+        self.maxDiff = None
         gen = GenParams(test_core_config)
         self.m = FunctionalTestCircuit(gen, self.func_unit)
 
@@ -130,7 +131,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             data_imm = random.randint(0, max_int)
             data2_is_imm = random.randint(0, 1)
             rob_id = random.randint(0, 2**gen.rob_entries_bits - 1)
-            rp_dst = random.randint(0, 2**gen.phys_regs_bits - 1)
+            rp_dst = generate_register_entry(gen.phys_regs_bits)
             exec_fn = self.ops[op]
             pc = random.randint(0, max_int) & ~0b11
             results = self.compute_result(data1, data2, data_imm, pc, op, gen.isa.xlen)

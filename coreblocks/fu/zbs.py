@@ -43,13 +43,14 @@ class Zbs(Elaboratable):
         First input.
     in2: Signal(xlen), in
         Second input.
-
-    Args:
-    ----
-        gen_params: Core generation parameters.
     """
 
     def __init__(self, gen_params: GenParams, function=ZbsFunction()):
+        """
+        Parameters
+        ----------
+            gen_params: Core generation parameters.
+        """
         self.gen_params = gen_params
 
         self.xlen = gen_params.isa.xlen

@@ -13,7 +13,14 @@ from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock, int_to_signed, signed_to_int
+from test.common import (
+    TestbenchIO,
+    TestCaseWithSimulator,
+    def_method_mock,
+    int_to_signed,
+    signed_to_int,
+    generate_register_entry,
+)
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
@@ -140,7 +147,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             mask = shift_mask_based_on_addr(mask, addr)
             addr = addr >> 2
 
-            rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
+            rp_dst = generate_register_entry(self.gp.phys_regs_bits)
             rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
             instr = {
                 "rp_s1": rp_s1,
@@ -261,7 +268,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
     def generate_instr(self, max_reg_val, max_imm_val):
         s1_val = random.randint(0, max_reg_val // 4) * 4
         imm = random.randint(0, max_imm_val // 4) * 4
-        rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
+        rp_dst = generate_register_entry(self.gp.phys_regs_bits)
         rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
 
         exec_fn = {"op_type": OpType.LOAD, "funct3": Funct3.W, "funct7": 0}
@@ -420,7 +427,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             v = yield from self.test_module.get_result.call()
             rob_id = self.get_result_data.pop()
             self.assertEqual(v["rob_id"], rob_id)
-            self.assertEqual(v["rp_dst"], 0)
+            self.assertEqual(v["rp_dst"]["id"], 0)
             yield from self.random_wait()
             self.precommit_data.pop()  # retire
 

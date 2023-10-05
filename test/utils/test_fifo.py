@@ -1,78 +1,157 @@
 from amaranth import *
+from amaranth.sim import Settle, Passive, Active
 
-from coreblocks.utils.fifo import BasicFifo
-from coreblocks.transactions.lib import AdapterTrans
+from coreblocks.utils.fifo import BasicFifo, MultiportFifo
+from coreblocks.utils._typing import LayoutLike
 
-from test.common import TestCaseWithSimulator, TestbenchIO, data_layout
-from collections import deque
+from test.common import TestCaseWithSimulator, data_layout, SimpleTestCircuit
 from parameterized import parameterized_class
 import random
+from typing import Callable
 
 
-class BasicFifoTestCircuit(Elaboratable):
-    def __init__(self, depth):
-        self.depth = depth
+params_dinit = [
+    ("notpower", 12),
+    ("power", 8),
+]
 
-    def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.fifo = self.fifo = BasicFifo(layout=data_layout(8), depth=self.depth)
-
-        m.submodules.fifo_read = self.fifo_read = TestbenchIO(AdapterTrans(self.fifo.read))
-        m.submodules.fifo_write = self.fifo_write = TestbenchIO(AdapterTrans(self.fifo.write))
-        m.submodules.fifo_clear = self.fifo_clear = TestbenchIO(AdapterTrans(self.fifo.clear))
-
-        return m
+params_c = [
+    (
+        "basic",
+        lambda self, layout, depth, port_count, fifo_count: BasicFifo(layout=layout, depth=depth),
+    ),
+    (
+        "multi",
+        lambda self, layout, depth, port_count, fifo_count: MultiportFifo(
+            layout=layout, depth=depth, port_count=port_count, fifo_count=fifo_count
+        ),
+    ),
+]
 
 
 @parameterized_class(
-    ("name", "depth"),
-    [
-        ("notpower", 5),
-        ("power", 4),
-    ],
+    ("name", "depth", "port_count", "fifo_count", "name_constr", "fifo_constructor"),
+    [dinit + (1, 1) + constr for dinit in params_dinit for constr in params_c]
+    + [dinit + (4, 4) + params_c[1] for dinit in params_dinit],
 )
 class TestBasicFifo(TestCaseWithSimulator):
     depth: int
+    port_count: int
+    fifo_count: int
+    fifo_constructor: Callable[[LayoutLike, int, int, int], Elaboratable]
 
     def test_randomized(self):
-        fifoc = BasicFifoTestCircuit(depth=self.depth)
-        expq = deque()
+        layout = data_layout(8)
+        width = len(Record(layout))
+        fifoc = SimpleTestCircuit(self.fifo_constructor(layout, self.depth, self.port_count, self.fifo_count))
+        writed: list[tuple[int, int, int]] = []  # (cycle_id, port_id, value)
+        readed = []
+        clears = []
 
-        cycles = 256
+        dones = [False for _ in range(self.port_count)]
+
+        packet_counter = 0
+        cycles = 100
         random.seed(42)
 
-        self.done = False
+        def source_generator(port_id: int):
+            def source():
+                nonlocal packet_counter
+                cycle = 0
+                for _ in range(cycles):
+                    cycle += 1
+                    if random.randint(0, 1):
+                        cycle += 1
+                        yield  # random delay
 
-        def source():
-            for _ in range(cycles):
-                if random.randint(0, 1):
-                    yield  # random delay
+                    if port_id == 0 and random.random() < 0.05:
+                        if (yield from fifoc.clear.call_try()) is None:
+                            assert "Clearing failed"
+                        clears.append(cycle)
+                        cycle += 1
+                        packet_counter = 0
 
-                v = random.randint(0, (2**fifoc.fifo.width) - 1)
-                yield from fifoc.fifo_write.call(data=v)
-                expq.appendleft(v)
+                    v = random.randrange(2**width)
+                    yield Settle()
+                    while (yield from fifoc.write_methods[port_id].call_try(data=v)) is None:
+                        cycle += 1
+                    writed.append((cycle, port_id, v))
+                    packet_counter += 1
+                dones[port_id] = True
 
-                if random.random() < 0.005:
-                    yield from fifoc.fifo_clear.call()
-                    expq.clear()
+            return source
 
-            self.done = True
+        def target_generator(port_id: int):
+            def target():
+                nonlocal packet_counter
+                yield Passive()
+                cycle = 0
+                while True:
+                    cycle += 1
+                    if random.randint(0, 1):
+                        cycle += 1
+                        yield
 
-        def target():
-            while not self.done or expq:
-                if random.randint(0, 1):
-                    yield
+                    v = yield from fifoc.read_methods[port_id].call_try()
+                    yield Settle()
+                    if v is not None and (not clears or cycle != clears[-1]):
+                        readed.append((cycle, port_id, v["data"]))
+                        packet_counter -= 1
+                    if packet_counter == 0:
+                        yield Passive()
+                    else:
+                        yield Active()
 
-                yield from fifoc.fifo_read.call_init()
+            return target
+
+        def checker():
+            while not all(dones) or packet_counter > 0:
                 yield
+            readed.sort()
+            writed.sort()
+            inf_int = 1000000000
+            clears.append(inf_int)
 
-                v = yield from fifoc.fifo_read.call_result()
-                if v is not None:
-                    self.assertEqual(v["data"], expq.pop())
+            # check property:
+            # If value `val` was inserted in `write_cycle` and readed in `read_cycle` then
+            # every value `x` inserted in `x_write_cycle` < `write_cycle` should be read
+            # in `x_read_cycle` <= `read_cycle`.
+            def find_read_idx(cycle, val):
+                for i, (rc, _, vr) in enumerate(readed):
+                    if rc > clears[0]:
+                        return None
+                    if vr == val and rc > cycle:
+                        return i
+                raise RuntimeError()
 
-                yield from fifoc.fifo_read.disable()
+            paired = {}
+            first_cleared = inf_int
+            for idx, entry in enumerate(writed):
+                (write_cycle, port, val) = entry
+                while write_cycle > clears[0]:
+                    clears.pop(0)
+                    first_cleared = inf_int
+                if write_cycle > first_cleared:
+                    continue
+                earlier_writes = list(filter(lambda x: x[0] < write_cycle, writed))
+                read_idx = find_read_idx(write_cycle, val)
+                if read_idx is not None:
+                    read_entry = readed[read_idx]
+                    readed.pop(read_idx)
+                    paired[entry] = read_entry
+                    for x_entry in earlier_writes:
+                        (x_write_cycle, x_port, x) = x_entry
+                        try:
+                            rx_entry = paired[x_entry]
+                            self.assertLessEqual(rx_entry[0], read_entry[0])
+                        except KeyError:
+                            pass
+                else:
+                    first_cleared = write_cycle
+            self.assertEqual(0, len(readed))
 
-        with self.run_simulation(fifoc) as sim:
-            sim.add_sync_process(source)
-            sim.add_sync_process(target)
+        with self.run_simulation(fifoc, 4000) as sim:
+            sim.add_sync_process(checker)
+            for i in range(self.port_count):
+                sim.add_sync_process(source_generator(i))
+                sim.add_sync_process(target_generator(i))

@@ -1,3 +1,4 @@
+import math
 from itertools import takewhile
 
 from amaranth.lib.enum import unique, Enum, IntEnum, IntFlag, auto
@@ -7,6 +8,7 @@ __all__ = [
     "InstrType",
     "Opcode",
     "Funct3",
+    "Funct6",
     "Funct7",
     "Funct12",
     "ExceptionCause",
@@ -14,6 +16,18 @@ __all__ = [
     "FenceTarget",
     "FenceFm",
     "ISA",
+    "RegisterType",
+    "funct6_to_funct7",
+    "load_store_width_to_eew",
+    "SEW",
+    "EEW",
+    "EMUL",
+    "LMUL",
+    "eew_to_bits",
+    "bits_to_eew",
+    "eew_div_2",
+    "lmul_to_float",
+    "lmul_to_int",
     "Registers",
 ]
 
@@ -26,6 +40,9 @@ class InstrType(Enum):
     B = 3
     U = 4
     J = 5
+    S1U = 6  # Unsigned imm in RS1
+    S1I = 7  # Imm in RS1
+    S1IS2 = 8  # Imm in RS1, valid RS2
 
 
 @unique
@@ -41,6 +58,7 @@ class Opcode(IntEnum, shape=5):
     OP = 0b01100
     LUI = 0b01101
     OP32 = 0b01110
+    OP_V = 0b10101
     BRANCH = 0b11000
     JALR = 0b11001
     JAL = 0b11011
@@ -48,15 +66,60 @@ class Opcode(IntEnum, shape=5):
 
 
 class Funct3(IntEnum, shape=3):
-    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = _EINSTRACCESSFAULT = 0b000
+    JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = _EINSTRACCESSFAULT = OPIVV = VMEM8 = 0b000
     BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL \
-            = SEXTB = SEXTH = CLMUL = _EILLEGALINSTR = 0b001  # fmt: skip
-    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT = 0b010
-    D = SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = 0b011
-    BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = 0b100
-    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = 0b101
-    BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = 0b110
-    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = 0b111
+            = SEXTB = SEXTH = CLMUL = _EILLEGALINSTR = OPFVV = 0b001  # fmt: skip
+    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT = OPMVV = 0b010
+    D = SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = OPIVI = 0b011
+    BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = OPIVX = 0b100
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = OPFVF = VMEM16 = 0b101
+    BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = OPMVX = VMEM32 = 0b110
+    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = OPCFG = VMEM64 = 0b111
+
+
+class Funct6(IntEnum, shape=6):
+    VADD = 0b000000
+    VSUB = 0b000010
+    VRSUB = 0b000011
+    VMINU = 0b000100
+    VMIN = 0b000101
+    VMAXU = 0b000110
+    VMAX = 0b000111
+    VAND = 0b001001
+    VOR = 0b001010
+    VXOR = 0b001011
+    VRGATHER = 0b001100
+    VSLIDEUP = VRGATHEREI16 = 0b001110
+    VSLIDEDOWN = 0b001111
+    VADC = 0b010000
+    VMADC = 0b010001
+    VSBC = 0b010010
+    VMSBC = 0b010011
+    VMERGE = VMV = 0b010111
+    VMSEQ = 0b011000
+    VMSNE = 0b011001
+    VMSLTU = 0b011010
+    VMSLT = 0b011011
+    VMSLEU = 0b011100
+    VMSLE = 0b011101
+    VMSGTU = 0b011110
+    VMSGT = 0b011111
+    VSADDU = 0b100000
+    VSADD = 0b100001
+    VSSUBU = 0b100010
+    VSSUB = 0b100011
+    VSLL = 0b100101
+    VSMUL = VMV1R = VMV2R = VMV4R = VMV8R = 0b100111
+    VSRL = 0b101000
+    VSRA = 0b101001
+    VSSRL = 0b101010
+    VSSRA = 0b101011
+    VNSRL = 0b101100
+    VNSRA = 0b101101
+    VNCLIPU = 0b101110
+    VNCLIP = 0b101111
+    VWREDSUMU = 0b110000
+    VWREDSUM = 0b110001
 
 
 class Funct7(IntEnum, shape=7):
@@ -71,6 +134,10 @@ class Funct7(IntEnum, shape=7):
     ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = 0b0110000
     ZEXTH = 0b0000100
     SFENCEVMA = 0b0001001
+
+
+def funct6_to_funct7(funct6: Funct6, vm: bool | int) -> Funct7:
+    return Funct7(int(funct6) * 2 + int(vm))
 
 
 class Funct12(IntEnum, shape=12):
@@ -140,6 +207,12 @@ class FenceFm(IntEnum, shape=4):
 
 
 @unique
+class RegisterType(IntEnum, shape=1):
+    X = 0b0
+    V = 0b1
+
+
+@unique
 class ExceptionCause(IntEnum, shape=4):
     INSTRUCTION_ADDRESS_MISALIGNED = 0
     INSTRUCTION_ACCESS_FAULT = 1
@@ -155,6 +228,167 @@ class ExceptionCause(IntEnum, shape=4):
     INSTRUCTION_PAGE_FAULT = 12
     LOAD_PAGE_FAULT = 13
     STORE_PAGE_FAULT = 15
+
+
+class SEW(IntEnum):
+    """Representation of possible SEW
+
+    This enum represents SEWs as defined by the V extension, that
+    we are able to support in our core.
+
+    Possible values are represented by the small integer numbers to
+    compress the representation as much as possible. So it dosn't
+    take much HW resources to represent an SEW.
+    """
+
+    w8 = 0
+    w16 = 1
+    w32 = 2
+    w64 = 3
+
+
+EEW = SEW
+
+
+class LMUL(IntEnum):
+    m1 = 0
+    m2 = 1
+    m4 = 2
+    m8 = 3
+    mf2 = 7  # multiply fractional 2 --> LMUL=1/2
+    mf4 = 6
+    mf8 = 5
+
+
+EMUL = LMUL
+
+
+def eew_to_bits(eew: EEW) -> int:
+    """Convert EEW to number of bits
+
+    This function takes an eew in the form of enum and converts it to an
+    integer representing the width in bits of an element for the given eew.
+
+    Parameters
+    ----------
+    eew : EEW
+        EEW to convert to bit length.
+
+    Returns
+    -------
+    width : int
+        The width in bits of an element for the given eew.
+    """
+    if eew == EEW.w8:
+        return 8
+    elif eew == EEW.w16:
+        return 16
+    elif eew == EEW.w32:
+        return 32
+    elif eew == EEW.w64:
+        return 64
+    else:
+        raise ValueError(f"Not known EEW: {eew}")
+
+
+def bits_to_eew(bits: int) -> EEW:
+    """Convert width in bits to EEW
+
+    Parameters
+    ----------
+    bits : int
+        The width of an element in bits.
+
+    Returns
+    -------
+    eew : EEW
+        EEW representing elements with the given width.
+    """
+    if bits == 8:
+        return EEW.w8
+    elif bits == 16:
+        return EEW.w16
+    elif bits == 32:
+        return EEW.w32
+    elif bits == 64:
+        return EEW.w64
+    else:
+        raise ValueError(f"Not known EEW: {bits}")
+
+
+def eew_div_2(eew: EEW) -> EEW:
+    """Reduce EEW by 2
+
+    This function is a shortcut to easily reduce the EEW width by a factor of 2.
+
+    Parameters
+    ----------
+    eew : EEW
+        EEW to be divided by 2.
+    """
+    return bits_to_eew(eew_to_bits(eew) // 2)
+
+
+def lmul_to_float(lmul: LMUL) -> float:
+    """Converts LMUL to float
+
+    Parameters
+    ----------
+    lmul : LMUL
+        The lmul to convert.
+
+    Returns
+    -------
+    float
+        The multiplier that is represented by `lmul`.
+    """
+    match lmul:
+        case LMUL.m1:
+            return 1
+        case LMUL.m2:
+            return 2
+        case LMUL.m4:
+            return 4
+        case LMUL.m8:
+            return 8
+        case LMUL.mf2:
+            return 0.5
+        case LMUL.mf4:
+            return 0.25
+        case LMUL.mf8:
+            return 0.125
+
+
+def lmul_to_int(lmul: LMUL) -> int:
+    """Convert LMUL to int by rounding up.
+
+    Parameters
+    ----------
+    lmul : LMUL
+        Value to convert.
+    """
+    return math.ceil(lmul_to_float(lmul))
+
+
+def load_store_width_to_eew(funct3: Funct3 | int) -> EEW:
+    """Convert vector load/store funct3 to EEW.
+
+    Parameters
+    ----------
+    funct3 : Funct3 | int
+        Value to convert.
+    """
+    match funct3:
+        # constants taken from RISC-V V extension specification
+        case 0:
+            return EEW.w8
+        case 5:
+            return EEW.w16
+        case 6:
+            return EEW.w32
+        case 7:
+            return EEW.w64
+    raise ValueError("Wrong vector load/store width.")
 
 
 @unique
@@ -361,6 +595,11 @@ class ISA:
         self.reg_field_bits = 5
 
         self.csr_alen = 12
+
+        if self.extensions & Extension.V:
+            self.v_zimmlen = 11
+        else:
+            self.v_zimmlen = 0
 
 
 def gen_isa_string(extensions: Extension, isa_xlen: int, *, skip_internal: bool = False) -> str:

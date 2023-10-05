@@ -54,13 +54,15 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
 
     mem_model = CoreMemoryModel(mem_segments)
 
-    success = await sim_backend.run(mem_model, timeout_cycles=5000000)
+    success = await sim_backend.run(mem_model, timeout_cycles=1000000)
 
     if not success:
         raise RuntimeError("Simulation timed out")
 
     if mmio.return_code() != 0:
-        raise RuntimeError("The benchmark exited with a non-zero return code: %d" % mmio.return_code())
+        raise RuntimeError(
+            "The benchmark exited with a non-zero return code: {0:d} (hex: 0x{0:X})".format(mmio.return_code())
+        )
 
     results = {"cycle": mmio.cycle_cnt(), "instr": mmio.instr_cnt()}
 

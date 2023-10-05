@@ -5,7 +5,7 @@ from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.transactions.core import Transaction, TModule
 from coreblocks.transactions.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import Extension
 from coreblocks.frontend.decode import Decode
@@ -62,6 +62,8 @@ class Core(Elaboratable):
 
         connections = gen_params.get(DependencyManager)
         connections.add_dependency(WishboneDataKey(), self.wb_master_data)
+        connections.add_dependency(ROBPeekKey(), self.ROB.peek)
+        connections.add_dependency(ROBBlockInterruptsKey(), self.ROB.block_interrupts)
 
         self.exception_cause_register = ExceptionCauseRegister(self.gen_params, rob_get_indices=self.ROB.get_indices)
 
@@ -111,7 +113,8 @@ class Core(Elaboratable):
         m.submodules.scheduler = Scheduler(
             get_instr=fifo_decode.read,
             get_free_reg=free_rf_fifo.read,
-            rat_rename=frat.rename,
+            rat_get_rename=frat.get_rename_list[0],
+            rat_set_rename=frat.set_rename_list[0],
             rob_put=rob.put,
             rf_read1=rf.read1,
             rf_read2=rf.read2,

@@ -4,10 +4,11 @@ from contextlib import contextmanager
 from enum import Enum, auto
 from typing import ClassVar, NoReturn, TypeAlias, TypedDict, Union, Optional, Tuple
 from graphlib import TopologicalSorter
-from typing_extensions import Self
+from typing_extensions import Concatenate, Self, ParamSpec
 from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
+from functools import partial
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
@@ -29,6 +30,7 @@ __all__ = [
     "eager_deterministic_cc_scheduler",
     "trivial_roundrobin_cc_scheduler",
     "def_method",
+    "loop_def_method",
 ]
 
 
@@ -38,6 +40,7 @@ PriorityOrder: TypeAlias = dict["Transaction", int]
 TransactionScheduler: TypeAlias = Callable[["MethodMap", TransactionGraph, TransactionGraphCC, PriorityOrder], Module]
 RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 TransactionOrMethod: TypeAlias = Union["Transaction", "Method"]
+P = ParamSpec("P")
 
 
 class Priority(Enum):
@@ -67,7 +70,10 @@ class MethodMap:
         def rec(transaction: Transaction, source: TransactionBase):
             for method in source.method_uses.keys():
                 if not method.defined:
-                    raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
+                    raise RuntimeError(
+                        f"Trying to use method '{method.name}:{method.owned_name}' which is not defined yet. "
+                        + "Are you sure that it was added to proper submodule?"
+                    )
                 if method in self.methods_by_transaction[transaction]:
                     raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
@@ -402,7 +408,6 @@ class TransactionManager(Elaboratable):
             with Transaction(manager=self, name=name).body(m):
                 for transaction in group:
                     methods[transaction](m)
-
         return m
 
     def elaborate(self, platform):
@@ -787,7 +792,7 @@ class TransactionBase(Owned):
     def get(cls) -> Self:
         ret = cls.peek()
         if ret is None:
-            raise RuntimeError("No current body")
+            raise RuntimeError("No transaction body have been found. Maybe you use method outside of transaction?")
         return ret
 
     @classmethod
@@ -1178,7 +1183,7 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
     .. highlight:: python
     .. code-block:: python
 
-        m = Module()
+        m = TModule()
         my_sum_method = Method(i=[("arg1",8),("arg2",8)], o=[("res",8)])
         @def_method(m, my_sum_method)
         def _(arg1, arg2):
@@ -1212,5 +1217,88 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
 
         if ret_out is not None:
             m.d.top_comb += assign(out, ret_out, fields=AssignType.ALL)
+
+    return decorator
+
+
+def loop_def_method(
+    m: TModule, methods_list: list[Method], ready_list: Optional[Sequence[ValueLike] | Callable] = None
+):
+    """Decorator for defining similar methods
+
+    This decorator is a wrapper over `def_method`, which allows you to easily
+    define multiple similar methods in a loop.
+
+    The function over which this decorator is applied, should always expect
+    at least one argument, as the index of the method will be passed as the
+    first argument to the function.
+
+    This is a syntax sugar equivalent to:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        for i in range(len(my_methods)):
+            @def_method(m, my_methods[i])
+            def _(arg):
+                ...
+
+    Parameters
+    ----------
+    m: TModule
+        Module in which operations on signals should be executed.
+    methods_list: list[Method]
+        The list of methods whose body is going to be defined.
+    ready_list: list[Signal] | Callable[[int], Value] | None
+        Either a list of signals to indicate whether the methods are ready to execute
+        or a `Callable` that takes the index in the form of an `int` of the currently defined method
+        and produce a `Value` describing whether the method is ready to be run.
+        The default is `None`, which generates `Const(1)` for each method, so that method is always ready.
+        Assigned combinationally to the `ready` attribute.
+
+    Examples
+    --------
+    Define three methods with the same body:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        m = TModule()
+        my_sum_methods = [Method(i=[("arg1",8),("arg2",8)], o=[("res",8)]) for _ in range(3)]
+        @loop_def_method(m, my_sum_methods)
+        def _(_, arg1, arg2):
+            return arg1 + arg2
+
+    Define three methods with the different but similar body:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        m = TModule()
+        my_sum_methods = [Method(i=[("arg1",8),("arg2",8)], o=[("res",8)]) for _ in range(3)]
+        @loop_def_method(m, my_sum_methods)
+        def _(index : int, arg1, arg2):
+            return arg1 + arg2 + index
+
+    Define three methods with different ready signals, each of them generated using `Callable`:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        @loop_def_method(m, my_filter_read_methods, ready_list=lambda i: fifo.head == i)
+        def _(_):
+            return fifo.read(m)
+    """
+    if ready_list is None:
+        ready_list = [C(1) for _ in methods_list]
+    if isinstance(ready_list, Callable):
+        ready_list = [ready_list(i) for i in range(len(methods_list))]
+    if len(methods_list) != len(ready_list):
+        raise ValueError("There is different number of methods and ready signals passed.")
+
+    def decorator(func: Callable[Concatenate[int, P], Optional[RecordDict]]):
+        for i in range(len(methods_list)):
+            partial_f = partial(func, i)
+            def_method(m, methods_list[i], ready_list[i])(partial_f)
 
     return decorator

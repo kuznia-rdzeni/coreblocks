@@ -2,7 +2,7 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import *
-from coreblocks.transactions.lib import FIFO
+from coreblocks.transactions.lib import FIFO, Register
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
 from coreblocks.utils import HasElaborate, OneHotSwitch
@@ -220,22 +220,25 @@ class AluFuncUnit(FuncUnit, Elaboratable):
         m = TModule()
 
         m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.alu_fn)
-        m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
+        m.submodules.fifo_in = fifo_in = Register(self.gen_params.get(FuncUnitLayouts).issue)
+        m.submodules.fifo_out = fifo_out = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.alu_fn.get_decoder(self.gen_params)
 
-        @def_method(m, self.accept)
-        def _():
-            return fifo.read(m)
+        self.accept.proxy(m, fifo_out.read)
+
+        with Transaction().body(m):
+            arg = fifo_in.read(m)
+            m.d.top_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.top_comb += alu.fn.eq(decoder.decode_fn)
+
+            m.d.top_comb += alu.in1.eq(arg.s1_val)
+            m.d.top_comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
+
+            fifo_out.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
-            m.d.comb += alu.fn.eq(decoder.decode_fn)
-
-            m.d.comb += alu.in1.eq(arg.s1_val)
-            m.d.comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
-
-            fifo.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
+            fifo_in.write(m, arg)
 
         return m
 

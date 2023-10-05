@@ -85,7 +85,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         op = random.choice(ops)
         imm_op = op == Funct3.CSRRWI or op == Funct3.CSRRCI or op == Funct3.CSRRSI
 
-        rd = random.randint(0, 15)
+        rd = generate_register_entry(4)
         rs1 = 0 if imm_op else random.randint(0, 15)
         imm = random.randint(0, 2**self.gp.isa.xlen - 1)
         rs1_val = random.randint(0, 2**self.gp.isa.xlen - 1) if rs1 else 0
@@ -104,7 +104,7 @@ class TestCSRUnit(TestCaseWithSimulator):
                 "s1_val": exp["rs1"]["value"] if value_available and not imm_op else 0,
                 "rp_dst": rd,
                 "imm": imm,
-                "csr": csr,
+                "imm2": csr,
             },
             "exp": exp,
         }
@@ -137,7 +137,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             self.assertTrue(self.dut.fetch_continue.done())
             self.assertEqual(res["rp_dst"], op["exp"]["exp_read"]["rp_dst"])
-            if op["exp"]["exp_read"]["rp_dst"]:
+            if op["exp"]["exp_read"]["rp_dst"]["id"]:
                 self.assertEqual(res["result"], op["exp"]["exp_read"]["result"])
             self.assertEqual((yield self.dut.csr[op["exp"]["exp_write"]["csr"]].value), op["exp"]["exp_write"]["value"])
             self.assertEqual(res["exception"], 0)
@@ -175,9 +175,9 @@ class TestCSRUnit(TestCaseWithSimulator):
                     "rp_s1": 0,
                     "rp_s1_reg": 1,
                     "s1_val": 1,
-                    "rp_dst": 2,
+                    "rp_dst": {"id": 2, "type": RegisterType.X},
                     "imm": 0,
-                    "csr": csr,
+                    "imm2": csr,
                     "rob_id": rob_id,
                 }
             )

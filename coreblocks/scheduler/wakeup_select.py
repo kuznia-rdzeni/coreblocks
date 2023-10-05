@@ -1,7 +1,9 @@
+from typing import Optional
+
 from amaranth import *
 
 from coreblocks.params import GenParams, FuncUnitLayouts
-from coreblocks.utils import assign, AssignType
+from coreblocks.utils import assign, AssignType, LayoutLike
 from coreblocks.transactions.core import *
 
 __all__ = ["WakeupSelect"]
@@ -18,7 +20,15 @@ class WakeupSelect(Elaboratable):
 
     """
 
-    def __init__(self, *, gen_params: GenParams, get_ready: Method, take_row: Method, issue: Method):
+    def __init__(
+        self,
+        *,
+        gen_params: GenParams,
+        get_ready: Method,
+        take_row: Method,
+        issue: Method,
+        row_layout: Optional[LayoutLike] = None
+    ):
         """
         Parameters
         ----------
@@ -35,6 +45,7 @@ class WakeupSelect(Elaboratable):
         self.get_ready = get_ready  # assumption: ready only if nonzero result
         self.take_row = take_row
         self.issue = issue
+        self.row_layout = row_layout if row_layout is not None else self.gen_params.get(FuncUnitLayouts).issue
 
     def elaborate(self, platform):
         m = TModule()
@@ -48,8 +59,8 @@ class WakeupSelect(Elaboratable):
                     m.d.comb += last.eq(i)
 
             row = self.take_row(m, last)
-            issue_rec = Record(self.gen_params.get(FuncUnitLayouts).issue)
-            m.d.comb += assign(issue_rec, row, fields=AssignType.ALL)
+            issue_rec = Record(self.row_layout)
+            m.d.comb += assign(issue_rec, row, fields=AssignType.COMMON)
             self.issue(m, issue_rec)
 
         return m

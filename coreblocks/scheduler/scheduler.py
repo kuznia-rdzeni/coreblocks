@@ -3,8 +3,8 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.transactions import Method, Transaction, TModule
-from coreblocks.transactions.lib import FIFO, Forwarder
-from coreblocks.params import SchedulerLayouts, GenParams, OpType
+from coreblocks.transactions.lib import FIFO, Forwarder, condition
+from coreblocks.params import SchedulerLayouts, GenParams, OpType, RegisterType
 from coreblocks.utils import assign, AssignType
 from coreblocks.utils.protocols import FuncBlock
 
@@ -49,12 +49,16 @@ class RegAllocation(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            with m.If(instr.regs_l.rl_dst != 0):
+            with m.If((instr.regs_l.dst.id != 0) & (instr.regs_l.dst.type == RegisterType.X)):
                 reg_id = self.get_free_reg(m)
                 m.d.comb += free_reg.eq(reg_id)
+            with m.Else():
+                # For X0 this will assign 0, for any other type it will copy logical id
+                m.d.comb += free_reg.eq(instr.regs_l.dst.id)
 
             m.d.comb += assign(data_out, instr)
-            m.d.comb += data_out.regs_p.rp_dst.eq(free_reg)
+            m.d.comb += data_out.regs_p.dst.id.eq(free_reg)
+            m.d.comb += data_out.regs_p.dst.type.eq(instr.regs_l.dst.type)
             self.push_instr(m, data_out)
 
         return m
@@ -67,7 +71,9 @@ class Renaming(Elaboratable):
     the F-RAT with the translation from the logical destination register ID to the physical ID.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, rename: Method, gen_params: GenParams):
+    def __init__(
+        self, *, get_instr: Method, push_instr: Method, get_rename: Method, set_rename: Method, gen_params: GenParams
+    ):
         """
         Parameters
         ----------
@@ -75,9 +81,12 @@ class Renaming(Elaboratable):
             Method providing instructions with an allocated physical register. Uses `SchedulerLayouts.renaming_in`.
         push_instr: Method
             Method used for pushing the serviced instruction to the next step. Uses `SchedulerLayouts.renaming_out`.
-        rename: Method
-            Method used for renaming the source register in F-RAT. Uses
-            `RATLayouts.rename_input_layout` and `RATLayouts.rename_output_layout`.
+        get_rename: Method
+            Method used for reading the renaming of the source register from F-RAT.
+            Uses `RATLayouts.get_rename_in` and `RATLayouts.get_rename_out`.
+        set_rename: Method
+            Method used for updating the renaming of the source register in the F-RAT.
+            Uses `RATLayouts.set_rename_in`.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -88,7 +97,8 @@ class Renaming(Elaboratable):
 
         self.get_instr = get_instr
         self.push_instr = push_instr
-        self.rename = rename
+        self.get_rename = get_rename
+        self.set_rename = set_rename
 
     def elaborate(self, platform):
         m = TModule()
@@ -97,21 +107,28 @@ class Renaming(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-            renamed_regs = self.rename(
-                m,
-                {
-                    "rl_s1": instr.regs_l.rl_s1,
-                    "rl_s2": instr.regs_l.rl_s2,
-                    "rl_dst": instr.regs_l.rl_dst,
-                    "rp_dst": instr.regs_p.rp_dst,
-                },
-            )
 
-            m.d.comb += assign(data_out, instr, fields={"exec_fn", "imm", "csr", "pc"})
+            with m.If(instr.regs_l.dst.type == RegisterType.X):
+                self.set_rename(m, rl_dst=instr.regs_l.dst.id, rp_dst=instr.regs_p.dst.id)
+
+            renamed_regs = self.get_rename(m, rl_s1=instr.regs_l.s1.id, rl_s2=instr.regs_l.s2.id)
+
+            m.d.comb += assign(data_out, instr, fields={"exec_fn", "imm", "imm2", "pc"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
-            m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
-            m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
-            m.d.comb += data_out.regs_p.rp_s2.eq(renamed_regs.rp_s2)
+            m.d.comb += data_out.regs_p.dst.eq(instr.regs_p.dst)
+
+            with m.If(instr.regs_l.s1.type == RegisterType.X):
+                m.d.comb += data_out.regs_p.s1.id.eq(renamed_regs.rp_s1)
+            with m.Else():
+                m.d.comb += data_out.regs_p.s1.id.eq(instr.regs_l.s1.id)
+            m.d.comb += data_out.regs_p.s1.type.eq(instr.regs_l.s1.type)
+
+            with m.If(instr.regs_l.s2.type == RegisterType.X):
+                m.d.comb += data_out.regs_p.s2.id.eq(renamed_regs.rp_s2)
+            with m.Else():
+                m.d.comb += data_out.regs_p.s2.id.eq(instr.regs_l.s2.id)
+            m.d.comb += data_out.regs_p.s2.type.eq(instr.regs_l.s2.type)
+
             self.push_instr(m, data_out)
 
         return m
@@ -158,8 +175,8 @@ class ROBAllocation(Elaboratable):
             rob_id = self.rob_put(
                 m,
                 {
-                    "rl_dst": instr.regs_l.rl_dst,
-                    "rp_dst": instr.regs_p.rp_dst,
+                    "rl_dst": instr.regs_l.dst,
+                    "rp_dst": instr.regs_p.dst,
                 },
             )
 
@@ -298,40 +315,39 @@ class RSInsertion(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        # This transaction will not be stalled by single RS because insert methods do not use conditional calling,
-        # therefore we can use single transaction here.
         with Transaction().body(m):
             instr = self.get_instr(m)
-            source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
-            source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
+            source1 = self.rf_read1(m, {"reg_id": instr.regs_p.s1.id})
+            source2 = self.rf_read2(m, {"reg_id": instr.regs_p.s2.id})
 
             data = {
                 # when operand value is valid the convention is to set operand source to 0
                 "rs_data": {
-                    "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
-                    "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
-                    "rp_s1_reg": instr.regs_p.rp_s1,
-                    "rp_s2_reg": instr.regs_p.rp_s2,
-                    "rp_dst": instr.regs_p.rp_dst,
+                    "rp_s1": Mux(source1.valid & (instr.regs_p.s1.type == RegisterType.X), 0, instr.regs_p.s1),
+                    "rp_s2": Mux(source2.valid & (instr.regs_p.s2.type == RegisterType.X), 0, instr.regs_p.s2),
+                    "rp_s1_reg": instr.regs_p.s1.id,
+                    "rp_s2_reg": instr.regs_p.s2.id,
+                    "rp_dst": instr.regs_p.dst,
                     "rob_id": instr.rob_id,
                     "exec_fn": instr.exec_fn,
                     "s1_val": Mux(source1.valid, source1.reg_val, 0),
                     "s2_val": Mux(source2.valid, source2.reg_val, 0),
                     "imm": instr.imm,
-                    "csr": instr.csr,
+                    "imm2": instr.imm2,
                     "pc": instr.pc,
                 },
             }
 
-            for i, rs_insert in enumerate(self.rs_insert):
-                # connect only matching fields
-                arg = Record.like(rs_insert.data_in)
-                m.d.comb += assign(arg, data, fields=AssignType.COMMON)
-                # this assignment truncates signal width from max rs_entry_bits to target RS specific width
-                m.d.comb += arg.rs_entry_id.eq(instr.rs_entry_id)
+            with condition(m, priority=False) as branch:
+                for i, rs_insert in enumerate(self.rs_insert):
+                    # connect only matching fields
+                    arg = Record.like(rs_insert.data_in)
+                    m.d.top_comb += assign(arg, data, fields=AssignType.COMMON)
+                    # this assignment truncates signal width from max rs_entry_bits to target RS specific width
+                    m.d.top_comb += arg.rs_entry_id.eq(instr.rs_entry_id)
 
-                with m.If(instr.rs_selected == i):
-                    rs_insert(m, arg)
+                    with branch(instr.rs_selected == i):
+                        rs_insert(m, arg)
 
         return m
 
@@ -359,7 +375,8 @@ class Scheduler(Elaboratable):
         *,
         get_instr: Method,
         get_free_reg: Method,
-        rat_rename: Method,
+        rat_get_rename: Method,
+        rat_set_rename: Method,
         rob_put: Method,
         rf_read1: Method,
         rf_read2: Method,
@@ -374,9 +391,12 @@ class Scheduler(Elaboratable):
             layout as described by `DecodeLayouts.decoded_instr`.
         get_free_reg: Method
             Method providing the ID of a currently free physical register.
-        rat_rename: Method
-            Method used for renaming the source register in F-RAT. Uses `RATLayouts.rat_rename_in`
-            and `RATLayouts.rat_rename_out`.
+        rat_get_rename: Method
+            Method used for reading the renaming of the source register from F-RAT.
+            Uses `RATLayouts.get_rename_in` and `RATLayouts.get_rename_out`.
+        rat_set_rename: Method
+            Method used for updating the renaming of the source register in the F-RAT.
+            Uses `RATLayouts.set_rename_in`.
         rob_put: Method
             Method used for getting a free entry in ROB. Uses `ROBLayouts.data_layout`.
         rf_read1: Method
@@ -394,7 +414,8 @@ class Scheduler(Elaboratable):
         self.layouts = self.gen_params.get(SchedulerLayouts)
         self.get_instr = get_instr
         self.get_free_reg = get_free_reg
-        self.rat_rename = rat_rename
+        self.get_rat_rename = rat_get_rename
+        self.set_rat_rename = rat_set_rename
         self.rob_put = rob_put
         self.rf_read1 = rf_read1
         self.rf_read2 = rf_read2
@@ -415,7 +436,8 @@ class Scheduler(Elaboratable):
         m.submodules.renaming = Renaming(
             get_instr=alloc_rename_buf.read,
             push_instr=rename_out_buf.write,
-            rename=self.rat_rename,
+            get_rename=self.get_rat_rename,
+            set_rename=self.set_rat_rename,
             gen_params=self.gen_params,
         )
 

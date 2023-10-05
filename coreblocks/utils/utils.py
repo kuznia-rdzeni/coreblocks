@@ -15,12 +15,26 @@ __all__ = [
     "flatten_signals",
     "align_to_power_of_two",
     "bits_from_int",
+    "layout_subset",
+    "layout_difference",
     "ModuleConnector",
     "silence_mustuse",
     "popcount",
     "count_leading_zeros",
     "count_trailing_zeros",
+    "mod_incr",
+    "MultiPriorityEncoder",
+    "PriorityUniqnessChecker",
 ]
+
+
+def mod_incr(sig: Value, mod: int) -> Value:
+    """
+    Perform `(sig+1) % mod` operation.
+    """
+    if mod == 2 ** len(sig):
+        return sig + 1
+    return Mux(sig == mod - 1, 0, sig + 1)
 
 
 @contextmanager
@@ -308,7 +322,8 @@ def count_leading_zeros(s: Value) -> Value:
     try:
         xlen_log = log2_int(len(s))
     except ValueError:
-        raise NotImplementedError("CountLeadingZeros - only sizes aligned to power of 2 are supperted")
+        xlen_log = log2_int(len(s), False)
+        s = Cat(Repl(1, (1 << xlen_log) - len(s)), s)
 
     value = iter(s, xlen_log)
 
@@ -325,13 +340,17 @@ def count_trailing_zeros(s: Value) -> Value:
     try:
         log2_int(len(s))
     except ValueError:
-        raise NotImplementedError("CountTrailingZeros - only sizes aligned to power of 2 are supperted")
+        s = Cat(s, Repl(1, (1 << log2_int(len(s), False)) - len(s)))
 
     return count_leading_zeros(s[::-1])
 
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]
+
+
+def layout_difference(layout: LayoutList, *, fields: set[str]) -> LayoutList:
+    return [item for item in layout if item[0] not in fields]
 
 
 def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
@@ -418,3 +437,118 @@ def silence_mustuse(elaboratable: Elaboratable):
     except Exception:
         elaboratable._MustUse__silence = True  # type: ignore
         raise
+
+
+class MultiPriorityEncoder(Elaboratable):
+    """Priority encoder with more outputs
+
+    This is an extension of the `PriorityEncoder` from amaranth, that supports
+    generating more than one output from an input signal. In other words
+    it decodes multi-hot encoded signal to lists of signals in binary
+    format, each with index of a different high bit in input.
+
+    Attributes
+    ----------
+    input_width : int
+        Width of the input signal
+    outputs_count : int
+        Number of outputs to generate at once.
+    input : Signal, in
+        Signal with 1 on `i`-th bit if `i` can be selected by encoder
+    outputs : list[Signal], out
+        Signals with selected indicies, they are sorted in ascending order,
+        if the number of ready signals is less than `outputs_count`,
+        then valid signals are at the beginning of the list.
+    valids : list[Signals], out
+        One bit for each output signal, indicating whether the output is valid or not.
+    """
+
+    def __init__(self, input_width: int, outputs_count: int):
+        self.input_width = input_width
+        self.outputs_count = outputs_count
+
+        self.input = Signal(self.input_width)
+        self.outputs = [Signal(range(self.input_width), name="output") for _ in range(self.outputs_count)]
+        self.valids = [Signal(name="valid") for _ in range(self.outputs_count)]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        current_outputs = [Signal(range(self.input_width)) for _ in range(self.outputs_count)]
+        current_valids = [Signal() for _ in range(self.outputs_count)]
+        for j in reversed(range(self.input_width)):
+            new_current_outputs = [Signal(range(self.input_width)) for _ in range(self.outputs_count)]
+            new_current_valids = [Signal() for _ in range(self.outputs_count)]
+            with m.If(self.input[j]):
+                m.d.comb += new_current_outputs[0].eq(j)
+                m.d.comb += new_current_valids[0].eq(1)
+                for k in range(self.outputs_count - 1):
+                    m.d.comb += new_current_outputs[k + 1].eq(current_outputs[k])
+                    m.d.comb += new_current_valids[k + 1].eq(current_valids[k])
+            with m.Else():
+                for k in range(self.outputs_count):
+                    m.d.comb += new_current_outputs[k].eq(current_outputs[k])
+                    m.d.comb += new_current_valids[k].eq(current_valids[k])
+            current_outputs = new_current_outputs
+            current_valids = new_current_valids
+
+        for k in range(self.outputs_count):
+            m.d.comb += self.outputs[k].eq(current_outputs[k])
+            m.d.comb += self.valids[k].eq(current_valids[k])
+
+        return m
+
+
+class PriorityUniqnessChecker(Elaboratable):
+    """Find every first occurrence of the argument.
+
+    This module takes `input_count` arguments and checks which are
+    unique. The first occurrence of a unique value is valid, all others
+    are not.
+
+    Attributes
+    ----------
+    inputs : list[Signal], in
+        List of input signals to be compared for uniqueness. Each has
+        `input_width` bits.
+    inputs_valids : list[Signal], in
+        Marks valid inputs to compare.
+    valids : list[Signal], out
+        Result of the uniqueness check. Each first occurrence of value
+        has 1 bit and all others have 0.
+    """
+
+    def __init__(self, inputs_count: int, input_width: int, *, non_valid_ok: bool = False):
+        """
+        Parameters
+        ----------
+        input_width : int
+            Width of an input element in bits.
+        input_count : int
+            Number of inputs to create.
+        non_valid_ok : bool
+            If set to True output for non valid input will be set to 1.
+        """
+        self.input_width = input_width
+        self.inputs_count = inputs_count
+        self.non_valid_ok = non_valid_ok
+
+        self.inputs = [Signal(self.input_width) for _ in range(self.inputs_count)]
+        self.input_valids = [Signal() for _ in range(self.inputs_count)]
+        self.valids = [Signal(reset=1) for _ in range(self.inputs_count)]
+
+    def elaborate(self, platform):
+        m = Module()
+
+        for i in range(self.inputs_count):
+            if self.non_valid_ok:
+                cond = Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any()
+            else:
+                cond = (
+                    Cat([(self.inputs[i] == self.inputs[j]) & self.input_valids[j] for j in range(i)]).any()
+                    | ~self.input_valids[i]
+                )
+            with m.If(cond):
+                m.d.comb += self.valids[i].eq(0)
+
+        return m

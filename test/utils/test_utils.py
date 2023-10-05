@@ -3,7 +3,14 @@ import random
 
 from amaranth import *
 from test.common import *
-from coreblocks.utils import align_to_power_of_two, popcount, count_leading_zeros, count_trailing_zeros
+from coreblocks.utils import (
+    align_to_power_of_two,
+    popcount,
+    count_leading_zeros,
+    count_trailing_zeros,
+    MultiPriorityEncoder,
+    PriorityUniqnessChecker,
+)
 from parameterized import parameterized_class
 
 
@@ -73,10 +80,9 @@ class TestPopcount(TestCaseWithSimulator):
 
 
 class CLZTestCircuit(Elaboratable):
-    def __init__(self, xlen_log: int):
-        self.sig_in = Signal(1 << xlen_log)
-        self.sig_out = Signal(xlen_log + 1)
-        self.xlen_log = xlen_log
+    def __init__(self, xlen: int):
+        self.sig_in = Signal(xlen)
+        self.sig_out = Signal(xlen + 1)
 
     def elaborate(self, platform):
         m = Module()
@@ -91,7 +97,7 @@ class CLZTestCircuit(Elaboratable):
 
 @parameterized_class(
     ("name", "size"),
-    [("size" + str(s), s) for s in range(1, 7)],
+    [("size" + str(s), s) for s in [1, 2, 4, 8, 16, 32, 3, 5, 13, 42, 111]],
 )
 class TestCountLeadingZeros(TestCaseWithSimulator):
     size: int
@@ -105,7 +111,7 @@ class TestCountLeadingZeros(TestCaseWithSimulator):
         yield self.m.sig_in.eq(n)
         yield Settle()
         out_clz = yield self.m.sig_out
-        self.assertEqual(out_clz, (2**self.size) - n.bit_length(), f"{n:x}")
+        self.assertEqual(out_clz, self.size - n.bit_length(), f"{n:x}")
 
     def process(self):
         for i in range(self.test_number):
@@ -119,10 +125,9 @@ class TestCountLeadingZeros(TestCaseWithSimulator):
 
 
 class CTZTestCircuit(Elaboratable):
-    def __init__(self, xlen_log: int):
-        self.sig_in = Signal(1 << xlen_log)
-        self.sig_out = Signal(xlen_log + 1)
-        self.xlen_log = xlen_log
+    def __init__(self, xlen: int):
+        self.sig_in = Signal(xlen)
+        self.sig_out = Signal(xlen + 1)
 
     def elaborate(self, platform):
         m = Module()
@@ -137,7 +142,7 @@ class CTZTestCircuit(Elaboratable):
 
 @parameterized_class(
     ("name", "size"),
-    [("size" + str(s), s) for s in range(1, 7)],
+    [("size" + str(s), s) for s in [1, 2, 4, 8, 16, 32, 3, 5, 13, 42, 111]],
 )
 class TestCountTrailingZeros(TestCaseWithSimulator):
     size: int
@@ -154,7 +159,7 @@ class TestCountTrailingZeros(TestCaseWithSimulator):
 
         expected = 0
         if n == 0:
-            expected = 2**self.size
+            expected = self.size
         else:
             while (n & 1) == 0:
                 expected += 1
@@ -171,3 +176,88 @@ class TestCountTrailingZeros(TestCaseWithSimulator):
     def test_count_trailing_zeros(self):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.process)
+
+
+class TestMultiPriorityEncoder(TestCaseWithSimulator):
+    def setUp(self):
+        random.seed(14)
+        self.test_number = 50
+        self.input_width = 16
+        self.output_count = 4
+
+        self.circ = MultiPriorityEncoder(self.input_width, self.output_count)
+
+    def get_expected(self, input):
+        places = []
+        for i in range(self.input_width):
+            if input % 2:
+                places.append(i)
+            input //= 2
+        places += [None] * self.output_count
+        return places
+
+    def process(self):
+        for _ in range(self.test_number):
+            input = random.randrange(2**self.input_width)
+            yield self.circ.input.eq(input)
+            yield Settle()
+            expected_output = self.get_expected(input)
+            for ex, real, valid in zip(expected_output, self.circ.outputs, self.circ.valids):
+                if ex is None:
+                    self.assertEqual((yield valid), 0)
+                else:
+                    self.assertEqual((yield valid), 1)
+                    self.assertEqual((yield real), ex)
+            yield Delay(1e-7)
+
+    def test_random(self):
+        with self.run_simulation(
+            self.circ,
+        ) as sim:
+            sim.add_process(self.process)
+
+
+@parameterized_class(["non_valid_ok"], [(False,), (True,)])
+class TestPriorityUniqnessChecker(TestCaseWithSimulator):
+    non_valid_ok: bool
+
+    def setUp(self):
+        random.seed(14)
+        self.test_number = 50
+        self.input_width = 4
+        self.input_count = 9
+        self.circ = PriorityUniqnessChecker(self.input_count, self.input_width, non_valid_ok=self.non_valid_ok)
+
+    def generate_mask(self, vals, inputs_valid):
+        s = set()
+        valids = []
+        for v, in_valid in zip(vals, inputs_valid):
+            if self.non_valid_ok:
+                valids.append(int(v not in s))
+            else:
+                valids.append(int((v not in s) and in_valid))
+
+            if in_valid:
+                s.add(v)
+        return valids
+
+    def input_process(self):
+        for _ in range(self.test_number):
+            inputs = []
+            inputs_valid = []
+            for k in range(self.input_count):
+                val = random.randrange(2**self.input_width)
+                in_valid = random.randrange(2)
+                inputs.append(val)
+                inputs_valid.append(in_valid)
+                yield self.circ.inputs[k].eq(val)
+                yield self.circ.input_valids[k].eq(in_valid)
+            yield Settle()
+            result = []
+            for i in range(self.input_count):
+                result.append((yield self.circ.valids[i]))
+            self.assertListEqual(self.generate_mask(inputs, inputs_valid), result)
+
+    def test_random(self):
+        with self.run_simulation(self.circ) as sim:
+            sim.add_process(self.input_process)
