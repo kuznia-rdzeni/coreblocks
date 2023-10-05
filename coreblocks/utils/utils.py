@@ -138,7 +138,7 @@ def assign_arg_fields(val: AssignArg) -> Optional[set[str]]:
     elif isinstance(val, Record):
         return set(val.fields)
     elif isinstance(val, data.View):
-        layout = data.Layout.cast(data.Layout.of(val))
+        layout = val.shape()
         if isinstance(layout, data.StructLayout):
             return set(k for k, _ in layout)
     elif isinstance(val, dict):
@@ -349,7 +349,7 @@ def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
         for x in signals.fields.values():
             yield from flatten_signals(x)
     elif isinstance(signals, data.View):
-        for x, _ in data.Layout.cast(data.Layout.of(signals)):
+        for x, _ in signals.shape():
             yield from flatten_signals(signals[x])
     else:
         yield signals

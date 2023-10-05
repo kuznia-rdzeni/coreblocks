@@ -10,7 +10,7 @@ from coreblocks.utils import HasElaborate
 __all__ = ["Elaboratable", "DriverConflict", "Fragment", "Instance"]
 
 
-class Elaboratable(metaclass=ABCMeta):
+class Elaboratable():
     @abstractmethod
     def elaborate(self, platform) -> HasElaborate:
         ...

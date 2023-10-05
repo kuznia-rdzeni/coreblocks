@@ -47,11 +47,6 @@ class Layout(ShapeCastable[View[Self]], metaclass=ABCMeta):
         """Cast a shape-castable object to a layout."""
         ...
     
-    @staticmethod
-    def of(obj: View[_T_ShapeCastable]) -> _T_ShapeCastable:
-        """Extract the layout from a view."""
-        ...
-    
     @abstractmethod
     def __iter__(self) -> Iterator[tuple[int | str, Field]]:
         """Iterate the layout, yielding ``(key, field)`` pairs. Keys may be strings or integers."""
@@ -191,6 +186,9 @@ class View(ValueCastable, Generic[_T_ShapeCastable]):
     def as_value(self) -> Value:
         ...
     
+    def shape(self) -> Layout:
+        ...
+
     def eq(self, other: ValueLike) -> Assign:
         ...
     
