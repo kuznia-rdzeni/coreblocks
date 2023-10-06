@@ -157,7 +157,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
         m.submodules.dut = self._dut
 
-        for name, attr in [(name, getattr(self._dut, name)) for name in dir(self._dut)]:
+        for name, attr in vars(self._dut).items():
             if guard_nested_collection(attr, Method) and attr:
                 tb_cont, mc = transform_methods_to_testbenchios(attr)
                 self._io[name] = tb_cont
@@ -166,7 +166,10 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         return m
 
     def debug_signals(self):
-        return [auto_debug_signals(io) for io in self._io.values()]
+        sigs = {"_dut": auto_debug_signals(self._dut)}
+        for name, io in self._io.items():
+            sigs[name] = auto_debug_signals(io)
+        return sigs
 
 
 class TestModule(Elaboratable):
