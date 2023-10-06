@@ -8,7 +8,7 @@ from amaranth.build import Resource, Attrs, Pins, Clock, PinsN
 from constants.ecp5_pinout import ecp5_bg756_pins, ecp5_bg756_pclk
 
 from coreblocks.peripherals.wishbone import WishboneParameters
-from coreblocks.transactions.lib import AdapterBase
+from transactron.lib import AdapterBase
 
 __all__ = ["make_ecp5_platform"]
 
@@ -123,9 +123,12 @@ def make_ecp5_platform(resource_builder: ResourceBuilder):
         default_clk = "clk"
         default_rst = "rst"
 
+        clk_pin = pins.named_pin(ecp5_bg756_pclk)
+        if clk_pin is None:
+            raise RuntimeError("No free clk pin found.")
         resources = [
             Resource("rst", 0, PinsN(pins.p(), dir="i"), Attrs(IO_TYPE="LVCMOS33")),
-            Resource("clk", 0, Pins(pins.named_pin(ecp5_bg756_pclk), dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
+            Resource("clk", 0, Pins(clk_pin, dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
         ] + resource_builder(pins)
 
         connectors = []
