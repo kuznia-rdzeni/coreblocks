@@ -3,8 +3,7 @@ from ..core import *
 from ..core import RecordDict
 from typing import Optional, Callable, Tuple
 from coreblocks.utils import ValueLike, assign, AssignType
-from . import transactions
-from .connectors import Forwarder
+from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 
 __all__ = [
     "MethodTransformer",
@@ -12,6 +11,8 @@ __all__ = [
     "MethodProduct",
     "MethodTryProduct",
     "Collector",
+    "CatTrans",
+    "ConnectAndTransformTrans",
 ]
 
 
@@ -260,10 +261,95 @@ class Collector(Elaboratable):
 
         m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout)
 
-        m.submodules.connect = transactions.ManyToOneConnectTrans(
+        m.submodules.connect = ManyToOneConnectTrans(
             get_results=[get for get in self.method_list], put_result=forwarder.write
         )
 
         self.method.proxy(m, forwarder.read)
+
+        return m
+
+
+class CatTrans(Elaboratable):
+    """Concatenating transaction.
+
+    Concatenates the results of two methods and passes the result to the
+    third method.
+    """
+
+    def __init__(self, src1: Method, src2: Method, dst: Method):
+        """
+        Parameters
+        ----------
+        src1: Method
+            First input method.
+        src2: Method
+            Second input method.
+        dst: Method
+            The method which receives the concatenation of the results of input
+            methods.
+        """
+        self.src1 = src1
+        self.src2 = src2
+        self.dst = dst
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        with Transaction().body(m):
+            sdata1 = self.src1(m)
+            sdata2 = self.src2(m)
+            ddata = Record.like(self.dst.data_in)
+            self.dst(m, ddata)
+
+            m.d.comb += ddata.eq(Cat(sdata1, sdata2))
+
+        return m
+
+
+class ConnectAndTransformTrans(Elaboratable):
+    """Connecting transaction with transformations.
+
+    Behaves like `ConnectTrans`, but modifies the transferred data using
+    functions or `Method`s. Equivalent to a combination of
+    `ConnectTrans` and `MethodTransformer`. The transformation
+    functions take two parameters, a `Module` and the `Record` being
+    transformed.
+    """
+
+    def __init__(
+        self,
+        method1: Method,
+        method2: Method,
+        *,
+        i_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
+        o_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
+    ):
+        """
+        Parameters
+        ----------
+        method1: Method
+            First method.
+        method2: Method
+            Second method, and the method being transformed.
+        i_fun: function or Method, optional
+            Input transformation (`method1` to `method2`).
+        o_fun: function or Method, optional
+            Output transformation (`method2` to `method1`).
+        """
+        self.method1 = method1
+        self.method2 = method2
+        self.i_fun = i_fun or (lambda _, x: x)
+        self.o_fun = o_fun or (lambda _, x: x)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules.transformer = transformer = MethodTransformer(
+            self.method2,
+            i_transform=(self.method1.data_out.layout, self.i_fun),
+            o_transform=(self.method1.data_in.layout, self.o_fun),
+        )
+        m.submodules.connect = ConnectTrans(self.method1, transformer.method)
 
         return m
