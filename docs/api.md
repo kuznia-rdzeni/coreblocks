@@ -1,5 +1,6 @@
 # API
 
 ```{eval-rst}
-.. include:: modules.rst
+.. include:: modules-coreblocks.rst
+.. include:: modules-transactron.rst
 ```
