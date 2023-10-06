@@ -1,6 +1,6 @@
 from amaranth import *
 from ..core import *
-from .connections import Forwarder, FIFO
+from .connectors import Forwarder, FIFO
 from coreblocks.utils.fifo import BasicFifo
 from amaranth.utils import *
 

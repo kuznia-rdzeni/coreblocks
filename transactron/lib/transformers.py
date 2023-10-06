@@ -4,7 +4,7 @@ from ..core import RecordDict
 from typing import Optional, Callable, Tuple
 from coreblocks.utils import ValueLike, assign, AssignType
 from . import transactions
-from .connections import Forwarder
+from .connectors import Forwarder
 
 __all__ = [
     "MethodTransformer",

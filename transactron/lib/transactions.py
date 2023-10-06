@@ -2,7 +2,7 @@ from amaranth import *
 from ..core import *
 from ..core import RecordDict
 from typing import Optional, Callable
-from . import methods
+from . import transformers
 
 __all__ = [
     "ConnectTrans",
@@ -84,7 +84,7 @@ class ConnectAndTransformTrans(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.transformer = transformer = methods.MethodTransformer(
+        m.submodules.transformer = transformer = transformers.MethodTransformer(
             self.method2,
             i_transform=(self.method1.data_out.layout, self.i_fun),
             o_transform=(self.method1.data_in.layout, self.o_fun),
