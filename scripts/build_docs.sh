@@ -59,5 +59,6 @@ fi
 $ROOT_PATH/scripts/core_graph.py -p -f mermaid $DOCS_DIR/auto_graph.rst
 sed -i -e '1i\.. mermaid::\n' -e 's/^/   /' $DOCS_DIR/auto_graph.rst
 
-sphinx-apidoc -o $DOCS_DIR $ROOT_PATH/coreblocks/
+sphinx-apidoc --tocfile modules-coreblocks -o $DOCS_DIR $ROOT_PATH/coreblocks/
+sphinx-apidoc --tocfile modules-transactron -o $DOCS_DIR $ROOT_PATH/transactron/
 sphinx-build -b html -W $DOCS_DIR $BUILD_DIR
