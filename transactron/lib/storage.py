@@ -1,6 +1,7 @@
 from amaranth import *
 from amaranth.utils import *
 from ..core import *
+from ..core.typing import MethodLayout
 from typing import Optional
 from coreblocks.utils import assign, AssignType
 from .reqres import ArgumentsToResultsZipper

@@ -1,15 +1,12 @@
 from amaranth import *
-from typing import TypeAlias
-from .._utils import Graph, GraphCC, Scheduler
-from .method import Method
-from .transaction import Transaction
+from .._utils import Scheduler
 from .relation_database import MethodMap
 from .typing import TransactionGraph, TransactionGraphCC, PriorityOrder
 
 __all__ = [
     "eager_deterministic_cc_scheduler",
     "trivial_roundrobin_cc_scheduler",
-        ]
+]
 
 
 def eager_deterministic_cc_scheduler(

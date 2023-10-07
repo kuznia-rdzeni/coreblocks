@@ -1,5 +1,6 @@
 from amaranth import *
 from ..core import *
+from ..core.typing import MethodLayout
 
 __all__ = ["ClickIn", "ClickOut"]
 

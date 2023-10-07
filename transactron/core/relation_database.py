@@ -1,15 +1,15 @@
 from enum import Enum, auto
-from typing import Iterable, TypedDict, Union, TypeAlias
+from typing import Iterable, TypedDict, TYPE_CHECKING
 from itertools import chain
 from collections import defaultdict
-from .method import Method
-from .transaction import Transaction
-from .transaction_base import TransactionBase
 from .typing import TransactionOrMethod
 
-__all__ = [
-        'Priority'
-        ]
+__all__ = ["Priority"]
+
+if TYPE_CHECKING:
+    from .method import Method
+    from .transaction_base import TransactionBase
+    from .transaction import Transaction
 
 
 class Priority(Enum):
@@ -33,10 +33,10 @@ class Relation(RelationBase):
 
 class MethodMap:
     def __init__(self, transactions: Iterable["Transaction"]):
-        self.methods_by_transaction = dict[Transaction, list[Method]]()
-        self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
+        self.methods_by_transaction = dict["Transaction", list["Method"]]()
+        self.transactions_by_method = defaultdict["Method", list["Transaction"]](list)
 
-        def rec(transaction: Transaction, source: TransactionBase):
+        def rec(transaction: "Transaction", source: "TransactionBase"):
             for method in source.method_uses.keys():
                 if not method.defined:
                     raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
@@ -51,6 +51,10 @@ class MethodMap:
             rec(transaction, transaction)
 
     def transactions_for(self, elem: TransactionOrMethod) -> Iterable["Transaction"]:
+        # Here is the only place, where real definition of Transaction is needed. So
+        # we import this class here to break cyclic imports
+        from .transaction import Transaction
+
         if isinstance(elem, Transaction):
             return [elem]
         else:

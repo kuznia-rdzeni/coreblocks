@@ -1,6 +1,7 @@
 from amaranth import *
 import amaranth.lib.fifo
 from ..core import *
+from ..core.typing import MethodLayout
 
 __all__ = [
     "FIFO",

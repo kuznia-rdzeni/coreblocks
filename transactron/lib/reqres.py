@@ -1,5 +1,6 @@
 from amaranth import *
 from ..core import *
+from ..core.typing import MethodLayout
 from .connectors import Forwarder, FIFO
 from coreblocks.utils.fifo import BasicFifo
 from amaranth.utils import *

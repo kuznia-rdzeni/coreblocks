@@ -1,6 +1,6 @@
 from amaranth import *
 from ..core import *
-from ..core import SignalBundle
+from ..core.typing import SignalBundle, MethodLayout
 from typing import Optional
 
 __all__ = [

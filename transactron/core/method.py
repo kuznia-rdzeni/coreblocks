@@ -2,17 +2,19 @@ from amaranth import *
 from amaranth import tracer
 from typing import Optional, Iterator
 from contextlib import contextmanager
-from .transaction_base import TransactionBase
+from . import transaction_base
 from .modules import TModule
-from .typing import ValueLike, SignalBundle, RecordDict
+from .typing import ValueLike, SignalBundle, RecordDict, MethodLayout
 from .sugar import def_method
-from .._utils import get_caller_class_name, MethodLayout
+from .._utils import get_caller_class_name
 from coreblocks.utils import assign, AssignType
+
 __all__ = [
     "Method",
 ]
 
-class Method(TransactionBase):
+
+class Method(transaction_base.TransactionBase):
     """Transactional method.
 
     A `Method` serves to interface a module with external `Transaction`\\s
@@ -176,7 +178,7 @@ class Method(TransactionBase):
         """
         if self.defined:
             raise RuntimeError(f"Method '{self.name}' already defined")
-        self.def_order = next(TransactionBase.def_counter)
+        self.def_order = next(transaction_base.TransactionBase.def_counter)
 
         try:
             m.d.av_comb += self.ready.eq(ready)
@@ -247,7 +249,7 @@ class Method(TransactionBase):
         enable_sig = Signal(name=self.owned_name + "_enable")
         m.d.av_comb += enable_sig.eq(enable)
         m.d.top_comb += assign(arg_rec, arg, fields=AssignType.ALL)
-        TransactionBase.get().use_method(self, arg_rec, enable_sig)
+        transaction_base.TransactionBase.get().use_method(self, arg_rec, enable_sig)
 
         return self.data_out
 

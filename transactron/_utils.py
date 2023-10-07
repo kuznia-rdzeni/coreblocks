@@ -3,13 +3,11 @@ import sys
 from inspect import Parameter, signature
 from typing import Callable, Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
-from .core.typing import LayoutLike
 from coreblocks.utils import OneHotSwitchDynamic
 
 __all__ = [
     "Scheduler",
     "_graph_ccs",
-    "MethodLayout",
     "ROGraph",
     "Graph",
     "GraphCC",
@@ -116,9 +114,6 @@ def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
             cc = set()
 
     return ccs
-
-
-MethodLayout: TypeAlias = LayoutLike
 
 
 def method_def_helper(method, func: Callable[..., T], arg=None, /, **kwargs) -> T:

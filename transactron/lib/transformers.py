@@ -1,6 +1,6 @@
 from amaranth import *
 from ..core import *
-from ..core import RecordDict
+from ..core.typing import MethodLayout, RecordDict
 from typing import Optional, Callable, Tuple
 from coreblocks.utils import ValueLike, assign, AssignType
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans

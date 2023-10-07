@@ -2,49 +2,11 @@ from amaranth import *
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 from typing import Optional, NoReturn
 from contextlib import contextmanager
-from .manager import TransactionManager, TransactionContext
-from .typing import HasElaborate, ModuleLike, ValueLike, SwitchKey
-from coreblocks.utils import silence_mustuse
+from .typing import ModuleLike, ValueLike, SwitchKey
+
 __all__ = [
     "TModule",
-    "TransactionModule",
 ]
-
-class TransactionModule(Elaboratable):
-    """
-    `TransactionModule` is used as wrapper on `Elaboratable` classes,
-    which adds support for transactions. It creates a
-    `TransactionManager` which will handle transaction scheduling
-    and can be used in definition of `Method`\\s and `Transaction`\\s.
-    """
-
-    def __init__(self, elaboratable: HasElaborate, manager: Optional[TransactionManager] = None):
-        """
-        Parameters
-        ----------
-        elaboratable: HasElaborate
-                The `Elaboratable` which should be wrapped to add support for
-                transactions and methods.
-        """
-        if manager is None:
-            manager = TransactionManager()
-        self.transactionManager = manager
-        self.elaboratable = elaboratable
-
-    def transaction_context(self) -> TransactionContext:
-        return TransactionContext(self.transactionManager)
-
-    def elaborate(self, platform):
-        with silence_mustuse(self.transactionManager):
-            with self.transaction_context():
-                elaboratable = Fragment.get(self.elaboratable, platform)
-
-        m = Module()
-
-        m.submodules.main_module = elaboratable
-        m.submodules.transactionManager = self.transactionManager
-
-        return m
 
 
 class _AvoidingModuleBuilderDomains:

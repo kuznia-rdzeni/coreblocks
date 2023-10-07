@@ -10,7 +10,8 @@ from amaranth.hdl.ast import Statement
 from amaranth.sim import *
 from amaranth.sim.core import Command
 
-from transactron.core import SignalBundle, Method, TransactionModule
+from transactron.core import Method, TransactionModule
+from transactron.core.typing import SignalBundle
 from transactron.lib import AdapterBase, AdapterTrans
 from transactron._utils import method_def_helper
 from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike, ModuleConnector

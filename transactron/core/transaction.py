@@ -1,17 +1,20 @@
 from amaranth import *
 from amaranth import tracer
-from typing import Optional, Iterator
+from typing import Optional, Iterator, TYPE_CHECKING
 from contextlib import contextmanager
-from .transaction_base import TransactionBase
-from .manager import TransactionManager, TransactionContext
+from . import transaction_base
 from .modules import TModule
 from .typing import SignalBundle, ValueLike
 from .._utils import get_caller_class_name
+
 __all__ = [
     "Transaction",
 ]
+if TYPE_CHECKING:
+    from .manager import TransactionManager
 
-class Transaction(TransactionBase):
+
+class Transaction(transaction_base.TransactionBase):
     """Transaction.
 
     A `Transaction` represents a task which needs to be regularly done.
@@ -47,7 +50,7 @@ class Transaction(TransactionBase):
         and all used methods are called.
     """
 
-    def __init__(self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None):
+    def __init__(self, *, name: Optional[str] = None, manager: Optional["TransactionManager"] = None):
         """
         Parameters
         ----------
@@ -60,6 +63,8 @@ class Transaction(TransactionBase):
             The `TransactionManager` controlling this `Transaction`.
             If omitted, the manager is received from `TransactionContext`.
         """
+        from .manager import TransactionContext
+
         super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$transaction")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
@@ -91,7 +96,7 @@ class Transaction(TransactionBase):
         """
         if self.defined:
             raise RuntimeError(f"Transaction '{self.name}' already defined")
-        self.def_order = next(TransactionBase.def_counter)
+        self.def_order = next(transaction_base.TransactionBase.def_counter)
 
         m.d.av_comb += self.request.eq(request)
         with self.context(m):

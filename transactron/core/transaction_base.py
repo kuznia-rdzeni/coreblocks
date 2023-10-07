@@ -1,13 +1,16 @@
-from typing import Union, Tuple, ClassVar, Iterator, Optional
+from typing import Union, Tuple, ClassVar, Iterator, Optional, TYPE_CHECKING
 from typing_extensions import Self
 from itertools import count
 from contextlib import contextmanager
-from .modules import TModule
 from .typing import ValueLike, TransactionOrMethod
-from .method import Method
-from .transaction import Transaction
 from .relation_database import RelationBase, Priority
 from ..graph import Owned
+
+if TYPE_CHECKING:
+    from .method import Method
+    from .transaction import Transaction
+    from .modules import TModule
+
 
 class TransactionBase(Owned):
     stack: ClassVar[list[Union["Transaction", "Method"]]] = []
@@ -17,7 +20,7 @@ class TransactionBase(Owned):
     name: str
 
     def __init__(self):
-        self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
+        self.method_uses: dict["Method", Tuple[ValueLike, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
         self.simultaneous_list: list[TransactionOrMethod] = []
         self.independent_list: list[TransactionOrMethod] = []
@@ -108,7 +111,10 @@ class TransactionBase(Owned):
         self.independent_list += others
 
     @contextmanager
-    def context(self, m: TModule) -> Iterator[Self]:
+    def context(self, m: "TModule") -> Iterator[Self]:
+        from .method import Method
+        from .transaction import Transaction
+
         assert isinstance(self, Transaction) or isinstance(self, Method)  # for typing
 
         parent = TransactionBase.peek()
