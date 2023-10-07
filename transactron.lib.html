@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>transactron.lib package &mdash; Coreblocks documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="transactron package" href="transactron.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Coreblocks documentation
+            <img src="_static/logo-banner.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="Home.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Development_environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Transactions.html">Documentation for Coreblocks transaction framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler/Overview.html">Scheduler overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared_structs/Implementation/RS_impl.html">Proposition of Reservation Station implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared_structs/RS.html">Reservation Station</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Current_graph.html">Full transaction-method graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Problem-checklist.html">Problem checklist</a></li>
+<li class="toctree-l1"><a class="reference internal" href="synthesis/Synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptionsSummary.html">Summary of papers about interrupts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Coreblocks documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="api.html">API</a> &raquo;</li>
+          <li><a href="transactron.html">transactron package</a> &raquo;</li>
+      <li>transactron.lib package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/transactron.lib.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="transactron-lib-package">
+<h1>transactron.lib package<a class="headerlink" href="#transactron-lib-package" title="Permalink to this heading"></a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="module-transactron.lib.adapters">
+<span id="transactron-lib-adapters-module"></span><h2>transactron.lib.adapters module<a class="headerlink" href="#module-transactron.lib.adapters" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.adapters.Adapter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.adapters.</span></span><span class="sig-name descname"><span class="pre">Adapter</span></span><a class="headerlink" href="#transactron.lib.adapters.Adapter" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#transactron.lib.adapters.AdapterBase" title="transactron.lib.adapters.AdapterBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">AdapterBase</span></code></a></p>
+<p>Adapter method.</p>
+<p>Creates a method controlled by plain Amaranth signals. One of the
+possible uses is to mock a method in a testbench.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>en: Signal, in</strong></dt><dd><p>Activates the method (sets the <cite>ready</cite> signal).</p>
+</dd>
+<dt><strong>done: Signal, out</strong></dt><dd><p>Signals that the method is called (returns the <cite>run</cite> signal).</p>
+</dd>
+<dt><strong>data_in: Record, in</strong></dt><dd><p>Data returned from the defined method.</p>
+</dd>
+<dt><strong>data_out: Record, out</strong></dt><dd><p>Data passed as argument to the defined method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.adapters.Adapter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.adapters.Adapter.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>i: record layout</strong></dt><dd><p>The input layout of the defined method.</p>
+</dd>
+<dt><strong>o: record layout</strong></dt><dd><p>The output layout of the defined method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.adapters.AdapterBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.adapters.</span></span><span class="sig-name descname"><span class="pre">AdapterBase</span></span><a class="headerlink" href="#transactron.lib.adapters.AdapterBase" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.adapters.AdapterBase.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iface</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.adapters.AdapterBase.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.lib.adapters.AdapterBase.data_in">
+<span class="sig-name descname"><span class="pre">data_in</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Record</span></em><a class="headerlink" href="#transactron.lib.adapters.AdapterBase.data_in" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.lib.adapters.AdapterBase.data_out">
+<span class="sig-name descname"><span class="pre">data_out</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Record</span></em><a class="headerlink" href="#transactron.lib.adapters.AdapterBase.data_out" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.adapters.AdapterBase.debug_signals">
+<span class="sig-name descname"><span class="pre">debug_signals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">View</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">View</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">View</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.lib.adapters.AdapterBase.debug_signals" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.adapters.AdapterTrans">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.adapters.</span></span><span class="sig-name descname"><span class="pre">AdapterTrans</span></span><a class="headerlink" href="#transactron.lib.adapters.AdapterTrans" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#transactron.lib.adapters.AdapterBase" title="transactron.lib.adapters.AdapterBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">AdapterBase</span></code></a></p>
+<p>Adapter transaction.</p>
+<p>Creates a transaction controlled by plain Amaranth signals. Allows to
+expose a method to plain Amaranth code, including testbenches.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>en: Signal, in</strong></dt><dd><p>Activates the transaction (sets the <cite>request</cite> signal).</p>
+</dd>
+<dt><strong>done: Signal, out</strong></dt><dd><p>Signals that the transaction is performed (returns the <cite>grant</cite>
+signal).</p>
+</dd>
+<dt><strong>data_in: Record, in</strong></dt><dd><p>Data passed to the <cite>iface</cite> method.</p>
+</dd>
+<dt><strong>data_out: Record, out</strong></dt><dd><p>Data returned from the <cite>iface</cite> method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.adapters.AdapterTrans.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iface</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.adapters.AdapterTrans.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>iface: Method</strong></dt><dd><p>The method to be called by the transaction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.lib.buttons">
+<span id="transactron-lib-buttons-module"></span><h2>transactron.lib.buttons module<a class="headerlink" href="#module-transactron.lib.buttons" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.buttons.ClickIn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.buttons.</span></span><span class="sig-name descname"><span class="pre">ClickIn</span></span><a class="headerlink" href="#transactron.lib.buttons.ClickIn" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Clicked input.</p>
+<p>Useful for interactive simulations or FPGA button/switch interfaces.
+On a rising edge (tested synchronously) of <cite>btn</cite>, the <cite>get</cite> method
+is enabled, which returns the data present on <cite>dat</cite> at the time.
+Inputs are synchronized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>get: Method</strong></dt><dd><p>The method for retrieving data from the input. Accepts an empty
+argument, returns a <cite>Record</cite>.</p>
+</dd>
+<dt><strong>btn: Signal, in</strong></dt><dd><p>The button input.</p>
+</dd>
+<dt><strong>dat: Record, in</strong></dt><dd><p>The data input.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.buttons.ClickIn.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.buttons.ClickIn.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>layout: record layout</strong></dt><dd><p>The data format for the input.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.buttons.ClickOut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.buttons.</span></span><span class="sig-name descname"><span class="pre">ClickOut</span></span><a class="headerlink" href="#transactron.lib.buttons.ClickOut" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Clicked output.</p>
+<p>Useful for interactive simulations or FPGA button/LED interfaces.
+On a rising edge (tested synchronously) of <cite>btn</cite>, the <cite>put</cite> method
+is enabled, which, when called, changes the value of the <cite>dat</cite> signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>put: Method</strong></dt><dd><p>The method for retrieving data from the input. Accepts a <cite>Record</cite>,
+returns empty result.</p>
+</dd>
+<dt><strong>btn: Signal, in</strong></dt><dd><p>The button input.</p>
+</dd>
+<dt><strong>dat: Record, out</strong></dt><dd><p>The data output.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.buttons.ClickOut.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.buttons.ClickOut.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>layout: record layout</strong></dt><dd><p>The data format for the output.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.lib.connectors">
+<span id="transactron-lib-connectors-module"></span><h2>transactron.lib.connectors module<a class="headerlink" href="#module-transactron.lib.connectors" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.connectors.Connect">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.connectors.</span></span><span class="sig-name descname"><span class="pre">Connect</span></span><a class="headerlink" href="#transactron.lib.connectors.Connect" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Forwarding by transaction simultaneity</p>
+<p>Provides a means to connect two transactions with forwarding
+by means of the transaction simultaneity mechanism. It provides
+two methods: <cite>read</cite>, and <cite>write</cite>, which always execute simultaneously.
+Typical use case is for moving data from <cite>write</cite> to <cite>read</cite>, but
+data flow in the reverse direction is also possible.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read: Method</strong></dt><dd><p>The read method. Accepts a (possibly empty) <cite>Record</cite>, returns
+a <cite>Record</cite>.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>The write method. Accepts a <cite>Record</cite>, returns a (possibly empty)
+<cite>Record</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.connectors.Connect.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rev_layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.connectors.Connect.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>layout: record layout</strong></dt><dd><p>The format of records forwarded.</p>
+</dd>
+<dt><strong>rev_layout: record layout</strong></dt><dd><p>The format of records forwarded in the reverse direction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.connectors.ConnectTrans">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.connectors.</span></span><span class="sig-name descname"><span class="pre">ConnectTrans</span></span><a class="headerlink" href="#transactron.lib.connectors.ConnectTrans" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Simple connecting transaction.</p>
+<p>Takes two methods and creates a transaction which calls both of them.
+Result of the first method is connected to the argument of the second,
+and vice versa. Allows easily connecting methods with compatible
+layouts.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.connectors.ConnectTrans.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">method2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.connectors.ConnectTrans.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>method1: Method</strong></dt><dd><p>First method.</p>
+</dd>
+<dt><strong>method2: Method</strong></dt><dd><p>Second method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.connectors.FIFO">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.connectors.</span></span><span class="sig-name descname"><span class="pre">FIFO</span></span><a class="headerlink" href="#transactron.lib.connectors.FIFO" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>FIFO module.</p>
+<p>Provides a transactional interface to Amaranth FIFOs. Exposes two methods:
+<cite>read</cite>, and <cite>write</cite>. Both methods are ready only when they can
+be executed – i.e. the queue is respectively not empty / not full.
+It is possible to simultaneously read and write in a single clock cycle,
+but only if both readiness conditions are fulfilled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read: Method</strong></dt><dd><p>The read method. Accepts an empty argument, returns a <cite>Record</cite>.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>The write method. Accepts a <cite>Record</cite>, returns empty result.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.connectors.FIFO.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">layout:</span> <span class="pre">~typing.Union[~amaranth.hdl._rec.Layout,</span> <span class="pre">~typing.Sequence[~typing.Union[~typing.Tuple[str,</span> <span class="pre">~typing.Union[~amaranth.hdl.ast.Shape,</span> <span class="pre">~amaranth.hdl.ast.ShapeCastable,</span> <span class="pre">int,</span> <span class="pre">range,</span> <span class="pre">~typing.Type[~enum.Enum],</span> <span class="pre">LayoutLike]],</span> <span class="pre">~typing.Tuple[str,</span> <span class="pre">~typing.Union[~amaranth.hdl.ast.Shape,</span> <span class="pre">~amaranth.hdl.ast.ShapeCastable,</span> <span class="pre">int,</span> <span class="pre">range,</span> <span class="pre">~typing.Type[~enum.Enum],</span> <span class="pre">LayoutLike],</span> <span class="pre">~amaranth.hdl._rec.Direction]]]],</span> <span class="pre">depth:</span> <span class="pre">int,</span> <span class="pre">fifo_type=&lt;class</span> <span class="pre">'amaranth.lib.fifo.SyncFIFO'&gt;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.connectors.FIFO.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>layout: record layout</strong></dt><dd><p>The format of records stored in the FIFO.</p>
+</dd>
+<dt><strong>depth: int</strong></dt><dd><p>Size of the FIFO.</p>
+</dd>
+<dt><strong>fifoType: Elaboratable</strong></dt><dd><p>FIFO module conforming to Amaranth library FIFO interface. Defaults
+to SyncFIFO.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.connectors.Forwarder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.connectors.</span></span><span class="sig-name descname"><span class="pre">Forwarder</span></span><a class="headerlink" href="#transactron.lib.connectors.Forwarder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Forwarding with overflow buffering</p>
+<p>Provides a means to connect two transactions with forwarding. Exposes
+two methods: <cite>read</cite>, and <cite>write</cite>. When both of these methods are
+executed simultaneously, data is forwarded between them. If <cite>write</cite>
+is executed, but <cite>read</cite> is not, the value cannot be forwarded,
+but is stored into an overflow buffer. No further <cite>write</cite>s are
+possible until the overflow buffer is cleared by <cite>read</cite>.</p>
+<p>The <cite>write</cite> method is scheduled before <cite>read</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read: Method</strong></dt><dd><p>The read method. Accepts an empty argument, returns a <cite>Record</cite>.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>The write method. Accepts a <cite>Record</cite>, returns empty result.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.connectors.Forwarder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.connectors.Forwarder.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>layout: record layout</strong></dt><dd><p>The format of records forwarded.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.connectors.ManyToOneConnectTrans">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.connectors.</span></span><span class="sig-name descname"><span class="pre">ManyToOneConnectTrans</span></span><a class="headerlink" href="#transactron.lib.connectors.ManyToOneConnectTrans" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Many-to-one method connection.</p>
+<p>Connects each of a set of methods to another method using separate
+transactions. Equivalent to a set of <cite>ConnectTrans</cite>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.connectors.ManyToOneConnectTrans.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">transactron.core.Method</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">put_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.connectors.ManyToOneConnectTrans.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>get_results: list[Method]</strong></dt><dd><p>Methods to be connected to the <cite>put_result</cite> method.</p>
+</dd>
+<dt><strong>put_result: Method</strong></dt><dd><p>Common method for each of the connections created.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.lib.reqres">
+<span id="transactron-lib-reqres-module"></span><h2>transactron.lib.reqres module<a class="headerlink" href="#module-transactron.lib.reqres" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.reqres.ArgumentsToResultsZipper">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.reqres.</span></span><span class="sig-name descname"><span class="pre">ArgumentsToResultsZipper</span></span><a class="headerlink" href="#transactron.lib.reqres.ArgumentsToResultsZipper" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Zips arguments used to call method with results, cutting critical path.</p>
+<p>This module provides possibility to pass arguments from caller and connect it with results
+from callee. Arguments are stored in 2-FIFO and results in Forwarder. Because of this asymmetry,
+the callee should provide results as long as they aren’t correctly received.</p>
+<p>FIFO is used as rate-limiter, so when FIFO reaches full capacity there should be no new requests issued.</p>
+<p>Example topology:</p>
+<div class="mermaid">
+            graph LR
+    Caller -- write_arguments --&gt; 2-FIFO;
+    Caller -- invoke --&gt; Callee[&quot;Callee \n (1+ cycle delay)&quot;];
+    Callee -- write_results --&gt; Forwarder;
+    Forwarder -- read --&gt; Zip;
+    2-FIFO -- read --&gt; Zip;
+    Zip -- read --&gt; User;
+    subgraph ArgumentsToResultsZipper
+        Forwarder;
+        2-FIFO;
+        Zip;
+    end
+        </div><dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>write_args: Method</strong></dt><dd><p>Method to write arguments with <cite>args_layout</cite> format to 2-FIFO.</p>
+</dd>
+<dt><strong>write_results: Method</strong></dt><dd><p>Method to save results with <cite>results_layout</cite> in the Forwarder.</p>
+</dd>
+<dt><strong>read: Method</strong></dt><dd><p>Reads latest entries from the fifo and the forwarder and return them as
+record with two fields: ‘args’ and ‘results’.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.reqres.ArgumentsToResultsZipper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args_layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results_layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.reqres.ArgumentsToResultsZipper.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>args_layout: record layout</strong></dt><dd><p>The format of arguments.</p>
+</dd>
+<dt><strong>results_layout: record layout</strong></dt><dd><p>The format of results.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.reqres.Serializer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.reqres.</span></span><span class="sig-name descname"><span class="pre">Serializer</span></span><a class="headerlink" href="#transactron.lib.reqres.Serializer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module to serialize request-response methods.</p>
+<p>Provides a transactional interface to connect many client <cite>Module</cite>s (which request somethig using method call)
+with a server <cite>Module</cite> which provides method to request operation and method to get response.</p>
+<p>Requests are being serialized from many clients and forwarded to a server which can process only one request
+at the time. Responses from server are deserialized and passed to proper client. <cite>Serializer</cite> assumes, that
+responses from the server are in-order, so the order of responses is the same as order of requests.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>serialize_in: list[Method]</strong></dt><dd><p>List of request methods. Data layouts are the same as for <cite>serialized_req_method</cite>.</p>
+</dd>
+<dt><strong>serialize_out: list[Method]</strong></dt><dd><p>List of response methods. Data layouts are the same as for <cite>serialized_resp_method</cite>.
+<cite>i</cite>-th response method provides responses for requests from <cite>i</cite>-th <cite>serialize_in</cite> method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.reqres.Serializer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serialized_req_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">serialized_resp_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.reqres.Serializer.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>port_count: int</strong></dt><dd><p>Number of ports, which should be generated. <cite>len(serialize_in)=len(serialize_out)=port_count</cite></p>
+</dd>
+<dt><strong>serialized_req_method: Method</strong></dt><dd><p>Request method provided by server’s <cite>Module</cite>.</p>
+</dd>
+<dt><strong>serialized_resp_method: Method</strong></dt><dd><p>Response method provided by server’s <cite>Module</cite>.</p>
+</dd>
+<dt><strong>depth: int</strong></dt><dd><p>Number of requests which can be forwarded to server, before server provides first response. Describe
+the resistance of <cite>Serializer</cite> to latency of server in case when server is fully pipelined.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.lib.simultaneous">
+<span id="transactron-lib-simultaneous-module"></span><h2>transactron.lib.simultaneous module<a class="headerlink" href="#module-transactron.lib.simultaneous" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.lib.simultaneous.condition">
+<span class="sig-prename descclassname"><span class="pre">transactron.lib.simultaneous.</span></span><span class="sig-name descname"><span class="pre">condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.TModule" title="transactron.core.TModule"><span class="pre">TModule</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonblocking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.simultaneous.condition" title="Permalink to this definition"></a></dt>
+<dd><p>Conditions using simultaneous transactions.</p>
+<p>This context manager allows to easily define conditions utilizing
+nested transactions and the simultaneous transactions mechanism.
+It is similar to Amaranth’s <cite>If</cite>, but allows to call different and
+possibly overlapping method sets in each branch. Each of the branches is
+defined using a separate nested transaction.</p>
+<p>Inside the condition body, branches can be added, which are guarded
+by Boolean conditions. A branch is considered for execution if its
+condition is true and the called methods can be run. A catch-all,
+default branch can be added, which can be executed only if none of
+the other branches execute. Note that the default branch can run
+even if some of the conditions are true, but their branches can’t
+execute for other reasons.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m</strong><span class="classifier">TModule</span></dt><dd><p>A module where the condition is defined.</p>
+</dd>
+<dt><strong>nonblocking</strong><span class="classifier">bool</span></dt><dd><p>States that the condition should not block the containing method
+or transaction from running, even when every branch cannot run.
+If <cite>nonblocking</cite> is false and every branch cannot run (because of
+a false condition or disabled called methods), the whole method
+or transaction will be stopped from running.</p>
+</dd>
+<dt><strong>priority</strong><span class="classifier">bool</span></dt><dd><p>States that the conditions are not mutually exclusive and should
+be tested in order. This influences the scheduling order of generated
+transactions.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">condition</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">as</span> <span class="n">branch</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">branch</span><span class="p">(</span><span class="n">cond1</span><span class="p">):</span>
+        <span class="o">...</span>
+    <span class="k">with</span> <span class="n">branch</span><span class="p">(</span><span class="n">cond2</span><span class="p">):</span>
+        <span class="o">...</span>
+    <span class="k">with</span> <span class="n">branch</span><span class="p">():</span>  <span class="c1"># default, optional</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.lib.storage">
+<span id="transactron-lib-storage-module"></span><h2>transactron.lib.storage module<a class="headerlink" href="#module-transactron.lib.storage" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.storage.MemoryBank">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.storage.</span></span><span class="sig-name descname"><span class="pre">MemoryBank</span></span><a class="headerlink" href="#transactron.lib.storage.MemoryBank" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>MemoryBank module.</p>
+<p>Provides a transactional interface to synchronous Amaranth Memory with one
+read and one write port. It supports optionally writing with given granularity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read_req: Method</strong></dt><dd><p>The read request method. Accepts an <cite>addr</cite> from which data should be read.
+Only ready if there is there is a place to buffer response.</p>
+</dd>
+<dt><strong>read_resp: Method</strong></dt><dd><p>The read response method. Return <cite>data_layout</cite> Record which was saved on <cite>addr</cite> given by last
+<cite>read_req</cite> method call. Only ready after <cite>read_req</cite> call.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>The write method. Accepts <cite>addr</cite> where data should be saved, <cite>data</cite> in form of <cite>data_layout</cite>
+and optionally <cite>mask</cite> if <cite>granularity</cite> is not None. <cite>1</cite> in mask means that appropriate part should be written.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.storage.MemoryBank.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elem_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">granularity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_writes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.storage.MemoryBank.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data_layout: record layout</strong></dt><dd><p>The format of records stored in the Memory.</p>
+</dd>
+<dt><strong>elem_count: int</strong></dt><dd><p>Number of elements stored in Memory.</p>
+</dd>
+<dt><strong>granularity: Optional[int]</strong></dt><dd><p>Granularity of write, forwarded to Amaranth. If <cite>None</cite> the whole record is always saved at once.
+If not, the width of <cite>data_layout</cite> is split into <cite>granularity</cite> parts, which can be saved independently.</p>
+</dd>
+<dt><strong>safe_writes: bool</strong></dt><dd><p>Set to <cite>False</cite> if an optimisation can be done to increase throughput of writes. This will cause that
+writes will be reordered with respect to reads eg. in sequence “read A, write A X”, read can return
+“X” even when write was called later. By default <cite>True</cite>, which disable optimisation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.lib.transformers">
+<span id="transactron-lib-transformers-module"></span><h2>transactron.lib.transformers module<a class="headerlink" href="#module-transactron.lib.transformers" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.transformers.CatTrans">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.transformers.</span></span><span class="sig-name descname"><span class="pre">CatTrans</span></span><a class="headerlink" href="#transactron.lib.transformers.CatTrans" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Concatenating transaction.</p>
+<p>Concatenates the results of two methods and passes the result to the
+third method.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.transformers.CatTrans.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">src2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.transformers.CatTrans.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>src1: Method</strong></dt><dd><p>First input method.</p>
+</dd>
+<dt><strong>src2: Method</strong></dt><dd><p>Second input method.</p>
+</dd>
+<dt><strong>dst: Method</strong></dt><dd><p>The method which receives the concatenation of the results of input
+methods.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.transformers.Collector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.transformers.</span></span><span class="sig-name descname"><span class="pre">Collector</span></span><a class="headerlink" href="#transactron.lib.transformers.Collector" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Single result collector.</p>
+<p>Creates method that collects results of many methods with identical
+layouts. Each call of this method will return a single result of one
+of the provided methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>method: Method</strong></dt><dd><p>Method which returns single result of provided methods.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.transformers.Collector.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">transactron.core.Method</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.transformers.Collector.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>method_list: list[Method]</strong></dt><dd><p>List of methods from which results will be collected.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.transformers.ConnectAndTransformTrans">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.transformers.</span></span><span class="sig-name descname"><span class="pre">ConnectAndTransformTrans</span></span><a class="headerlink" href="#transactron.lib.transformers.ConnectAndTransformTrans" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Connecting transaction with transformations.</p>
+<p>Behaves like <cite>ConnectTrans</cite>, but modifies the transferred data using
+functions or <cite>Method`s. Equivalent to a combination of
+`ConnectTrans</cite> and <cite>MethodTransformer</cite>. The transformation
+functions take two parameters, a <cite>Module</cite> and the <cite>Record</cite> being
+transformed.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.transformers.ConnectAndTransformTrans.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">method2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i_fun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.html#transactron.core.TModule" title="transactron.core.TModule"><span class="pre">TModule</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RecordDict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o_fun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.html#transactron.core.TModule" title="transactron.core.TModule"><span class="pre">TModule</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RecordDict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.transformers.ConnectAndTransformTrans.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>method1: Method</strong></dt><dd><p>First method.</p>
+</dd>
+<dt><strong>method2: Method</strong></dt><dd><p>Second method, and the method being transformed.</p>
+</dd>
+<dt><strong>i_fun: function or Method, optional</strong></dt><dd><p>Input transformation (<cite>method1</cite> to <cite>method2</cite>).</p>
+</dd>
+<dt><strong>o_fun: function or Method, optional</strong></dt><dd><p>Output transformation (<cite>method2</cite> to <cite>method1</cite>).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.transformers.MethodFilter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.transformers.</span></span><span class="sig-name descname"><span class="pre">MethodFilter</span></span><a class="headerlink" href="#transactron.lib.transformers.MethodFilter" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Method filter.</p>
+<p>Takes a target method and creates a method which calls the target method
+only when some condition is true. The condition function takes two
+parameters, a module and the input <cite>Record</cite> of the method. Non-zero
+return value is interpreted as true. Alternatively to using a function,
+a <cite>Method</cite> can be passed as a condition.</p>
+<p>Caveat: because of the limitations of transaction scheduling, the target
+method is locked for usage even if it is not called.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>method: Method</strong></dt><dd><p>The transformed method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.transformers.MethodFilter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.html#transactron.core.TModule" title="transactron.core.TModule"><span class="pre">TModule</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Value</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Enum</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ValueCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RecordDict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.transformers.MethodFilter.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>target: Method</strong></dt><dd><p>The target method.</p>
+</dd>
+<dt><strong>condition: function or Method</strong></dt><dd><p>The condition which, when true, allows the call to <cite>target</cite>. When
+false, <cite>default</cite> is returned.</p>
+</dd>
+<dt><strong>default: Value or dict, optional</strong></dt><dd><p>The default value returned from the filtered method when the condition
+is false. If omitted, zero is returned.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.transformers.MethodProduct">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.transformers.</span></span><span class="sig-name descname"><span class="pre">MethodProduct</span></span><a class="headerlink" href="#transactron.lib.transformers.MethodProduct" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.transformers.MethodProduct.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">transactron.core.Method</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">combiner</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.html#transactron.core.TModule" title="transactron.core.TModule"><span class="pre">TModule</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl._rec.Record</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RecordDict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.transformers.MethodProduct.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Method product.</p>
+<p>Takes arbitrary, non-zero number of target methods, and constructs
+a method which calls all of the target methods using the same
+argument. The return value of the resulting method is, by default,
+the return value of the first of the target methods. A combiner
+function can be passed, which can compute the return value from
+the results of every target method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>targets: list[Method]</strong></dt><dd><p>A list of methods to be called.</p>
+</dd>
+<dt><strong>combiner: (int or method layout, function), optional</strong></dt><dd><p>A pair of the output layout and the combiner function. The
+combiner function takes two parameters: a <cite>Module</cite> and
+a list of outputs of the target methods.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>method: Method</strong></dt><dd><p>The product method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.transformers.MethodTransformer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.transformers.</span></span><span class="sig-name descname"><span class="pre">MethodTransformer</span></span><a class="headerlink" href="#transactron.lib.transformers.MethodTransformer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Method transformer.</p>
+<p>Takes a target method and creates a transformed method which calls the
+original target method, transforming the input and output values.
+The transformation functions take two parameters, a <cite>Module</cite> and the
+<cite>Record</cite> being transformed. Alternatively, a <cite>Method</cite> can be
+passed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>method: Method</strong></dt><dd><p>The transformed method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.transformers.MethodTransformer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.html#transactron.core.TModule" title="transactron.core.TModule"><span class="pre">TModule</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RecordDict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Layout</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Shape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ShapeCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">LayoutLike</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.html#transactron.core.TModule" title="transactron.core.TModule"><span class="pre">TModule</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Record</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.ValueCastable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RecordDict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.transformers.MethodTransformer.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>target: Method</strong></dt><dd><p>The target method.</p>
+</dd>
+<dt><strong>i_transform: (record layout, function or Method), optional</strong></dt><dd><p>Input transformation. If specified, it should be a pair of a
+function and a input layout for the transformed method.
+If not present, input is not transformed.</p>
+</dd>
+<dt><strong>o_transform: (record layout, function or Method), optional</strong></dt><dd><p>Output transformation. If specified, it should be a pair of a
+function and a output layout for the transformed method.
+If not present, output is not transformed.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.transformers.MethodTryProduct">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.transformers.</span></span><span class="sig-name descname"><span class="pre">MethodTryProduct</span></span><a class="headerlink" href="#transactron.lib.transformers.MethodTryProduct" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.transformers.MethodTryProduct.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">transactron.core.Method</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">combiner</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping[str,</span> <span class="pre">'RecordDict']]]]</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.transformers.MethodTryProduct.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Method product with optional calling.</p>
+<p>Takes arbitrary, non-zero number of target methods, and constructs
+a method which tries to call all of the target methods using the same
+argument. The methods which are not ready are not called. The return
+value of the resulting method is, by default, empty. A combiner
+function can be passed, which can compute the return value from the
+results of every target method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>targets: list[Method]</strong></dt><dd><p>A list of methods to be called.</p>
+</dd>
+<dt><strong>combiner: (int or method layout, function), optional</strong></dt><dd><p>A pair of the output layout and the combiner function. The
+combiner function takes two parameters: a <cite>Module</cite> and
+a list of pairs. Each pair contains a bit which signals
+that a given call succeeded, and the result of the call.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>method: Method</strong></dt><dd><p>The product method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.lib">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-transactron.lib" title="Permalink to this heading"></a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="transactron.html" class="btn btn-neutral float-left" title="transactron package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Kuźnia Rdzeni, 2023.
+      <span class="lastupdated">Last updated on 12:48 2023-10-07.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

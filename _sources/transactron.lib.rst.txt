@@ -1,0 +1,69 @@
+transactron.lib package
+=======================
+
+Submodules
+----------
+
+transactron.lib.adapters module
+-------------------------------
+
+.. automodule:: transactron.lib.adapters
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.lib.buttons module
+------------------------------
+
+.. automodule:: transactron.lib.buttons
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.lib.connectors module
+---------------------------------
+
+.. automodule:: transactron.lib.connectors
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.lib.reqres module
+-----------------------------
+
+.. automodule:: transactron.lib.reqres
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.lib.simultaneous module
+-----------------------------------
+
+.. automodule:: transactron.lib.simultaneous
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.lib.storage module
+------------------------------
+
+.. automodule:: transactron.lib.storage
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.lib.transformers module
+-----------------------------------
+
+.. automodule:: transactron.lib.transformers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: transactron.lib
+   :members:
+   :undoc-members:
+   :show-inheritance:

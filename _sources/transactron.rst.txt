@@ -1,6 +1,14 @@
 transactron package
 ===================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   transactron.lib
+
 Submodules
 ----------
 
@@ -16,14 +24,6 @@ transactron.graph module
 ------------------------
 
 .. automodule:: transactron.graph
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-transactron.lib module
-----------------------
-
-.. automodule:: transactron.lib
    :members:
    :undoc-members:
    :show-inheritance:
