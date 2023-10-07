@@ -5,6 +5,10 @@ from contextlib import contextmanager
 from .manager import TransactionManager, TransactionContext
 from .typing import HasElaborate, ModuleLike, ValueLike, SwitchKey
 from coreblocks.utils import silence_mustuse
+__all__ = [
+    "TModule",
+    "TransactionModule",
+]
 
 class TransactionModule(Elaboratable):
     """

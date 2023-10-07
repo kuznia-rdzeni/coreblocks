@@ -8,6 +8,9 @@ from .typing import ValueLike, SignalBundle, RecordDict
 from .sugar import def_method
 from .._utils import get_caller_class_name, MethodLayout
 from coreblocks.utils import assign, AssignType
+__all__ = [
+    "Method",
+]
 
 class Method(TransactionBase):
     """Transactional method.

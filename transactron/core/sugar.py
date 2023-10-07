@@ -5,6 +5,9 @@ from .method import Method
 from .typing import ValueLike, RecordDict
 from .._utils import method_def_helper
 from coreblocks.utils import assign, AssignType
+__all__ = [
+    "def_method",
+]
 
 def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
     """Define a method.

@@ -7,6 +7,9 @@ from .manager import TransactionManager, TransactionContext
 from .modules import TModule
 from .typing import SignalBundle, ValueLike
 from .._utils import get_caller_class_name
+__all__ = [
+    "Transaction",
+]
 
 class Transaction(TransactionBase):
     """Transaction.

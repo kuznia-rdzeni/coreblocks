@@ -14,6 +14,10 @@ from .._utils import _graph_ccs
 from coreblocks.utils import silence_mustuse
 from coreblocks.utils import ModuleConnector
 from coreblocks.utils.utils import OneHotSwitchDynamic
+__all__ = [
+    "TransactionManager",
+    "TransactionContext",
+]
 
 class TransactionManager(Elaboratable):
     """Transaction manager
