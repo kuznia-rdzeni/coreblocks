@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1696683253748,
+  "lastUpdate": 1696683426346,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12005,6 +12005,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 26062,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1472,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1052,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8170,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "aff89a1d51d0e2d9e788998fb755fc9fd1c3da22",
+          "message": "Autumn cleaning part 2 - split transactron/lib.py (#464)",
+          "timestamp": "2023-10-07T14:47:50+02:00",
+          "tree_id": "e6ddc0deae7e6a4b9a730a6639b1d996bcb6f0d2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/aff89a1d51d0e2d9e788998fb755fc9fd1c3da22"
+        },
+        "date": 1696683424737,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 46.78,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 21796,
             "unit": "LUT4"
           },
           {
