@@ -51,6 +51,8 @@ class Zbs(Elaboratable):
         ----------
         gen_params : GenParams
             Core generation parameters.
+        function : ZbsFunction
+            Decoder manager to decode instruction.
         """
         self.gen_params = gen_params
 
