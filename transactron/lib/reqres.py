@@ -21,22 +21,20 @@ class ArgumentsToResultsZipper(Elaboratable):
 
     Example topology:
 
-    ```{mermaid}
-    graph LR
-        Caller;
-        Caller -- write_arguments --> 2-FIFO;
-        Caller -- invoke --> Callee["Callee \n (1+ cycle delay)"];
-        Callee -- write_results --> Forwarder;
-        Forwarder -- read --> Zip;
-        2-FIFO -- read --> Zip;
-        Zip -- read --> User;
+    .. mermaid::
 
-        subgraph ArgumentsToResultsZipper
-            Forwarder;
-            2-FIFO;
-            Zip;
-        end
-    ```
+        graph LR
+            Caller -- write_arguments --> 2-FIFO;
+            Caller -- invoke --> Callee["Callee \\n (1+ cycle delay)"];
+            Callee -- write_results --> Forwarder;
+            Forwarder -- read --> Zip;
+            2-FIFO -- read --> Zip;
+            Zip -- read --> User;
+            subgraph ArgumentsToResultsZipper
+                Forwarder;
+                2-FIFO;
+                Zip;
+            end
 
     Attributes
     ----------
