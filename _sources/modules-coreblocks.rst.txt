@@ -1,0 +1,7 @@
+coreblocks
+==========
+
+.. toctree::
+   :maxdepth: 4
+
+   coreblocks

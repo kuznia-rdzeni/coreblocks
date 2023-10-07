@@ -1,0 +1,45 @@
+transactron package
+===================
+
+Submodules
+----------
+
+transactron.core module
+-----------------------
+
+.. automodule:: transactron.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.graph module
+------------------------
+
+.. automodule:: transactron.graph
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.lib module
+----------------------
+
+.. automodule:: transactron.lib
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.tracing module
+--------------------------
+
+.. automodule:: transactron.tracing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: transactron
+   :members:
+   :undoc-members:
+   :show-inheritance:
