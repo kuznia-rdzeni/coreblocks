@@ -44,7 +44,7 @@ class Decoder(Elaboratable):
 
 
 class DecoderManager:
-    """ Class responsible for instruction management."""
+    """Class responsible for instruction management."""
 
     """
     Type[IntFlag]
@@ -54,7 +54,7 @@ class DecoderManager:
     Fn: Type[IntFlag]
 
     def get_instructions(self) -> Sequence[tuple]:
-        """ Method providing list of valid instruction.
+        """Method providing list of valid instruction.
 
         Returns
         -------
@@ -66,7 +66,7 @@ class DecoderManager:
         raise NotImplementedError
 
     def get_op_types(self) -> set[OpType]:
-        """ Method returning op types from listed instructions.
+        """Method returning op types from listed instructions.
 
         Returns
         -------
@@ -76,7 +76,7 @@ class DecoderManager:
         return {instr[1] for instr in self.get_instructions()}
 
     def get_decoder(self, gen_params: GenParams) -> Decoder:
-        """ Method returning auto generated instruction decoder.
+        """Method returning auto generated instruction decoder.
 
         Parameters
         ----------
@@ -96,7 +96,7 @@ class DecoderManager:
         return Decoder(gen_params, self.Fn, self.get_instructions(), check_optype=multiple_op_types)
 
     def get_function(self) -> Value:
-        """ Method returning Signal Object for decoder, called function in FU blocks
+        """Method returning Signal Object for decoder, called function in FU blocks
 
         Returns
         -------
