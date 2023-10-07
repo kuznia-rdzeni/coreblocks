@@ -60,6 +60,7 @@ class PinManager:
             if name in self.pin_bag:
                 self.pin_bag.remove(name)
                 return name
+        raise RuntimeError("Named pins %s not free" % ", ".join(names))
 
 
 ResourceBuilder: TypeAlias = Callable[[PinManager], list[Resource]]
@@ -124,8 +125,6 @@ def make_ecp5_platform(resource_builder: ResourceBuilder):
         default_rst = "rst"
 
         clk_pin = pins.named_pin(ecp5_bg756_pclk)
-        if clk_pin is None:
-            raise RuntimeError("No free clk pin found.")
         resources = [
             Resource("rst", 0, PinsN(pins.p(), dir="i"), Attrs(IO_TYPE="LVCMOS33")),
             Resource("clk", 0, Pins(clk_pin, dir="i"), Clock(12e6), Attrs(IO_TYPE="LVCMOS33")),
