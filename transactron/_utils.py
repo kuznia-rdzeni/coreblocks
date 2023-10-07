@@ -3,7 +3,7 @@ import sys
 from inspect import Parameter, signature
 from typing import Callable, Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
-from coreblocks.utils._typing import LayoutLike
+from .core.typing import LayoutLike
 from coreblocks.utils import OneHotSwitchDynamic
 
 __all__ = [
