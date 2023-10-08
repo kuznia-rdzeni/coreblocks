@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from .method import Method
     from .manager import TransactionManager
 
+
 class _AvoidingModuleBuilderDomains:
     _m: "TModule"
 
@@ -148,6 +149,7 @@ class TModule(ModuleLike, Elaboratable):
         self.main_module.submodules._top_module = self.top_module
         return self.main_module
 
+
 class TransactionContext:
     stack: list["TransactionManager"] = []
 
@@ -167,6 +169,7 @@ class TransactionContext:
         if not cls.stack:
             raise RuntimeError("TransactionContext stack is empty")
         return cls.stack[-1]
+
 
 def def_method(m: TModule, method: "Method", ready: ValueLike = C(1)):
     """Define a method.

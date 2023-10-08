@@ -29,7 +29,6 @@ __all__ = [
 ]
 
 
-
 class MethodMap:
     def __init__(self, transactions: Iterable["Transaction"]):
         self.methods_by_transaction = dict["Transaction", list["Method"]]()

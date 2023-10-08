@@ -6,6 +6,7 @@ from .typing import TransactionGraph, TransactionGraphCC, PriorityOrder
 if TYPE_CHECKING:
     from .manager import MethodMap
 
+
 def eager_deterministic_cc_scheduler(
     method_map: "MethodMap", gr: TransactionGraph, cc: TransactionGraphCC, porder: PriorityOrder
 ) -> Module:
