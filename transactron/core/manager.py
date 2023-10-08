@@ -6,7 +6,7 @@ from graphlib import TopologicalSorter
 from .transaction_base import Relation, TransactionBase
 from .transaction import Transaction
 from .method import Method
-from .modules import TModule, Priority
+from .modules import TModule, Priority, TransactionContext
 from .schedulers import eager_deterministic_cc_scheduler
 from .typing import (
     TransactionGraph,
@@ -25,7 +25,6 @@ from coreblocks.utils.utils import OneHotSwitchDynamic
 
 __all__ = [
     "TransactionManager",
-    "TransactionContext",
     "TransactionModule",
 ]
 
@@ -51,11 +50,6 @@ class MethodMap:
             rec(transaction, transaction)
 
     def transactions_for(self, elem: "TransactionBase") -> Iterable["Transaction"]:
-        # Here is the only place, where real definition of Transaction is needed. So
-        # we import this class here to break cyclic imports
-        from .transaction import Transaction
-        from .method import Method
-
         if isinstance(elem, Transaction):
             return [elem]
         else:
@@ -380,27 +374,6 @@ class TransactionManager(Elaboratable):
             "transactions": {t.name: transaction_debug(t) for t in method_map.transactions},
             "methods": {m.owned_name: method_debug(m) for m in method_map.methods},
         }
-
-
-class TransactionContext:
-    stack: list[TransactionManager] = []
-
-    def __init__(self, manager: TransactionManager):
-        self.manager = manager
-
-    def __enter__(self):
-        self.stack.append(self.manager)
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_tb):
-        top = self.stack.pop()
-        assert self.manager is top
-
-    @classmethod
-    def get(cls) -> TransactionManager:
-        if not cls.stack:
-            raise RuntimeError("TransactionContext stack is empty")
-        return cls.stack[-1]
 
 
 class TransactionModule(Elaboratable):

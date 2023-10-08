@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
-from typing import Optional, NoReturn
+from typing import Optional, NoReturn, TYPE_CHECKING
 from contextlib import contextmanager
 from enum import Enum, auto
 from .typing import ModuleLike, ValueLike, SwitchKey
@@ -8,7 +8,11 @@ from .typing import ModuleLike, ValueLike, SwitchKey
 __all__ = [
     "TModule",
     "Priority",
+    "TransactionContext",
 ]
+
+if TYPE_CHECKING:
+    from .manager import TransactionManager
 
 class Priority(Enum):
     #: Conflicting transactions/methods don't have a priority order.
@@ -150,3 +154,23 @@ class TModule(ModuleLike, Elaboratable):
         self.main_module.submodules._avoiding_module = self.avoiding_module
         self.main_module.submodules._top_module = self.top_module
         return self.main_module
+
+class TransactionContext:
+    stack: list["TransactionManager"] = []
+
+    def __init__(self, manager: "TransactionManager"):
+        self.manager = manager
+
+    def __enter__(self):
+        self.stack.append(self.manager)
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        top = self.stack.pop()
+        assert self.manager is top
+
+    @classmethod
+    def get(cls) -> "TransactionManager":
+        if not cls.stack:
+            raise RuntimeError("TransactionContext stack is empty")
+        return cls.stack[-1]

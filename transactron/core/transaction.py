@@ -3,7 +3,7 @@ from amaranth import tracer
 from typing import Optional, Iterator, TYPE_CHECKING
 from contextlib import contextmanager
 from .transaction_base import TransactionBase
-from .modules import TModule
+from .modules import TModule, TransactionContext
 from .typing import SignalBundle, ValueLike
 from .._utils import get_caller_class_name
 
@@ -63,8 +63,6 @@ class Transaction(TransactionBase):
             The `TransactionManager` controlling this `Transaction`.
             If omitted, the manager is received from `TransactionContext`.
         """
-        from .manager import TransactionContext
-
         super().__init__()
         self.owner, owner_name = get_caller_class_name(default="$transaction")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
