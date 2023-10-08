@@ -3,15 +3,14 @@ Utilities for extracting dependency graphs from Amaranth designs.
 """
 
 from enum import IntFlag
-from abc import ABC
 from collections import defaultdict
-from typing import Literal, Optional
+from typing import Literal, Optional, Protocol
 
 from amaranth.hdl.ir import Elaboratable, Fragment
 from .tracing import TracingFragment
 
 
-class Owned(ABC):
+class Owned(Protocol):
     name: str
     owner: Optional[Elaboratable]
 
