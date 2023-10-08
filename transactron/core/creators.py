@@ -2,14 +2,12 @@ from amaranth import *
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 from typing import Optional, NoReturn, TYPE_CHECKING, Callable
 from contextlib import contextmanager
-from enum import Enum, auto
 from .typing import ModuleLike, ValueLike, SwitchKey, RecordDict
 from .._utils import method_def_helper
 from coreblocks.utils import assign, AssignType
 
 __all__ = [
     "TModule",
-    "Priority",
     "TransactionContext",
     "def_method",
 ]
@@ -17,15 +15,6 @@ __all__ = [
 if TYPE_CHECKING:
     from .method import Method
     from .manager import TransactionManager
-
-class Priority(Enum):
-    #: Conflicting transactions/methods don't have a priority order.
-    UNDEFINED = auto()
-    #: Left transaction/method is prioritized over the right one.
-    LEFT = auto()
-    #: Right transaction/method is prioritized over the left one.
-    RIGHT = auto()
-
 
 class _AvoidingModuleBuilderDomains:
     _m: "TModule"

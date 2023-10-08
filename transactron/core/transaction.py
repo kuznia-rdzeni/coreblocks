@@ -3,7 +3,7 @@ from amaranth import tracer
 from typing import Optional, Iterator, TYPE_CHECKING
 from contextlib import contextmanager
 from .transaction_base import TransactionBase
-from .modules import TModule, TransactionContext
+from .creators import TModule, TransactionContext
 from .typing import SignalBundle, ValueLike
 from .._utils import get_caller_class_name
 

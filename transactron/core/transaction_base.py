@@ -1,15 +1,27 @@
+from enum import Enum, auto
 from typing import Union, Tuple, ClassVar, Iterator, Optional, TYPE_CHECKING, TypedDict
 from typing_extensions import Self
 from itertools import count
 from contextlib import contextmanager
 from .typing import ValueLike
-from .modules import Priority
+from .creators import TModule
 from ..graph import Owned
 
 if TYPE_CHECKING:
     from .method import Method
     from .transaction import Transaction
-    from .modules import TModule
+
+__all__ = ["Priority"]
+
+class Priority(Enum):
+    #: Conflicting transactions/methods don't have a priority order.
+    UNDEFINED = auto()
+    #: Left transaction/method is prioritized over the right one.
+    LEFT = auto()
+    #: Right transaction/method is prioritized over the left one.
+    RIGHT = auto()
+
+
 
 class RelationBase(TypedDict):
     end: "TransactionBase"

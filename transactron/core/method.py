@@ -3,9 +3,8 @@ from amaranth import tracer
 from typing import Optional, Iterator
 from contextlib import contextmanager
 from . import transaction_base
-from .modules import TModule
+from .creators import TModule, def_method
 from .typing import ValueLike, SignalBundle, RecordDict, MethodLayout
-from .sugar import def_method
 from .._utils import get_caller_class_name
 from coreblocks.utils import assign, AssignType
 

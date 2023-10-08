@@ -3,10 +3,10 @@ from typing import Tuple, Mapping, Sequence, Optional, Iterable
 from collections import defaultdict, deque
 from itertools import chain, product, filterfalse
 from graphlib import TopologicalSorter
-from .transaction_base import Relation, TransactionBase
+from .transaction_base import Relation, TransactionBase, Priority
 from .transaction import Transaction
 from .method import Method
-from .modules import TModule, Priority, TransactionContext
+from .creators import TModule, TransactionContext
 from .schedulers import eager_deterministic_cc_scheduler
 from .typing import (
     TransactionGraph,

@@ -1,6 +1,6 @@
 from amaranth import *
 from ..core import *
-from ..core import TransactionBase
+from ..core.transaction_base import TransactionBase
 from contextlib import contextmanager
 from typing import Optional
 from coreblocks.utils import ValueLike
