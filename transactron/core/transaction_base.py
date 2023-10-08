@@ -1,9 +1,9 @@
-from typing import Union, Tuple, ClassVar, Iterator, Optional, TYPE_CHECKING
+from typing import Union, Tuple, ClassVar, Iterator, Optional, TYPE_CHECKING, TypedDict
 from typing_extensions import Self
 from itertools import count
 from contextlib import contextmanager
-from .typing import ValueLike, TransactionOrMethod
-from .relation_database import RelationBase, Priority
+from .typing import ValueLike
+from .modules import Priority
 from ..graph import Owned
 
 if TYPE_CHECKING:
@@ -11,9 +11,18 @@ if TYPE_CHECKING:
     from .transaction import Transaction
     from .modules import TModule
 
+class RelationBase(TypedDict):
+    end: "TransactionBase"
+    priority: Priority
+    conflict: bool
+
+
+class Relation(RelationBase):
+    start: "TransactionBase"
+
 
 class TransactionBase(Owned):
-    stack: ClassVar[list[Union["Transaction", "Method"]]] = []
+    stack: ClassVar[list["TransactionBase"]] = []
     def_counter: ClassVar[count] = count()
     def_order: int
     defined: bool = False
@@ -22,10 +31,10 @@ class TransactionBase(Owned):
     def __init__(self):
         self.method_uses: dict["Method", Tuple[ValueLike, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
-        self.simultaneous_list: list[TransactionOrMethod] = []
-        self.independent_list: list[TransactionOrMethod] = []
+        self.simultaneous_list: list["TransactionBase"] = []
+        self.independent_list: list["TransactionBase"] = []
 
-    def add_conflict(self, end: TransactionOrMethod, priority: Priority = Priority.UNDEFINED) -> None:
+    def add_conflict(self, end: "TransactionBase", priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
 
         Record that that the given `Transaction` or `Method` cannot execute
@@ -42,7 +51,7 @@ class TransactionBase(Owned):
         """
         self.relations.append(RelationBase(end=end, priority=priority, conflict=True))
 
-    def schedule_before(self, end: TransactionOrMethod) -> None:
+    def schedule_before(self, end: "TransactionBase") -> None:
         """Adds a priority relation.
 
         Record that that the given `Transaction` or `Method` needs to be
@@ -61,7 +70,7 @@ class TransactionBase(Owned):
             raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction '{self.name}'")
         self.method_uses[method] = (arg, enable)
 
-    def simultaneous(self, *others: TransactionOrMethod) -> None:
+    def simultaneous(self, *others: "TransactionBase") -> None:
         """Adds simultaneity relations.
 
         The given `Transaction`\\s or `Method``\\s will execute simultaneously
@@ -74,7 +83,7 @@ class TransactionBase(Owned):
         """
         self.simultaneous_list += others
 
-    def simultaneous_alternatives(self, *others: TransactionOrMethod) -> None:
+    def simultaneous_alternatives(self, *others: "TransactionBase") -> None:
         """Adds exclusive simultaneity relations.
 
         Each of the given `Transaction`\\s or `Method``\\s will execute
@@ -91,7 +100,7 @@ class TransactionBase(Owned):
         self.simultaneous(*others)
         others[0]._independent(*others[1:])
 
-    def _independent(self, *others: TransactionOrMethod) -> None:
+    def _independent(self, *others: "TransactionBase") -> None:
         """Adds independence relations.
 
         This `Transaction` or `Method`, together with all the given
@@ -112,11 +121,6 @@ class TransactionBase(Owned):
 
     @contextmanager
     def context(self, m: "TModule") -> Iterator[Self]:
-        from .method import Method
-        from .transaction import Transaction
-
-        assert isinstance(self, Transaction) or isinstance(self, Method)  # for typing
-
         parent = TransactionBase.peek()
         if parent is not None:
             parent.schedule_before(self)

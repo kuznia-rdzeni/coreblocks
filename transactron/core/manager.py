@@ -1,12 +1,12 @@
 from amaranth import *
-from typing import Tuple, Mapping, Sequence, Optional
+from typing import Tuple, Mapping, Sequence, Optional, Iterable
 from collections import defaultdict, deque
 from itertools import chain, product, filterfalse
 from graphlib import TopologicalSorter
-from .relation_database import MethodMap, Priority, Relation
+from .transaction_base import Relation, TransactionBase
 from .transaction import Transaction
 from .method import Method
-from . import modules
+from .modules import TModule, Priority
 from .schedulers import eager_deterministic_cc_scheduler
 from .typing import (
     TransactionGraph,
@@ -28,6 +28,51 @@ __all__ = [
     "TransactionContext",
     "TransactionModule",
 ]
+
+
+
+class MethodMap:
+    def __init__(self, transactions: Iterable["Transaction"]):
+        self.methods_by_transaction = dict["Transaction", list["Method"]]()
+        self.transactions_by_method = defaultdict["Method", list["Transaction"]](list)
+
+        def rec(transaction: "Transaction", source: "TransactionBase"):
+            for method in source.method_uses.keys():
+                if not method.defined:
+                    raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
+                if method in self.methods_by_transaction[transaction]:
+                    raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
+                self.methods_by_transaction[transaction].append(method)
+                self.transactions_by_method[method].append(transaction)
+                rec(transaction, method)
+
+        for transaction in transactions:
+            self.methods_by_transaction[transaction] = []
+            rec(transaction, transaction)
+
+    def transactions_for(self, elem: "TransactionBase") -> Iterable["Transaction"]:
+        # Here is the only place, where real definition of Transaction is needed. So
+        # we import this class here to break cyclic imports
+        from .transaction import Transaction
+        from .method import Method
+
+        if isinstance(elem, Transaction):
+            return [elem]
+        else:
+            assert isinstance(elem, Method)
+            return self.transactions_by_method[elem]
+
+    @property
+    def methods(self) -> Iterable["Method"]:
+        return self.transactions_by_method.keys()
+
+    @property
+    def transactions(self) -> Iterable["Transaction"]:
+        return self.methods_by_transaction.keys()
+
+    @property
+    def methods_and_transactions(self) -> Iterable["TransactionBase"]:
+        return chain(self.methods, self.transactions)
 
 
 class TransactionManager(Elaboratable):
@@ -161,6 +206,7 @@ class TransactionManager(Elaboratable):
                 run = Signal()
                 m.d.comb += run.eq(run_val)
             else:
+                assert isinstance(source, Transaction)
                 run = source.grant
             for method, (arg, _) in source.method_uses.items():
                 args[method].append(arg)
@@ -251,7 +297,7 @@ class TransactionManager(Elaboratable):
                     relation["end"] = methods[relation["end"]]
 
         # step 5: construct merged transactions
-        m = modules.TModule()
+        m = TModule()
         m._MustUse__silence = True  # type: ignore
 
         for group in final_simultaneous:

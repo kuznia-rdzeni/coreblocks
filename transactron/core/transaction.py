@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth import tracer
 from typing import Optional, Iterator, TYPE_CHECKING
 from contextlib import contextmanager
-from . import transaction_base
+from .transaction_base import TransactionBase
 from .modules import TModule
 from .typing import SignalBundle, ValueLike
 from .._utils import get_caller_class_name
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from .manager import TransactionManager
 
 
-class Transaction(transaction_base.TransactionBase):
+class Transaction(TransactionBase):
     """Transaction.
 
     A `Transaction` represents a task which needs to be regularly done.
@@ -96,7 +96,7 @@ class Transaction(transaction_base.TransactionBase):
         """
         if self.defined:
             raise RuntimeError(f"Transaction '{self.name}' already defined")
-        self.def_order = next(transaction_base.TransactionBase.def_counter)
+        self.def_order = next(TransactionBase.def_counter)
 
         m.d.av_comb += self.request.eq(request)
         with self.context(m):

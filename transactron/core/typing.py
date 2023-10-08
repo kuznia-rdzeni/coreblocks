@@ -8,7 +8,7 @@ from coreblocks.utils._typing import ModuleLike, LayoutLike  # noqa: F401
 if TYPE_CHECKING:
     from .transaction import Transaction
     from .method import Method
-    from .relation_database import MethodMap
+    from .manager import MethodMap
     from .._utils import Graph, GraphCC
 
 __all__ = [

@@ -2,11 +2,21 @@ from amaranth import *
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 from typing import Optional, NoReturn
 from contextlib import contextmanager
+from enum import Enum, auto
 from .typing import ModuleLike, ValueLike, SwitchKey
 
 __all__ = [
     "TModule",
+    "Priority",
 ]
+
+class Priority(Enum):
+    #: Conflicting transactions/methods don't have a priority order.
+    UNDEFINED = auto()
+    #: Left transaction/method is prioritized over the right one.
+    LEFT = auto()
+    #: Right transaction/method is prioritized over the left one.
+    RIGHT = auto()
 
 
 class _AvoidingModuleBuilderDomains:
