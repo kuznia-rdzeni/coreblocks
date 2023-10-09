@@ -14,7 +14,7 @@ jobs:
     name: Synthesis benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5
+    container: ghcr.io/kuznia-rdzeni/amaranth-synth-ecp5:2023.10.08_v
     steps:
       - uses: actions/checkout@v3
 
@@ -82,7 +82,7 @@ jobs:
     name: Run performance benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
     needs: build-perf-benchmarks
     steps:
       - name: Checkout

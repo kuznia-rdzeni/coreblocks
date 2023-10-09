@@ -49,7 +49,7 @@ PriorityOrder: TypeAlias = dict["Transaction", int]
 TransactionScheduler: TypeAlias = Callable[["MethodMap", TransactionGraph, TransactionGraphCC, PriorityOrder], Module]
 RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 TransactionOrMethod: TypeAlias = Union["Transaction", "Method"]
-TransactionOrMethodBound = TypeVar("TransactionOrMethodBound", bound=Union["Transaction", "Method"])
+TransactionOrMethodBound = TypeVar("TransactionOrMethodBound", "Transaction", "Method")
 
 
 class Priority(Enum):
