@@ -49,7 +49,7 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m pip install --break-system-packages --upgrade pip
-          pip3 install --break-system-packages -r requirements-dev.txt
+          python3 -m pip install --break-system-packages -r requirements-dev.txt
 
       - name: Generate Verilog
         run: PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
