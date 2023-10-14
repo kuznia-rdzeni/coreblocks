@@ -49,12 +49,14 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m venv venv
-          source venv/bin/activate
+          . venv/bin/activate
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements-dev.txt
 
       - name: Generate Verilog
-        run: PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+        run: |
+          . venv/bin/activate
+          PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 
       - uses: actions/download-artifact@v3
         with:
@@ -63,6 +65,7 @@ jobs:
 
       - name: Run tests
         run: |
+          . venv/bin/activate
           scripts/run_tests.py -a regression
 
       - name: Test Report
