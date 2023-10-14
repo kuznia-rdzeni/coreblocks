@@ -4,7 +4,7 @@
 
 In order to prepare the development environment, please follow the steps below:
 
-1. Install the Python 3.10 interpreter and pip package manager.
+1. Install the Python 3.11 interpreter and pip package manager.
     * Optionally create a Python virtual environment with `python3 -m venv venv` in the project directory and activate it using generated script: `. venv/bin/activate`.
 2. Install all required libraries with `pip3 install -r requirements-dev.txt`.
 3. Install `riscv64-unknown-elf` binutils using your favourite package manager. On Debian-based distros the package is called `binutils-riscv64-unknown-elf`, on Arch-based - `riscv64-unknown-elf-binutils`.
