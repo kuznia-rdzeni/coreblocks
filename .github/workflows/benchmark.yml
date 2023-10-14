@@ -14,7 +14,7 @@ jobs:
     name: Synthesis benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    container: ghcr.io/kuznia-rdzeni/amaranth-synth-ecp5:2023.10.08_v
+    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5
     steps:
       - uses: actions/checkout@v3
 
@@ -23,19 +23,10 @@ jobs:
           # https://github.com/actions/runner/issues/2033
           chown -R $(id -u):$(id -g) $PWD
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-
       - name: Install dependencies
         run: |
-          python3 -m pip install --break-system-packages --upgrade pip
-          pip3 install --break-system-packages -r requirements-dev.txt
+          python3 -m pip install --upgrade pip
+          pip3 install -r requirements-dev.txt
 
       - name: Synthesize
         run: PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --config ${{ matrix.config }}
@@ -62,7 +53,7 @@ jobs:
   build-perf-benchmarks:
     name: Build performance benchmarks
     runs-on: ubuntu-latest
-    container: ghcr.io/lekcyjna123/riscv-toolchain:2023.10.08_v
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.05.14
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -82,7 +73,7 @@ jobs:
     name: Run performance benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008
     needs: build-perf-benchmarks
     steps:
       - name: Checkout
@@ -93,19 +84,10 @@ jobs:
           # https://github.com/actions/runner/issues/2033
           chown -R $(id -u):$(id -g) $PWD
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-
       - name: Install dependencies
         run: |
-          python3 -m pip install --break-system-packages --upgrade pip
-          pip3 install --break-system-packages -r requirements-dev.txt
+          python3 -m pip install --upgrade pip
+          pip3 install -r requirements-dev.txt
 
       - name: Generate Verilog
         run: PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
