@@ -27,20 +27,22 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-          cache: "pip"
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
 
       - name: Install dependencies
         run: |
-          python -m pip install --break-system-packages --upgrade pip
-          pip3 install -r requirements-dev.txt
+          python3 -m venv venv
+          . venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
 
       - name: Build documentation
-        run: ./ci/build_docs.sh
+        run: |
+          . venv/bin/activate
+          ./ci/build_docs.sh
 
       - name: Push documentation
         # Deploy documentation only when on master
         if: github.ref == 'refs/heads/master'
-        run: ./ci/push_gh_pages.sh
+        run: |
+          . venv/bin/activate
+          ./ci/push_gh_pages.sh
