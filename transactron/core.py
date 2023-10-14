@@ -2,18 +2,7 @@ from collections import defaultdict, deque
 from collections.abc import Sequence, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import (
-    ClassVar,
-    NoReturn,
-    TypeAlias,
-    TypedDict,
-    Union,
-    Optional,
-    Tuple,
-    TypeVar,
-    Protocol,
-    runtime_checkable,
-)
+from typing import ClassVar, NoReturn, TypeAlias, TypedDict, Union, Optional, Tuple
 from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
@@ -49,7 +38,6 @@ PriorityOrder: TypeAlias = dict["Transaction", int]
 TransactionScheduler: TypeAlias = Callable[["MethodMap", TransactionGraph, TransactionGraphCC, PriorityOrder], Module]
 RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 TransactionOrMethod: TypeAlias = Union["Transaction", "Method"]
-TransactionOrMethodBound = TypeVar("TransactionOrMethodBound", "Transaction", "Method")
 
 
 class Priority(Enum):
@@ -682,20 +670,15 @@ class TModule(ModuleLike, Elaboratable):
         return self.main_module
 
 
-@runtime_checkable
-class TransactionBase(Owned, Protocol):
+class TransactionBase(Owned):
     stack: ClassVar[list[Union["Transaction", "Method"]]] = []
     def_counter: ClassVar[count] = count()
     def_order: int
     defined: bool = False
     name: str
-    method_uses: dict["Method", Tuple[ValueLike, ValueLike]]
-    relations: list[RelationBase]
-    simultaneous_list: list[TransactionOrMethod]
-    independent_list: list[TransactionOrMethod]
 
     def __init__(self):
-        self.method_uses: dict["Method", Tuple[ValueLike, ValueLike]] = dict()
+        self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
         self.simultaneous_list: list[TransactionOrMethod] = []
         self.independent_list: list[TransactionOrMethod] = []
@@ -786,7 +769,9 @@ class TransactionBase(Owned, Protocol):
         self.independent_list += others
 
     @contextmanager
-    def context(self: TransactionOrMethodBound, m: TModule) -> Iterator[TransactionOrMethodBound]:
+    def context(self, m: TModule) -> Iterator[Self]:
+        assert isinstance(self, Transaction) or isinstance(self, Method)  # for typing
+
         parent = TransactionBase.peek()
         if parent is not None:
             parent.schedule_before(self)
