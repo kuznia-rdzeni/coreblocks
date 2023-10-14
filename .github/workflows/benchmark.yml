@@ -14,7 +14,7 @@ jobs:
     name: Synthesis benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    container: ghcr.io/kuznia-rdzeni/amaranth-synth-ecp5:2023.10.08_v
+    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-3.11
     steps:
       - uses: actions/checkout@v3
 
