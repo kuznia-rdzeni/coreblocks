@@ -1,9 +1,9 @@
-FROM ubuntu:22.10
+FROM ubuntu:23.04
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
-    autoconf automake autotools-dev curl python3 bc \
+    autoconf automake autotools-dev curl python3 bc lsb-release \
     libmpc-dev libmpfr-dev libgmp-dev gawk build-essential \
     bison flex texinfo gperf libtool patchutils zlib1g-dev \
     libexpat-dev ninja-build git ca-certificates python-is-python3 && \
