@@ -179,7 +179,6 @@
 <dt class="sig sig-object py" id="coreblocks.fu.div_unit.DivFn.Fn">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Fn</span></span><a class="headerlink" href="#coreblocks.fu.div_unit.DivFn.Fn" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></p>
-<p>An enumeration.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.fu.div_unit.DivFn.Fn.DIV">
 <span class="sig-name descname"><span class="pre">DIV</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.fu.div_unit.DivFn.Fn.DIV" title="Permalink to this definition"></a></dt>
@@ -198,6 +197,11 @@
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.fu.div_unit.DivFn.Fn.REMU">
 <span class="sig-name descname"><span class="pre">REMU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.fu.div_unit.DivFn.Fn.REMU" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.div_unit.DivFn.Fn.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.div_unit.DivFn.Fn.__new__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -408,7 +412,6 @@
 <dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Fn</span></span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></p>
-<p>An enumeration.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn.MUL">
 <span class="sig-name descname"><span class="pre">MUL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn.MUL" title="Permalink to this definition"></a></dt>
@@ -427,6 +430,11 @@
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn.MULHU">
 <span class="sig-name descname"><span class="pre">MULHU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn.MULHU" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.Fn.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.Fn.__new__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -460,6 +468,11 @@
 <span class="sig-name descname"><span class="pre">SHIFT_MUL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.fu.mul_unit.MulType.SHIFT_MUL" title="Permalink to this definition"></a></dt>
 <dd><p>The cheapest multiplication unit in terms of resources, it uses Russian Peasants Algorithm.</p>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulType.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulType.__new__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -619,7 +632,6 @@ module. It uses standard FuncUnitLayout.</p>
 <dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn.Fn">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Fn</span></span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn.Fn" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></p>
-<p>An enumeration.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn.Fn.CLMUL">
 <span class="sig-name descname"><span class="pre">CLMUL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn.Fn.CLMUL" title="Permalink to this definition"></a></dt>
@@ -633,6 +645,11 @@ module. It uses standard FuncUnitLayout.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn.Fn.CLMULR">
 <span class="sig-name descname"><span class="pre">CLMULR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn.Fn.CLMULR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn.Fn.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn.Fn.__new__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -726,7 +743,6 @@ module. It uses standard FuncUnitLayout.</p>
 <dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.Fn">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Fn</span></span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.Fn" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></p>
-<p>An enumeration.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.Fn.BCLR">
 <span class="sig-name descname"><span class="pre">BCLR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.Fn.BCLR" title="Permalink to this definition"></a></dt>
@@ -745,6 +761,11 @@ module. It uses standard FuncUnitLayout.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.Fn.BSET">
 <span class="sig-name descname"><span class="pre">BSET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.Fn.BSET" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.Fn.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.Fn.__new__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -796,7 +817,7 @@ module. It uses standard FuncUnitLayout.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 12:48 2023-10-07.
+      <span class="lastupdated">Last updated on 12:42 2023-10-16.
       </span></p>
   </div>
 
