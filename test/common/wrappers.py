@@ -5,14 +5,11 @@ from amaranth.sim import Settle, Passive
 from typing import Any, Generator, TypeVar, Union, Mapping, Optional, Callable
 from transactron.lib import AdapterBase
 from transactron.core import ValueLike, SignalBundle
-from transactron._utils import method_def_helper
+from transactron._utils import method_def_helper, RecordIntDictRet, RecordValueDict, RecordIntDict
 from .functions import set_inputs, get_outputs
 
 T = TypeVar("T")
 TestGen = Generator[Command | Value | Statement | None, Any, T]
-RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
-RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
-RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 
 class TestbenchIO(Elaboratable):
     def __init__(self, adapter: AdapterBase):

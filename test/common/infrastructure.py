@@ -1,7 +1,17 @@
+import os
+import random
+import unittest
+import functools
+from contextlib import contextmanager, nullcontext
+from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast
 from amaranth import *
-from typing import TypeVar, Generic, Type, TypeGuard, Any, Union
+from amaranth.sim import *
+from .wrappers import TestbenchIO
+from ..gtkw_extension import write_vcd_ext
 from transactron import Method
-from coreblocks.utils import ModuleConnector
+from transactron.lib import AdapterTrans
+from transactron.core import TransactionModule
+from coreblocks.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
 
 T = TypeVar("T")
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]

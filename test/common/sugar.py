@@ -1,3 +1,7 @@
+import functools
+from typing import Callable, Any, Optional
+from .wrappers import TestbenchIO, TestGen
+from transactron._utils import RecordIntDict
 
 def def_method_mock(
     tb_getter: Callable[[], TestbenchIO] | Callable[[Any], TestbenchIO], sched_prio: int = 0, **kwargs
