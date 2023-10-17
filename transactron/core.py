@@ -63,15 +63,17 @@ class MethodMap:
     def __init__(self, transactions: Iterable["Transaction"]):
         self.methods_by_transaction = dict[Transaction, list[Method]]()
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
+        self.arguments_by_method_by_transaction = defaultdict[Transaction, dict[Method, RecordDict]](dict)
 
         def rec(transaction: Transaction, source: TransactionBase):
-            for method in source.method_uses.keys():
+            for method, (arg_rec, _) in source.method_uses.items():
                 if not method.defined:
                     raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
                 if method in self.methods_by_transaction[transaction]:
                     raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
+                self.arguments_by_method_by_transaction[transaction][method]=arg_rec
                 rec(transaction, method)
 
         for transaction in transactions:
@@ -127,6 +129,8 @@ def eager_deterministic_cc_scheduler(
     ccl = list(cc)
     ccl.sort(key=lambda transaction: porder[transaction])
     for k, transaction in enumerate(ccl):
+        for method in method_map.methods_by_transaction[transaction]:
+            method.ready_function(method_map.arguments_by_method_by_transaction[transaction][method])
         ready = [method.ready for method in method_map.methods_by_transaction[transaction]]
         runnable = Cat(ready).all()
         conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
@@ -1075,6 +1079,9 @@ class Method(TransactionBase):
                     yield self.data_in
         finally:
             self.defined = True
+
+    def ready_function(self, arg_rec):
+        pass
 
     def __call__(
         self, m: TModule, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
