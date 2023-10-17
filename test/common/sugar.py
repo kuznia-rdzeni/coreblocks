@@ -1,6 +1,6 @@
 import functools
 from typing import Callable, Any, Optional
-from .wrappers import TestbenchIO, TestGen
+from .testbenchio import TestbenchIO, TestGen
 from transactron._utils import RecordIntDict
 
 

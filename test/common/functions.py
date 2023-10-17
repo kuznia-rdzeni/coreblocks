@@ -4,7 +4,7 @@ from transactron._utils import RecordValueDict, RecordIntDict
 
 
 if TYPE_CHECKING:
-    from .wrappers import TestGen
+    from .testbenchio import TestGen
 
 
 def set_inputs(values: RecordValueDict, field: Record) -> "TestGen[None]":

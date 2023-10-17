@@ -6,7 +6,7 @@ from contextlib import contextmanager, nullcontext
 from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast
 from amaranth import *
 from amaranth.sim import *
-from .wrappers import TestbenchIO
+from .testbenchio import TestbenchIO
 from ..gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
