@@ -15,6 +15,8 @@ from coreblocks.utils import ModuleConnector, HasElaborate, auto_debug_signals, 
 
 T = TypeVar("T")
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
+
+
 def guard_nested_collection(cont: Any, t: Type[T]) -> TypeGuard[_T_nested_collection[T]]:
     if isinstance(cont, (list, dict)):
         if isinstance(cont, dict):
