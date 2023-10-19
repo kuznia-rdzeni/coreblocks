@@ -73,7 +73,7 @@ class MethodMap:
                     raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
-                self.arguments_by_method_by_transaction[transaction][method]=arg_rec
+                self.arguments_by_method_by_transaction[transaction][method] = arg_rec
                 rec(transaction, method)
 
         for transaction in transactions:
@@ -129,7 +129,10 @@ def eager_deterministic_cc_scheduler(
     ccl = list(cc)
     ccl.sort(key=lambda transaction: porder[transaction])
     for k, transaction in enumerate(ccl):
-        ready = [method.ready_function(method_map.arguments_by_method_by_transaction[transaction][method]) for method in method_map.methods_by_transaction[transaction]]
+        ready = [
+            method.ready_function(method_map.arguments_by_method_by_transaction[transaction][method])
+            for method in method_map.methods_by_transaction[transaction]
+        ]
         runnable = Cat(ready).all()
         conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
         noconflict = ~Cat(conflicts).any()
@@ -981,7 +984,7 @@ class Method(TransactionBase):
         self.data_out = Record(o)
         self.nonexclusive = nonexclusive
         self.single_caller = single_caller
-        self.user_ready_function : Optional[Callable[[Record], ValueLike]] = None
+        self.user_ready_function: Optional[Callable[[Record], ValueLike]] = None
         if nonexclusive:
             assert len(self.data_in) == 0
 
@@ -1025,7 +1028,14 @@ class Method(TransactionBase):
             return method(m, arg)
 
     @contextmanager
-    def body(self, m: TModule, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0), user_ready_function : Optional[Callable[[Record], ValueLike]] = None) -> Iterator[Record]:
+    def body(
+        self,
+        m: TModule,
+        *,
+        ready: ValueLike = C(1),
+        out: ValueLike = C(0, 0),
+        user_ready_function: Optional[Callable[[Record], ValueLike]] = None,
+    ) -> Iterator[Record]:
         """Define method body
 
         The `body` context manager can be used to define the actions
@@ -1069,7 +1079,7 @@ class Method(TransactionBase):
         if self.defined:
             raise RuntimeError(f"Method '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
-        self.user_ready_function=user_ready_function
+        self.user_ready_function = user_ready_function
 
         try:
             m.d.av_comb += self.ready.eq(ready)
@@ -1080,7 +1090,7 @@ class Method(TransactionBase):
         finally:
             self.defined = True
 
-    def ready_function(self, arg_rec : Record) -> ValueLike:
+    def ready_function(self, arg_rec: Record) -> ValueLike:
         if self.user_ready_function is not None:
             return self.ready & self.user_ready_function(arg_rec)
         return self.ready
@@ -1156,7 +1166,9 @@ class Method(TransactionBase):
         return [self.ready, self.run, self.data_in, self.data_out]
 
 
-def def_method(m: TModule, method: Method, ready: ValueLike = C(1), ready_function : Optional[Callable[[Record], ValueLike]] = None):
+def def_method(
+    m: TModule, method: Method, ready: ValueLike = C(1), ready_function: Optional[Callable[[Record], ValueLike]] = None
+):
     """Define a method.
 
     This decorator allows to define transactional methods in an

@@ -531,8 +531,9 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
 
+
 class DataDependentConditionalCircuit(Elaboratable):
-    def __init__(self, n = 2, bad_number = 3):
+    def __init__(self, n=2, bad_number=3):
         self.bad_number = bad_number
         self.method = Method(i=data_layout(n))
 
@@ -549,29 +550,31 @@ class DataDependentConditionalCircuit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        @def_method(m, self.method, self.ready, ready_function = lambda rec: rec.data!=self.bad_number)
+        @def_method(m, self.method, self.ready, ready_function=lambda rec: rec.data != self.bad_number)
         def _(data):
             m.d.comb += self.out_m.eq(1)
 
-        with Transaction().body(m, request = self.req_t1):
+        with Transaction().body(m, request=self.req_t1):
             m.d.comb += self.out_t1.eq(1)
             self.method(m, self.in_t1)
 
-        with Transaction().body(m, request = self.req_t2):
+        with Transaction().body(m, request=self.req_t2):
             m.d.comb += self.out_t2.eq(1)
             self.method(m, self.in_t2)
 
         return m
 
+
 class TestDataDependentConditionalMethod(TestCaseWithSimulator):
     def setUp(self):
-        self.test_number=150
+        self.test_number = 200
         self.bad_number = 3
         self.n = 2
         self.circ = DataDependentConditionalCircuit(self.n, self.bad_number)
 
     def test_random(self):
         random.seed(14)
+
         def process():
             for _ in range(self.test_number):
                 in1 = random.randrange(0, 2**self.n)
@@ -587,12 +590,12 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
                 yield self.circ.ready.eq(m_ready)
                 yield Settle()
                 yield Delay(1e-8)
-                
+
                 out_m = yield self.circ.out_m
                 out_t1 = yield self.circ.out_t1
                 out_t2 = yield self.circ.out_t2
-                
-                if not m_ready or not (req_t1 or req_t2) or (in1 == self.bad_number and in2 == self.bad_number):
+
+                if not m_ready or (not req_t1 or in1 == self.bad_number) and (not req_t2 or in2 == self.bad_number):
                     self.assertEqual(out_m, 0)
                     self.assertEqual(out_t1, 0)
                     self.assertEqual(out_t2, 0)
@@ -608,4 +611,3 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
 
         with self.run_simulation(self.circ, 100) as sim:
             sim.add_process(process)
-
