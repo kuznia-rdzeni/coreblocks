@@ -63,7 +63,7 @@ class MethodMap:
     def __init__(self, transactions: Iterable["Transaction"]):
         self.methods_by_transaction = dict[Transaction, list[Method]]()
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
-        self.arguments_by_method_by_transaction = defaultdict[Transaction, dict[Method, RecordDict]](dict)
+        self.arguments_by_method_by_transaction = defaultdict[Transaction, dict[Method, Record]](dict)
 
         def rec(transaction: Transaction, source: TransactionBase):
             for method, (arg_rec, _) in source.method_uses.items():
@@ -129,9 +129,7 @@ def eager_deterministic_cc_scheduler(
     ccl = list(cc)
     ccl.sort(key=lambda transaction: porder[transaction])
     for k, transaction in enumerate(ccl):
-        for method in method_map.methods_by_transaction[transaction]:
-            method.ready_function(method_map.arguments_by_method_by_transaction[transaction][method])
-        ready = [method.ready for method in method_map.methods_by_transaction[transaction]]
+        ready = [method.ready_function(method_map.arguments_by_method_by_transaction[transaction][method]) for method in method_map.methods_by_transaction[transaction]]
         runnable = Cat(ready).all()
         conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
         noconflict = ~Cat(conflicts).any()
@@ -682,7 +680,7 @@ class TransactionBase(Owned):
     name: str
 
     def __init__(self):
-        self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
+        self.method_uses: dict[Method, Tuple[Record, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
         self.simultaneous_list: list[TransactionOrMethod] = []
         self.independent_list: list[TransactionOrMethod] = []
@@ -718,7 +716,7 @@ class TransactionBase(Owned):
         """
         self.relations.append(RelationBase(end=end, priority=Priority.LEFT, conflict=False))
 
-    def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
+    def use_method(self, method: "Method", arg: Record, enable: ValueLike):
         if method in self.method_uses:
             raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction '{self.name}'")
         self.method_uses[method] = (arg, enable)
@@ -983,6 +981,7 @@ class Method(TransactionBase):
         self.data_out = Record(o)
         self.nonexclusive = nonexclusive
         self.single_caller = single_caller
+        self.user_ready_function : Optional[Callable[[Record], ValueLike]] = None
         if nonexclusive:
             assert len(self.data_in) == 0
 
@@ -1026,7 +1025,7 @@ class Method(TransactionBase):
             return method(m, arg)
 
     @contextmanager
-    def body(self, m: TModule, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
+    def body(self, m: TModule, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0), user_ready_function : Optional[Callable[[Record], ValueLike]] = None) -> Iterator[Record]:
         """Define method body
 
         The `body` context manager can be used to define the actions
@@ -1070,6 +1069,7 @@ class Method(TransactionBase):
         if self.defined:
             raise RuntimeError(f"Method '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
+        self.user_ready_function=user_ready_function
 
         try:
             m.d.av_comb += self.ready.eq(ready)
@@ -1080,8 +1080,10 @@ class Method(TransactionBase):
         finally:
             self.defined = True
 
-    def ready_function(self, arg_rec):
-        pass
+    def ready_function(self, arg_rec : Record) -> ValueLike:
+        if self.user_ready_function is not None:
+            return self.ready & self.user_ready_function(arg_rec)
+        return self.ready
 
     def __call__(
         self, m: TModule, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
@@ -1154,7 +1156,7 @@ class Method(TransactionBase):
         return [self.ready, self.run, self.data_in, self.data_out]
 
 
-def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
+def def_method(m: TModule, method: Method, ready: ValueLike = C(1), ready_function : Optional[Callable[[Record], ValueLike]] = None):
     """Define a method.
 
     This decorator allows to define transactional methods in an
@@ -1214,7 +1216,7 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
         out = Record.like(method.data_out)
         ret_out = None
 
-        with method.body(m, ready=ready, out=out) as arg:
+        with method.body(m, ready=ready, out=out, user_ready_function=ready_function) as arg:
             ret_out = method_def_helper(method, func, arg, **arg.fields)
 
         if ret_out is not None:
