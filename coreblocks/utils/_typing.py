@@ -22,13 +22,13 @@ ValueLike: TypeAlias = Value | int | Enum | ValueCastable
 ShapeLike: TypeAlias = Shape | ShapeCastable | int | range | type[Enum]
 StatementLike: TypeAlias = Statement | Iterable["StatementLike"]
 LayoutLike: TypeAlias = (
-    Layout | Sequence[tuple[str, ShapeLike | "LayoutLike"] | tuple[str, ShapeLike | "LayoutLike", Direction]]
+    Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
 )
 SwitchKey: TypeAlias = str | int | Enum
 
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
-LayoutList: TypeAlias = list[tuple[str, ShapeLike | "LayoutList"]]
+LayoutList: TypeAlias = list[tuple[str, "ShapeLike | LayoutList"]]
 
 
 class _ModuleBuilderDomainsLike(Protocol):
