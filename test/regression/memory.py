@@ -160,11 +160,11 @@ def load_segments_from_elf(file_path: str) -> list[RandomAccessMemory]:
             data = b"\x00" * (paddr - seg_start) + segment.data() + b"\x00" * (seg_end - (paddr + len(segment.data())))
 
             flags = SegmentFlags(0)
-            if flags_raw & P_FLAGS.PF_R == flags_raw & P_FLAGS.PF_R:
+            if flags_raw & P_FLAGS.PF_R:
                 flags |= SegmentFlags.READ
-            if flags_raw & P_FLAGS.PF_W == flags_raw & P_FLAGS.PF_W:
+            if flags_raw & P_FLAGS.PF_W:
                 flags |= SegmentFlags.WRITE
-            if flags_raw & P_FLAGS.PF_X == flags_raw & P_FLAGS.PF_X:
+            if flags_raw & P_FLAGS.PF_X:
                 flags |= SegmentFlags.EXECUTABLE
 
             segments.append(RandomAccessMemory(range(seg_start, seg_end), flags, data))
