@@ -137,7 +137,7 @@ class CoreMemoryModel:
             return WriteReply(status=ReplyStatus.ERROR)
 
 
-def load_segments_from_elf(file_path: str) -> list[RandomAccessMemory]:
+def load_segments_from_elf(file_path: str, *, disable_write_protection: bool = False) -> list[RandomAccessMemory]:
     segments: list[RandomAccessMemory] = []
 
     with open(file_path, "rb") as f:
@@ -162,7 +162,7 @@ def load_segments_from_elf(file_path: str) -> list[RandomAccessMemory]:
             flags = SegmentFlags(0)
             if flags_raw & P_FLAGS.PF_R:
                 flags |= SegmentFlags.READ
-            if flags_raw & P_FLAGS.PF_W:
+            if flags_raw & P_FLAGS.PF_W or disable_write_protection:
                 flags |= SegmentFlags.WRITE
             if flags_raw & P_FLAGS.PF_X:
                 flags |= SegmentFlags.EXECUTABLE
