@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1698007847469,
+  "lastUpdate": 1698007962748,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12491,6 +12491,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 22061,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1472,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1052,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8170,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "Kristopher38@wp.pl",
+            "name": "Kristopher38",
+            "username": "Kristopher38"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dfd451ecb0e097ea5ef19793e45b25710add4816",
+          "message": "Bump amaranth-yosys version (#480)",
+          "timestamp": "2023-10-22T22:44:24+02:00",
+          "tree_id": "3428df500463547070070e98246c94bbf1a23127",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/dfd451ecb0e097ea5ef19793e45b25710add4816"
+        },
+        "date": 1698007960787,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.14,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 21843,
             "unit": "LUT4"
           },
           {
