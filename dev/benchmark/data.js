@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1698007962748,
+  "lastUpdate": 1698008604988,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -2751,6 +2751,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.21143582629957916,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "Kristopher38@wp.pl",
+            "name": "Kristopher38",
+            "username": "Kristopher38"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dfd451ecb0e097ea5ef19793e45b25710add4816",
+          "message": "Bump amaranth-yosys version (#480)",
+          "timestamp": "2023-10-22T22:44:24+02:00",
+          "tree_id": "3428df500463547070070e98246c94bbf1a23127",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/dfd451ecb0e097ea5ef19793e45b25710add4816"
+        },
+        "date": 1698008603444,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "crc32",
+            "value": 0.38400652367450455,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24225926200771405,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2159196483640026,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.21143582629957916,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15476224925165344,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.287102112304355,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29403051593959734,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.36868634053500093,
             "unit": "Instructions Per Cycle"
           }
         ]
