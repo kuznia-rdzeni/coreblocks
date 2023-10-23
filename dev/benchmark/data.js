@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1698085837979,
+  "lastUpdate": 1698086476369,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -11475,6 +11475,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 17122,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 884,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5619,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro888@wp.pl",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "122ac317b22136ba0a783fe1d4c1affbf1c541bd",
+          "message": "Fix memory protection in regression tests (#481)",
+          "timestamp": "2023-10-23T20:35:10+02:00",
+          "tree_id": "7c77efdd6f6a0d5eecb7af2e3340494334025f4d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/122ac317b22136ba0a783fe1d4c1affbf1c541bd"
+        },
+        "date": 1698086474234,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 51.56,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17253,
             "unit": "LUT4"
           },
           {
