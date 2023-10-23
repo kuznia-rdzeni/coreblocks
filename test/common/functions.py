@@ -1,10 +1,11 @@
 from amaranth import *
-from typing import TYPE_CHECKING
+from amaranth.hdl.ast import Statement
+from amaranth.sim.core import Command
+from typing import TypeVar, Any, Generator, TypeAlias
 from coreblocks.utils._typing import RecordValueDict, RecordIntDict
 
-
-if TYPE_CHECKING:
-    from .testbenchio import TestGen
+T = TypeVar("T")
+TestGen: TypeAlias = Generator[Command | Value | Statement | None, Any, T]
 
 
 def set_inputs(values: RecordValueDict, field: Record) -> "TestGen[None]":

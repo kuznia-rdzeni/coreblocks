@@ -1,16 +1,11 @@
 from amaranth import *
-from amaranth.hdl.ast import Statement
-from amaranth.sim.core import Command
 from amaranth.sim import Settle, Passive
-from typing import Any, Generator, TypeVar, Optional, Callable
+from typing import Optional, Callable
 from transactron.lib import AdapterBase
 from transactron.core import ValueLike, SignalBundle
 from transactron._utils import method_def_helper
 from coreblocks.utils._typing import RecordIntDictRet, RecordValueDict, RecordIntDict
-from .functions import set_inputs, get_outputs
-
-T = TypeVar("T")
-TestGen = Generator[Command | Value | Statement | None, Any, T]
+from .functions import set_inputs, get_outputs, TestGen
 
 
 class TestbenchIO(Elaboratable):
