@@ -1,7 +1,8 @@
 from amaranth import *
 from ..core import *
 from ..core import RecordDict
-from typing import Optional, Callable, Tuple
+from typing import Optional
+from collections.abc import Callable
 from coreblocks.utils import ValueLike, assign, AssignType
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 
@@ -35,8 +36,8 @@ class MethodTransformer(Elaboratable):
         self,
         target: Method,
         *,
-        i_transform: Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
-        o_transform: Optional[Tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
+        i_transform: Optional[tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
+        o_transform: Optional[tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
     ):
         """
         Parameters
@@ -132,7 +133,7 @@ class MethodProduct(Elaboratable):
     def __init__(
         self,
         targets: list[Method],
-        combiner: Optional[Tuple[MethodLayout, Callable[[TModule, list[Record]], RecordDict]]] = None,
+        combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[Record]], RecordDict]]] = None,
     ):
         """Method product.
 

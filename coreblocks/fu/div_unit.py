@@ -1,6 +1,6 @@
 from dataclasses import KW_ONLY, dataclass
 from enum import IntFlag, auto
-from typing import Sequence, Tuple
+from collections.abc import Sequence
 
 from amaranth import *
 
@@ -34,7 +34,7 @@ class DivFn(DecoderManager):
         ]
 
 
-def get_input(arg: Record) -> Tuple[Value, Value]:
+def get_input(arg: Record) -> tuple[Value, Value]:
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
 
