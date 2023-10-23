@@ -1,4 +1,5 @@
-from typing import Iterable, Optional
+from collections.abc import Iterable
+from typing import Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
 from transactron import Method, def_method, TModule

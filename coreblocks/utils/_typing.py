@@ -1,18 +1,14 @@
 from typing import (
-    ContextManager,
     Generic,
     NoReturn,
     Optional,
     Protocol,
-    Sequence,
-    Tuple,
-    Type,
     TypeAlias,
-    Iterable,
-    Mapping,
     TypeVar,
     runtime_checkable,
 )
+from collections.abc import Iterable, Mapping, Sequence
+from contextlib import AbstractContextManager
 from enum import Enum
 from amaranth import *
 from amaranth.lib.data import View
@@ -21,16 +17,18 @@ from amaranth.hdl.dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, 
 from amaranth.hdl.rec import Direction, Layout
 
 # Types representing Amaranth concepts
-FragmentLike = Fragment | Elaboratable
-ValueLike = Value | int | Enum | ValueCastable
-ShapeLike = Shape | ShapeCastable | int | range | Type[Enum]
+FragmentLike: TypeAlias = Fragment | Elaboratable
+ValueLike: TypeAlias = Value | int | Enum | ValueCastable
+ShapeLike: TypeAlias = Shape | ShapeCastable | int | range | type[Enum]
 StatementLike: TypeAlias = Statement | Iterable["StatementLike"]
-LayoutLike = Layout | Sequence[Tuple[str, ShapeLike | "LayoutLike"] | Tuple[str, ShapeLike | "LayoutLike", Direction]]
+LayoutLike: TypeAlias = (
+    Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
+)
 SwitchKey: TypeAlias = str | int | Enum
 
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
-LayoutList = list[Tuple[str, ShapeLike | "LayoutList"]]
+LayoutList: TypeAlias = list[tuple[str, "ShapeLike | LayoutList"]]
 
 
 class _ModuleBuilderDomainsLike(Protocol):
@@ -55,28 +53,30 @@ class ModuleLike(Protocol, Generic[_T_ModuleBuilderDomains]):
     domains: _ModuleBuilderDomainSet
     d: _T_ModuleBuilderDomains
 
-    def If(self, cond: ValueLike) -> ContextManager[None]:  # noqa: N802
+    def If(self, cond: ValueLike) -> AbstractContextManager[None]:  # noqa: N802
         ...
 
-    def Elif(self, cond: ValueLike) -> ContextManager[None]:  # noqa: N802
+    def Elif(self, cond: ValueLike) -> AbstractContextManager[None]:  # noqa: N802
         ...
 
-    def Else(self) -> ContextManager[None]:  # noqa: N802
+    def Else(self) -> AbstractContextManager[None]:  # noqa: N802
         ...
 
-    def Switch(self, test: ValueLike) -> ContextManager[None]:  # noqa: N802
+    def Switch(self, test: ValueLike) -> AbstractContextManager[None]:  # noqa: N802
         ...
 
-    def Case(self, *patterns: SwitchKey) -> ContextManager[None]:  # noqa: N802
+    def Case(self, *patterns: SwitchKey) -> AbstractContextManager[None]:  # noqa: N802
         ...
 
-    def Default(self) -> ContextManager[None]:  # noqa: N802
+    def Default(self) -> AbstractContextManager[None]:  # noqa: N802
         ...
 
-    def FSM(self, reset: Optional[str] = ..., domain: str = ..., name: str = ...) -> ContextManager[FSM]:  # noqa: N802
+    def FSM(  # noqa: N802
+        self, reset: Optional[str] = ..., domain: str = ..., name: str = ...
+    ) -> AbstractContextManager[FSM]:
         ...
 
-    def State(self, name: str) -> ContextManager[None]:  # noqa: N802
+    def State(self, name: str) -> AbstractContextManager[None]:  # noqa: N802
         ...
 
     @property

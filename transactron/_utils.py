@@ -1,7 +1,8 @@
 import itertools
 import sys
 from inspect import Parameter, signature
-from typing import Callable, Iterable, Optional, TypeAlias, TypeVar, Mapping
+from typing import Optional, TypeAlias, TypeVar
+from collections.abc import Callable, Iterable, Mapping
 from amaranth import *
 from coreblocks.utils._typing import LayoutLike
 from coreblocks.utils import OneHotSwitchDynamic
