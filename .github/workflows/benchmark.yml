@@ -14,7 +14,7 @@ jobs:
     name: Synthesis benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5
+    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-3.11
     steps:
       - uses: actions/checkout@v3
 
@@ -23,19 +23,29 @@ jobs:
           # https://github.com/actions/runner/issues/2033
           chown -R $(id -u):$(id -g) $PWD
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: |
+          python3 -m venv venv
+          . venv/bin/activate
           python3 -m pip install --upgrade pip
-          pip3 install -r requirements-dev.txt
+          python3 -m pip install -r requirements-dev.txt
 
       - name: Synthesize
-        run: PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --config ${{ matrix.config }}
+        run: |
+          . venv/bin/activate
+          PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --config ${{ matrix.config }}
 
       - name: Print synthesis information
         run: cat ./build/top.tim
 
       - name: Collect Benchmark information
         run: |
+          . venv/bin/activate
           ./scripts/parse_benchmark_info.py
           cat ./benchmark.json
 
@@ -53,7 +63,7 @@ jobs:
   build-perf-benchmarks:
     name: Build performance benchmarks
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.05.14
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -73,7 +83,7 @@ jobs:
     name: Run performance benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
     needs: build-perf-benchmarks
     steps:
       - name: Checkout
@@ -84,13 +94,22 @@ jobs:
           # https://github.com/actions/runner/issues/2033
           chown -R $(id -u):$(id -g) $PWD
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: |
+          python3 -m venv venv
+          . venv/bin/activate
           python3 -m pip install --upgrade pip
-          pip3 install -r requirements-dev.txt
+          python3 -m pip install -r requirements-dev.txt
 
       - name: Generate Verilog
-        run: PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+        run: |
+          . venv/bin/activate
+          PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 
       - uses: actions/download-artifact@v3
         with:
@@ -99,6 +118,7 @@ jobs:
 
       - name: Run benchmarks
         run: |
+          . venv/bin/activate
           scripts/run_benchmarks.py
 
       - name: Store benchmark result (IPC)
