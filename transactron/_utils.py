@@ -1,9 +1,9 @@
 import itertools
 import sys
 from inspect import Parameter, signature
-from typing import Callable, Iterable, Optional, TypeAlias, TypeVar, Mapping, Union, Any
+from typing import Callable, Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
-from coreblocks.utils._typing import LayoutLike, ValueLike
+from coreblocks.utils._typing import LayoutLike, ShapeLike
 from coreblocks.utils import OneHotSwitchDynamic
 
 __all__ = [
@@ -16,10 +16,6 @@ __all__ = [
     "get_caller_class_name",
     "method_def_helper",
 ]
-
-RecordIntDict = Mapping[str, Union[int, "RecordIntDict"]]
-RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
-RecordValueDict = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 
 
 T = TypeVar("T")
@@ -156,7 +152,7 @@ def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elabo
         raise RuntimeError("Not called from a method")
 
 
-def data_layout(val: int) -> LayoutLike:
+def data_layout(val: ShapeLike) -> LayoutLike:
     return [("data", val)]
 
 

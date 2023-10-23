@@ -1,6 +1,6 @@
 from amaranth import *
 from typing import TYPE_CHECKING
-from transactron._utils import RecordValueDict, RecordIntDict
+from coreblocks.utils._typing import RecordValueDict, RecordIntDict
 
 
 if TYPE_CHECKING:

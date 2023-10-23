@@ -12,6 +12,8 @@ from typing import (
     Mapping,
     TypeVar,
     runtime_checkable,
+    Union,
+    Any,
 )
 from enum import Enum
 from amaranth import *
@@ -31,6 +33,10 @@ SwitchKey: TypeAlias = str | int | Enum
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
 LayoutList = list[Tuple[str, ShapeLike | "LayoutList"]]
+
+RecordIntDict: TypeAlias = Mapping[str, Union[int, "RecordIntDict"]]
+RecordIntDictRet: TypeAlias = Mapping[str, Any]  # full typing hard to work with
+RecordValueDict: TypeAlias = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 
 
 class _ModuleBuilderDomainsLike(Protocol):
