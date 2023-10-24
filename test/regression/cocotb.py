@@ -73,7 +73,7 @@ class WishboneSlave:
 
         while True:
             while not (self.bus.stb.value and self.bus.cyc.value):
-                await clock_edge_event
+                await clock_edge_event  # type: ignore
 
             sig_m = WishboneMasterSignals()
             self.bus.sample(sig_m)
@@ -124,10 +124,10 @@ class WishboneSlave:
             )
 
             for _ in range(self.delay):
-                await clock_edge_event
+                await clock_edge_event  # type: ignore
 
             self.bus.drive(sig_s)
-            await clock_edge_event
+            await clock_edge_event  # type: ignore
             self.bus.drive(WishboneSlaveSignals())
 
 
