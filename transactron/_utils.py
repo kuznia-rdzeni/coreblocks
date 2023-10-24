@@ -135,7 +135,7 @@ def has_first_param(func: Callable[..., T], name: str, tp: type[U]) -> TypeGuard
     )
 
 
-def def_helper(description, func: Callable[..., T], tp: type[U], arg: U = None, /, **kwargs) -> T:
+def def_helper(description, func: Callable[..., T], tp: type[U], arg: U, /, **kwargs) -> T:
     parameters = signature(func).parameters
     kw_parameters = set(
         n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
