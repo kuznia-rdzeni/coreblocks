@@ -8,7 +8,7 @@ T = TypeVar("T")
 TestGen: TypeAlias = Generator[Command | Value | Statement | None, Any, T]
 
 
-def set_inputs(values: RecordValueDict, field: Record) -> "TestGen[None]":
+def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
     for name, value in values.items():
         if isinstance(value, dict):
             yield from set_inputs(value, getattr(field, name))
@@ -16,7 +16,7 @@ def set_inputs(values: RecordValueDict, field: Record) -> "TestGen[None]":
             yield getattr(field, name).eq(value)
 
 
-def get_outputs(field: Record) -> "TestGen[RecordIntDict]":
+def get_outputs(field: Record) -> TestGen[RecordIntDict]:
     # return dict of all signal values in a record because amaranth's simulator can't read all
     # values of a Record in a single yield - it can only read Values (Signals)
     result = {}
