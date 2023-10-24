@@ -1223,7 +1223,7 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:
-            ret_out = method_def_helper(method, func, arg, **arg.fields)
+            ret_out = method_def_helper(method, func, arg)
 
         if ret_out is not None:
             m.d.top_comb += assign(out, ret_out, fields=AssignType.ALL)
