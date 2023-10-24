@@ -533,7 +533,7 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
 
 
 class DataDependentConditionalCircuit(Elaboratable):
-    def __init__(self, n=2, ready_function = lambda arg: arg.data != 3):
+    def __init__(self, n=2, ready_function=lambda arg: arg.data != 3):
         self.method = Method(i=data_layout(n))
         self.ready_function = ready_function
 
@@ -573,7 +573,7 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
 
     def base_random(self, f):
         random.seed(14)
-        self.circ = DataDependentConditionalCircuit(n = self.n, ready_function = f)
+        self.circ = DataDependentConditionalCircuit(n=self.n, ready_function=f)
 
         def process():
             for _ in range(self.test_number):
