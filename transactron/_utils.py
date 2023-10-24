@@ -129,7 +129,7 @@ def has_first_param(func: Callable[..., T], name: str, tp: type[U]) -> TypeGuard
     parameters = signature(func).parameters
     return (
         len(parameters) >= 1
-        and next(iter(parameters.keys())) == name
+        and next(iter(parameters)) == name
         and parameters[name].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
         and parameters[name].annotation in {Parameter.empty, tp}
     )
