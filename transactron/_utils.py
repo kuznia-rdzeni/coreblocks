@@ -18,7 +18,6 @@ __all__ = [
     "get_caller_class_name",
     "def_helper",
     "method_def_helper",
-    "transformer_helper",
 ]
 
 
@@ -149,8 +148,8 @@ def def_helper(description, func: Callable[..., T], tp: type[U], arg: U = None, 
         raise TypeError(f"Invalid {description}: {func}")
 
 
-def mock_def_helper(tb, func: Callable[..., T], /, **kwargs) -> T:
-    return def_helper(f"mock definition for {tb}", func, dict[str, Any], kwargs, **kwargs)
+def mock_def_helper(tb, func: Callable[..., T], arg: Mapping[str, Any]) -> T:
+    return def_helper(f"mock definition for {tb}", func, Mapping[str, Any], arg, **arg)
 
 
 def method_def_helper(method: Method, func: Callable[..., T], arg: Record) -> T:

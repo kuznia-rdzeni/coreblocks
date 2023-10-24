@@ -363,7 +363,7 @@ class TestbenchIO(Elaboratable):
             for _ in range(extra_settle_count + 1):
                 yield Settle()
 
-        ret_out = mock_def_helper(self, function, **arg)
+        ret_out = mock_def_helper(self, function, arg)
         yield from self.method_return(ret_out or {})
         yield
 
