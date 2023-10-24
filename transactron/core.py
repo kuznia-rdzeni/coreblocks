@@ -984,7 +984,7 @@ class Method(TransactionBase):
         self.data_out = Record(o)
         self.nonexclusive = nonexclusive
         self.single_caller = single_caller
-        self.user_ready_function: Optional[Callable[[Record], ValueLike]] = None
+        self.ready_function: Optional[Callable[[Record], ValueLike]] = None
         if nonexclusive:
             assert len(self.data_in) == 0
 
@@ -1034,7 +1034,7 @@ class Method(TransactionBase):
         *,
         ready: ValueLike = C(1),
         out: ValueLike = C(0, 0),
-        user_ready_function: Optional[Callable[[Record], ValueLike]] = None,
+        ready_function: Optional[Callable[[Record], ValueLike]] = None,
     ) -> Iterator[Record]:
         """Define method body
 
@@ -1079,7 +1079,7 @@ class Method(TransactionBase):
         if self.defined:
             raise RuntimeError(f"Method '{self.name}' already defined")
         self.def_order = next(TransactionBase.def_counter)
-        self.user_ready_function = user_ready_function
+        self.ready_function = ready_function
 
         try:
             m.d.av_comb += self.ready.eq(ready)
@@ -1091,8 +1091,8 @@ class Method(TransactionBase):
             self.defined = True
 
     def _ready_function(self, arg_rec: Record) -> ValueLike:
-        if self.user_ready_function is not None:
-            return self.ready & method_def_helper(self, self.user_ready_function, arg_rec, **arg_rec.fields)
+        if self.ready_function is not None:
+            return self.ready & method_def_helper(self, self.ready_function, arg_rec, **arg_rec.fields)
         return self.ready
 
     def __call__(
@@ -1228,7 +1228,7 @@ def def_method(
         out = Record.like(method.data_out)
         ret_out = None
 
-        with method.body(m, ready=ready, out=out, user_ready_function=ready_function) as arg:
+        with method.body(m, ready=ready, out=out, ready_function=ready_function) as arg:
             ret_out = method_def_helper(method, func, arg, **arg.fields)
 
         if ret_out is not None:
