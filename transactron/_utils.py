@@ -6,7 +6,6 @@ from collections.abc import Callable, Iterable, Mapping
 from amaranth import *
 from coreblocks.utils._typing import LayoutLike
 from coreblocks.utils import OneHotSwitchDynamic
-from .core import Method
 
 __all__ = [
     "Scheduler",
@@ -152,7 +151,7 @@ def mock_def_helper(tb, func: Callable[..., T], arg: Mapping[str, Any]) -> T:
     return def_helper(f"mock definition for {tb}", func, Mapping[str, Any], arg, **arg)
 
 
-def method_def_helper(method: Method, func: Callable[..., T], arg: Record) -> T:
+def method_def_helper(method, func: Callable[..., T], arg: Record) -> T:
     return def_helper(f"method definition for {method}", func, Record, arg, **arg.fields)
 
 
