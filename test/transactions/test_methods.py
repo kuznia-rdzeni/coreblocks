@@ -533,9 +533,9 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
 
 
 class DataDependentConditionalCircuit(Elaboratable):
-    def __init__(self, n=2, bad_number=3):
-        self.bad_number = bad_number
+    def __init__(self, n=2, ready_function = lambda arg: arg.data != 3):
         self.method = Method(i=data_layout(n))
+        self.ready_function = ready_function
 
         self.in_t1 = Record(data_layout(n))
         self.in_t2 = Record(data_layout(n))
@@ -550,7 +550,7 @@ class DataDependentConditionalCircuit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        @def_method(m, self.method, self.ready, ready_function=lambda rec: rec.data != self.bad_number)
+        @def_method(m, self.method, self.ready, ready_function=self.ready_function)
         def _(data):
             m.d.comb += self.out_m.eq(1)
 
@@ -570,10 +570,10 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
         self.test_number = 200
         self.bad_number = 3
         self.n = 2
-        self.circ = DataDependentConditionalCircuit(self.n, self.bad_number)
 
-    def test_random(self):
+    def base_random(self, f):
         random.seed(14)
+        self.circ = DataDependentConditionalCircuit(n = self.n, ready_function = f)
 
         def process():
             for _ in range(self.test_number):
@@ -611,3 +611,9 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
 
         with self.run_simulation(self.circ, 100) as sim:
             sim.add_process(process)
+
+    def test_random_arg(self):
+        self.base_random(lambda arg: arg.data != self.bad_number)
+
+    def test_random_kwarg(self):
+        self.base_random(lambda data: data != self.bad_number)

@@ -73,7 +73,7 @@ class MethodMap:
                     raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
-                self.readiness_by_method_and_transaction[(transaction,method)] = method.ready_function(arg_rec)
+                self.readiness_by_method_and_transaction[(transaction,method)] = method._ready_function(arg_rec)
                 rec(transaction, method)
 
         for transaction in transactions:
@@ -1090,9 +1090,9 @@ class Method(TransactionBase):
         finally:
             self.defined = True
 
-    def ready_function(self, arg_rec: Record) -> ValueLike:
+    def _ready_function(self, arg_rec: Record) -> ValueLike:
         if self.user_ready_function is not None:
-            return self.ready & self.user_ready_function(arg_rec)
+            return self.ready & method_def_helper(self, self.user_ready_function, arg_rec, **arg_rec.fields)
         return self.ready
 
     def __call__(
