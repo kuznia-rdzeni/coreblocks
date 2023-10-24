@@ -63,7 +63,7 @@ class MethodMap:
     def __init__(self, transactions: Iterable["Transaction"]):
         self.methods_by_transaction = dict[Transaction, list[Method]]()
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
-        self.arguments_by_method_by_transaction = defaultdict[Transaction, dict[Method, Record]](dict)
+        self.readiness_by_method_and_transaction = dict[tuple[Transaction, Method], ValueLike]()
 
         def rec(transaction: Transaction, source: TransactionBase):
             for method, (arg_rec, _) in source.method_uses.items():
@@ -73,7 +73,7 @@ class MethodMap:
                     raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
-                self.arguments_by_method_by_transaction[transaction][method] = arg_rec
+                self.readiness_by_method_and_transaction[(transaction,method)] = method.ready_function(arg_rec)
                 rec(transaction, method)
 
         for transaction in transactions:
@@ -130,7 +130,7 @@ def eager_deterministic_cc_scheduler(
     ccl.sort(key=lambda transaction: porder[transaction])
     for k, transaction in enumerate(ccl):
         ready = [
-            method.ready_function(method_map.arguments_by_method_by_transaction[transaction][method])
+            method_map.readiness_by_method_and_transaction[(transaction,method)]
             for method in method_map.methods_by_transaction[transaction]
         ]
         runnable = Cat(ready).all()
@@ -168,11 +168,11 @@ def trivial_roundrobin_cc_scheduler(
     sched = Scheduler(len(cc))
     m.submodules.scheduler = sched
     for k, transaction in enumerate(cc):
-        methods = method_map.methods_by_transaction[transaction]
-        ready = Signal(len(methods))
-        for n, method in enumerate(methods):
-            m.d.comb += ready[n].eq(method.ready)
-        runnable = ready.all()
+        ready = [
+            method_map.readiness_by_method_and_transaction[(transaction,method)]
+            for method in method_map.methods_by_transaction[transaction]
+        ]
+        runnable = Cat(ready).all()
         m.d.comb += sched.requests[k].eq(transaction.request & runnable)
         m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
     return m
