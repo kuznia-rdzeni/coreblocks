@@ -4,6 +4,7 @@ from ..core import RecordDict
 from typing import Optional
 from collections.abc import Callable
 from coreblocks.utils import ValueLike, assign, AssignType
+from transactron._utils import transformer_helper
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 
 __all__ = [
@@ -36,8 +37,8 @@ class MethodTransformer(Elaboratable):
         self,
         target: Method,
         *,
-        i_transform: Optional[tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
-        o_transform: Optional[tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
+        i_transform: Optional[tuple[MethodLayout, Callable[..., RecordDict]]] = None,
+        o_transform: Optional[tuple[MethodLayout, Callable[..., RecordDict]]] = None,
     ):
         """
         Parameters
@@ -68,7 +69,7 @@ class MethodTransformer(Elaboratable):
 
         @def_method(m, self.method)
         def _(arg):
-            return self.o_fun(m, self.target(m, self.i_fun(m, arg)))
+            return transformer_helper(self, m, self.o_fun, self.target(m, transformer_helper(self, m, self.i_fun, arg)))
 
         return m
 
@@ -91,9 +92,7 @@ class MethodFilter(Elaboratable):
         The transformed method.
     """
 
-    def __init__(
-        self, target: Method, condition: Callable[[TModule, Record], ValueLike], default: Optional[RecordDict] = None
-    ):
+    def __init__(self, target: Method, condition: Callable[..., ValueLike], default: Optional[RecordDict] = None):
         """
         Parameters
         ----------
@@ -122,7 +121,7 @@ class MethodFilter(Elaboratable):
 
         @def_method(m, self.method)
         def _(arg):
-            with m.If(self.condition(m, arg)):
+            with m.If(transformer_helper(self, m, self.condition, arg)):
                 m.d.comb += ret.eq(self.target(m, arg))
             return ret
 
@@ -323,8 +322,8 @@ class ConnectAndTransformTrans(Elaboratable):
         method1: Method,
         method2: Method,
         *,
-        i_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
-        o_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
+        i_fun: Optional[Callable[..., RecordDict]] = None,
+        o_fun: Optional[Callable[..., RecordDict]] = None,
     ):
         """
         Parameters

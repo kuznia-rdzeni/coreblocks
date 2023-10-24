@@ -1,11 +1,13 @@
 import itertools
 import sys
+import functools
 from inspect import Parameter, signature
 from typing import Any, Concatenate, Optional, TypeAlias, TypeGuard, TypeVar
 from collections.abc import Callable, Iterable, Mapping
 from amaranth import *
 from coreblocks.utils._typing import LayoutLike
 from coreblocks.utils import OneHotSwitchDynamic
+from .core import Method, TModule
 
 __all__ = [
     "Scheduler",
@@ -17,6 +19,7 @@ __all__ = [
     "get_caller_class_name",
     "def_helper",
     "method_def_helper",
+    "transformer_helper",
 ]
 
 
@@ -153,6 +156,20 @@ def mock_def_helper(tb, func: Callable[..., T], arg: Mapping[str, Any]) -> T:
 
 def method_def_helper(method, func: Callable[..., T], arg: Record) -> T:
     return def_helper(f"method definition for {method}", func, Record, arg, **arg.fields)
+
+
+def transformer_helper(tr, m: TModule, func: Callable[..., T], arg: Record) -> T:
+    if has_first_param(func, "m", TModule):
+
+        @functools.wraps(func)
+        def xfunc(*args, **kwargs):
+            return func(m, *args, **kwargs)
+
+        hfunc = xfunc
+    else:
+        hfunc = func
+
+    return def_helper(f"function for {tr}", hfunc, Record, arg)
 
 
 def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:
