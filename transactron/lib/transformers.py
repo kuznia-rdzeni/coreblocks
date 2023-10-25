@@ -28,7 +28,7 @@ def bind_tmodule(m: TModule, func: CallableOptTModule[P, T]) -> Callable[P, T]:
 
 
 def transformer_helper(tr, m: TModule, func: Callable[..., T], arg: Record) -> T:
-    return def_helper(f"function for {tr}", bind_tmodule(m, func), Record, arg)
+    return def_helper(f"function for {tr}", bind_tmodule(m, func), Record, arg, **arg.fields)
 
 
 class MethodTransformer(Elaboratable):
@@ -68,9 +68,9 @@ class MethodTransformer(Elaboratable):
             If not present, output is not transformed.
         """
         if i_transform is None:
-            i_transform = (target.data_in.layout, lambda _, x: x)
+            i_transform = (target.data_in.layout, lambda arg: arg)
         if o_transform is None:
-            o_transform = (target.data_out.layout, lambda _, x: x)
+            o_transform = (target.data_out.layout, lambda arg: arg)
 
         self.target = target
         self.method = Method(i=i_transform[0], o=o_transform[0])
@@ -171,7 +171,7 @@ class MethodProduct(Elaboratable):
             The product method.
         """
         if combiner is None:
-            combiner = (targets[0].data_out.layout, lambda _, x: x[0])
+            combiner = (targets[0].data_out.layout, lambda x: x[0])
         self.targets = targets
         self.combiner = combiner
         self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
@@ -193,7 +193,7 @@ class MethodTryProduct(Elaboratable):
     def __init__(
         self,
         targets: list[Method],
-        combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[tuple[Value, Record]]], RecordDict]]] = None,
+        combiner: Optional[tuple[MethodLayout, CallableOptTModule[[list[tuple[Value, Record]]], RecordDict]]] = None,
     ):
         """Method product with optional calling.
 
@@ -220,7 +220,7 @@ class MethodTryProduct(Elaboratable):
             The product method.
         """
         if combiner is None:
-            combiner = ([], lambda _, __: {})
+            combiner = ([], lambda arg: {})
         self.targets = targets
         self.combiner = combiner
         self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
@@ -236,7 +236,7 @@ class MethodTryProduct(Elaboratable):
                 with Transaction().body(m):
                     m.d.comb += success.eq(1)
                     results.append((success, target(m, arg)))
-            return self.combiner[1](m, results)
+            return bind_tmodule(m, self.combiner[1])(results)
 
         return m
 
@@ -352,8 +352,8 @@ class ConnectAndTransformTrans(Elaboratable):
         """
         self.method1 = method1
         self.method2 = method2
-        self.i_fun = i_fun or (lambda _, x: x)
-        self.o_fun = o_fun or (lambda _, x: x)
+        self.i_fun = i_fun or (lambda arg: arg)
+        self.o_fun = o_fun or (lambda arg: arg)
 
     def elaborate(self, platform):
         m = TModule()
