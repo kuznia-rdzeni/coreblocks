@@ -1,10 +1,10 @@
 from amaranth import *
 from ..core import *
 from ..core import RecordDict
-from typing import Optional
+from typing import Optional, ParamSpec, TypeAlias, TypeVar
 from collections.abc import Callable
 from coreblocks.utils import ValueLike, assign, AssignType
-from transactron._utils import transformer_helper
+from transactron._utils import def_helper, bind_first_param, CallableOptParam
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 
 __all__ = [
@@ -16,6 +16,19 @@ __all__ = [
     "CatTrans",
     "ConnectAndTransformTrans",
 ]
+
+
+T = TypeVar("T")
+P = ParamSpec("P")
+CallableOptTModule: TypeAlias = CallableOptParam[TModule, P, T]
+
+
+def bind_tmodule(m: TModule, func: CallableOptTModule[P, T]) -> Callable[P, T]:
+    return bind_first_param(func, "m", TModule, m)
+
+
+def transformer_helper(tr, m: TModule, func: Callable[..., T], arg: Record) -> T:
+    return def_helper(f"function for {tr}", bind_tmodule(m, func), Record, arg)
 
 
 class MethodTransformer(Elaboratable):
@@ -132,7 +145,7 @@ class MethodProduct(Elaboratable):
     def __init__(
         self,
         targets: list[Method],
-        combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[Record]], RecordDict]]] = None,
+        combiner: Optional[tuple[MethodLayout, CallableOptTModule[[list[Record]], RecordDict]]] = None,
     ):
         """Method product.
 
@@ -171,7 +184,7 @@ class MethodProduct(Elaboratable):
             results = []
             for target in self.targets:
                 results.append(target(m, arg))
-            return self.combiner[1](m, results)
+            return bind_tmodule(m, self.combiner[1])(results)
 
         return m
 
