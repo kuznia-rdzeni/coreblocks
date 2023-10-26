@@ -160,10 +160,11 @@ class MethodProduct(Elaboratable):
         ----------
         targets: list[Method]
             A list of methods to be called.
-        combiner: (int or method layout, function), optional
+        combiner: (record layout, function), optional
             A pair of the output layout and the combiner function. The
-            combiner function takes two parameters: a `Module` and
-            a list of outputs of the target methods.
+            combiner function takes a list of outputs of the target methods
+            and returns the result. Optionally, it can also take a `TModule`
+            as a first argument named `m`.
 
         Attributes
         ----------
@@ -208,11 +209,12 @@ class MethodTryProduct(Elaboratable):
         ----------
         targets: list[Method]
             A list of methods to be called.
-        combiner: (int or method layout, function), optional
+        combiner: (record layout, function), optional
             A pair of the output layout and the combiner function. The
-            combiner function takes two parameters: a `Module` and
-            a list of pairs. Each pair contains a bit which signals
-            that a given call succeeded, and the result of the call.
+            combiner function takes a list of pairs such that the first
+            element is a bit which signals that a given call succeeded,
+            and the second is the result of the call. Optionally, it can
+            also take a `TModule` as a first argument named `m`.
 
         Attributes
         ----------
