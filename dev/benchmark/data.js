@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1698409253627,
+  "lastUpdate": 1698409752387,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -13306,6 +13306,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1472,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1052,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8170,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "arek_koz@o2.pl",
+            "name": "Arusekk",
+            "username": "Arusekk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fc8c9b9cbcecdd99636230d6d7bf0e012542ba33",
+          "message": "Fix tests with binutils 2.41 (#490)",
+          "timestamp": "2023-10-27T14:15:29+02:00",
+          "tree_id": "d6e80b60e2ad5bb1dd4c8412c196ee4aa53dd378",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/fc8c9b9cbcecdd99636230d6d7bf0e012542ba33"
+        },
+        "date": 1698409749911,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.3,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 28637,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1440,
             "unit": "LUT"
           },
           {
