@@ -5,6 +5,7 @@ from typing import Optional, TypeVar
 from dataclasses import dataclass, replace
 from elftools.elf.constants import P_FLAGS
 from elftools.elf.elffile import ELFFile, Segment
+from coreblocks.params.configurations import CoreConfiguration
 
 all = [
     "ReplyStatus",
@@ -155,9 +156,20 @@ def load_segment(segment: Segment, *, disable_write_protection: bool = False) ->
     if flags_raw & P_FLAGS.PF_X:
         flags |= SegmentFlags.EXECUTABLE
 
-        # append safe memory region for instruction fetch prediction
-        seg_end += 0x10
-        data += b"\0" * 0x10
+    if flags_raw & P_FLAGS.PF_X:
+        # align only instruction section to full icache lines
+        alignment = 2 ** CoreConfiguration().icache_block_size_bits
+
+        def align_down(n: int) -> int:
+            return (n // alignment) * alignment
+
+        align_front = seg_start - align_down(seg_start)
+        align_back = align_down(seg_end + alignment - 1) - seg_end
+
+        data = b"\x00" * align_front + data + b"\x00" * align_back
+
+        seg_start -= align_front
+        seg_end += align_back
 
     return RandomAccessMemory(range(seg_start, seg_end), flags, data)
 
