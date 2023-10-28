@@ -1113,7 +1113,7 @@ class Method(TransactionBase):
 
     def _validate_arguments(self, arg_rec: Record) -> ValueLike:
         if self.validate_arguments is not None:
-            return self.ready & method_def_helper(self, self.validate_arguments, arg_rec, **arg_rec.fields)
+            return self.ready & method_def_helper(self, self.validate_arguments, arg_rec)
         return self.ready
 
     def __call__(
@@ -1259,7 +1259,7 @@ def def_method(
         ret_out = None
 
         with method.body(m, ready=ready, out=out, validate_arguments=validate_arguments) as arg:
-            ret_out = method_def_helper(method, func, arg, **arg.fields)
+            ret_out = method_def_helper(method, func, arg)
 
         if ret_out is not None:
             m.d.top_comb += assign(out, ret_out, fields=AssignType.ALL)
