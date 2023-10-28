@@ -1,9 +1,9 @@
-FROM ubuntu:22.10
+FROM ubuntu:23.04
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
-    python3.10 python3-pip git yosys \
+    python3.11 python3-pip git yosys lsb-release \
     build-essential cmake python3-dev libboost-all-dev libeigen3-dev && \
     rm -rf /var/lib/apt/lists/*
 

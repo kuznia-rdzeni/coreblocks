@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload
+from typing import Literal, Optional, TypeAlias, cast, overload
+from collections.abc import Iterable, Mapping
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data

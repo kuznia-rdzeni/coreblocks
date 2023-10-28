@@ -137,7 +137,7 @@ class CoreMemoryModel:
             return WriteReply(status=ReplyStatus.ERROR)
 
 
-def load_segment(segment: Segment) -> RandomAccessMemory:
+def load_segment(segment: Segment, *, disable_write_protection: bool = False) -> RandomAccessMemory:
     paddr = segment.header["p_paddr"]
     memsz = segment.header["p_memsz"]
     flags_raw = segment.header["p_flags"]
@@ -150,7 +150,7 @@ def load_segment(segment: Segment) -> RandomAccessMemory:
     flags = SegmentFlags(0)
     if flags_raw & P_FLAGS.PF_R:
         flags |= SegmentFlags.READ
-    if flags_raw & P_FLAGS.PF_W:
+    if flags_raw & P_FLAGS.PF_W or disable_write_protection:
         flags |= SegmentFlags.WRITE
     if flags_raw & P_FLAGS.PF_X:
         flags |= SegmentFlags.EXECUTABLE
@@ -162,7 +162,7 @@ def load_segment(segment: Segment) -> RandomAccessMemory:
     return RandomAccessMemory(range(seg_start, seg_end), flags, data)
 
 
-def load_segments_from_elf(file_path: str) -> list[RandomAccessMemory]:
+def load_segments_from_elf(file_path: str, *, disable_write_protection: bool = False) -> list[RandomAccessMemory]:
     segments: list[RandomAccessMemory] = []
 
     with open(file_path, "rb") as f:
@@ -170,6 +170,6 @@ def load_segments_from_elf(file_path: str) -> list[RandomAccessMemory]:
         for segment in elffile.iter_segments():
             if segment.header["p_type"] != "PT_LOAD":
                 continue
-            segments.append(load_segment(segment))
+            segments.append(load_segment(segment, disable_write_protection=disable_write_protection))
 
     return segments

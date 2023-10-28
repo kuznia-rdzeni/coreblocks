@@ -7,6 +7,9 @@ from .common import SimulationBackend
 test_dir = Path(__file__).parent.parent
 riscv_tests_dir = test_dir.joinpath("external/riscv-tests")
 
+# disable write protection for specific tests with writes to .text section
+exclude_write_protection = ["rv32uc-rvc"]
+
 
 class MMIO(MemorySegment):
     def __init__(self, on_finish: Callable[[], None]):
@@ -31,7 +34,10 @@ async def run_test(sim_backend: SimulationBackend, test_name: str):
     mmio = MMIO(lambda: sim_backend.stop())
 
     mem_segments: list[MemorySegment] = []
-    mem_segments += load_segments_from_elf(str(riscv_tests_dir.joinpath("test-" + test_name)))
+    mem_segments += load_segments_from_elf(
+        str(riscv_tests_dir.joinpath("test-" + test_name)),
+        disable_write_protection=test_name in exclude_write_protection,
+    )
     mem_segments.append(mmio)
 
     mem_model = CoreMemoryModel(mem_segments)
