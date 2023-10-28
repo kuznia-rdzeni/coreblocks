@@ -16,7 +16,14 @@ from test.regression.pysim import PySimulation  # noqa: E402
 
 
 def run_with_cocotb(test_name: str, traces: bool, output: str) -> bool:
-    arglist = ["make", "-C", parent + "/test/regression/cocotb", "-f", "signature.Makefile", "--no-print-directory"]
+    arglist = [
+        "make",
+        "-C",
+        parent + "/" if parent else "" + "test/regression/cocotb",
+        "-f",
+        "signature.Makefile",
+        "--no-print-directory",
+    ]
 
     if os.path.isfile(output):
         os.remove(output)
