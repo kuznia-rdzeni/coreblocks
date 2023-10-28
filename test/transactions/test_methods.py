@@ -550,7 +550,7 @@ class DataDependentConditionalCircuit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        @def_method(m, self.method, self.ready, ready_function=self.ready_function)
+        @def_method(m, self.method, self.ready, validate_arguments=self.ready_function)
         def _(data):
             m.d.comb += self.out_m.eq(1)
 
