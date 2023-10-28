@@ -219,7 +219,10 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
 
-        result_ready = internal.result_ready | ((current_instr.exec_fn.op_type == OpType.FENCE) & current_instr.valid)
+        result_ready = Signal()
+        m.d.comb += result_ready.eq(
+            internal.result_ready | ((current_instr.exec_fn.op_type == OpType.FENCE) & current_instr.valid)
+        )
 
         @def_method(m, self.select, ~reserved)
         def _():
@@ -256,8 +259,10 @@ class LSUDummy(FuncBlock, Elaboratable):
             }
 
         @def_method(m, self.precommit)
-        def _(rob_id: Value):
-            with m.If(
+        def _(rob_id: Value, side_fx: Value):
+            with m.If(~side_fx):
+                m.d.comb += result_ready.eq(1)
+            with m.Elif(
                 current_instr.valid & (rob_id == current_instr.rob_id) & (current_instr.exec_fn.op_type != OpType.FENCE)
             ):
                 m.d.comb += internal.execute.eq(1)
