@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1698621592387,
+  "lastUpdate": 1698622600632,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -3194,6 +3194,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nettle-sha256",
             "value": 0.36868634053500093,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24225926200771405,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e484fde04b76d1c83302cc6f4bedf8890b2c3a40",
+          "message": "Autumn cleaning part 4 - split test/common.py (#477)",
+          "timestamp": "2023-10-30T00:10:00+01:00",
+          "tree_id": "4eaa2d6f39ca26c3a17f1a5094d1602519d788a5",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e484fde04b76d1c83302cc6f4bedf8890b2c3a40"
+        },
+        "date": 1698622598806,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.287102112304355,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.36868634053500093,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2159196483640026,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29403051593959734,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15476224925165344,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.38400652367450455,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.21143582629957916,
             "unit": "Instructions Per Cycle"
           },
           {
