@@ -3,7 +3,7 @@ from amaranth.sim import Settle, Passive
 from typing import Optional, Callable
 from transactron.lib import AdapterBase
 from transactron.core import ValueLike, SignalBundle
-from transactron._utils import method_def_helper
+from transactron._utils import mock_def_helper
 from coreblocks.utils._typing import RecordIntDictRet, RecordValueDict, RecordIntDict
 from .functions import set_inputs, get_outputs, TestGen
 
@@ -111,7 +111,7 @@ class TestbenchIO(Elaboratable):
             for _ in range(extra_settle_count + 1):
                 yield Settle()
 
-        ret_out = method_def_helper(self, function, **arg)
+        ret_out = mock_def_helper(self, function, arg)
         yield from self.method_return(ret_out or {})
         yield
 
