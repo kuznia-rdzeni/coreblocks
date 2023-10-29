@@ -99,6 +99,7 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.update_mock = self.update = TestbenchIO(AdapterTrans(func_unit.update))
         m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
         m.submodules.precommit_mock = self.precommit = TestbenchIO(AdapterTrans(func_unit.precommit))
+        m.submodules.clear_mock = self.clear = TestbenchIO(AdapterTrans(func_unit.clear))
         self.io_in = WishboneInterfaceWrapper(self.bus.wbMaster)
         m.submodules.bus = self.bus
         return m
@@ -488,4 +489,126 @@ class TestDummyLSUFence(TestCaseWithSimulator):
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.process)
+            sim.add_sync_process(exception_consumer)
+
+
+class TestDummyLSUClear(TestCaseWithSimulator):
+    def setUp(self):
+        self.gp = GenParams(test_core_config)
+        self.test_module = DummyLSUTestCircuit(self.gp)
+
+    def generate_instr(self, *, is_store: bool = False, **kwargs):
+        addr = (random.randrange(1, 2**self.gp.isa.xlen) // 4) * 4
+        return {
+            "rp_s1": 0,
+            "rp_s2": 0,
+            "rp_dst": 0,
+            "rob_id": 0,
+            "exec_fn": {"op_type": OpType.STORE if is_store else OpType.LOAD, "funct3": Funct3.W, "funct7": 0},
+            "s1_val": addr,
+            "s2_val": 0,
+            "imm": 0,
+        } | kwargs, addr >> 2
+
+    def check_second_instr_liveness(self, m, is_store):
+        yield from m.select.call()
+        instr, addr = self.generate_instr(is_store=is_store)
+        yield from m.insert.call(rs_data=instr, rs_entry_id=0)
+        if is_store:
+            yield from m.precommit.call(rob_id=0)
+        yield from m.io_in.slave_wait()
+        yield from m.io_in.slave_verify(exp_addr=addr, exp_data=0, exp_we=is_store, exp_sel=0xF)
+        if not is_store:
+            yield from m.io_in.slave_respond(data=0xCAFEBABE)
+            self.assertEqual(0xCAFEBABE, (yield from m.get_result.call())["result"])
+
+    def test_clear_before_bus_request(self):
+        """
+        Tests clear method when it's called before request was sent to the bus
+        """
+
+        @def_method_mock(lambda: self.test_module.exception_report)
+        def exception_consumer(arg):
+            self.assertTrue(False)
+
+        def process():
+            m = self.test_module
+            for is_store in (False, True):
+                # first instruction
+                yield from m.select.call()
+                # instruction that won't execute immediately since not all operands are ready
+                instr, addr = self.generate_instr(is_store=is_store, rp_s1=1)
+                yield from m.insert.call(rs_data=instr, rs_entry_id=0)
+                yield from m.clear.call()
+
+                self.check_second_instr_liveness(m, is_store)
+
+        with self.run_simulation(self.test_module) as sim:
+            sim.add_sync_process(process)
+            sim.add_sync_process(exception_consumer)
+
+    def test_clear_after_bus_request(self):
+        """
+        Test clear method when it's called after the bus request was sent,
+        but before the response on the bus arrived.
+        """
+
+        @def_method_mock(lambda: self.test_module.exception_report)
+        def exception_consumer(arg):
+            self.assertTrue(False)
+
+        def process():
+            m = self.test_module
+            for is_store in (False, True):
+                # first instruction
+                yield from m.select.call()
+                instr, addr = self.generate_instr(is_store=is_store)
+                yield from m.insert.call(rs_data=instr, rs_entry_id=0)
+                if is_store:
+                    yield from m.precommit.call(rob_id=0)
+                yield from m.io_in.slave_wait()
+                yield from m.io_in.slave_verify(exp_addr=addr, exp_data=0, exp_we=is_store, exp_sel=0xF)
+                yield from m.clear.call()
+                # needs some response regardless of being load/store
+                yield from m.io_in.slave_respond(data=0xDEADBEEF)
+
+                yield from self.check_second_instr_liveness(m, is_store)
+
+        with self.run_simulation(self.test_module) as sim:
+            sim.add_sync_process(process)
+            sim.add_sync_process(exception_consumer)
+
+    def test_clear_after_bus_response(self):
+        """
+        Test clear method when it's called after the bus request was sent
+        and after response from the bus arrived, but wasn't read by
+        get_result yet
+        """
+
+        @def_method_mock(lambda: self.test_module.exception_report)
+        def exception_consumer(arg):
+            self.assertTrue(False)
+
+        def process():
+            m = self.test_module
+            for is_store in (False, True):
+                # first instruction
+                yield from m.select.call()
+                instr, addr = self.generate_instr(is_store=is_store)
+                yield from m.insert.call(rs_data=instr, rs_entry_id=0)
+                if is_store:
+                    yield from m.precommit.call(rob_id=0)
+                yield from m.io_in.slave_wait()
+                yield from m.io_in.slave_verify(exp_addr=addr, exp_data=0, exp_we=is_store, exp_sel=0xF)
+                # needs some response regardless of being load/store
+                yield from m.io_in.slave_respond(data=0xDEADBEEF)
+                # wait for get_result to become ready before we call clear
+                while (yield from m.get_result.call_try()) is None:
+                    pass
+                yield from m.clear.call()
+
+                yield from self.check_second_instr_liveness(m, is_store)
+
+        with self.run_simulation(self.test_module) as sim:
+            sim.add_sync_process(process)
             sim.add_sync_process(exception_consumer)
