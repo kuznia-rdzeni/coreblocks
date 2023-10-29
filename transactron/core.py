@@ -43,6 +43,7 @@ __all__ = [
 ]
 
 
+T = TypeVar("T")
 TransactionGraph: TypeAlias = Graph["Transaction"]
 TransactionGraphCC: TypeAlias = GraphCC["Transaction"]
 PriorityOrder: TypeAlias = dict["Transaction", int]
@@ -1160,6 +1161,10 @@ class Method(TransactionBase):
 
     def debug_signals(self) -> SignalBundle:
         return [self.ready, self.run, self.data_in, self.data_out]
+
+
+def method_def_helper(method: Method, func: Callable[..., T], arg: Record) -> T:
+    return def_helper(f"method definition for {method}", func, Record, arg, **arg.fields)
 
 
 def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):

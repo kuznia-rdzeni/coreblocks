@@ -1,9 +1,10 @@
 from amaranth import *
 from ..core import *
 from ..core import RecordDict
-from typing import Optional
+from typing import Optional, ParamSpec, TypeAlias, TypeVar
 from collections.abc import Callable
 from coreblocks.utils import ValueLike, assign, AssignType
+from transactron._utils import def_helper, bind_first_param, CallableOptParam
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 
 __all__ = [
@@ -15,6 +16,19 @@ __all__ = [
     "CatTrans",
     "ConnectAndTransformTrans",
 ]
+
+
+T = TypeVar("T")
+P = ParamSpec("P")
+CallableOptTModule: TypeAlias = CallableOptParam[TModule, P, T]
+
+
+def bind_tmodule(m: TModule, func: CallableOptTModule[P, T]) -> Callable[P, T]:
+    return bind_first_param(func, "m", TModule, m)
+
+
+def transformer_helper(tr, m: TModule, func: Callable[..., T], arg: Record) -> T:
+    return def_helper(f"function for {tr}", bind_tmodule(m, func), Record, arg, **arg.fields)
 
 
 class MethodTransformer(Elaboratable):
@@ -36,8 +50,8 @@ class MethodTransformer(Elaboratable):
         self,
         target: Method,
         *,
-        i_transform: Optional[tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
-        o_transform: Optional[tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
+        i_transform: Optional[tuple[MethodLayout, Callable[..., RecordDict]]] = None,
+        o_transform: Optional[tuple[MethodLayout, Callable[..., RecordDict]]] = None,
     ):
         """
         Parameters
@@ -54,9 +68,9 @@ class MethodTransformer(Elaboratable):
             If not present, output is not transformed.
         """
         if i_transform is None:
-            i_transform = (target.data_in.layout, lambda _, x: x)
+            i_transform = (target.data_in.layout, lambda arg: arg)
         if o_transform is None:
-            o_transform = (target.data_out.layout, lambda _, x: x)
+            o_transform = (target.data_out.layout, lambda arg: arg)
 
         self.target = target
         self.method = Method(i=i_transform[0], o=o_transform[0])
@@ -68,7 +82,7 @@ class MethodTransformer(Elaboratable):
 
         @def_method(m, self.method)
         def _(arg):
-            return self.o_fun(m, self.target(m, self.i_fun(m, arg)))
+            return transformer_helper(self, m, self.o_fun, self.target(m, transformer_helper(self, m, self.i_fun, arg)))
 
         return m
 
@@ -91,9 +105,7 @@ class MethodFilter(Elaboratable):
         The transformed method.
     """
 
-    def __init__(
-        self, target: Method, condition: Callable[[TModule, Record], ValueLike], default: Optional[RecordDict] = None
-    ):
+    def __init__(self, target: Method, condition: Callable[..., ValueLike], default: Optional[RecordDict] = None):
         """
         Parameters
         ----------
@@ -122,7 +134,7 @@ class MethodFilter(Elaboratable):
 
         @def_method(m, self.method)
         def _(arg):
-            with m.If(self.condition(m, arg)):
+            with m.If(transformer_helper(self, m, self.condition, arg)):
                 m.d.comb += ret.eq(self.target(m, arg))
             return ret
 
@@ -133,7 +145,7 @@ class MethodProduct(Elaboratable):
     def __init__(
         self,
         targets: list[Method],
-        combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[Record]], RecordDict]]] = None,
+        combiner: Optional[tuple[MethodLayout, CallableOptTModule[[list[Record]], RecordDict]]] = None,
     ):
         """Method product.
 
@@ -148,10 +160,11 @@ class MethodProduct(Elaboratable):
         ----------
         targets: list[Method]
             A list of methods to be called.
-        combiner: (int or method layout, function), optional
+        combiner: (record layout, function), optional
             A pair of the output layout and the combiner function. The
-            combiner function takes two parameters: a `Module` and
-            a list of outputs of the target methods.
+            combiner function takes a list of outputs of the target methods
+            and returns the result. Optionally, it can also take a `TModule`
+            as a first argument named `m`.
 
         Attributes
         ----------
@@ -159,7 +172,7 @@ class MethodProduct(Elaboratable):
             The product method.
         """
         if combiner is None:
-            combiner = (targets[0].data_out.layout, lambda _, x: x[0])
+            combiner = (targets[0].data_out.layout, lambda x: x[0])
         self.targets = targets
         self.combiner = combiner
         self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
@@ -172,7 +185,7 @@ class MethodProduct(Elaboratable):
             results = []
             for target in self.targets:
                 results.append(target(m, arg))
-            return self.combiner[1](m, results)
+            return bind_tmodule(m, self.combiner[1])(results)
 
         return m
 
@@ -181,7 +194,7 @@ class MethodTryProduct(Elaboratable):
     def __init__(
         self,
         targets: list[Method],
-        combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[tuple[Value, Record]]], RecordDict]]] = None,
+        combiner: Optional[tuple[MethodLayout, CallableOptTModule[[list[tuple[Value, Record]]], RecordDict]]] = None,
     ):
         """Method product with optional calling.
 
@@ -196,11 +209,12 @@ class MethodTryProduct(Elaboratable):
         ----------
         targets: list[Method]
             A list of methods to be called.
-        combiner: (int or method layout, function), optional
+        combiner: (record layout, function), optional
             A pair of the output layout and the combiner function. The
-            combiner function takes two parameters: a `Module` and
-            a list of pairs. Each pair contains a bit which signals
-            that a given call succeeded, and the result of the call.
+            combiner function takes a list of pairs such that the first
+            element is a bit which signals that a given call succeeded,
+            and the second is the result of the call. Optionally, it can
+            also take a `TModule` as a first argument named `m`.
 
         Attributes
         ----------
@@ -208,7 +222,7 @@ class MethodTryProduct(Elaboratable):
             The product method.
         """
         if combiner is None:
-            combiner = ([], lambda _, __: {})
+            combiner = ([], lambda arg: {})
         self.targets = targets
         self.combiner = combiner
         self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
@@ -224,7 +238,7 @@ class MethodTryProduct(Elaboratable):
                 with Transaction().body(m):
                     m.d.comb += success.eq(1)
                     results.append((success, target(m, arg)))
-            return self.combiner[1](m, results)
+            return bind_tmodule(m, self.combiner[1])(results)
 
         return m
 
@@ -323,8 +337,8 @@ class ConnectAndTransformTrans(Elaboratable):
         method1: Method,
         method2: Method,
         *,
-        i_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
-        o_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
+        i_fun: Optional[Callable[..., RecordDict]] = None,
+        o_fun: Optional[Callable[..., RecordDict]] = None,
     ):
         """
         Parameters
@@ -340,8 +354,8 @@ class ConnectAndTransformTrans(Elaboratable):
         """
         self.method1 = method1
         self.method2 = method2
-        self.i_fun = i_fun or (lambda _, x: x)
-        self.o_fun = o_fun or (lambda _, x: x)
+        self.i_fun = i_fun or (lambda arg: arg)
+        self.o_fun = o_fun or (lambda arg: arg)
 
     def elaborate(self, platform):
         m = TModule()

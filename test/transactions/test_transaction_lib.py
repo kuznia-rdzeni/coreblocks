@@ -13,7 +13,7 @@ from transactron import *
 from transactron.core import RecordDict
 from transactron.lib import *
 from coreblocks.utils import *
-from coreblocks.utils._typing import LayoutLike, ModuleLike
+from coreblocks.utils._typing import LayoutLike
 from coreblocks.utils import ModuleConnector
 from ..common import (
     SimpleTestCircuit,
@@ -362,21 +362,21 @@ class MethodTransformerTestCircuit(Elaboratable):
 
         layout = data_layout(self.iosize)
 
-        def itransform_rec(m: ModuleLike, v: Record) -> Record:
-            s = Record.like(v)
-            m.d.comb += s.data.eq(v.data + 1)
+        def itransform_rec(m: TModule, arg: Record) -> Record:
+            s = Record.like(arg)
+            m.d.comb += s.data.eq(arg.data + 1)
             return s
 
-        def otransform_rec(m: ModuleLike, v: Record) -> Record:
-            s = Record.like(v)
-            m.d.comb += s.data.eq(v.data - 1)
+        def otransform_rec(m: TModule, arg: Record) -> Record:
+            s = Record.like(arg)
+            m.d.comb += s.data.eq(arg.data - 1)
             return s
 
-        def itransform_dict(_, v: Record) -> RecordDict:
-            return {"data": v.data + 1}
+        def itransform_dict(data: Value) -> RecordDict:
+            return {"data": data + 1}
 
-        def otransform_dict(_, v: Record) -> RecordDict:
-            return {"data": v.data - 1}
+        def otransform_dict(data: Value) -> RecordDict:
+            return {"data": data - 1}
 
         if self.use_dicts:
             itransform = itransform_dict
@@ -388,16 +388,13 @@ class MethodTransformerTestCircuit(Elaboratable):
         m.submodules.target = self.target = TestbenchIO(Adapter(i=layout, o=layout))
 
         if self.use_methods:
+            assert self.use_dicts
+
             imeth = Method(i=layout, o=layout)
             ometh = Method(i=layout, o=layout)
 
-            @def_method(m, imeth)
-            def _(arg: Record):
-                return itransform(m, arg)
-
-            @def_method(m, ometh)
-            def _(arg: Record):
-                return otransform(m, arg)
+            def_method(m, imeth)(itransform)
+            def_method(m, ometh)(otransform)
 
             trans = MethodTransformer(
                 self.target.adapter.iface, i_transform=(layout, imeth), o_transform=(layout, ometh)
@@ -483,8 +480,8 @@ class TestMethodFilter(TestCaseWithSimulator):
     def test_method_filter(self):
         self.initialize()
 
-        def condition(_, v):
-            return v[0]
+        def condition(data: Value):
+            return data[0]
 
         self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition))
         m = ModuleConnector(test_circuit=self.tc, target=self.target)
@@ -515,7 +512,7 @@ class MethodProductTestCircuit(Elaboratable):
 
         combiner = None
         if self.add_combiner:
-            combiner = (layout, lambda _, vs: {"data": sum(vs)})
+            combiner = (layout, lambda vs: {"data": sum(vs)})
 
         m.submodules.product = product = MethodProduct(methods, combiner)
 
@@ -702,7 +699,7 @@ class MethodTryProductTestCircuit(Elaboratable):
 
         combiner = None
         if self.add_combiner:
-            combiner = (layout, lambda _, vs: {"data": sum(Mux(s, r, 0) for (s, r) in vs)})
+            combiner = (layout, lambda vs: {"data": sum(Mux(s, r, 0) for (s, r) in vs)})
 
         m.submodules.product = product = MethodTryProduct(methods, combiner)
 

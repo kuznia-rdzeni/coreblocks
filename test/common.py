@@ -12,7 +12,7 @@ from amaranth.sim.core import Command
 
 from transactron.core import SignalBundle, Method, TransactionModule
 from transactron.lib import AdapterBase, AdapterTrans
-from transactron._utils import mock_def_helper
+from transactron._utils import def_helper
 from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike, ModuleConnector
 from .gtkw_extension import write_vcd_ext
 
@@ -258,6 +258,10 @@ class TestCaseWithSimulator(unittest.TestCase):
         Wait for a random amount of cycles in range [1, max_cycle_cnt)
         """
         yield from self.tick(random.randrange(max_cycle_cnt))
+
+
+def mock_def_helper(tb, func: Callable[..., T], arg: Mapping[str, Any]) -> T:
+    return def_helper(f"mock definition for {tb}", func, Mapping[str, Any], arg, **arg)
 
 
 class TestbenchIO(Elaboratable):

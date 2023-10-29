@@ -1,7 +1,8 @@
 import itertools
 import sys
+import functools
 from inspect import Parameter, signature
-from typing import Any, Concatenate, Optional, TypeAlias, TypeGuard, TypeVar
+from typing import Concatenate, Optional, ParamSpec, TypeAlias, TypeGuard, TypeVar
 from collections.abc import Callable, Iterable, Mapping
 from amaranth import *
 from coreblocks.utils._typing import LayoutLike
@@ -16,12 +17,14 @@ __all__ = [
     "GraphCC",
     "get_caller_class_name",
     "def_helper",
-    "method_def_helper",
+    "bind_first_param",
 ]
 
 
 T = TypeVar("T")
 U = TypeVar("U")
+P = ParamSpec("P")
+CallableOptParam: TypeAlias = Callable[Concatenate[U, P], T] | Callable[P, T]
 
 
 class Scheduler(Elaboratable):
@@ -124,7 +127,9 @@ def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
 MethodLayout: TypeAlias = LayoutLike
 
 
-def has_first_param(func: Callable[..., T], name: str, tp: type[U]) -> TypeGuard[Callable[Concatenate[U, ...], T]]:
+def has_first_param(
+    func: CallableOptParam[U, P, T], name: str, tp: type[U]
+) -> TypeGuard[Callable[Concatenate[U, P], T]]:
     parameters = signature(func).parameters
     return (
         len(parameters) >= 1
@@ -132,6 +137,13 @@ def has_first_param(func: Callable[..., T], name: str, tp: type[U]) -> TypeGuard
         and parameters[name].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
         and parameters[name].annotation in {Parameter.empty, tp}
     )
+
+
+def bind_first_param(func: CallableOptParam[U, P, T], name: str, tp: type[U], arg: U) -> Callable[P, T]:
+    if has_first_param(func, name, tp):
+        return functools.partial(func, arg)  # type: ignore
+    else:
+        return func  # type: ignore
 
 
 def def_helper(description, func: Callable[..., T], tp: type[U], arg: U, /, **kwargs) -> T:
@@ -145,14 +157,6 @@ def def_helper(description, func: Callable[..., T], tp: type[U], arg: U, /, **kw
         return func(**kwargs)
     else:
         raise TypeError(f"Invalid {description}: {func}")
-
-
-def mock_def_helper(tb, func: Callable[..., T], arg: Mapping[str, Any]) -> T:
-    return def_helper(f"mock definition for {tb}", func, Mapping[str, Any], arg, **arg)
-
-
-def method_def_helper(method, func: Callable[..., T], arg: Record) -> T:
-    return def_helper(f"method definition for {method}", func, Record, arg, **arg.fields)
 
 
 def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:
