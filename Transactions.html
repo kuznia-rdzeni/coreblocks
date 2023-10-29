@@ -50,10 +50,17 @@
 <li class="toctree-l3"><a class="reference internal" href="#implementing-transactions">Implementing transactions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#implementing-methods">Implementing methods</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#method-or-transaction">Method or transaction?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#method-argument-passing-conventions">Method argument passing conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#method-definition-conventions">Method definition conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#method-return-value-conventions">Method return value conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#readiness-signals">Readiness signals</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#the-library">The library</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#advanced-concepts">Advanced concepts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#special-combinational-domains">Special combinational domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scheduling-order">Scheduling order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#conflicts">Conflicts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#transaction-and-method-nesting">Transaction and method nesting</a></li>
 </ul>
 </li>
@@ -144,10 +151,6 @@ The communication is structured using Amaranth records.</p>
 <p>The transaction body <code class="docutils literal notranslate"><span class="pre">with</span></code> block works analogously to Amaranth’s <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">m.If():</span></code> blocks: the Amaranth assignments and method calls only “work” in clock cycles when the transaction is executed.
 This is implemented in hardware via multiplexers.
 Please remember that this is not a Python <code class="docutils literal notranslate"><span class="pre">if</span></code> statement – the <em>Python code</em> inside the <code class="docutils literal notranslate"><span class="pre">with</span></code> block is always executed once.</p>
-<p>If a transaction is not always ready for execution (for example, because of the dependence on some resource), a <code class="docutils literal notranslate"><span class="pre">request</span></code> parameter should be used. An Amaranth single-bit expression should be passed.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>        <span class="k">with</span> <span class="n">Transaction</span><span class="p">()</span><span class="o">.</span><span class="n">body</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="n">expr</span><span class="p">):</span>
-</pre></div>
-</div>
 </div>
 <div class="section" id="implementing-methods">
 <h3>Implementing methods<a class="headerlink" href="#implementing-methods" title="Permalink to this heading"></a></h3>
@@ -198,7 +201,7 @@ In particular, the <em>Python code</em> inside the unnamed <code class="docutils
 For example, the <code class="docutils literal notranslate"><span class="pre">MyThing</span></code> constructor could be defined as follows.
 Only methods should be passed around, not entire <code class="docutils literal notranslate"><span class="pre">Elaboratable</span></code>s!</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyThing</span><span class="p">(</span><span class="n">Elaboratable</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="n">Method</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
 
         <span class="o">...</span>
@@ -223,6 +226,93 @@ If so, maybe it should be a method.</p>
 This is because if a functionality is implemented as a method, and a transaction is needed, one can use a transaction which calls this method and does nothing else.
 Such a transaction is included in the library – it’s named <code class="docutils literal notranslate"><span class="pre">AdapterTrans</span></code>.</p>
 </div>
+<div class="section" id="method-argument-passing-conventions">
+<h3>Method argument passing conventions<a class="headerlink" href="#method-argument-passing-conventions" title="Permalink to this heading"></a></h3>
+<p>Even though method arguments are Amaranth records, their use can be avoided in many cases, which results in cleaner code.
+Suppose we have the following layout, which is an input layout for a method called <code class="docutils literal notranslate"><span class="pre">method</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">layout</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;bar&quot;</span><span class="p">,</span> <span class="mi">32</span><span class="p">)]</span>
+<span class="n">method</span> <span class="o">=</span> <span class="n">Method</span><span class="p">(</span><span class="n">input_layout</span><span class="o">=</span><span class="n">layout</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The method can be called in multiple ways.
+The cleanest and recommended way is to pass each record field using a keyword argument:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">foo</span><span class="o">=</span><span class="n">foo_expr</span><span class="p">,</span> <span class="n">bar</span><span class="o">=</span><span class="n">bar_expr</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Another way is to pass the arguments using a <code class="docutils literal notranslate"><span class="pre">dict</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="n">foo_expr</span><span class="p">,</span> <span class="s1">&#39;bar&#39;</span><span class="p">:</span> <span class="n">bar_expr</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>Finally, one can directly pass an Amaranth record:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">rec</span> <span class="o">=</span> <span class="n">Record</span><span class="p">(</span><span class="n">layout</span><span class="p">)</span>
+<span class="n">m</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">comb</span> <span class="o">+=</span> <span class="n">rec</span><span class="o">.</span><span class="n">foo</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">foo_expr</span><span class="p">)</span>
+<span class="n">m</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">comb</span> <span class="o">+=</span> <span class="n">rec</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">bar_expr</span><span class="p">)</span>
+<span class="n">method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">rec</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">dict</span></code> convention can be used recursively when layouts are nested.
+Take the following definitions:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">layout2</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;foobar&quot;</span><span class="p">,</span> <span class="n">layout</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;baz&quot;</span><span class="p">,</span> <span class="mi">42</span><span class="p">)]</span>
+<span class="n">method2</span> <span class="o">=</span> <span class="n">Method</span><span class="p">(</span><span class="n">input_layout</span><span class="o">=</span><span class="n">layout2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>One can then pass the arguments using <code class="docutils literal notranslate"><span class="pre">dict</span></code>s in following ways:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># the preferred way</span>
+<span class="n">method2</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">foobar</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="n">foo_expr</span><span class="p">,</span> <span class="s1">&#39;bar&#39;</span><span class="p">:</span> <span class="n">bar_expr</span><span class="p">},</span> <span class="n">baz</span><span class="o">=</span><span class="n">baz_expr</span><span class="p">)</span>
+
+<span class="c1"># the alternative way</span>
+<span class="n">method2</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;foobar&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="n">foo_expr</span><span class="p">,</span> <span class="s1">&#39;bar&#39;</span><span class="p">:</span> <span class="n">bar_expr</span><span class="p">},</span> <span class="s1">&#39;baz&#39;</span><span class="p">:</span> <span class="n">baz_expr</span><span class="p">})</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="method-definition-conventions">
+<h3>Method definition conventions<a class="headerlink" href="#method-definition-conventions" title="Permalink to this heading"></a></h3>
+<p>When defining methods, two conventions can be used.
+The cleanest and recommended way is to create an argument for each record field:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">foo</span><span class="p">:</span> <span class="n">Value</span><span class="p">,</span> <span class="n">bar</span><span class="p">:</span> <span class="n">Value</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>The other is to receive the argument record directly. The <code class="docutils literal notranslate"><span class="pre">arg</span></code> name is required:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="n">Record</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="method-return-value-conventions">
+<h3>Method return value conventions<a class="headerlink" href="#method-return-value-conventions" title="Permalink to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">dict</span></code> syntax can be used for returning values from methods.
+Take the following method declaration:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">method3</span> <span class="o">=</span> <span class="n">Method</span><span class="p">(</span><span class="n">input_layout</span><span class="o">=</span><span class="n">layout</span><span class="p">,</span> <span class="n">output_layout</span><span class="o">=</span><span class="n">layout2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>One can then define this method as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">method3</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">foo</span><span class="p">:</span> <span class="n">Value</span><span class="p">,</span> <span class="n">bar</span><span class="p">:</span> <span class="n">Value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="n">foo</span><span class="p">,</span> <span class="s1">&#39;bar&#39;</span><span class="p">:</span> <span class="n">foo</span> <span class="o">+</span> <span class="n">bar</span><span class="p">},</span> <span class="s1">&#39;baz&#39;</span><span class="p">:</span> <span class="n">foo</span> <span class="o">-</span> <span class="n">bar</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="readiness-signals">
+<h3>Readiness signals<a class="headerlink" href="#readiness-signals" title="Permalink to this heading"></a></h3>
+<p>If a transaction is not always ready for execution (for example, because of the dependence on some resource), a <code class="docutils literal notranslate"><span class="pre">request</span></code> parameter should be used.
+An Amaranth single-bit expression should be passed.
+When the <code class="docutils literal notranslate"><span class="pre">request</span></code> parameter is not passed, the transaction is always requesting execution.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>        <span class="k">with</span> <span class="n">Transaction</span><span class="p">()</span><span class="o">.</span><span class="n">body</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="n">expr</span><span class="p">):</span>
+</pre></div>
+</div>
+<p>Methods have a similar mechanism, which uses the <code class="docutils literal notranslate"><span class="pre">ready</span></code> parameter on <code class="docutils literal notranslate"><span class="pre">def_method</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>        <span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">my_method</span><span class="p">,</span> <span class="n">ready</span><span class="o">=</span><span class="n">expr</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+            <span class="o">...</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">request</span></code> signal typically should only depend on the internal state of an <code class="docutils literal notranslate"><span class="pre">Elaboratable</span></code>.
+Other dependencies risk introducing combinational loops.
+In certain occasions, it is possible to relax this requirement; see e.g. <a class="reference internal" href="#scheduling-order"><span class="std std-doc">Scheduling order</span></a>.</p>
+</div>
 </div>
 <div class="section" id="the-library">
 <h2>The library<a class="headerlink" href="#the-library" title="Permalink to this heading"></a></h2>
@@ -238,6 +328,58 @@ These are very useful in testbenches.</p></li>
 </div>
 <div class="section" id="advanced-concepts">
 <h2>Advanced concepts<a class="headerlink" href="#advanced-concepts" title="Permalink to this heading"></a></h2>
+<div class="section" id="special-combinational-domains">
+<h3>Special combinational domains<a class="headerlink" href="#special-combinational-domains" title="Permalink to this heading"></a></h3>
+<p>Transactron defines its own variant of Amaranth modules, called <code class="docutils literal notranslate"><span class="pre">TModule</span></code>.
+Its role is to allow to improve circuit performance by omitting unneeded multiplexers in combinational circuits.
+This is done by adding two additional, special combinatorial domains, <code class="docutils literal notranslate"><span class="pre">av_comb</span></code> and <code class="docutils literal notranslate"><span class="pre">top_comb</span></code>.</p>
+<p>Statements added to the <code class="docutils literal notranslate"><span class="pre">av_comb</span></code> domain (the “avoiding” domain) are not executed when under a false <code class="docutils literal notranslate"><span class="pre">m.If</span></code>, but are executed when under a false <code class="docutils literal notranslate"><span class="pre">m.AvoidedIf</span></code>.
+Transaction and method bodies are internally guarded by an <code class="docutils literal notranslate"><span class="pre">m.AvoidedIf</span></code> with the transaction <code class="docutils literal notranslate"><span class="pre">grant</span></code> or method <code class="docutils literal notranslate"><span class="pre">run</span></code> signal.
+Therefore combinational assignments added to <code class="docutils literal notranslate"><span class="pre">av_comb</span></code> work even if the transaction or method definition containing the assignments are not running.
+Because combinational signals usually don’t induce state changes, this is often safe to do and improves performance.</p>
+<p>Statements added to the <code class="docutils literal notranslate"><span class="pre">top_comb</span></code> domain are always executed, even if the statement is under false conditions (including <code class="docutils literal notranslate"><span class="pre">m.If</span></code>, <code class="docutils literal notranslate"><span class="pre">m.Switch</span></code> etc.).
+This allows for cleaner code, as combinational assignments which logically belong to some case, but aren’t actually required to be there, can be as performant as if they were manually moved to the top level.</p>
+<p>An important caveat of the special domains is that, just like with normal domains, a signal assigned in one of them cannot be assigned in others.</p>
+</div>
+<div class="section" id="scheduling-order">
+<h3>Scheduling order<a class="headerlink" href="#scheduling-order" title="Permalink to this heading"></a></h3>
+<p>When writing multiple methods and transactions in the same <code class="docutils literal notranslate"><span class="pre">Elaboratable</span></code>, sometimes some dependency between them needs to exist.
+For example, in the <code class="docutils literal notranslate"><span class="pre">Forwarder</span></code> module in the library, forwarding can take place only if both <code class="docutils literal notranslate"><span class="pre">read</span></code> and <code class="docutils literal notranslate"><span class="pre">write</span></code> are executed simultaneously.
+This requirement is handled by making the the <code class="docutils literal notranslate"><span class="pre">read</span></code> method’s readiness depend on the execution of the <code class="docutils literal notranslate"><span class="pre">write</span></code> method.
+If the <code class="docutils literal notranslate"><span class="pre">read</span></code> method was considered for execution before <code class="docutils literal notranslate"><span class="pre">write</span></code>, this would introduce a combinational loop into the circuit.
+In order to avoid such issues, one can require a certain scheduling order between methods and transactions.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Method</span></code> and <code class="docutils literal notranslate"><span class="pre">Transaction</span></code> objects include a <code class="docutils literal notranslate"><span class="pre">schedule_before</span></code> method.
+Its only argument is another <code class="docutils literal notranslate"><span class="pre">Method</span></code> or <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>, which will be scheduled after the first one:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">first_t_or_m</span><span class="o">.</span><span class="n">schedule_before</span><span class="p">(</span><span class="n">other_t_or_m</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Internally, scheduling orders exist only on transactions.
+If a scheduling order is added to a <code class="docutils literal notranslate"><span class="pre">Method</span></code>, it is lifted to the transaction level.
+For example, if <code class="docutils literal notranslate"><span class="pre">first_m</span></code> is scheduled before <code class="docutils literal notranslate"><span class="pre">other_t</span></code>, and is called by <code class="docutils literal notranslate"><span class="pre">t1</span></code> and <code class="docutils literal notranslate"><span class="pre">t2</span></code>, the added scheduling orderings will be the same as if the following calls were made:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">t1</span><span class="o">.</span><span class="n">schedule_before</span><span class="p">(</span><span class="n">other_t</span><span class="p">)</span>
+<span class="n">t2</span><span class="o">.</span><span class="n">schedule_before</span><span class="p">(</span><span class="n">other_t</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="conflicts">
+<h3>Conflicts<a class="headerlink" href="#conflicts" title="Permalink to this heading"></a></h3>
+<p>In some situations it might be useful to make some methods or transactions mutually exclusive with others.
+Two conflicting transactions or methods can’t execute simultaneously: only one or the other runs in a given clock cycle.</p>
+<p>Conflicts are defined similarly to scheduling orders:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">first_t_or_m</span><span class="o">.</span><span class="n">add_conflict</span><span class="p">(</span><span class="n">other_t_or_m</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Conflicts are lifted to the transaction level, just like scheduling orders.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">add_conflict</span></code> method has an optional argument <code class="docutils literal notranslate"><span class="pre">priority</span></code>, which allows to define a scheduling order between conflicting transactions or methods.
+Possible values are <code class="docutils literal notranslate"><span class="pre">Priority.LEFT</span></code>, <code class="docutils literal notranslate"><span class="pre">Priority.RIGHT</span></code> and <code class="docutils literal notranslate"><span class="pre">Priority.UNDEFINED</span></code> (the default).
+For example, the following code adds a conflict with a scheduling order, where <code class="docutils literal notranslate"><span class="pre">first_m</span></code> is scheduled before <code class="docutils literal notranslate"><span class="pre">other_m</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">first_m</span><span class="o">.</span><span class="n">add_conflict</span><span class="p">(</span><span class="n">other_m</span><span class="p">,</span> <span class="n">priority</span> <span class="o">=</span> <span class="n">Priority</span><span class="o">.</span><span class="n">LEFT</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Scheduling conflicts come with a possible cost.
+The conflicting transactions have a dependency in the transaction scheduler, which can increase the size and combinational delay of the scheduling circuit.
+Therefore, use of this feature requires consideration.</p>
+</div>
 <div class="section" id="transaction-and-method-nesting">
 <h3>Transaction and method nesting<a class="headerlink" href="#transaction-and-method-nesting" title="Permalink to this heading"></a></h3>
 <p>Transaction and method bodies can be nested. For example:</p>
@@ -267,7 +409,7 @@ Nesting implies scheduling order: the nested transaction or method is considered
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 12:16 2023-10-27.
+      <span class="lastupdated">Last updated on 17:17 2023-10-29.
       </span></p>
   </div>
 
