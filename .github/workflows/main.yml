@@ -22,14 +22,23 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build riscv-tests
-        run: cd test/external/riscv-tests && make
-
-      - uses: actions/upload-artifact@v3
+      - name: Cache regression-tests
+        id: cache-regression
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-regression-tests
         with:
-          name: "riscv-tests"
-          path: |
-            test/external/riscv-tests/test-*
+          path: test/external/riscv-tests/test-*
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{
+            hashFiles('**/riscv-tests/test-*') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
+        name: Build riscv-tests
+        run: cd test/external/riscv-tests && make
 
   run-regression-tests:
     name: Run regression tests
@@ -58,10 +67,17 @@ jobs:
           . venv/bin/activate
           PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/cache@v3
+        env:
+          cache-name: cache-regression-tests
         with:
-          name: "riscv-tests"
-          path: test/external/riscv-tests
+          path: test/external/riscv-tests/test-*
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{
+            hashFiles('**/riscv-tests/test-*') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
 
       - name: Run tests
         run: |
