@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from elftools.elf.constants import P_FLAGS
 from elftools.elf.elffile import ELFFile, Segment
 from coreblocks.params.configurations import CoreConfiguration
+from coreblocks.utils.utils import align_to_power_of_two, align_down_to_power_of_two
 
 all = [
     "ReplyStatus",
@@ -158,18 +159,15 @@ def load_segment(segment: Segment, *, disable_write_protection: bool = False) ->
 
     if flags_raw & P_FLAGS.PF_X:
         # align only instruction section to full icache lines
-        alignment = 2 ** CoreConfiguration().icache_block_size_bits
+        align_bits = CoreConfiguration().icache_block_size_bits
 
-        def align_down(n: int) -> int:
-            return (n // alignment) * alignment
+        align_data_front = seg_start - align_down_to_power_of_two(seg_start, align_bits)
+        align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end
 
-        align_front = seg_start - align_down(seg_start)
-        align_back = align_down(seg_end + alignment - 1) - seg_end
+        data = b"\x00" * align_data_front + data + b"\x00" * align_data_back
 
-        data = b"\x00" * align_front + data + b"\x00" * align_back
-
-        seg_start -= align_front
-        seg_end += align_back
+        seg_start = align_down_to_power_of_two(seg_start, align_bits)
+        seg_end = align_to_power_of_two(seg_end, align_bits)
 
     return RandomAccessMemory(range(seg_start, seg_end), flags, data)
 
