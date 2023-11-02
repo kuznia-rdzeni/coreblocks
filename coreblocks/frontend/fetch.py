@@ -82,7 +82,7 @@ class Fetch(Elaboratable):
                     m.d.sync += self.pc.eq(target.addr)
                     m.d.comb += instr.eq(res.instr)
 
-                self.cont(m, data=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
+                self.cont(m, instr=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
 
         @def_method(m, self.verify_branch, ready=stalled)
         def _(from_pc: Value, next_pc: Value):
@@ -210,7 +210,7 @@ class UnalignedFetch(Elaboratable):
                 with m.If(~cache_resp.error):
                     m.d.sync += current_pc.eq(current_pc + Mux(is_rvc, C(2, 3), C(4, 3)))
 
-                self.cont(m, data=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
+                self.cont(m, instr=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
 
         @def_method(m, self.verify_branch, ready=(stalled & ~flushing))
         def _(from_pc: Value, next_pc: Value):

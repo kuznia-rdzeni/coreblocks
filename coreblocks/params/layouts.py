@@ -20,45 +20,117 @@ __all__ = [
 ]
 
 
-class CommonLayouts:
+class CommonLayoutFields:
+    """Commonly used layout fields."""
+
     def __init__(self, gen_params: GenParams):
+        self.op_type = ("op_type", OpType)
+        """Decoded operation type."""
+
+        self.funct3 = ("funct3", Funct3)
+        """RISC V funct3 value."""
+
+        self.funct7 = ("funct7", Funct7)
+        """RISC V funct7 value."""
+
+        self.rl_s1 = ("rl_s1", gen_params.isa.reg_cnt_log)
+        """Logical register number of first source operand."""
+
+        self.rl_s2 = ("rl_s2", gen_params.isa.reg_cnt_log)
+        """Logical register number of second source operand."""
+
+        self.rl_dst = ("rl_dst", gen_params.isa.reg_cnt_log)
+        """Logical register number of destination operand."""
+
+        self.rp_s1 = ("rp_s1", gen_params.phys_regs_bits)
+        """Physical register number of first source operand."""
+
+        self.rp_s2 = ("rp_s2", gen_params.phys_regs_bits)
+        """Physical register number of second source operand."""
+
+        self.rp_dst = ("rp_dst", gen_params.phys_regs_bits)
+        """Physical register number of destination operand."""
+
+        self.imm = ("imm", gen_params.isa.xlen)
+        """Immediate value."""
+
+        self.csr = ("csr", gen_params.isa.csr_alen)
+        """CSR number."""
+
+        self.pc = ("pc", gen_params.isa.xlen)
+        """Program counter value."""
+
+        self.rob_id = ("rob_id", gen_params.rob_entries_bits)
+        """Reorder buffer entry identifier."""
+
+        self.s1_val = ("s1_val", gen_params.isa.xlen)
+        """Value of first source operand."""
+
+        self.s2_val = ("s2_val", gen_params.isa.xlen)
+        """Value of second source operand."""
+
+        self.addr = ("addr", gen_params.isa.xlen)
+        """Memory address."""
+
+        self.data = ("data", gen_params.isa.xlen)
+        """Piece of data."""
+
+        self.instr = ("instr", gen_params.isa.ilen)
+        """RISC V instruction."""
+
+
+class CommonLayouts:
+    """Commonly used layouts."""
+
+    def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
         self.exec_fn = [
-            ("op_type", OpType),
-            ("funct3", Funct3),
-            ("funct7", Funct7),
+            fields.op_type,
+            fields.funct3,
+            fields.funct7,
         ]
+        """Decoded instructions."""
 
         self.regs_l = [
-            ("rl_s1", gen_params.isa.reg_cnt_log),
-            ("rl_s2", gen_params.isa.reg_cnt_log),
-            ("rl_dst", gen_params.isa.reg_cnt_log),
+            fields.rl_s1,
+            fields.rl_s2,
+            fields.rl_dst,
         ]
+        """Logical register numbers - as described in the RISC V manual. They index the RATs."""
 
         self.regs_p = [
-            ("rp_dst", gen_params.phys_regs_bits),
-            ("rp_s1", gen_params.phys_regs_bits),
-            ("rp_s2", gen_params.phys_regs_bits),
+            fields.rp_dst,
+            fields.rp_s1,
+            fields.rp_s2,
         ]
+        """Physical register numbers. They index the register file."""
 
 
 class SchedulerLayouts:
+    """Layouts used in the scheduler."""
+
     def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
         common = gen_params.get(CommonLayouts)
+
         self.reg_alloc_in = [
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
-            ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
-            ("pc", gen_params.isa.xlen),
+            fields.imm,
+            fields.csr,
+            fields.pc,
         ]
+
         self.reg_alloc_out = self.renaming_in = [
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
             ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
-            ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
-            ("pc", gen_params.isa.xlen),
+            fields.imm,
+            fields.csr,
+            fields.pc,
         ]
+
         self.renaming_out = self.rob_allocate_in = [
             ("exec_fn", common.exec_fn),
             (
@@ -69,32 +141,37 @@ class SchedulerLayouts:
                 ],
             ),
             ("regs_p", common.regs_p),
-            ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
-            ("pc", gen_params.isa.xlen),
+            fields.imm,
+            fields.csr,
+            fields.pc,
         ]
+
         self.rob_allocate_out = self.rs_select_in = [
             ("exec_fn", common.exec_fn),
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
-            ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
-            ("pc", gen_params.isa.xlen),
+            fields.imm,
+            fields.csr,
+            fields.pc,
         ]
+
         self.rs_select_out = self.rs_insert_in = [
             ("exec_fn", common.exec_fn),
             ("regs_p", common.regs_p),
             ("rob_id", gen_params.rob_entries_bits),
             ("rs_selected", gen_params.rs_number_bits),
             ("rs_entry_id", gen_params.max_rs_entries_bits),
-            ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
-            ("pc", gen_params.isa.xlen),
+            fields.imm,
+            fields.csr,
+            fields.pc,
         ]
+
         self.free_rf_layout = [("reg_id", gen_params.phys_regs_bits)]
 
 
 class RFLayouts:
+    """Layouts used in the register file."""
+
     def __init__(self, gen_params: GenParams):
         self.rf_read_in = self.rf_free = [("reg_id", gen_params.phys_regs_bits)]
         self.rf_read_out = [("reg_val", gen_params.isa.xlen), ("valid", 1)]
@@ -102,28 +179,38 @@ class RFLayouts:
 
 
 class RATLayouts:
-    def __init__(self, gen_params: GenParams):
-        self.rat_rename_in = [
-            ("rl_s1", gen_params.isa.reg_cnt_log),
-            ("rl_s2", gen_params.isa.reg_cnt_log),
-            ("rl_dst", gen_params.isa.reg_cnt_log),
-            ("rp_dst", gen_params.phys_regs_bits),
-        ]
-        self.rat_rename_out = [("rp_s1", gen_params.phys_regs_bits), ("rp_s2", gen_params.phys_regs_bits)]
+    """Layouts usef in the register alias tables."""
 
-        self.rat_commit_in = [("rl_dst", gen_params.isa.reg_cnt_log), ("rp_dst", gen_params.phys_regs_bits)]
+    def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
+        self.rat_rename_in = [
+            fields.rl_s1,
+            fields.rl_s2,
+            fields.rl_dst,
+            fields.rp_dst,
+        ]
+
+        self.rat_rename_out = [fields.rp_s1, fields.rp_s2]
+
+        self.rat_commit_in = [fields.rl_dst, fields.rp_dst]
+
         self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
 
 
 class ROBLayouts:
+    """Layouts used in the reorder buffer."""
+
     def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
         self.data_layout = [
-            ("rl_dst", gen_params.isa.reg_cnt_log),
-            ("rp_dst", gen_params.phys_regs_bits),
+            fields.rl_dst,
+            fields.rp_dst,
         ]
 
         self.id_layout = [
-            ("rob_id", gen_params.rob_entries_bits),
+            fields.rob_id
         ]
 
         self.internal_layout = [
@@ -133,13 +220,13 @@ class ROBLayouts:
         ]
 
         self.mark_done_layout = [
-            ("rob_id", gen_params.rob_entries_bits),
+            fields.rob_id,
             ("exception", 1),
         ]
 
         self.peek_layout = self.retire_layout = [
             ("rob_data", self.data_layout),
-            ("rob_id", gen_params.rob_entries_bits),
+            fields.rob_id,
             ("exception", 1),
         ]
 
@@ -147,21 +234,25 @@ class ROBLayouts:
 
 
 class RSInterfaceLayouts:
+    """Layouts used in functional blocks."""
+
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
+        fields = gen_params.get(CommonLayoutFields)
         common = gen_params.get(CommonLayouts)
+
         self.data_layout = [
-            ("rp_s1", gen_params.phys_regs_bits),
-            ("rp_s2", gen_params.phys_regs_bits),
+            fields.rp_s1,
+            fields.rp_s2,
             ("rp_s1_reg", gen_params.phys_regs_bits),
             ("rp_s2_reg", gen_params.phys_regs_bits),
-            ("rp_dst", gen_params.phys_regs_bits),
-            ("rob_id", gen_params.rob_entries_bits),
+            fields.rp_dst,
+            fields.rob_id,
             ("exec_fn", common.exec_fn),
-            ("s1_val", gen_params.isa.xlen),
-            ("s2_val", gen_params.isa.xlen),
-            ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
-            ("pc", gen_params.isa.xlen),
+            fields.s1_val,
+            fields.s2_val,
+            fields.imm,
+            fields.csr,
+            fields.pc,
         ]
 
         self.select_out = [("rs_entry_id", rs_entries_bits)]
@@ -172,13 +263,19 @@ class RSInterfaceLayouts:
 
 
 class RetirementLayouts:
+    """Layouts used in the retirement module."""
+
     def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
         self.precommit = [
-            ("rob_id", gen_params.rob_entries_bits),
+            fields.rob_id
         ]
 
 
 class RSLayouts:
+    """Layouts used in the reservation station."""
+
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
         rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits)
 
@@ -222,33 +319,41 @@ class RSLayouts:
 
 
 class ICacheLayouts:
+    """Layouts used in the instruction cache."""
+
     def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
         self.issue_req = [
-            ("addr", gen_params.isa.xlen),
+            fields.addr
         ]
 
         self.accept_res = [
-            ("instr", gen_params.isa.ilen),
+            fields.instr,
             ("error", 1),
         ]
 
         self.start_refill = [
-            ("addr", gen_params.isa.xlen),
+            fields.addr,
         ]
 
         self.accept_refill = [
-            ("addr", gen_params.isa.xlen),
-            ("data", gen_params.isa.xlen),
+            fields.addr,
+            fields.data,
             ("error", 1),
             ("last", 1),
         ]
 
 
 class FetchLayouts:
+    """Layouts used in the fetcher."""
+
     def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
         self.raw_instr = [
-            ("data", gen_params.isa.ilen),
-            ("pc", gen_params.isa.xlen),
+            fields.instr,
+            fields.pc,
             ("access_fault", 1),
             ("rvc", 1),
         ]
@@ -260,20 +365,27 @@ class FetchLayouts:
 
 
 class DecodeLayouts:
+    """Layouts used in the decoder."""
+
     def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)
+        fields = gen_params.get(CommonLayoutFields)
+
         self.decoded_instr = [
             ("exec_fn", common.exec_fn),
             ("regs_l", common.regs_l),
-            ("imm", gen_params.isa.xlen),
-            ("csr", gen_params.isa.csr_alen),
-            ("pc", gen_params.isa.xlen),
+            fields.imm,
+            fields.csr,
+            fields.pc,
         ]
 
 
 class FuncUnitLayouts:
+    """Layouts used in functional units."""
+
     def __init__(self, gen_params: GenParams):
         common = gen_params.get(CommonLayouts)
+        fields = gen_params.get(CommonLayoutFields)
 
         self.issue = [
             ("s1_val", gen_params.isa.xlen),
@@ -281,14 +393,14 @@ class FuncUnitLayouts:
             ("rp_dst", gen_params.phys_regs_bits),
             ("rob_id", gen_params.rob_entries_bits),
             ("exec_fn", common.exec_fn),
-            ("imm", gen_params.isa.xlen),
-            ("pc", gen_params.isa.xlen),
+            fields.imm,
+            fields.pc,
         ]
 
         self.accept = [
-            ("rob_id", gen_params.rob_entries_bits),
+            fields.rob_id,
             ("result", gen_params.isa.xlen),
-            ("rp_dst", gen_params.phys_regs_bits),
+            fields.rp_dst,
             ("exception", 1),
         ]
 
@@ -319,6 +431,8 @@ class DivUnitLayouts:
 
 
 class LSULayouts:
+    """Layouts used in the load-store unit."""
+
     def __init__(self, gen_params: GenParams):
         self.rs_entries_bits = 0
 
@@ -349,7 +463,11 @@ class LSULayouts:
 
 
 class CSRLayouts:
+    """Layouts used in the control and status registers."""
+
     def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
         self.rs_entries_bits = 0
 
         self.read = [
@@ -358,10 +476,10 @@ class CSRLayouts:
             ("written", 1),
         ]
 
-        self.write = [("data", gen_params.isa.xlen)]
+        self.write = [fields.data]
 
-        self._fu_read = [("data", gen_params.isa.xlen)]
-        self._fu_write = [("data", gen_params.isa.xlen)]
+        self._fu_read = [fields.data]
+        self._fu_write = [fields.data]
 
         rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits)
         self.rs_data_layout = layout_subset(
@@ -391,8 +509,12 @@ class CSRLayouts:
 
 
 class ExceptionRegisterLayouts:
+    """Layouts used in the exception register."""
+
     def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
         self.get = self.report = [
             ("cause", ExceptionCause),
-            ("rob_id", gen_params.rob_entries_bits),
+            fields.rob_id,
         ]
