@@ -79,7 +79,7 @@ class RandomAccessMemory(MemorySegment):
         self.data = bytearray(data)
 
         if len(self.data) != len(address_range):
-            raise ValueError("Data length must be equal to the lenth of the address range")
+            raise ValueError("Data length must be equal to the length of the address range")
 
     def read(self, req: ReadRequest) -> ReadReply:
         return ReadReply(data=int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little"))
@@ -148,6 +148,9 @@ def load_segment(segment: Segment, *, disable_write_protection: bool = False) ->
     seg_end = paddr + memsz
 
     data = segment.data()
+
+    # fill the rest of the segment with zeroes
+    data = data + b"\x00" * (seg_end - seg_start - len(data))
 
     flags = SegmentFlags(0)
     if flags_raw & P_FLAGS.PF_R:
