@@ -1,7 +1,7 @@
 from typing import Sequence, Type
 from amaranth import *
 
-from coreblocks.params import GenParams, CommonLayouts
+from coreblocks.params import GenParams, CommonLayoutFields
 
 from enum import IntFlag
 
@@ -19,9 +19,9 @@ class Decoder(Elaboratable):
     """
 
     def __init__(self, gen_params: GenParams, decode_fn: Type[IntFlag], ops: Sequence[tuple], check_optype: bool):
-        layouts = gen_params.get(CommonLayouts)
+        layouts = gen_params.get(CommonLayoutFields)
 
-        self.exec_fn = Record(layouts.exec_fn)
+        self.exec_fn = Record(layouts.exec_fn[1])
         self.decode_fn = Signal(decode_fn)
         self.ops = ops
         self.check_optype = check_optype

@@ -13,6 +13,7 @@ __all__ = [
     "assign",
     "OneHotSwitchDynamic",
     "OneHotSwitch",
+    "make_hashable",
     "flatten_signals",
     "align_to_power_of_two",
     "align_down_to_power_of_two",
@@ -21,7 +22,7 @@ __all__ = [
     "silence_mustuse",
     "popcount",
     "count_leading_zeros",
-    "count_trailing_zeros",
+    "count_trailing_zeros"
 ]
 
 
@@ -334,6 +335,15 @@ def count_trailing_zeros(s: Value) -> Value:
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]
+
+
+def make_hashable(val):
+    if isinstance(val, Mapping):
+        return frozenset(((k, make_hashable(v)) for k, v in val.items()))
+    elif isinstance(val, Iterable):
+        return (make_hashable(v) for v in val)
+    else:
+        return val
 
 
 def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:

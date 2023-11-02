@@ -1,11 +1,12 @@
 from coreblocks.params import GenParams, OpType, Funct7, Funct3
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.utils.utils import layout_subset
+from coreblocks.utils import LayoutList
 
 __all__ = [
+    "CommonLayoutFields",
     "SchedulerLayouts",
     "ROBLayouts",
-    "CommonLayouts",
     "FetchLayouts",
     "DecodeLayouts",
     "FuncUnitLayouts",
@@ -77,33 +78,14 @@ class CommonLayoutFields:
 
         self.instr = ("instr", gen_params.isa.ilen)
         """RISC V instruction."""
+        
+        self.exec_fn = ("exec_fn", [self.op_type, self.funct3, self.funct7])
+        """Decoded instruction."""
 
-
-class CommonLayouts:
-    """Commonly used layouts."""
-
-    def __init__(self, gen_params: GenParams):
-        fields = gen_params.get(CommonLayoutFields)
-
-        self.exec_fn = [
-            fields.op_type,
-            fields.funct3,
-            fields.funct7,
-        ]
-        """Decoded instructions."""
-
-        self.regs_l = [
-            fields.rl_s1,
-            fields.rl_s2,
-            fields.rl_dst,
-        ]
+        self.regs_l = ("regs_l", [self.rl_s1, self.rl_s2, self.rl_dst])
         """Logical register numbers - as described in the RISC V manual. They index the RATs."""
-
-        self.regs_p = [
-            fields.rp_dst,
-            fields.rp_s1,
-            fields.rp_s2,
-        ]
+        
+        self.regs_p = ("regs_p", [self.rp_s1, self.rp_s2, self.rp_dst])
         """Physical register numbers. They index the register file."""
 
 
@@ -112,27 +94,26 @@ class SchedulerLayouts:
 
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
-        common = gen_params.get(CommonLayouts)
 
         self.reg_alloc_in = [
-            ("exec_fn", common.exec_fn),
-            ("regs_l", common.regs_l),
+            fields.exec_fn,
+            fields.regs_l,
             fields.imm,
             fields.csr,
             fields.pc,
         ]
 
         self.reg_alloc_out = self.renaming_in = [
-            ("exec_fn", common.exec_fn),
-            ("regs_l", common.regs_l),
-            ("regs_p", [("rp_dst", gen_params.phys_regs_bits)]),
+            fields.exec_fn,
+            fields.regs_l,
+            ("regs_p", [fields.rp_dst]),
             fields.imm,
             fields.csr,
             fields.pc,
         ]
 
         self.renaming_out = self.rob_allocate_in = [
-            ("exec_fn", common.exec_fn),
+            fields.exec_fn,
             (
                 "regs_l",
                 [
@@ -140,25 +121,25 @@ class SchedulerLayouts:
                     ("rl_dst_v", 1),
                 ],
             ),
-            ("regs_p", common.regs_p),
+            fields.regs_p,
             fields.imm,
             fields.csr,
             fields.pc,
         ]
 
         self.rob_allocate_out = self.rs_select_in = [
-            ("exec_fn", common.exec_fn),
-            ("regs_p", common.regs_p),
-            ("rob_id", gen_params.rob_entries_bits),
+            fields.exec_fn,
+            fields.regs_p,
+            fields.rob_id,
             fields.imm,
             fields.csr,
             fields.pc,
         ]
 
         self.rs_select_out = self.rs_insert_in = [
-            ("exec_fn", common.exec_fn),
-            ("regs_p", common.regs_p),
-            ("rob_id", gen_params.rob_entries_bits),
+            fields.exec_fn,
+            fields.regs_p,
+            fields.rob_id,
             ("rs_selected", gen_params.rs_number_bits),
             ("rs_entry_id", gen_params.max_rs_entries_bits),
             fields.imm,
@@ -179,7 +160,7 @@ class RFLayouts:
 
 
 class RATLayouts:
-    """Layouts usef in the register alias tables."""
+    """Layouts used in the register alias tables."""
 
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
@@ -233,12 +214,19 @@ class ROBLayouts:
         self.get_indices = [("start", gen_params.rob_entries_bits), ("end", gen_params.rob_entries_bits)]
 
 
-class RSInterfaceLayouts:
-    """Layouts used in functional blocks."""
+class RSLayoutFields:
+    """Layout fields used in the reservation station."""
 
-    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
+    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_layout: LayoutList):
+        self.rs_data = ("rs_data", data_layout)
+        self.rs_entry_id = ("rs_entry_id", rs_entries_bits)
+
+
+class RSFullDataLayout:
+    """Full data layout for functional blocks. Blocks can use a subset."""
+
+    def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
-        common = gen_params.get(CommonLayouts)
 
         self.data_layout = [
             fields.rp_s1,
@@ -247,7 +235,7 @@ class RSInterfaceLayouts:
             ("rp_s2_reg", gen_params.phys_regs_bits),
             fields.rp_dst,
             fields.rob_id,
-            ("exec_fn", common.exec_fn),
+            fields.exec_fn,
             fields.s1_val,
             fields.s2_val,
             fields.imm,
@@ -255,9 +243,16 @@ class RSInterfaceLayouts:
             fields.pc,
         ]
 
-        self.select_out = [("rs_entry_id", rs_entries_bits)]
 
-        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
+class RSInterfaceLayouts:
+    """Layouts used in functional blocks."""
+
+    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_layout: LayoutList):
+        rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
+
+        self.select_out = [rs_fields.rs_entry_id]
+
+        self.insert_in = [rs_fields.rs_data, rs_fields.rs_entry_id]
 
         self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
 
@@ -277,10 +272,10 @@ class RSLayouts:
     """Layouts used in the reservation station."""
 
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
-        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits)
-
-        self.data_layout = layout_subset(
-            rs_interface.data_layout,
+        data = gen_params.get(RSFullDataLayout)
+        
+        self.data_layout = data_layout = layout_subset(
+            data.data_layout,
             fields={
                 "rp_s1",
                 "rp_s2",
@@ -293,17 +288,17 @@ class RSLayouts:
                 "pc",
             },
         )
+        
+        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
 
-        self.insert_in = [("rs_data", self.data_layout), ("rs_entry_id", rs_entries_bits)]
-
+        self.insert_in = rs_interface.insert_in
         self.select_out = rs_interface.select_out
-
         self.update_in = rs_interface.update_in
 
         self.take_in = [("rs_entry_id", rs_entries_bits)]
 
         self.take_out = layout_subset(
-            rs_interface.data_layout,
+            data.data_layout,
             fields={
                 "s1_val",
                 "s2_val",
@@ -368,12 +363,11 @@ class DecodeLayouts:
     """Layouts used in the decoder."""
 
     def __init__(self, gen_params: GenParams):
-        common = gen_params.get(CommonLayouts)
         fields = gen_params.get(CommonLayoutFields)
 
         self.decoded_instr = [
-            ("exec_fn", common.exec_fn),
-            ("regs_l", common.regs_l),
+            fields.exec_fn,
+            fields.regs_l,
             fields.imm,
             fields.csr,
             fields.pc,
@@ -384,15 +378,14 @@ class FuncUnitLayouts:
     """Layouts used in functional units."""
 
     def __init__(self, gen_params: GenParams):
-        common = gen_params.get(CommonLayouts)
         fields = gen_params.get(CommonLayoutFields)
 
         self.issue = [
-            ("s1_val", gen_params.isa.xlen),
-            ("s2_val", gen_params.isa.xlen),
-            ("rp_dst", gen_params.phys_regs_bits),
-            ("rob_id", gen_params.rob_entries_bits),
-            ("exec_fn", common.exec_fn),
+            fields.s1_val,
+            fields.s2_val,
+            fields.rp_dst,
+            fields.rob_id,
+            fields.exec_fn,
             fields.imm,
             fields.pc,
         ]
@@ -434,11 +427,10 @@ class LSULayouts:
     """Layouts used in the load-store unit."""
 
     def __init__(self, gen_params: GenParams):
-        self.rs_entries_bits = 0
-
-        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits)
-        self.rs_data_layout = layout_subset(
-            rs_interface.data_layout,
+        data = gen_params.get(RSFullDataLayout)
+        
+        self.rs_data_layout = data_layout = layout_subset(
+            data.data_layout,
             fields={
                 "rp_s1",
                 "rp_s2",
@@ -451,10 +443,12 @@ class LSULayouts:
             },
         )
 
-        self.rs_insert_in = [("rs_data", self.rs_data_layout), ("rs_entry_id", self.rs_entries_bits)]
+        self.rs_entries_bits = 0
 
+        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
+        
+        self.rs_insert_in = rs_interface.insert_in
         self.rs_select_out = rs_interface.select_out
-
         self.rs_update_in = rs_interface.update_in
 
         retirement = gen_params.get(RetirementLayouts)
@@ -466,12 +460,13 @@ class CSRLayouts:
     """Layouts used in the control and status registers."""
 
     def __init__(self, gen_params: GenParams):
+        data = gen_params.get(RSFullDataLayout)
         fields = gen_params.get(CommonLayoutFields)
 
         self.rs_entries_bits = 0
 
         self.read = [
-            ("data", gen_params.isa.xlen),
+            fields.data,
             ("read", 1),
             ("written", 1),
         ]
@@ -481,9 +476,8 @@ class CSRLayouts:
         self._fu_read = [fields.data]
         self._fu_write = [fields.data]
 
-        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits)
-        self.rs_data_layout = layout_subset(
-            rs_interface.data_layout,
+        self.rs_data_layout = data_layout = layout_subset(
+            data.data_layout,
             fields={
                 "rp_s1",
                 "rp_s1_reg",
@@ -496,11 +490,11 @@ class CSRLayouts:
                 "pc",
             },
         )
+        
+        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
 
-        self.rs_insert_in = [("rs_data", self.rs_data_layout), ("rs_entry_id", self.rs_entries_bits)]
-
+        self.rs_insert_in = rs_interface.insert_in
         self.rs_select_out = rs_interface.select_out
-
         self.rs_update_in = rs_interface.update_in
 
         retirement = gen_params.get(RetirementLayouts)
