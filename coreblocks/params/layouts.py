@@ -78,13 +78,13 @@ class CommonLayoutFields:
 
         self.instr = ("instr", gen_params.isa.ilen)
         """RISC V instruction."""
-        
+
         self.exec_fn = ("exec_fn", [self.op_type, self.funct3, self.funct7])
         """Decoded instruction."""
 
         self.regs_l = ("regs_l", [self.rl_s1, self.rl_s2, self.rl_dst])
         """Logical register numbers - as described in the RISC V manual. They index the RATs."""
-        
+
         self.regs_p = ("regs_p", [self.rp_s1, self.rp_s2, self.rp_dst])
         """Physical register numbers. They index the register file."""
 
@@ -190,9 +190,7 @@ class ROBLayouts:
             fields.rp_dst,
         ]
 
-        self.id_layout = [
-            fields.rob_id
-        ]
+        self.id_layout = [fields.rob_id]
 
         self.internal_layout = [
             ("rob_data", self.data_layout),
@@ -266,9 +264,7 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.precommit = [
-            fields.rob_id
-        ]
+        self.precommit = [fields.rob_id]
 
 
 class RSLayouts:
@@ -276,7 +272,7 @@ class RSLayouts:
 
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
         data = gen_params.get(RSFullDataLayout)
-        
+
         data_layout = layout_subset(
             data.data_layout,
             fields={
@@ -291,7 +287,7 @@ class RSLayouts:
                 "pc",
             },
         )
-        
+
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
         rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
 
@@ -319,9 +315,7 @@ class ICacheLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.issue_req = [
-            fields.addr
-        ]
+        self.issue_req = [fields.addr]
 
         self.accept_res = [
             fields.instr,
@@ -428,7 +422,7 @@ class LSULayouts:
 
     def __init__(self, gen_params: GenParams):
         data = gen_params.get(RSFullDataLayout)
-        
+
         data_layout = layout_subset(
             data.data_layout,
             fields={
@@ -486,7 +480,7 @@ class CSRLayouts:
                 "pc",
             },
         )
-        
+
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
 
         retirement = gen_params.get(RetirementLayouts)

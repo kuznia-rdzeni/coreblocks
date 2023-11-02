@@ -22,7 +22,7 @@ __all__ = [
     "silence_mustuse",
     "popcount",
     "count_leading_zeros",
-    "count_trailing_zeros"
+    "count_trailing_zeros",
 ]
 
 
