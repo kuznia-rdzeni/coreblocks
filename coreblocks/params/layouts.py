@@ -293,8 +293,9 @@ class RSLayouts:
         )
         
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
+        rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
 
-        self.take_in = [("rs_entry_id", rs_entries_bits)]
+        self.take_in = [rs_fields.rs_entry_id]
 
         self.take_out = layout_subset(
             data.data_layout,
