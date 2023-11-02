@@ -20,7 +20,7 @@ class ResultAnnouncement(Elaboratable):
     """
 
     def __init__(
-        self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_update: Method, rf_write_val: Method
+        self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_update: Method, rf_write: Method
     ):
         """
         Parameters
@@ -39,7 +39,7 @@ class ResultAnnouncement(Elaboratable):
             Method which is invoked to pass value which is an output of finished instruction
             to RS, so that RS can save it if there are instructions which wait for it.
             It uses layout with two fields `tag` and `value`.
-        rf_write_val : Method
+        rf_write : Method
             Method which is invoked to save value which is an output of finished instruction to RF.
             It uses layout with two fields `reg_id` and `reg_val`.
         """
@@ -47,7 +47,7 @@ class ResultAnnouncement(Elaboratable):
         self.m_get_result = get_result
         self.m_rob_mark_done = rob_mark_done
         self.m_rs_update = rs_update
-        self.m_rf_write_val = rf_write_val
+        self.m_rf_write_val = rf_write
 
     def debug_signals(self):
         return [self.m_get_result.debug_signals()]

@@ -60,7 +60,7 @@ class BackendTestCircuit(Elaboratable):
             get_result=serialized_results_fifo.read,
             rob_mark_done=self.rob_mark_done_tbio.adapter.iface,
             rs_update=self.rs_announce_val_tbio.adapter.iface,
-            rf_write_val=self.rf_announce_val_tbio.adapter.iface,
+            rf_write=self.rf_announce_val_tbio.adapter.iface,
         )
 
         return m

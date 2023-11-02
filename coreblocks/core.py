@@ -76,7 +76,7 @@ class Core(Elaboratable):
             get_result=self.func_blocks_unifier.get_result,
             rob_mark_done=self.ROB.mark_done,
             rs_update=self.func_blocks_unifier.update,
-            rf_write_val=self.RF.write,
+            rf_write=self.RF.write,
         )
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)
