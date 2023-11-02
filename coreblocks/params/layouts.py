@@ -248,6 +248,7 @@ class RSInterfaceLayouts:
     """Layouts used in functional blocks."""
 
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_layout: LayoutList):
+        fields = gen_params.get(CommonLayoutFields)
         rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
 
         self.data_layout = data_layout
@@ -256,7 +257,7 @@ class RSInterfaceLayouts:
 
         self.insert_in = [rs_fields.rs_data, rs_fields.rs_entry_id]
 
-        self.update_in = [("tag", gen_params.phys_regs_bits), ("value", gen_params.isa.xlen)]
+        self.update_in = [("tag", gen_params.phys_regs_bits), fields.data]
 
 
 class RetirementLayouts:

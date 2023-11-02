@@ -233,12 +233,12 @@ class LSUDummy(FuncBlock, Elaboratable):
             m.d.sync += current_instr.valid.eq(1)
 
         @def_method(m, self.update)
-        def _(tag: Value, value: Value):
+        def _(tag: Value, data: Value):
             with m.If(current_instr.rp_s1 == tag):
-                m.d.sync += current_instr.s1_val.eq(value)
+                m.d.sync += current_instr.s1_val.eq(data)
                 m.d.sync += current_instr.rp_s1.eq(0)
             with m.If(current_instr.rp_s2 == tag):
-                m.d.sync += current_instr.s2_val.eq(value)
+                m.d.sync += current_instr.s2_val.eq(data)
                 m.d.sync += current_instr.rp_s2.eq(0)
 
         @def_method(m, self.get_result, result_ready)

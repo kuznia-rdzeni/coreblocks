@@ -70,16 +70,16 @@ class RS(Elaboratable):
             m.d.sync += self.data[rs_entry_id].rec_reserved.eq(1)
 
         @def_method(m, self.update)
-        def _(tag: Value, value: Value) -> None:
+        def _(tag: Value, data: Value) -> None:
             for record in self.data:
                 with m.If(record.rec_full.bool()):
                     with m.If(record.rs_data.rp_s1 == tag):
                         m.d.sync += record.rs_data.rp_s1.eq(0)
-                        m.d.sync += record.rs_data.s1_val.eq(value)
+                        m.d.sync += record.rs_data.s1_val.eq(data)
 
                     with m.If(record.rs_data.rp_s2 == tag):
                         m.d.sync += record.rs_data.rp_s2.eq(0)
-                        m.d.sync += record.rs_data.s2_val.eq(value)
+                        m.d.sync += record.rs_data.s2_val.eq(data)
 
         @def_method(m, self.take, ready=take_possible)
         def _(rs_entry_id: Value) -> RecordDict:

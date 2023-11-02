@@ -310,9 +310,9 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += instr.valid.eq(1)
 
         @def_method(m, self.update)
-        def _(tag, value):
+        def _(tag, data):
             with m.If(tag == instr.rp_s1):
-                m.d.sync += instr.s1_val.eq(value)
+                m.d.sync += instr.s1_val.eq(data)
                 m.d.sync += instr.rp_s1.eq(0)
 
         @def_method(m, self.get_result, done)

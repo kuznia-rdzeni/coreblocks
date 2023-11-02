@@ -20,7 +20,7 @@ class ResultAnnouncement(Elaboratable):
     """
 
     def __init__(
-        self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_write_val: Method, rf_write_val: Method
+        self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_update: Method, rf_write_val: Method
     ):
         """
         Parameters
@@ -35,7 +35,7 @@ class ResultAnnouncement(Elaboratable):
         rob_mark_done : Method
             Method which is invoked to mark that instruction ended without exception.
             It uses layout with one field `rob_id`,
-        rs_write_val : Method
+        rs_update : Method
             Method which is invoked to pass value which is an output of finished instruction
             to RS, so that RS can save it if there are instructions which wait for it.
             It uses layout with two fields `tag` and `value`.
@@ -46,7 +46,7 @@ class ResultAnnouncement(Elaboratable):
 
         self.m_get_result = get_result
         self.m_rob_mark_done = rob_mark_done
-        self.m_rs_write_val = rs_write_val
+        self.m_rs_update = rs_update
         self.m_rf_write_val = rf_write_val
 
     def debug_signals(self):
@@ -62,6 +62,6 @@ class ResultAnnouncement(Elaboratable):
             with m.If(result.exception == 0):
                 self.m_rf_write_val(m, reg_id=result.rp_dst, reg_val=result.result)
                 with m.If(result.rp_dst != 0):
-                    self.m_rs_write_val(m, tag=result.rp_dst, value=result.result)
+                    self.m_rs_update(m, tag=result.rp_dst, data=result.result)
 
         return m
