@@ -15,6 +15,7 @@ __all__ = [
     "OneHotSwitch",
     "flatten_signals",
     "align_to_power_of_two",
+    "align_down_to_power_of_two",
     "bits_from_int",
     "ModuleConnector",
     "silence_mustuse",
@@ -375,6 +376,26 @@ def align_to_power_of_two(num: int, power: int) -> int:
     if num & mask == 0:
         return num
     return (num & ~mask) + 2**power
+
+
+def align_down_to_power_of_two(num: int, power: int) -> int:
+    """Rounds down a number to the given power of two.
+
+    Parameters
+    ----------
+    num : int
+        The number to align.
+    power : int
+        The power of two to align to.
+
+    Returns
+    -------
+    int
+        The aligned number.
+    """
+    mask = 2**power - 1
+
+    return num & ~mask
 
 
 def bits_from_int(num: int, lower: int, length: int):
