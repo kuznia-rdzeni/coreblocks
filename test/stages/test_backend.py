@@ -23,7 +23,7 @@ class BackendTestCircuit(Elaboratable):
 
         self.lay_result = self.gen.get(FuncUnitLayouts).accept
         self.lay_rob_mark_done = self.gen.get(ROBLayouts).mark_done_layout
-        self.lay_rs_write = self.gen.get(RSLayouts, rs_entries_bits=self.gen.max_rs_entries_bits).update_in
+        self.lay_rs_write = self.gen.get(RSLayouts, rs_entries_bits=self.gen.max_rs_entries_bits).rs.update_in
         self.lay_rf_write = self.gen.get(RFLayouts).rf_write
 
         # Initialize for each FU an FIFO which will be a stub for that FU

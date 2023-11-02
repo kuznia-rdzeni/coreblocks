@@ -19,15 +19,15 @@ class RS(Elaboratable):
         self.rs_entries_bits = (rs_entries - 1).bit_length()
         self.layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
         self.internal_layout = [
-            ("rs_data", self.layouts.data_layout),
+            ("rs_data", self.layouts.rs.data_layout),
             ("rec_full", 1),
             ("rec_ready", 1),
             ("rec_reserved", 1),
         ]
 
-        self.insert = Method(i=self.layouts.insert_in)
-        self.select = Method(o=self.layouts.select_out)
-        self.update = Method(i=self.layouts.update_in)
+        self.insert = Method(i=self.layouts.rs.insert_in)
+        self.select = Method(o=self.layouts.rs.select_out)
+        self.update = Method(i=self.layouts.rs.update_in)
         self.take = Method(i=self.layouts.take_in, o=self.layouts.take_out)
 
         self.ready_for = [list(op_list) for op_list in ready_for]

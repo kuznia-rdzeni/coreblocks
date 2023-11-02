@@ -204,9 +204,9 @@ class LSUDummy(FuncBlock, Elaboratable):
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.lsu_layouts = gen_params.get(LSULayouts)
 
-        self.insert = Method(i=self.lsu_layouts.rs_insert_in)
-        self.select = Method(o=self.lsu_layouts.rs_select_out)
-        self.update = Method(i=self.lsu_layouts.rs_update_in)
+        self.insert = Method(i=self.lsu_layouts.rs.insert_in)
+        self.select = Method(o=self.lsu_layouts.rs.select_out)
+        self.update = Method(i=self.lsu_layouts.rs.update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
         self.precommit = Method(i=self.lsu_layouts.precommit)
 
@@ -215,7 +215,7 @@ class LSUDummy(FuncBlock, Elaboratable):
     def elaborate(self, platform):
         m = TModule()
         reserved = Signal()  # means that current_instr is reserved
-        current_instr = Record(self.lsu_layouts.rs_data_layout + [("valid", 1)])
+        current_instr = Record(self.lsu_layouts.rs.data_layout + [("valid", 1)])
 
         m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
 

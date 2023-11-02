@@ -117,7 +117,7 @@ class SchedulerLayouts:
             (
                 "regs_l",
                 [
-                    ("rl_dst", gen_params.isa.reg_cnt_log),
+                    fields.rl_dst,
                     ("rl_dst_v", 1),
                 ],
             ),
@@ -250,6 +250,8 @@ class RSInterfaceLayouts:
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_layout: LayoutList):
         rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
 
+        self.data_layout = data_layout
+
         self.select_out = [rs_fields.rs_entry_id]
 
         self.insert_in = [rs_fields.rs_data, rs_fields.rs_entry_id]
@@ -274,7 +276,7 @@ class RSLayouts:
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
         data = gen_params.get(RSFullDataLayout)
         
-        self.data_layout = data_layout = layout_subset(
+        data_layout = layout_subset(
             data.data_layout,
             fields={
                 "rp_s1",
@@ -289,11 +291,7 @@ class RSLayouts:
             },
         )
         
-        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
-
-        self.insert_in = rs_interface.insert_in
-        self.select_out = rs_interface.select_out
-        self.update_in = rs_interface.update_in
+        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
 
         self.take_in = [("rs_entry_id", rs_entries_bits)]
 
@@ -429,7 +427,7 @@ class LSULayouts:
     def __init__(self, gen_params: GenParams):
         data = gen_params.get(RSFullDataLayout)
         
-        self.rs_data_layout = data_layout = layout_subset(
+        data_layout = layout_subset(
             data.data_layout,
             fields={
                 "rp_s1",
@@ -445,11 +443,7 @@ class LSULayouts:
 
         self.rs_entries_bits = 0
 
-        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
-        
-        self.rs_insert_in = rs_interface.insert_in
-        self.rs_select_out = rs_interface.select_out
-        self.rs_update_in = rs_interface.update_in
+        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
 
         retirement = gen_params.get(RetirementLayouts)
 
@@ -476,7 +470,7 @@ class CSRLayouts:
         self._fu_read = [fields.data]
         self._fu_write = [fields.data]
 
-        self.rs_data_layout = data_layout = layout_subset(
+        data_layout = layout_subset(
             data.data_layout,
             fields={
                 "rp_s1",
@@ -491,11 +485,7 @@ class CSRLayouts:
             },
         )
         
-        rs_interface = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
-
-        self.rs_insert_in = rs_interface.insert_in
-        self.rs_select_out = rs_interface.select_out
-        self.rs_update_in = rs_interface.update_in
+        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
 
         retirement = gen_params.get(RetirementLayouts)
 
