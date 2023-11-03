@@ -165,9 +165,10 @@ def load_segment(segment: Segment, *, disable_write_protection: bool = False) ->
     if flags_raw & P_FLAGS.PF_X:
         # align instruction section to full icache lines
         align_bits = config.icache_block_size_bits
+        # workaround for fetching/stalling issue
+        align_bits += 1
     else:
-        # align to memory words
-        align_bits = log2_int(config.xlen // 8)
+        align_bits = 0
 
     align_data_front = seg_start - align_down_to_power_of_two(seg_start, align_bits)
     align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end
