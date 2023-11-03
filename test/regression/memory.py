@@ -3,7 +3,6 @@ from collections.abc import Callable
 from enum import Enum, IntFlag, auto
 from typing import Optional, TypeVar
 from dataclasses import dataclass, replace
-from amaranth.utils import log2_int
 from elftools.elf.constants import P_FLAGS
 from elftools.elf.elffile import ELFFile, Segment
 from coreblocks.params.configurations import CoreConfiguration
@@ -98,7 +97,7 @@ TRep = TypeVar("TRep", bound=ReadReply | WriteReply)
 
 
 class CoreMemoryModel:
-    def __init__(self, segments: list[MemorySegment], fail_on_undefined=False):
+    def __init__(self, segments: list[MemorySegment], fail_on_undefined=True):
         self.segments = segments
         self.fail_on_undefined = fail_on_undefined
 
@@ -166,17 +165,18 @@ def load_segment(segment: Segment, *, disable_write_protection: bool = False) ->
         # align instruction section to full icache lines
         align_bits = config.icache_block_size_bits
         # workaround for fetching/stalling issue
-        align_bits += 1
+        extend_end = 2**config.icache_block_size_bits
     else:
         align_bits = 0
+        extend_end = 0
 
     align_data_front = seg_start - align_down_to_power_of_two(seg_start, align_bits)
-    align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end
+    align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end + extend_end
 
     data = b"\x00" * align_data_front + data + b"\x00" * align_data_back
 
     seg_start = align_down_to_power_of_two(seg_start, align_bits)
-    seg_end = align_to_power_of_two(seg_end, align_bits)
+    seg_end = align_to_power_of_two(seg_end, align_bits) + extend_end
 
     return RandomAccessMemory(range(seg_start, seg_end), flags, data)
 
