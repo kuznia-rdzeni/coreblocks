@@ -98,7 +98,7 @@ TRep = TypeVar("TRep", bound=ReadReply | WriteReply)
 
 
 class CoreMemoryModel:
-    def __init__(self, segments: list[MemorySegment], fail_on_undefined=True):
+    def __init__(self, segments: list[MemorySegment], fail_on_undefined=False):
         self.segments = segments
         self.fail_on_undefined = fail_on_undefined
 
