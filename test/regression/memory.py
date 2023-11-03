@@ -3,6 +3,7 @@ from collections.abc import Callable
 from enum import Enum, IntFlag, auto
 from typing import Optional, TypeVar
 from dataclasses import dataclass, replace
+from amaranth.utils import log2_int
 from elftools.elf.constants import P_FLAGS
 from elftools.elf.elffile import ELFFile, Segment
 from coreblocks.params.configurations import CoreConfiguration
@@ -160,17 +161,21 @@ def load_segment(segment: Segment, *, disable_write_protection: bool = False) ->
     if flags_raw & P_FLAGS.PF_X:
         flags |= SegmentFlags.EXECUTABLE
 
+    config = CoreConfiguration()
     if flags_raw & P_FLAGS.PF_X:
-        # align only instruction section to full icache lines
-        align_bits = CoreConfiguration().icache_block_size_bits
+        # align instruction section to full icache lines
+        align_bits = config.icache_block_size_bits
+    else:
+        # align to memory words
+        align_bits = log2_int(config.xlen // 8)
 
-        align_data_front = seg_start - align_down_to_power_of_two(seg_start, align_bits)
-        align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end
+    align_data_front = seg_start - align_down_to_power_of_two(seg_start, align_bits)
+    align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end
 
-        data = b"\x00" * align_data_front + data + b"\x00" * align_data_back
+    data = b"\x00" * align_data_front + data + b"\x00" * align_data_back
 
-        seg_start = align_down_to_power_of_two(seg_start, align_bits)
-        seg_end = align_to_power_of_two(seg_end, align_bits)
+    seg_start = align_down_to_power_of_two(seg_start, align_bits)
+    seg_end = align_to_power_of_two(seg_end, align_bits)
 
     return RandomAccessMemory(range(seg_start, seg_end), flags, data)
 
