@@ -470,23 +470,25 @@ class TestMethodFilter(TestCaseWithSimulator):
     def cmeth_mock(self, data):
         return {"data": data % 2}
 
-    def test_method_filter_with_methods(self):
+    @parameterized.expand([(True,), (False,)])
+    def test_method_filter_with_methods(self, use_condition):
         self.initialize()
         self.cmeth = TestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
-        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface))
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface, use_condition = use_condition))
         m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
         with self.run_simulation(m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target_mock)
             sim.add_sync_process(self.cmeth_mock)
 
-    def test_method_filter(self):
+    @parameterized.expand([(True,), (False,)])
+    def test_method_filter(self, use_condition):
         self.initialize()
 
         def condition(_, v):
             return v[0]
 
-        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition))
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition, use_condition=use_condition))
         m = ModuleConnector(test_circuit=self.tc, target=self.target)
         with self.run_simulation(m) as sim:
             sim.add_sync_process(self.source)
