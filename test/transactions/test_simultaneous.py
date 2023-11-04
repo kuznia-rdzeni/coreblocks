@@ -3,7 +3,7 @@ from typing import Optional
 from amaranth import *
 from amaranth.sim import *
 
-from coreblocks.utils.utils import ModuleConnector
+from transactron.utils.utils import ModuleConnector
 
 from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_method_mock
 

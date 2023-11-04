@@ -1,7 +1,7 @@
 import functools
 from typing import Callable, Any, Optional
 from .testbenchio import TestbenchIO, TestGen
-from coreblocks.utils._typing import RecordIntDict
+from transactron.utils._typing import RecordIntDict
 
 
 def def_method_mock(

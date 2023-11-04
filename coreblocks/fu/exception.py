@@ -7,7 +7,7 @@ from transactron import *
 from transactron.lib import FIFO
 
 from coreblocks.params import OpType, GenParams, FuncUnitLayouts, FunctionalComponentParams
-from coreblocks.utils import OneHotSwitch
+from transactron.utils import OneHotSwitch
 from coreblocks.params.keys import ExceptionReportKey
 
 from coreblocks.fu.fu_decoder import DecoderManager

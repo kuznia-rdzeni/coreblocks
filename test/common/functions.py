@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.hdl.ast import Statement
 from amaranth.sim.core import Command
 from typing import TypeVar, Any, Generator, TypeAlias
-from coreblocks.utils._typing import RecordValueDict, RecordIntDict
+from transactron.utils._typing import RecordValueDict, RecordIntDict
 
 T = TypeVar("T")
 TestGen: TypeAlias = Generator[Command | Value | Statement | None, Any, T]

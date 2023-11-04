@@ -9,7 +9,7 @@ from transactron.core import def_method
 from transactron.lib import *
 
 from coreblocks.params import *
-from coreblocks.utils import OneHotSwitch
+from transactron.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
 from coreblocks.fu.fu_decoder import DecoderManager

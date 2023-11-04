@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.utils.fifo import BasicFifo
+from transactron.utils.fifo import BasicFifo
 from transactron.lib import AdapterTrans
 
 from test.common import TestCaseWithSimulator, TestbenchIO, data_layout
