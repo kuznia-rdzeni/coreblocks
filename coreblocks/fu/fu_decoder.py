@@ -51,6 +51,11 @@ class DecoderManager:
 
     Enumeration of instructions implemented in given functional unit.
     """
+    """
+    Type[IntFlag]
+
+    Enumeration of instructions implemented in given functional unit.
+    """
     Fn: Type[IntFlag]
 
     def get_instructions(self) -> Sequence[tuple]:
