@@ -76,6 +76,7 @@ class MethodTransformer(Elaboratable):
 
 class MethodFilter(Elaboratable):
     """Method filter.
+    
     Takes a target method and creates a method which calls the target method
     only when some condition is true. The condition function takes two
     parameters, a module and the input `Record` of the method. Non-zero
@@ -83,6 +84,7 @@ class MethodFilter(Elaboratable):
     a `Method` can be passed as a condition.
     By default the target method is locked for usage even if it is not called.
     If this is not desired effect, set `use_condition` to True.
+    
     Attributes
     ----------
     method: Method
