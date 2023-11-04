@@ -1,9 +1,10 @@
 import itertools
 import sys
 from inspect import Parameter, signature
-from typing import Callable, Iterable, Optional, TypeAlias, TypeVar, Mapping
+from typing import Any, Concatenate, Optional, TypeAlias, TypeGuard, TypeVar
+from collections.abc import Callable, Iterable, Mapping
 from amaranth import *
-from coreblocks.utils._typing import LayoutLike
+from coreblocks.utils._typing import LayoutLike, ShapeLike
 from coreblocks.utils import OneHotSwitchDynamic
 
 __all__ = [
@@ -14,11 +15,13 @@ __all__ = [
     "Graph",
     "GraphCC",
     "get_caller_class_name",
+    "def_helper",
     "method_def_helper",
 ]
 
 
 T = TypeVar("T")
+U = TypeVar("U")
 
 
 class Scheduler(Elaboratable):
@@ -121,24 +124,35 @@ def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
 MethodLayout: TypeAlias = LayoutLike
 
 
-def method_def_helper(method, func: Callable[..., T], arg=None, /, **kwargs) -> T:
+def has_first_param(func: Callable[..., T], name: str, tp: type[U]) -> TypeGuard[Callable[Concatenate[U, ...], T]]:
+    parameters = signature(func).parameters
+    return (
+        len(parameters) >= 1
+        and next(iter(parameters)) == name
+        and parameters[name].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
+        and parameters[name].annotation in {Parameter.empty, tp}
+    )
+
+
+def def_helper(description, func: Callable[..., T], tp: type[U], arg: U, /, **kwargs) -> T:
     parameters = signature(func).parameters
     kw_parameters = set(
         n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
     )
-    if (
-        len(parameters) == 1
-        and "arg" in parameters
-        and parameters["arg"].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
-        and parameters["arg"].annotation in {Parameter.empty, Record}
-    ):
-        if arg is None:
-            arg = kwargs
+    if len(parameters) == 1 and has_first_param(func, "arg", tp):
         return func(arg)
     elif kw_parameters <= kwargs.keys():
         return func(**kwargs)
     else:
-        raise TypeError(f"Invalid method definition/mock for {method}: {func}")
+        raise TypeError(f"Invalid {description}: {func}")
+
+
+def mock_def_helper(tb, func: Callable[..., T], arg: Mapping[str, Any]) -> T:
+    return def_helper(f"mock definition for {tb}", func, Mapping[str, Any], arg, **arg)
+
+
+def method_def_helper(method, func: Callable[..., T], arg: Record) -> T:
+    return def_helper(f"method definition for {method}", func, Record, arg, **arg.fields)
 
 
 def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:
@@ -150,3 +164,64 @@ def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elabo
         return None, default
     else:
         raise RuntimeError("Not called from a method")
+
+
+def data_layout(val: ShapeLike) -> LayoutLike:
+    return [("data", val)]
+
+
+def neg(x: int, xlen: int) -> int:
+    """
+    Computes the negation of a number in the U2 system.
+
+    Parameters
+    ----------
+    x: int
+        Number in U2 system.
+    xlen : int
+        Bit width of x.
+
+    Returns
+    -------
+    return : int
+        Negation of x in the U2 system.
+    """
+    return (-x) & (2**xlen - 1)
+
+
+def int_to_signed(x: int, xlen: int) -> int:
+    """
+    Converts a Python integer into its U2 representation.
+
+    Parameters
+    ----------
+    x: int
+        Signed Python integer.
+    xlen : int
+        Bit width of x.
+
+    Returns
+    -------
+    return : int
+        Representation of x in the U2 system.
+    """
+    return x & (2**xlen - 1)
+
+
+def signed_to_int(x: int, xlen: int) -> int:
+    """
+    Changes U2 representation into Python integer
+
+    Parameters
+    ----------
+    x: int
+        Number in U2 system.
+    xlen : int
+        Bit width of x.
+
+    Returns
+    -------
+    return : int
+        Representation of x as signed Python integer.
+    """
+    return x | -(x & (2 ** (xlen - 1)))

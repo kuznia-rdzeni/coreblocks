@@ -5,6 +5,7 @@ from typing import Optional
 from amaranth.sim import Settle, Passive
 
 from transactron.lib import Adapter
+from transactron._utils import int_to_signed, signed_to_int
 from coreblocks.params import OpType, GenParams
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
@@ -13,7 +14,7 @@ from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock, int_to_signed, signed_to_int
+from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
