@@ -474,7 +474,9 @@ class TestMethodFilter(TestCaseWithSimulator):
     def test_method_filter_with_methods(self, use_condition):
         self.initialize()
         self.cmeth = TestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
-        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface, use_condition = use_condition))
+        self.tc = SimpleTestCircuit(
+            MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface, use_condition=use_condition)
+        )
         m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
         with self.run_simulation(m) as sim:
             sim.add_sync_process(self.source)

@@ -143,6 +143,7 @@ class MethodFilter(Elaboratable):
 
         return m
 
+
 class MethodProduct(Elaboratable):
     def __init__(
         self,
