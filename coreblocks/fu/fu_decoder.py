@@ -46,17 +46,8 @@ class Decoder(Elaboratable):
 class DecoderManager:
     """Class responsible for instruction management."""
 
-    """
-    Type[IntFlag]
-
-    Enumeration of instructions implemented in given functional unit.
-    """
-    """
-    Type[IntFlag]
-
-    Enumeration of instructions implemented in given functional unit.
-    """
     Fn: Type[IntFlag]
+    """Enumeration of instructions implemented in given functional unit."""
 
     def get_instructions(self) -> Sequence[tuple]:
         """Method providing list of valid instruction.
