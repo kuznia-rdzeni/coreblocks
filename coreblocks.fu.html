@@ -209,7 +209,17 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.div_unit.DivFn.get_instructions">
 <span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.div_unit.DivFn.get_instructions" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Method providing list of valid instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>return</strong><span class="classifier">Sequence[tuple]</span></dt><dd><p>List of implemented instructions, each following format:
+(IntFlag, OpType, Funct3 (optional), Funct7 (optional))</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -295,6 +305,46 @@
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.Fn">
 <span class="sig-name descname"><span class="pre">Fn</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">IntFlag</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.Fn" title="Permalink to this definition"></a></dt>
+<dd><p>Enumeration of instructions implemented in given functional unit.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_decoder">
+<span class="sig-name descname"><span class="pre">get_decoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.fu.fu_decoder.Decoder" title="coreblocks.fu.fu_decoder.Decoder"><span class="pre">Decoder</span></a></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_decoder" title="Permalink to this definition"></a></dt>
+<dd><p>Method returning auto generated instruction decoder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Generation parameters passed to a decoder contructor.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>return</strong><span class="classifier">set[OpType]</span></dt><dd><p>List of OpTypes.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_function">
+<span class="sig-name descname"><span class="pre">get_function</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_function" title="Permalink to this definition"></a></dt>
+<dd><p>Method returning Signal Object for decoder, called function in FU blocks</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>return</strong><span class="classifier">Value</span></dt><dd><p>Signal object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_instructions">
+<span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_instructions" title="Permalink to this definition"></a></dt>
 <dd><p>Method providing list of valid instruction.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -308,24 +358,18 @@
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_decoder">
-<span class="sig-name descname"><span class="pre">get_decoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.fu.fu_decoder.Decoder" title="coreblocks.fu.fu_decoder.Decoder"><span class="pre">Decoder</span></a></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_decoder" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_function">
-<span class="sig-name descname"><span class="pre">get_function</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_function" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_instructions">
-<span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_instructions" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.fu_decoder.DecoderManager.get_op_types">
 <span class="sig-name descname"><span class="pre">get_op_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.fu_decoder.DecoderManager.get_op_types" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Method returning op types from listed instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>return</strong><span class="classifier">set[OpType]</span></dt><dd><p>List of OpTypes.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -442,7 +486,17 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.mul_unit.MulFn.get_instructions">
 <span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.mul_unit.MulFn.get_instructions" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Method providing list of valid instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>return</strong><span class="classifier">Sequence[tuple]</span></dt><dd><p>List of implemented instructions, each following format:
+(IntFlag, OpType, Funct3 (optional), Funct7 (optional))</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -657,7 +711,17 @@ module. It uses standard FuncUnitLayout.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.zbc.ZbcFn.get_instructions">
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.zbc.ZbcFn.get_instructions" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Method providing list of valid instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>return</strong><span class="classifier">Sequence[tuple]</span></dt><dd><p>List of implemented instructions, each following format:
+(IntFlag, OpType, Funct3 (optional), Funct7 (optional))</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -700,16 +764,23 @@ module. It uses standard FuncUnitLayout.</p>
 </dd>
 <dt><strong>in2: Signal(xlen), in</strong></dt><dd><p>Second input.</p>
 </dd>
-<dt><strong>Args:</strong></dt><dd></dd>
-<dt><strong>—-</strong></dt><dd><p>gen_params: Core generation parameters.</p>
-</dd>
 </dl>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.zbs.Zbs.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params:</span> <span class="pre">~coreblocks.params.genparams.GenParams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">function=&lt;coreblocks.fu.zbs.ZbsFunction</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.zbs.Zbs.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Core generation parameters.</p>
+</dd>
+<dt><strong>function</strong><span class="classifier">ZbsFunction</span></dt><dd><p>Decoder manager to decode instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -773,7 +844,17 @@ module. It uses standard FuncUnitLayout.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.fu.zbs.ZbsFunction.get_instructions">
 <span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.zbs.ZbsFunction.get_instructions" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Method providing list of valid instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>return</strong><span class="classifier">Sequence[tuple]</span></dt><dd><p>List of implemented instructions, each following format:
+(IntFlag, OpType, Funct3 (optional), Funct7 (optional))</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -817,7 +898,7 @@ module. It uses standard FuncUnitLayout.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 16:15 2023-11-02.
+      <span class="lastupdated">Last updated on 20:30 2023-11-05.
       </span></p>
   </div>
 
