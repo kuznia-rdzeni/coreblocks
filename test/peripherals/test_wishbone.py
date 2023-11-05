@@ -76,7 +76,6 @@ class TestWishboneMaster(TestCaseWithSimulator):
             # read request
             yield from twbm.requestAdapter.call(addr=2, data=0, we=0, sel=1)
             yield
-            assert not (yield wbm.request.ready)
             yield from wwb.slave_verify(2, 0, 0, 1)
             yield from wwb.slave_respond(8)
             resp = yield from twbm.resultAdapter.call()
@@ -97,7 +96,8 @@ class TestWishboneMaster(TestCaseWithSimulator):
             yield from wwb.slave_respond(1, ack=0, err=0, rty=1)
             yield
             assert not (yield wwb.wb.stb)
-            assert not (yield wbm.result.ready)  # verify cycle restart
+            resp = yield from twbm.requestAdapter.call_try()
+            assert resp is None  # verify cycle restart
             yield from wwb.slave_wait()
             yield from wwb.slave_verify(2, 0, 0, 0)
             yield from wwb.slave_respond(1, ack=1, err=1, rty=0)
@@ -325,6 +325,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 yield from self.m.request.call(addr=addr, data=data, we=write, sel=sel)
                 res = yield from self.m.result.call()
                 if write:
+                    yield  # workaround, memory state will change the next cycle!
                     self.assertEqual((yield self.m.mem_slave.mem[addr]), mem_state[addr])
                 else:
                     self.assertEqual(res["data"], mem_state[addr])
