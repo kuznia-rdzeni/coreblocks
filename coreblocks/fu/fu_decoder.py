@@ -44,58 +44,46 @@ class Decoder(Elaboratable):
 
 
 class DecoderManager:
-    """
-    Class responsible for instruction management.
-    """
+    """Class responsible for instruction management."""
 
-    """
-    Type[IntFlag]
-
-    Enumeration of instructions implemented in given functional unit.
-    """
     Fn: Type[IntFlag]
-
-    """
-    Method providing list of valid instruction.
-
-    Returns
-    -------
-    return : Sequence[tuple]
-        List of implemented instructions, each following format:
-        (IntFlag, OpType, Funct3 (optional), Funct7 (optional))
-
-    """
+    """Enumeration of instructions implemented in given functional unit."""
 
     def get_instructions(self) -> Sequence[tuple]:
+        """Method providing list of valid instruction.
+
+        Returns
+        -------
+        return : Sequence[tuple]
+            List of implemented instructions, each following format:
+            (IntFlag, OpType, Funct3 (optional), Funct7 (optional))
+
+        """
         raise NotImplementedError
 
-    """
-    Method returning op types from listed instructions.
-
-    Returns
-    -------
-    return : set[OpType]
-        List of OpTypes.
-    """
-
     def get_op_types(self) -> set[OpType]:
+        """Method returning op types from listed instructions.
+
+        Returns
+        -------
+        return : set[OpType]
+            List of OpTypes.
+        """
         return {instr[1] for instr in self.get_instructions()}
 
-    """
-    Method returning auto generated instruction decoder.
-
-    Parameters
-    ----------
-    gen_params: GenParams
-        Generation parameters passed to a decoder contructor.
-
-    Returns
-    -------
-    return : set[OpType]
-        List of OpTypes.
-    """
-
     def get_decoder(self, gen_params: GenParams) -> Decoder:
+        """Method returning auto generated instruction decoder.
+
+        Parameters
+        ----------
+        gen_params: GenParams
+            Generation parameters passed to a decoder contructor.
+
+        Returns
+        -------
+        return : set[OpType]
+            List of OpTypes.
+        """
         # check how many different op types are there
         op_types = self.get_op_types()
         multiple_op_types = len(op_types) > 1
@@ -103,14 +91,12 @@ class DecoderManager:
         # if multiple op types detected, request op_type check in decoder
         return Decoder(gen_params, self.Fn, self.get_instructions(), check_optype=multiple_op_types)
 
-    """
-    Method returning Signal Object for decoder, called function in FU blocks
-
-    Returns
-    -------
-    return : Value
-        Signal object.
-    """
-
     def get_function(self) -> Value:
+        """Method returning Signal Object for decoder, called function in FU blocks
+
+        Returns
+        -------
+        return : Value
+            Signal object.
+        """
         return Signal(self.Fn)
