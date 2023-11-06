@@ -75,6 +75,11 @@ class TestWishboneMaster(TestCaseWithSimulator):
             # read request
             yield from twbm.requestAdapter.call(addr=2, data=0, we=0, sel=1)
 
+            # read request after delay
+            yield
+            yield
+            yield from twbm.requestAdapter.call(addr=1, data=0, we=0, sel=1)
+
             # write request
             yield from twbm.requestAdapter.call(addr=3, data=5, we=1, sel=0)
 
@@ -86,6 +91,10 @@ class TestWishboneMaster(TestCaseWithSimulator):
         def result_process():
             resp = yield from twbm.resultAdapter.call()
             self.assertEqual(resp["data"], 8)
+            self.assertFalse(resp["err"])
+
+            resp = yield from twbm.resultAdapter.call()
+            self.assertEqual(resp["data"], 3)
             self.assertFalse(resp["err"])
 
             resp = yield from twbm.resultAdapter.call()
@@ -104,11 +113,16 @@ class TestWishboneMaster(TestCaseWithSimulator):
             yield
 
             yield from wwb.slave_wait()
+            yield from wwb.slave_verify(1, 0, 0, 1)
+            yield from wwb.slave_respond(3)
+            yield
+
+            yield  # consecutive request
             yield from wwb.slave_verify(3, 5, 1, 0)
             yield from wwb.slave_respond(0)
             yield
 
-            yield from wwb.slave_wait()
+            yield  # consecutive request
             yield from wwb.slave_verify(2, 0, 0, 0)
             yield from wwb.slave_respond(1, ack=0, err=0, rty=1)
             yield
