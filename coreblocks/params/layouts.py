@@ -88,12 +88,35 @@ class CommonLayoutFields:
         self.regs_p = ("regs_p", [self.rp_s1, self.rp_s2, self.rp_dst])
         """Physical register numbers. They index the register file."""
 
+        self.reg_id = ("reg_id", gen_params.phys_regs_bits)
+        """Physical register ID."""
+
 
 class SchedulerLayouts:
     """Layouts used in the scheduler."""
 
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
+
+        self.rs_selected = ("rs_selected", gen_params.rs_number_bits)
+        """Reservation Station number for the instruction."""
+
+        self.rs_entry_id = ("rs_entry_id", gen_params.max_rs_entries_bits)
+        """Reservation station entry ID for the instruction."""
+
+        self.regs_p_alloc_out = ("regs_p", [fields.rp_dst])
+        """Physical register number for the destination operand, after allocation."""
+
+        self.regs_l_rob_in = (
+            (
+                "regs_l",
+                [
+                    fields.rl_dst,
+                    ("rl_dst_v", 1),
+                ],
+            ),
+        )
+        """Logical register number for the destination operand, before ROB allocation."""
 
         self.reg_alloc_in = [
             fields.exec_fn,
@@ -106,7 +129,7 @@ class SchedulerLayouts:
         self.reg_alloc_out = self.renaming_in = [
             fields.exec_fn,
             fields.regs_l,
-            ("regs_p", [fields.rp_dst]),
+            self.regs_p_alloc_out,
             fields.imm,
             fields.csr,
             fields.pc,
@@ -114,13 +137,7 @@ class SchedulerLayouts:
 
         self.renaming_out = self.rob_allocate_in = [
             fields.exec_fn,
-            (
-                "regs_l",
-                [
-                    fields.rl_dst,
-                    ("rl_dst_v", 1),
-                ],
-            ),
+            self.regs_l_rob_in,
             fields.regs_p,
             fields.imm,
             fields.csr,
@@ -140,23 +157,25 @@ class SchedulerLayouts:
             fields.exec_fn,
             fields.regs_p,
             fields.rob_id,
-            ("rs_selected", gen_params.rs_number_bits),
-            ("rs_entry_id", gen_params.max_rs_entries_bits),
+            self.rs_selected,
+            self.rs_entry_id,
             fields.imm,
             fields.csr,
             fields.pc,
         ]
 
-        self.free_rf_layout = [("reg_id", gen_params.phys_regs_bits)]
+        self.free_rf_layout = [fields.reg_id]
 
 
 class RFLayouts:
     """Layouts used in the register file."""
 
     def __init__(self, gen_params: GenParams):
-        self.rf_read_in = self.rf_free = [("reg_id", gen_params.phys_regs_bits)]
+        fields = gen_params.get(CommonLayoutFields)
+
+        self.rf_read_in = self.rf_free = [fields.reg_id]
         self.rf_read_out = [("reg_val", gen_params.isa.xlen), ("valid", 1)]
-        self.rf_write = [("reg_id", gen_params.phys_regs_bits), ("reg_val", gen_params.isa.xlen)]
+        self.rf_write = [fields.reg_id, ("reg_val", gen_params.isa.xlen)]
 
 
 class RATLayouts:
