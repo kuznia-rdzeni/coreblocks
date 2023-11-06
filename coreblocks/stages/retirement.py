@@ -70,6 +70,7 @@ class Retirement(Elaboratable):
             rp_freed = Signal(self.gen_params.phys_regs_bits)
             with m.If(side_fx):
                 m.d.comb += rp_freed.eq(rat_out.old_rp_dst)
+                self.instret_csr.increment(m)
             with m.Else():
                 m.d.comb += rp_freed.eq(rob_entry.rob_data.rp_dst)
                 # free the phys_reg with computed value and restore old reg into FRAT as well
@@ -81,7 +82,5 @@ class Retirement(Elaboratable):
             # put old rp_dst to free RF list
             with m.If(rp_freed):  # don't put rp0 to free list - reserved to no-return instructions
                 self.free_rf_put(m, rp_freed)
-
-            self.instret_csr.increment(m)
 
         return m
