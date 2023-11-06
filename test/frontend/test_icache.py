@@ -108,7 +108,6 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
     def refiller_process(self):
         while self.requests:
             req_addr = self.requests.pop()
-
             yield from self.test_module.start_refill.call(addr=req_addr)
 
             for i in range(self.cp.words_in_block):
