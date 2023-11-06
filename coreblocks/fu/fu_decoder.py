@@ -81,8 +81,8 @@ class DecoderManager:
 
         Returns
         -------
-        return : set[OpType]
-            List of OpTypes.
+        return : Decoder
+            Instance of Decoder class.
         """
         # check how many different op types are there
         op_types = self.get_op_types()
