@@ -1,5 +1,6 @@
 import random
 from collections import deque
+from unittest import TestCase
 
 from coreblocks.peripherals.wishbone import *
 
@@ -9,8 +10,9 @@ from ..common import *
 
 
 class WishboneInterfaceWrapper:
-    def __init__(self, wishbone_record):
+    def __init__(self, wishbone_record, test_case: TestCase):
         self.wb = wishbone_record
+        self.test_case = test_case
 
     def master_set(self, addr, data, we):
         yield self.wb.dat_w.eq(data)
@@ -25,24 +27,24 @@ class WishboneInterfaceWrapper:
             yield self.wb.cyc.eq(0)
 
     def master_verify(self, exp_data=0):
-        assert (yield self.wb.ack)
-        assert (yield self.wb.dat_r) == exp_data
+        self.test_case.assertTrue((yield self.wb.ack))
+        self.test_case.assertEqual((yield self.wb.dat_r), exp_data)
 
     def slave_wait(self):
         while not ((yield self.wb.stb) and (yield self.wb.cyc)):
             yield
 
     def slave_verify(self, exp_addr, exp_data, exp_we, exp_sel=0):
-        assert (yield self.wb.stb) and (yield self.wb.cyc)
+        self.test_case.assertTrue((yield self.wb.stb) and (yield self.wb.cyc))
 
-        assert (yield self.wb.adr) == exp_addr
-        assert (yield self.wb.we == exp_we)
-        assert (yield self.wb.sel == exp_sel)
+        self.test_case.assertEqual((yield self.wb.adr), exp_addr)
+        self.test_case.assertEqual((yield self.wb.we), exp_we)
+        self.test_case.assertEqual((yield self.wb.sel), exp_sel)
         if exp_we:
-            assert (yield self.wb.dat_w) == exp_data
+            self.test_case.assertEqual((yield self.wb.dat_w), exp_data)
 
     def slave_respond(self, data, ack=1, err=0, rty=0):
-        assert (yield self.wb.stb) and (yield self.wb.cyc)
+        self.test_case.assertTrue((yield self.wb.stb) and (yield self.wb.cyc))
 
         yield self.wb.dat_r.eq(data)
         yield self.wb.ack.eq(ack)
@@ -70,50 +72,63 @@ class TestWishboneMaster(TestCaseWithSimulator):
         twbm = TestWishboneMaster.WishboneMasterTestModule()
 
         def process():
-            wbm = twbm.wbm
-            wwb = WishboneInterfaceWrapper(wbm.wbMaster)
-
             # read request
             yield from twbm.requestAdapter.call(addr=2, data=0, we=0, sel=1)
-            yield
-            yield from wwb.slave_verify(2, 0, 0, 1)
-            yield from wwb.slave_respond(8)
-            resp = yield from twbm.resultAdapter.call()
-            assert (resp["data"]) == 8
 
             # write request
             yield from twbm.requestAdapter.call(addr=3, data=5, we=1, sel=0)
-            yield
-            yield from wwb.slave_verify(3, 5, 1, 0)
-            yield from wwb.slave_respond(0)
-            yield from twbm.resultAdapter.call()
 
             # RTY and ERR responese
             yield from twbm.requestAdapter.call(addr=2, data=0, we=0, sel=0)
+            resp = yield from twbm.requestAdapter.call_try()
+            self.assertIsNone(resp)  # verify cycle restart
+
+        def result_process():
+            resp = yield from twbm.resultAdapter.call()
+            self.assertEqual(resp["data"], 8)
+            self.assertFalse(resp["err"])
+
+            resp = yield from twbm.resultAdapter.call()
+            self.assertFalse(resp["err"])
+
+            resp = yield from twbm.resultAdapter.call()
+            self.assertEqual(resp["data"], 1)
+            self.assertTrue(resp["err"])
+
+        def slave():
+            wwb = WishboneInterfaceWrapper(twbm.wbm.wbMaster, self)
+
+            yield from wwb.slave_wait()
+            yield from wwb.slave_verify(2, 0, 0, 1)
+            yield from wwb.slave_respond(8)
             yield
+
+            yield from wwb.slave_wait()
+            yield from wwb.slave_verify(3, 5, 1, 0)
+            yield from wwb.slave_respond(0)
+            yield
+
             yield from wwb.slave_wait()
             yield from wwb.slave_verify(2, 0, 0, 0)
             yield from wwb.slave_respond(1, ack=0, err=0, rty=1)
             yield
             assert not (yield wwb.wb.stb)
-            resp = yield from twbm.requestAdapter.call_try()
-            assert resp is None  # verify cycle restart
+
             yield from wwb.slave_wait()
             yield from wwb.slave_verify(2, 0, 0, 0)
             yield from wwb.slave_respond(1, ack=1, err=1, rty=0)
-            resp = yield from twbm.resultAdapter.call()
-            assert resp["data"] == 1
-            assert resp["err"]
 
         with self.run_simulation(twbm) as sim:
             sim.add_sync_process(process)
+            sim.add_sync_process(result_process)
+            sim.add_sync_process(slave)
 
 
 class TestWishboneMuxer(TestCaseWithSimulator):
     def test_manual(self):
-        wb_master = WishboneInterfaceWrapper(Record(WishboneLayout(WishboneParameters()).wb_layout))
+        wb_master = WishboneInterfaceWrapper(Record(WishboneLayout(WishboneParameters()).wb_layout), self)
         num_slaves = 4
-        slaves = [WishboneInterfaceWrapper(Record.like(wb_master.wb, name=f"sl{i}")) for i in range(num_slaves)]
+        slaves = [WishboneInterfaceWrapper(Record.like(wb_master.wb, name=f"sl{i}"), self) for i in range(num_slaves)]
         mux = WishboneMuxer(wb_master.wb, [s.wb for s in slaves], Signal(num_slaves))
 
         def process():
@@ -152,8 +167,8 @@ class TestWishboneMuxer(TestCaseWithSimulator):
 
 class TestWishboneAribiter(TestCaseWithSimulator):
     def test_manual(self):
-        slave = WishboneInterfaceWrapper(Record(WishboneLayout(WishboneParameters()).wb_layout))
-        masters = [WishboneInterfaceWrapper(Record.like(slave.wb, name=f"mst{i}")) for i in range(2)]
+        slave = WishboneInterfaceWrapper(Record(WishboneLayout(WishboneParameters()).wb_layout), self)
+        masters = [WishboneInterfaceWrapper(Record.like(slave.wb, name=f"mst{i}"), self) for i in range(2)]
         arb = WishboneArbiter(slave.wb, [m.wb for m in masters])
 
         def process():
