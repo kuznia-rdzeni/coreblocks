@@ -21,7 +21,7 @@ class Decoder(Elaboratable):
     def __init__(self, gen_params: GenParams, decode_fn: Type[IntFlag], ops: Sequence[tuple], check_optype: bool):
         layouts = gen_params.get(CommonLayoutFields)
 
-        self.exec_fn = Record(layouts.exec_fn[1])
+        self.exec_fn = Record(layouts.exec_fn_layout)
         self.decode_fn = Signal(decode_fn)
         self.ops = ops
         self.check_optype = check_optype
