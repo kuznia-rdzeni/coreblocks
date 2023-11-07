@@ -108,12 +108,12 @@ class TestWishboneMaster(TestCaseWithSimulator):
             yield from wwb.slave_wait()
             yield from wwb.slave_verify(2, 0, 0, 1)
             yield from wwb.slave_respond(8)
-            yield
+            yield Settle()
 
             yield from wwb.slave_wait()
             yield from wwb.slave_verify(1, 0, 0, 1)
             yield from wwb.slave_respond(3)
-            yield
+            yield Settle()
 
             yield  # consecutive request
             yield from wwb.slave_verify(3, 5, 1, 0)
@@ -123,7 +123,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
             yield  # consecutive request
             yield from wwb.slave_verify(2, 0, 0, 0)
             yield from wwb.slave_respond(1, ack=0, err=0, rty=1)
-            yield
+            yield Settle()
             assert not (yield wwb.wb.stb)
 
             yield from wwb.slave_wait()
