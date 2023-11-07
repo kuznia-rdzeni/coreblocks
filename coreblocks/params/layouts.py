@@ -70,6 +70,9 @@ class CommonLayoutFields:
         self.s2_val: LayoutListField = ("s2_val", gen_params.isa.xlen)
         """Value of second source operand."""
 
+        self.reg_val: LayoutListField = ("reg_val", gen_params.isa.xlen)
+        """Value of some physical register."""
+
         self.addr: LayoutListField = ("addr", gen_params.isa.xlen)
         """Memory address."""
 
@@ -193,8 +196,8 @@ class RFLayouts:
 
         self.rf_read_in: LayoutList = [fields.reg_id]
         self.rf_free: LayoutList = [fields.reg_id]
-        self.rf_read_out: LayoutList = [("reg_val", gen_params.isa.xlen), self.valid]
-        self.rf_write: LayoutList = [fields.reg_id, ("reg_val", gen_params.isa.xlen)]
+        self.rf_read_out: LayoutList = [fields.reg_val, self.valid]
+        self.rf_write: LayoutList = [fields.reg_id, fields.reg_val]
 
 
 class RATLayouts:
@@ -313,7 +316,7 @@ class RSInterfaceLayouts:
 
         self.insert_in: LayoutList = [rs_fields.rs_data, rs_fields.rs_entry_id]
 
-        self.update_in: LayoutList = [("tag", gen_params.phys_regs_bits), fields.data]
+        self.update_in: LayoutList = [fields.reg_id, fields.reg_val]
 
 
 class RetirementLayouts:

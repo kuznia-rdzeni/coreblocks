@@ -34,14 +34,11 @@ class ResultAnnouncement(Elaboratable):
             from different FUs are already serialized.
         rob_mark_done : Method
             Method which is invoked to mark that instruction ended without exception.
-            It uses layout with one field `rob_id`,
         rs_update : Method
             Method which is invoked to pass value which is an output of finished instruction
             to RS, so that RS can save it if there are instructions which wait for it.
-            It uses layout with two fields `tag` and `value`.
         rf_write : Method
             Method which is invoked to save value which is an output of finished instruction to RF.
-            It uses layout with two fields `reg_id` and `reg_val`.
         """
 
         self.m_get_result = get_result
@@ -62,6 +59,6 @@ class ResultAnnouncement(Elaboratable):
             with m.If(result.exception == 0):
                 self.m_rf_write_val(m, reg_id=result.rp_dst, reg_val=result.result)
                 with m.If(result.rp_dst != 0):
-                    self.m_rs_update(m, tag=result.rp_dst, data=result.result)
+                    self.m_rs_update(m, reg_id=result.rp_dst, reg_val=result.result)
 
         return m

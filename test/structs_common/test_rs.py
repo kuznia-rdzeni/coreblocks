@@ -206,7 +206,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         # Update second entry first SP, instruction should be not ready
         value_sp1 = 1010
         self.assertEqual((yield self.m.rs.data[1].rec_ready), 0)
-        yield from self.m.io_update.call(tag=2, data=value_sp1)
+        yield from self.m.io_update.call(reg_id=2, reg_val=value_sp1)
         yield Settle()
         self.assertEqual((yield self.m.rs.data[1].rs_data.rp_s1), 0)
         self.assertEqual((yield self.m.rs.data[1].rs_data.s1_val), value_sp1)
@@ -214,18 +214,18 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
         # Update second entry second SP, instruction should be ready
         value_sp2 = 2020
-        yield from self.m.io_update.call(tag=3, data=value_sp2)
+        yield from self.m.io_update.call(reg_id=3, reg_val=value_sp2)
         yield Settle()
         self.assertEqual((yield self.m.rs.data[1].rs_data.rp_s2), 0)
         self.assertEqual((yield self.m.rs.data[1].rs_data.s2_val), value_sp2)
         self.assertEqual((yield self.m.rs.data[1].rec_ready), 1)
 
-        # Insert new insturction to entries 0 and 1, check if update of multiple tags works
-        tag = 4
+        # Insert new insturction to entries 0 and 1, check if update of multiple registers works
+        reg_id = 4
         value_spx = 3030
         data = {
-            "rp_s1": tag,
-            "rp_s2": tag,
+            "rp_s1": reg_id,
+            "rp_s2": reg_id,
             "rp_dst": 1,
             "rob_id": 12,
             "exec_fn": {
@@ -243,7 +243,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
             yield Settle()
             self.assertEqual((yield self.m.rs.data[index].rec_ready), 0)
 
-        yield from self.m.io_update.call(tag=tag, data=value_spx)
+        yield from self.m.io_update.call(reg_id=reg_id, reg_val=value_spx)
         yield Settle()
         for index in range(2):
             self.assertEqual((yield self.m.rs.data[index].rs_data.rp_s1), 0)
@@ -302,9 +302,9 @@ class TestRSMethodTake(TestCaseWithSimulator):
         self.assertEqual((yield self.m.rs.take.ready), 0)
 
         # Update second instuction and take it
-        tag = 2
+        reg_id = 2
         value_spx = 1
-        yield from self.m.io_update.call(tag=tag, data=value_spx)
+        yield from self.m.io_update.call(reg_id=reg_id, reg_val=value_spx)
         yield Settle()
         self.assertEqual((yield self.m.rs.take.ready), 1)
         data = yield from self.m.io_take.call(rs_entry_id=1)
@@ -314,11 +314,11 @@ class TestRSMethodTake(TestCaseWithSimulator):
         self.assertEqual((yield self.m.rs.take.ready), 0)
 
         # Insert two new ready instructions and take them
-        tag = 0
+        reg_id = 0
         value_spx = 3030
         entry_data = {
-            "rp_s1": tag,
-            "rp_s2": tag,
+            "rp_s1": reg_id,
+            "rp_s2": reg_id,
             "rp_dst": 1,
             "rob_id": 12,
             "exec_fn": {
