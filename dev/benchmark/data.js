@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699314568987,
+  "lastUpdate": 1699315334989,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -3327,6 +3327,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.21143582629957916,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "60410c2e5e36bb5b229e6c69f69796d7f3a9075a",
+          "message": "Fix typo in icache tests and return type in documentation (#506)",
+          "timestamp": "2023-11-07T00:39:30+01:00",
+          "tree_id": "29d4b924d9455c510ec2f364de35f8b0dd3fcc52",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/60410c2e5e36bb5b229e6c69f69796d7f3a9075a"
+        },
+        "date": 1699315323632,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.36868634053500093,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.287102112304355,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15476224925165344,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29403051593959734,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24225926200771405,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.21143582629957916,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2159196483640026,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.38400652367450455,
             "unit": "Instructions Per Cycle"
           }
         ]
