@@ -108,13 +108,11 @@ class SchedulerLayouts:
         """Physical register number for the destination operand, after allocation."""
 
         self.regs_l_rob_in = (
-            (
-                "regs_l",
-                [
-                    fields.rl_dst,
-                    ("rl_dst_v", 1),
-                ],
-            ),
+            "regs_l",
+            [
+                fields.rl_dst,
+                ("rl_dst_v", 1),
+            ],
         )
         """Logical register number for the destination operand, before ROB allocation."""
 
@@ -173,8 +171,11 @@ class RFLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
+        self.valid = ("valid", 1)
+        """Bit flag, says that the physical register was assigned a value."""
+
         self.rf_read_in = self.rf_free = [fields.reg_id]
-        self.rf_read_out = [("reg_val", gen_params.isa.xlen), ("valid", 1)]
+        self.rf_read_out = [("reg_val", gen_params.isa.xlen), self.valid]
         self.rf_write = [fields.reg_id, ("reg_val", gen_params.isa.xlen)]
 
 
@@ -183,6 +184,9 @@ class RATLayouts:
 
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
+
+        self.old_rp_dst = ("old_rp_dst", gen_params.phys_regs_bits)
+        """Physical register previously associated with the given logical register in RRAT."""
 
         self.rat_rename_in = [
             fields.rl_s1,
@@ -195,7 +199,7 @@ class RATLayouts:
 
         self.rat_commit_in = [fields.rl_dst, fields.rp_dst]
 
-        self.rat_commit_out = [("old_rp_dst", gen_params.phys_regs_bits)]
+        self.rat_commit_out = [self.old_rp_dst]
 
 
 class ROBLayouts:
@@ -236,7 +240,10 @@ class RSLayoutFields:
 
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_layout: LayoutList):
         self.rs_data = ("rs_data", data_layout)
+        """Data about an instuction stored in a Reservation Station."""
+
         self.rs_entry_id = ("rs_entry_id", rs_entries_bits)
+        """Index in a Reservation Station."""
 
 
 class RSFullDataLayout:
@@ -359,11 +366,17 @@ class FetchLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
+        self.access_fault = ("access_fault", 1)
+        """Bit flag, says that instruction fetch failed."""
+
+        self.rvc = ("rvc", 1)
+        """Bit flag, says that an instruction is a compressed (two-byte) one."""
+
         self.raw_instr = [
             fields.instr,
             fields.pc,
-            ("access_fault", 1),
-            ("rvc", 1),
+            self.access_fault,
+            self.rvc,
         ]
 
         self.branch_verify = [
@@ -393,6 +406,12 @@ class FuncUnitLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
+        self.result = ("result", gen_params.isa.xlen)
+        """The result value produced in a functional unit."""
+
+        self.exception = ("exception", 1)
+        """Bit flag, signals that the operation generated an exception."""
+
         self.issue = [
             fields.s1_val,
             fields.s2_val,
@@ -405,9 +424,9 @@ class FuncUnitLayouts:
 
         self.accept = [
             fields.rob_id,
-            ("result", gen_params.isa.xlen),
+            self.result,
             fields.rp_dst,
-            ("exception", 1),
+            self.exception,
         ]
 
 
