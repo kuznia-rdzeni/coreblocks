@@ -12,6 +12,16 @@ on:
   workflow_dispatch:
 
 jobs:
+  event_file:
+    name: Event file
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: Event File
+          path: ${{ github.event_path }}
+
   build-regression-tests:
     name: Build regression tests
     runs-on: ubuntu-latest
@@ -68,12 +78,18 @@ jobs:
           . venv/bin/activate
           scripts/run_tests.py -a regression
 
-      - name: Test Report
-        uses: EnricoMi/publish-unit-test-result-action@v2
+      # - name: Test Report
+      #   uses: EnricoMi/publish-unit-test-result-action@v2
+      #   with:
+      #     files: test/regression/cocotb/results.xml
+      #     check_name: cocotb test results
+      #     comment_mode: off
+
+      - name: Upload tests results
+        uses: actions/upload-artifact@v3
         with:
-          files: test/regression/cocotb/results.xml
-          check_name: cocotb test results
-          comment_mode: off
+          name: Tests results
+          path: test/regression/cocotb/results.xml
 
   unit-test:
     name: Run unit tests
@@ -102,7 +118,7 @@ jobs:
         run: ./scripts/run_tests.py --verbose
 
       - name: Check traces
-        run: ./scripts/run_tests.py -t -c 1 TestCore 
+        run: ./scripts/run_tests.py -t -c 1 TestCore
 
   lint:
     name: Check code formatting and typing
