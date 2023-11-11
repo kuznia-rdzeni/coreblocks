@@ -3,12 +3,11 @@ import random
 import unittest
 import functools
 from contextlib import contextmanager, nullcontext
-from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, Generator, TypeAlias
+from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias
 from amaranth import *
 from amaranth.sim import *
-from amaranth.hdl.ast import Statement
-from amaranth.sim.core import Command
 from .testbenchio import TestbenchIO
+from .functions import TestGen
 from ..gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
@@ -16,8 +15,7 @@ from transactron.core import TransactionModule
 from coreblocks.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
 
 T = TypeVar("T")
-_T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
-TestGen: TypeAlias = Generator[Command | Value | Statement | "CoreblockCommand" | None, Any, T]
+_T_nested_collection: TypeAlias = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 
 
 def guard_nested_collection(cont: Any, t: Type[T]) -> TypeGuard[_T_nested_collection[T]]:
