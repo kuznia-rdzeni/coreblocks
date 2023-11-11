@@ -98,6 +98,39 @@ class TestModule(Elaboratable):
 
         return m
 
+class CoreblockCommand:
+    pass
+
+
+class Now(CoreblockCommand):
+    pass
+
+
+class SyncProcessWrapper:
+    def __init__(self, f):
+        self.org_process = f
+        self.current_cycle = 0
+
+    def _wrapping_function(self):
+        response = None
+        org_corutine = self.org_process()
+        try:
+            while True:
+                # call orginal test process and catch data yielded by it in `command` variable
+                command = org_corutine.send(response)
+                # If process wait for new cycle
+                if command is None:
+                    self.current_cycle += 1
+                    # forward to amaranth
+                    yield
+                elif isinstance(command, Now):
+                    response = self.current_cycle
+                # Pass everything else to amaranth simulator without modifications
+                else:
+                    response = yield command
+        except StopIteration:
+            pass
+
 
 class PysimSimulator(Simulator):
     def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
@@ -132,6 +165,10 @@ class PysimSimulator(Simulator):
             self.ctx = nullcontext()
 
         self.deadline = clk_period * max_cycles
+
+    def add_sync_process(self, f):
+        f_wrapped = SyncProcessWrapper(f)
+        super().add_sync_process(f_wrapped._wrapping_function)
 
     def run(self) -> bool:
         with self.ctx:
