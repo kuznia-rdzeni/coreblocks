@@ -82,8 +82,10 @@ class MethodFilter(Elaboratable):
     parameters, a module and the input `Record` of the method. Non-zero
     return value is interpreted as true. Alternatively to using a function,
     a `Method` can be passed as a condition.
-    By default the target method is locked for usage even if it is not called.
-    If this is not desired effect, set `use_condition` to True.
+    By default, the target method is locked for usa even if it is not called.
+    If this is not the desired effect, set `use_condition` to True, but this will
+    cause that the provided method will be `single_caller` and all other `condition`
+    drawbacks will be in place (e.g. risk of exponential complexity).
 
     Attributes
     ----------
