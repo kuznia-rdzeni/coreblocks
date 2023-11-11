@@ -1,6 +1,7 @@
 from amaranth import *
 from test.common import *
 
+
 class EmptyCircuit(Elaboratable):
     def __init__(self):
         pass
@@ -9,9 +10,10 @@ class EmptyCircuit(Elaboratable):
         m = Module()
         return m
 
+
 class TestNow(TestCaseWithSimulator):
     def setUp(self):
-        self.test_cycles=10
+        self.test_cycles = 10
         self.m = SimpleTestCircuit(EmptyCircuit())
 
     def process(self):
