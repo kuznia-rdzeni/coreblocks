@@ -84,7 +84,7 @@ class MethodFilter(Elaboratable):
     a `Method` can be passed as a condition.
     By default the target method is locked for usage even if it is not called.
     If this is not desired effect, set `use_condition` to True.
-    
+
     Attributes
     ----------
     method: Method
