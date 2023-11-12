@@ -73,7 +73,6 @@ jobs:
         env:
           cache-name: cache-regression-tests
         with:
-          submodules: recursive
           path: test/external/riscv-tests/test-*
           key: ${{ env.cache-name }}-${{ runner.os }}-${{
             needs.build-regression-tests.outputs.container_id }}-${{ hashFiles('**/test/external/riscv-tests') }}
