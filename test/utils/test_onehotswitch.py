@@ -1,7 +1,7 @@
 from amaranth import *
 from amaranth.sim import *
 
-from coreblocks.utils import OneHotSwitch
+from transactron.utils import OneHotSwitch
 
 from test.common import TestCaseWithSimulator
 

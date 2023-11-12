@@ -3,7 +3,7 @@ from ..core import *
 from ..core import TransactionBase
 from contextlib import contextmanager
 from typing import Optional
-from coreblocks.utils import ValueLike
+from transactron.utils import ValueLike
 
 __all__ = [
     "condition",
