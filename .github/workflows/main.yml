@@ -12,15 +12,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  event_file:
-    name: Event file
-    runs-on: ubuntu-latest
-    steps:
-      - name: Upload
-        uses: actions/upload-artifact@v3
-        with:
-          name: Event File
-          path: ${{ github.event_path }}
 
   build-regression-tests:
     name: Build regression tests
@@ -78,18 +69,13 @@ jobs:
           . venv/bin/activate
           scripts/run_tests.py -a regression
 
-      # - name: Test Report
-      #   uses: EnricoMi/publish-unit-test-result-action@v2
-      #   with:
-      #     files: test/regression/cocotb/results.xml
-      #     check_name: cocotb test results
-      #     comment_mode: off
-
-      - name: Upload tests results
+      - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: Tests results
-          path: test/regression/cocotb/results.xml
+          name: "regression_tests_artifacts"
+          path: |
+            test/regression/cocotb/results.xml
+            ${{ github.event_path }}
 
   unit-test:
     name: Run unit tests
