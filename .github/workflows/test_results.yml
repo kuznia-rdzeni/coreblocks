@@ -19,10 +19,10 @@ jobs:
 
     steps:
       - name: Download and extract artifacts
-         uses: dawidd6/action-download-artifact@v2
-         with:
-            run_id: ${{ github.event.workflow_run.id }}
-            path: artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          run_id: ${{ github.event.workflow_run.id }}
+          path: artifacts
 
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
