@@ -77,8 +77,7 @@ jobs:
           path: test/external/riscv-tests/test-*
           key: ${{ env.cache-name }}-${{ runner.os }}-${{
             needs.build-regression-tests.outputs.container_id }}-${{ hashFiles('**/test/external/riscv-tests') }}
-          restore-keys: |
-            ${{ env.cache-name }}-${{ runner.os }}-${{ needs.build-regression-tests.outputs.container_id }}-
+          fail-on-cache-miss: true
 
       - name: Run tests
         run: |
