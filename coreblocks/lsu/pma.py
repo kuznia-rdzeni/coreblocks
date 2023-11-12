@@ -2,7 +2,7 @@ from functools import reduce
 from amaranth import *
 
 from coreblocks.params import *
-from coreblocks.utils import HasElaborate
+from transactron.utils import HasElaborate
 from transactron.core import Method, def_method, TModule
 
 
