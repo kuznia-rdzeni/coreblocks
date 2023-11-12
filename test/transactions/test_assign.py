@@ -3,8 +3,8 @@ from amaranth import *
 from amaranth.lib import data
 from amaranth.hdl.ast import ArrayProxy, Slice
 
-from coreblocks.utils._typing import LayoutLike
-from coreblocks.utils.utils import AssignArg, AssignType, AssignFields, assign
+from transactron.utils._typing import LayoutLike
+from transactron.utils.utils import AssignArg, AssignType, AssignFields, assign
 
 from unittest import TestCase
 from parameterized import parameterized_class, parameterized

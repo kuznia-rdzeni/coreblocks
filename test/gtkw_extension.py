@@ -2,7 +2,7 @@ from typing import Iterable, Mapping
 from contextlib import contextmanager
 from amaranth.sim.pysim import _VCDWriter
 from amaranth import *
-from coreblocks.utils.utils import flatten_signals
+from transactron.utils.utils import flatten_signals
 
 
 class _VCDWriterExt(_VCDWriter):

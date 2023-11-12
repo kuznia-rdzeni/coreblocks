@@ -5,7 +5,7 @@ from amaranth import *
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams
 from transactron import Method, TModule, def_method
 from transactron.lib import FIFO
-from coreblocks.utils import OneHotSwitch
+from transactron.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
 from coreblocks.fu.fu_decoder import DecoderManager
