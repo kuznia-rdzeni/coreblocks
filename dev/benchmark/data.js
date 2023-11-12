@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699315334989,
+  "lastUpdate": 1699831626546,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12595,6 +12595,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 884,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5619,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "752b9861109bbad66ae88a4ee24f7c7180b4aa3b",
+          "message": "Move coreblocks utils to transactron (#503)\n\nCo-authored-by: Lekcyjna <309016@uwr.edu.pl>\r\nCo-authored-by: Marek Materzok <tilk@tilk.eu>",
+          "timestamp": "2023-11-13T00:20:35+01:00",
+          "tree_id": "d2575682edcfa2bab8e1f9009dfa45d80c55f82b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/752b9861109bbad66ae88a4ee24f7c7180b4aa3b"
+        },
+        "date": 1699831624767,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.14,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17347,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 438,
             "unit": "LUT"
           },
           {
