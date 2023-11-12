@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699831890647,
+  "lastUpdate": 1699832764233,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -3391,6 +3391,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "crc32",
             "value": 0.38400652367450455,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "752b9861109bbad66ae88a4ee24f7c7180b4aa3b",
+          "message": "Move coreblocks utils to transactron (#503)\n\nCo-authored-by: Lekcyjna <309016@uwr.edu.pl>\r\nCo-authored-by: Marek Materzok <tilk@tilk.eu>",
+          "timestamp": "2023-11-13T00:20:35+01:00",
+          "tree_id": "d2575682edcfa2bab8e1f9009dfa45d80c55f82b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/752b9861109bbad66ae88a4ee24f7c7180b4aa3b"
+        },
+        "date": 1699832761823,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "ud",
+            "value": 0.29403051593959734,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.36868634053500093,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.21143582629957916,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.24225926200771405,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.15476224925165344,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.38400652367450455,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2159196483640026,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.287102112304355,
             "unit": "Instructions Per Cycle"
           }
         ]
