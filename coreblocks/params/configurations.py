@@ -59,6 +59,8 @@ class CoreConfiguration:
         Allow partial support of extensions.
     _implied_extensions: Extenstion
         Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
+    mmio : [(int,, int)]
+        Ranges of memory mapped input output.
     """
 
     xlen: int = 32
@@ -79,6 +81,8 @@ class CoreConfiguration:
     allow_partial_extensions: bool = False
 
     _implied_extensions: Extension = Extension(0)
+
+    mmio = []
 
     def replace(self, **kwargs):
         return dataclasses.replace(self, **kwargs)

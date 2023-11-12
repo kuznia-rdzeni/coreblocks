@@ -70,6 +70,8 @@ class GenParams(DependentCache):
 
         self.isa = ISA(self.isa_str)
 
+        self.mmio = cfg.mmio
+
         bytes_in_word = self.isa.xlen // 8
         self.wb_params = WishboneParameters(
             data_width=self.isa.xlen, addr_width=self.isa.xlen - log2_int(bytes_in_word)

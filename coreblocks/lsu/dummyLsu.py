@@ -6,6 +6,7 @@ from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.utils import assign, ModuleLike
 from coreblocks.utils.protocols import FuncBlock
 
+from coreblocks.lsu.pma import PMAChecker
 
 __all__ = ["LSUDummy", "LSUBlockComponent"]
 
@@ -26,7 +27,7 @@ class LSUDummyInternals(Elaboratable):
         Signals that `resultData` is valid.
     """
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: Record) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMaster, pma: PMAChecker, current_instr: Record) -> None:
         """
         Parameters
         ----------
@@ -40,6 +41,7 @@ class LSUDummyInternals(Elaboratable):
         self.gen_params = gen_params
         self.current_instr = current_instr
         self.bus = bus
+        self.pma = pma
 
         self.dependency_manager = self.gen_params.get(DependencyManager)
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
@@ -121,15 +123,21 @@ class LSUDummyInternals(Elaboratable):
         )
 
         is_load = self.current_instr.exec_fn.op_type == OpType.LOAD
-
         addr = self.calculate_addr(m)
         aligned = self.check_align(m, addr)
         bytes_mask = self.prepare_bytes_mask(m, addr)
         data = self.prepare_data_to_save(m, self.current_instr.s2_val, addr)
+        mmio = Signal()
 
         with m.FSM("Start"):
             with m.State("Start"):
-                with m.If(instr_ready & (self.execute | is_load)):
+                with Transaction().body(m):
+                    mmio_flag = self.pma.ask(m, in_addr=addr)["mmio"]
+                    m.d.sync += mmio.eq(mmio_flag)
+                    m.next = "Load"
+
+            with m.State("Load"):
+                with m.If(instr_ready & (self.execute | (is_load & ~mmio))):
                     with m.If(aligned):
                         with Transaction().body(m):
                             self.bus.request(m, addr=addr >> 2, we=~is_load, sel=bytes_mask, data=data)
@@ -145,7 +153,6 @@ class LSUDummyInternals(Elaboratable):
                             self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
 
                             m.next = "End"
-
             with m.State("End"):
                 with Transaction().body(m):
                     fetched = self.bus.result(m)
@@ -217,7 +224,8 @@ class LSUDummy(FuncBlock, Elaboratable):
         reserved = Signal()  # means that current_instr is reserved
         current_instr = Record(self.lsu_layouts.rs_data_layout + [("valid", 1)])
 
-        m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
+        m.submodules.pma = pma = PMAChecker(self.gen_params)
+        m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, pma, current_instr)
 
         result_ready = internal.result_ready | ((current_instr.exec_fn.op_type == OpType.FENCE) & current_instr.valid)
 
