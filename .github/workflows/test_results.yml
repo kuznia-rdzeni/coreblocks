@@ -18,10 +18,17 @@ jobs:
       checks: write
 
     steps:
-      - name: Download and extract artifacts
+      - name: Download test results
         uses: dawidd6/action-download-artifact@v2
         with:
-          name: regression_tests_artifacts
+          name: regression_tests_results
+          path: artifacts
+          run_id: ${{ github.event.workflow_run.id }}
+
+      - name: Download event file
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          name: event_file
           path: artifacts
           run_id: ${{ github.event.workflow_run.id }}
 
@@ -31,6 +38,6 @@ jobs:
           check_name: cocotb test results
           comment_mode: off
           commit: ${{ github.event.workflow_run.head_sha }}
-          event_file: artifacts/regression_tests_artifacts/event.json
+          event_file: artifacts/event_file/event.json
           event_name: ${{ github.event.workflow_run.event }}
-          files: artifacts/regression_tests_artifacts/test/regression/cocotb/results.xml
+          files: artifacts/regression_tests_results/results.xml
