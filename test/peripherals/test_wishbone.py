@@ -36,8 +36,8 @@ class WishboneInterfaceWrapper:
         assert (yield self.wb.stb) and (yield self.wb.cyc)
 
         assert (yield self.wb.adr) == exp_addr
-        assert (yield self.wb.we == exp_we)
-        assert (yield self.wb.sel == exp_sel)
+        assert (yield self.wb.we) == exp_we
+        assert (yield self.wb.sel) == exp_sel
         if exp_we:
             assert (yield self.wb.dat_w) == exp_data
 
@@ -52,6 +52,10 @@ class WishboneInterfaceWrapper:
         yield self.wb.ack.eq(0)
         yield self.wb.err.eq(0)
         yield self.wb.rty.eq(0)
+
+    def wait_ack(self):
+        while not ((yield self.wb.stb) and (yield self.wb.cyc) and (yield self.wb.ack)):
+            yield
 
 
 class TestWishboneMaster(TestCaseWithSimulator):
@@ -70,43 +74,70 @@ class TestWishboneMaster(TestCaseWithSimulator):
         twbm = TestWishboneMaster.WishboneMasterTestModule()
 
         def process():
-            wbm = twbm.wbm
-            wwb = WishboneInterfaceWrapper(wbm.wbMaster)
-
             # read request
             yield from twbm.requestAdapter.call(addr=2, data=0, we=0, sel=1)
+
+            # read request after delay
             yield
-            assert not (yield wbm.request.ready)
-            yield from wwb.slave_verify(2, 0, 0, 1)
-            yield from wwb.slave_respond(8)
-            resp = yield from twbm.resultAdapter.call()
-            assert (resp["data"]) == 8
+            yield
+            yield from twbm.requestAdapter.call(addr=1, data=0, we=0, sel=1)
 
             # write request
             yield from twbm.requestAdapter.call(addr=3, data=5, we=1, sel=0)
-            yield
-            yield from wwb.slave_verify(3, 5, 1, 0)
-            yield from wwb.slave_respond(0)
-            yield from twbm.resultAdapter.call()
 
             # RTY and ERR responese
             yield from twbm.requestAdapter.call(addr=2, data=0, we=0, sel=0)
-            yield
+            resp = yield from twbm.requestAdapter.call_try()
+            self.assertIsNone(resp)  # verify cycle restart
+
+        def result_process():
+            resp = yield from twbm.resultAdapter.call()
+            self.assertEqual(resp["data"], 8)
+            self.assertFalse(resp["err"])
+
+            resp = yield from twbm.resultAdapter.call()
+            self.assertEqual(resp["data"], 3)
+            self.assertFalse(resp["err"])
+
+            resp = yield from twbm.resultAdapter.call()
+            self.assertFalse(resp["err"])
+
+            resp = yield from twbm.resultAdapter.call()
+            self.assertEqual(resp["data"], 1)
+            self.assertTrue(resp["err"])
+
+        def slave():
+            wwb = WishboneInterfaceWrapper(twbm.wbm.wbMaster)
+
             yield from wwb.slave_wait()
+            yield from wwb.slave_verify(2, 0, 0, 1)
+            yield from wwb.slave_respond(8)
+            yield Settle()
+
+            yield from wwb.slave_wait()
+            yield from wwb.slave_verify(1, 0, 0, 1)
+            yield from wwb.slave_respond(3)
+            yield Settle()
+
+            yield  # consecutive request
+            yield from wwb.slave_verify(3, 5, 1, 0)
+            yield from wwb.slave_respond(0)
+            yield
+
+            yield  # consecutive request
             yield from wwb.slave_verify(2, 0, 0, 0)
             yield from wwb.slave_respond(1, ack=0, err=0, rty=1)
-            yield
+            yield Settle()
             assert not (yield wwb.wb.stb)
-            assert not (yield wbm.result.ready)  # verify cycle restart
+
             yield from wwb.slave_wait()
             yield from wwb.slave_verify(2, 0, 0, 0)
             yield from wwb.slave_respond(1, ack=1, err=1, rty=0)
-            resp = yield from twbm.resultAdapter.call()
-            assert resp["data"] == 1
-            assert resp["err"]
 
         with self.run_simulation(twbm) as sim:
             sim.add_sync_process(process)
+            sim.add_sync_process(result_process)
+            sim.add_sync_process(slave)
 
 
 class TestWishboneMuxer(TestCaseWithSimulator):
@@ -295,7 +326,7 @@ class WishboneMemorySlaveCircuit(Elaboratable):
 
 class TestWishboneMemorySlave(TestCaseWithSimulator):
     def setUp(self):
-        self.memsize = 430  # test some weird depth
+        self.memsize = 43  # test some weird depth
         self.iters = 300
 
         self.addr_width = (self.memsize - 1).bit_length()  # nearest log2 >= log2(memsize)
@@ -307,27 +338,55 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
         random.seed(42)
 
     def test_randomized(self):
-        def mem_op_process():
-            mem_state = [0] * self.memsize
+        req_queue = deque()
+        wr_queue = deque()
 
+        mem_state = [0] * self.memsize
+
+        def request_process():
             for _ in range(self.iters):
-                addr = random.randint(0, self.memsize - 1)
-                data = random.randint(0, 2**self.wb_params.data_width - 1)
-                write = random.randint(0, 1)
-                sel = random.randint(0, 2**self.sel_width - 1)
-                if write:
-                    for i in range(self.sel_width):
-                        if sel & (1 << i):
-                            granularity_mask = (2**self.wb_params.granularity - 1) << (i * self.wb_params.granularity)
-                            mem_state[addr] &= ~granularity_mask
-                            mem_state[addr] |= data & granularity_mask
+                req = {
+                    "addr": random.randint(0, self.memsize - 1),
+                    "data": random.randint(0, 2**self.wb_params.data_width - 1),
+                    "we": random.randint(0, 1),
+                    "sel": random.randint(0, 2**self.sel_width - 1),
+                }
+                req_queue.appendleft(req)
+                wr_queue.appendleft(req)
 
-                yield from self.m.request.call(addr=addr, data=data, we=write, sel=sel)
+                while random.random() < 0.2:
+                    yield
+                yield from self.m.request.call(req)
+
+        def result_process():
+            for _ in range(self.iters):
+                while random.random() < 0.2:
+                    yield
                 res = yield from self.m.result.call()
-                if write:
-                    self.assertEqual((yield self.m.mem_slave.mem[addr]), mem_state[addr])
-                else:
-                    self.assertEqual(res["data"], mem_state[addr])
+                req = req_queue.pop()
 
-        with self.run_simulation(self.m, max_cycles=1500) as sim:
-            sim.add_sync_process(mem_op_process)
+                if not req["we"]:
+                    self.assertEqual(res["data"], mem_state[req["addr"]])
+
+        def write_process():
+            wwb = WishboneInterfaceWrapper(self.m.mem_master.wbMaster)
+            for _ in range(self.iters):
+                yield from wwb.wait_ack()
+                req = wr_queue.pop()
+
+                if req["we"]:
+                    for i in range(self.sel_width):
+                        if req["sel"] & (1 << i):
+                            granularity_mask = (2**self.wb_params.granularity - 1) << (i * self.wb_params.granularity)
+                            mem_state[req["addr"]] &= ~granularity_mask
+                            mem_state[req["addr"]] |= req["data"] & granularity_mask
+
+                yield
+
+                if req["we"]:
+                    self.assertEqual((yield self.m.mem_slave.mem[req["addr"]]), mem_state[req["addr"]])
+
+        with self.run_simulation(self.m, max_cycles=3000) as sim:
+            sim.add_sync_process(request_process)
+            sim.add_sync_process(result_process)
+            sim.add_sync_process(write_process)
