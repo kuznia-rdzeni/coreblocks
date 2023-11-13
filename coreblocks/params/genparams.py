@@ -7,7 +7,7 @@ from .isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
 from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
-from coreblocks.utils import make_hashable
+from transactron.utils import make_hashable
 
 from typing import TYPE_CHECKING
 
