@@ -18,6 +18,7 @@ jobs:
     container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
     outputs:
         container_id: ${{ job.container.id }}
+        cache_hit: ${{ steps.cache-regression.outputs.cache-hit }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -34,14 +35,19 @@ jobs:
           key: ${{ env.cache-name }}-${{ runner.os }}-${{
             job.container.id }}-${{ hashFiles(
               '**/test/external/riscv-tests/environment/**',
-              '**/test/external/riscv-tests/environment/Makefile}'
+              '**/test/external/riscv-tests/Makefile}'
             ) }}
           restore-keys: |
             ${{ env.cache-name }}-${{ runner.os }}-${{ job.container.id }}-
 
       - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
-        name: Build riscv-tests
         run: cd test/external/riscv-tests && make
+
+      - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
+        name: Upload riscv-tests
+        uses: actions/upload-artifact@v3
+        with:
+          path: test/external/riscv-tests
 
   run-regression-tests:
     name: Run regression tests
@@ -80,7 +86,7 @@ jobs:
           key: ${{ env.cache-name }}-${{ runner.os }}-${{
             needs.build-regression-tests.outputs.container_id }}-${{ hashFiles(
               '**/test/external/riscv-tests/environment/**',
-              '**/test/external/riscv-tests/environment/Makefile}'
+              '**/test/external/riscv-tests/Makefile}'
             ) }}
           fail-on-cache-miss: true
 
