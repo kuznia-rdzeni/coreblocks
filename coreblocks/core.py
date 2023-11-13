@@ -20,7 +20,7 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
-from coreblocks.utils.fifo import BasicFifo
+from transactron.utils.fifo import BasicFifo
 
 __all__ = ["Core"]
 

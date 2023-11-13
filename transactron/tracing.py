@@ -7,7 +7,7 @@ import warnings
 from amaranth.hdl.ir import Elaboratable, Fragment, Instance
 from amaranth.hdl.xfrm import FragmentTransformer
 from amaranth.hdl import dsl, ir, mem, xfrm
-from coreblocks.utils import HasElaborate
+from transactron.utils import HasElaborate
 from . import core
 
 

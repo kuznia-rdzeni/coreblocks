@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 from amaranth.hdl.ast import ValueCastable
 from amaranth import *
 
-from coreblocks.utils import ValueLike
+from transactron.utils import ValueLike
 from coreblocks.params.isa import *
 
 

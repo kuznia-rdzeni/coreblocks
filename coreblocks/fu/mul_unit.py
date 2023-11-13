@@ -18,7 +18,7 @@ from coreblocks.fu.fu_decoder import DecoderManager
 
 __all__ = ["MulUnit", "MulFn", "MulComponent", "MulType"]
 
-from coreblocks.utils import OneHotSwitch
+from transactron.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
 

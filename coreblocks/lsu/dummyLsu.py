@@ -3,7 +3,7 @@ from amaranth import *
 from transactron import Method, def_method, Transaction, TModule
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
-from coreblocks.utils import assign, ModuleLike
+from transactron.utils import assign, ModuleLike
 from coreblocks.utils.protocols import FuncBlock
 
 

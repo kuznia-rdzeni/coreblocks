@@ -1,7 +1,7 @@
 from coreblocks.params import GenParams, OpType, Funct7, Funct3
 from coreblocks.params.isa import ExceptionCause
-from coreblocks.utils.utils import layout_subset
-from coreblocks.utils import LayoutList, LayoutListField
+from transactron.utils.utils import layout_subset
+from transactron.utils import LayoutList, LayoutListField
 
 __all__ = [
     "CommonLayoutFields",
