@@ -3,7 +3,7 @@ from ..core import *
 from ..core import RecordDict
 from typing import Optional
 from collections.abc import Callable
-from coreblocks.utils import ValueLike, assign, AssignType
+from transactron.utils import ValueLike, assign, AssignType
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 
 __all__ = [

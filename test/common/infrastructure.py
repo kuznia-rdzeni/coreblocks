@@ -11,7 +11,7 @@ from ..gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
 from transactron.core import TransactionModule
-from coreblocks.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
+from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
 
 T = TypeVar("T")
 _T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]

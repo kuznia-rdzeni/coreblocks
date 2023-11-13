@@ -8,8 +8,8 @@ from amaranth.utils import log2_int
 from transactron.core import def_method, Priority, TModule
 from transactron import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
-from coreblocks.utils import assign, OneHotSwitchDynamic
-from coreblocks.utils._typing import HasElaborate
+from transactron.utils import assign, OneHotSwitchDynamic
+from transactron.utils._typing import HasElaborate
 from transactron.lib import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 

@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.utils import *
 from ..core import *
 from typing import Optional
-from coreblocks.utils import assign, AssignType
+from transactron.utils import assign, AssignType
 from .reqres import ArgumentsToResultsZipper
 
 __all__ = ["MemoryBank"]
