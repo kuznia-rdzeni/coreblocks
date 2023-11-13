@@ -5,11 +5,11 @@ from typing import TypeVar, Any, Generator, TypeAlias, TYPE_CHECKING, Union
 from coreblocks.utils._typing import RecordValueDict, RecordIntDict
 
 if TYPE_CHECKING:
-    from .infrastructure import CoreblockCommand
+    from .infrastructure import CoreblocksCommand
 
 
 T = TypeVar("T")
-TestGen: TypeAlias = Generator[Union[Command, Value, Statement, "CoreblockCommand", None], Any, T]
+TestGen: TypeAlias = Generator[Union[Command, Value, Statement, "CoreblocksCommand", None], Any, T]
 
 
 def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:

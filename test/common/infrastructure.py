@@ -101,11 +101,11 @@ class TestModule(Elaboratable):
         return m
 
 
-class CoreblockCommand(ABC):
+class CoreblocksCommand(ABC):
     pass
 
 
-class Now(CoreblockCommand):
+class Now(CoreblocksCommand):
     pass
 
 
