@@ -6,15 +6,18 @@ grows and more functionalities are added.
 
 ## Benchmarks
 
-For each commit on `master` branch, CI runs the synthesis and saves the parameters collected by `parse_benchmark_info` script.
-
-Graphs generated from this information are available on a dedicated [benchmark subpage](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
+On each commit to the `master` branch, CI runs the synthesis and saves the parameters collected by the `parse_benchmark_info` script.
+The properties collected are:
+- IPC
+- Fmax
+- LUT/RAM usage
+The graphs generated from this data are available on a dedicated [benchmark subpage](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
 
 ## Documentation
 
 ### Using pre-build container
 
-There is a pre-build container available that is being used in CI. You can
+There is a pre-built container available that is being used in CI. You can
 download it and start the synthesis in it locally by executing the following commands:
 
 ```bash
