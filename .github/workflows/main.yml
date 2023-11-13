@@ -32,10 +32,12 @@ jobs:
           cache-name: cache-regression-tests
         with:
           path: test/external/riscv-tests/test-*
+          
           key: ${{ env.cache-name }}-${{ runner.os }}-${{
             job.container.id }}-${{ hashFiles(
               '**/test/external/riscv-tests/environment/**',
-              '**/test/external/riscv-tests/Makefile}'
+              '**/test/external/riscv-tests/Makefile',
+              '**/.git/modules/test/external/riscv-tests/riscv-tests/HEAD'
             ) }}
           restore-keys: |
             ${{ env.cache-name }}-${{ runner.os }}-${{ job.container.id }}-
@@ -86,8 +88,9 @@ jobs:
           key: ${{ env.cache-name }}-${{ runner.os }}-${{
             needs.build-regression-tests.outputs.container_id }}-${{ hashFiles(
               '**/test/external/riscv-tests/environment/**',
-              '**/test/external/riscv-tests/Makefile}'
-            ) }}
+              '**/test/external/riscv-tests/Makefile',
+              '**/.git/modules/test/external/riscv-tests/riscv-tests/HEAD'
+              ) }}
           fail-on-cache-miss: true
 
       - name: Run tests
