@@ -153,14 +153,19 @@ class LSUDummyInternals(Elaboratable):
 
                     m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
 
-                    with m.If(fetched.err):
-                        cause = Mux(is_load, ExceptionCause.LOAD_ACCESS_FAULT, ExceptionCause.STORE_ACCESS_FAULT)
-                        self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
+                    # no clear (synonymous with instruction valid signal) was asserted
+                    with m.If(self.current_instr.valid):
+                        with m.If(fetched.err):
+                            cause = Mux(is_load, ExceptionCause.LOAD_ACCESS_FAULT, ExceptionCause.STORE_ACCESS_FAULT)
+                            self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
 
-                    m.d.sync += self.op_exception.eq(fetched.err)
-                    m.d.sync += self.result_ready.eq(1)
+                        m.d.sync += self.op_exception.eq(fetched.err)
+                        m.d.sync += self.result_ready.eq(1)
+                    with m.Else():
+                        m.next = "Start"
 
-                with m.If(self.get_result_ack):
+                # result read ack or clear asserted
+                with m.If(self.get_result_ack | (self.result_ready & ~self.current_instr.valid)):
                     m.d.sync += self.result_ready.eq(0)
                     m.d.sync += self.op_exception.eq(0)
                     m.next = "Start"
@@ -271,9 +276,9 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         @def_method(m, self.clear)
         def _():
-            # TODO: clearing internal lsu component ;)
-            m.d.sync += current_instr.eq(0)
+            m.d.sync += current_instr.valid.eq(0)
             m.d.sync += reserved.eq(0)
+            m.d.comb += internal.execute.eq(0)
 
         return m
 
