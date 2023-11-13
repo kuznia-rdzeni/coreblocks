@@ -4,6 +4,7 @@ import unittest
 import functools
 from contextlib import contextmanager, nullcontext
 from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias
+from abc import ABC
 from amaranth import *
 from amaranth.sim import *
 from .testbenchio import TestbenchIO
@@ -100,7 +101,7 @@ class TestModule(Elaboratable):
         return m
 
 
-class CoreblockCommand:
+class CoreblockCommand(ABC):
     pass
 
 
@@ -115,11 +116,11 @@ class SyncProcessWrapper:
 
     def _wrapping_function(self):
         response = None
-        org_corutine = self.org_process()
+        org_coroutine = self.org_process()
         try:
             while True:
                 # call orginal test process and catch data yielded by it in `command` variable
-                command = org_corutine.send(response)
+                command = org_coroutine.send(response)
                 # If process wait for new cycle
                 if command is None:
                     self.current_cycle += 1
