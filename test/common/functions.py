@@ -2,7 +2,8 @@ from amaranth import *
 from amaranth.hdl.ast import Statement
 from amaranth.sim.core import Command
 from typing import TypeVar, Any, Generator, TypeAlias, TYPE_CHECKING, Union
-from coreblocks.utils._typing import RecordValueDict, RecordIntDict
+from transactron.utils._typing import RecordValueDict, RecordIntDict
+
 
 if TYPE_CHECKING:
     from .infrastructure import CoreblocksCommand

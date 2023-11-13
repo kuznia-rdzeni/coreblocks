@@ -92,6 +92,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
             # Wishbone is addressing words, so we need to shift it a bit to get the real address.
             addr = (yield self.test_module.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
 
+            yield
             while random.random() < 0.5:
                 yield
 

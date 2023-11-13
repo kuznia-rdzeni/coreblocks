@@ -4,8 +4,8 @@ from inspect import Parameter, signature
 from typing import Any, Concatenate, Optional, TypeAlias, TypeGuard, TypeVar
 from collections.abc import Callable, Iterable, Mapping
 from amaranth import *
-from coreblocks.utils._typing import LayoutLike, ShapeLike
-from coreblocks.utils import OneHotSwitchDynamic
+from transactron.utils._typing import LayoutLike, ShapeLike
+from transactron.utils import OneHotSwitchDynamic
 
 __all__ = [
     "Scheduler",

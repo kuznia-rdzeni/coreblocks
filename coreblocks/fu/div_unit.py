@@ -12,8 +12,8 @@ from transactron.lib import *
 
 from coreblocks.fu.fu_decoder import DecoderManager
 
-from coreblocks.utils import OneHotSwitch
-from coreblocks.utils.fifo import BasicFifo
+from transactron.utils import OneHotSwitch
+from transactron.utils.fifo import BasicFifo
 from coreblocks.utils.protocols import FuncUnit
 from coreblocks.fu.division.long_division import LongDivider
 
