@@ -41,8 +41,8 @@ In order to perform synthesis without using the ready container you will need to
 
 These tools may need manual compilation from git repository, that can take some time.
 
-We also provides a dockerfile which can be used to reproduce image used in CI.
-To do that, build the `AmaranthSynthECP5.Dockerfile` yourself using following command:
+We also provide a dockerfile that can be used to recreate the image used in the CI.
+To do this, build the `AmaranthSynthECP5.Dockerfile` yourself using the following command:
 ```
 docker build --platform linux/amd64 -t "amaranth-synth:ecp5" -f ./docker/AmaranthSynthECP5.Dockerfile .
 ```
