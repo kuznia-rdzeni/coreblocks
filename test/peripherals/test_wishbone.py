@@ -53,6 +53,10 @@ class WishboneInterfaceWrapper:
         yield self.wb.err.eq(0)
         yield self.wb.rty.eq(0)
 
+    def wait_ack(self):
+        while not ((yield self.wb.stb) and (yield self.wb.cyc) and (yield self.wb.ack)):
+            yield
+
 
 class TestWishboneMaster(TestCaseWithSimulator):
     class WishboneMasterTestModule(Elaboratable):
@@ -322,7 +326,7 @@ class WishboneMemorySlaveCircuit(Elaboratable):
 
 class TestWishboneMemorySlave(TestCaseWithSimulator):
     def setUp(self):
-        self.memsize = 430  # test some weird depth
+        self.memsize = 43  # test some weird depth
         self.iters = 300
 
         self.addr_width = (self.memsize - 1).bit_length()  # nearest log2 >= log2(memsize)
@@ -334,28 +338,55 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
         random.seed(42)
 
     def test_randomized(self):
-        def mem_op_process():
-            mem_state = [0] * self.memsize
+        req_queue = deque()
+        wr_queue = deque()
 
+        mem_state = [0] * self.memsize
+
+        def request_process():
             for _ in range(self.iters):
-                addr = random.randint(0, self.memsize - 1)
-                data = random.randint(0, 2**self.wb_params.data_width - 1)
-                write = random.randint(0, 1)
-                sel = random.randint(0, 2**self.sel_width - 1)
-                if write:
-                    for i in range(self.sel_width):
-                        if sel & (1 << i):
-                            granularity_mask = (2**self.wb_params.granularity - 1) << (i * self.wb_params.granularity)
-                            mem_state[addr] &= ~granularity_mask
-                            mem_state[addr] |= data & granularity_mask
+                req = {
+                    "addr": random.randint(0, self.memsize - 1),
+                    "data": random.randint(0, 2**self.wb_params.data_width - 1),
+                    "we": random.randint(0, 1),
+                    "sel": random.randint(0, 2**self.sel_width - 1),
+                }
+                req_queue.appendleft(req)
+                wr_queue.appendleft(req)
 
-                yield from self.m.request.call(addr=addr, data=data, we=write, sel=sel)
+                while random.random() < 0.2:
+                    yield
+                yield from self.m.request.call(req)
+
+        def result_process():
+            for _ in range(self.iters):
+                while random.random() < 0.2:
+                    yield
                 res = yield from self.m.result.call()
-                if write:
-                    yield  # workaround, memory state will change the next cycle!
-                    self.assertEqual((yield self.m.mem_slave.mem[addr]), mem_state[addr])
-                else:
-                    self.assertEqual(res["data"], mem_state[addr])
+                req = req_queue.pop()
 
-        with self.run_simulation(self.m, max_cycles=1500) as sim:
-            sim.add_sync_process(mem_op_process)
+                if not req["we"]:
+                    self.assertEqual(res["data"], mem_state[req["addr"]])
+
+        def write_process():
+            wwb = WishboneInterfaceWrapper(self.m.mem_master.wbMaster)
+            for _ in range(self.iters):
+                yield from wwb.wait_ack()
+                req = wr_queue.pop()
+
+                if req["we"]:
+                    for i in range(self.sel_width):
+                        if req["sel"] & (1 << i):
+                            granularity_mask = (2**self.wb_params.granularity - 1) << (i * self.wb_params.granularity)
+                            mem_state[req["addr"]] &= ~granularity_mask
+                            mem_state[req["addr"]] |= req["data"] & granularity_mask
+
+                yield
+
+                if req["we"]:
+                    self.assertEqual((yield self.m.mem_slave.mem[req["addr"]]), mem_state[req["addr"]])
+
+        with self.run_simulation(self.m, max_cycles=3000) as sim:
+            sim.add_sync_process(request_process)
+            sim.add_sync_process(result_process)
+            sim.add_sync_process(write_process)

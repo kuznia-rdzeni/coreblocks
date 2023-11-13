@@ -164,9 +164,8 @@ class WishboneMaster(Elaboratable):
 
             with m.State("WBWaitACK"):
                 with m.If(self.wbMaster.ack | self.wbMaster.err):
-                    m.d.comb += request_ready.eq(1)
-                    tr = Transaction()
-                    with tr.body(m):
+                    m.d.comb += request_ready.eq(result.read.run)
+                    with Transaction().body(m):
                         # will be always ready, as we checked that in Idle
                         result.write(m, data=Mux(self.txn_req.we, 0, self.wbMaster.dat_r), err=self.wbMaster.err)
                     with m.If(self.request.run):
@@ -190,7 +189,8 @@ class WishboneMaster(Elaboratable):
             # do WBCycStart state in the same clock cycle
             FSMWBCycStart(arg)
 
-        tr.schedule_before(self.request)
+        result.write.schedule_before(self.request)
+        result.read.schedule_before(self.request)
 
         return m
 
