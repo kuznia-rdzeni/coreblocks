@@ -5,13 +5,13 @@ import random
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
 
-from coreblocks.transactions.core import Method
-from coreblocks.transactions.lib import AdapterTrans, FIFO, Adapter
+from transactron.core import Method
+from transactron.lib import AdapterTrans, FIFO, Adapter
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from coreblocks.utils import ModuleConnector
+from transactron.utils import ModuleConnector
 from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock
 
 

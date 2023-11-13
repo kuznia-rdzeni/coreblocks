@@ -1,18 +1,18 @@
 from typing import Sequence
 from amaranth import *
 
-from coreblocks.transactions import *
-from coreblocks.transactions.lib import FIFO
+from transactron import *
+from transactron.lib import FIFO
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
-from coreblocks.utils import HasElaborate, OneHotSwitch
+from transactron.utils import HasElaborate, OneHotSwitch
 
 from coreblocks.fu.fu_decoder import DecoderManager
 from enum import IntFlag, auto
 
 from coreblocks.utils.protocols import FuncUnit
 
-from coreblocks.utils.utils import popcount, count_leading_zeros
+from transactron.utils.utils import popcount, count_leading_zeros
 
 __all__ = ["AluFuncUnit", "ALUComponent"]
 

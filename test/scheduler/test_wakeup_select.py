@@ -10,8 +10,8 @@ import random
 from coreblocks.params import GenParams, RSLayouts
 from coreblocks.params.configurations import test_core_config
 from coreblocks.stages.rs_func_block import RSBlockComponent
-from coreblocks.transactions import *
-from coreblocks.transactions.lib import Adapter
+from transactron import *
+from transactron.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
 
 from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO

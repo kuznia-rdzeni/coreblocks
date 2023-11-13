@@ -1,8 +1,8 @@
 from amaranth import *
-from coreblocks.utils.fifo import BasicFifo, Semaphore
+from transactron.utils.fifo import BasicFifo, Semaphore
 from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
-from ..transactions import def_method, Method, Transaction, TModule
+from transactron import def_method, Method, Transaction, TModule
 from ..params import *
 
 

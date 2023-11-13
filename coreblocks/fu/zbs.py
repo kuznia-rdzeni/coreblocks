@@ -3,9 +3,9 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams
-from coreblocks.transactions import Method, TModule, def_method
-from coreblocks.transactions.lib import FIFO
-from coreblocks.utils import OneHotSwitch
+from transactron import Method, TModule, def_method
+from transactron.lib import FIFO
+from transactron.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
 from coreblocks.fu.fu_decoder import DecoderManager
@@ -43,13 +43,17 @@ class Zbs(Elaboratable):
         First input.
     in2: Signal(xlen), in
         Second input.
-
-    Args:
-    ----
-        gen_params: Core generation parameters.
     """
 
     def __init__(self, gen_params: GenParams, function=ZbsFunction()):
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core generation parameters.
+        function : ZbsFunction
+            Decoder manager to decode instruction.
+        """
         self.gen_params = gen_params
 
         self.xlen = gen_params.isa.xlen

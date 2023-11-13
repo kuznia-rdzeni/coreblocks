@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method, TModule
+from transactron import Method, def_method, TModule
 from coreblocks.params import RATLayouts, GenParams
 
 __all__ = ["FRAT", "RRAT"]

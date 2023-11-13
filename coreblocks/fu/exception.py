@@ -3,11 +3,11 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.isa import Funct3, ExceptionCause
 
-from coreblocks.transactions import *
-from coreblocks.transactions.lib import FIFO
+from transactron import *
+from transactron.lib import FIFO
 
 from coreblocks.params import OpType, GenParams, FuncUnitLayouts, FunctionalComponentParams
-from coreblocks.utils import OneHotSwitch
+from transactron.utils import OneHotSwitch
 from coreblocks.params.keys import ExceptionReportKey
 
 from coreblocks.fu.fu_decoder import DecoderManager

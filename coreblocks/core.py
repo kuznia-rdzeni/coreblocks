@@ -2,8 +2,8 @@ from amaranth import *
 
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.transactions.core import Transaction, TModule
-from coreblocks.transactions.lib import FIFO, ConnectTrans
+from transactron.core import Transaction, TModule
+from transactron.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
 from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
@@ -20,7 +20,7 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
-from coreblocks.utils.fifo import BasicFifo
+from transactron.utils.fifo import BasicFifo
 
 __all__ = ["Core"]
 

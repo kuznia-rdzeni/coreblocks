@@ -9,12 +9,12 @@ from parameterized import parameterized
 from collections import deque
 
 from amaranth import *
-from coreblocks.transactions import *
-from coreblocks.transactions.core import RecordDict
-from coreblocks.transactions.lib import *
+from transactron import *
+from transactron.core import RecordDict
+from transactron.lib import *
 from coreblocks.utils import *
-from coreblocks.utils._typing import LayoutLike, ModuleLike
-from coreblocks.utils import ModuleConnector
+from transactron.utils._typing import LayoutLike, ModuleLike
+from transactron.utils import ModuleConnector
 from ..common import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
@@ -157,30 +157,30 @@ class TestMemoryBank(TestCaseWithSimulator):
             yield from self.tick(random.randrange(rand) + 1)
 
         def writer():
-            for i in range(test_count):
+            for cycle in range(test_count):
                 d = random.randrange(2**data_width)
                 a = random.randrange(max_addr)
                 yield from m.write.call(data=d, addr=a)
-                for i in range(2):
+                for _ in range(2):
                     yield Settle()
                 data_dict[a] = d
                 yield from random_wait(writer_rand)
 
         def reader_req():
-            for i in range(test_count):
+            for cycle in range(test_count):
                 a = random.randrange(max_addr)
                 yield from m.read_req.call(addr=a)
-                for i in range(1):
+                for _ in range(1):
                     yield Settle()
                 if safe_writes:
                     d = data_dict[a]
                     read_req_queue.append(d)
                 else:
-                    addr_queue.append((i, a))
+                    addr_queue.append((cycle, a))
                 yield from random_wait(reader_req_rand)
 
         def reader_resp():
-            for i in range(test_count):
+            for cycle in range(test_count):
                 while not read_req_queue:
                     yield from random_wait(reader_resp_rand)
                 d = read_req_queue.popleft()

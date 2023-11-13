@@ -1,7 +1,7 @@
 from amaranth import *
-from coreblocks.transactions import Method, def_method, Priority, TModule
-from coreblocks.transactions._utils import MethodLayout
-from coreblocks.utils._typing import ValueLike
+from transactron import Method, def_method, Priority, TModule
+from transactron._utils import MethodLayout
+from transactron.utils._typing import ValueLike
 
 
 class BasicFifo(Elaboratable):

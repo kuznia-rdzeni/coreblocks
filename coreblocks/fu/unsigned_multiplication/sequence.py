@@ -2,8 +2,8 @@ from amaranth import *
 
 from coreblocks.fu.unsigned_multiplication.common import DSPMulUnit, MulBaseUnsigned
 from coreblocks.params import GenParams
-from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
+from transactron import *
+from transactron.core import def_method
 
 __all__ = ["SequentialUnsignedMul"]
 

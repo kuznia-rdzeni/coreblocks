@@ -1,7 +1,7 @@
 from amaranth import Elaboratable, Module
 
-from coreblocks.transactions.lib import AdapterTrans
-from coreblocks.utils import align_to_power_of_two
+from transactron.lib import AdapterTrans
+from transactron.utils import align_to_power_of_two
 
 from .common import TestCaseWithSimulator, TestbenchIO
 
@@ -263,7 +263,7 @@ class TestCoreAsmSource(TestCoreBase):
         self.base_dir = "test/asm/"
         self.bin_src = []
 
-        with tempfile.NamedTemporaryFile() as asm_tmp:
+        with tempfile.NamedTemporaryFile() as asm_tmp, tempfile.NamedTemporaryFile() as bin_tmp:
             subprocess.check_call(
                 [
                     "riscv64-unknown-elf-as",
@@ -276,9 +276,10 @@ class TestCoreAsmSource(TestCoreBase):
                     self.base_dir + self.source_file,
                 ]
             )
-            code = subprocess.check_output(
-                ["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, "/dev/stdout"]
+            subprocess.check_call(
+                ["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, bin_tmp.name]
             )
+            code = bin_tmp.read()
             for word_idx in range(0, len(code), 4):
                 word = code[word_idx : word_idx + 4]
                 bin_instr = int.from_bytes(word, "little")

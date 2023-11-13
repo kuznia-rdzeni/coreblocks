@@ -12,9 +12,9 @@ from coreblocks.params import (
     FuncUnitLayouts,
     FunctionalComponentParams,
 )
-from coreblocks.transactions import Method, def_method, TModule
-from coreblocks.transactions.lib import FIFO
-from coreblocks.utils import OneHotSwitch
+from transactron import Method, def_method, TModule
+from transactron.lib import FIFO
+from transactron.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
 

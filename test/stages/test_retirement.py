@@ -2,7 +2,7 @@ from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.stages.retirement import *
 from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 
-from coreblocks.transactions.lib import FIFO, Adapter
+from transactron.lib import FIFO, Adapter
 from coreblocks.structs_common.rat import RRAT
 from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config

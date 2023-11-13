@@ -2,7 +2,7 @@ from typing import Iterable, Optional
 from amaranth import Elaboratable, Module
 from amaranth.sim import Settle
 
-from coreblocks.transactions.lib import AdapterTrans
+from transactron.lib import AdapterTrans
 
 from ..common import TestCaseWithSimulator, TestbenchIO, get_outputs
 

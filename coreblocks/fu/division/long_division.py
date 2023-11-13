@@ -1,8 +1,8 @@
 from amaranth import *
 
 from coreblocks.params import GenParams
-from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
+from transactron import *
+from transactron.core import def_method
 from coreblocks.fu.division.common import DividerBase
 
 """

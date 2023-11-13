@@ -5,10 +5,12 @@ from functools import reduce
 from typing import List
 import operator
 
-from coreblocks.transactions import Method, def_method, TModule
-from coreblocks.transactions.lib import AdapterTrans
-from coreblocks.utils.utils import OneHotSwitchDynamic, assign
-from coreblocks.utils.fifo import BasicFifo
+from transactron import Method, def_method, TModule
+from transactron.core import Transaction
+from transactron.lib import AdapterTrans
+from transactron.utils.utils import OneHotSwitchDynamic, assign
+from transactron.utils.fifo import BasicFifo
+from transactron.lib.connectors import Forwarder
 
 
 class WishboneParameters:
@@ -109,8 +111,6 @@ class WishboneMaster(Elaboratable):
         self.request = Method(i=self.requestLayout)
         self.result = Method(o=self.resultLayout)
 
-        self.ready = Signal()
-        self.res_ready = Signal()
         self.result_data = Record(self.resultLayout)
 
         # latched input signals
@@ -132,6 +132,10 @@ class WishboneMaster(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
+        m.submodules.result = result = Forwarder(self.resultLayout)
+
+        request_ready = Signal()
+
         def FSMWBCycStart(request):  # noqa: N802
             # internal FSM function that starts Wishbone cycle
             m.d.sync += self.wbMaster.cyc.eq(1)
@@ -140,12 +144,6 @@ class WishboneMaster(Elaboratable):
             m.d.sync += self.wbMaster.dat_w.eq(Mux(request.we, request.data, 0))
             m.d.sync += self.wbMaster.we.eq(request.we)
             m.d.sync += self.wbMaster.sel.eq(request.sel)
-            m.next = "WBWaitACK"
-
-        @def_method(m, self.result, ready=self.res_ready)
-        def _():
-            m.d.sync += self.res_ready.eq(0)
-            return self.result_data
 
         with m.FSM("Reset"):
             with m.State("Reset"):
@@ -153,17 +151,12 @@ class WishboneMaster(Elaboratable):
                 m.next = "Idle"
             with m.State("Idle"):
                 # default values for important signals
-                m.d.sync += self.ready.eq(1)
                 m.d.sync += self.wbMaster.rst.eq(0)
                 m.d.sync += self.wbMaster.stb.eq(0)
                 m.d.sync += self.wbMaster.cyc.eq(0)
-
-                @def_method(m, self.request, ready=(self.ready & ~self.res_ready))
-                def _(arg):
-                    m.d.sync += self.ready.eq(0)
-                    m.d.sync += assign(self.txn_req, arg)
-                    # do WBCycStart state in the same clock cycle
-                    FSMWBCycStart(arg)
+                m.d.comb += request_ready.eq(1)
+                with m.If(self.request.run):
+                    m.next = "WBWaitACK"
 
             with m.State("WBCycStart"):
                 FSMWBCycStart(self.txn_req)
@@ -171,17 +164,33 @@ class WishboneMaster(Elaboratable):
 
             with m.State("WBWaitACK"):
                 with m.If(self.wbMaster.ack | self.wbMaster.err):
-                    m.d.sync += self.wbMaster.cyc.eq(0)
-                    m.d.sync += self.wbMaster.stb.eq(0)
-                    m.d.sync += self.ready.eq(1)
-                    m.d.sync += self.res_ready.eq(1)
-                    m.d.sync += self.result_data.data.eq(Mux(self.txn_req.we, 0, self.wbMaster.dat_r))
-                    m.d.sync += self.result_data.err.eq(self.wbMaster.err)
-                    m.next = "Idle"
+                    m.d.comb += request_ready.eq(result.read.run)
+                    with Transaction().body(m):
+                        # will be always ready, as we checked that in Idle
+                        result.write(m, data=Mux(self.txn_req.we, 0, self.wbMaster.dat_r), err=self.wbMaster.err)
+                    with m.If(self.request.run):
+                        m.next = "WBWaitACK"
+                    with m.Else():
+                        m.d.sync += self.wbMaster.cyc.eq(0)
+                        m.d.sync += self.wbMaster.stb.eq(0)
+                        m.next = "Idle"
                 with m.If(self.wbMaster.rty):
                     m.d.sync += self.wbMaster.cyc.eq(1)
                     m.d.sync += self.wbMaster.stb.eq(0)
                     m.next = "WBCycStart"
+
+        @def_method(m, self.result)
+        def _():
+            return result.read(m)
+
+        @def_method(m, self.request, ready=request_ready & result.write.ready)
+        def _(arg):
+            m.d.sync += assign(self.txn_req, arg)
+            # do WBCycStart state in the same clock cycle
+            FSMWBCycStart(arg)
+
+        result.write.schedule_before(self.request)
+        result.read.schedule_before(self.request)
 
         return m
 

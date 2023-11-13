@@ -15,8 +15,8 @@ if __name__ == "__main__":
 from coreblocks.params.genparams import GenParams
 from coreblocks.peripherals.wishbone import WishboneBus
 from coreblocks.core import Core
-from coreblocks.transactions import TransactionModule
-from coreblocks.utils.utils import flatten_signals
+from transactron import TransactionModule
+from transactron.utils.utils import flatten_signals
 
 from coreblocks.params.configurations import *
 

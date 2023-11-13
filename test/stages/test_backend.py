@@ -3,7 +3,7 @@ from operator import and_
 from functools import reduce
 
 from amaranth import *
-from coreblocks.transactions.lib import FIFO, AdapterTrans, Adapter, ManyToOneConnectTrans
+from transactron.lib import FIFO, AdapterTrans, Adapter, ManyToOneConnectTrans
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.params.layouts import *
 from coreblocks.params import GenParams

@@ -1,6 +1,6 @@
 from typing import Protocol
-from coreblocks.transactions import Method
-from ._typing import HasElaborate
+from transactron import Method
+from transactron.utils._typing import HasElaborate
 
 
 __all__ = ["FuncUnit", "FuncBlock", "Unifier"]

@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.fu.unsigned_multiplication.common import MulBaseUnsigned
 from coreblocks.params import GenParams
-from coreblocks.transactions.core import def_method, TModule
+from transactron.core import def_method, TModule
 
 __all__ = ["ShiftUnsignedMul"]
 

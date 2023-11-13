@@ -1,8 +1,8 @@
 from amaranth import *
 
-from coreblocks.transactions import TModule
+from transactron import TModule
 from coreblocks.params import *
-from coreblocks.utils import ValueLike
+from transactron.utils import ValueLike
 
 
 # An instruction or an instruction with the valid signal

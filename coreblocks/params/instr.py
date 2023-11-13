@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 from amaranth.hdl.ast import ValueCastable
 from amaranth import *
 
-from coreblocks.utils import ValueLike
+from transactron.utils import ValueLike
 from coreblocks.params.isa import *
 
 
@@ -27,6 +27,9 @@ class RISCVInstr(ABC, ValueCastable):
     @ValueCastable.lowermethod
     def as_value(self):
         return self.pack()
+
+    def shape(self):
+        return self.as_value().shape()
 
 
 class RTypeInstr(RISCVInstr):

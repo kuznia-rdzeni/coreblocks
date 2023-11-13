@@ -6,7 +6,7 @@ from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
 from amaranth.utils import log2_int
 
-from coreblocks.transactions.lib import AdapterTrans, Adapter
+from transactron.lib import AdapterTrans, Adapter
 from coreblocks.frontend.icache import SimpleWBCacheRefiller, ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
@@ -89,9 +89,10 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
         while True:
             yield from self.test_module.wb_ctrl.slave_wait()
 
-            # Wishbone is addressing words, so we need to shit it a bit to get the real address.
+            # Wishbone is addressing words, so we need to shift it a bit to get the real address.
             addr = (yield self.test_module.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
 
+            yield
             while random.random() < 0.5:
                 yield
 
@@ -200,7 +201,7 @@ class TestICacheBypass(TestCaseWithSimulator):
         while True:
             yield from self.m.wb_ctrl.slave_wait()
 
-            # Wishbone is addressing words, so we need to shit it a bit to get the real address.
+            # Wishbone is addressing words, so we need to shift it a bit to get the real address.
             addr = (yield self.m.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
 
             while random.random() < 0.5:

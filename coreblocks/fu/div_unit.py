@@ -1,19 +1,19 @@
 from dataclasses import KW_ONLY, dataclass
 from enum import IntFlag, auto
-from typing import Sequence, Tuple
+from collections.abc import Sequence
 
 from amaranth import *
 
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
-from coreblocks.transactions import *
-from coreblocks.transactions.core import def_method
-from coreblocks.transactions.lib import *
+from transactron import *
+from transactron.core import def_method
+from transactron.lib import *
 
 from coreblocks.fu.fu_decoder import DecoderManager
 
-from coreblocks.utils import OneHotSwitch
-from coreblocks.utils.fifo import BasicFifo
+from transactron.utils import OneHotSwitch
+from transactron.utils.fifo import BasicFifo
 from coreblocks.utils.protocols import FuncUnit
 from coreblocks.fu.division.long_division import LongDivider
 
@@ -34,7 +34,7 @@ class DivFn(DecoderManager):
         ]
 
 
-def get_input(arg: Record) -> Tuple[Value, Value]:
+def get_input(arg: Record) -> tuple[Value, Value]:
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
 
