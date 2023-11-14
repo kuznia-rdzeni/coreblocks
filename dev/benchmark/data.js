@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1699951485067,
+  "lastUpdate": 1699952442349,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12929,6 +12929,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 17714,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 884,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5648,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47438768+JumiDeluxe@users.noreply.github.com",
+            "name": "Julia Matuszewska",
+            "username": "JumiDeluxe"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8454fb8a1f180ef090157f723a617f94c26cfb5c",
+          "message": "Cache regression tests in workflow (#495)",
+          "timestamp": "2023-11-14T09:56:50+01:00",
+          "tree_id": "4fed5b33064f3f2f7ff7c30a9fc0e8f459d24d27",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8454fb8a1f180ef090157f723a617f94c26cfb5c"
+        },
+        "date": 1699952440442,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 56.95,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17713,
             "unit": "LUT4"
           },
           {
