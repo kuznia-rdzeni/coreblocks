@@ -2050,6 +2050,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.CSRLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">CSRLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.CSRLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in the control and status registers.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.CSRLayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.CSRLayouts.__init__" title="Permalink to this definition"></a></dt>
@@ -2058,13 +2059,170 @@ machine-dependent <cite>arch</cite> option for details.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayouts">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">CommonLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.CommonLayouts" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">CommonLayoutFields</span></span><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Commonly used layout fields.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayouts.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.CommonLayouts.__init__" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.addr">
+<span class="sig-name descname"><span class="pre">addr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.addr" title="Permalink to this definition"></a></dt>
+<dd><p>Memory address.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.csr">
+<span class="sig-name descname"><span class="pre">csr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.csr" title="Permalink to this definition"></a></dt>
+<dd><p>CSR number.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.data">
+<span class="sig-name descname"><span class="pre">data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.data" title="Permalink to this definition"></a></dt>
+<dd><p>Piece of data.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.error">
+<span class="sig-name descname"><span class="pre">error</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.error" title="Permalink to this definition"></a></dt>
+<dd><p>Request ended with an error.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.exception">
+<span class="sig-name descname"><span class="pre">exception</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.exception" title="Permalink to this definition"></a></dt>
+<dd><p>Exception is raised for this instruction.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.exec_fn">
+<span class="sig-name descname"><span class="pre">exec_fn</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.exec_fn" title="Permalink to this definition"></a></dt>
+<dd><p>Decoded instruction.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.exec_fn_layout">
+<span class="sig-name descname"><span class="pre">exec_fn_layout</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutList</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.exec_fn_layout" title="Permalink to this definition"></a></dt>
+<dd><p>Decoded instruction, in layout form.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.funct3">
+<span class="sig-name descname"><span class="pre">funct3</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.funct3" title="Permalink to this definition"></a></dt>
+<dd><p>RISC V funct3 value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.funct7">
+<span class="sig-name descname"><span class="pre">funct7</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.funct7" title="Permalink to this definition"></a></dt>
+<dd><p>RISC V funct7 value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.imm">
+<span class="sig-name descname"><span class="pre">imm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.imm" title="Permalink to this definition"></a></dt>
+<dd><p>Immediate value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.instr">
+<span class="sig-name descname"><span class="pre">instr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.instr" title="Permalink to this definition"></a></dt>
+<dd><p>RISC V instruction.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.op_type">
+<span class="sig-name descname"><span class="pre">op_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.op_type" title="Permalink to this definition"></a></dt>
+<dd><p>Decoded operation type.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.pc">
+<span class="sig-name descname"><span class="pre">pc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.pc" title="Permalink to this definition"></a></dt>
+<dd><p>Program counter value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.reg_id">
+<span class="sig-name descname"><span class="pre">reg_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.reg_id" title="Permalink to this definition"></a></dt>
+<dd><p>Physical register ID.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.reg_val">
+<span class="sig-name descname"><span class="pre">reg_val</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.reg_val" title="Permalink to this definition"></a></dt>
+<dd><p>Value of some physical register.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.regs_l">
+<span class="sig-name descname"><span class="pre">regs_l</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.regs_l" title="Permalink to this definition"></a></dt>
+<dd><p>Logical register numbers - as described in the RISC V manual. They index the RATs.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.regs_p">
+<span class="sig-name descname"><span class="pre">regs_p</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.regs_p" title="Permalink to this definition"></a></dt>
+<dd><p>Physical register numbers. They index the register file.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.rl_dst">
+<span class="sig-name descname"><span class="pre">rl_dst</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.rl_dst" title="Permalink to this definition"></a></dt>
+<dd><p>Logical register number of destination operand.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.rl_s1">
+<span class="sig-name descname"><span class="pre">rl_s1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.rl_s1" title="Permalink to this definition"></a></dt>
+<dd><p>Logical register number of first source operand.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.rl_s2">
+<span class="sig-name descname"><span class="pre">rl_s2</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.rl_s2" title="Permalink to this definition"></a></dt>
+<dd><p>Logical register number of second source operand.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.rob_id">
+<span class="sig-name descname"><span class="pre">rob_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.rob_id" title="Permalink to this definition"></a></dt>
+<dd><p>Reorder buffer entry identifier.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.rp_dst">
+<span class="sig-name descname"><span class="pre">rp_dst</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.rp_dst" title="Permalink to this definition"></a></dt>
+<dd><p>Physical register number of destination operand.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.rp_s1">
+<span class="sig-name descname"><span class="pre">rp_s1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.rp_s1" title="Permalink to this definition"></a></dt>
+<dd><p>Physical register number of first source operand.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.rp_s2">
+<span class="sig-name descname"><span class="pre">rp_s2</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.rp_s2" title="Permalink to this definition"></a></dt>
+<dd><p>Physical register number of second source operand.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.s1_val">
+<span class="sig-name descname"><span class="pre">s1_val</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.s1_val" title="Permalink to this definition"></a></dt>
+<dd><p>Value of first source operand.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.CommonLayoutFields.s2_val">
+<span class="sig-name descname"><span class="pre">s2_val</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.CommonLayoutFields.s2_val" title="Permalink to this definition"></a></dt>
+<dd><p>Value of second source operand.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -2072,6 +2230,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.DecodeLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">DecodeLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.DecodeLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in the decoder.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.DecodeLayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.DecodeLayouts.__init__" title="Permalink to this definition"></a></dt>
@@ -2083,10 +2242,23 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.FetchLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">FetchLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.FetchLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in the fetcher.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.FetchLayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.FetchLayouts.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.FetchLayouts.access_fault">
+<span class="sig-name descname"><span class="pre">access_fault</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.FetchLayouts.access_fault" title="Permalink to this definition"></a></dt>
+<dd><p>Instruction fetch failed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.FetchLayouts.rvc">
+<span class="sig-name descname"><span class="pre">rvc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.FetchLayouts.rvc" title="Permalink to this definition"></a></dt>
+<dd><p>Instruction is a compressed (two-byte) one.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -2094,10 +2266,17 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.FuncUnitLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">FuncUnitLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.FuncUnitLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in functional units.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.FuncUnitLayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.FuncUnitLayouts.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.FuncUnitLayouts.result">
+<span class="sig-name descname"><span class="pre">result</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.FuncUnitLayouts.result" title="Permalink to this definition"></a></dt>
+<dd><p>The result value produced in a functional unit.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -2105,10 +2284,17 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.ICacheLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">ICacheLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.ICacheLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in the instruction cache.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.ICacheLayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.ICacheLayouts.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.ICacheLayouts.error">
+<span class="sig-name descname"><span class="pre">error</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.ICacheLayouts.error" title="Permalink to this definition"></a></dt>
+<dd><p>This is the last cache refill result.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -2116,6 +2302,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.LSULayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">LSULayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.LSULayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in the load-store unit.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.LSULayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.LSULayouts.__init__" title="Permalink to this definition"></a></dt>
@@ -2127,10 +2314,17 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.RATLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">RATLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.RATLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in the register alias tables.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.RATLayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.RATLayouts.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.RATLayouts.old_rp_dst">
+<span class="sig-name descname"><span class="pre">old_rp_dst</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.RATLayouts.old_rp_dst" title="Permalink to this definition"></a></dt>
+<dd><p>Physical register previously associated with the given logical register in RRAT.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -2138,10 +2332,17 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.RFLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">RFLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.RFLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in the register file.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.RFLayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.RFLayouts.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.RFLayouts.valid">
+<span class="sig-name descname"><span class="pre">valid</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.RFLayouts.valid" title="Permalink to this definition"></a></dt>
+<dd><p>Physical register was assigned a value.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -2149,10 +2350,35 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.ROBLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">ROBLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.ROBLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in the reorder buffer.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.ROBLayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.ROBLayouts.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.ROBLayouts.done">
+<span class="sig-name descname"><span class="pre">done</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.ROBLayouts.done" title="Permalink to this definition"></a></dt>
+<dd><p>Instruction has executed, but is not committed yet.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.ROBLayouts.end">
+<span class="sig-name descname"><span class="pre">end</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.ROBLayouts.end" title="Permalink to this definition"></a></dt>
+<dd><p>Index of the entry following the last (the latest) entry in the reorder buffer.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.ROBLayouts.rob_data">
+<span class="sig-name descname"><span class="pre">rob_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.ROBLayouts.rob_data" title="Permalink to this definition"></a></dt>
+<dd><p>Data stored in a reorder buffer entry.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.ROBLayouts.start">
+<span class="sig-name descname"><span class="pre">start</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.ROBLayouts.start" title="Permalink to this definition"></a></dt>
+<dd><p>Index of the first (the earliest) entry in the reorder buffer.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -2160,9 +2386,10 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.RSInterfaceLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">RSInterfaceLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.RSInterfaceLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in functional blocks.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.RSInterfaceLayouts.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs_entries_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.RSInterfaceLayouts.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs_entries_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.RSInterfaceLayouts.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -2171,10 +2398,17 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.RSLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">RSLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.RSLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in the reservation station.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.RSLayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs_entries_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.RSLayouts.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.RSLayouts.ready_list">
+<span class="sig-name descname"><span class="pre">ready_list</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.RSLayouts.ready_list" title="Permalink to this definition"></a></dt>
+<dd><p>Bitmask of reservation station entries containing instructions which are ready to run.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -2182,10 +2416,35 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dt class="sig sig-object py" id="coreblocks.params.layouts.SchedulerLayouts">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.layouts.</span></span><span class="sig-name descname"><span class="pre">SchedulerLayouts</span></span><a class="headerlink" href="#coreblocks.params.layouts.SchedulerLayouts" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Layouts used in the scheduler.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.layouts.SchedulerLayouts.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.layouts.SchedulerLayouts.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.SchedulerLayouts.regs_l_rob_in">
+<span class="sig-name descname"><span class="pre">regs_l_rob_in</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.SchedulerLayouts.regs_l_rob_in" title="Permalink to this definition"></a></dt>
+<dd><p>Logical register number for the destination operand, before ROB allocation.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.SchedulerLayouts.regs_p_alloc_out">
+<span class="sig-name descname"><span class="pre">regs_p_alloc_out</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.SchedulerLayouts.regs_p_alloc_out" title="Permalink to this definition"></a></dt>
+<dd><p>Physical register number for the destination operand, after allocation.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.SchedulerLayouts.rs_entry_id">
+<span class="sig-name descname"><span class="pre">rs_entry_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.SchedulerLayouts.rs_entry_id" title="Permalink to this definition"></a></dt>
+<dd><p>Reservation station entry ID for the instruction.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.layouts.SchedulerLayouts.rs_selected">
+<span class="sig-name descname"><span class="pre">rs_selected</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">LayoutListField</span></em><a class="headerlink" href="#coreblocks.params.layouts.SchedulerLayouts.rs_selected" title="Permalink to this definition"></a></dt>
+<dd><p>Reservation Station number for the instruction.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -2404,7 +2663,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 13:32 2023-11-13.
+      <span class="lastupdated">Last updated on 08:29 2023-11-14.
       </span></p>
   </div>
 

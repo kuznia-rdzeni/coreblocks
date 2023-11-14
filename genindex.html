@@ -214,7 +214,7 @@
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.WishboneDataKey.__init__">(coreblocks.params.keys.WishboneDataKey method)</a>
 </li>
-        <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayouts.__init__">(coreblocks.params.layouts.CommonLayouts method)</a>
+        <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.__init__">(coreblocks.params.layouts.CommonLayoutFields method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.CSRLayouts.__init__">(coreblocks.params.layouts.CSRLayouts method)</a>
 </li>
@@ -439,6 +439,8 @@
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICacheInterface.accept_res">accept_res (coreblocks.frontend.icache.ICacheInterface attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.FetchLayouts.access_fault">access_fault (coreblocks.params.layouts.FetchLayouts attribute)</a>
+</li>
       <li><a href="transactron.lib.html#transactron.lib.adapters.Adapter">Adapter (class in transactron.lib.adapters)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.adapters.AdapterBase">AdapterBase (class in transactron.lib.adapters)</a>
@@ -461,6 +463,8 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.addr">addr (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.ADDRESS_GENERATION">ADDRESS_GENERATION (coreblocks.params.optypes.OpType attribute)</a>
 </li>
       <li><a href="transactron.utils.html#transactron.utils.utils.align_down_to_power_of_two">align_down_to_power_of_two() (in module transactron.utils.utils)</a>
@@ -659,7 +663,7 @@
 </li>
       <li><a href="transactron.utils.html#transactron.utils.utils.AssignType.COMMON">COMMON (transactron.utils.utils.AssignType attribute)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayouts">CommonLayouts (class in coreblocks.params.layouts)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields">CommonLayoutFields (class in coreblocks.params.layouts)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.COMPARE">COMPARE (coreblocks.params.optypes.OpType attribute)</a>
 </li>
@@ -857,8 +861,6 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.dependencies">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.fu_params
 
@@ -866,6 +868,8 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.fu_params">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.genparams
 
@@ -1069,6 +1073,8 @@
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.CPOP">(coreblocks.params.isa.Funct7 attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.csr">csr (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.csr_access_privilege">csr_access_privilege() (in module coreblocks.structs_common.csr)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.CSR_IMM">CSR_IMM (coreblocks.params.optypes.OpType attribute)</a>
@@ -1123,6 +1129,8 @@
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.D">(coreblocks.params.isa.Funct3 attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.data">data (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
       <li><a href="transactron.lib.html#transactron.lib.adapters.AdapterBase.data_in">data_in (transactron.lib.adapters.AdapterBase attribute)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.adapters.AdapterBase.data_out">data_out (transactron.lib.adapters.AdapterBase attribute)</a>
@@ -1209,6 +1217,8 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.DIVW">DIVW (coreblocks.params.isa.Funct3 attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.ROBLayouts.done">done (coreblocks.params.layouts.ROBLayouts attribute)</a>
+</li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.DoubleCounterCSR">DoubleCounterCSR (class in coreblocks.structs_common.csr_generic)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulComponent.dsp_width">dsp_width (coreblocks.fu.mul_unit.MulComponent attribute)</a>
@@ -1259,17 +1269,27 @@
         <li><a href="transactron.html#transactron.TModule.Else">(transactron.TModule method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.embedded">embedded (coreblocks.params.configurations.CoreConfiguration attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey.empty_valid">empty_valid (coreblocks.params.dependencies.DependencyKey attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.ROBLayouts.end">end (coreblocks.params.layouts.ROBLayouts attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.ENVIRONMENT_CALL_FROM_M">ENVIRONMENT_CALL_FROM_M (coreblocks.params.isa.ExceptionCause attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.ENVIRONMENT_CALL_FROM_S">ENVIRONMENT_CALL_FROM_S (coreblocks.params.isa.ExceptionCause attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.ENVIRONMENT_CALL_FROM_U">ENVIRONMENT_CALL_FROM_U (coreblocks.params.isa.ExceptionCause attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.error">error (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.layouts.ICacheLayouts.error">(coreblocks.params.layouts.ICacheLayouts attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.exception">exception (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.EXCEPTION">EXCEPTION (coreblocks.params.optypes.OpType attribute)</a>
 </li>
@@ -1282,6 +1302,10 @@
       <li><a href="coreblocks.params.html#coreblocks.params.keys.ExceptionReportKey">ExceptionReportKey (class in coreblocks.params.keys)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.exception.ExceptionUnitComponent">ExceptionUnitComponent (class in coreblocks.fu.exception)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.exec_fn">exec_fn (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.exec_fn_layout">exec_fn_layout (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Extension">Extension (class in coreblocks.params.isa)</a>
 </li>
@@ -1323,10 +1347,10 @@
 </li>
       <li><a href="transactron.lib.html#transactron.lib.connectors.Forwarder">Forwarder (class in transactron.lib.connectors)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Registers.FP">FP (coreblocks.params.isa.Registers attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.FRAT">FRAT (class in coreblocks.structs_common.rat)</a>
 </li>
       <li><a href="transactron.html#transactron.core.TModule.FSM">FSM() (transactron.core.TModule method)</a>
@@ -1347,7 +1371,11 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3">Funct3 (class in coreblocks.params.isa)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.funct3">funct3 (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7">Funct7 (class in coreblocks.params.isa)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.funct7">funct7 (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams">FunctionalComponentParams (class in coreblocks.params.fu_params)</a>
 </li>
@@ -1529,6 +1557,8 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.instr.IllegalInstr">IllegalInstr (class in coreblocks.params.instr)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.imm">imm (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
       <li><a href="transactron.html#transactron.graph.Direction.IN">IN (transactron.graph.Direction attribute)</a>
 </li>
       <li><a href="transactron.html#transactron.graph.Direction.INOUT">INOUT (transactron.graph.Direction attribute)</a>
@@ -1540,6 +1570,8 @@
       <li><a href="transactron.html#transactron.graph.OwnershipGraph.insert_edge">insert_edge() (transactron.graph.OwnershipGraph method)</a>
 </li>
       <li><a href="transactron.html#transactron.graph.OwnershipGraph.insert_node">insert_node() (transactron.graph.OwnershipGraph method)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.instr">instr (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.rvc.InstrDecompress.instr_mux">instr_mux() (coreblocks.frontend.rvc.InstrDecompress method)</a>
 </li>
@@ -1658,6 +1690,8 @@
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Extension.M">M (coreblocks.params.isa.Extension attribute)</a>
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.PrivilegeLevel.MACHINE">MACHINE (coreblocks.structs_common.csr.PrivilegeLevel attribute)</a>
+</li>
+      <li><a href="transactron.utils.html#transactron.utils.utils.make_hashable">make_hashable() (in module transactron.utils.utils)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.connectors.ManyToOneConnectTrans">ManyToOneConnectTrans (class in transactron.lib.connectors)</a>
 </li>
@@ -1936,6 +1970,8 @@
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.RATLayouts.old_rp_dst">old_rp_dst (coreblocks.params.layouts.RATLayouts attribute)</a>
+</li>
       <li><a href="transactron.html#transactron.tracing.TracingFragmentTransformer.on_fragment">on_fragment() (transactron.tracing.TracingFragmentTransformer method)</a>
 </li>
       <li><a href="transactron.utils.html#transactron.utils.utils.OneHotSwitch">OneHotSwitch() (in module transactron.utils.utils)</a>
@@ -1950,16 +1986,18 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Opcode.OP_IMM_32">OP_IMM_32 (coreblocks.params.isa.Opcode attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.op_type">op_type (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Opcode">Opcode (class in coreblocks.params.isa)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType">OpType (class in coreblocks.params.optypes)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.optypes_required_by_extensions">optypes_required_by_extensions() (in module coreblocks.params.optypes)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.fu_params.optypes_supported">optypes_supported() (in module coreblocks.params.fu_params)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.fu_params.optypes_supported">optypes_supported() (in module coreblocks.params.fu_params)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.OR">OR (coreblocks.params.isa.Funct3 attribute)</a>
 
       <ul>
@@ -2012,10 +2050,12 @@
         <li><a href="coreblocks.params.html#coreblocks.params.instr.UTypeInstr.pack">(coreblocks.params.instr.UTypeInstr method)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.phys_regs_bits">phys_regs_bits (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.pc">pc (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.phys_regs_bits">phys_regs_bits (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.PipelinedWishboneMaster">PipelinedWishboneMaster (class in coreblocks.peripherals.wishbone)</a>
 </li>
       <li><a href="transactron.utils.html#transactron.utils.utils.popcount">popcount() (in module transactron.utils.utils)</a>
@@ -2056,6 +2096,8 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.RATLayouts">RATLayouts (class in coreblocks.params.layouts)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.RSLayouts.ready_list">ready_list (coreblocks.params.layouts.RSLayouts attribute)</a>
+</li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.zbc.ZbcComponent.recursion_depth">recursion_depth (coreblocks.fu.zbc.ZbcComponent attribute)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.zbc.ClMultiplier.recursive_module">recursive_module() (coreblocks.fu.zbc.ClMultiplier method)</a>
@@ -2064,9 +2106,21 @@
 </li>
       <li><a href="coreblocks.fu.unsigned_multiplication.html#coreblocks.fu.unsigned_multiplication.fast_recursive.RecursiveUnsignedMul">RecursiveUnsignedMul (class in coreblocks.fu.unsigned_multiplication.fast_recursive)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.reg_id">reg_id (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.reg_val">reg_val (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rf.RegisterFile">RegisterFile (class in coreblocks.structs_common.rf)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Registers">Registers (class in coreblocks.params.isa)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.regs_l">regs_l (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.SchedulerLayouts.regs_l_rob_in">regs_l_rob_in (coreblocks.params.layouts.SchedulerLayouts attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.regs_p">regs_p (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.SchedulerLayouts.regs_p_alloc_out">regs_p_alloc_out (coreblocks.params.layouts.SchedulerLayouts attribute)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivFn.Fn.REM">REM (coreblocks.fu.div_unit.DivFn.Fn attribute)</a>
 
@@ -2092,18 +2146,20 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.replace">replace() (coreblocks.params.configurations.CoreConfiguration method)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.FuncUnitLayouts.result">result (coreblocks.params.layouts.FuncUnitLayouts attribute)</a>
+</li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.backend.ResultAnnouncement">ResultAnnouncement (class in coreblocks.stages.backend)</a>
 </li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.retirement.Retirement">Retirement (class in coreblocks.stages.retirement)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REV8">REV8 (coreblocks.params.isa.Funct3 attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.REV8">(coreblocks.params.isa.Funct7 attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12.REV8_32">REV8_32 (coreblocks.params.isa.Funct12 attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12.REV8_64">REV8_64 (coreblocks.params.isa.Funct12 attribute)</a>
@@ -2114,7 +2170,17 @@
 </li>
       <li><a href="transactron.html#transactron.core.Priority.RIGHT">RIGHT (transactron.core.Priority attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.rl_dst">rl_dst (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.rl_s1">rl_s1 (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.rl_s2">rl_s2 (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.ROBLayouts.rob_data">rob_data (coreblocks.params.layouts.ROBLayouts attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.rob_entries_bits">rob_entries_bits (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.rob_id">rob_id (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.ROBLayouts">ROBLayouts (class in coreblocks.params.layouts)</a>
 </li>
@@ -2130,11 +2196,21 @@
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.ROR">(coreblocks.params.isa.Funct7 attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.rp_dst">rp_dst (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.rp_s1">rp_s1 (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.rp_s2">rp_s2 (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.RRAT">RRAT (class in coreblocks.structs_common.rat)</a>
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rs.RS">RS (class in coreblocks.structs_common.rs)</a>
 </li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSBlockComponent.rs_entries">rs_entries (coreblocks.stages.rs_func_block.RSBlockComponent attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.SchedulerLayouts.rs_entry_id">rs_entry_id (coreblocks.params.layouts.SchedulerLayouts attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.SchedulerLayouts.rs_selected">rs_selected (coreblocks.params.layouts.SchedulerLayouts attribute)</a>
 </li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSBlockComponent">RSBlockComponent (class in coreblocks.stages.rs_func_block)</a>
 </li>
@@ -2145,6 +2221,8 @@
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.RSLayouts">RSLayouts (class in coreblocks.params.layouts)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.instr.RTypeInstr">RTypeInstr (class in coreblocks.params.instr)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.FetchLayouts.rvc">rvc (coreblocks.params.layouts.FetchLayouts attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -2162,7 +2240,11 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Registers.S11">S11 (coreblocks.params.isa.Registers attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.s1_val">s1_val (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Registers.S2">S2 (coreblocks.params.isa.Registers attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.s2_val">s2_val (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Registers.S3">S3 (coreblocks.params.isa.Registers attribute)</a>
 </li>
@@ -2284,6 +2366,8 @@
         <li><a href="transactron.html#transactron.TransactionContext.stack">(transactron.TransactionContext attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.ROBLayouts.start">start (coreblocks.params.layouts.ROBLayouts attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.start_pc">start_pc (coreblocks.params.configurations.CoreConfiguration attribute)</a>
 </li>
       <li><a href="transactron.html#transactron.core.TModule.State">State() (transactron.core.TModule method)</a>
@@ -2566,6 +2650,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Extension.V">V (coreblocks.params.isa.Extension attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.RFLayouts.valid">valid (coreblocks.params.layouts.RFLayouts attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.html#transactron.core.TransactionManager.visual_graph">visual_graph() (transactron.core.TransactionManager method)</a>
@@ -2785,7 +2871,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 13:32 2023-11-13.
+      <span class="lastupdated">Last updated on 08:29 2023-11-14.
       </span></p>
   </div>
 
