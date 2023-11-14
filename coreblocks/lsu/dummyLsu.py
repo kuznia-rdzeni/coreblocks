@@ -46,11 +46,11 @@ class LSURequesterWB(Elaboratable):
         mask = Signal(mask_len)
         with m.Switch(funct3):
             with m.Case(Funct3.B, Funct3.BU):
-                m.d.comb += mask.eq(0x1 << addr[0:2])
+                m.d.av_comb += mask.eq(0x1 << addr[0:2])
             with m.Case(Funct3.H, Funct3.HU):
-                m.d.comb += mask.eq(0x3 << (addr[1] << 1))
+                m.d.av_comb += mask.eq(0x3 << (addr[1] << 1))
             with m.Case(Funct3.W):
-                m.d.comb += mask.eq(0xF)
+                m.d.av_comb += mask.eq(0xF)
         return mask
 
     def postprocess_load_data(self, m: ModuleLike, funct3: Value, raw_data: Value, addr: Value):
@@ -58,42 +58,42 @@ class LSURequesterWB(Elaboratable):
         with m.Switch(funct3):
             with m.Case(Funct3.B, Funct3.BU):
                 tmp = Signal(8)
-                m.d.comb += tmp.eq((raw_data >> (addr[0:2] << 3)) & 0xFF)
+                m.d.av_comb += tmp.eq((raw_data >> (addr[0:2] << 3)) & 0xFF)
                 with m.If(funct3 == Funct3.B):
-                    m.d.comb += data.eq(tmp.as_signed())
+                    m.d.av_comb += data.eq(tmp.as_signed())
                 with m.Else():
-                    m.d.comb += data.eq(tmp)
+                    m.d.av_comb += data.eq(tmp)
             with m.Case(Funct3.H, Funct3.HU):
                 tmp = Signal(16)
-                m.d.comb += tmp.eq((raw_data >> (addr[1] << 4)) & 0xFFFF)
+                m.d.av_comb += tmp.eq((raw_data >> (addr[1] << 4)) & 0xFFFF)
                 with m.If(funct3 == Funct3.H):
-                    m.d.comb += data.eq(tmp.as_signed())
+                    m.d.av_comb += data.eq(tmp.as_signed())
                 with m.Else():
-                    m.d.comb += data.eq(tmp)
+                    m.d.av_comb += data.eq(tmp)
             with m.Case():
-                m.d.comb += data.eq(raw_data)
+                m.d.av_comb += data.eq(raw_data)
         return data
 
     def prepare_data_to_save(self, m: ModuleLike, funct3: Value, raw_data: Value, addr: Value):
         data = Signal.like(raw_data)
         with m.Switch(funct3):
             with m.Case(Funct3.B):
-                m.d.comb += data.eq(raw_data[0:8] << (addr[0:2] << 3))
+                m.d.av_comb += data.eq(raw_data[0:8] << (addr[0:2] << 3))
             with m.Case(Funct3.H):
-                m.d.comb += data.eq(raw_data[0:16] << (addr[1] << 4))
+                m.d.av_comb += data.eq(raw_data[0:16] << (addr[1] << 4))
             with m.Case():
-                m.d.comb += data.eq(raw_data)
+                m.d.av_comb += data.eq(raw_data)
         return data
 
     def check_align(self, m: TModule, funct3: Value, addr: Value):
         aligned = Signal()
         with m.Switch(funct3):
             with m.Case(Funct3.W):
-                m.d.comb += aligned.eq(addr[0:2] == 0)
+                m.d.av_comb += aligned.eq(addr[0:2] == 0)
             with m.Case(Funct3.H, Funct3.HU):
-                m.d.comb += aligned.eq(addr[0] == 0)
+                m.d.av_comb += aligned.eq(addr[0] == 0)
             with m.Case():
-                m.d.comb += aligned.eq(1)
+                m.d.av_comb += aligned.eq(1)
         return aligned
 
     def elaborate(self, platform):
