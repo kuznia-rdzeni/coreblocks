@@ -40,7 +40,7 @@ class TestFetch(TestCaseWithSimulator):
 
     def decode_test_proc(self):
         # testing an OP_IMM instruction (test copied from test_decoder.py)
-        yield from self.test_module.io_in.call(data=0x02A28213)
+        yield from self.test_module.io_in.call(instr=0x02A28213)
         decoded = yield from self.test_module.io_out.call()
 
         self.assertEqual(decoded["exec_fn"]["op_type"], OpType.ARITHMETIC)
@@ -52,7 +52,7 @@ class TestFetch(TestCaseWithSimulator):
         self.assertEqual(decoded["imm"], 42)
 
         # testing an OP instruction (test copied from test_decoder.py)
-        yield from self.test_module.io_in.call(data=0x003100B3)
+        yield from self.test_module.io_in.call(instr=0x003100B3)
         decoded = yield from self.test_module.io_out.call()
 
         self.assertEqual(decoded["exec_fn"]["op_type"], OpType.ARITHMETIC)
@@ -63,7 +63,7 @@ class TestFetch(TestCaseWithSimulator):
         self.assertEqual(decoded["regs_l"]["rl_s2"], 3)
 
         # testing an illegal
-        yield from self.test_module.io_in.call(data=0x0)
+        yield from self.test_module.io_in.call(instr=0x0)
         decoded = yield from self.test_module.io_out.call()
 
         self.assertEqual(decoded["exec_fn"]["op_type"], OpType.EXCEPTION)
@@ -73,7 +73,7 @@ class TestFetch(TestCaseWithSimulator):
         self.assertEqual(decoded["regs_l"]["rl_s1"], 0)
         self.assertEqual(decoded["regs_l"]["rl_s2"], 0)
 
-        yield from self.test_module.io_in.call(data=0x0, access_fault=1)
+        yield from self.test_module.io_in.call(instr=0x0, access_fault=1)
         decoded = yield from self.test_module.io_out.call()
 
         self.assertEqual(decoded["exec_fn"]["op_type"], OpType.EXCEPTION)
