@@ -252,8 +252,8 @@ class LSUDummy(FuncBlock, Elaboratable):
             m.d.sync += issued.eq(1)
             results.write(m, data=0, exception=0, cause=0)
 
-        with Transaction().body(m, request=instr_ready):
-            res = requester.accept(m)
+        with Transaction().body(m):
+            res = requester.accept(m)  # can happen only after issue
             results.write(m, res)
 
         @def_method(m, self.get_result)
