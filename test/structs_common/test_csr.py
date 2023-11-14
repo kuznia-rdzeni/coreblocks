@@ -127,7 +127,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             yield from self.random_wait()
             if op["exp"]["rs1"]["rp_s1"]:
-                yield from self.dut.update.call(tag=op["exp"]["rs1"]["rp_s1"], value=op["exp"]["rs1"]["value"])
+                yield from self.dut.update.call(reg_id=op["exp"]["rs1"]["rp_s1"], reg_val=op["exp"]["rs1"]["value"])
 
             yield from self.random_wait()
             yield from self.dut.precommit.call()

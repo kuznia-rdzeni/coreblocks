@@ -1,4 +1,5 @@
-from typing import Iterable, Optional
+from collections.abc import Iterable
+from typing import Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
 from transactron import Method, def_method, TModule
@@ -18,15 +19,15 @@ class RS(Elaboratable):
         self.rs_entries_bits = (rs_entries - 1).bit_length()
         self.layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
         self.internal_layout = [
-            ("rs_data", self.layouts.data_layout),
+            ("rs_data", self.layouts.rs.data_layout),
             ("rec_full", 1),
             ("rec_ready", 1),
             ("rec_reserved", 1),
         ]
 
-        self.insert = Method(i=self.layouts.insert_in)
-        self.select = Method(o=self.layouts.select_out)
-        self.update = Method(i=self.layouts.update_in)
+        self.insert = Method(i=self.layouts.rs.insert_in)
+        self.select = Method(o=self.layouts.rs.select_out)
+        self.update = Method(i=self.layouts.rs.update_in)
         self.take = Method(i=self.layouts.take_in, o=self.layouts.take_out)
 
         self.ready_for = [list(op_list) for op_list in ready_for]
@@ -69,16 +70,16 @@ class RS(Elaboratable):
             m.d.sync += self.data[rs_entry_id].rec_reserved.eq(1)
 
         @def_method(m, self.update)
-        def _(tag: Value, value: Value) -> None:
+        def _(reg_id: Value, reg_val: Value) -> None:
             for record in self.data:
                 with m.If(record.rec_full.bool()):
-                    with m.If(record.rs_data.rp_s1 == tag):
+                    with m.If(record.rs_data.rp_s1 == reg_id):
                         m.d.sync += record.rs_data.rp_s1.eq(0)
-                        m.d.sync += record.rs_data.s1_val.eq(value)
+                        m.d.sync += record.rs_data.s1_val.eq(reg_val)
 
-                    with m.If(record.rs_data.rp_s2 == tag):
+                    with m.If(record.rs_data.rp_s2 == reg_id):
                         m.d.sync += record.rs_data.rp_s2.eq(0)
-                        m.d.sync += record.rs_data.s2_val.eq(value)
+                        m.d.sync += record.rs_data.s2_val.eq(reg_val)
 
         @def_method(m, self.take, ready=take_possible)
         def _(rs_entry_id: Value) -> RecordDict:

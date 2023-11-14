@@ -3,7 +3,13 @@ import random
 
 from amaranth import *
 from test.common import *
-from coreblocks.utils import align_to_power_of_two, popcount, count_leading_zeros, count_trailing_zeros
+from transactron.utils import (
+    align_to_power_of_two,
+    align_down_to_power_of_two,
+    popcount,
+    count_leading_zeros,
+    count_trailing_zeros,
+)
 from parameterized import parameterized_class
 
 
@@ -27,6 +33,23 @@ class TestAlignToPowerOfTwo(unittest.TestCase):
 
         for num, power, expected in test_cases:
             out = align_to_power_of_two(num, power)
+            self.assertEqual(expected, out)
+
+    def test_align_down_to_power_of_two(self):
+        test_cases = [
+            (3, 1, 2),
+            (3, 0, 3),
+            (3, 3, 0),
+            (8, 3, 8),
+            (8, 2, 8),
+            (33, 5, 32),
+            (29, 5, 0),
+            (29, 1, 28),
+            (29, 3, 24),
+        ]
+
+        for num, power, expected in test_cases:
+            out = align_down_to_power_of_two(num, power)
             self.assertEqual(expected, out)
 
 

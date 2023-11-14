@@ -11,7 +11,7 @@ from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from coreblocks.utils import ModuleConnector
+from transactron.utils import ModuleConnector
 from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock
 
 
@@ -105,7 +105,7 @@ class TestFetch(TestCaseWithSimulator):
 
                 self.instr_queue.append(
                     {
-                        "data": data,
+                        "instr": data,
                         "pc": addr,
                         "is_branch": is_branch,
                         "next_pc": next_pc,
@@ -134,7 +134,7 @@ class TestFetch(TestCaseWithSimulator):
 
             v = yield from self.m.io_out.call()
             self.assertEqual(v["pc"], instr["pc"])
-            self.assertEqual(v["data"], instr["data"])
+            self.assertEqual(v["instr"], instr["instr"])
 
     def test(self):
         issue_req_mock, accept_res_mock, cache_process = self.cache_processes()

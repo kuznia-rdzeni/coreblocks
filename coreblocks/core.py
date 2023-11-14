@@ -20,7 +20,7 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
-from coreblocks.utils.fifo import BasicFifo
+from transactron.utils.fifo import BasicFifo
 
 __all__ = ["Core"]
 
@@ -75,8 +75,8 @@ class Core(Elaboratable):
             gen=self.gen_params,
             get_result=self.func_blocks_unifier.get_result,
             rob_mark_done=self.ROB.mark_done,
-            rs_write_val=self.func_blocks_unifier.update,
-            rf_write_val=self.RF.write,
+            rs_update=self.func_blocks_unifier.update,
+            rf_write=self.RF.write,
         )
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)

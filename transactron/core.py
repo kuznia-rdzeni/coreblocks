@@ -2,7 +2,18 @@ from collections import defaultdict, deque
 from collections.abc import Sequence, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
-from typing import ClassVar, NoReturn, TypeAlias, TypedDict, Union, Optional, Tuple
+from typing import (
+    ClassVar,
+    NoReturn,
+    TypeAlias,
+    TypedDict,
+    Union,
+    Optional,
+    Tuple,
+    TypeVar,
+    Protocol,
+    runtime_checkable,
+)
 from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
@@ -10,11 +21,10 @@ from amaranth import tracer
 from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 
-from coreblocks.utils import AssignType, assign, ModuleConnector
-from coreblocks.utils.utils import OneHotSwitchDynamic
+from transactron.utils import AssignType, assign, ModuleConnector, silence_mustuse
+from transactron.utils.utils import OneHotSwitchDynamic
 from ._utils import *
-from coreblocks.utils import silence_mustuse
-from coreblocks.utils._typing import ValueLike, SignalBundle, HasElaborate, SwitchKey, ModuleLike
+from transactron.utils._typing import ValueLike, SignalBundle, HasElaborate, SwitchKey, ModuleLike
 from .graph import Owned, OwnershipGraph, Direction
 
 __all__ = [
@@ -38,6 +48,7 @@ PriorityOrder: TypeAlias = dict["Transaction", int]
 TransactionScheduler: TypeAlias = Callable[["MethodMap", TransactionGraph, TransactionGraphCC, PriorityOrder], Module]
 RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 TransactionOrMethod: TypeAlias = Union["Transaction", "Method"]
+TransactionOrMethodBound = TypeVar("TransactionOrMethodBound", "Transaction", "Method")
 
 
 class Priority(Enum):
@@ -53,6 +64,7 @@ class RelationBase(TypedDict):
     end: TransactionOrMethod
     priority: Priority
     conflict: bool
+    silence_warning: bool
 
 
 class Relation(RelationBase):
@@ -260,7 +272,7 @@ class TransactionManager(Elaboratable):
             start = relation["start"]
             end = relation["end"]
             if not relation["conflict"]:  # relation added with schedule_before
-                if end.def_order < start.def_order:
+                if end.def_order < start.def_order and not relation["silence_warning"]:
                     raise RuntimeError(f"{start.name!r} scheduled before {end.name!r}, but defined afterwards")
 
             for trans_start in method_map.transactions_for(start):
@@ -670,15 +682,20 @@ class TModule(ModuleLike, Elaboratable):
         return self.main_module
 
 
-class TransactionBase(Owned):
+@runtime_checkable
+class TransactionBase(Owned, Protocol):
     stack: ClassVar[list[Union["Transaction", "Method"]]] = []
     def_counter: ClassVar[count] = count()
     def_order: int
     defined: bool = False
     name: str
+    method_uses: dict["Method", Tuple[ValueLike, ValueLike]]
+    relations: list[RelationBase]
+    simultaneous_list: list[TransactionOrMethod]
+    independent_list: list[TransactionOrMethod]
 
     def __init__(self):
-        self.method_uses: dict[Method, Tuple[ValueLike, ValueLike]] = dict()
+        self.method_uses: dict["Method", Tuple[ValueLike, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
         self.simultaneous_list: list[TransactionOrMethod] = []
         self.independent_list: list[TransactionOrMethod] = []
@@ -698,7 +715,9 @@ class TransactionBase(Owned):
             Is one of conflicting `Transaction`\\s or `Method`\\s prioritized?
             Defaults to undefined priority relation.
         """
-        self.relations.append(RelationBase(end=end, priority=priority, conflict=True))
+        self.relations.append(
+            RelationBase(end=end, priority=priority, conflict=True, silence_warning=self.owner != end.owner)
+        )
 
     def schedule_before(self, end: TransactionOrMethod) -> None:
         """Adds a priority relation.
@@ -712,7 +731,9 @@ class TransactionBase(Owned):
         end: Transaction or Method
             The other `Transaction` or `Method`
         """
-        self.relations.append(RelationBase(end=end, priority=Priority.LEFT, conflict=False))
+        self.relations.append(
+            RelationBase(end=end, priority=Priority.LEFT, conflict=False, silence_warning=self.owner != end.owner)
+        )
 
     def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
         if method in self.method_uses:
@@ -769,9 +790,7 @@ class TransactionBase(Owned):
         self.independent_list += others
 
     @contextmanager
-    def context(self, m: TModule) -> Iterator[Self]:
-        assert isinstance(self, Transaction) or isinstance(self, Method)  # for typing
-
+    def context(self: TransactionOrMethodBound, m: TModule) -> Iterator[TransactionOrMethodBound]:
         parent = TransactionBase.peek()
         if parent is not None:
             parent.schedule_before(self)
@@ -1208,7 +1227,7 @@ def def_method(m: TModule, method: Method, ready: ValueLike = C(1)):
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:
-            ret_out = method_def_helper(method, func, arg, **arg.fields)
+            ret_out = method_def_helper(method, func, arg)
 
         if ret_out is not None:
             m.d.top_comb += assign(out, ret_out, fields=AssignType.ALL)

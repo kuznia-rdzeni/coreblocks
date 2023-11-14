@@ -60,8 +60,8 @@ class SchedulerTestCircuit(Elaboratable):
 
         # mocked RS
         for i, rs in enumerate(self.rs):
-            alloc_adapter = Adapter(o=rs_layouts.select_out)
-            insert_adapter = Adapter(i=rs_layouts.insert_in)
+            alloc_adapter = Adapter(o=rs_layouts.rs.select_out)
+            insert_adapter = Adapter(i=rs_layouts.rs.insert_in)
 
             select_test = TestbenchIO(alloc_adapter)
             insert_test = TestbenchIO(insert_adapter)

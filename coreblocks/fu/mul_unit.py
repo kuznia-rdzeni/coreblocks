@@ -1,5 +1,5 @@
 from enum import IntFlag, IntEnum, auto
-from typing import Sequence, Tuple
+from collections.abc import Sequence
 from dataclasses import KW_ONLY, dataclass
 
 from amaranth import *
@@ -18,7 +18,7 @@ from coreblocks.fu.fu_decoder import DecoderManager
 
 __all__ = ["MulUnit", "MulFn", "MulComponent", "MulType"]
 
-from coreblocks.utils import OneHotSwitch
+from transactron.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
 
@@ -45,7 +45,7 @@ class MulFn(DecoderManager):
         ]
 
 
-def get_input(arg: Record) -> Tuple[Value, Value]:
+def get_input(arg: Record) -> tuple[Value, Value]:
     """
     Operation of getting two input values.
 
@@ -56,7 +56,7 @@ def get_input(arg: Record) -> Tuple[Value, Value]:
 
     Returns
     -------
-    return : Tuple[Value, Value]
+    return : tuple[Value, Value]
         Two input values.
     """
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)

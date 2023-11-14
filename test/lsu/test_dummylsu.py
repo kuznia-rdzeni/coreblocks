@@ -5,6 +5,7 @@ from typing import Optional
 from amaranth.sim import Settle, Passive
 
 from transactron.lib import Adapter
+from transactron._utils import int_to_signed, signed_to_int
 from coreblocks.params import OpType, GenParams
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
@@ -13,7 +14,7 @@ from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock, int_to_signed, signed_to_int
+from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
@@ -22,7 +23,7 @@ def generate_register(max_reg_val: int, phys_regs_bits: int) -> tuple[int, int, 
         rp = random.randint(1, 2**phys_regs_bits - 1)
         val = 0
         real_val = random.randint(0, max_reg_val // 4) * 4
-        ann_data = {"tag": rp, "value": real_val}
+        ann_data = {"reg_id": rp, "reg_val": real_val}
     else:
         rp = 0
         val = random.randint(0, max_reg_val // 4) * 4
@@ -337,7 +338,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             rp_s2, s2_val, ann_data2, data = generate_register(0xFFFFFFFF, self.gp.phys_regs_bits)
             if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
                 ann_data2 = None
-                data = ann_data1["value"]
+                data = ann_data1["reg_val"]
             # decide in which order we would get announcments
             if random.randint(0, 1):
                 self.announce_queue.append((ann_data1, ann_data2))

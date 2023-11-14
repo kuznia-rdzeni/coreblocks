@@ -13,8 +13,8 @@ from transactron import *
 from transactron.core import RecordDict
 from transactron.lib import *
 from coreblocks.utils import *
-from coreblocks.utils._typing import LayoutLike, ModuleLike
-from coreblocks.utils import ModuleConnector
+from transactron.utils._typing import LayoutLike, ModuleLike
+from transactron.utils import ModuleConnector
 from ..common import (
     SimpleTestCircuit,
     TestCaseWithSimulator,

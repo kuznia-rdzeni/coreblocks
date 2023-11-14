@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overload
+from typing import Literal, Optional, TypeAlias, cast, overload
+from collections.abc import Iterable, Mapping
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
@@ -12,8 +13,10 @@ __all__ = [
     "assign",
     "OneHotSwitchDynamic",
     "OneHotSwitch",
+    "make_hashable",
     "flatten_signals",
     "align_to_power_of_two",
+    "align_down_to_power_of_two",
     "bits_from_int",
     "ModuleConnector",
     "silence_mustuse",
@@ -334,6 +337,15 @@ def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]
 
 
+def make_hashable(val):
+    if isinstance(val, Mapping):
+        return frozenset(((k, make_hashable(v)) for k, v in val.items()))
+    elif isinstance(val, Iterable):
+        return (make_hashable(v) for v in val)
+    else:
+        return val
+
+
 def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
     """
     Flattens input data, which can be either a signal, a record, a list (or a dict) of SignalBundle items.
@@ -374,6 +386,26 @@ def align_to_power_of_two(num: int, power: int) -> int:
     if num & mask == 0:
         return num
     return (num & ~mask) + 2**power
+
+
+def align_down_to_power_of_two(num: int, power: int) -> int:
+    """Rounds down a number to the given power of two.
+
+    Parameters
+    ----------
+    num : int
+        The number to align.
+    power : int
+        The power of two to align to.
+
+    Returns
+    -------
+    int
+        The aligned number.
+    """
+    mask = 2**power - 1
+
+    return num & ~mask
 
 
 def bits_from_int(num: int, lower: int, length: int):

@@ -55,7 +55,7 @@ class PinManager:
     def p(self, count: int = 1):
         return " ".join([self.pin_bag.pop() for _ in range(count)])
 
-    def named_pin(self, names: list[str]):
+    def named_pin(self, names: Iterable[str]):
         for name in names:
             if name in self.pin_bag:
                 self.pin_bag.remove(name)
