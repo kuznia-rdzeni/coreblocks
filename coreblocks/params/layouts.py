@@ -100,6 +100,9 @@ class CommonLayoutFields:
         self.exception: LayoutListField = ("exception", 1)
         """Exception is raised for this instruction."""
 
+        self.cause: LayoutListField = ("cause", ExceptionCause)
+        """Exception cause."""
+
         self.error: LayoutListField = ("error", 1)
         """Request ended with an error."""
 
@@ -497,6 +500,7 @@ class LSULayouts:
     """Layouts used in the load-store unit."""
 
     def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
         data = gen_params.get(RSFullDataLayout)
 
         data_layout = layout_subset(
@@ -520,6 +524,26 @@ class LSULayouts:
         retirement = gen_params.get(RetirementLayouts)
 
         self.precommit = retirement.precommit
+
+        self.store: LayoutListField = ("store", 1)
+
+        self.issue: LayoutList = [
+            fields.addr,
+            fields.data,
+            fields.funct3,
+            self.store
+        ]
+
+        self.issue_out: LayoutList = [
+            fields.exception,
+            fields.cause
+        ]
+
+        self.accept: LayoutList = [
+            fields.data,
+            fields.exception,
+            fields.cause
+        ]
 
 
 class CSRLayouts:
@@ -570,11 +594,8 @@ class ExceptionRegisterLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.cause: LayoutListField = ("cause", ExceptionCause)
-        """Exception cause."""
-
         self.get: LayoutList = [
-            self.cause,
+            fields.cause,
             fields.rob_id,
         ]
 
