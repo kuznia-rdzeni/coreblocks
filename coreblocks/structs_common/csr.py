@@ -3,7 +3,7 @@ from amaranth.lib.enum import IntEnum
 from dataclasses import dataclass
 
 from transactron import Method, def_method, Transaction, TModule
-from coreblocks.utils import assign, bits_from_int
+from transactron.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
@@ -194,9 +194,9 @@ class CSRUnit(FuncBlock, Elaboratable):
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
-        self.select = Method(o=self.csr_layouts.rs_select_out)
-        self.insert = Method(i=self.csr_layouts.rs_insert_in)
-        self.update = Method(i=self.csr_layouts.rs_update_in)
+        self.select = Method(o=self.csr_layouts.rs.select_out)
+        self.insert = Method(i=self.csr_layouts.rs.insert_in)
+        self.update = Method(i=self.csr_layouts.rs.update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
         self.precommit = Method(i=self.csr_layouts.precommit)
 
@@ -223,7 +223,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         current_result = Signal(self.gen_params.isa.xlen)
 
-        instr = Record(self.csr_layouts.rs_data_layout + [("valid", 1)])
+        instr = Record(self.csr_layouts.rs.data_layout + [("valid", 1)])
 
         m.d.comb += ready_to_process.eq(rob_sfx_empty & instr.valid & (instr.rp_s1 == 0))
 
@@ -310,9 +310,9 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += instr.valid.eq(1)
 
         @def_method(m, self.update)
-        def _(tag, value):
-            with m.If(tag == instr.rp_s1):
-                m.d.sync += instr.s1_val.eq(value)
+        def _(reg_id, reg_val):
+            with m.If(reg_id == instr.rp_s1):
+                m.d.sync += instr.s1_val.eq(reg_val)
                 m.d.sync += instr.rp_s1.eq(0)
 
         @def_method(m, self.get_result, done)

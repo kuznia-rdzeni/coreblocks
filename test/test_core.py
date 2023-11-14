@@ -1,7 +1,7 @@
 from amaranth import Elaboratable, Module
 
 from transactron.lib import AdapterTrans
-from coreblocks.utils import align_to_power_of_two
+from transactron.utils import align_to_power_of_two
 
 from .common import TestCaseWithSimulator, TestbenchIO
 
@@ -111,7 +111,7 @@ class TestCoreBase(TestCaseWithSimulator):
         return (yield self.m.core.RF.entries[reg_id].reg_val)
 
     def push_instr(self, opcode):
-        yield from self.m.io_in.call(data=opcode)
+        yield from self.m.io_in.call(instr=opcode)
 
     def compare_core_states(self, sw_core):
         for i in range(self.gp.isa.reg_cnt):

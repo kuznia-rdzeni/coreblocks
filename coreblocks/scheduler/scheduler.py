@@ -5,7 +5,7 @@ from amaranth import *
 from transactron import Method, Transaction, TModule
 from transactron.lib import FIFO, Forwarder
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
-from coreblocks.utils import assign, AssignType
+from transactron.utils import assign, AssignType
 from coreblocks.utils.protocols import FuncBlock
 
 
