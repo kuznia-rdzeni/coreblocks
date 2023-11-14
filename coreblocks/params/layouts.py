@@ -527,23 +527,11 @@ class LSULayouts:
 
         self.store: LayoutListField = ("store", 1)
 
-        self.issue: LayoutList = [
-            fields.addr,
-            fields.data,
-            fields.funct3,
-            self.store
-        ]
+        self.issue: LayoutList = [fields.addr, fields.data, fields.funct3, self.store]
 
-        self.issue_out: LayoutList = [
-            fields.exception,
-            fields.cause
-        ]
+        self.issue_out: LayoutList = [fields.exception, fields.cause]
 
-        self.accept: LayoutList = [
-            fields.data,
-            fields.exception,
-            fields.cause
-        ]
+        self.accept: LayoutList = [fields.data, fields.exception, fields.cause]
 
 
 class CSRLayouts:

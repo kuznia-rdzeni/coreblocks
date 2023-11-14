@@ -39,12 +39,6 @@ class LSURequesterWB(Elaboratable):
         self.gen_params = gen_params
         self.bus = bus
 
-#        self.loadedData = Signal(self.gen_params.isa.xlen)
-#        self.get_result_ack = Signal()
-#        self.result_ready = Signal()
-#        self.execute = Signal()
-#        self.op_exception = Signal()
-        
         lsu_layouts = gen_params.get(LSULayouts)
 
         self.issue = Method(i=lsu_layouts.issue, o=lsu_layouts.issue_out)
@@ -108,15 +102,6 @@ class LSURequesterWB(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-#        instr_ready = (
-#            (self.current_instr.rp_s1 == 0)
-#            & (self.current_instr.rp_s2 == 0)
-#            & self.current_instr.valid
-#            & ~self.result_ready
-#        )
-
-#        is_load = self.current_instr.exec_fn.op_type == OpType.LOAD
-
         addr_reg = Signal(self.gen_params.isa.xlen)
         funct3_reg = Signal(Funct3)
         store_reg = Signal()
@@ -139,9 +124,9 @@ class LSURequesterWB(Elaboratable):
                 m.d.sync += store_reg.eq(store)
             with m.Else():
                 m.d.av_comb += exception.eq(1)
-                m.d.av_comb += cause.eq(Mux(
-                                store, ExceptionCause.STORE_ADDRESS_MISALIGNED, ExceptionCause.LOAD_ADDRESS_MISALIGNED
-                            ))
+                m.d.av_comb += cause.eq(
+                    Mux(store, ExceptionCause.STORE_ADDRESS_MISALIGNED, ExceptionCause.LOAD_ADDRESS_MISALIGNED)
+                )
 
             return {"exception": exception, "cause": cause}
 
@@ -154,49 +139,14 @@ class LSURequesterWB(Elaboratable):
             m.d.sync += request_sent.eq(0)
 
             data = self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg)
-                    
+
             with m.If(fetched.err):
                 m.d.av_comb += exception.eq(1)
-                m.d.av_comb += cause.eq(Mux(store_reg, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT))
-            
+                m.d.av_comb += cause.eq(
+                    Mux(store_reg, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT)
+                )
+
             return {"data": data, "exception": exception, "cause": cause}
-
-#        with m.FSM("Start"):
-#            with m.State("Start"):
-#                with m.If(instr_ready & (self.execute | is_load)):
-#                    with m.If(aligned):
-#                        with Transaction().body(m):
-#                            self.bus.request(m, addr=addr >> 2, we=~is_load, sel=bytes_mask, data=data)
-#                            m.next = "End"
-#                    with m.Else():
-#                        with Transaction().body(m):
-#                            m.d.sync += self.op_exception.eq(1)
-#                            m.d.sync += self.result_ready.eq(1)
-#
-#                            cause = Mux(
-#                                is_load, ExceptionCause.LOAD_ADDRESS_MISALIGNED, ExceptionCause.STORE_ADDRESS_MISALIGNED
-#                            )
-#                            self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
-#
-#                            m.next = "End"
-
-#            with m.State("End"):
-#                with Transaction().body(m):
-#                    fetched = self.bus.result(m)
-#
-#                    m.d.sync += self.loadedData.eq(self.postprocess_load_data(m, fetched.data, addr))
-#
-#                    with m.If(fetched.err):
-#                        cause = Mux(is_load, ExceptionCause.LOAD_ACCESS_FAULT, ExceptionCause.STORE_ACCESS_FAULT)
-#                        self.report(m, rob_id=self.current_instr.rob_id, cause=cause)
-#
-#                    m.d.sync += self.op_exception.eq(fetched.err)
-#                    m.d.sync += self.result_ready.eq(1)
-#
-#                with m.If(self.get_result_ack):
-#                    m.d.sync += self.result_ready.eq(0)
-#                    m.d.sync += self.op_exception.eq(0)
-#                    m.next = "Start"
 
         return m
 
@@ -261,11 +211,7 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         m.submodules.results = results = self.forwarder = Forwarder(self.lsu_layouts.accept)
 
-        instr_ready = (
-            (current_instr.rp_s1 == 0)
-            & (current_instr.rp_s2 == 0)
-            & valid
-        )
+        instr_ready = (current_instr.rp_s1 == 0) & (current_instr.rp_s2 == 0) & valid
 
         instr_is_fence = Signal()
         m.d.comb += instr_is_fence.eq(current_instr.exec_fn.op_type == OpType.FENCE)
@@ -295,7 +241,13 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         with Transaction().body(m, request=instr_ready & ~issued & ~instr_is_fence & (execute | instr_is_load)):
             m.d.sync += issued.eq(1)
-            res = requester.issue(m, addr=current_instr.s1_val + current_instr.imm, data=current_instr.s2_val, funct3=current_instr.exec_fn.funct3, store=~instr_is_load)
+            res = requester.issue(
+                m,
+                addr=current_instr.s1_val + current_instr.imm,
+                data=current_instr.s2_val,
+                funct3=current_instr.exec_fn.funct3,
+                store=~instr_is_load,
+            )
             with m.If(res["exception"]):
                 results.write(m, data=0, exception=res["exception"], cause=res["cause"])
 
@@ -327,9 +279,7 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         @def_method(m, self.precommit)
         def _(rob_id: Value):
-            with m.If(
-                valid & (rob_id == current_instr.rob_id) & ~instr_is_fence
-            ):
+            with m.If(valid & (rob_id == current_instr.rob_id) & ~instr_is_fence):
                 m.d.comb += execute.eq(1)
 
         return m
