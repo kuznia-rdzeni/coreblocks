@@ -13,18 +13,15 @@ __all__ = ["LSUDummy", "LSUBlockComponent"]
 
 class LSURequesterWB(Elaboratable):
     """
-    Internal implementation of `LSUDummy` logic, which should be embedded into `LSUDummy`
-    class to expose transactional interface. After the instruction is processed,
-    `result_ready` bit is set to 1.  `LSUDummy` is expected to put
-    `result_ack` high for at least 1 cycle after the results have
-    been read and can be cleared.
+    Wishbone request logic for the load/store unit. Its job is to interface
+    between the LSU and the Wishbone bus.
 
     Attributes
     ----------
-    get_result_ack : Signal, in
-        Instructs to clean the internal state after processing an instruction.
-    result_ready : Signal, out
-        Signals that `resultData` is valid.
+    issue : Method
+        Issues a new request to the bus.
+    accept : Method
+        Retrieves a result from the bus.
     """
 
     def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
@@ -34,7 +31,7 @@ class LSURequesterWB(Elaboratable):
         gen_params : GenParams
             Parameters to be used during processor generation.
         bus : WishboneMaster
-            An instance of the Wishbone master for interfacing with the data memory.
+            An instance of the Wishbone master for interfacing with the data bus.
         """
         self.gen_params = gen_params
         self.bus = bus
@@ -181,7 +178,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         gen_params : GenParams
             Parameters to be used during processor generation.
         bus : WishboneMaster
-            An instance of the Wishbone master for interfacing with the data memory.
+            An instance of the Wishbone master for interfacing with the data bus.
         """
 
         self.gen_params = gen_params
