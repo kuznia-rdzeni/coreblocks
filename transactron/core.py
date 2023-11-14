@@ -64,6 +64,7 @@ class RelationBase(TypedDict):
     end: TransactionOrMethod
     priority: Priority
     conflict: bool
+    silence_warning: bool
 
 
 class Relation(RelationBase):
@@ -271,7 +272,7 @@ class TransactionManager(Elaboratable):
             start = relation["start"]
             end = relation["end"]
             if not relation["conflict"]:  # relation added with schedule_before
-                if end.def_order < start.def_order:
+                if end.def_order < start.def_order and not relation["silence_warning"]:
                     raise RuntimeError(f"{start.name!r} scheduled before {end.name!r}, but defined afterwards")
 
             for trans_start in method_map.transactions_for(start):
@@ -714,7 +715,9 @@ class TransactionBase(Owned, Protocol):
             Is one of conflicting `Transaction`\\s or `Method`\\s prioritized?
             Defaults to undefined priority relation.
         """
-        self.relations.append(RelationBase(end=end, priority=priority, conflict=True))
+        self.relations.append(
+            RelationBase(end=end, priority=priority, conflict=True, silence_warning=self.owner != end.owner)
+        )
 
     def schedule_before(self, end: TransactionOrMethod) -> None:
         """Adds a priority relation.
@@ -728,7 +731,9 @@ class TransactionBase(Owned, Protocol):
         end: Transaction or Method
             The other `Transaction` or `Method`
         """
-        self.relations.append(RelationBase(end=end, priority=Priority.LEFT, conflict=False))
+        self.relations.append(
+            RelationBase(end=end, priority=Priority.LEFT, conflict=False, silence_warning=self.owner != end.owner)
+        )
 
     def use_method(self, method: "Method", arg: ValueLike, enable: ValueLike):
         if method in self.method_uses:

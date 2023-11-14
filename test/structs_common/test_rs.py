@@ -220,7 +220,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         self.assertEqual((yield self.m.rs.data[1].rs_data.s2_val), value_sp2)
         self.assertEqual((yield self.m.rs.data[1].rec_ready), 1)
 
-        # Insert new insturction to entries 0 and 1, check if update of multiple registers works
+        # Insert new instruction to entries 0 and 1, check if update of multiple registers works
         reg_id = 4
         value_spx = 3030
         data = {
