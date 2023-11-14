@@ -47,7 +47,7 @@ class LSURequesterWB(Elaboratable):
         
         lsu_layouts = gen_params.get(LSULayouts)
 
-        self.issue = Method(i=lsu_layouts.issue)
+        self.issue = Method(i=lsu_layouts.issue, o=lsu_layouts.issue_out)
         self.accept = Method(o=lsu_layouts.accept)
 
     def prepare_bytes_mask(self, m: ModuleLike, funct3: Value, addr: Value) -> Signal:
@@ -135,7 +135,7 @@ class LSURequesterWB(Elaboratable):
                 self.bus.request(m, addr=addr >> 2, we=store, sel=bytes_mask, data=wb_data)
                 m.d.sync += request_sent.eq(1)
                 m.d.sync += addr_reg.eq(addr)
-                m.d.sync += funct3_reg.eq(addr)
+                m.d.sync += funct3_reg.eq(funct3)
                 m.d.sync += store_reg.eq(store)
             with m.Else():
                 m.d.av_comb += exception.eq(1)
@@ -259,7 +259,7 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         m.submodules.requester = requester = LSURequesterWB(self.gen_params, self.bus)
 
-        m.submodules.results = results = Forwarder(self.lsu_layouts.accept)
+        m.submodules.results = results = self.forwarder = Forwarder(self.lsu_layouts.accept)
 
         instr_ready = (
             (current_instr.rp_s1 == 0)
@@ -295,8 +295,8 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         with Transaction().body(m, request=instr_ready & ~issued & ~instr_is_fence & (execute | instr_is_load)):
             m.d.sync += issued.eq(1)
-            res = requester.issue(m, addr=current_instr.s1_val + current_instr.imm, data=current_instr.s2_val, funct3=current_instr.funct3, store=~instr_is_load)
-            if res["exception"]:
+            res = requester.issue(m, addr=current_instr.s1_val + current_instr.imm, data=current_instr.s2_val, funct3=current_instr.exec_fn.funct3, store=~instr_is_load)
+            with m.If(res["exception"]):
                 results.write(m, data=0, exception=res["exception"], cause=res["cause"])
 
         with Transaction().body(m, request=instr_ready & ~issued & instr_is_fence):
@@ -328,7 +328,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         @def_method(m, self.precommit)
         def _(rob_id: Value):
             with m.If(
-                current_instr.valid & (rob_id == current_instr.rob_id) & ~instr_is_fence
+                valid & (rob_id == current_instr.rob_id) & ~instr_is_fence
             ):
                 m.d.comb += execute.eq(1)
 
