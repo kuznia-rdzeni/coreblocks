@@ -136,6 +136,7 @@ class Core(Elaboratable):
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
             exception_cause_get=self.exception_cause_register.get,
+            frat_rename=frat.rename,
         )
 
         m.submodules.csr_generic = self.csr_generic
