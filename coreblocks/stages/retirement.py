@@ -39,6 +39,9 @@ class Retirement(Elaboratable):
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(reset=1)
+        side_fx_comb = Signal()
+
+        m.d.comb += side_fx_comb.eq(side_fx)
 
         with Transaction().body(m):
             # TODO: do we prefer single precommit call per instruction?
@@ -53,6 +56,7 @@ class Retirement(Elaboratable):
             # TODO: Trigger InterruptCoordinator (handle exception) when rob_entry.exception is set.
             with m.If(rob_entry.exception & side_fx):
                 m.d.sync += side_fx.eq(0)
+                m.d.comb += side_fx_comb.eq(0)
                 # TODO: only set mcause/trigger IC if cause is actual exception and not e.g.
                 # misprediction or pipeline flush after some fence.i or changing ISA
                 mcause = self.gen_params.get(DependencyManager).get_dependency(GenericCSRRegistersKey()).mcause
@@ -68,11 +72,11 @@ class Retirement(Elaboratable):
             )
 
             rp_freed = Signal(self.gen_params.phys_regs_bits)
-            with m.If(side_fx):
-                m.d.comb += rp_freed.eq(rat_out.old_rp_dst)
+            with m.If(side_fx_comb):
+                m.d.av_comb += rp_freed.eq(rat_out.old_rp_dst)
                 self.instret_csr.increment(m)
             with m.Else():
-                m.d.comb += rp_freed.eq(rob_entry.rob_data.rp_dst)
+                m.d.av_comb += rp_freed.eq(rob_entry.rob_data.rp_dst)
                 # free the phys_reg with computed value and restore old reg into FRAT as well
                 # TODO: are method priorities enough?
                 self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
