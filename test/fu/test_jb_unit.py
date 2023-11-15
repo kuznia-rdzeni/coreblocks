@@ -147,7 +147,7 @@ class JumpBranchUnitTest(FunctionalUnitTestCase[JumpBranchFn.Fn]):
                 yield from self.m.issue.call(req)
                 yield from fu.precommit.call({"rob_id": req["rob_id"]})
                 res = yield from self.m.accept.call()
-                if req["exec_fn"]["op_type"] != OpType.AUIPC:
+                if req["exec_fn"]["op_type"] != OpType.AUIPC:  # type: ignore
                     res |= precommit_q.pop()
                 expected = self.responses.pop()
                 self.assertDictEqual(res, expected)
