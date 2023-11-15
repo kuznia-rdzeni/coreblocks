@@ -1,10 +1,12 @@
 from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.keys import GenericCSRRegistersKey
+from coreblocks.params.layouts import CommonLayoutFields
 
 from transactron.core import Method, Transaction, TModule
 from coreblocks.params.genparams import GenParams
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
+from transactron.lib.connectors import Forwarder
 
 
 class Retirement(Elaboratable):
@@ -43,6 +45,9 @@ class Retirement(Elaboratable):
 
         m.d.comb += side_fx_comb.eq(side_fx)
 
+        fields = self.gen_params.get(CommonLayoutFields)
+        m.submodules.frat_fix = frat_fix = Forwarder([fields.rl_dst, fields.rp_dst])
+
         with Transaction().body(m):
             # TODO: do we prefer single precommit call per instruction?
             # If so, the precommit method should send an acknowledge signal here.
@@ -78,13 +83,17 @@ class Retirement(Elaboratable):
             with m.Else():
                 m.d.av_comb += rp_freed.eq(rob_entry.rob_data.rp_dst)
                 # free the phys_reg with computed value and restore old reg into FRAT as well
-                # TODO: are method priorities enough?
-                self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
+                # FRAT calls are in a separate transaction to avoid locking the rename method
+                frat_fix.write(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
             self.rf_free(m, rp_freed)
 
             # put old rp_dst to free RF list
             with m.If(rp_freed):  # don't put rp0 to free list - reserved to no-return instructions
                 self.free_rf_put(m, rp_freed)
+
+        with Transaction().body(m):
+            data = frat_fix.read(m)
+            self.rename(m, rl_s1=0, rl_s2=0, rl_dst=data["rl_dst"], rp_dst=data["rp_dst"])
 
         return m
