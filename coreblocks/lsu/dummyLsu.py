@@ -236,6 +236,8 @@ class LSUDummy(FuncBlock, Elaboratable):
                 m.d.sync += current_instr.s2_val.eq(reg_val)
                 m.d.sync += current_instr.rp_s2.eq(0)
 
+        # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
+        # Memory loads can be issued speculatively.
         with Transaction().body(m, request=instr_ready & ~issued & ~instr_is_fence & (execute | instr_is_load)):
             m.d.sync += issued.eq(1)
             res = requester.issue(
@@ -248,6 +250,7 @@ class LSUDummy(FuncBlock, Elaboratable):
             with m.If(res["exception"]):
                 results.write(m, data=0, exception=res["exception"], cause=res["cause"])
 
+        # Handles FENCE as a no-op.
         with Transaction().body(m, request=instr_ready & ~issued & instr_is_fence):
             m.d.sync += issued.eq(1)
             results.write(m, data=0, exception=0, cause=0)
