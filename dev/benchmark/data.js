@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1700325476938,
+  "lastUpdate": 1700325764949,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -3775,6 +3775,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.2783650349000975,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "53c03fb6803eac541a64a45bf75a74721e530167",
+          "message": "retirement: Disable side effects on exception (proposed corrections) (#512)\n\nCo-authored-by: Arusekk <arek_koz@o2.pl>",
+          "timestamp": "2023-11-18T17:28:37+01:00",
+          "tree_id": "1877e13693d1c28f26d56ccd4583e66e4acb139f",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/53c03fb6803eac541a64a45bf75a74721e530167"
+        },
+        "date": 1700325763657,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "crc32",
+            "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.26240061481242527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.25211480106460527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.3332441948567099,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2783650349000975,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2420362948846237,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.34174027385235617,
             "unit": "Instructions Per Cycle"
           }
         ]
