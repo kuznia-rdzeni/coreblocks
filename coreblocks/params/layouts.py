@@ -106,6 +106,9 @@ class CommonLayoutFields:
         self.error: LayoutListField = ("error", 1)
         """Request ended with an error."""
 
+        self.side_fx: LayoutListField = ("side_fx", 1)
+        """Side effects are enabled."""
+
 
 class SchedulerLayouts:
     """Layouts used in the scheduler."""
@@ -221,7 +224,7 @@ class RATLayouts:
 
         self.rat_rename_out: LayoutList = [fields.rp_s1, fields.rp_s2]
 
-        self.rat_commit_in: LayoutList = [fields.rl_dst, fields.rp_dst]
+        self.rat_commit_in: LayoutList = [fields.rl_dst, fields.rp_dst, fields.side_fx]
 
         self.rat_commit_out: LayoutList = [self.old_rp_dst]
 
@@ -328,7 +331,7 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.precommit: LayoutList = [fields.rob_id]
+        self.precommit: LayoutList = [fields.rob_id, fields.side_fx]
 
 
 class RSLayouts:

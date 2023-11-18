@@ -130,7 +130,7 @@ class TestCSRUnit(TestCaseWithSimulator):
                 yield from self.dut.update.call(reg_id=op["exp"]["rs1"]["rp_s1"], reg_val=op["exp"]["rs1"]["value"])
 
             yield from self.random_wait()
-            yield from self.dut.precommit.call()
+            yield from self.dut.precommit.call(side_fx=1)
 
             yield from self.random_wait()
             res = yield from self.dut.accept.call()
@@ -183,7 +183,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             )
 
             yield from self.random_wait()
-            yield from self.dut.precommit.call(rob_id=rob_id)
+            yield from self.dut.precommit.call(rob_id=rob_id, side_fx=1)
 
             yield from self.random_wait()
             res = yield from self.dut.accept.call()

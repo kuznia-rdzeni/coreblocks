@@ -219,13 +219,13 @@ class CSRUnit(FuncBlock, Elaboratable):
         done = Signal()
         accepted = Signal()
         exception = Signal()
-        rob_sfx_empty = Signal()
+        precommitting = Signal()
 
         current_result = Signal(self.gen_params.isa.xlen)
 
         instr = Record(self.csr_layouts.rs.data_layout + [("valid", 1)])
 
-        m.d.comb += ready_to_process.eq(rob_sfx_empty & instr.valid & (instr.rp_s1 == 0))
+        m.d.comb += ready_to_process.eq(precommitting & instr.valid & (instr.rp_s1 == 0))
 
         # RISCV Zicsr spec Table 1.1
         should_read_csr = Signal()
@@ -251,6 +251,8 @@ class CSRUnit(FuncBlock, Elaboratable):
         # Temporary, until privileged spec is implemented
         priv_level = Signal(PrivilegeLevel, reset=PrivilegeLevel.MACHINE)
 
+        exe_side_fx = Signal()
+
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, request=(ready_to_process & ~done)):
             with m.Switch(instr.csr):
@@ -266,7 +268,8 @@ class CSRUnit(FuncBlock, Elaboratable):
                         with m.If(priv_valid):
                             read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
-                                m.d.comb += read_val.eq(read(m))
+                                with m.If(exe_side_fx):
+                                    m.d.comb += read_val.eq(read(m))
                                 m.d.sync += current_result.eq(read_val)
 
                             if read_only:
@@ -283,7 +286,8 @@ class CSRUnit(FuncBlock, Elaboratable):
                                             m.d.comb += write_val.eq(read_val | instr.s1_val)
                                         with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
                                             m.d.comb += write_val.eq(read_val & (~instr.s1_val))
-                                    write(m, write_val)
+                                    with m.If(exe_side_fx):
+                                        write(m, write_val)
 
                         with m.Else():
                             # Missing privilege
@@ -338,10 +342,12 @@ class CSRUnit(FuncBlock, Elaboratable):
         def _():
             return {"from_pc": instr.pc, "next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
 
-        # Generate rob_sfx_empty signal from precommit
+        # Generate precommitting signal from precommit
         @def_method(m, self.precommit)
-        def _(rob_id):
-            m.d.comb += rob_sfx_empty.eq(instr.rob_id == rob_id)
+        def _(rob_id: Value, side_fx: Value):
+            with m.If(instr.rob_id == rob_id):
+                m.d.comb += precommitting.eq(1)
+                m.d.comb += exe_side_fx.eq(side_fx)
 
         return m
 

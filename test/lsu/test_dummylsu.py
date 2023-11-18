@@ -431,7 +431,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             while len(self.precommit_data) == 0:
                 yield
             rob_id = self.precommit_data[-1]  # precommit is called continously until instruction is retired
-            yield from self.test_module.precommit.call(rob_id=rob_id)
+            yield from self.test_module.precommit.call(rob_id=rob_id, side_fx=1)
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
