@@ -23,6 +23,8 @@ __all__ = [
     "popcount",
     "count_leading_zeros",
     "count_trailing_zeros",
+    "layout_subset",
+    "layout_superset",
 ]
 
 
@@ -335,6 +337,11 @@ def count_trailing_zeros(s: Value) -> Value:
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
     return [item for item in layout if item[0] in fields]
+
+
+def layout_superset(base_layout: LayoutList, add_layout: LayoutList) -> LayoutList:
+    fields = [key for (key, _) in base_layout]
+    return base_layout + [item for item in add_layout if item[0] not in fields]
 
 
 def make_hashable(val):

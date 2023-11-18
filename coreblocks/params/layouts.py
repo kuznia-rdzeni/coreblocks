@@ -1,6 +1,6 @@
 from coreblocks.params import GenParams, OpType, Funct7, Funct3
 from coreblocks.params.isa import ExceptionCause
-from transactron.utils.utils import layout_subset
+from transactron.utils.utils import layout_subset, layout_superset
 from transactron.utils import LayoutList, LayoutListField
 
 __all__ = [
@@ -504,7 +504,7 @@ class LSULayouts:
         fields = gen_params.get(CommonLayoutFields)
         data = gen_params.get(RSFullDataLayout)
 
-        data_layout = layout_subset(
+        base_data_layout = layout_subset(
             data.data_layout,
             fields={
                 "rp_s1",
@@ -517,6 +517,8 @@ class LSULayouts:
                 "imm",
             },
         )
+
+        data_layout = layout_superset(base_data_layout, [("mmio", 1)])
 
         self.rs_entries_bits = 0
 

@@ -85,7 +85,7 @@ class CoreConfiguration:
 
     _implied_extensions: Extension = Extension(0)
 
-    mmio: List[PMARegion] = field(default_factory=List)
+    mmio: List[PMARegion] = field(default_factory=list)
 
     def replace(self, **kwargs):
         return dataclasses.replace(self, **kwargs)
