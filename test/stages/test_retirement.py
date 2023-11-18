@@ -3,7 +3,7 @@ from coreblocks.stages.retirement import *
 from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 
 from transactron.lib import FIFO, Adapter
-from coreblocks.structs_common.rat import RRAT
+from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config
 
@@ -26,6 +26,7 @@ class RetirementTestCircuit(Elaboratable):
         exception_layouts = self.gen_params.get(ExceptionRegisterLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
+        m.submodules.f_rat = self.frat = FRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
@@ -51,6 +52,7 @@ class RetirementTestCircuit(Elaboratable):
             rf_free=self.mock_rf_free.adapter.iface,
             precommit=self.mock_precommit.adapter.iface,
             exception_cause_get=self.mock_exception_cause.adapter.iface,
+            frat_rename=self.frat.rename,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -123,7 +125,7 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertEqual(reg_id, self.rf_free_q.popleft())
 
         @def_method_mock(lambda: retc.mock_precommit, sched_prio=2)
-        def precommit_process(rob_id):
+        def precommit_process(rob_id, side_fx):
             self.assertEqual(rob_id, self.precommit_q.popleft())
 
         @def_method_mock(lambda: retc.mock_exception_cause)

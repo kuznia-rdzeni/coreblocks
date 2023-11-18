@@ -47,9 +47,9 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.func_units = list(func_units)
 
-        self.insert = Method(i=self.rs_layouts.insert_in)
-        self.select = Method(o=self.rs_layouts.select_out)
-        self.update = Method(i=self.rs_layouts.update_in)
+        self.insert = Method(i=self.rs_layouts.rs.insert_in)
+        self.select = Method(o=self.rs_layouts.rs.select_out)
+        self.update = Method(i=self.rs_layouts.rs.update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
 
     def elaborate(self, platform):

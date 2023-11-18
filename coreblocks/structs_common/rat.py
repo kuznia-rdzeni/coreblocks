@@ -42,8 +42,9 @@ class RRAT(Elaboratable):
         m = TModule()
 
         @def_method(m, self.commit)
-        def _(rp_dst: Value, rl_dst: Value):
-            m.d.sync += self.entries[rl_dst].eq(rp_dst)
+        def _(rp_dst: Value, rl_dst: Value, side_fx: Value):
+            with m.If(side_fx):
+                m.d.sync += self.entries[rl_dst].eq(rp_dst)
             return {"old_rp_dst": self.entries[rl_dst]}
 
         return m

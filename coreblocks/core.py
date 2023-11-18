@@ -75,8 +75,8 @@ class Core(Elaboratable):
             gen=self.gen_params,
             get_result=self.func_blocks_unifier.get_result,
             rob_mark_done=self.ROB.mark_done,
-            rs_write_val=self.func_blocks_unifier.update,
-            rf_write_val=self.RF.write,
+            rs_update=self.func_blocks_unifier.update,
+            rf_write=self.RF.write,
         )
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)
@@ -136,6 +136,7 @@ class Core(Elaboratable):
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
             exception_cause_get=self.exception_cause_register.get,
+            frat_rename=frat.rename,
         )
 
         m.submodules.csr_generic = self.csr_generic
