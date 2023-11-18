@@ -11,6 +11,12 @@ from coreblocks.lsu.pma import PMAChecker
 __all__ = ["LSUDummy", "LSUBlockComponent"]
 
 
+def calculate_addr(m: ModuleLike, xlen: int, current_instr: Record):
+    addr = Signal(xlen)
+    m.d.comb += addr.eq(current_instr.s1_val + current_instr.imm)
+    return addr
+
+
 class LSUDummyInternals(Elaboratable):
     """
     Internal implementation of `LSUDummy` logic, which should be embedded into `LSUDummy`
@@ -27,7 +33,7 @@ class LSUDummyInternals(Elaboratable):
         Signals that `resultData` is valid.
     """
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, pma: PMAChecker, current_instr: Record) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: Record) -> None:
         """
         Parameters
         ----------
@@ -41,7 +47,6 @@ class LSUDummyInternals(Elaboratable):
         self.gen_params = gen_params
         self.current_instr = current_instr
         self.bus = bus
-        self.pma = pma
 
         self.dependency_manager = self.gen_params.get(DependencyManager)
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
@@ -52,10 +57,10 @@ class LSUDummyInternals(Elaboratable):
         self.execute = Signal()
         self.op_exception = Signal()
 
-    def calculate_addr(self, m: ModuleLike):
-        addr = Signal(self.gen_params.isa.xlen)
-        m.d.comb += addr.eq(self.current_instr.s1_val + self.current_instr.imm)
-        return addr
+    # def calculate_addr(self, m: ModuleLike):
+    #     addr = Signal(self.gen_params.isa.xlen)
+    #     m.d.comb += addr.eq(self.current_instr.s1_val + self.current_instr.imm)
+    #     return addr
 
     def prepare_bytes_mask(self, m: ModuleLike, addr: Signal) -> Signal:
         mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
@@ -123,21 +128,14 @@ class LSUDummyInternals(Elaboratable):
         )
 
         is_load = self.current_instr.exec_fn.op_type == OpType.LOAD
-        addr = self.calculate_addr(m)
+        addr = calculate_addr(m, self.gen_params.isa.xlen, self.current_instr)
         aligned = self.check_align(m, addr)
         bytes_mask = self.prepare_bytes_mask(m, addr)
         data = self.prepare_data_to_save(m, self.current_instr.s2_val, addr)
-        mmio = Signal()
 
         with m.FSM("Start"):
             with m.State("Start"):
-                with Transaction().body(m):
-                    mmio_flag = self.pma.ask(m, in_addr=addr)["mmio"]
-                    m.d.sync += mmio.eq(mmio_flag)
-                    m.next = "Load"
-
-            with m.State("Load"):
-                with m.If(instr_ready & (self.execute | (is_load & ~mmio))):
+                with m.If(instr_ready & (self.execute | (is_load & ~self.current_instr.mmio))):
                     with m.If(aligned):
                         with Transaction().body(m):
                             self.bus.request(m, addr=addr >> 2, we=~is_load, sel=bytes_mask, data=data)
@@ -222,10 +220,10 @@ class LSUDummy(FuncBlock, Elaboratable):
     def elaborate(self, platform):
         m = TModule()
         reserved = Signal()  # means that current_instr is reserved
-        current_instr = Record(self.lsu_layouts.rs_data_layout + [("valid", 1)])
+        current_instr = Record(self.lsu_layouts.rs_data_layout + [("valid", 1), ("mmio", 1)])
 
         m.submodules.pma = pma = PMAChecker(self.gen_params)
-        m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, pma, current_instr)
+        m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
 
         result_ready = internal.result_ready | ((current_instr.exec_fn.op_type == OpType.FENCE) & current_instr.valid)
 
@@ -239,6 +237,10 @@ class LSUDummy(FuncBlock, Elaboratable):
         def _(rs_data: Record, rs_entry_id: Value):
             m.d.sync += assign(current_instr, rs_data)
             m.d.sync += current_instr.valid.eq(1)
+            with Transaction().body(m):
+                addr = calculate_addr(m, self.gen_params.isa.xlen, current_instr)
+                mmio_flag = pma.ask(m, in_addr=addr)["mmio"]
+                m.d.sync += current_instr.mmio.eq(mmio_flag)
 
         @def_method(m, self.update)
         def _(tag: Value, value: Value):
