@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from functools import reduce
 from amaranth import *
 
 from coreblocks.params import *
@@ -9,81 +8,23 @@ from transactron.core import Method, def_method, TModule
 
 @dataclass
 class PMARegion:
-    start: int
-    end: int
-    mmio: bool
-
-
-class PhysMemAttr(Elaboratable):
     """
-    Implementation of singular physical memory attribute.
-    `PhysMemAttr` should be embedded into PMAChecker.
+    Data class for physical memory attributes contiguous region of memory. Region of memory
+    includes both start end end address.
 
     Attributes
     ----------
-    in_addr : Signal, in
-        Instructs to return attribute of particular memory address.
-    out : Signal, out
-        Response to inquiry about atribute of `in_addr` memory address.
+    start : int
+        Defines beginning of region.
+    end : int
+        Defines end of region.
+    attrs : Record
+        Attributes for given region. Record should follow adequate layout from `PMALayouts`.
     """
 
-    @staticmethod
-    def merge_intervals(acc: tuple[tuple[int, int], list], el: tuple[int, int]):
-        merged, result = acc
-        merged_lo, merged_hi = merged
-        lo, hi = el
-
-        if (
-            (merged_hi >= lo and merged_hi <= hi)
-            or (merged_lo >= lo and merged_lo <= hi)
-            or (merged_lo <= lo and merged_hi >= hi)
-        ):
-            return (min(merged_lo, lo), max(merged_hi, hi)), result
-        elif merged_hi < lo:
-            result.append(merged)
-            return el, result
-        else:
-            result.append(el)
-            return merged, result
-
-    def __init__(self, gen_params: GenParams, value=0) -> None:
-        super().__init__()
-
-        # poor man's interval list
-        self.segments = []
-
-        self.value_out = value  # attr value if memory addr out of any segment
-        self.value_in = 1 - value  # attr value if memory within segment
-
-        self.in_addr = Signal(gen_params.isa.xlen)
-        self.out = Signal(1)
-
-    def add_range(self, range: PMARegion):
-        last, rest = reduce(PhysMemAttr.merge_intervals, self.segments, ((range.start, range.end), []))
-        rest.append(last)
-        self.segments = rest
-
-    def elaborate(self, platform) -> HasElaborate:
-        m = Module()
-
-        if len(self.segments) == 0:
-            # There is no memory segment for which the attribute is true.
-            m.d.comb += self.out.eq(self.value_out)
-        else:
-            # Build if-else expression that checks if `in_addr` is in segment range.
-            for i in range(len(self.segments)):
-                low, high = self.segments[i]
-                if i == 0:
-                    with m.If(self.in_addr >= low and self.in_addr <= high):
-                        m.d.comb += self.out.eq(self.value_in)
-                else:
-                    with m.Elif(self.in_addr >= low and self.in_addr <= high):
-                        m.d.comb += self.out.eq(self.value_in)
-
-            with m.Else():
-                m.d.comb += self.out.eq(self.value_out)
-
-        return m
+    start: int
+    end: int
+    attrs: Record
 
 
 class PMAChecker(Elaboratable):
@@ -99,36 +40,37 @@ class PMAChecker(Elaboratable):
         Used to request attributes of particular memory address.
     """
 
-    ATTR_WIDTH = 1
-
     def __init__(self, gen_params: GenParams) -> None:
         super().__init__()
 
-        self.attr_width = PMAChecker.ATTR_WIDTH
-        self.ask = Method(i=[("in_addr", gen_params.isa.xlen)], o=gen_params.get(PMALayouts).pma_attrs_layout)
-        self.attrs = dict()
-        self.attrs["mmio"] = PhysMemAttr(gen_params)
-
-        if gen_params.mmio is not None:
-            for mmio_range in gen_params.mmio:
-                self.attrs["mmio"].add_range(mmio_range)
+        # poor man's interval list
+        self.segments = gen_params.pma
+        self.attr_layout = gen_params.get(PMALayouts).pma_attrs_layout
+        self.ask = Method(i=[("addr", gen_params.isa.xlen)], o=self.attr_layout)
 
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
 
-        for attr_name in self.attrs:
-            m.submodules[attr_name] = self.attrs[attr_name]
-
         @def_method(m, self.ask)
-        def _(in_addr: Value):
-            out_signals = dict()
-            for attr_name in self.attrs:
-                attr = self.attrs[attr_name]
-                out = Signal(1)
-                m.d.comb += attr.in_addr.eq(in_addr)
-                m.d.comb += out.eq(attr.out)
-                out_signals[attr_name] = out
+        def _(addr: Value):
+            result = Record(self.attr_layout)
+            outputs = Array([Record(self.attr_layout) for _ in self.segments])
 
-            return out_signals
+            # zero output if addr not in region, propagate value if addr in region
+            for i, segment in enumerate(self.segments):
+                start = segment.start
+                end = segment.end
+
+                # check if addr in region
+                with m.If((addr >= start).bool() & (addr <= end).bool()):
+                    m.d.comb += outputs[i].eq(segment.attrs)
+                with m.Else():
+                    m.d.comb += outputs[i].eq(0x0)
+
+            # OR all outputs
+            for output in outputs:
+                m.d.comb += result.eq(result | output)
+
+            return result
 
         return m

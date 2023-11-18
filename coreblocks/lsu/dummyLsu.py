@@ -239,7 +239,7 @@ class LSUDummy(FuncBlock, Elaboratable):
             m.d.sync += valid.eq(1)
             with Transaction().body(m):
                 addr = calculate_addr(m, self.gen_params.isa.xlen, current_instr)
-                mmio_flag = pma.ask(m, in_addr=addr)["mmio"]
+                mmio_flag = pma.ask(m, addr=addr)["mmio"]
                 m.d.sync += current_instr.mmio.eq(mmio_flag)
 
         @def_method(m, self.update)
