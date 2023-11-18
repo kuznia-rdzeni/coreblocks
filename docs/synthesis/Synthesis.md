@@ -15,7 +15,7 @@ The graphs generated from this data are available on a dedicated [benchmark subp
 
 ## Documentation
 
-### Using pre-build container
+### Using pre-built container
 
 There is a pre-built container available that is being used in CI. You can
 download it and start the synthesis in it locally by executing the following commands:
@@ -34,7 +34,7 @@ cat benchmark.json
 
 ### Requirements
 
-In order to perform synthesis without using the ready container you will need to install following tools:
+In order to perform synthesis without using a pre-made container you will need to install following tools:
   * [yosys](https://github.com/YosysHQ/yosys)
   * [prjtrellis](https://github.com/YosysHQ/prjtrellis)
   * [nextpnr-ecp5](https://github.com/YosysHQ/nextpnr.git)
