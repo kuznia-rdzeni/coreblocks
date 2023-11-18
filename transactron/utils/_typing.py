@@ -30,7 +30,8 @@ SwitchKey: TypeAlias = str | int | Enum
 
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
-LayoutList: TypeAlias = list[tuple[str, "ShapeLike | LayoutList"]]
+LayoutListField: TypeAlias = tuple[str, "ShapeLike | LayoutList"]
+LayoutList: TypeAlias = list[LayoutListField]
 
 RecordIntDict: TypeAlias = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet: TypeAlias = Mapping[str, Any]  # full typing hard to work with

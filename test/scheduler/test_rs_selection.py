@@ -31,8 +31,8 @@ class RSSelector(Elaboratable):
         # mocked input and output
         m.submodules.instr_in = self.instr_in = TestbenchIO(AdapterTrans(instr_fifo.write))
         m.submodules.instr_out = self.instr_out = TestbenchIO(AdapterTrans(out_fifo.read))
-        m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
-        m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.select_out))
+        m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
+        m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
 
         # rs selector
         m.submodules.selector = self.selector = RSSelection(

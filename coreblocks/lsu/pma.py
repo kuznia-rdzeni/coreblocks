@@ -1,9 +1,17 @@
+from dataclasses import dataclass
 from functools import reduce
 from amaranth import *
 
 from coreblocks.params import *
 from transactron.utils import HasElaborate
 from transactron.core import Method, def_method, TModule
+
+
+@dataclass
+class PMARegion:
+    start: int
+    end: int
+    mmio: bool
 
 
 class PhysMemAttr(Elaboratable):
@@ -50,9 +58,8 @@ class PhysMemAttr(Elaboratable):
         self.in_addr = Signal(gen_params.isa.xlen)
         self.out = Signal(1)
 
-    def add_range(self, range: tuple[int, int]):
-        low, high = range
-        last, rest = reduce(PhysMemAttr.merge_intervals, self.segments, ((low, high), []))
+    def add_range(self, range: PMARegion):
+        last, rest = reduce(PhysMemAttr.merge_intervals, self.segments, ((range.start, range.end), []))
         rest.append(last)
         self.segments = rest
 

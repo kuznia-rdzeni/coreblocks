@@ -1,6 +1,9 @@
 from collections.abc import Collection
+from typing import List
+
 import dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from coreblocks.lsu.pma import PMARegion
 
 from coreblocks.params.isa import Extension
 from coreblocks.params.fu_params import BlockComponentParams
@@ -82,7 +85,7 @@ class CoreConfiguration:
 
     _implied_extensions: Extension = Extension(0)
 
-    mmio = []
+    mmio: List[PMARegion] = field(default_factory=List)
 
     def replace(self, **kwargs):
         return dataclasses.replace(self, **kwargs)

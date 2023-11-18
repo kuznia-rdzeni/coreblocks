@@ -111,7 +111,7 @@ class TestCoreBase(TestCaseWithSimulator):
         return (yield self.m.core.RF.entries[reg_id].reg_val)
 
     def push_instr(self, opcode):
-        yield from self.m.io_in.call(data=opcode)
+        yield from self.m.io_in.call(instr=opcode)
 
     def compare_core_states(self, sw_core):
         for i in range(self.gp.isa.reg_cnt):
