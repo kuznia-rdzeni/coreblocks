@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1700214083653,
+  "lastUpdate": 1700325277405,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -13283,6 +13283,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 5654,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "53c03fb6803eac541a64a45bf75a74721e530167",
+          "message": "retirement: Disable side effects on exception (proposed corrections) (#512)\n\nCo-authored-by: Arusekk <arek_koz@o2.pl>",
+          "timestamp": "2023-11-18T17:28:37+01:00",
+          "tree_id": "1877e13693d1c28f26d56ccd4583e66e4acb139f",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/53c03fb6803eac541a64a45bf75a74721e530167"
+        },
+        "date": 1700325275233,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 53.32,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23074,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 470,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 884,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5795,
             "unit": "LUT"
           }
         ]
