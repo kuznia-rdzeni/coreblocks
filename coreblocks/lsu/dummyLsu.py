@@ -225,9 +225,6 @@ class LSUDummy(FuncBlock, Elaboratable):
         m.d.comb += pma_checker.addr.eq(addr)
         pmas = pma_checker.result
 
-        is_mmio = Signal()
-        m.d.comb += is_mmio.eq(pmas["mmio"])
-
         @def_method(m, self.select, ~reserved)
         def _():
             # We always return 0, because we have only one place in instruction storage.
@@ -250,7 +247,7 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
-        do_issue = ~issued & instr_ready & ~flush & ~instr_is_fence & (execute | (instr_is_load & ~is_mmio))
+        do_issue = ~issued & instr_ready & ~flush & ~instr_is_fence & (execute | (instr_is_load & ~pmas["mmio"]))
         with Transaction().body(m, request=do_issue):
             m.d.sync += issued.eq(1)
             res = requester.issue(
