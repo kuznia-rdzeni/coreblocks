@@ -1,5 +1,4 @@
 from collections.abc import Collection
-from typing import Iterable
 
 import dataclasses
 from dataclasses import dataclass, field
@@ -62,7 +61,7 @@ class CoreConfiguration:
         Allow partial support of extensions.
     _implied_extensions: Extenstion
         Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
-    pma : Iterable[PMARegion]
+    pma : list[PMARegion]
         Definitions of PMAs per contiguous segments of memory.
     """
 
@@ -85,7 +84,7 @@ class CoreConfiguration:
 
     _implied_extensions: Extension = Extension(0)
 
-    pma: Iterable[PMARegion] = field(default_factory=list)
+    pma: list[PMARegion] = field(default_factory=list)
 
     def replace(self, **kwargs):
         return dataclasses.replace(self, **kwargs)

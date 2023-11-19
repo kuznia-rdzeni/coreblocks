@@ -521,8 +521,6 @@ class LSULayouts:
             },
         )
 
-        data_layout = data_layout + [("mmio", 1)]
-
         self.rs_entries_bits = 0
 
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)

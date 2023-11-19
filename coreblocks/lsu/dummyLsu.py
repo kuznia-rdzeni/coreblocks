@@ -206,7 +206,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         flush = Signal()  # exception handling, requests are not issued
         current_instr = Record(self.lsu_layouts.rs.data_layout)
 
-        m.submodules.pma = pma = PMAChecker(self.gen_params)
+        m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
         m.submodules.requester = requester = LSURequesterWB(self.gen_params, self.bus)
 
         m.submodules.results = results = self.forwarder = Forwarder(self.lsu_layouts.accept)
@@ -223,8 +223,8 @@ class LSUDummy(FuncBlock, Elaboratable):
         m.d.comb += addr.eq(current_instr.s1_val + current_instr.imm)
 
         pmas = Record(self.gen_params.get(PMALayouts).pma_attrs_layout)
-        m.d.comb += pma.addr.eq(addr)
-        m.d.comb += pmas.eq(pma.result)
+        m.d.comb += pma_checker.addr.eq(addr)
+        m.d.comb += pmas.eq(pma_checker.result)
 
         is_mmio = Signal()
         m.d.comb += is_mmio.eq(pmas["mmio"])
