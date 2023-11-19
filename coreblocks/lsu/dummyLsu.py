@@ -222,9 +222,8 @@ class LSUDummy(FuncBlock, Elaboratable):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(current_instr.s1_val + current_instr.imm)
 
-        pmas = Record(self.gen_params.get(PMALayouts).pma_attrs_layout)
         m.d.comb += pma_checker.addr.eq(addr)
-        m.d.comb += pmas.eq(pma_checker.result)
+        pmas = pma_checker.result
 
         is_mmio = Signal()
         m.d.comb += is_mmio.eq(pmas["mmio"])
