@@ -3,15 +3,16 @@
 Coreblocks is verified at several levels of abstraction. Beside of unit tests and module tests, we also
 synthesise the core to the ECP5 FPGA target, to check that it can work in reality. Performance is verified
 using synthesis results and a set of benchmarks simulated with cycle precision in cocotb. We also verify
-correctness of the core behaviour by running assembler tests from riscv-tests and riscv-arch-tests. <TODO dodać linki>
+correctness of the core behaviour by running assembler tests from [riscv-tests](https://github.com/riscv-software-src/riscv-tests/tree/master)
+and [riscv-arch-tests](https://github.com/riscv-non-isa/riscv-arch-test).
 
 These three verification steps are automatically run by CI on every commit delivered to the `master` branch. Running
 the checks in CI allow us to collect historical data, which are available in the form of the graphs
 on a dedicated [benchmark subpage](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
 
-In CI we use pre-built docker containers, which are publicly available on our github page <TODO LINK>. In the following
-subsections we provide the instructions on how to manually run verification steps using these containers. They can be
-recreated using standard docker build commands:
+In CI we use pre-built docker containers, which are publicly available on our [github page](https://github.com/orgs/kuznia-rdzeni/packages).
+In the following subsections we provide the instructions on how to manually run verification steps using these containers.
+They can be recreated using standard docker build commands:
 
 ```
 docker build --platform linux/amd64 -t "amaranth-synth:ecp5" -f ./docker/AmaranthSynthECP5.Dockerfile .
@@ -32,8 +33,8 @@ The main properties collected in the synthesis step:
   - Number of RAM cells used
   - Number of DFF cells used
 
-The configuration of the docker container is described in the `AmaranthSynthECP5.Dockerfile`, which can be found in our repo <TODO
-LINK>.
+The configuration of the docker container is described in the `AmaranthSynthECP5.Dockerfile`, which can be found in 
+[our repo](https://github.com/orgs/kuznia-rdzeni/packages/container/package/amaranth-synth).
 
 ### Manual reproduction
 
