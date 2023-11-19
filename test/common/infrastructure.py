@@ -109,9 +109,15 @@ class Now(CoreblocksCommand):
     pass
 
 
+class Fork(CoreblocksCommand):
+    def __init__(self, f: Callable[[], TestGen[None]]):
+        self.f = f
+
+
 class SyncProcessWrapper:
-    def __init__(self, f):
+    def __init__(self, sim: "PysimSimulator", f: Callable[[], TestGen[None]]):
         self.org_process = f
+        self.sim = sim
         self.current_cycle = 0
 
     def _wrapping_function(self):
@@ -126,11 +132,18 @@ class SyncProcessWrapper:
                     self.current_cycle += 1
                     # forward to amaranth
                     yield
+                # Do early forward to amaranth
+                if not isinstance(command, CoreblocksCommand):
+                    # Pass everything else to amaranth simulator without modifications
+                    response = yield command
                 elif isinstance(command, Now):
                     response = self.current_cycle
-                # Pass everything else to amaranth simulator without modifications
+                elif isinstance(command, Fork):
+                    f = command.f
+                    self.sim.one_shot_callbacks.append(lambda: self.sim.add_sync_process(f))
+                    response = None
                 else:
-                    response = yield command
+                    raise RuntimeError(f"Unrecognized command: {command}")
         except StopIteration:
             pass
 
@@ -168,14 +181,29 @@ class PysimSimulator(Simulator):
             self.ctx = nullcontext()
 
         self.deadline = clk_period * max_cycles
+        self.one_shot_callbacks = []
 
     def add_sync_process(self, f: Callable[[], TestGen]):
-        f_wrapped = SyncProcessWrapper(f)
+        f_wrapped = SyncProcessWrapper(self, f)
         super().add_sync_process(f_wrapped._wrapping_function)
+
+    def run_until_with_callbacks(self, deadline, *, run_passive=False):
+        """Run the simulation until it advances to `deadline` executing callbacks after each iteration.
+
+        This function is based on `run_until` from amaranth Simulator class. After each `advance` step
+        it calls all registred one shot callbacks. After execution of all one shot callbacks there are
+        removed from the list before starting the next iteration.
+        """
+        # Convert deadline in seconds into internal amaranth 1 ps units
+        deadline = deadline * 1e12
+        while cast(Any, self)._engine.now < deadline and (self.advance() or run_passive):
+            for callback in self.one_shot_callbacks:
+                callback()
+            self.one_shot_callbacks.clear()
 
     def run(self) -> bool:
         with self.ctx:
-            self.run_until(self.deadline)
+            self.run_until_with_callbacks(self.deadline)
 
         return not self.advance()
 
