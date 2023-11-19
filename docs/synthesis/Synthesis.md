@@ -24,7 +24,7 @@ The basic step in verification is to see if it is possible to synthesise the `Co
 control the level of complexity of the core. Although Coreblocks is an educational core, we want it to be practical.
 It should have an acceptable maximum frequency and shouldn't use too many resources, so it can be run
 on a FPGA. The synthesis step ensures that these requirements are met. In addition, it checks whether the code that is acceptable
-for the Amaranth is also acceptable for the synthesis tools.
+for Amaranth is also acceptable for the synthesis tools.
 
 The main properties collected in the synthesis step:
   - Max clock frequency
@@ -70,23 +70,22 @@ In order to perform synthesis we use:
 
 ## Benchmarking
 
-The maximum clock frequency determined by synthesis isn't the only measure of performance. Theoretically, there is always a
-possibility to increase Fmax by increasing the latency. To avoid the pitfall of too long latency, we have introduced the monitoring
-of instructions executed per clock cycle (IPC). This is done by simulating the core with cycle accuracy and running
-benchmarks written in C inside the simulation. As benchmarking programs we use
+The maximum clock frequency determined by synthesis isn't the only measure of performance. In theory, it is always
+possible to increase Fmax by increasing latency. To avoid the pitfall of too long a latency, that cannot be compensated
+by out-of-order execution, we monitor the number of instructions executed per clock cycle (IPC). We simulate the core
+with cycle accuracy and run benchmarks written in C inside the simulation. The benchmarks are taken from
 [embench](https://github.com/embench/embench-iot/tree/master).
 
-The benchmarking is done in two steps. First, we compile C programs into binary format and then run the binaries on
-the simulated core. The compilation is done using [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain), with
-glibc compiled for different architectural subsets of RISC-V extensions. The configuration of the riscv-gnu-toolchain used in
-Coreblocks is described in [riscv-toolchain.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/riscv-toolchain.Dockerfile).
-Benchmarks can be compiled once and used repeatedly as long as there is no need to add support for the new
-RISC-V extensions or the embench isn't be updated.
+The benchmarking is done in two steps. First, we compile the C programs into binary format. Second, we run the binaries
+on the simulated core. To compile the code we use [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain),
+with glibc configured for different architectural subsets of RISC-V extensions (you can check the exact configuration in
+[riscv-toolchain.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/riscv-toolchain.Dockerfile)).
 
-Once we have binaries, we can execute them in simulation. This is done with [Cocotb](https://github.com/cocotb/cocotb) and
-[Verilator](https://github.com/verilator/verilator). First we generate Verilog code describing Coreblocks instance.
-Then it is passed to Verilator for compilation and Cocotb controls the execution of the program, by stubbing external
-interfaces. Compiled Verilator in a compatible version is available in [Verilator.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/Verilator.Dockerfile).
+Once we have the binaries, we can run them in simulation. This is done using [Cocotb](https://github.com/cocotb/cocotb) and
+[Verilator](https://github.com/verilator/verilator). We use Amaranth features to generate Verilog code describing Coreblocks instance,
+which is passed to Verilator for compilation. Cocotb controls the simulation and execution of the program by stubbing external
+interfaces. Pre-compiled Verilator in a compatible version is available in [Verilator.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/Verilator.Dockerfile).
+
 
 ### Benchmarks manual execution
 ```bash
