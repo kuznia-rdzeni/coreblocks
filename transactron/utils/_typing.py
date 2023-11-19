@@ -27,6 +27,7 @@ LayoutLike: TypeAlias = (
     Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
 )
 SwitchKey: TypeAlias = str | int | Enum
+MethodLayout: TypeAlias = LayoutLike
 
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
@@ -36,6 +37,13 @@ LayoutList: TypeAlias = list[LayoutListField]
 RecordIntDict: TypeAlias = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet: TypeAlias = Mapping[str, Any]  # full typing hard to work with
 RecordValueDict: TypeAlias = Mapping[str, Union[ValueLike, "RecordValueDict"]]
+
+T = TypeVar("T")
+U = TypeVar("U")
+
+ROGraph: TypeAlias = Mapping[T, Iterable[T]]
+Graph: TypeAlias = dict[T, set[T]]
+GraphCC: TypeAlias = set[T]
 
 
 class _ModuleBuilderDomainsLike(Protocol):
