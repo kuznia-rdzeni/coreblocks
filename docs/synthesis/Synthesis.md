@@ -71,10 +71,11 @@ In order to perform synthesis we use:
 ## Benchmarking
 
 The maximum clock frequency determined by synthesis isn't the only measure of performance. In theory, it is always
-possible to increase Fmax by increasing latency. To avoid the pitfall of too long a latency, that cannot be compensated
-by out-of-order execution, we monitor the number of instructions executed per clock cycle (IPC). We simulate the core
-with cycle accuracy and run benchmarks written in C inside the simulation. The benchmarks are taken from
+possible to increase Fmax by increasing latency. To avoid the pitfall of too long latency affecting the core
+throughput, we monitor the number of instructions executed per clock cycle (IPC). We simulate the core with cycle
+accuracy and run benchmarks written in C inside the simulation. The benchmarks are taken from
 [embench](https://github.com/embench/embench-iot/tree/master).
+
 
 The benchmarking is done in two steps. First, we compile the C programs into binary format. Second, we run the binaries
 on the simulated core. To compile the code we use [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain),
