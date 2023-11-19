@@ -8,7 +8,8 @@ import operator
 from transactron import Method, def_method, TModule
 from transactron.core import Transaction
 from transactron.lib import AdapterTrans
-from transactron.utils import OneHotSwitchDynamic, assign, BasicFifo
+from transactron.utils import OneHotSwitchDynamic, assign
+from transactron.utils.fifo import BasicFifo
 from transactron.lib.connectors import Forwarder
 
 

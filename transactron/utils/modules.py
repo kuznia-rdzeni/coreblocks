@@ -1,9 +1,9 @@
 import itertools
 from contextlib import contextmanager
-from typing import Literal, Optional, TypeAlias, cast, overload
+from typing import Literal, Optional, overload
 from collections.abc import Iterable
 from amaranth import *
-from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate, ModuleLike
+from ._typing import HasElaborate, ModuleLike
 
 __all__ = [
     "OneHotSwitchDynamic",
@@ -11,6 +11,7 @@ __all__ = [
     "ModuleConnector",
     "Scheduler",
 ]
+
 
 @contextmanager
 def OneHotSwitch(m: ModuleLike, test: Value):
@@ -97,6 +98,7 @@ def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: bool = False) ->
                 yield None
     return
 
+
 class ModuleConnector(Elaboratable):
     """
     An Elaboratable to create a new module, which will have all arguments
@@ -125,6 +127,7 @@ class ModuleConnector(Elaboratable):
             m.submodules[name] = elem
 
         return m
+
 
 class Scheduler(Elaboratable):
     """Scheduler

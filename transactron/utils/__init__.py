@@ -5,4 +5,3 @@ from .modules import *  # noqa: F401
 from .assign import *  # noqa: F401
 from .functions_synthesizable import *  # noqa: F401
 from .transactron_helpers import *  # noqa: F401
-from .fifo import *  # noqa: F401

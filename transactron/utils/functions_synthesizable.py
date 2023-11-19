@@ -1,14 +1,11 @@
-from typing import Literal, Optional, TypeAlias, cast, overload
 from amaranth import *
 from amaranth.utils import bits_for, log2_int
-from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate, ModuleLike
 
 __all__ = [
     "popcount",
     "count_leading_zeros",
     "count_trailing_zeros",
 ]
-
 
 
 def popcount(s: Value):
@@ -20,7 +17,6 @@ def popcount(s: Value):
         sum_layers = [a + b for a, b in zip(sum_layers[::2], sum_layers[1::2])]
 
     return sum_layers[0][0 : bits_for(len(s))]
-
 
 
 def count_leading_zeros(s: Value) -> Value:

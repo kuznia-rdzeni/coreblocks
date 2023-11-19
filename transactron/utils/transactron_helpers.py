@@ -1,10 +1,9 @@
-from contextlib import contextmanager
-from typing import Literal, Optional, TypeAlias, cast, overload
-from collections.abc import Callable, Iterable, Mapping
-from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate, ModuleLike, ROGraph, GraphCC
 import sys
+from contextlib import contextmanager
+from typing import Optional, Any, Concatenate, TypeGuard, TypeVar
+from collections.abc import Callable, Mapping
+from ._typing import ROGraph, GraphCC
 from inspect import Parameter, signature
-from typing import Any, Concatenate, Optional, TypeAlias, TypeGuard, TypeVar
 from amaranth import *
 
 
@@ -18,6 +17,7 @@ __all__ = [
 
 T = TypeVar("T")
 U = TypeVar("U")
+
 
 def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
     """_graph_ccs
@@ -95,6 +95,7 @@ def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elabo
         return None, default
     else:
         raise RuntimeError("Not called from a method")
+
 
 @contextmanager
 def silence_mustuse(elaboratable: Elaboratable):

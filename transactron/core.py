@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 from collections.abc import Sequence, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
-from enum import Enum, auto, IntFlag
+from enum import Enum, auto
 from typing import (
     ClassVar,
     NoReturn,

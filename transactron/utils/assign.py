@@ -1,15 +1,16 @@
 from enum import Enum
-from typing import Literal, Optional, TypeAlias, cast, overload
+from typing import Optional, TypeAlias, cast
 from collections.abc import Iterable, Mapping
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate, ModuleLike
+from ._typing import ValueLike
 
 __all__ = [
     "AssignType",
     "assign",
 ]
+
 
 class AssignType(Enum):
     COMMON = 1
@@ -174,5 +175,3 @@ def assign(
                     "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs_val.shape(), lhs, rhs_val.shape(), rhs)
                 )
         yield lhs_val.eq(rhs_val)
-
-
