@@ -39,8 +39,8 @@ The configuration of the docker container is described in the `AmaranthSynthECP5
 ### Manual reproduction
 
 ```bash
-sudo docker pull ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5
-sudo docker run -it --rm ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5 
+sudo docker pull ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-3.11
+sudo docker run -it --rm ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-3.11
 git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
 cd coreblocks
 python3 -m venv venv
@@ -68,7 +68,46 @@ In order to perform synthesis we use:
 
 ## Benchmarking
 
-TODO
+The maximum clock frequency determined by synthesis isn't the only performance measurement. Theoretically there is always a
+possibility to increase Fmax by increasing the latency. So to avoid pitfall of too big latency we introduced monitoring
+of instructions executed per clock cycle (IPC). This is done by simulating the core with cycle accuracy and executing
+benchmarks written in C on such core. As benchmarking programs we use
+[embench](https://github.com/embench/embench-iot/tree/master).
+
+Benchmarking is done in two steps. First we compile C programs to binary format and next binaries are executed on
+simulated core. Compilation is done using [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain), with
+glibc compiled to different architectural subsets of RiscV extensions. The configuration of riscv-gnu-toolchain used in
+Coreblocks is described in [riscv-toolchain.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/riscv-toolchain.Dockerfile).
+Benchmarks can be compiled once and used repeatedly as long as there will be no need for adding support for the new
+RiscV extensions or the embench wouldn't be updated.
+
+Having binaries we can execute them in simulation. This is done using [Cocotb](https://github.com/cocotb/cocotb) and
+[Verilator](https://github.com/verilator/verilator). First we generate Verilog code which describes Coreblocks instance.
+Then it is passed to Verilator for compilation and Cocotb controls execution of program, by stubbing external
+interfaces. Compiled Verilator in compatible version is available in [Verilator.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/Verilator.Dockerfile).
+
+### Benchmarks manual compilation
+```bash
+sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+sudo docker run -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
+cd coreblocks/test/external/embench
+make
+```
+
+### Benchmarks manual execution
+```bash
+sudo docker pull ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+sudo docker run -it --rm ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
+cd coreblocks
+python3 -m venv venv
+. venv/bin/activate
+python3 -m pip install --upgrade pip
+pip3 install -r requirements-dev.txt
+PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+./scripts/run_benchmarks.py
+```
 
 ## Regression tests
 
