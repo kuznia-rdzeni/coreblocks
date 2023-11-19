@@ -86,21 +86,25 @@ Having binaries we can execute them in simulation. This is done using [Cocotb](h
 Then it is passed to Verilator for compilation and Cocotb controls execution of program, by stubbing external
 interfaces. Compiled Verilator in compatible version is available in [Verilator.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/Verilator.Dockerfile).
 
-### Benchmarks manual compilation
-```bash
-sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
-sudo docker run -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
-git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
-cd coreblocks/test/external/embench
-make
-```
-
 ### Benchmarks manual execution
 ```bash
-sudo docker pull ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
-sudo docker run -it --rm ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+# ========== STEP 1: Compilation ==========
+# Clone coreblocks into host file system
 git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
-cd coreblocks
+sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+# Run docker with coreblocks directory mounted into it
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+cd /coreblocks/test/external/embench
+# Compilation with make will save binaries to the /coreblocks directory which is shared with host
+# so binaries will survive after closing the docker container
+make
+exit
+
+# ========== STEP 2: Execution ==========
+sudo docker pull ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+# Run docker with coreblocks directory mounted into it. This directory contains
+# benchmarks binaries after execution of first step.
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
 python3 -m venv venv
 . venv/bin/activate
 python3 -m pip install --upgrade pip
