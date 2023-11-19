@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from functools import reduce
+from operator import or_
 from amaranth import *
 
 from coreblocks.params import *
@@ -28,7 +30,6 @@ class PMARegion:
 
 
 class PMAChecker(Elaboratable):
-
     """
     Implementation of physical memory attributes checker. It may or may not be a part of LSU.
     `PMAChecker` exposes method `ask` that can be used to request information about given memory
@@ -36,18 +37,13 @@ class PMAChecker(Elaboratable):
 
     Attributes
     ----------
-
     addr : Signal
         Memory address, for which PMAs are requested.
-
     result : Record
         PMAs for given address.
-
     """
 
     def __init__(self, gen_params: GenParams) -> None:
-        super().__init__()
-
         # poor man's interval list
         self.segments = gen_params.pma
         self.attr_layout = gen_params.get(PMALayouts).pma_attrs_layout
@@ -65,10 +61,10 @@ class PMAChecker(Elaboratable):
             end = segment.end
 
             # check if addr in region
-            with m.If((self.addr >= start).bool() & (self.addr <= end).bool()):
+            with m.If((self.addr >= start) & (self.addr <= end)):
                 m.d.comb += outputs[i].eq(segment.mmio)
 
         # OR all outputs
-        m.d.comb += self.result.eq(reduce(or_, outputs))
+        m.d.comb += self.result.eq(reduce(or_, outputs, 0))
 
         return m
