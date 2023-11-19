@@ -56,7 +56,7 @@ jobs:
       - name: Generate Verilog
         run: |
           . venv/bin/activate
-          PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config tiny
+          PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config basic
 
       - uses: actions/download-artifact@v3
         with:
