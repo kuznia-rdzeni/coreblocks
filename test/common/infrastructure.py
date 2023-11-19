@@ -196,8 +196,8 @@ class PysimSimulator(Simulator):
         """
         # Convert deadline in seconds into internal amaranth 1 ps units
         deadline = deadline * 1e12
-        assert cast(Any,self)._engine.now <= deadline
-        while (self.advance() or run_passive) and cast(Any,self)._engine.now < deadline:
+        assert cast(Any, self)._engine.now <= deadline
+        while (self.advance() or run_passive) and cast(Any, self)._engine.now < deadline:
             for callback in self.one_shot_callbacks:
                 callback()
             self.one_shot_callbacks.clear()
