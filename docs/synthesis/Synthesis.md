@@ -123,4 +123,40 @@ PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 
 ## Regression tests
 
-TODO
+Regressions rests should ensure that Coreblocks is complaint with RiscV specification requirements. Tests contains 
+assembler programs which tests whole RISC-V instruction set. We execute these programs in similar way as benchmarks.
+So as the first step we compile the programs to the binary format and then we run them on core simulated by Verilator
+and Cocotb.
+
+### Regression tests manual execution
+```bash
+# ========== STEP 1: Compilation ==========
+# Clone coreblocks into host file system
+git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
+cd coreblocks
+git submodule update --init --recursive
+cd ..
+sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+# Run docker with coreblocks directory mounted into it
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+cd /coreblocks/test/external/riscv-tests
+# Compilation with make will save binaries to the /coreblocks directory which is shared with host
+# so binaries will survive after closing the docker container
+make
+exit
+
+# ========== STEP 2: Execution ==========
+sudo docker pull ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+# Run docker with coreblocks directory mounted into it. This directory contains
+# benchmarks binaries after execution of first step.
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+apt update
+apt install python3.11-venv
+python3 -m venv venv
+. venv/bin/activate
+python3 -m pip install --upgrade pip
+cd coreblocks
+pip3 install -r requirements-dev.txt
+PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+./scripts/run_tests.py -a regression
+```
