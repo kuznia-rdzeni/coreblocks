@@ -133,7 +133,7 @@ class SyncProcessWrapper:
                     # forward to amaranth
                     yield
                 # Do early forward to amaranth
-                if not isinstance(command, CoreblocksCommand):
+                elif not isinstance(command, CoreblocksCommand):
                     # Pass everything else to amaranth simulator without modifications
                     response = yield command
                 elif isinstance(command, Now):
@@ -196,7 +196,8 @@ class PysimSimulator(Simulator):
         """
         # Convert deadline in seconds into internal amaranth 1 ps units
         deadline = deadline * 1e12
-        while cast(Any, self)._engine.now < deadline and (self.advance() or run_passive):
+        assert cast(Any,self)._engine.now <= deadline
+        while (self.advance() or run_passive) and cast(Any,self)._engine.now < deadline:
             for callback in self.one_shot_callbacks:
                 callback()
             self.one_shot_callbacks.clear()
