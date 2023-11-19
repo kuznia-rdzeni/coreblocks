@@ -67,8 +67,6 @@ class PMAChecker(Elaboratable):
             # check if addr in region
             with m.If((self.addr >= start).bool() & (self.addr <= end).bool()):
                 m.d.comb += outputs[i].eq(segment.mmio)
-            with m.Else():
-                m.d.comb += outputs[i].eq(0x0)
 
         # OR all outputs
         m.d.comb += self.result.eq(reduce(or_, outputs))
