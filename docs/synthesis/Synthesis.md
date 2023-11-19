@@ -70,23 +70,23 @@ In order to perform synthesis we use:
 
 ## Benchmarking
 
-The maximum clock frequency determined by synthesis isn't the only performance measurement. Theoretically there is always a
-possibility to increase Fmax by increasing the latency. So to avoid pitfall of too big latency we introduced monitoring
-of instructions executed per clock cycle (IPC). This is done by simulating the core with cycle accuracy and executing
+The maximum clock frequency determined by synthesis isn't the only measure of performance. Theoretically, there is always a
+possibility to increase Fmax by increasing the latency. To avoid the pitfall of too big latency, we have introduced the monitoring
+of instructions executed per clock cycle (IPC). This is done by simulating the core with cycle accuracy and running
 benchmarks written in C on such core. As benchmarking programs we use
 [embench](https://github.com/embench/embench-iot/tree/master).
 
-Benchmarking is done in two steps. First we compile C programs to binary format and next binaries are executed on
-simulated core. Compilation is done using [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain), with
-glibc compiled to different architectural subsets of RiscV extensions. The configuration of riscv-gnu-toolchain used in
+The benchmarking is done in two steps. First, we compile C programs into binary format and then run the binaries on
+simulated core. The compilation is done using [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain), with
+glibc compiled for different architectural subsets of RISC-V extensions. The configuration of the riscv-gnu-toolchain used in
 Coreblocks is described in [riscv-toolchain.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/riscv-toolchain.Dockerfile).
-Benchmarks can be compiled once and used repeatedly as long as there will be no need for adding support for the new
-RiscV extensions or the embench wouldn't be updated.
+Benchmarks can be compiled once and used repeatedly as long as there is no need to add support for the new
+RISC-V extensions or the embench isn't be updated.
 
-Having binaries we can execute them in simulation. This is done using [Cocotb](https://github.com/cocotb/cocotb) and
-[Verilator](https://github.com/verilator/verilator). First we generate Verilog code which describes Coreblocks instance.
-Then it is passed to Verilator for compilation and Cocotb controls execution of program, by stubbing external
-interfaces. Compiled Verilator in compatible version is available in [Verilator.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/Verilator.Dockerfile).
+Once we have binaries, we can execute them in simulation. This is done with [Cocotb](https://github.com/cocotb/cocotb) and
+[Verilator](https://github.com/verilator/verilator). First we generate Verilog code describing Coreblocks instance.
+Then it is passed to Verilator for compilation and Cocotb controls the execution of the program, by stubbing external
+interfaces. Compiled Verilator in a compatible version is available in [Verilator.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/Verilator.Dockerfile).
 
 ### Benchmarks manual execution
 ```bash
@@ -97,18 +97,18 @@ cd coreblocks
 git submodule update --init --recursive
 cd ..
 sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
-# Run docker with coreblocks directory mounted into it
+# Run docker with the coreblocks directory mounted into it
 sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
 cd /coreblocks/test/external/embench
-# Compilation with make will save binaries to the /coreblocks directory which is shared with host
-# so binaries will survive after closing the docker container
+# Compilation will put binaries in the subdirectory of the /coreblocks directory, which is shared with the host
+# so that binaries survive after the docker container is closed
 make
 exit
 
 # ========== STEP 2: Execution ==========
 sudo docker pull ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
-# Run docker with coreblocks directory mounted into it. This directory contains
-# benchmarks binaries after execution of first step.
+# Run docker with the coreblocks directory mounted into it. This directory contains
+# benchmark binaries after running the first step.
 sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
 apt update
 apt install python3.11-venv
@@ -123,9 +123,9 @@ PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 
 ## Regression tests
 
-Regressions rests should ensure that Coreblocks is complaint with RiscV specification requirements. Tests contains 
-assembler programs which tests whole RISC-V instruction set. We execute these programs in similar way as benchmarks.
-So as the first step we compile the programs to the binary format and then we run them on core simulated by Verilator
+Regression tests should ensure that Coreblocks is complaint with RISC-V specification requirements. Tests include 
+assembler programs that tests entire RISC-V instruction set. We execute these programs in a similar way to benchmarks.
+So, as a first step, we compile the programs to the binary format and then we run them on core simulated by Verilator
 and Cocotb.
 
 ### Regression tests manual execution
@@ -137,18 +137,18 @@ cd coreblocks
 git submodule update --init --recursive
 cd ..
 sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
-# Run docker with coreblocks directory mounted into it
+# Run docker with the coreblocks directory mounted into it
 sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
 cd /coreblocks/test/external/riscv-tests
-# Compilation with make will save binaries to the /coreblocks directory which is shared with host
-# so binaries will survive after closing the docker container
+# Compilation will put binaries in the subdirectory of the /coreblocks directory, which is shared with the host
+# so that binaries survive after the docker container is closed
 make
 exit
 
 # ========== STEP 2: Execution ==========
 sudo docker pull ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
-# Run docker with coreblocks directory mounted into it. This directory contains
-# benchmarks binaries after execution of first step.
+# Run docker with the coreblocks directory mounted into it. This directory contains
+# regression test binaries after running the first step.
 sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
 apt update
 apt install python3.11-venv
