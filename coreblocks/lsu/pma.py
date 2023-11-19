@@ -71,7 +71,6 @@ class PMAChecker(Elaboratable):
                 m.d.comb += outputs[i].eq(0x0)
 
         # OR all outputs
-        for output in outputs:
-            m.d.comb += self.result.eq(self.result | output)
+        m.d.comb += self.result.eq(reduce(or_, outputs))
 
         return m
