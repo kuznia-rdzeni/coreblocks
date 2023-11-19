@@ -15,6 +15,11 @@ __all__ = [
     "align_to_power_of_two",
     "align_down_to_power_of_two",
     "bits_from_int",
+    "layout_subset",
+    "data_layout",
+    "signed_to_int",
+    "int_to_signed",
+    "neg",
 ]
 
 def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:

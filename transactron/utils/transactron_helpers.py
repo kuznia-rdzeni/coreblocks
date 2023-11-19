@@ -10,10 +10,10 @@ from amaranth import *
 
 __all__ = [
     "silence_mustuse",
-    "_graph_ccs",
     "get_caller_class_name",
     "def_helper",
     "method_def_helper",
+    "mock_def_helper",
 ]
 
 T = TypeVar("T")

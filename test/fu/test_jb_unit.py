@@ -7,7 +7,7 @@ from transactron import Method, def_method, TModule
 from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
 from coreblocks.utils.protocols import FuncUnit
 
-from transactron._utils import signed_to_int
+from transactron.utils import signed_to_int
 
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 

@@ -18,6 +18,28 @@ from amaranth.hdl.ast import ShapeCastable, Statement, ValueCastable
 from amaranth.hdl.dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, _ModuleBuilderDomain, FSM
 from amaranth.hdl.rec import Direction, Layout
 
+__all__ = [
+        "FragmentLike",
+        "ValueLike",
+        "StatementLike",
+        "LayoutLike",
+        "SwitchKey",
+        "MethodLayout",
+        "SignalBundle",
+        "LayoutListField",
+        "LayoutList",
+        "RecordIntDict",
+        "RecordIntDictRet",
+        "RecordValueDict",
+        "ROGraph",
+        "Graph",
+        "GraphCC",
+        "_ModuleBuilderDomainsLike",
+        "ModuleLike",
+        "HasElaborate",
+        "HasDebugSignals",
+        ]
+
 # Types representing Amaranth concepts
 FragmentLike: TypeAlias = Fragment | Elaboratable
 ValueLike: TypeAlias = Value | int | Enum | ValueCastable

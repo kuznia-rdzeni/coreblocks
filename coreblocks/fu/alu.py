@@ -12,7 +12,7 @@ from enum import IntFlag, auto
 
 from coreblocks.utils.protocols import FuncUnit
 
-from transactron.utils.utils import popcount, count_leading_zeros
+from transactron.utils import popcount, count_leading_zeros
 
 __all__ = ["AluFuncUnit", "ALUComponent"]
 

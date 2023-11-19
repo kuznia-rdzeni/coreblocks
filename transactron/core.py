@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 from collections.abc import Sequence, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
-from enum import Enum, auto
+from enum import Enum, auto, IntFlag
 from typing import (
     ClassVar,
     NoReturn,
@@ -21,11 +21,9 @@ from amaranth import tracer
 from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 
-from transactron.utils import AssignType, assign, ModuleConnector, silence_mustuse
-from transactron.utils.utils import OneHotSwitchDynamic
-from ._utils import *
-from transactron.utils._typing import ValueLike, SignalBundle, HasElaborate, SwitchKey, ModuleLike
 from .graph import Owned, OwnershipGraph, Direction
+from transactron.utils import *
+from transactron.utils.transactron_helpers import _graph_ccs
 
 __all__ = [
     "MethodLayout",
