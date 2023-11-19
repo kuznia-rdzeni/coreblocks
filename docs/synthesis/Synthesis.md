@@ -43,6 +43,8 @@ sudo docker pull ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-3.11
 sudo docker run -it --rm ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-3.11
 git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
 cd coreblocks
+apt update
+apt install python3.11-venv
 python3 -m venv venv
 . venv/bin/activate
 python3 -m pip install --upgrade pip
@@ -91,6 +93,9 @@ interfaces. Compiled Verilator in compatible version is available in [Verilator.
 # ========== STEP 1: Compilation ==========
 # Clone coreblocks into host file system
 git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
+cd coreblocks
+git submodule update --init --recursive
+cd ..
 sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
 # Run docker with coreblocks directory mounted into it
 sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
@@ -105,9 +110,12 @@ sudo docker pull ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
 # Run docker with coreblocks directory mounted into it. This directory contains
 # benchmarks binaries after execution of first step.
 sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+apt update
+apt install python3.11-venv
 python3 -m venv venv
 . venv/bin/activate
 python3 -m pip install --upgrade pip
+cd coreblocks
 pip3 install -r requirements-dev.txt
 PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 ./scripts/run_benchmarks.py
