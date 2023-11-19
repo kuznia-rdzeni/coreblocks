@@ -15,7 +15,7 @@ if not os.path.exists(TEST_RESULTS_FILE):
 
 tree = eT.parse(TEST_RESULTS_FILE)
 
-if len(tree.findall(FAILURE_TAG)) > 0:
+if len(list(tree.iter(FAILURE_TAG))) > 0:
     print("Some regression tests failed")
     sys.exit(1)
 
