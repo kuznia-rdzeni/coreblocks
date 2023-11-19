@@ -3,7 +3,7 @@ from amaranth import *
 
 from coreblocks.params import *
 from transactron.utils import HasElaborate
-from transactron.core import Method, def_method, TModule
+from transactron.core import TModule
 
 
 @dataclass
@@ -24,7 +24,7 @@ class PMARegion:
 
     start: int
     end: int
-    attrs: Record
+    mmio: bool
 
 
 class PMAChecker(Elaboratable):
@@ -36,8 +36,13 @@ class PMAChecker(Elaboratable):
 
     Attributes
     ----------
-    ask : Method
-        Used to request attributes of particular memory address.
+
+    addr : Signal
+        Memory address, for which PMAs are requested.
+
+    result : Record
+        PMAs for given address.
+
     """
 
     def __init__(self, gen_params: GenParams) -> None:
@@ -46,31 +51,27 @@ class PMAChecker(Elaboratable):
         # poor man's interval list
         self.segments = gen_params.pma
         self.attr_layout = gen_params.get(PMALayouts).pma_attrs_layout
-        self.ask = Method(i=[("addr", gen_params.isa.xlen)], o=self.attr_layout)
+        self.result = Record(self.attr_layout)
+        self.addr = Signal(gen_params.isa.xlen)
 
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
 
-        @def_method(m, self.ask)
-        def _(addr: Value):
-            result = Record(self.attr_layout)
-            outputs = Array([Record(self.attr_layout) for _ in self.segments])
+        outputs = Array([Record(self.attr_layout) for _ in self.segments])
 
-            # zero output if addr not in region, propagate value if addr in region
-            for i, segment in enumerate(self.segments):
-                start = segment.start
-                end = segment.end
+        # zero output if addr not in region, propagate value if addr in region
+        for i, segment in enumerate(self.segments):
+            start = segment.start
+            end = segment.end
 
-                # check if addr in region
-                with m.If((addr >= start).bool() & (addr <= end).bool()):
-                    m.d.comb += outputs[i].eq(segment.attrs)
-                with m.Else():
-                    m.d.comb += outputs[i].eq(0x0)
+            # check if addr in region
+            with m.If((self.addr >= start).bool() & (self.addr <= end).bool()):
+                m.d.comb += outputs[i].eq(segment.mmio)
+            with m.Else():
+                m.d.comb += outputs[i].eq(0x0)
 
-            # OR all outputs
-            for output in outputs:
-                m.d.comb += result.eq(result | output)
-
-            return result
+        # OR all outputs
+        for output in outputs:
+            m.d.comb += self.result.eq(self.result | output)
 
         return m

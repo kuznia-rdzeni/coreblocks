@@ -12,12 +12,6 @@ from coreblocks.lsu.pma import PMAChecker
 __all__ = ["LSUDummy", "LSUBlockComponent"]
 
 
-def calculate_addr(m: ModuleLike, xlen: int, current_instr: Record):
-    addr = Signal(xlen)
-    m.d.comb += addr.eq(current_instr.s1_val + current_instr.imm)
-    return addr
-
-
 class LSURequesterWB(Elaboratable):
     """
     Wishbone request logic for the load/store unit. Its job is to interface
@@ -209,6 +203,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         valid = Signal()  # current_instr is valid
         execute = Signal()  # start execution
         issued = Signal()  # instruction was issued to the bus
+        flush = Signal()  # exception handling, requests are not issued
         current_instr = Record(self.lsu_layouts.rs.data_layout)
 
         m.submodules.pma = pma = PMAChecker(self.gen_params)
@@ -224,8 +219,15 @@ class LSUDummy(FuncBlock, Elaboratable):
         instr_is_load = Signal()
         m.d.comb += instr_is_load.eq(current_instr.exec_fn.op_type == OpType.LOAD)
 
+        addr = Signal(self.gen_params.isa.xlen)
+        m.d.comb += addr.eq(current_instr.s1_val + current_instr.imm)
+
+        pmas = Record(self.gen_params.get(PMALayouts).pma_attrs_layout)
+        m.d.comb += pma.addr.eq(addr)
+        m.d.comb += pmas.eq(pma.result)
+
         is_mmio = Signal()
-        m.d.comb += is_mmio.eq(current_instr.mmio)
+        m.d.comb += is_mmio.eq(pmas["mmio"])
 
         @def_method(m, self.select, ~reserved)
         def _():
@@ -237,10 +239,6 @@ class LSUDummy(FuncBlock, Elaboratable):
         def _(rs_data: Record, rs_entry_id: Value):
             m.d.sync += assign(current_instr, rs_data)
             m.d.sync += valid.eq(1)
-            with Transaction().body(m):
-                addr = calculate_addr(m, self.gen_params.isa.xlen, current_instr)
-                mmio_flag = pma.ask(m, addr=addr)["mmio"]
-                m.d.sync += current_instr.mmio.eq(mmio_flag)
 
         @def_method(m, self.update)
         def _(reg_id: Value, reg_val: Value):
@@ -253,13 +251,12 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
-        with Transaction().body(
-            m, request=instr_ready & ~issued & ~instr_is_fence & (execute | (instr_is_load & ~is_mmio))
-        ):
+        do_issue = ~issued & instr_ready & ~flush & ~instr_is_fence & (execute | (instr_is_load & ~is_mmio))
+        with Transaction().body(m, request=do_issue):
             m.d.sync += issued.eq(1)
             res = requester.issue(
                 m,
-                addr=current_instr.s1_val + current_instr.imm,
+                addr=addr,
                 data=current_instr.s2_val,
                 funct3=current_instr.exec_fn.funct3,
                 store=~instr_is_load,
@@ -267,8 +264,9 @@ class LSUDummy(FuncBlock, Elaboratable):
             with m.If(res["exception"]):
                 results.write(m, data=0, exception=res["exception"], cause=res["cause"])
 
-        # Handles FENCE as a no-op.
-        with Transaction().body(m, request=instr_ready & ~issued & instr_is_fence):
+        # Handles FENCE and flushed instructions as a no-op.
+        do_skip = ~issued & (instr_ready & ~flush & instr_is_fence | valid & flush)
+        with Transaction().body(m, request=do_skip):
             m.d.sync += issued.eq(1)
             results.write(m, data=0, exception=0, cause=0)
 
@@ -295,8 +293,10 @@ class LSUDummy(FuncBlock, Elaboratable):
             }
 
         @def_method(m, self.precommit)
-        def _(rob_id: Value):
-            with m.If(valid & (rob_id == current_instr.rob_id) & ~instr_is_fence):
+        def _(rob_id: Value, side_fx: Value):
+            with m.If(~side_fx):
+                m.d.comb += flush.eq(1)
+            with m.Elif(valid & (rob_id == current_instr.rob_id) & ~instr_is_fence):
                 m.d.comb += execute.eq(1)
 
         return m

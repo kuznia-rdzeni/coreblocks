@@ -1,6 +1,6 @@
 from coreblocks.params import GenParams, OpType, Funct7, Funct3
 from coreblocks.params.isa import ExceptionCause
-from transactron.utils.utils import layout_subset, layout_superset
+from transactron.utils.utils import layout_subset
 from transactron.utils import LayoutList, LayoutListField
 
 __all__ = [
@@ -106,6 +106,9 @@ class CommonLayoutFields:
 
         self.error: LayoutListField = ("error", 1)
         """Request ended with an error."""
+
+        self.side_fx: LayoutListField = ("side_fx", 1)
+        """Side effects are enabled."""
 
 
 class SchedulerLayouts:
@@ -222,7 +225,7 @@ class RATLayouts:
 
         self.rat_rename_out: LayoutList = [fields.rp_s1, fields.rp_s2]
 
-        self.rat_commit_in: LayoutList = [fields.rl_dst, fields.rp_dst]
+        self.rat_commit_in: LayoutList = [fields.rl_dst, fields.rp_dst, fields.side_fx]
 
         self.rat_commit_out: LayoutList = [self.old_rp_dst]
 
@@ -329,7 +332,7 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.precommit: LayoutList = [fields.rob_id]
+        self.precommit: LayoutList = [fields.rob_id, fields.side_fx]
 
 
 class RSLayouts:
@@ -504,7 +507,7 @@ class LSULayouts:
         fields = gen_params.get(CommonLayoutFields)
         data = gen_params.get(RSFullDataLayout)
 
-        base_data_layout = layout_subset(
+        data_layout = layout_subset(
             data.data_layout,
             fields={
                 "rp_s1",
@@ -518,7 +521,7 @@ class LSULayouts:
             },
         )
 
-        data_layout = layout_superset(base_data_layout, [("mmio", 1)])
+        data_layout = data_layout + [("mmio", 1)]
 
         self.rs_entries_bits = 0
 
