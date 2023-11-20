@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1700504035023,
+  "lastUpdate": 1700504291520,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15539,6 +15539,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 23285,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1472,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1052,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8220,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47438768+JumiDeluxe@users.noreply.github.com",
+            "name": "Julia Matuszewska",
+            "username": "JumiDeluxe"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "41d1b8cfea22a6af4a3714a0b79ac1b96ff343cb",
+          "message": "RAT tests (#520)",
+          "timestamp": "2023-11-20T19:07:40+01:00",
+          "tree_id": "f03e014c0dfa962870d10bee0ae1f009c09fa95d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/41d1b8cfea22a6af4a3714a0b79ac1b96ff343cb"
+        },
+        "date": 1700504289871,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 50.06,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23658,
             "unit": "LUT4"
           },
           {
