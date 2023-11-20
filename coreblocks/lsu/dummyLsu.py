@@ -247,7 +247,9 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
-        do_issue = ~issued & instr_ready & ~flush & ~instr_is_fence & (execute | (instr_is_load & ~pmas["mmio"]))
+        can_reorder = instr_is_load & ~pmas["mmio"]
+        want_issue = ~instr_is_fence & (execute | can_reorder)
+        do_issue = ~issued & instr_ready & ~flush & want_issue
         with Transaction().body(m, request=do_issue):
             m.d.sync += issued.eq(1)
             res = requester.issue(
