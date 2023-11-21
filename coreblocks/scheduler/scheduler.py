@@ -309,8 +309,6 @@ class RSInsertion(Elaboratable):
                 "rs_data": {
                     "rp_s1": instr.regs_p.rp_s1,
                     "rp_s2": instr.regs_p.rp_s2,
-                    "rp_s1_reg": instr.regs_p.rp_s1,
-                    "rp_s2_reg": instr.regs_p.rp_s2,
                     "rp_dst": instr.regs_p.rp_dst,
                     "rob_id": instr.rob_id,
                     "exec_fn": instr.exec_fn,
