@@ -315,7 +315,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.update)
         def _(reg_id, reg_val):
-            with m.If(reg_id == instr.rp_s1):
+            with m.If((reg_id == instr.rp_s1) & ~instr.s1_valid):
                 m.d.sync += instr.s1_val.eq(reg_val)
                 m.d.sync += instr.s1_valid.eq(1)
 

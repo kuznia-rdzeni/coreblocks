@@ -73,11 +73,11 @@ class RS(Elaboratable):
         def _(reg_id: Value, reg_val: Value) -> None:
             for record in self.data:
                 with m.If(record.rec_full.bool()):
-                    with m.If(record.rs_data.rp_s1 == reg_id):
+                    with m.If((record.rs_data.rp_s1 == reg_id) & ~record.rs_data.s1_valid):
                         m.d.sync += record.rs_data.s1_valid.eq(1)
                         m.d.sync += record.rs_data.s1_val.eq(reg_val)
 
-                    with m.If(record.rs_data.rp_s2 == reg_id):
+                    with m.If((record.rs_data.rp_s2 == reg_id) & ~record.rs_data.s2_valid):
                         m.d.sync += record.rs_data.s2_valid.eq(1)
                         m.d.sync += record.rs_data.s2_val.eq(reg_val)
 

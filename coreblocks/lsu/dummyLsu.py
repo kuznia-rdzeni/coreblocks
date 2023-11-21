@@ -230,10 +230,10 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         @def_method(m, self.update)
         def _(reg_id: Value, reg_val: Value):
-            with m.If(current_instr.rp_s1 == reg_id):
+            with m.If((current_instr.rp_s1 == reg_id) & ~current_instr.s1_valid):
                 m.d.sync += current_instr.s1_val.eq(reg_val)
                 m.d.sync += current_instr.s1_valid.eq(1)
-            with m.If(current_instr.rp_s2 == reg_id):
+            with m.If((current_instr.rp_s2 == reg_id) & ~current_instr.s2_valid):
                 m.d.sync += current_instr.s2_val.eq(reg_val)
                 m.d.sync += current_instr.s2_valid.eq(1)
 
