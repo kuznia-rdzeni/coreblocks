@@ -42,7 +42,7 @@ class RS(Elaboratable):
 
         for record in self.data:
             m.d.comb += record.rec_ready.eq(
-                ~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full.bool()
+                record.rs_data.s1_valid & record.rs_data.s2_valid & record.rec_full
             )
 
         select_vector = Cat(~record.rec_reserved for record in self.data)
@@ -74,11 +74,11 @@ class RS(Elaboratable):
             for record in self.data:
                 with m.If(record.rec_full.bool()):
                     with m.If(record.rs_data.rp_s1 == reg_id):
-                        m.d.sync += record.rs_data.rp_s1.eq(0)
+                        m.d.sync += record.rs_data.s1_valid.eq(1)
                         m.d.sync += record.rs_data.s1_val.eq(reg_val)
 
                     with m.If(record.rs_data.rp_s2 == reg_id):
-                        m.d.sync += record.rs_data.rp_s2.eq(0)
+                        m.d.sync += record.rs_data.s2_valid.eq(1)
                         m.d.sync += record.rs_data.s2_val.eq(reg_val)
 
         @def_method(m, self.take, ready=take_possible)

@@ -19,7 +19,7 @@ def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dic
     for params in insert_list:
         entry_id = params["rs_entry_id"]
         check_list[entry_id]["rs_data"] = params["rs_data"]
-        check_list[entry_id]["rec_ready"] = 1 if params["rs_data"]["rp_s1"] | params["rs_data"]["rp_s2"] == 0 else 0
+        check_list[entry_id]["rec_ready"] = 1 if params["rs_data"]["s1_valid"] and params["rs_data"]["s2_valid"] else 0
         check_list[entry_id]["rec_full"] = 1
         check_list[entry_id]["rec_reserved"] = 1
 
@@ -75,6 +75,8 @@ class TestRSMethodInsert(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "s1_valid": id % 2,
+                    "s2_valid": id % 2,
                     "imm": id,
                     "pc": id,
                 },
@@ -119,6 +121,8 @@ class TestRSMethodSelect(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "s1_valid": id < 2,
+                    "s2_valid": id < 2,
                     "imm": id,
                     "pc": id,
                 },
@@ -182,6 +186,8 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "s1_valid": id == 0,
+                    "s2_valid": 0,
                     "imm": id,
                     "pc": id,
                 },
@@ -208,7 +214,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         self.assertEqual((yield self.m.rs.data[1].rec_ready), 0)
         yield from self.m.io_update.call(reg_id=2, reg_val=value_sp1)
         yield Settle()
-        self.assertEqual((yield self.m.rs.data[1].rs_data.rp_s1), 0)
+        self.assertEqual((yield self.m.rs.data[1].rs_data.s1_valid), 1)
         self.assertEqual((yield self.m.rs.data[1].rs_data.s1_val), value_sp1)
         self.assertEqual((yield self.m.rs.data[1].rec_ready), 0)
 
@@ -216,7 +222,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         value_sp2 = 2020
         yield from self.m.io_update.call(reg_id=3, reg_val=value_sp2)
         yield Settle()
-        self.assertEqual((yield self.m.rs.data[1].rs_data.rp_s2), 0)
+        self.assertEqual((yield self.m.rs.data[1].rs_data.s2_valid), 1)
         self.assertEqual((yield self.m.rs.data[1].rs_data.s2_val), value_sp2)
         self.assertEqual((yield self.m.rs.data[1].rec_ready), 1)
 
@@ -246,8 +252,8 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         yield from self.m.io_update.call(reg_id=reg_id, reg_val=value_spx)
         yield Settle()
         for index in range(2):
-            self.assertEqual((yield self.m.rs.data[index].rs_data.rp_s1), 0)
-            self.assertEqual((yield self.m.rs.data[index].rs_data.rp_s2), 0)
+            self.assertEqual((yield self.m.rs.data[index].rs_data.s1_valid), 1)
+            self.assertEqual((yield self.m.rs.data[index].rs_data.s2_valid), 1)
             self.assertEqual((yield self.m.rs.data[index].rs_data.s1_val), value_spx)
             self.assertEqual((yield self.m.rs.data[index].rs_data.s2_val), value_spx)
             self.assertEqual((yield self.m.rs.data[index].rec_ready), 1)
@@ -272,6 +278,8 @@ class TestRSMethodTake(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "s1_valid": id == 0,
+                    "s2_valid": id == 0,
                     "imm": id,
                     "pc": id,
                 },
@@ -328,6 +336,8 @@ class TestRSMethodTake(TestCaseWithSimulator):
             },
             "s1_val": 0,
             "s2_val": 0,
+            "s1_valid": 1,
+            "s2_valid": 1,
             "imm": 1,
             "pc": 40,
         }
@@ -370,6 +380,8 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "s1_valid": id < 2,
+                    "s2_valid": id < 2,
                     "imm": id,
                     "pc": id,
                 },
@@ -423,6 +435,8 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
                     },
                     "s1_val": id,
                     "s2_val": id,
+                    "s1_valid": 1,
+                    "s2_valid": 1,
                     "imm": id,
                 },
             }

@@ -225,7 +225,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         instr = Record(self.csr_layouts.rs.data_layout + [("valid", 1)])
 
-        m.d.comb += ready_to_process.eq(precommitting & instr.valid & (instr.rp_s1 == 0))
+        m.d.comb += ready_to_process.eq(precommitting & instr.valid & instr.s1_valid)
 
         # RISCV Zicsr spec Table 1.1
         should_read_csr = Signal()
@@ -241,8 +241,8 @@ class CSRUnit(FuncBlock, Elaboratable):
         should_write_csr = Signal()
         m.d.comb += should_write_csr.eq(
             (instr.exec_fn.funct3 == Funct3.CSRRW)
-            | ((instr.exec_fn.funct3 == Funct3.CSRRS) & (instr.rp_s1_reg != 0))  # original register number
-            | ((instr.exec_fn.funct3 == Funct3.CSRRC) & (instr.rp_s1_reg != 0))
+            | ((instr.exec_fn.funct3 == Funct3.CSRRS) & (instr.rp_s1 != 0))
+            | ((instr.exec_fn.funct3 == Funct3.CSRRC) & (instr.rp_s1 != 0))
             | (instr.exec_fn.funct3 == Funct3.CSRRWI)
             | ((instr.exec_fn.funct3 == Funct3.CSRRSI) & (instr.s1_val != 0))
             | ((instr.exec_fn.funct3 == Funct3.CSRRCI) & (instr.s1_val != 0))
@@ -317,7 +317,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         def _(reg_id, reg_val):
             with m.If(reg_id == instr.rp_s1):
                 m.d.sync += instr.s1_val.eq(reg_val)
-                m.d.sync += instr.rp_s1.eq(0)
+                m.d.sync += instr.s1_valid.eq(1)
 
         @def_method(m, self.get_result, done)
         def _():

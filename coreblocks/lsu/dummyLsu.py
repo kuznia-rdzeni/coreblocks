@@ -209,7 +209,7 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         m.submodules.results = results = self.forwarder = Forwarder(self.lsu_layouts.accept)
 
-        instr_ready = (current_instr.rp_s1 == 0) & (current_instr.rp_s2 == 0) & valid
+        instr_ready = current_instr.s1_valid & current_instr.s2_valid & valid
 
         instr_is_fence = Signal()
         m.d.comb += instr_is_fence.eq(current_instr.exec_fn.op_type == OpType.FENCE)
@@ -232,10 +232,10 @@ class LSUDummy(FuncBlock, Elaboratable):
         def _(reg_id: Value, reg_val: Value):
             with m.If(current_instr.rp_s1 == reg_id):
                 m.d.sync += current_instr.s1_val.eq(reg_val)
-                m.d.sync += current_instr.rp_s1.eq(0)
+                m.d.sync += current_instr.s1_valid.eq(1)
             with m.If(current_instr.rp_s2 == reg_id):
                 m.d.sync += current_instr.s2_val.eq(reg_val)
-                m.d.sync += current_instr.rp_s2.eq(0)
+                m.d.sync += current_instr.s2_valid.eq(1)
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.

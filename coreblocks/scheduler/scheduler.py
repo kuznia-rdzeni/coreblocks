@@ -306,17 +306,18 @@ class RSInsertion(Elaboratable):
             source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
 
             data = {
-                # when operand value is valid the convention is to set operand source to 0
                 "rs_data": {
-                    "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
-                    "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
+                    "rp_s1": instr.regs_p.rp_s1,
+                    "rp_s2": instr.regs_p.rp_s2,
                     "rp_s1_reg": instr.regs_p.rp_s1,
                     "rp_s2_reg": instr.regs_p.rp_s2,
                     "rp_dst": instr.regs_p.rp_dst,
                     "rob_id": instr.rob_id,
                     "exec_fn": instr.exec_fn,
-                    "s1_val": Mux(source1.valid, source1.reg_val, 0),
-                    "s2_val": Mux(source2.valid, source2.reg_val, 0),
+                    "s1_val": source1.reg_val,
+                    "s2_val": source2.reg_val,
+                    "s1_valid": source1.valid,
+                    "s2_valid": source2.valid,
                     "imm": instr.imm,
                     "csr": instr.csr,
                     "pc": instr.pc,

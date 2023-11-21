@@ -99,9 +99,9 @@ class TestCSRUnit(TestCaseWithSimulator):
         return {
             "instr": {
                 "exec_fn": {"op_type": OpType.CSR_IMM if imm_op else OpType.CSR_REG, "funct3": op, "funct7": 0},
-                "rp_s1": 0 if value_available or imm_op else rs1,
-                "rp_s1_reg": rs1,
+                "rp_s1": rs1,
                 "s1_val": exp["rs1"]["value"] if value_available and not imm_op else 0,
+                "s1_valid": value_available and not imm_op,
                 "rp_dst": rd,
                 "imm": imm,
                 "csr": csr,
@@ -172,9 +172,9 @@ class TestCSRUnit(TestCaseWithSimulator):
             yield from self.dut.insert.call(
                 rs_data={
                     "exec_fn": {"op_type": OpType.CSR_REG, "funct3": Funct3.CSRRW, "funct7": 0},
-                    "rp_s1": 0,
-                    "rp_s1_reg": 1,
+                    "rp_s1": 1,
                     "s1_val": 1,
+                    "s1_valid": 1,
                     "rp_dst": 2,
                     "imm": 0,
                     "csr": csr,

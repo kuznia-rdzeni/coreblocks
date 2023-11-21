@@ -70,6 +70,12 @@ class CommonLayoutFields:
         self.s2_val: LayoutListField = ("s2_val", gen_params.isa.xlen)
         """Value of second source operand."""
 
+        self.s1_valid: LayoutListField = ("s1_valid", 1)
+        """First source operand has a value."""
+
+        self.s2_valid: LayoutListField = ("s2_valid", 1)
+        """Second source operand has a value."""
+
         self.reg_val: LayoutListField = ("reg_val", gen_params.isa.xlen)
         """Value of some physical register."""
 
@@ -296,13 +302,13 @@ class RSFullDataLayout:
         self.data_layout: LayoutList = [
             fields.rp_s1,
             fields.rp_s2,
-            ("rp_s1_reg", gen_params.phys_regs_bits),
-            ("rp_s2_reg", gen_params.phys_regs_bits),
             fields.rp_dst,
             fields.rob_id,
             fields.exec_fn,
             fields.s1_val,
             fields.s2_val,
+            fields.s1_valid,
+            fields.s2_valid,
             fields.imm,
             fields.csr,
             fields.pc,
@@ -353,6 +359,8 @@ class RSLayouts:
                 "exec_fn",
                 "s1_val",
                 "s2_val",
+                "s1_valid",
+                "s2_valid",
                 "imm",
                 "pc",
             },
@@ -516,6 +524,8 @@ class LSULayouts:
                 "exec_fn",
                 "s1_val",
                 "s2_val",
+                "s1_valid",
+                "s2_valid",
                 "imm",
             },
         )
@@ -561,11 +571,11 @@ class CSRLayouts:
             data.data_layout,
             fields={
                 "rp_s1",
-                "rp_s1_reg",
                 "rp_dst",
                 "rob_id",
                 "exec_fn",
                 "s1_val",
+                "s1_valid",
                 "imm",
                 "csr",
                 "pc",

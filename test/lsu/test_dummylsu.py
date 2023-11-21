@@ -19,13 +19,12 @@ from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
 def generate_register(max_reg_val: int, phys_regs_bits: int) -> tuple[int, int, Optional[dict[str, int]], int]:
+    rp = random.randint(1, 2**phys_regs_bits - 1)
     if random.randint(0, 1):
-        rp = random.randint(1, 2**phys_regs_bits - 1)
         val = 0
         real_val = random.randint(0, max_reg_val // 4) * 4
         ann_data = {"reg_id": rp, "reg_val": real_val}
     else:
-        rp = 0
         val = random.randint(0, max_reg_val // 4) * 4
         real_val = val
         ann_data = None
@@ -151,6 +150,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 "exec_fn": exec_fn,
                 "s1_val": s1_val,
                 "s2_val": 0,
+                "s1_valid": ann_data is None,
+                "s2_valid": 1,
                 "imm": imm,
             }
             self.instr_queue.append(instr)
@@ -274,6 +275,8 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
             "exec_fn": exec_fn,
             "s1_val": s1_val,
             "s2_val": 0,
+            "s1_valid": 1,
+            "s2_valid": 1,
             "imm": imm,
         }
 
@@ -335,7 +338,10 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 if check_align(addr, op):
                     break
 
+            s1_valid = ann_data1 is None
+
             rp_s2, s2_val, ann_data2, data = generate_register(0xFFFFFFFF, self.gp.phys_regs_bits)
+            s2_valid = ann_data2 is None
             if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
                 ann_data2 = None
                 data = ann_data1["reg_val"]
@@ -360,6 +366,8 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 "exec_fn": exec_fn,
                 "s1_val": s1_val,
                 "s2_val": s2_val,
+                "s1_valid": s1_valid,
+                "s2_valid": s2_valid,
                 "imm": imm,
             }
             self.instr_queue.append(instr)
@@ -456,6 +464,8 @@ class TestDummyLSUFence(TestCaseWithSimulator):
             "exec_fn": exec_fn,
             "s1_val": 4,
             "s2_val": 1,
+            "s1_valid": 1,
+            "s2_valid": 1,
             "imm": 8,
         }
 
