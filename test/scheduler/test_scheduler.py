@@ -262,14 +262,17 @@ class TestScheduler(TestCaseWithSimulator):
             s1 = self.rf_state[expected["rp_s1"]]
             s2 = self.rf_state[expected["rp_s2"]]
 
-            # if source operand register ids are 0 then we already have values
-            self.assertEqual(got["rs_data"]["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
-            self.assertEqual(got["rs_data"]["rp_s2"], expected["rp_s2"] if not s2.valid else 0)
+            self.assertEqual(got["rs_data"]["rp_s1"], expected["rp_s1"])
+            self.assertEqual(got["rs_data"]["rp_s2"], expected["rp_s2"])
             self.assertEqual(got["rs_data"]["rp_dst"], expected["rp_dst"])
             self.assertEqual(got["rs_data"]["exec_fn"], expected["exec_fn"])
             self.assertEqual(got["rs_entry_id"], expected["rs_entry_id"])
-            self.assertEqual(got["rs_data"]["s1_val"], s1.value if s1.valid else 0)
-            self.assertEqual(got["rs_data"]["s2_val"], s2.value if s2.valid else 0)
+            if s1.valid:
+                self.assertEqual(got["rs_data"]["s1_val"], s1.value)
+            if s2.valid:
+                self.assertEqual(got["rs_data"]["s2_val"], s2.value)
+            self.assertEqual(got["rs_data"]["s1_valid"], s1.valid)
+            self.assertEqual(got["rs_data"]["s2_valid"], s2.valid)
             self.assertEqual(rl_dst, expected["rl_dst"])
 
             # recycle physical register number
