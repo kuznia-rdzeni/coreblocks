@@ -101,7 +101,7 @@ class TestCSRUnit(TestCaseWithSimulator):
                 "exec_fn": {"op_type": OpType.CSR_IMM if imm_op else OpType.CSR_REG, "funct3": op, "funct7": 0},
                 "rp_s1": rs1,
                 "s1_val": exp["rs1"]["value"] if value_available and not imm_op else 0,
-                "s1_valid": value_available and not imm_op,
+                "s1_valid": value_available or not rs1,
                 "rp_dst": rd,
                 "imm": imm,
                 "csr": csr,
