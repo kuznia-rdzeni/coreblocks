@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proposition of Reservation Station implementation &mdash; Coreblocks documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Reservation Station" href="../rs.html" />
+    <link rel="prev" title="Scheduler overview" href="../../scheduler/overview.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Coreblocks documentation
+            <img src="../../_static/logo-banner.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../home.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development-environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../transactions.html">Documentation for Coreblocks transaction framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../scheduler/overview.html">Scheduler overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Proposition of Reservation Station implementation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#internal-data">Internal data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#actual-reservation-station">Actual Reservation Station</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#used-slots-table">Used slots table</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#internal-methods">Internal methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#compare-and-substitute">Compare and substitute</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#read-row">Read row</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#clean-row">Clean row</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-free-slot">Get free slot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mark-slot-as-used">Mark slot as used</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#proposition-of-implementation-of-external-interfaces">Proposition of implementation of external interfaces</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#get-slot-and-mark-as-used">Get slot and mark as used</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#compare-and-substitute-all">Compare and substitute all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#read-and-clean-row">Read and clean row</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../rs.html">Reservation Station</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../current-graph.html">Full transaction-method graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../problem-checklist.html">Problem checklist</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../synthesis/synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../miscellany/exceptions-summary.html">Summary of papers about interrupts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Coreblocks documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Proposition of Reservation Station implementation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/shared-structs/implementation/rs-impl.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="proposition-of-reservation-station-implementation">
+<h1>Proposition of Reservation Station implementation<a class="headerlink" href="#proposition-of-reservation-station-implementation" title="Permalink to this heading"></a></h1>
+<p>Here is an example proposition how to implement RS using transaction framework for internal communication. If you want
+you can follow this proposition, if you don’t, feel free to change anything you want.</p>
+<div class="section" id="internal-data">
+<h2>Internal data<a class="headerlink" href="#internal-data" title="Permalink to this heading"></a></h2>
+<div class="section" id="actual-reservation-station">
+<h3>Actual Reservation Station<a class="headerlink" href="#actual-reservation-station" title="Permalink to this heading"></a></h3>
+<p>This is a buffer which has <code class="docutils literal notranslate"><span class="pre">R</span></code> rows. Each row has the following structure:</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>v</p></th>
+<th class="head"><p>opcode</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">id_out</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">id_ROB</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">id_rs1</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">val_rs1</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">id_rs2</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">val_rs2</span></code></p></th>
+</tr>
+</thead>
+</table>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">v</span></code> - “valid” - it is 1 if entry is a correct instruction which waits to be filled with operands/dispatched</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">id_rsX</span></code> - is 0 when the source value is ready (and is stored in the appropriate <code class="docutils literal notranslate"><span class="pre">val_rsX</span></code>) or not needed. It is
+non-zero when we wait for an operand to be ready.</p></li>
+<li><p>When the operand is ready we insert it to the appropriate <code class="docutils literal notranslate"><span class="pre">val_rsX</span></code> field and we put zero to <code class="docutils literal notranslate"><span class="pre">id_rsX</span></code></p></li>
+<li><p>The instruction is ready to be dispatched if <code class="docutils literal notranslate"><span class="pre">v</span></code> is <code class="docutils literal notranslate"><span class="pre">1</span></code> and both <code class="docutils literal notranslate"><span class="pre">id_rs1</span></code>, <code class="docutils literal notranslate"><span class="pre">id_rs2</span></code> are <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="used-slots-table">
+<h3>Used slots table<a class="headerlink" href="#used-slots-table" title="Permalink to this heading"></a></h3>
+<p>It is a table with <code class="docutils literal notranslate"><span class="pre">R</span></code> one-bit fields. Each field is <code class="docutils literal notranslate"><span class="pre">1</span></code> if this slot is used or is reserved to be used in the near
+future (there is instruction in pipeline which will be saved to this slot).</p>
+<p>When an entry in the RS is released, the corresponding entry in this table is switched from <code class="docutils literal notranslate"><span class="pre">1</span></code> to <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+</div>
+</div>
+<div class="section" id="internal-methods">
+<h2>Internal methods<a class="headerlink" href="#internal-methods" title="Permalink to this heading"></a></h2>
+<div class="section" id="compare-and-substitute">
+<h3>Compare and substitute<a class="headerlink" href="#compare-and-substitute" title="Permalink to this heading"></a></h3>
+<p>Input:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tag</span></code> - identifier of field in RF which should be compared with <code class="docutils literal notranslate"><span class="pre">id_rsX</span></code> to check if there is need to store <code class="docutils literal notranslate"><span class="pre">value</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">value</span></code> - value which should be stored in RS field if tag matches</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">position</span></code> - position in RS on which comparison and replacement should take place</p></li>
+</ul>
+<p>Output:</p>
+<ul class="simple">
+<li><p><em>null</em></p></li>
+</ul>
+<p>Side effects:</p>
+<ul class="simple">
+<li><p>When <code class="docutils literal notranslate"><span class="pre">tag</span></code> matches one of <code class="docutils literal notranslate"><span class="pre">id_rsX</span></code> saved in RS on <code class="docutils literal notranslate"><span class="pre">position</span></code> then <code class="docutils literal notranslate"><span class="pre">id_rsX</span></code> is cleared (set to 0) and <code class="docutils literal notranslate"><span class="pre">value</span></code> is saved
+in <code class="docutils literal notranslate"><span class="pre">val_rsX</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="read-row">
+<h3>Read row<a class="headerlink" href="#read-row" title="Permalink to this heading"></a></h3>
+<p>Input:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">position</span></code> - which RS row should be read</p></li>
+</ul>
+<p>Output:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">opcode</span></code> - instruction opcode for FU</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">val_rs1</span></code> - value of first operand</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">val_rs2</span></code> - value of second operand</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">id_out</span></code> - id of RF field where instruction output should be stored</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">id_ROB</span></code> - id of ROB entry which is allocated for this instruction</p></li>
+</ul>
+<p>Side effects:</p>
+<ul class="simple">
+<li><p><em>null</em></p></li>
+</ul>
+</div>
+<div class="section" id="clean-row">
+<h3>Clean row<a class="headerlink" href="#clean-row" title="Permalink to this heading"></a></h3>
+<p>Input:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">position</span></code> - RS row which should be cleaned</p></li>
+</ul>
+<p>Output:</p>
+<ul class="simple">
+<li><p><em>null</em></p></li>
+</ul>
+<p>Side effects:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">v</span></code> bit for entry on <code class="docutils literal notranslate"><span class="pre">position</span></code> set to <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="get-free-slot">
+<h3>Get free slot<a class="headerlink" href="#get-free-slot" title="Permalink to this heading"></a></h3>
+<p>Input:</p>
+<ul class="simple">
+<li><p><em>null</em></p></li>
+</ul>
+<p>Output:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">position</span></code> - of the free slot in the RS</p></li>
+</ul>
+<p>Side effects:</p>
+<ul class="simple">
+<li><p><em>null</em></p></li>
+</ul>
+</div>
+<div class="section" id="mark-slot-as-used">
+<h3>Mark slot as used<a class="headerlink" href="#mark-slot-as-used" title="Permalink to this heading"></a></h3>
+<p>Input:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">position</span></code> - of slot which should be marked as used</p></li>
+</ul>
+<p>Output:</p>
+<ul class="simple">
+<li><p><em>null</em></p></li>
+</ul>
+<p>Side effects:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">position</span></code> slot in RS marked as used</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="proposition-of-implementation-of-external-interfaces">
+<h2>Proposition of implementation of external interfaces<a class="headerlink" href="#proposition-of-implementation-of-external-interfaces" title="Permalink to this heading"></a></h2>
+<div class="section" id="get-slot-and-mark-as-used">
+<h3>Get slot and mark as used<a class="headerlink" href="#get-slot-and-mark-as-used" title="Permalink to this heading"></a></h3>
+<p><a class="reference internal" href="#get-free-slot"><span class="std std-doc">“Get free slot”</span></a> position and call <a class="reference internal" href="#mark-slot-as-used"><span class="std std-doc">“Mark slot as used”</span></a> with it.</p>
+</div>
+<div class="section" id="compare-and-substitute-all">
+<h3>Compare and substitute all<a class="headerlink" href="#compare-and-substitute-all" title="Permalink to this heading"></a></h3>
+<p>Invokes <a class="reference internal" href="#compare-and-substitute"><span class="std std-doc">“Compare and substitute”</span></a> for each row of RS.</p>
+</div>
+<div class="section" id="read-and-clean-row">
+<h3>Read and clean row<a class="headerlink" href="#read-and-clean-row" title="Permalink to this heading"></a></h3>
+<p>For given row <code class="docutils literal notranslate"><span class="pre">r</span></code> atomically <a class="reference internal" href="#read-row"><span class="std std-doc">“Read row”</span></a> and <a class="reference internal" href="#clean-row"><span class="std std-doc">“Clean row”</span></a></p>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../scheduler/overview.html" class="btn btn-neutral float-left" title="Scheduler overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../rs.html" class="btn btn-neutral float-right" title="Reservation Station" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Kuźnia Rdzeni, 2023.
+      <span class="lastupdated">Last updated on 23:47 2023-11-22.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
