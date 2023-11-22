@@ -44,6 +44,7 @@ class Retirement(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
+        m_csr = self.gen_params.get(DependencyManager).get_dependency(GenericCSRRegistersKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(reset=1)
@@ -72,12 +73,13 @@ class Retirement(Elaboratable):
 
                 # TODO: only set mcause/trigger IC if cause is actual exception and not e.g.
                 # misprediction or pipeline flush after some fence.i or changing ISA
-                mcause = self.gen_params.get(DependencyManager).get_dependency(GenericCSRRegistersKey()).mcause
                 cause = self.exception_cause_get(m).cause
                 entry = Signal(self.gen_params.isa.xlen)
                 # MSB is exception bit
                 m.d.comb += entry.eq(cause | (1 << (self.gen_params.isa.xlen - 1)))
-                mcause.write(m, entry)
+                m_csr.mcause.write(m, entry)
+
+                # m_csr.mepc.write(m, rob_entry) maybe save pc in ExceptionCauseREgisyer???
 
             # set rl_dst -> rp_dst in R-RAT
             rat_out = self.r_rat_commit(
@@ -106,7 +108,9 @@ class Retirement(Elaboratable):
             with m.If(~side_fx_comb & core_empty):
                 # Resume core operation from exception handler
 
-                self.fetch_continue(m, {"from_pc": 0, "next_pc": 0})  # TODO: add from_pc valid
+                # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
+                resume_pc = m_csr.mtvec.value & ~(0b11)
+                self.fetch_continue(m, {"from_pc": 0, "next_pc": resume_pc})  # TODO: add from_pc valid
 
                 m.d.sync += side_fx.eq(1)
 
