@@ -2,6 +2,7 @@ from amaranth import *
 
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
+from coreblocks.structs_common.instr_counter import CoreInstructionCounter
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
@@ -20,6 +21,7 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
+from transactron.lib.transformers import MethodProduct
 from transactron.utils.fifo import BasicFifo
 
 __all__ = ["Core"]
@@ -41,6 +43,8 @@ class Core(Elaboratable):
             self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
 
+        self.core_counter = CoreInstructionCounter(self.gen_params)
+
         cache_layouts = self.gen_params.get(ICacheLayouts)
         if gen_params.icache_params.enable:
             self.icache_refiller = SimpleWBCacheRefiller(
@@ -50,10 +54,12 @@ class Core(Elaboratable):
         else:
             self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
 
+        self.fetch_continue = MethodProduct([self.fifo_fetch.write, self.core_counter.increment])
+
         if Extension.C in gen_params.isa.extensions:
-            self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fifo_fetch.write)
+            self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.method)
         else:
-            self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
+            self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.method)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -103,6 +109,9 @@ class Core(Elaboratable):
         m.submodules.icache = self.icache
         m.submodules.fetch = self.fetch
 
+        m.submodules.core_counter = self.core_counter
+
+        m.submodules.fetch_continue_product = self.fetch_continue
         m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
         m.submodules.decode = Decode(
             gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=fifo_decode.write
@@ -137,6 +146,9 @@ class Core(Elaboratable):
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
             exception_cause_get=self.exception_cause_register.get,
             frat_rename=frat.rename,
+            fetch_continue=self.fetch.verify_branch,
+            fetch_stop=self.fetch.stop,
+            instr_decrement=self.core_counter.decrement,
         )
 
         m.submodules.csr_generic = self.csr_generic

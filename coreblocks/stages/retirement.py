@@ -22,6 +22,9 @@ class Retirement(Elaboratable):
         precommit: Method,
         exception_cause_get: Method,
         frat_rename: Method,
+        fetch_continue: Method,
+        fetch_stop: Method,
+        instr_decrement: Method
     ):
         self.gen_params = gen_params
         self.rob_peek = rob_peek
@@ -32,6 +35,9 @@ class Retirement(Elaboratable):
         self.precommit = precommit
         self.exception_cause_get = exception_cause_get
         self.rename = frat_rename
+        self.fetch_continue = fetch_continue
+        self.fetch_stop = fetch_stop
+        self.instr_decrement = instr_decrement
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
@@ -58,10 +64,12 @@ class Retirement(Elaboratable):
         with Transaction().body(m):
             rob_entry = self.rob_retire(m)
 
-            # TODO: Trigger InterruptCoordinator (handle exception) when rob_entry.exception is set.
             with m.If(rob_entry.exception & side_fx):
+                # Start flushing the core
                 m.d.sync += side_fx.eq(0)
                 m.d.comb += side_fx_comb.eq(0)
+                self.fetch_stop(m)
+
                 # TODO: only set mcause/trigger IC if cause is actual exception and not e.g.
                 # misprediction or pipeline flush after some fence.i or changing ISA
                 mcause = self.gen_params.get(DependencyManager).get_dependency(GenericCSRRegistersKey()).mcause
@@ -91,6 +99,16 @@ class Retirement(Elaboratable):
             # put old rp_dst to free RF list
             with m.If(rp_freed):  # don't put rp0 to free list - reserved to no-return instructions
                 self.free_rf_put(m, rp_freed)
+
+            core_empty = self.instr_decrement(m)
+            # cycle when fetch_stop is called, is the last cycle when new instruction can be fetched.
+            # in this case, counter will be incremented and result correct (non-empty).
+            with m.If(~side_fx_comb & core_empty):
+                # Resume core operation from exception handler
+
+                self.fetch_continue(m, {"from_pc": 0, "next_pc": 0})  # TODO: add from_pc valid
+
+                m.d.sync += side_fx.eq(1)
 
         with Transaction().body(m):
             data = frat_fix.read(m)
