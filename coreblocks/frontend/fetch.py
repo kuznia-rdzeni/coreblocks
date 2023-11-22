@@ -30,6 +30,7 @@ class Fetch(Elaboratable):
         self.cont = cont
 
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        self.stop = Method()
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
@@ -89,6 +90,10 @@ class Fetch(Elaboratable):
             m.d.sync += speculative_pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
 
+        @def_method(m, self.stop)
+        def _():
+            stall()
+
         return m
 
 
@@ -115,6 +120,7 @@ class UnalignedFetch(Elaboratable):
         self.cont = cont
 
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        self.stop = Method()
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
@@ -217,5 +223,10 @@ class UnalignedFetch(Elaboratable):
             m.d.sync += cache_req_pc.eq(next_pc)
             m.d.sync += current_pc.eq(next_pc)
             m.d.sync += stalled.eq(0)
+
+        @def_method(m, self.stop)
+        def _():
+            m.d.sync += stalled.eq(1)
+            m.d.sync += flushing.eq(1)  # check priority to req_limiter/conflict with verify_branch (or override?)
 
         return m
