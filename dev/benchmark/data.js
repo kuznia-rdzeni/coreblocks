@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1700697114961,
+  "lastUpdate": 1700697336211,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15706,6 +15706,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1472,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1052,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8220,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47438768+JumiDeluxe@users.noreply.github.com",
+            "name": "JumiDeluxe",
+            "username": "JumiDeluxe"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "964065c29bd937475cc1bf7d5969e167560b8456",
+          "message": "Transaction graph and docs cleanup (#521)",
+          "timestamp": "2023-11-23T00:46:45+01:00",
+          "tree_id": "f114ab46dc21419e740e4a3c850b3037e17cd1eb",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/964065c29bd937475cc1bf7d5969e167560b8456"
+        },
+        "date": 1700697334821,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.35,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 27798,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1440,
             "unit": "LUT"
           },
           {
