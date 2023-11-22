@@ -517,6 +517,7 @@ class LSULayouts:
                 "s1_val",
                 "s2_val",
                 "imm",
+                "pc",
             },
         )
 
@@ -588,6 +589,7 @@ class ExceptionRegisterLayouts:
         self.get: LayoutList = [
             fields.cause,
             fields.rob_id,
+            fields.pc,
         ]
 
         self.report = self.get

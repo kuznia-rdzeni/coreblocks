@@ -152,6 +152,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 "s1_val": s1_val,
                 "s2_val": 0,
                 "imm": imm,
+                "pc": 0,
             }
             self.instr_queue.append(instr)
             self.mem_data_queue.append(
@@ -172,6 +173,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                         "cause": ExceptionCause.LOAD_ADDRESS_MISALIGNED
                         if misaligned
                         else ExceptionCause.LOAD_ACCESS_FAULT,
+                        "pc": 0,
                     }
                 )
 

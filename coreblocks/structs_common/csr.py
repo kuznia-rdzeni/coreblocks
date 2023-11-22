@@ -328,7 +328,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             with m.If(exception):
                 report = self.dependency_manager.get_dependency(ExceptionReportKey())
-                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION)
+                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc)
             m.d.sync += exception.eq(0)
 
             return {

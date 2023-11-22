@@ -73,13 +73,12 @@ class Retirement(Elaboratable):
 
                 # TODO: only set mcause/trigger IC if cause is actual exception and not e.g.
                 # misprediction or pipeline flush after some fence.i or changing ISA
-                cause = self.exception_cause_get(m).cause
+                cause_register = self.exception_cause_get(m)
                 entry = Signal(self.gen_params.isa.xlen)
                 # MSB is exception bit
-                m.d.comb += entry.eq(cause | (1 << (self.gen_params.isa.xlen - 1)))
+                m.d.comb += entry.eq(cause_register.cause | (1 << (self.gen_params.isa.xlen - 1)))
                 m_csr.mcause.write(m, entry)
-
-                # m_csr.mepc.write(m, rob_entry) maybe save pc in ExceptionCauseREgisyer???
+                m_csr.mepc.write(m, cause_register.pc)
 
             # set rl_dst -> rp_dst in R-RAT
             rat_out = self.r_rat_commit(
