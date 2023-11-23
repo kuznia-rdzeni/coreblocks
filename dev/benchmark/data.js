@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1700697336211,
+  "lastUpdate": 1700697680258,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -3903,6 +3903,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "crc32",
             "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47438768+JumiDeluxe@users.noreply.github.com",
+            "name": "JumiDeluxe",
+            "username": "JumiDeluxe"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "964065c29bd937475cc1bf7d5969e167560b8456",
+          "message": "Transaction graph and docs cleanup (#521)",
+          "timestamp": "2023-11-23T00:46:45+01:00",
+          "tree_id": "f114ab46dc21419e740e4a3c850b3037e17cd1eb",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/964065c29bd937475cc1bf7d5969e167560b8456"
+        },
+        "date": 1700697678017,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nsichneu",
+            "value": 0.2420362948846237,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.34174027385235617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.25211480106460527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.3332441948567099,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.26240061481242527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2783650349000975,
             "unit": "Instructions Per Cycle"
           }
         ]
