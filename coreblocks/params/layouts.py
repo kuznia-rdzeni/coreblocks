@@ -429,6 +429,7 @@ class FetchLayouts:
         self.branch_verify: LayoutList = [
             ("from_pc", gen_params.isa.xlen),
             ("next_pc", gen_params.isa.xlen),
+            ("resume_from_exception", 1),
         ]
 
 

@@ -23,7 +23,7 @@ class Retirement(Elaboratable):
         exception_cause_get: Method,
         frat_rename: Method,
         fetch_continue: Method,
-        fetch_stop: Method,
+        fetch_stall: Method,
         instr_decrement: Method
     ):
         self.gen_params = gen_params
@@ -36,7 +36,7 @@ class Retirement(Elaboratable):
         self.exception_cause_get = exception_cause_get
         self.rename = frat_rename
         self.fetch_continue = fetch_continue
-        self.fetch_stop = fetch_stop
+        self.fetch_stall = fetch_stall
         self.instr_decrement = instr_decrement
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
@@ -69,7 +69,7 @@ class Retirement(Elaboratable):
                 # Start flushing the core
                 m.d.sync += side_fx.eq(0)
                 m.d.comb += side_fx_comb.eq(0)
-                self.fetch_stop(m)
+                self.fetch_stall(m)
 
                 # TODO: only set mcause/trigger IC if cause is actual exception and not e.g.
                 # misprediction or pipeline flush after some fence.i or changing ISA

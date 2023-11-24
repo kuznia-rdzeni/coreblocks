@@ -147,7 +147,7 @@ class Core(Elaboratable):
             exception_cause_get=self.exception_cause_register.get,
             frat_rename=frat.rename,
             fetch_continue=self.fetch.verify_branch,
-            fetch_stop=self.fetch.stop,
+            fetch_stall=self.fetch.stall_exception,
             instr_decrement=self.core_counter.decrement,
         )
 

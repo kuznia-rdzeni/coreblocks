@@ -30,6 +30,7 @@ class JumpBranchWrapper(Elaboratable):
             return {
                 "from_pc": br.from_pc,
                 "next_pc": br.next_pc,
+                "resume_from_exception": 0,
                 "result": res.result,
                 "rob_id": res.rob_id,
                 "rp_dst": res.rp_dst,
@@ -80,7 +81,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
     if next_pc & 0b11 != 0:
         exception = ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED
 
-    return {"result": res, "from_pc": pc, "next_pc": next_pc} | (
+    return {"result": res, "from_pc": pc, "next_pc": next_pc, "resume_from_exception": 0} | (
         {"exception": exception} if exception is not None else {}
     )
 

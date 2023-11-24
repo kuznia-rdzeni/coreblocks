@@ -340,7 +340,11 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.fetch_continue, accepted)
         def _():
-            return {"from_pc": instr.pc, "next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
+            return {
+                "from_pc": instr.pc,
+                "next_pc": instr.pc + self.gen_params.isa.ilen_bytes,
+                "resume_from_exception": False,
+            }
 
         # Generate precommitting signal from precommit
         @def_method(m, self.precommit)
