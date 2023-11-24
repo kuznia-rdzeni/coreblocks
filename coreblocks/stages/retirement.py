@@ -54,6 +54,7 @@ class Retirement(Elaboratable):
 
         fields = self.gen_params.get(CommonLayoutFields)
         m.submodules.frat_fix = frat_fix = Forwarder([fields.rl_dst, fields.rp_dst])
+        m.submodules.fetch_continue_fwd = fetch_continue_fwd = Forwarder([fields.pc])
 
         with Transaction().body(m):
             # TODO: do we prefer single precommit call per instruction?
@@ -108,13 +109,17 @@ class Retirement(Elaboratable):
                 # Resume core operation from exception handler
 
                 # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
-                resume_pc = m_csr.mtvec.value & ~(0b11)
-                self.fetch_continue(m, {"from_pc": 0, "next_pc": resume_pc})  # TODO: add from_pc valid
+                resume_pc = m_csr.mtvec.read(m) & ~(0b11)
+                fetch_continue_fwd.write(m, pc=resume_pc)
 
                 m.d.sync += side_fx.eq(1)
 
         with Transaction().body(m):
             data = frat_fix.read(m)
             self.rename(m, rl_s1=0, rl_s2=0, rl_dst=data["rl_dst"], rp_dst=data["rp_dst"])
+
+        with Transaction().body(m):
+            pc = fetch_continue_fwd.read(m).pc
+            self.fetch_continue(m, from_pc=0, next_pc=pc, resume_from_exception=1)
 
         return m

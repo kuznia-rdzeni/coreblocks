@@ -594,3 +594,8 @@ class ExceptionRegisterLayouts:
         ]
 
         self.report = self.get
+
+
+class CoreInstructionCounterLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.decrement = [("empty", 1)]
