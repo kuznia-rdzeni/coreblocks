@@ -1,13 +1,14 @@
+from abc import ABC
 from amaranth import *
 from ..core import *
 from ..core import RecordDict
 from typing import Optional
 from collections.abc import Callable
-from transactron.utils import ValueLike, assign, AssignType
+from transactron.utils import ValueLike, assign, AssignType, ModuleLike
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 
 __all__ = [
-    "MethodTransformer",
+    "MethodMap",
     "MethodFilter",
     "MethodProduct",
     "MethodTryProduct",
@@ -17,7 +18,33 @@ __all__ = [
 ]
 
 
-class MethodTransformer(Elaboratable):
+class Combiner(ABC):
+    """Method combiner abstract class.
+
+    Method combiners construct a new method which utilizes other methods.
+
+    Attributes
+    ----------
+    method: Method
+        The method.
+    """
+
+    method: Method
+
+    def use(self, m: ModuleLike):
+        """
+        Returns the method and adds the combiner to a module.
+
+        Parameters
+        ----------
+        m: Module or TModule
+            The module to which this combiner is added as a submodule.
+        """
+        m.submodules += self
+        return self.method
+
+
+class MethodMap(Combiner, Elaboratable):
     """Method transformer.
 
     Takes a target method and creates a transformed method which calls the
@@ -73,7 +100,7 @@ class MethodTransformer(Elaboratable):
         return m
 
 
-class MethodFilter(Elaboratable):
+class MethodFilter(Combiner, Elaboratable):
     """Method filter.
 
     Takes a target method and creates a method which calls the target method
@@ -129,7 +156,7 @@ class MethodFilter(Elaboratable):
         return m
 
 
-class MethodProduct(Elaboratable):
+class MethodProduct(Combiner, Elaboratable):
     def __init__(
         self,
         targets: list[Method],
@@ -177,7 +204,7 @@ class MethodProduct(Elaboratable):
         return m
 
 
-class MethodTryProduct(Elaboratable):
+class MethodTryProduct(Combiner, Elaboratable):
     def __init__(
         self,
         targets: list[Method],
@@ -229,7 +256,7 @@ class MethodTryProduct(Elaboratable):
         return m
 
 
-class Collector(Elaboratable):
+class Collector(Combiner, Elaboratable):
     """Single result collector.
 
     Creates method that collects results of many methods with identical
@@ -346,7 +373,7 @@ class ConnectAndTransformTrans(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.transformer = transformer = MethodTransformer(
+        m.submodules.transformer = transformer = MethodMap(
             self.method2,
             i_transform=(self.method1.data_out.layout, self.i_fun),
             o_transform=(self.method1.data_in.layout, self.o_fun),
