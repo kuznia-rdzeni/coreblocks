@@ -68,7 +68,7 @@ jobs:
           . venv/bin/activate
           scripts/run_tests.py -a regression
 
-      - name: Check regression occurrence
+      - name: Check for test failure
         run: ./scripts/check_test_results.py
 
   unit-test:
