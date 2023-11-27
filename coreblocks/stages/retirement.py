@@ -52,6 +52,9 @@ class Retirement(Elaboratable):
 
         m.d.comb += side_fx_comb.eq(side_fx)
 
+        # Use Forwarders for calling those methods, because we don't want them to block
+        # Retirement Transaction (because of un-readiness) during normal operation (both
+        # methods are unused when not handling exceptions)
         fields = self.gen_params.get(CommonLayoutFields)
         m.submodules.frat_fix = frat_fix = Forwarder([fields.rl_dst, fields.rp_dst])
         m.submodules.fetch_continue_fwd = fetch_continue_fwd = Forwarder([fields.pc])
