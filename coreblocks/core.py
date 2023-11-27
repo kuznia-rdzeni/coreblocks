@@ -21,7 +21,7 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
-from transactron.lib.transformers import MethodProduct
+from transactron.lib.transformers import MethodMap, MethodProduct
 from transactron.utils.fifo import BasicFifo
 
 __all__ = ["Core"]
@@ -53,13 +53,6 @@ class Core(Elaboratable):
             self.icache = ICache(cache_layouts, self.gen_params.icache_params, self.icache_refiller)
         else:
             self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
-
-        self.fetch_continue = MethodProduct([self.fifo_fetch.write, self.core_counter.increment])
-
-        if Extension.C in gen_params.isa.extensions:
-            self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.method)
-        else:
-            self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.method)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -103,15 +96,22 @@ class Core(Elaboratable):
         m.submodules.RF = rf = self.RF
         m.submodules.ROB = rob = self.ROB
 
-        m.submodules.fifo_fetch = self.fifo_fetch
         if self.icache_refiller:
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
-        m.submodules.fetch = self.fetch
 
+        drop_args_transform = (self.gen_params.get(FetchLayouts).raw_instr, lambda _a, _b: {})
+        core_counter_increment_discard_map = MethodMap(self.core_counter.increment, i_transform=drop_args_transform)
+        fetch_continue = MethodProduct([self.fifo_fetch.write, core_counter_increment_discard_map.use(m)])
+
+        if Extension.C in self.gen_params.isa.extensions:
+            m.submodules.fetch = self.fetch = UnalignedFetch(self.gen_params, self.icache, fetch_continue.use(m))
+        else:
+            m.submodules.fetch = self.fetch = Fetch(self.gen_params, self.icache, fetch_continue.use(m))
+
+        m.submodules.fifo_fetch = self.fifo_fetch
         m.submodules.core_counter = self.core_counter
 
-        m.submodules.fetch_continue_product = self.fetch_continue
         m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
         m.submodules.decode = Decode(
             gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=fifo_decode.write

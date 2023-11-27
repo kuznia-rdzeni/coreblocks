@@ -1,6 +1,6 @@
 from amaranth import *
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.layouts import CoreInstructionCounterLayouts, FetchLayouts
+from coreblocks.params.layouts import CoreInstructionCounterLayouts
 from transactron.core import Method, TModule, def_method
 
 
@@ -11,7 +11,7 @@ class CoreInstructionCounter(Elaboratable):
     """
 
     def __init__(self, gp: GenParams):
-        self.increment = Method(i=gp.get(FetchLayouts).raw_instr)
+        self.increment = Method()
         self.decrement = Method(o=gp.get(CoreInstructionCounterLayouts).decrement)
 
         self.count = Signal(gp.rob_entries_bits + 1)
@@ -26,7 +26,7 @@ class CoreInstructionCounter(Elaboratable):
             m.d.sync += self.count.eq(self.count - 1)
 
         @def_method(m, self.increment)
-        def _(instr, rvc, access_fault, pc):
+        def _():
             pass
 
         @def_method(m, self.decrement)
