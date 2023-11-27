@@ -6,7 +6,7 @@ from amaranth import *
 from coreblocks.frontend.rvc import InstrDecompress
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from coreblocks.utils import ValueLike
+from transactron.utils import ValueLike
 
 from ..common import TestCaseWithSimulator
 

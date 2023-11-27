@@ -16,20 +16,39 @@ jobs:
     name: Build regression tests
     runs-on: ubuntu-latest
     container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+    outputs:
+        cache_hit: ${{ steps.cache-regression.outputs.cache-hit }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Build riscv-tests
+      - name: Cache regression-tests
+        id: cache-regression
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-regression-tests
+        with:
+          path: test/external/riscv-tests/test-*
+          
+          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
+              '**/test/external/riscv-tests/environment/**',
+              '**/test/external/riscv-tests/Makefile',
+              '**/.git/modules/test/external/riscv-tests/riscv-tests/HEAD',
+              '**/docker/riscv-toolchain.Dockerfile'
+            ) }}
+          restore-keys: |
+            ${{ env.cache-name }}-${{ runner.os }}-
+
+      - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
         run: cd test/external/riscv-tests && make
 
-      - uses: actions/upload-artifact@v3
+      - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
+        name: Upload riscv-tests
+        uses: actions/upload-artifact@v3
         with:
-          name: "riscv-tests"
-          path: |
-            test/external/riscv-tests/test-*
+          path: test/external/riscv-tests
 
   run-regression-tests:
     name: Run regression tests
@@ -40,6 +59,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -58,10 +79,18 @@ jobs:
           . venv/bin/activate
           PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/cache@v3
+        env:
+          cache-name: cache-regression-tests
         with:
-          name: "riscv-tests"
-          path: test/external/riscv-tests
+          path: test/external/riscv-tests/test-*
+          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
+              '**/test/external/riscv-tests/environment/**',
+              '**/test/external/riscv-tests/Makefile',
+              '**/.git/modules/test/external/riscv-tests/riscv-tests/HEAD',
+              '**/docker/riscv-toolchain.Dockerfile'
+              ) }}
+          fail-on-cache-miss: true
 
       - name: Run tests
         run: |

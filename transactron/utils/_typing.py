@@ -6,6 +6,8 @@ from typing import (
     TypeAlias,
     TypeVar,
     runtime_checkable,
+    Union,
+    Any,
 )
 from collections.abc import Iterable, Mapping, Sequence
 from contextlib import AbstractContextManager
@@ -28,7 +30,12 @@ SwitchKey: TypeAlias = str | int | Enum
 
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
-LayoutList: TypeAlias = list[tuple[str, "ShapeLike | LayoutList"]]
+LayoutListField: TypeAlias = tuple[str, "ShapeLike | LayoutList"]
+LayoutList: TypeAlias = list[LayoutListField]
+
+RecordIntDict: TypeAlias = Mapping[str, Union[int, "RecordIntDict"]]
+RecordIntDictRet: TypeAlias = Mapping[str, Any]  # full typing hard to work with
+RecordValueDict: TypeAlias = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 
 
 class _ModuleBuilderDomainsLike(Protocol):

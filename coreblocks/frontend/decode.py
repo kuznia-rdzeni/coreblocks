@@ -42,7 +42,7 @@ class Decode(Elaboratable):
         with Transaction().body(m):
             raw = self.get_raw(m)
 
-            m.d.top_comb += instr_decoder.instr.eq(raw.data)
+            m.d.top_comb += instr_decoder.instr.eq(raw.instr)
 
             # Jump-branch unit requires information if the instruction was
             # decoded from a compressed instruction. To avoid adding a new signal

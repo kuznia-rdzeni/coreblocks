@@ -5,7 +5,7 @@ from transactron import *
 from transactron.lib import FIFO
 
 from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
-from coreblocks.utils import OneHotSwitch
+from transactron.utils import OneHotSwitch
 
 from coreblocks.fu.fu_decoder import DecoderManager
 from enum import IntFlag, auto

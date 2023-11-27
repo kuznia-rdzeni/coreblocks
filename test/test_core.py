@@ -1,7 +1,7 @@
 from amaranth import Elaboratable, Module
 
 from transactron.lib import AdapterTrans
-from coreblocks.utils import align_to_power_of_two
+from transactron.utils import align_to_power_of_two
 
 from .common import TestCaseWithSimulator, TestbenchIO
 
@@ -111,7 +111,7 @@ class TestCoreBase(TestCaseWithSimulator):
         return (yield self.m.core.RF.entries[reg_id].reg_val)
 
     def push_instr(self, opcode):
-        yield from self.m.io_in.call(data=opcode)
+        yield from self.m.io_in.call(instr=opcode)
 
     def compare_core_states(self, sw_core):
         for i in range(self.gp.isa.reg_cnt):
@@ -243,6 +243,8 @@ class TestCoreRandomized(TestCoreBase):
         ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
         ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
+        ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
+        ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, basic_core_config),
     ],
 )
 class TestCoreAsmSource(TestCoreBase):

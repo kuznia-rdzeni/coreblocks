@@ -4,7 +4,9 @@ from enum import Enum, IntFlag, auto
 from typing import Optional, TypeVar
 from dataclasses import dataclass, replace
 from elftools.elf.constants import P_FLAGS
-from elftools.elf.elffile import ELFFile
+from elftools.elf.elffile import ELFFile, Segment
+from coreblocks.params.configurations import CoreConfiguration
+from transactron.utils.utils import align_to_power_of_two, align_down_to_power_of_two
 
 all = [
     "ReplyStatus",
@@ -77,7 +79,7 @@ class RandomAccessMemory(MemorySegment):
         self.data = bytearray(data)
 
         if len(self.data) != len(address_range):
-            raise ValueError("Data length must be equal to the lenth of the address range")
+            raise ValueError("Data length must be equal to the length of the address range")
 
     def read(self, req: ReadRequest) -> ReadReply:
         return ReadReply(data=int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little"))
@@ -137,6 +139,48 @@ class CoreMemoryModel:
             return WriteReply(status=ReplyStatus.ERROR)
 
 
+def load_segment(segment: Segment, *, disable_write_protection: bool = False) -> RandomAccessMemory:
+    paddr = segment.header["p_paddr"]
+    memsz = segment.header["p_memsz"]
+    flags_raw = segment.header["p_flags"]
+
+    seg_start = paddr
+    seg_end = paddr + memsz
+
+    data = segment.data()
+
+    # fill the rest of the segment with zeroes
+    data = data + b"\x00" * (seg_end - seg_start - len(data))
+
+    flags = SegmentFlags(0)
+    if flags_raw & P_FLAGS.PF_R:
+        flags |= SegmentFlags.READ
+    if flags_raw & P_FLAGS.PF_W or disable_write_protection:
+        flags |= SegmentFlags.WRITE
+    if flags_raw & P_FLAGS.PF_X:
+        flags |= SegmentFlags.EXECUTABLE
+
+    config = CoreConfiguration()
+    if flags_raw & P_FLAGS.PF_X:
+        # align instruction section to full icache lines
+        align_bits = config.icache_block_size_bits
+        # workaround for fetching/stalling issue
+        extend_end = 2**config.icache_block_size_bits
+    else:
+        align_bits = 0
+        extend_end = 0
+
+    align_data_front = seg_start - align_down_to_power_of_two(seg_start, align_bits)
+    align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end + extend_end
+
+    data = b"\x00" * align_data_front + data + b"\x00" * align_data_back
+
+    seg_start = align_down_to_power_of_two(seg_start, align_bits)
+    seg_end = align_to_power_of_two(seg_end, align_bits) + extend_end
+
+    return RandomAccessMemory(range(seg_start, seg_end), flags, data)
+
+
 def load_segments_from_elf(file_path: str, *, disable_write_protection: bool = False) -> list[RandomAccessMemory]:
     segments: list[RandomAccessMemory] = []
 
@@ -145,28 +189,6 @@ def load_segments_from_elf(file_path: str, *, disable_write_protection: bool = F
         for segment in elffile.iter_segments():
             if segment.header["p_type"] != "PT_LOAD":
                 continue
-
-            paddr = segment.header["p_paddr"]
-            alignment = segment.header["p_align"]
-            memsz = segment.header["p_memsz"]
-            flags_raw = segment.header["p_flags"]
-
-            def align_down(n: int) -> int:
-                return (n // alignment) * alignment
-
-            seg_start = align_down(paddr)
-            seg_end = align_down(paddr + memsz + alignment - 1)
-
-            data = b"\x00" * (paddr - seg_start) + segment.data() + b"\x00" * (seg_end - (paddr + len(segment.data())))
-
-            flags = SegmentFlags(0)
-            if flags_raw & P_FLAGS.PF_R:
-                flags |= SegmentFlags.READ
-            if flags_raw & P_FLAGS.PF_W or disable_write_protection:
-                flags |= SegmentFlags.WRITE
-            if flags_raw & P_FLAGS.PF_X:
-                flags |= SegmentFlags.EXECUTABLE
-
-            segments.append(RandomAccessMemory(range(seg_start, seg_end), flags, data))
+            segments.append(load_segment(segment, disable_write_protection=disable_write_protection))
 
     return segments

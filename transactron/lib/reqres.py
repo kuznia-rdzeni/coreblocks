@@ -1,7 +1,7 @@
 from amaranth import *
 from ..core import *
 from .connectors import Forwarder, FIFO
-from coreblocks.utils.fifo import BasicFifo
+from transactron.utils.fifo import BasicFifo
 from amaranth.utils import *
 
 __all__ = [
