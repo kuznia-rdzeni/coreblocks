@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1701077333219,
+  "lastUpdate": 1701077449772,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15868,6 +15868,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1440,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1052,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8220,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "70346597+makz00@users.noreply.github.com",
+            "name": "Maksymilian Komarnicki",
+            "username": "makz00"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bfc0445eb94f134c87fb6971223742b155e3b904",
+          "message": "Add fork repositories support for reporting regression tests (#508)",
+          "timestamp": "2023-11-27T10:22:55+01:00",
+          "tree_id": "a20467aa18c053caa3d9ac4bab68784ea07e4d08",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bfc0445eb94f134c87fb6971223742b155e3b904"
+        },
+        "date": 1701077447224,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.18,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 22046,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1472,
             "unit": "LUT"
           },
           {
