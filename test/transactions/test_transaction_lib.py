@@ -399,19 +399,15 @@ class MethodTransformerTestCircuit(Elaboratable):
             def _(arg: Record):
                 return otransform(m, arg)
 
-            trans = MethodTransformer(
-                self.target.adapter.iface, i_transform=(layout, imeth), o_transform=(layout, ometh)
-            )
+            trans = MethodMap(self.target.adapter.iface, i_transform=(layout, imeth), o_transform=(layout, ometh))
         else:
-            trans = MethodTransformer(
+            trans = MethodMap(
                 self.target.adapter.iface,
                 i_transform=(layout, itransform),
                 o_transform=(layout, otransform),
             )
 
-        m.submodules.trans = trans
-
-        m.submodules.source = self.source = TestbenchIO(AdapterTrans(trans.method))
+        m.submodules.source = self.source = TestbenchIO(AdapterTrans(trans.use(m)))
 
         return m
 
@@ -517,9 +513,9 @@ class MethodProductTestCircuit(Elaboratable):
         if self.add_combiner:
             combiner = (layout, lambda _, vs: {"data": sum(vs)})
 
-        m.submodules.product = product = MethodProduct(methods, combiner)
+        product = MethodProduct(methods, combiner)
 
-        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.method))
+        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.use(m)))
 
         return m
 
@@ -704,9 +700,9 @@ class MethodTryProductTestCircuit(Elaboratable):
         if self.add_combiner:
             combiner = (layout, lambda _, vs: {"data": sum(Mux(s, r, 0) for (s, r) in vs)})
 
-        m.submodules.product = product = MethodTryProduct(methods, combiner)
+        product = MethodTryProduct(methods, combiner)
 
-        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.method))
+        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.use(m)))
 
         return m
 
