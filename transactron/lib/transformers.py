@@ -8,7 +8,7 @@ from transactron.utils import ValueLike, assign, AssignType, ModuleLike
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 
 __all__ = [
-    "Combiner",
+    "Transformer",
     "MethodMap",
     "MethodFilter",
     "MethodProduct",
@@ -19,10 +19,10 @@ __all__ = [
 ]
 
 
-class Combiner(ABC):
-    """Method combiner abstract class.
+class Transformer(ABC):
+    """Method transformer abstract class.
 
-    Method combiners construct a new method which utilizes other methods.
+    Method transformers construct a new method which utilizes other methods.
 
     Attributes
     ----------
@@ -34,18 +34,18 @@ class Combiner(ABC):
 
     def use(self, m: ModuleLike):
         """
-        Returns the method and adds the combiner to a module.
+        Returns the method and adds the transformer to a module.
 
         Parameters
         ----------
         m: Module or TModule
-            The module to which this combiner is added as a submodule.
+            The module to which this transformer is added as a submodule.
         """
         m.submodules += self
         return self.method
 
 
-class MethodMap(Combiner, Elaboratable):
+class MethodMap(Transformer, Elaboratable):
     """Bidirectional map for methods.
 
     Takes a target method and creates a transformed method which calls the
@@ -101,7 +101,7 @@ class MethodMap(Combiner, Elaboratable):
         return m
 
 
-class MethodFilter(Combiner, Elaboratable):
+class MethodFilter(Transformer, Elaboratable):
     """Method filter.
 
     Takes a target method and creates a method which calls the target method
@@ -157,7 +157,7 @@ class MethodFilter(Combiner, Elaboratable):
         return m
 
 
-class MethodProduct(Combiner, Elaboratable):
+class MethodProduct(Transformer, Elaboratable):
     def __init__(
         self,
         targets: list[Method],
@@ -205,7 +205,7 @@ class MethodProduct(Combiner, Elaboratable):
         return m
 
 
-class MethodTryProduct(Combiner, Elaboratable):
+class MethodTryProduct(Transformer, Elaboratable):
     def __init__(
         self,
         targets: list[Method],
@@ -257,7 +257,7 @@ class MethodTryProduct(Combiner, Elaboratable):
         return m
 
 
-class Collector(Combiner, Elaboratable):
+class Collector(Transformer, Elaboratable):
     """Single result collector.
 
     Creates method that collects results of many methods with identical
