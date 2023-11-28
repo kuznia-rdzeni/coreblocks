@@ -15,7 +15,7 @@ __all__ = [
     "MethodTryProduct",
     "Collector",
     "CatTrans",
-    "ConnectAndTransformTrans",
+    "ConnectAndMapTrans",
 ]
 
 
@@ -336,14 +336,13 @@ class CatTrans(Elaboratable):
         return m
 
 
-class ConnectAndTransformTrans(Elaboratable):
-    """Connecting transaction with transformations.
+class ConnectAndMapTrans(Elaboratable):
+    """Connecting transaction with mapping functions.
 
     Behaves like `ConnectTrans`, but modifies the transferred data using
-    functions or `Method`s. Equivalent to a combination of
-    `ConnectTrans` and `MethodTransformer`. The transformation
-    functions take two parameters, a `Module` and the `Record` being
-    transformed.
+    functions or `Method`s. Equivalent to a combination of `ConnectTrans`
+    and `MethodMap`. The mapping functions take two parameters, a `Module`
+    and the `Record` being transformed.
     """
 
     def __init__(
