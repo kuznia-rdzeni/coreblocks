@@ -8,6 +8,7 @@ from transactron.utils import ValueLike, assign, AssignType, ModuleLike
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 
 __all__ = [
+    "Combiner",
     "MethodMap",
     "MethodFilter",
     "MethodProduct",
@@ -45,11 +46,11 @@ class Combiner(ABC):
 
 
 class MethodMap(Combiner, Elaboratable):
-    """Method transformer.
+    """Bidirectional map for methods.
 
     Takes a target method and creates a transformed method which calls the
-    original target method, transforming the input and output values.
-    The transformation functions take two parameters, a `Module` and the
+    original target method, mapping the input and output values with
+    functions. The mapping functions take two parameters, a `Module` and the
     `Record` being transformed. Alternatively, a `Method` can be
     passed.
 
@@ -72,13 +73,13 @@ class MethodMap(Combiner, Elaboratable):
         target: Method
             The target method.
         i_transform: (record layout, function or Method), optional
-            Input transformation. If specified, it should be a pair of a
+            Input mapping function. If specified, it should be a pair of a
             function and a input layout for the transformed method.
-            If not present, input is not transformed.
+            If not present, input is passed unmodified.
         o_transform: (record layout, function or Method), optional
-            Output transformation. If specified, it should be a pair of a
+            Output mapping function. If specified, it should be a pair of a
             function and a output layout for the transformed method.
-            If not present, output is not transformed.
+            If not present, output is passed unmodified.
         """
         if i_transform is None:
             i_transform = (target.data_in.layout, lambda _, x: x)

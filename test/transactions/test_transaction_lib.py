@@ -351,7 +351,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
                 sim.add_sync_process(self.generate_producer(i))
 
 
-class MethodTransformerTestCircuit(Elaboratable):
+class MethodMapTestCircuit(Elaboratable):
     def __init__(self, iosize: int, use_methods: bool, use_dicts: bool):
         self.iosize = iosize
         self.use_methods = use_methods
@@ -413,7 +413,7 @@ class MethodTransformerTestCircuit(Elaboratable):
 
 
 class TestMethodTransformer(TestCaseWithSimulator):
-    m: MethodTransformerTestCircuit
+    m: MethodMapTestCircuit
 
     def source(self):
         for i in range(2**self.m.iosize):
@@ -426,19 +426,19 @@ class TestMethodTransformer(TestCaseWithSimulator):
         return {"data": (data << 1) | (data >> (self.m.iosize - 1))}
 
     def test_method_transformer(self):
-        self.m = MethodTransformerTestCircuit(4, False, False)
+        self.m = MethodMapTestCircuit(4, False, False)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_transformer_dicts(self):
-        self.m = MethodTransformerTestCircuit(4, False, True)
+        self.m = MethodMapTestCircuit(4, False, True)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_transformer_with_methods(self):
-        self.m = MethodTransformerTestCircuit(4, True, True)
+        self.m = MethodMapTestCircuit(4, True, True)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
