@@ -1,5 +1,6 @@
 from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
+from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.keys import GenericCSRRegistersKey
 from coreblocks.params.layouts import CommonLayoutFields
 
@@ -75,13 +76,22 @@ class Retirement(Elaboratable):
                 m.d.comb += side_fx_comb.eq(0)
                 self.fetch_stall(m)
 
-                # TODO: only set mcause/trigger IC if cause is actual exception and not e.g.
-                # misprediction or pipeline flush after some fence.i or changing ISA
                 cause_register = self.exception_cause_get(m)
-                entry = Signal(self.gen_params.isa.xlen)
-                # MSB is exception bit
-                m.d.comb += entry.eq(cause_register.cause | (1 << (self.gen_params.isa.xlen - 1)))
-                m_csr.mcause.write(m, entry)
+
+                cause_entry = Signal(self.gen_params.isa.xlen)
+
+                with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
+                    # Async interrupts are inserted only by JumpBranchUnit.
+                    # The address stored in pc field is a jump result! And mepc is set to resume from that address.
+                    # We want to commit the computed jump instruction
+                    m.d.comb += side_fx_comb.eq(1)
+                    # TODO: set correct interrupt id (from InterruptCoordinator) when multiple interrupts are supported
+                    # Set MSB - the Interrupt bit
+                    m.d.comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
+                with m.Else():
+                    m.d.comb += cause_entry.eq(cause_register.cause)
+
+                m_csr.mcause.write(m, cause_entry)
                 m_csr.mepc.write(m, cause_register.pc)
 
             # set rl_dst -> rp_dst in R-RAT

@@ -3,6 +3,7 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.structs_common.instr_counter import CoreInstructionCounter
+from coreblocks.structs_common.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
@@ -78,6 +79,8 @@ class Core(Elaboratable):
             rf_write=self.RF.write,
         )
 
+        self.interrupt_controller = InterruptController(self.gen_params)
+
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
 
@@ -150,6 +153,8 @@ class Core(Elaboratable):
             fetch_stall=self.fetch.stall_exception,
             instr_decrement=self.core_counter.decrement,
         )
+
+        m.submodules.interrupt_controller = self.interrupt_controller
 
         m.submodules.csr_generic = self.csr_generic
 
