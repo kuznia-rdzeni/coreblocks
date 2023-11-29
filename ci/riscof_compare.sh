@@ -26,7 +26,7 @@ do
     ref="$(dirname "$sig")$REFERENCE_DIR_SUFF"
     echo ">> Comparing $sig (TARGET$target_cnt) to $ref"
 
-    diff -b --strip-trailing-cr "$diff_add_args" "$sig" "$ref"
+    diff -b --strip-trailing-cr $diff_add_args "$sig" "$ref"
     res=$?
 
     [ -f "$ref" ] || echo -e "${RED}!${NO_COLOR} Reference signature file not found!"
