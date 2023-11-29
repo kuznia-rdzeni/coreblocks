@@ -14,6 +14,9 @@ auto = py_enum.auto
 unique = py_enum.unique
 
 
+# TODO: update stubs for enums
+
+
 class EnumMeta(ShapeCastable, py_enum.EnumMeta):
     """Subclass of the standard :class:`enum.EnumMeta` that implements the :class:`ShapeCastable`
     protocol.
