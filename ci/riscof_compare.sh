@@ -13,7 +13,7 @@ RED_BG="\033[0;41m"
 GREEN_BG="\033[0;42m"
 NO_COLOR="\033[0m"
 
-signature_files=$(cat $MAKEFILE_PATH | sed -n 's/^.*-o=\(.*\.signature\).*$/\1/p')
+signature_files="$(cat $MAKEFILE_PATH | sed -n 's/^.*-o=\(.*\.signature\).*$/\1/p')"
 
 REFERENCE_DIR_SUFF="/../ref/Reference-Spike.signature"
 
@@ -23,21 +23,21 @@ fail_cnt=0
 
 for sig in $signature_files
 do
-    ref=$(dirname $sig)$REFERENCE_DIR_SUFF
+    ref="$(dirname "$sig")$REFERENCE_DIR_SUFF"
     echo ">> Comparing $sig (TARGET$target_cnt) to $ref"
 
-    diff -b --strip-trailing-cr $diff_add_args $sig $ref
+    diff -b --strip-trailing-cr "$diff_add_args" "$sig" "$ref"
     res=$?
 
-    [ -f $ref ] || echo -e "${RED}!${NO_COLOR} Reference signature file not found!"
-    [ -f $sig ] || echo -e "${RED}!${NO_COLOR} Coreblocks signature file not found! Check signature run logs"
-    [ -s $sig ] || echo -e "${RED}!${NO_COLOR} Coreblock signature file is empty! Check signature run logs"
+    [ -f "$ref" ] || echo -e "${RED}!${NO_COLOR} Reference signature file not found!"
+    [ -f "$sig" ] || echo -e "${RED}!${NO_COLOR} Coreblocks signature file not found! Check signature run logs"
+    [ -s "$sig" ] || echo -e "${RED}!${NO_COLOR} Coreblock signature file is empty! Check signature run logs"
 
     if [ $res = 0 ]
     then
-        echo -e "${GREEN}[PASS] Signature verifacation passed (TARGET$target_cnt)${NO_COLOR}"
+        echo -e "${GREEN}[PASS] Signature verification passed (TARGET$target_cnt)${NO_COLOR}"
     else
-        echo -e "${RED}[FAIL] Signature verifacation failed (TARGET$target_cnt)${NO_COLOR}"
+        echo -e "${RED}[FAIL] Signature verification failed (TARGET$target_cnt)${NO_COLOR}"
         fail_cnt=$(( $fail_cnt+1 ))
     fi
 

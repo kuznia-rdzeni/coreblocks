@@ -97,7 +97,7 @@ class coreblocks(pluginTemplate):  # noqa: N801
         # will be useful in setting integer value in the compiler string (if not already hardcoded);
         self.xlen = "64" if 64 in ispec["supported_xlen"] else "32"
 
-        # for coreblocks start building the '--isa' argument. the self.isa is dutnmae specific and may not be
+        # for coreblocks start building the '--isa' argument. the self.isa is dut specific and may not be
         # useful for all DUTs
         self.isa = "rv" + self.xlen
         if "I" in ispec["ISA"]:

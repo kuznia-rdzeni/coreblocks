@@ -94,8 +94,6 @@ jobs:
 
       - name: Run tests on Coreblocks
         run: |
-          ls .
-          ls test/external/riscof
           . venv/bin/activate
           MAKEFILE_PATH=test/external/riscof/riscof_work/Makefile.run-DUT-coreblocks NPROC=1 ./ci/riscof_run_makefile.sh
 
