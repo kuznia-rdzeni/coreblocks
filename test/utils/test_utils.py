@@ -3,7 +3,7 @@ import random
 
 from amaranth import *
 from test.common import *
-from coreblocks.utils import (
+from transactron.utils import (
     align_to_power_of_two,
     align_down_to_power_of_two,
     popcount,

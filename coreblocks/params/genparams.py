@@ -7,6 +7,7 @@ from .isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
 from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
+from transactron.utils import make_hashable
 
 from typing import TYPE_CHECKING
 
@@ -35,10 +36,11 @@ class DependentCache:
     """
 
     def __init__(self):
-        self._depcache: dict[tuple[Type, frozenset[tuple[str, Any]]], Type] = {}
+        self._depcache: dict[tuple[Type, Any], Type] = {}
 
     def get(self, cls: Type[T], **kwargs) -> T:
-        v = self._depcache.get((cls, frozenset(kwargs.items())), None)
+        cache_key = make_hashable(kwargs)
+        v = self._depcache.get((cls, cache_key), None)
         if v is None:
             positional_count = cls.__init__.__code__.co_argcount
 
@@ -50,7 +52,7 @@ class DependentCache:
                 v = cls(self, **kwargs)
             else:
                 v = cls(**kwargs)
-            self._depcache[(cls, frozenset(kwargs.items()))] = v
+            self._depcache[(cls, cache_key)] = v
         return v
 
 

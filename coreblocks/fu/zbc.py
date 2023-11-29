@@ -14,7 +14,7 @@ from coreblocks.params import (
 )
 from transactron import Method, def_method, TModule
 from transactron.lib import FIFO
-from coreblocks.utils import OneHotSwitch
+from transactron.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
 

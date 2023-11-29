@@ -13,8 +13,8 @@ from transactron import *
 from transactron.core import RecordDict
 from transactron.lib import *
 from coreblocks.utils import *
-from coreblocks.utils._typing import LayoutLike, ModuleLike
-from coreblocks.utils import ModuleConnector
+from transactron.utils._typing import LayoutLike, ModuleLike
+from transactron.utils import ModuleConnector
 from ..common import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
@@ -351,7 +351,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
                 sim.add_sync_process(self.generate_producer(i))
 
 
-class MethodTransformerTestCircuit(Elaboratable):
+class MethodMapTestCircuit(Elaboratable):
     def __init__(self, iosize: int, use_methods: bool, use_dicts: bool):
         self.iosize = iosize
         self.use_methods = use_methods
@@ -399,25 +399,21 @@ class MethodTransformerTestCircuit(Elaboratable):
             def _(arg: Record):
                 return otransform(m, arg)
 
-            trans = MethodTransformer(
-                self.target.adapter.iface, i_transform=(layout, imeth), o_transform=(layout, ometh)
-            )
+            trans = MethodMap(self.target.adapter.iface, i_transform=(layout, imeth), o_transform=(layout, ometh))
         else:
-            trans = MethodTransformer(
+            trans = MethodMap(
                 self.target.adapter.iface,
                 i_transform=(layout, itransform),
                 o_transform=(layout, otransform),
             )
 
-        m.submodules.trans = trans
-
-        m.submodules.source = self.source = TestbenchIO(AdapterTrans(trans.method))
+        m.submodules.source = self.source = TestbenchIO(AdapterTrans(trans.use(m)))
 
         return m
 
 
 class TestMethodTransformer(TestCaseWithSimulator):
-    m: MethodTransformerTestCircuit
+    m: MethodMapTestCircuit
 
     def source(self):
         for i in range(2**self.m.iosize):
@@ -430,19 +426,19 @@ class TestMethodTransformer(TestCaseWithSimulator):
         return {"data": (data << 1) | (data >> (self.m.iosize - 1))}
 
     def test_method_transformer(self):
-        self.m = MethodTransformerTestCircuit(4, False, False)
+        self.m = MethodMapTestCircuit(4, False, False)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_transformer_dicts(self):
-        self.m = MethodTransformerTestCircuit(4, False, True)
+        self.m = MethodMapTestCircuit(4, False, True)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
 
     def test_method_transformer_with_methods(self):
-        self.m = MethodTransformerTestCircuit(4, True, True)
+        self.m = MethodMapTestCircuit(4, True, True)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
             sim.add_sync_process(self.target)
@@ -521,9 +517,9 @@ class MethodProductTestCircuit(Elaboratable):
         if self.add_combiner:
             combiner = (layout, lambda _, vs: {"data": sum(vs)})
 
-        m.submodules.product = product = MethodProduct(methods, combiner)
+        product = MethodProduct(methods, combiner)
 
-        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.method))
+        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.use(m)))
 
         return m
 
@@ -708,9 +704,9 @@ class MethodTryProductTestCircuit(Elaboratable):
         if self.add_combiner:
             combiner = (layout, lambda _, vs: {"data": sum(Mux(s, r, 0) for (s, r) in vs)})
 
-        m.submodules.product = product = MethodTryProduct(methods, combiner)
+        product = MethodTryProduct(methods, combiner)
 
-        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.method))
+        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.use(m)))
 
         return m
 

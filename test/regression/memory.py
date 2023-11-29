@@ -6,7 +6,7 @@ from dataclasses import dataclass, replace
 from elftools.elf.constants import P_FLAGS
 from elftools.elf.elffile import ELFFile, Segment
 from coreblocks.params.configurations import CoreConfiguration
-from coreblocks.utils.utils import align_to_power_of_two, align_down_to_power_of_two
+from transactron.utils.utils import align_to_power_of_two, align_down_to_power_of_two
 
 all = [
     "ReplyStatus",
@@ -160,17 +160,23 @@ def load_segment(segment: Segment, *, disable_write_protection: bool = False) ->
     if flags_raw & P_FLAGS.PF_X:
         flags |= SegmentFlags.EXECUTABLE
 
+    config = CoreConfiguration()
     if flags_raw & P_FLAGS.PF_X:
-        # align only instruction section to full icache lines
-        align_bits = CoreConfiguration().icache_block_size_bits
+        # align instruction section to full icache lines
+        align_bits = config.icache_block_size_bits
+        # workaround for fetching/stalling issue
+        extend_end = 2**config.icache_block_size_bits
+    else:
+        align_bits = 0
+        extend_end = 0
 
-        align_data_front = seg_start - align_down_to_power_of_two(seg_start, align_bits)
-        align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end
+    align_data_front = seg_start - align_down_to_power_of_two(seg_start, align_bits)
+    align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end + extend_end
 
-        data = b"\x00" * align_data_front + data + b"\x00" * align_data_back
+    data = b"\x00" * align_data_front + data + b"\x00" * align_data_back
 
-        seg_start = align_down_to_power_of_two(seg_start, align_bits)
-        seg_end = align_to_power_of_two(seg_end, align_bits)
+    seg_start = align_down_to_power_of_two(seg_start, align_bits)
+    seg_end = align_to_power_of_two(seg_end, align_bits) + extend_end
 
     return RandomAccessMemory(range(seg_start, seg_end), flags, data)
 
