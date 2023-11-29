@@ -12,6 +12,37 @@ on:
   workflow_dispatch:
 
 jobs:
+  build-core:
+    name: Synthethise full core
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+            python-version: '3.11'
+
+      - name: Install Coreblocks dependencies
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements-dev.txt
+
+      - name: Generate Verilog
+        run: |
+          . venv/bin/activate
+          PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: "verilog-full-core"
+          path: core.v
+
+
   build-riscof-tests:
     name: Build regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
@@ -64,7 +95,7 @@ jobs:
     name: Run regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
-    needs: build-riscof-tests
+    needs: [ build-riscof-tests, build-core ]
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -82,10 +113,10 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements-dev.txt
 
-      - name: Generate Verilog
-        run: |
-          . venv/bin/activate
-          PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+      - uses: actions/download-artifact@v3
+        with:
+          name: "verilog-full-core"
+          path: .
 
       - uses: actions/download-artifact@v3
         with:
@@ -120,7 +151,7 @@ jobs:
           cache-name: cache-regression-tests
         with:
           path: test/external/riscv-tests/test-*
-          
+
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
               '**/test/external/riscv-tests/environment/**',
               '**/test/external/riscv-tests/Makefile',
@@ -144,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
-    needs: build-regression-tests
+    needs: [ build-regression-tests, build-core ]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -163,10 +194,10 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements-dev.txt
 
-      - name: Generate Verilog
-        run: |
-          . venv/bin/activate
-          PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+      - uses: actions/download-artifact@v3
+        with:
+          name: "verilog-full-core"
+          path: .
 
       - uses: actions/cache@v3
         env:
