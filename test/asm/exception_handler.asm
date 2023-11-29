@@ -1,7 +1,7 @@
     li x2, 1
     li x4, 987 # target fibonnaci number
     li x15, 0
-    
+
     la x6, exception_handler
     csrw mtvec, x6 # set-up handler
 loop:

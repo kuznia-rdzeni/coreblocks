@@ -8,20 +8,21 @@ from transactron.utils import ValueLike, assign, AssignType, ModuleLike
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 
 __all__ = [
+    "Transformer",
     "MethodMap",
     "MethodFilter",
     "MethodProduct",
     "MethodTryProduct",
     "Collector",
     "CatTrans",
-    "ConnectAndTransformTrans",
+    "ConnectAndMapTrans",
 ]
 
 
-class Combiner(ABC):
-    """Method combiner abstract class.
+class Transformer(ABC):
+    """Method transformer abstract class.
 
-    Method combiners construct a new method which utilizes other methods.
+    Method transformers construct a new method which utilizes other methods.
 
     Attributes
     ----------
@@ -33,23 +34,23 @@ class Combiner(ABC):
 
     def use(self, m: ModuleLike):
         """
-        Returns the method and adds the combiner to a module.
+        Returns the method and adds the transformer to a module.
 
         Parameters
         ----------
         m: Module or TModule
-            The module to which this combiner is added as a submodule.
+            The module to which this transformer is added as a submodule.
         """
         m.submodules += self
         return self.method
 
 
-class MethodMap(Combiner, Elaboratable):
-    """Method transformer.
+class MethodMap(Transformer, Elaboratable):
+    """Bidirectional map for methods.
 
     Takes a target method and creates a transformed method which calls the
-    original target method, transforming the input and output values.
-    The transformation functions take two parameters, a `Module` and the
+    original target method, mapping the input and output values with
+    functions. The mapping functions take two parameters, a `Module` and the
     `Record` being transformed. Alternatively, a `Method` can be
     passed.
 
@@ -72,13 +73,13 @@ class MethodMap(Combiner, Elaboratable):
         target: Method
             The target method.
         i_transform: (record layout, function or Method), optional
-            Input transformation. If specified, it should be a pair of a
+            Input mapping function. If specified, it should be a pair of a
             function and a input layout for the transformed method.
-            If not present, input is not transformed.
+            If not present, input is passed unmodified.
         o_transform: (record layout, function or Method), optional
-            Output transformation. If specified, it should be a pair of a
+            Output mapping function. If specified, it should be a pair of a
             function and a output layout for the transformed method.
-            If not present, output is not transformed.
+            If not present, output is passed unmodified.
         """
         if i_transform is None:
             i_transform = (target.data_in.layout, lambda _, x: x)
@@ -100,7 +101,7 @@ class MethodMap(Combiner, Elaboratable):
         return m
 
 
-class MethodFilter(Combiner, Elaboratable):
+class MethodFilter(Transformer, Elaboratable):
     """Method filter.
 
     Takes a target method and creates a method which calls the target method
@@ -156,7 +157,7 @@ class MethodFilter(Combiner, Elaboratable):
         return m
 
 
-class MethodProduct(Combiner, Elaboratable):
+class MethodProduct(Transformer, Elaboratable):
     def __init__(
         self,
         targets: list[Method],
@@ -204,7 +205,7 @@ class MethodProduct(Combiner, Elaboratable):
         return m
 
 
-class MethodTryProduct(Combiner, Elaboratable):
+class MethodTryProduct(Transformer, Elaboratable):
     def __init__(
         self,
         targets: list[Method],
@@ -256,7 +257,7 @@ class MethodTryProduct(Combiner, Elaboratable):
         return m
 
 
-class Collector(Combiner, Elaboratable):
+class Collector(Transformer, Elaboratable):
     """Single result collector.
 
     Creates method that collects results of many methods with identical
@@ -335,14 +336,13 @@ class CatTrans(Elaboratable):
         return m
 
 
-class ConnectAndTransformTrans(Elaboratable):
-    """Connecting transaction with transformations.
+class ConnectAndMapTrans(Elaboratable):
+    """Connecting transaction with mapping functions.
 
     Behaves like `ConnectTrans`, but modifies the transferred data using
-    functions or `Method`s. Equivalent to a combination of
-    `ConnectTrans` and `MethodTransformer`. The transformation
-    functions take two parameters, a `Module` and the `Record` being
-    transformed.
+    functions or `Method`s. Equivalent to a combination of `ConnectTrans`
+    and `MethodMap`. The mapping functions take two parameters, a `Module`
+    and the `Record` being transformed.
     """
 
     def __init__(
