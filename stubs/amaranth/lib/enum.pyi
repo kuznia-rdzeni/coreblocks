@@ -11,7 +11,6 @@ from ..hdl.ast import Assign, ValueCastable, ShapeCastable, ValueLike
 __all__ = ['EnumMeta', 'Enum', 'IntEnum', 'Flag', 'IntFlag', 'EnumView', 'FlagView', 'auto', 'unique']
 
 
-_T_EnumMeta = TypeVar("_T_EnumMeta", bound=EnumMeta)
 _T = TypeVar("_T")
 _T_ViewClass = TypeVar("_T_ViewClass", bound=None | ValueCastable)
 
@@ -106,17 +105,17 @@ class IntFlag(py_enum.IntFlag, metaclass=EnumMeta[None]):
     ...
 
 
-class EnumView(ValueCastable, Generic[_T_EnumMeta]):
+class EnumView(ValueCastable, Generic[_T]):
     """The view class used for :class:`Enum`.
 
     Wraps a :class:`Value` and only allows type-safe operations. The only operators allowed are
     equality comparisons (``==`` and ``!=``) with another :class:`EnumView` of the same enum type.
     """
 
-    def __init__(self, enum: _T_EnumMeta, target: ValueLike):
+    def __init__(self, enum: _T, target: ValueLike):
         ...
 
-    def shape(self) -> _T_EnumMeta:
+    def shape(self) -> _T:
         ...
 
     @ValueCastable.lowermethod
@@ -126,7 +125,7 @@ class EnumView(ValueCastable, Generic[_T_EnumMeta]):
     def eq(self, other: ValueLike) -> Assign:
         ...
 
-    def __eq__(self, other: FlagView[_T_EnumMeta] | _T_EnumMeta) -> Value:
+    def __eq__(self, other: FlagView[_T] | _T) -> Value:
         """Compares the underlying value for equality.
 
         The other operand has to be either another :class:`EnumView` with the same enum type, or
@@ -139,18 +138,18 @@ class EnumView(ValueCastable, Generic[_T_EnumMeta]):
         """
         ...
 
-    def __ne__(self, other: FlagView[_T_EnumMeta] | _T_EnumMeta) -> Value:
+    def __ne__(self, other: FlagView[_T] | _T) -> Value:
         ...
 
 
 
-class FlagView(EnumView[_T_EnumMeta], Generic[_T_EnumMeta]):
+class FlagView(EnumView[_T], Generic[_T]):
     """The view class used for :class:`Flag`.
 
     In addition to the operations allowed by :class:`EnumView`, it allows bitwise operations among
     values of the same enum type."""
 
-    def __invert__(self) -> FlagView[_T_EnumMeta]:
+    def __invert__(self) -> FlagView[_T]:
         """Inverts all flags in this value and returns another :ref:`FlagView`.
 
         Note that this is not equivalent to applying bitwise negation to the underlying value:
@@ -163,7 +162,7 @@ class FlagView(EnumView[_T_EnumMeta], Generic[_T_EnumMeta]):
         """
         ...
 
-    def __and__(self, other: FlagView[_T_EnumMeta] | _T_EnumMeta) -> FlagView[_T_EnumMeta]:
+    def __and__(self, other: FlagView[_T] | _T) -> FlagView[_T]:
         """Performs a bitwise AND and returns another :class:`FlagView`.
 
         The other operand has to be either another :class:`FlagView` of the same enum type, or
@@ -175,7 +174,7 @@ class FlagView(EnumView[_T_EnumMeta], Generic[_T_EnumMeta]):
         """
         ...
 
-    def __or__(self, other: FlagView[_T_EnumMeta] | _T_EnumMeta) -> FlagView[_T_EnumMeta]:
+    def __or__(self, other: FlagView[_T] | _T) -> FlagView[_T]:
         """Performs a bitwise OR and returns another :class:`FlagView`.
 
         The other operand has to be either another :class:`FlagView` of the same enum type, or
@@ -187,7 +186,7 @@ class FlagView(EnumView[_T_EnumMeta], Generic[_T_EnumMeta]):
         """
         ...
 
-    def __xor__(self, other: FlagView[_T_EnumMeta] | _T_EnumMeta) -> FlagView[_T_EnumMeta]:
+    def __xor__(self, other: FlagView[_T] | _T) -> FlagView[_T]:
         """Performs a bitwise XOR and returns another :class:`FlagView`.
 
         The other operand has to be either another :class:`FlagView` of the same enum type, or
