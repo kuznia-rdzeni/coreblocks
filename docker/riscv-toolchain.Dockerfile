@@ -34,7 +34,6 @@ RUN git clone --depth=1 https://github.com/pyenv/pyenv.git .pyenv && \
     eval "$(pyenv init --path)" && \
     pyenv install 3.6.15 && \
     pyenv global 3.6.15 && \
-    python -V && \
     python -m venv venv3.6 && \
     . venv3.6/bin/activate && \
     python -m pip install --upgrade pip && \
