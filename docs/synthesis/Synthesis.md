@@ -123,7 +123,7 @@ PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 
 ## Regression tests
 
-Regression tests should ensure that Coreblocks is complaint with RISC-V specification requirements. Tests include 
+Regression tests should ensure that Coreblocks is compliant with RISC-V specification requirements. Tests include 
 assembler programs that tests entire RISC-V instruction set. We execute these programs in a similar way to benchmarks.
 So, as a first step, we compile the programs to the binary format and then we run them on core simulated by Verilator
 and Cocotb.
