@@ -15,7 +15,7 @@ jobs:
   build-regression-tests:
     name: Build regression tests
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
     outputs:
         cache_hit: ${{ steps.cache-regression.outputs.cache-hit }}
     steps:
@@ -54,7 +54,7 @@ jobs:
     name: Run regression tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: build-regression-tests
     steps:
       - name: Checkout
@@ -97,12 +97,8 @@ jobs:
           . venv/bin/activate
           scripts/run_tests.py -a regression
 
-      - name: Test Report
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: test/regression/cocotb/results.xml
-          check_name: cocotb test results
-          comment_mode: off
+      - name: Check for test failure
+        run: ./scripts/check_test_results.py
 
   unit-test:
     name: Run unit tests
@@ -131,7 +127,7 @@ jobs:
         run: ./scripts/run_tests.py --verbose
 
       - name: Check traces
-        run: ./scripts/run_tests.py -t -c 1 TestCore 
+        run: ./scripts/run_tests.py -t -c 1 TestCore
 
   lint:
     name: Check code formatting and typing
