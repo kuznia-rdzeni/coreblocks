@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1701467189903,
+  "lastUpdate": 1701467559091,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -4095,6 +4095,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "ud",
             "value": 0.3332441948567099,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "324ce64afeb0936f558444522e533c6a019890f6",
+          "message": "Update dockerfiles (#515)",
+          "timestamp": "2023-12-01T22:37:56+01:00",
+          "tree_id": "8586cff06ec95f63d3179761414626e0e9ac696c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/324ce64afeb0936f558444522e533c6a019890f6"
+        },
+        "date": 1701467557471,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "crc32",
+            "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.26240061481242527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2420362948846237,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2783650349000975,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.3332441948567099,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.34174027385235617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.25211480106460527,
             "unit": "Instructions Per Cycle"
           }
         ]
