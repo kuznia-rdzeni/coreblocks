@@ -46,7 +46,7 @@ jobs:
   build-riscof-tests:
     name: Build regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
-    container: ghcr.io/piotro888/riscv-toolchain:2023.11.15
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
     timeout-minutes: 10
     env:
       PYENV_ROOT: "/root/.pyenv"
@@ -94,7 +94,7 @@ jobs:
   run-riscof-tests:
     name: Run regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: [ build-riscof-tests, build-core ]
     timeout-minutes: 20
     steps:
