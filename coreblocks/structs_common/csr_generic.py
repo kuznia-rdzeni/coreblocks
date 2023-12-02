@@ -9,10 +9,17 @@ from transactron.core import Method, Transaction, def_method, TModule
 
 
 class CSRAddress(IntEnum, shape=12):
+    # Machine Trap Setup
+    MSTATUS = 0x300
+    MIE = 0x304
     MTVEC = 0x305
+
+    # Machine Trap Handling
     MEPC = 0x341
     MCAUSE = 0x342
+    MIP = 0x344
 
+    # Unprivileged Counter/Timers
     CYCLE = 0xC00
     TIME = 0xC01
     INSTRET = 0xC02
