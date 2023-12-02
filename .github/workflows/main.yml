@@ -135,7 +135,7 @@ jobs:
   build-regression-tests:
     name: Build regression tests (riscv-tests)
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
     outputs:
         cache_hit: ${{ steps.cache-regression.outputs.cache-hit }}
     steps:
@@ -174,8 +174,8 @@ jobs:
     name: Run regression tests (riscv-tests)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
-    needs: [ build-regression-tests, build-core ]
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    needs: build-regression-tests
     steps:
       - name: Checkout
         uses: actions/checkout@v3
