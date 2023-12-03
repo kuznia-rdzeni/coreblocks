@@ -9,7 +9,12 @@ from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3, ExceptionCause
-from coreblocks.params.keys import BranchResolvedKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.params.keys import (
+    AsyncInterruptInsertSignalKey,
+    BranchResolvedKey,
+    ExceptionReportKey,
+    InstructionPrecommitKey,
+)
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
 
@@ -326,16 +331,28 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
 
+            report = self.dependency_manager.get_dependency(ExceptionReportKey())
+            interrupt = self.dependency_manager.get_dependency(AsyncInterruptInsertSignalKey())
+
             with m.If(exception):
-                report = self.dependency_manager.get_dependency(ExceptionReportKey())
                 report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc)
+            with m.Elif(interrupt):
+                # According to SPEC, interrupt must be evaluated immediately after write to CSR that may cause it.
+                # At this time updated interrupt signal should be computed.
+                report(
+                    m,
+                    rob_id=instr.rob_id,
+                    cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
+                    pc=instr.pc + self.gen_params.isa.ilen_bytes,
+                )
+
             m.d.sync += exception.eq(0)
 
             return {
                 "rob_id": instr.rob_id,
                 "rp_dst": instr.rp_dst,
                 "result": current_result,
-                "exception": exception,
+                "exception": exception | interrupt,
             }
 
         @def_method(m, self.fetch_continue, accepted)

@@ -81,11 +81,12 @@ class Retirement(Elaboratable):
                 cause_entry = Signal(self.gen_params.isa.xlen)
 
                 with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
-                    # Async interrupts are inserted only by JumpBranchUnit.
-                    # The address stored in pc field is a jump result! And mepc is set to resume from that address.
-                    # We want to commit the computed jump instruction
+                    # Async interrupts are inserted only by JumpBranchUnit, and conditonally by MRET and CSR operations.
+                    # The PC fiels is set to address of instruction to resume from interrupt (ex. for jumps it is
+                    # a jump result).
+                    # Instruction that reported interrupt in the last one that is commited.
                     m.d.comb += side_fx_comb.eq(1)
-                    # TODO: set correct interrupt id (from InterruptCoordinator) when multiple interrupts are supported
+                    # TODO: set correct interrupt id (from InterruptController) when multiple interrupts are supported
                     # Set MSB - the Interrupt bit
                     m.d.comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
                 with m.Else():
