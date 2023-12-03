@@ -16,6 +16,8 @@ __all__ = [
     "BranchResolvedKey",
     "ExceptionReportKey",
     "GenericCSRRegistersKey",
+    "AsyncInterruptInsertSignalKey",
+    "MretKey",
 ]
 
 
@@ -46,4 +48,9 @@ class GenericCSRRegistersKey(SimpleKey["GenericCSRRegisters"]):
 
 @dataclass(frozen=True)
 class AsyncInterruptInsertSignalKey(SimpleKey[Signal]):
+    pass
+
+
+@dataclass(frozen=True)
+class MretKey(SimpleKey[Method]):
     pass
