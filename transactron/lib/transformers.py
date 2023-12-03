@@ -163,7 +163,7 @@ class MethodFilter(Transformer, Elaboratable):
             if self.use_condition:
                 cond = Signal()
                 m.d.top_comb += cond.eq(self.condition(m, arg))
-                with condition(m, nonblocking=False) as branch:
+                with condition(m, nonblocking=False, priority=False) as branch:
                     with branch(cond):
                         m.d.comb += ret.eq(self.target(m, arg))
                     with branch(~cond):
