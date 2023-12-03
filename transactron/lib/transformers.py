@@ -6,6 +6,7 @@ from typing import Optional
 from collections.abc import Callable
 from transactron.utils import ValueLike, assign, AssignType, ModuleLike
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
+from .simultaneous import condition
 
 __all__ = [
     "Transformer",
@@ -109,9 +110,10 @@ class MethodFilter(Transformer, Elaboratable):
     parameters, a module and the input `Record` of the method. Non-zero
     return value is interpreted as true. Alternatively to using a function,
     a `Method` can be passed as a condition.
-
-    Caveat: because of the limitations of transaction scheduling, the target
-    method is locked for usage even if it is not called.
+    By default, the target method is locked for use even if it is not called.
+    If this is not the desired effect, set `use_condition` to True, but this will
+    cause that the provided method will be `single_caller` and all other `condition`
+    drawbacks will be in place (e.g. risk of exponential complexity).
 
     Attributes
     ----------
@@ -120,7 +122,11 @@ class MethodFilter(Transformer, Elaboratable):
     """
 
     def __init__(
-        self, target: Method, condition: Callable[[TModule, Record], ValueLike], default: Optional[RecordDict] = None
+        self,
+        target: Method,
+        condition: Callable[[TModule, Record], ValueLike],
+        default: Optional[RecordDict] = None,
+        use_condition: bool = False,
     ):
         """
         Parameters
@@ -133,12 +139,16 @@ class MethodFilter(Transformer, Elaboratable):
         default: Value or dict, optional
             The default value returned from the filtered method when the condition
             is false. If omitted, zero is returned.
+        use_condition : bool
+            Instead of `m.If` use simultaneus `condition` which allow to execute
+            this filter if the condition is False and target is not ready.
         """
         if default is None:
             default = Record.like(target.data_out)
 
         self.target = target
-        self.method = Method.like(target)
+        self.use_condition = use_condition
+        self.method = Method(i=target.data_in.layout, o=target.data_out.layout, single_caller=self.use_condition)
         self.condition = condition
         self.default = default
 
@@ -150,8 +160,17 @@ class MethodFilter(Transformer, Elaboratable):
 
         @def_method(m, self.method)
         def _(arg):
-            with m.If(self.condition(m, arg)):
-                m.d.comb += ret.eq(self.target(m, arg))
+            if self.use_condition:
+                cond = Signal()
+                m.d.top_comb += cond.eq(self.condition(m, arg))
+                with condition(m, nonblocking=False, priority=False) as branch:
+                    with branch(cond):
+                        m.d.comb += ret.eq(self.target(m, arg))
+                    with branch(~cond):
+                        pass
+            else:
+                with m.If(self.condition(m, arg)):
+                    m.d.comb += ret.eq(self.target(m, arg))
             return ret
 
         return m
