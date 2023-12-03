@@ -76,11 +76,6 @@ class EnumMeta(ShapeCastable, py_enum.EnumMeta, Generic[_T_ViewClass]):
         ...
     
 
-class E(IntEnum):
-    X = 1
-
-x = E(5)
-
 class Enum(py_enum.Enum, metaclass=EnumMeta[EnumView]):
     """Subclass of the standard :class:`enum.Enum` that has :class:`EnumMeta` as
     its metaclass."""
