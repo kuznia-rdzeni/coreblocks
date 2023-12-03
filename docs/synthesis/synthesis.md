@@ -15,7 +15,7 @@ In the following subsections we provide the instructions on how to manually run 
 They can be recreated using standard docker build commands:
 
 ```
-docker build --platform linux/amd64 -t "amaranth-synth:ecp5" -f ./docker/AmaranthSynthECP5.Dockerfile .
+docker build --platform linux/amd64 -t "amaranth-synth:latest" -f ./docker/AmaranthSynthECP5.Dockerfile .
 ```
 
 ## Synthesis
@@ -39,8 +39,8 @@ The configuration of the docker container is described in the `AmaranthSynthECP5
 ### Manual reproduction
 
 ```bash
-sudo docker pull ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-3.11
-sudo docker run -it --rm ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-3.11
+sudo docker pull ghcr.io/kuznia-rdzeni/amaranth-synth:latest
+sudo docker run -it --rm ghcr.io/kuznia-rdzeni/amaranth-synth:latest
 git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
 cd coreblocks
 apt update
@@ -96,9 +96,9 @@ git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
 cd coreblocks
 git submodule update --init --recursive
 cd ..
-sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:latest
 # Run docker with the coreblocks directory mounted into it
-sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:latest
 cd /coreblocks/test/external/embench
 # Compilation will put binaries in the subdirectory of the /coreblocks directory, which is shared with the host
 # so that binaries survive after the docker container is closed
@@ -106,10 +106,10 @@ make
 exit
 
 # ========== STEP 2: Execution ==========
-sudo docker pull ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+sudo docker pull ghcr.io/kuznia-rdzeni/verilator:latest
 # Run docker with the coreblocks directory mounted into it. This directory contains
 # benchmark binaries after running the first step.
-sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:latest
 apt update
 apt install python3.11-venv
 python3 -m venv venv
@@ -136,9 +136,9 @@ git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
 cd coreblocks
 git submodule update --init --recursive
 cd ..
-sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:latest
 # Run docker with the coreblocks directory mounted into it
-sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:latest
 cd /coreblocks/test/external/riscv-tests
 # Compilation will put binaries in the subdirectory of the /coreblocks directory, which is shared with the host
 # so that binaries survive after the docker container is closed
@@ -146,10 +146,10 @@ make
 exit
 
 # ========== STEP 2: Execution ==========
-sudo docker pull ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+sudo docker pull ghcr.io/kuznia-rdzeni/verilator:latest
 # Run docker with the coreblocks directory mounted into it. This directory contains
 # regression test binaries after running the first step.
-sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:latest
 apt update
 apt install python3.11-venv
 python3 -m venv venv
