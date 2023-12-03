@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1701470058050,
+  "lastUpdate": 1701617699623,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -14059,6 +14059,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 22853,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 458,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 884,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5834,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4904a075825f7e464dc2ca7a3b7b5eaef517f45b",
+          "message": "Run linker on internal asm tests (#522)",
+          "timestamp": "2023-12-03T16:29:54+01:00",
+          "tree_id": "f3fc14f1a1726e308a6948addeb77256389772dc",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4904a075825f7e464dc2ca7a3b7b5eaef517f45b"
+        },
+        "date": 1701617697049,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 50.3,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23566,
             "unit": "LUT4"
           },
           {
