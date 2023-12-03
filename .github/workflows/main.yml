@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
-    needs: build-regression-tests
+    needs: [ build-regression-tests, build-core ]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
