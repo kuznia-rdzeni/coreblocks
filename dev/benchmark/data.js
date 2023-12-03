@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1701623821326,
+  "lastUpdate": 1701624089849,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -4351,6 +4351,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "crc32",
             "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ee9097713261ca903096ded92555a050ee100d1b",
+          "message": "Fix riscv-test job dependencies (#533)",
+          "timestamp": "2023-12-03T18:07:21+01:00",
+          "tree_id": "22c5a183c1a009703e066e387bbb20c088e7aaee",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ee9097713261ca903096ded92555a050ee100d1b"
+        },
+        "date": 1701624088371,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.3332441948567099,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.34174027385235617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.26240061481242527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.25211480106460527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2783650349000975,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2420362948846237,
             "unit": "Instructions Per Cycle"
           }
         ]
