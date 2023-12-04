@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, MutableMapping, MutableSequence, MutableSet
 from typing import Any, Generic, Iterable, Iterator, Mapping, NoReturn, Optional, Sequence, TypeVar, final, overload
 from enum import Enum
-from coreblocks.utils import ValueLike, ShapeLike, StatementLike
+from transactron.utils import ValueLike, ShapeLike, StatementLike
 
 __all__ = ["Shape", "ShapeCastable", "signed", "unsigned", "Value", "Const", "C", "AnyConst", "AnySeq", "Operator", "Mux", "Part", "Slice", "Cat", "Repl", "Array", "ArrayProxy", "Signal", "ClockSignal", "ResetSignal", "ValueCastable", "Sample", "Past", "Stable", "Rose", "Fell", "Initial", "Statement", "Switch", "Property", "Assign", "Assert", "Assume", "Cover", "ValueKey", "ValueDict", "ValueSet", "SignalKey", "SignalDict", "SignalSet", "ValueLike", "ShapeLike", "StatementLike", "SwitchKey"]
 
@@ -50,7 +50,7 @@ class Shape:
         ...
     
     @staticmethod
-    def cast(obj: ShapeLike, *, src_loc_at=...):
+    def cast(obj: ShapeLike, *, src_loc_at=...) -> Shape:
         ...
     
     def __repr__(self) -> str:
@@ -411,7 +411,7 @@ class Signal(Value, DUID, metaclass=_SignalMeta):
         """Create Signal based on another.
 """
         ...
-    
+
     def shape(self) -> Shape:
         ...
     
