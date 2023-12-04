@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1701697723490,
+  "lastUpdate": 1701698124283,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -4543,6 +4543,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nettle-sha256",
             "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2dc56f8d1fb565233b20a69fba30532a92c35733",
+          "message": "Exceptions handling (#523)",
+          "timestamp": "2023-12-04T14:40:43+01:00",
+          "tree_id": "3b0f7a68a041aa95bf27a49c6dc91f4fb396acfe",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2dc56f8d1fb565233b20a69fba30532a92c35733"
+        },
+        "date": 1701698119323,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "minver",
+            "value": 0.25211480106460527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.3332441948567099,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2783650349000975,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2420362948846237,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.26240061481242527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.34174027385235617,
             "unit": "Instructions Per Cycle"
           }
         ]
