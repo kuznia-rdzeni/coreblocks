@@ -412,9 +412,6 @@ class Signal(Value, DUID, metaclass=_SignalMeta):
 """
         ...
 
-    def as_value(self) -> Value:
-        ...
-
     def shape(self) -> Shape:
         ...
     
