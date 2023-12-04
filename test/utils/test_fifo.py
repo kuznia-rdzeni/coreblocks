@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.sim import Settle
 
 from transactron.utils.fifo import BasicFifo
 from transactron.lib import AdapterTrans
@@ -55,6 +56,7 @@ class TestBasicFifo(TestCaseWithSimulator):
 
                 if random.random() < 0.005:
                     yield from fifoc.fifo_clear.call()
+                    yield Settle()
                     expq.clear()
 
             self.done = True

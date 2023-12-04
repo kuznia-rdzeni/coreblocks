@@ -12,10 +12,130 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-regression-tests:
-    name: Build regression tests
+  build-core:
+    name: Synthesize full core
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.10.08_v
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+            python-version: '3.11'
+
+      - name: Install Coreblocks dependencies
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements-dev.txt
+
+      - name: Generate Verilog
+        run: |
+          . venv/bin/activate
+          PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: "verilog-full-core"
+          path: core.v
+
+
+  build-riscof-tests:
+    name: Build regression tests (riscv-arch-test)
+    runs-on: ubuntu-latest
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
+    timeout-minutes: 10
+    env:
+      PYENV_ROOT: "/root/.pyenv"
+      LC_ALL: "C.UTF8"
+      LANG: "C.UTF8"
+    defaults:
+      run:
+        working-directory: test/external/riscof/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup PATH
+        run: echo "/.pyenv/bin" >> $GITHUB_PATH
+
+      - name: Setup pyenv python
+        run: |
+          eval "$(pyenv init --path)"
+          pyenv global 3.6.15
+          . /venv3.6/bin/activate
+
+      - name: Setup arch test suite
+        run: |
+          . /venv3.6/bin/activate
+          riscof --verbose info arch-test --clone
+          riscof testlist --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env
+
+      - name: Build and run tests on reference and generate Makefiles
+        run: |
+          . /venv3.6/bin/activate
+          riscof run --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env
+
+      - name: Build tests for Coreblocks
+        run: |
+          MAKEFILE_PATH=riscof_work/Makefile.build-DUT-coreblocks ../../../ci/riscof_run_makefile.sh
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: "riscof-tests"
+          path: |
+            test/external/riscof/riscv-arch-test/**/*.elf
+            test/external/riscof/riscof_work/**/*.signature
+            test/external/riscof/**/*Makefile*
+
+  run-riscof-tests:
+    name: Run regression tests (riscv-arch-test)
+    runs-on: ubuntu-latest
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    needs: [ build-riscof-tests, build-core ]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+            python-version: '3.11'
+
+      - name: Install Coreblocks dependencies
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements-dev.txt
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: "verilog-full-core"
+          path: .
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: "riscof-tests"
+          path: test/external/riscof/
+
+      - name: Run tests on Coreblocks
+        run: |
+          . venv/bin/activate
+          MAKEFILE_PATH=test/external/riscof/riscof_work/Makefile.run-DUT-coreblocks NPROC=1 ./ci/riscof_run_makefile.sh
+
+      - name: Compare signatures (test results)
+        run: MAKEFILE_PATH=test/external/riscof/riscof_work/Makefile.run-DUT-coreblocks ./ci/riscof_compare.sh
+
+
+  build-regression-tests:
+    name: Build regression tests (riscv-tests)
+    runs-on: ubuntu-latest
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
     outputs:
         cache_hit: ${{ steps.cache-regression.outputs.cache-hit }}
     steps:
@@ -31,7 +151,7 @@ jobs:
           cache-name: cache-regression-tests
         with:
           path: test/external/riscv-tests/test-*
-          
+
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
               '**/test/external/riscv-tests/environment/**',
               '**/test/external/riscv-tests/Makefile',
@@ -51,11 +171,11 @@ jobs:
           path: test/external/riscv-tests
 
   run-regression-tests:
-    name: Run regression tests
+    name: Run regression tests (riscv-tests)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-3.11
-    needs: build-regression-tests
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    needs: [ build-regression-tests, build-core ]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -74,10 +194,10 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements-dev.txt
 
-      - name: Generate Verilog
-        run: |
-          . venv/bin/activate
-          PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+      - uses: actions/download-artifact@v3
+        with:
+          name: "verilog-full-core"
+          path: .
 
       - uses: actions/cache@v3
         env:
