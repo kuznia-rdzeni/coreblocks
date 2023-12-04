@@ -282,7 +282,11 @@
 </li>
         <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.GenericCSRRegisters.__init__">(coreblocks.structs_common.csr_generic.GenericCSRRegisters method)</a>
 </li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.MachineModeCSRRegisters.__init__">(coreblocks.structs_common.csr_generic.MachineModeCSRRegisters method)</a>
+</li>
         <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.exception.ExceptionCauseRegister.__init__">(coreblocks.structs_common.exception.ExceptionCauseRegister method)</a>
+</li>
+        <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.instr_counter.CoreInstructionCounter.__init__">(coreblocks.structs_common.instr_counter.CoreInstructionCounter method)</a>
 </li>
         <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.FRAT.__init__">(coreblocks.structs_common.rat.FRAT method)</a>
 </li>
@@ -863,8 +867,6 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.dependencies">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.fu_params
 
@@ -872,6 +874,8 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.fu_params">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.genparams
 
@@ -1020,6 +1024,13 @@
 </li>
       </ul></li>
       <li>
+    coreblocks.structs_common.instr_counter
+
+      <ul>
+        <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.instr_counter">module</a>
+</li>
+      </ul></li>
+      <li>
     coreblocks.structs_common.rat
 
       <ul>
@@ -1062,6 +1073,8 @@
 </li>
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration">CoreConfiguration (class in coreblocks.params.configurations)</a>
+</li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.instr_counter.CoreInstructionCounter">CoreInstructionCounter (class in coreblocks.structs_common.instr_counter)</a>
 </li>
       <li><a href="transactron.utils.html#transactron.utils.utils.count_leading_zeros">count_leading_zeros() (in module transactron.utils.utils)</a>
 </li>
@@ -1693,6 +1706,8 @@
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.PrivilegeLevel.MACHINE">MACHINE (coreblocks.structs_common.csr.PrivilegeLevel attribute)</a>
 </li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.MachineModeCSRRegisters">MachineModeCSRRegisters (class in coreblocks.structs_common.csr_generic)</a>
+</li>
       <li><a href="transactron.utils.html#transactron.utils.utils.make_hashable">make_hashable() (in module transactron.utils.utils)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.connectors.ManyToOneConnectTrans">ManyToOneConnectTrans (class in transactron.lib.connectors)</a>
@@ -1712,6 +1727,8 @@
       <li><a href="coreblocks.params.html#coreblocks.params.isa.FenceTarget.MEM_W">MEM_W (coreblocks.params.isa.FenceTarget attribute)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.storage.MemoryBank">MemoryBank (class in transactron.lib.storage)</a>
+</li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.CSRAddress.MEPC">MEPC (coreblocks.structs_common.csr_generic.CSRAddress attribute)</a>
 </li>
       <li><a href="transactron.html#transactron.graph.OwnershipGraph.mermaid_direction">mermaid_direction (transactron.graph.OwnershipGraph attribute)</a>
 </li>
@@ -1847,6 +1864,8 @@
 </li>
         <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.exception">coreblocks.structs_common.exception</a>
 </li>
+        <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.instr_counter">coreblocks.structs_common.instr_counter</a>
+</li>
         <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.rat">coreblocks.structs_common.rat</a>
 </li>
         <li><a href="coreblocks.structs_common.html#module-coreblocks.structs_common.rf">coreblocks.structs_common.rf</a>
@@ -1902,6 +1921,8 @@
         <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.MRET">(coreblocks.params.optypes.OpType attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.CSRAddress.MTVEC">MTVEC (coreblocks.structs_common.csr_generic.CSRAddress attribute)</a>
+</li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulFn.Fn.MUL">MUL (coreblocks.fu.mul_unit.MulFn.Fn attribute)</a>
 
       <ul>
@@ -2885,7 +2906,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 11:42 2023-12-04.
+      <span class="lastupdated">Last updated on 13:41 2023-12-04.
       </span></p>
   </div>
 

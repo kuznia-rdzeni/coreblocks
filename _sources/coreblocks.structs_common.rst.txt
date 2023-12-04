@@ -28,6 +28,14 @@ coreblocks.structs\_common.exception module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.structs\_common.instr\_counter module
+------------------------------------------------
+
+.. automodule:: coreblocks.structs_common.instr_counter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.structs\_common.rat module
 -------------------------------------
 
