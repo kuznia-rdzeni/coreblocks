@@ -35,12 +35,12 @@ class CoreInstructionCounter(Elaboratable):
         with m.If(self.decrement.run & ~self.increment.run):
             m.d.sync += count.eq(count - 1)
 
-        @def_method(m, self.increment)
+        @def_method(m, self.increment, ready=(count != (2 ** count.shape().width) - 1))
         def _():
             pass
 
         @def_method(m, self.decrement)
         def _():
-            return count == 1 & ~self.increment.run
+            return (count == 1) & ~self.increment.run
 
         return m
