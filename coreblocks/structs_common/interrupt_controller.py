@@ -15,8 +15,7 @@ class InterruptController(Elaboratable):
 
         self.report_interrupt = Method()
 
-        # TODO: Also add CSR unit as entry point
-        self.mret = Method(o=[("trigger_next", 1)])
+        self.mret = Method()
         dm.add_dependency(MretKey(), self.mret)
 
         self.entry = Method()
@@ -36,7 +35,6 @@ class InterruptController(Elaboratable):
         @def_method(m, self.mret)
         def _():
             m.d.sync += interrupts_enabled.eq(1)
-            return interrupt_pending
 
         @def_method(m, self.entry)
         def _():
