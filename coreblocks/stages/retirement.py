@@ -25,7 +25,8 @@ class Retirement(Elaboratable):
         frat_rename: Method,
         fetch_continue: Method,
         fetch_stall: Method,
-        instr_decrement: Method
+        instr_decrement: Method,
+        trap_entry: Method,
     ):
         self.gen_params = gen_params
         self.rob_peek = rob_peek
@@ -39,6 +40,7 @@ class Retirement(Elaboratable):
         self.fetch_continue = fetch_continue
         self.fetch_stall = fetch_stall
         self.instr_decrement = instr_decrement
+        self.trap_entry = trap_entry
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
@@ -81,10 +83,10 @@ class Retirement(Elaboratable):
                 cause_entry = Signal(self.gen_params.isa.xlen)
 
                 with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
-                    # Async interrupts are inserted only by JumpBranchUnit, and conditonally by MRET and CSR operations.
-                    # The PC fiels is set to address of instruction to resume from interrupt (ex. for jumps it is
+                    # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR operations.
+                    # The PC field is set to address of instruction to resume from interrupt (ex. for jumps it is
                     # a jump result).
-                    # Instruction that reported interrupt in the last one that is commited.
+                    # Instruction that reported interrupt is the last one that is commited.
                     m.d.comb += side_fx_comb.eq(1)
                     # TODO: set correct interrupt id (from InterruptController) when multiple interrupts are supported
                     # Set MSB - the Interrupt bit
@@ -94,6 +96,8 @@ class Retirement(Elaboratable):
 
                 m_csr.mcause.write(m, cause_entry)
                 m_csr.mepc.write(m, cause_register.pc)
+
+                self.trap_entry(m)
 
             # set rl_dst -> rp_dst in R-RAT
             rat_out = self.r_rat_commit(

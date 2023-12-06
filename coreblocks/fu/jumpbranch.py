@@ -3,10 +3,12 @@ from amaranth import *
 from enum import IntFlag, auto
 
 from typing import Sequence
+from coreblocks.params.layouts import ExceptionRegisterLayouts
 
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
+from transactron.utils import assign
 
 from coreblocks.params import *
 from coreblocks.params.keys import AsyncInterruptInsertSignalKey
@@ -157,7 +159,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             m.d.top_comb += jb.in_rvc.eq(arg.exec_fn.funct7)
 
-            is_auipc = decoder.decode_fn != JumpBranchFn.Fn.AUIPC
+            is_auipc = decoder.decode_fn == JumpBranchFn.Fn.AUIPC
             jump_result = Mux(jb.taken, jb.jmp_addr, jb.reg_res)
 
             exception = Signal()
@@ -167,20 +169,30 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             async_interrupt_active = self.gen.get(DependencyManager).get_dependency(AsyncInterruptInsertSignalKey())
 
+            exception_entry = Record(self.gen.get(ExceptionRegisterLayouts).report)
+
             with m.If(~is_auipc & jb.taken & jmp_addr_misaligned):
                 # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
                 # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
                 # generated for a conditional branch that is not taken."
                 m.d.comb += exception.eq(1)
-                exception_report(m, rob_id=arg.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED, pc=arg.pc)
-            with m.Elif(async_interrupt_active & ~is_auipc & ~exception):
+                m.d.comb += assign(
+                    exception_entry,
+                    {"rob_id": arg.rob_id, "cause": ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED, "pc": arg.pc},
+                )
+            with m.Elif(async_interrupt_active & ~is_auipc):
                 # Jump instructions are entry points for async interrupts.
                 # This way we can store known pc via report to global exception register and avoid it in ROB.
-                # The exact same infrastructure is used for mispredictions.
                 # Exceptions have priority, because the instruction that reports async interrupt is commited
                 # and exception would be lost.
                 m.d.comb += exception.eq(1)
-                exception_report(m, rob_id=arg.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result)
+                m.d.comb += assign(
+                    exception_entry,
+                    {"rob_id": arg.rob_id, "cause": ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, "pc": jump_result},
+                )
+
+            with m.If(exception):
+                exception_report(m, exception_entry)
 
             fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
 

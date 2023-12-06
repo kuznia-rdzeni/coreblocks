@@ -60,10 +60,11 @@ class PrivilegedFuncUnit(Elaboratable):
             ]
 
         @def_method(m, self.precommit)
-        def _(rob_id):
+        def _(rob_id, side_fx):
             with m.If(instr_valid & (rob_id == instr_rob)):
                 m.d.sync += finished.eq(1)
-                mret(m)
+                with m.If(side_fx):
+                    mret(m)
 
         @def_method(m, self.accept, ready=instr_valid & finished)
         def _():

@@ -7,7 +7,7 @@ from transactron.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
+from coreblocks.params.layouts import ExceptionRegisterLayouts, FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3, ExceptionCause
 from coreblocks.params.keys import (
     AsyncInterruptInsertSignalKey,
@@ -333,18 +333,26 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             report = self.dependency_manager.get_dependency(ExceptionReportKey())
             interrupt = self.dependency_manager.get_dependency(AsyncInterruptInsertSignalKey())
+            exception_entry = Record(self.gen_params.get(ExceptionRegisterLayouts).report)
 
             with m.If(exception):
-                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc)
+                m.d.comb += assign(
+                    exception_entry,
+                    {"rob_id": instr.rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": instr.pc},
+                )
             with m.Elif(interrupt):
                 # According to SPEC, interrupt must be evaluated immediately after write to CSR that may cause it.
                 # At this time updated interrupt signal should be computed.
-                report(
-                    m,
-                    rob_id=instr.rob_id,
-                    cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
-                    pc=instr.pc + self.gen_params.isa.ilen_bytes,
+                m.d.comb += assign(
+                    exception_entry,
+                    {
+                        "rob_id": instr.rob_id,
+                        "cause": ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
+                        "pc": instr.pc + self.gen_params.isa.ilen_bytes,
+                    },
                 )
+            with m.If(exception | interrupt):
+                report(m, exception_entry)
 
             m.d.sync += exception.eq(0)
 

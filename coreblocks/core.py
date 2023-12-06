@@ -152,6 +152,7 @@ class Core(Elaboratable):
             fetch_continue=self.fetch.verify_branch,
             fetch_stall=self.fetch.stall_exception,
             instr_decrement=self.core_counter.decrement,
+            trap_entry=self.interrupt_controller.entry,
         )
 
         m.submodules.interrupt_controller = self.interrupt_controller
