@@ -12,21 +12,21 @@ from transactron.core import TModule
 class PMARegion:
     """
     Data class for physical memory attributes contiguous region of memory. Region of memory
-    includes both start end end address.
+    includes both start and end address.
 
     Attributes
     ----------
     start : int
-        Defines beginning of region.
+        Defines beginning of region, start address is included in the region.
     end : int
-        Defines end of region.
-    attrs : Record
-        Attributes for given region. Record should follow adequate layout from `PMALayouts`.
+        Defines end of region, end address is included in the region.
+    mmio : bool
+        Value True for this field indicates that memory region is MMIO.
     """
 
     start: int
     end: int
-    mmio: bool
+    mmio: bool = False
 
 
 class PMAChecker(Elaboratable):

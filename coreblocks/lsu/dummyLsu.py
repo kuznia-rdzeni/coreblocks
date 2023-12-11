@@ -201,7 +201,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         m = TModule()
         reserved = Signal()  # current_instr is reserved
         valid = Signal()  # current_instr is valid
-        execute = Signal()  # start execution
+        precommiting = Signal()  # start execution
         issued = Signal()  # instruction was issued to the bus
         flush = Signal()  # exception handling, requests are not issued
         current_instr = Record(self.lsu_layouts.rs.data_layout)
@@ -248,7 +248,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
         can_reorder = instr_is_load & ~pmas["mmio"]
-        want_issue = ~instr_is_fence & (execute | can_reorder)
+        want_issue = ~instr_is_fence & (precommiting | can_reorder)
         do_issue = ~issued & instr_ready & ~flush & want_issue
         with Transaction().body(m, request=do_issue):
             m.d.sync += issued.eq(1)
@@ -295,7 +295,7 @@ class LSUDummy(FuncBlock, Elaboratable):
             with m.If(~side_fx):
                 m.d.comb += flush.eq(1)
             with m.Elif(valid & (rob_id == current_instr.rob_id) & ~instr_is_fence):
-                m.d.comb += execute.eq(1)
+                m.d.comb += precommiting.eq(1)
 
         return m
 
