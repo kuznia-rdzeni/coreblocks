@@ -5,17 +5,17 @@
 maxdepth: 3
 ---
 
-Home.md
-Assumptions.md
-Development_environment.md
-Transactions.md
-scheduler/Overview.md
-shared_structs/Implementation/RS_impl.md
-shared_structs/RS.md
-Current_graph.md
-Problem-checklist.md
-synthesis/Synthesis.md
+home.md
+assumptions.md
+development-environment.md
+transactions.md
+scheduler/overview.md
+shared-structs/implementation/rs-impl.md
+shared-structs/rs.md
+current-graph.md
+problem-checklist.md
+synthesis/synthesis.md
 components/icache.md
-miscellany/exceptionsSummary.md
+miscellany/exceptions-summary.md
 api.md
 ```

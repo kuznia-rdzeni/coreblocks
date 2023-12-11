@@ -154,7 +154,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
 
             self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": int(cause is not None)} | results)
             if cause is not None:
-                self.exceptions.append({"rob_id": rob_id, "cause": cause})
+                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": pc})
 
     def random_wait(self):
         for i in range(random.randint(0, self.max_wait)):

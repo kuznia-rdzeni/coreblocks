@@ -1,4 +1,4 @@
-from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.params.layouts import CoreInstructionCounterLayouts, ExceptionRegisterLayouts, FetchLayouts
 from coreblocks.stages.retirement import *
 from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 
@@ -24,6 +24,8 @@ class RetirementTestCircuit(Elaboratable):
         lsu_layouts = self.gen_params.get(LSULayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
         exception_layouts = self.gen_params.get(ExceptionRegisterLayouts)
+        fetch_layouts = self.gen_params.get(FetchLayouts)
+        core_instr_counter_layouts = self.gen_params.get(CoreInstructionCounterLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
         m.submodules.f_rat = self.frat = FRAT(gen_params=self.gen_params)
@@ -43,6 +45,14 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
         self.gen_params.get(DependencyManager).add_dependency(GenericCSRRegistersKey(), self.generic_csr)
 
+        m.submodules.mock_fetch_stall = self.mock_fetch_stall = TestbenchIO(Adapter())
+        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(
+            Adapter(i=fetch_layouts.branch_verify)
+        )
+        m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
+            Adapter(o=core_instr_counter_layouts.decrement)
+        )
+
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
             rob_retire=self.mock_rob_retire.adapter.iface,
@@ -53,6 +63,9 @@ class RetirementTestCircuit(Elaboratable):
             precommit=self.mock_precommit.adapter.iface,
             exception_cause_get=self.mock_exception_cause.adapter.iface,
             frat_rename=self.frat.rename,
+            fetch_stall=self.mock_fetch_stall.adapter.iface,
+            fetch_continue=self.mock_fetch_continue.adapter.iface,
+            instr_decrement=self.mock_instr_decrement.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -92,6 +105,8 @@ class RetirementTest(TestCaseWithSimulator):
 
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
+
+        yield from retc.mock_fetch_stall.enable()
 
         @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q), sched_prio=1)
         def retire_process():

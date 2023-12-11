@@ -277,7 +277,7 @@ class LSUDummy(FuncBlock, Elaboratable):
             res = results.read(m)
 
             with m.If(res["exception"]):
-                self.report(m, rob_id=current_instr.rob_id, cause=res["cause"])
+                self.report(m, rob_id=current_instr.rob_id, cause=res["cause"], pc=current_instr.pc)
 
             m.d.sync += issued.eq(0)
             m.d.sync += valid.eq(0)

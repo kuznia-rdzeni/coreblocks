@@ -328,7 +328,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             with m.If(exception):
                 report = self.dependency_manager.get_dependency(ExceptionReportKey())
-                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION)
+                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc)
             m.d.sync += exception.eq(0)
 
             return {
@@ -340,7 +340,11 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.fetch_continue, accepted)
         def _():
-            return {"from_pc": instr.pc, "next_pc": instr.pc + self.gen_params.isa.ilen_bytes}
+            return {
+                "from_pc": instr.pc,
+                "next_pc": instr.pc + self.gen_params.isa.ilen_bytes,
+                "resume_from_exception": False,
+            }
 
         # Generate precommitting signal from precommit
         @def_method(m, self.precommit)

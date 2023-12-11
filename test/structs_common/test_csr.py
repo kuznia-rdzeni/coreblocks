@@ -191,7 +191,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             self.assertEqual(res["exception"], 1)
             report = yield from self.dut.exception_report.call_result()
             assert report is not None
-            self.assertDictEqual({"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION}, report)
+            self.assertDictEqual({"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0}, report)
 
     def test_exception(self):
         self.gp = GenParams(test_core_config)

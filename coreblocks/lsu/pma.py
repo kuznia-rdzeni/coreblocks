@@ -53,7 +53,7 @@ class PMAChecker(Elaboratable):
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
 
-        outputs = Array([Record(self.attr_layout) for _ in self.segments])
+        outputs = [Record(self.attr_layout) for _ in self.segments]
 
         # zero output if addr not in region, propagate value if addr in region
         for i, segment in enumerate(self.segments):
