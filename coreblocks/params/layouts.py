@@ -430,6 +430,7 @@ class FetchLayouts:
         self.branch_verify: LayoutList = [
             ("from_pc", gen_params.isa.xlen),
             ("next_pc", gen_params.isa.xlen),
+            ("resume_from_exception", 1),
         ]
 
 
@@ -518,6 +519,7 @@ class LSULayouts:
                 "s1_val",
                 "s2_val",
                 "imm",
+                "pc",
             },
         )
 
@@ -594,6 +596,12 @@ class ExceptionRegisterLayouts:
         self.get: LayoutList = [
             fields.cause,
             fields.rob_id,
+            fields.pc,
         ]
 
         self.report = self.get
+
+
+class CoreInstructionCounterLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.decrement = [("empty", 1)]

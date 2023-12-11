@@ -245,6 +245,7 @@ class TestCoreRandomized(TestCoreBase):
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
         ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, basic_core_config),
+        ("exception_handler", "exception_handler.asm", 1100, {2: 987, 15: 15}, full_core_config),
     ],
 )
 class TestCoreAsmSource(TestCoreBase):
@@ -265,7 +266,11 @@ class TestCoreAsmSource(TestCoreBase):
         self.base_dir = "test/asm/"
         self.bin_src = []
 
-        with tempfile.NamedTemporaryFile() as asm_tmp, tempfile.NamedTemporaryFile() as bin_tmp:
+        with (
+            tempfile.NamedTemporaryFile() as asm_tmp,
+            tempfile.NamedTemporaryFile() as ld_tmp,
+            tempfile.NamedTemporaryFile() as bin_tmp,
+        ):
             subprocess.check_call(
                 [
                     "riscv64-unknown-elf-as",
@@ -279,7 +284,19 @@ class TestCoreAsmSource(TestCoreBase):
                 ]
             )
             subprocess.check_call(
-                ["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", asm_tmp.name, bin_tmp.name]
+                [
+                    "riscv64-unknown-elf-ld",
+                    "-m",
+                    "elf32lriscv",
+                    "-T",
+                    self.base_dir + "link.ld",
+                    asm_tmp.name,
+                    "-o",
+                    ld_tmp.name,
+                ]
+            )
+            subprocess.check_call(
+                ["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", ld_tmp.name, bin_tmp.name]
             )
             code = bin_tmp.read()
             for word_idx in range(0, len(code), 4):
