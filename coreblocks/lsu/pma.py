@@ -32,8 +32,7 @@ class PMARegion:
 class PMAChecker(Elaboratable):
     """
     Implementation of physical memory attributes checker. It may or may not be a part of LSU.
-    `PMAChecker` exposes method `ask` that can be used to request information about given memory
-    address. Result of `ask` method contains bit vector of all defined PMAs.
+    This is a combinational circuit with return value read from `result` output.
 
     Attributes
     ----------
