@@ -92,7 +92,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
             instr = self.get_instr(addr)
             yield from self.test_module.select.call()
             yield from self.test_module.insert.call(rs_data=instr, rs_entry_id=1)
-            if region.mmio == 1:
+            if region.mmio is True:
                 wb = self.test_module.io_in.wb
                 for i in range(100):  # 100 cycles is more than enough
                     wb_requested = (yield wb.stb) and (yield wb.cyc)
