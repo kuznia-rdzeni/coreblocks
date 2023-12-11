@@ -88,7 +88,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
         }
 
     def verify_region(self, region: PMARegion):
-        for addr in range(region.start, region.end + 1, 4):
+        for addr in range(region.start, region.end + 1):
             instr = self.get_instr(addr)
             yield from self.test_module.select.call()
             yield from self.test_module.insert.call(rs_data=instr, rs_entry_id=1)
@@ -101,7 +101,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
                 yield from self.test_module.precommit.call(rob_id=1, side_fx=1)
 
             yield from self.test_module.io_in.slave_wait()
-            yield from self.test_module.io_in.slave_respond(addr)
+            yield from self.test_module.io_in.slave_respond((addr << (addr % 4) * 8))
             yield Settle()
             v = yield from self.test_module.get_result.call()
             self.assertEqual(v["result"], addr)
