@@ -464,7 +464,9 @@ class TransactionManager(Elaboratable):
 
         return m
 
-    def print_info(self, cgr, porder: PriorityOrder, ccs: list[GraphCC["Transaction"]], method_map: MethodMap):
+    def print_info(
+        self, cgr: TransactionGraph, porder: PriorityOrder, ccs: list[GraphCC["Transaction"]], method_map: MethodMap
+    ):
         print("Transactron statistics")
         print(f"\tMethods: {len(method_map.methods)}")
         print(f"\tTransactions: {len(method_map.transactions)}")

@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from enum import Enum
 from typing import Any, Literal, Optional, TypeAlias, cast, overload
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sized
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
@@ -430,7 +430,7 @@ def average(xs: Iterable[float]) -> float:
     return sum(xsl) / len(xsl)
 
 
-def average_dict_of_lists(d: dict[Any, list]) -> float:
+def average_dict_of_lists(d: Mapping[Any, Sized]) -> float:
     return average(map(lambda xs: len(xs), d.values()))
 
 
