@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Literal, Optional, TypeAlias, cast, overload
+from typing import Any, Literal, Optional, TypeAlias, cast, overload
 from collections.abc import Iterable, Mapping
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
@@ -24,6 +24,8 @@ __all__ = [
     "count_leading_zeros",
     "count_trailing_zeros",
     "mod_incr",
+    "average",
+    "average_dict_of_lists",
 ]
 
 
@@ -421,6 +423,15 @@ def align_down_to_power_of_two(num: int, power: int) -> int:
 def bits_from_int(num: int, lower: int, length: int):
     """Returns [`lower`:`lower`+`length`) bits from integer `num`."""
     return (num >> lower) & ((1 << (length)) - 1)
+
+
+def average(xs: Iterable[float]) -> float:
+    xsl = list(xs)
+    return sum(xsl) / len(xsl)
+
+
+def average_dict_of_lists(d: dict[Any, list]) -> float:
+    return average(map(lambda xs: len(xs), d.values()))
 
 
 class ModuleConnector(Elaboratable):
