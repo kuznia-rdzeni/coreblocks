@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702373926157,
+  "lastUpdate": 1702374229856,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -17483,6 +17483,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 24607,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1444,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1052,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8439,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "62593571+kindlermikolaj@users.noreply.github.com",
+            "name": "kindlermikolaj",
+            "username": "kindlermikolaj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1dd13389ebb309430dfe8d691ba65023a9ee6a1d",
+          "message": "Implement physical memory attributes (PMA) for memory-mapped IO (MMIO) (#510)",
+          "timestamp": "2023-12-12T10:32:57+01:00",
+          "tree_id": "7d14738fa390631d7f66f974e984970256e63814",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/1dd13389ebb309430dfe8d691ba65023a9ee6a1d"
+        },
+        "date": 1702374228229,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 46.04,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 29831,
             "unit": "LUT4"
           },
           {
