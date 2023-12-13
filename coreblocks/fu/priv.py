@@ -51,6 +51,8 @@ class PrivilegedFuncUnit(Elaboratable):
         exception_report = self.dm.get_dependency(ExceptionReportKey())
         csr = self.dm.get_dependency(GenericCSRRegistersKey())
 
+        m.submodules.branch_resolved_fifo = self.branch_resolved_fifo
+
         @def_method(m, self.issue, ready=~instr_valid)
         def _(arg):
             m.d.sync += [
@@ -71,7 +73,7 @@ class PrivilegedFuncUnit(Elaboratable):
             m.d.sync += instr_valid.eq(0)
             m.d.sync += finished.eq(0)
 
-            ret_pc = csr.m_mode.mepc.read(m)
+            ret_pc = csr.m_mode.mepc.read(m).data
 
             exception = Signal()
             with m.If(async_interrupt_active):

@@ -20,13 +20,13 @@ class InterruptController(Elaboratable):
 
         self.entry = Method()
 
+        self.interrupts_enabled = Signal(reset=1)  # Temporarily needed globally accessibletests
+
     def elaborate(self, platform):
         m = TModule()
 
-        interrupts_enabled = Signal()
-
         interrupt_pending = Signal()
-        m.d.comb += self.interrupt_insert.eq(interrupt_pending & interrupts_enabled)
+        m.d.comb += self.interrupt_insert.eq(interrupt_pending & self.interrupts_enabled)
 
         @def_method(m, self.report_interrupt)
         def _():
@@ -34,11 +34,11 @@ class InterruptController(Elaboratable):
 
         @def_method(m, self.mret)
         def _():
-            m.d.sync += interrupts_enabled.eq(1)
+            m.d.sync += self.interrupts_enabled.eq(1)
 
         @def_method(m, self.entry)
         def _():
             m.d.sync += interrupt_pending.eq(0)
-            m.d.sync += interrupts_enabled.eq(0)
+            m.d.sync += self.interrupts_enabled.eq(0)
 
         return m
