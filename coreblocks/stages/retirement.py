@@ -141,6 +141,7 @@ class Retirement(Elaboratable):
             self.rename(m, rl_s1=0, rl_s2=0, rl_dst=data["rl_dst"], rp_dst=data["rp_dst"])
 
         with Transaction().body(m):
+            # Implicitly depends on fetch_stall and fetch_verify method conflict!
             pc = fetch_continue_fwd.read(m).pc
             self.fetch_continue(m, from_pc=0, next_pc=pc, resume_from_exception=1)
 
