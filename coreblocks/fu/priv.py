@@ -94,7 +94,7 @@ class PrivilegedFuncUnit(Elaboratable):
         return m
 
 
-class IntRetComponent(FunctionalComponentParams):
+class PrivilegedUnitComponent(FunctionalComponentParams):
     def get_module(self, gp: GenParams) -> FuncUnit:
         unit = PrivilegedFuncUnit(gp)
         connections = gp.get(DependencyManager)

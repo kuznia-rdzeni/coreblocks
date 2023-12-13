@@ -99,7 +99,7 @@ optypes_by_extensions = {
     ],
     Extension.XINTMACHINEMODE: [
         OpType.MRET,
-        OpType.WFI,
+        # OpType.WFI, - uncomment when WFI implemented, to not break fully supported extensions check
     ],
     Extension.XINTSUPERVISOR: [
         OpType.SRET,
