@@ -52,6 +52,7 @@ class Retirement(Elaboratable):
 
         side_fx = Signal(reset=1)
         side_fx_comb = Signal()
+        last_commited = Signal()
 
         m.d.comb += side_fx_comb.eq(side_fx)
 
@@ -88,6 +89,9 @@ class Retirement(Elaboratable):
                     # a jump result).
                     # Instruction that reported interrupt is the last one that is commited.
                     m.d.comb += side_fx_comb.eq(1)
+                    # Another flag is needed to resume execution if it was the last instruction in core
+                    m.d.comb += last_commited.eq(1)
+
                     # TODO: set correct interrupt id (from InterruptController) when multiple interrupts are supported
                     # Set MSB - the Interrupt bit
                     m.d.comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
@@ -123,7 +127,7 @@ class Retirement(Elaboratable):
             core_empty = self.instr_decrement(m)
             # cycle when fetch_stop is called, is the last cycle when new instruction can be fetched.
             # in this case, counter will be incremented and result correct (non-empty).
-            with m.If(~side_fx_comb & core_empty):
+            with m.If((~side_fx_comb | last_commited) & core_empty):
                 # Resume core operation from exception handler
 
                 # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
