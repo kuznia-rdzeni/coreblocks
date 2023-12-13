@@ -365,22 +365,32 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         # TODO: replace with interrupt enable via CSR
         yield from self.tick(200)
 
+        early_interrupt = False
         while main_cycles < self.main_cycle_count:
-            # run main code for some semi-random amount of cycles
-            c = random.randrange(self.lo, self.hi)
-            main_cycles += c
-            yield from self.tick(c)
-            # trigger an interrupt
-            yield from self.m.interrupt.call()
+            if not early_interrupt:
+                # run main code for some semi-random amount of cycles
+                c = random.randrange(self.lo, self.hi)
+                main_cycles += c
+                yield from self.tick(c)
+                # trigger an interrupt
+                yield from self.m.interrupt.call()
+                yield
+                int_count += 1
+
             # wait for the interrupt to get registered
-            yield
             while (yield self.m.core.interrupt_controller.interrupts_enabled) == 1:
                 yield
+
+            # trigger interrupt during execution of ISR handler (blocked-pending) with some small chance
+            early_interrupt = random.random() < 0.1
+            if early_interrupt:
+                yield from self.m.interrupt.call()
+                yield
+                int_count += 1
+
             # wait until ISR returns
-            # TODO: add pending interrupt with some chance
             while (yield self.m.core.interrupt_controller.interrupts_enabled) == 0:
                 yield
-            int_count += 1
 
         self.assertEqual((yield from self.get_arch_reg_val(30)), int_count)
         for reg_id, val in self.expected_regvals.items():
