@@ -481,6 +481,12 @@ class TransactionManager(Elaboratable):
             for t in ccl:
                 print(f"\t{t.name}")
             print("")
+        print("Calling transactions per method")
+        for m, ts in method_map.transactions_by_method.items():
+            print(f"\t{m.owned_name}")
+            for t in ts:
+                print(f"\t\t{t.name}")
+            print("")
         print("Called methods per transaction")
         for t, ms in method_map.methods_by_transaction.items():
             print(f"\t{t.name}")
