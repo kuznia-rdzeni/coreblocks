@@ -478,7 +478,7 @@ class TransactionManager(Elaboratable):
         for cc in ccs:
             ccl = list(cc)
             ccl.sort(key=lambda t: porder[t])
-            for t in cc:
+            for t in ccl:
                 print(f"\t{t.name}")
             print("")
         print("Called methods per transaction")
