@@ -255,9 +255,9 @@ class ManyToOneConnectTrans(Elaboratable):
 
 def def_one_caller_wrapper(method_to_wrap: Method, wrapper: Method) -> TModule:
     """
-    Function used to a wrap method that can only have one caller. After wrapping
-    many callers can call the wrapper. Results are buffered and passed to the
-    wrapped method from one source.
+    Function used to wrap a method that can only have one caller. After wrapping
+    many callers can call the wrapper. The input data are buffered and passed to the
+    wrapped method from one source (caller).
 
     Parameters
     ----------
