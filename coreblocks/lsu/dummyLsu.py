@@ -7,6 +7,7 @@ from transactron.lib.connectors import Forwarder
 from transactron.utils import assign, ModuleLike
 from coreblocks.utils.protocols import FuncBlock
 
+from coreblocks.lsu.pma import PMAChecker
 
 __all__ = ["LSUDummy", "LSUBlockComponent"]
 
@@ -200,11 +201,12 @@ class LSUDummy(FuncBlock, Elaboratable):
         m = TModule()
         reserved = Signal()  # current_instr is reserved
         valid = Signal()  # current_instr is valid
-        execute = Signal()  # start execution
+        precommiting = Signal()  # start execution
         issued = Signal()  # instruction was issued to the bus
         flush = Signal()  # exception handling, requests are not issued
         current_instr = Record(self.lsu_layouts.rs.data_layout)
 
+        m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
         m.submodules.requester = requester = LSURequesterWB(self.gen_params, self.bus)
 
         m.submodules.results = results = self.forwarder = Forwarder(self.lsu_layouts.accept)
@@ -216,6 +218,12 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         instr_is_load = Signal()
         m.d.comb += instr_is_load.eq(current_instr.exec_fn.op_type == OpType.LOAD)
+
+        addr = Signal(self.gen_params.isa.xlen)
+        m.d.comb += addr.eq(current_instr.s1_val + current_instr.imm)
+
+        m.d.comb += pma_checker.addr.eq(addr)
+        pmas = pma_checker.result
 
         @def_method(m, self.select, ~reserved)
         def _():
@@ -239,12 +247,14 @@ class LSUDummy(FuncBlock, Elaboratable):
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
-        do_issue = ~issued & instr_ready & ~flush & ~instr_is_fence & (execute | instr_is_load)
+        can_reorder = instr_is_load & ~pmas["mmio"]
+        want_issue = ~instr_is_fence & (precommiting | can_reorder)
+        do_issue = ~issued & instr_ready & ~flush & want_issue
         with Transaction().body(m, request=do_issue):
             m.d.sync += issued.eq(1)
             res = requester.issue(
                 m,
-                addr=current_instr.s1_val + current_instr.imm,
+                addr=addr,
                 data=current_instr.s2_val,
                 funct3=current_instr.exec_fn.funct3,
                 store=~instr_is_load,
@@ -267,7 +277,7 @@ class LSUDummy(FuncBlock, Elaboratable):
             res = results.read(m)
 
             with m.If(res["exception"]):
-                self.report(m, rob_id=current_instr.rob_id, cause=res["cause"])
+                self.report(m, rob_id=current_instr.rob_id, cause=res["cause"], pc=current_instr.pc)
 
             m.d.sync += issued.eq(0)
             m.d.sync += valid.eq(0)
@@ -285,7 +295,7 @@ class LSUDummy(FuncBlock, Elaboratable):
             with m.If(~side_fx):
                 m.d.comb += flush.eq(1)
             with m.Elif(valid & (rob_id == current_instr.rob_id) & ~instr_is_fence):
-                m.d.comb += execute.eq(1)
+                m.d.comb += precommiting.eq(1)
 
         return m
 

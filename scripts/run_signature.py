@@ -19,7 +19,7 @@ def run_with_cocotb(test_name: str, traces: bool, output: str) -> bool:
     arglist = [
         "make",
         "-C",
-        parent + "/" if parent else "" + "test/regression/cocotb",
+        (parent + "/" if parent else "") + "test/regression/cocotb",
         "-f",
         "signature.Makefile",
         "--no-print-directory",

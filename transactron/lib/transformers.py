@@ -1,28 +1,57 @@
+from abc import ABC
 from amaranth import *
 from ..core import *
 from ..core import RecordDict
 from typing import Optional
 from collections.abc import Callable
-from transactron.utils import ValueLike, assign, AssignType
+from transactron.utils import ValueLike, assign, AssignType, ModuleLike
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
+from .simultaneous import condition
 
 __all__ = [
-    "MethodTransformer",
+    "Transformer",
+    "MethodMap",
     "MethodFilter",
     "MethodProduct",
     "MethodTryProduct",
     "Collector",
     "CatTrans",
-    "ConnectAndTransformTrans",
+    "ConnectAndMapTrans",
 ]
 
 
-class MethodTransformer(Elaboratable):
-    """Method transformer.
+class Transformer(ABC, Elaboratable):
+    """Method transformer abstract class.
+
+    Method transformers construct a new method which utilizes other methods.
+
+    Attributes
+    ----------
+    method: Method
+        The method.
+    """
+
+    method: Method
+
+    def use(self, m: ModuleLike):
+        """
+        Returns the method and adds the transformer to a module.
+
+        Parameters
+        ----------
+        m: Module or TModule
+            The module to which this transformer is added as a submodule.
+        """
+        m.submodules += self
+        return self.method
+
+
+class MethodMap(Transformer):
+    """Bidirectional map for methods.
 
     Takes a target method and creates a transformed method which calls the
-    original target method, transforming the input and output values.
-    The transformation functions take two parameters, a `Module` and the
+    original target method, mapping the input and output values with
+    functions. The mapping functions take two parameters, a `Module` and the
     `Record` being transformed. Alternatively, a `Method` can be
     passed.
 
@@ -45,13 +74,13 @@ class MethodTransformer(Elaboratable):
         target: Method
             The target method.
         i_transform: (record layout, function or Method), optional
-            Input transformation. If specified, it should be a pair of a
+            Input mapping function. If specified, it should be a pair of a
             function and a input layout for the transformed method.
-            If not present, input is not transformed.
+            If not present, input is passed unmodified.
         o_transform: (record layout, function or Method), optional
-            Output transformation. If specified, it should be a pair of a
+            Output mapping function. If specified, it should be a pair of a
             function and a output layout for the transformed method.
-            If not present, output is not transformed.
+            If not present, output is passed unmodified.
         """
         if i_transform is None:
             i_transform = (target.data_in.layout, lambda _, x: x)
@@ -73,7 +102,7 @@ class MethodTransformer(Elaboratable):
         return m
 
 
-class MethodFilter(Elaboratable):
+class MethodFilter(Transformer):
     """Method filter.
 
     Takes a target method and creates a method which calls the target method
@@ -81,9 +110,10 @@ class MethodFilter(Elaboratable):
     parameters, a module and the input `Record` of the method. Non-zero
     return value is interpreted as true. Alternatively to using a function,
     a `Method` can be passed as a condition.
-
-    Caveat: because of the limitations of transaction scheduling, the target
-    method is locked for usage even if it is not called.
+    By default, the target method is locked for use even if it is not called.
+    If this is not the desired effect, set `use_condition` to True, but this will
+    cause that the provided method will be `single_caller` and all other `condition`
+    drawbacks will be in place (e.g. risk of exponential complexity).
 
     Attributes
     ----------
@@ -92,7 +122,11 @@ class MethodFilter(Elaboratable):
     """
 
     def __init__(
-        self, target: Method, condition: Callable[[TModule, Record], ValueLike], default: Optional[RecordDict] = None
+        self,
+        target: Method,
+        condition: Callable[[TModule, Record], ValueLike],
+        default: Optional[RecordDict] = None,
+        use_condition: bool = False,
     ):
         """
         Parameters
@@ -105,12 +139,16 @@ class MethodFilter(Elaboratable):
         default: Value or dict, optional
             The default value returned from the filtered method when the condition
             is false. If omitted, zero is returned.
+        use_condition : bool
+            Instead of `m.If` use simultaneus `condition` which allow to execute
+            this filter if the condition is False and target is not ready.
         """
         if default is None:
             default = Record.like(target.data_out)
 
         self.target = target
-        self.method = Method.like(target)
+        self.use_condition = use_condition
+        self.method = Method(i=target.data_in.layout, o=target.data_out.layout, single_caller=self.use_condition)
         self.condition = condition
         self.default = default
 
@@ -122,14 +160,23 @@ class MethodFilter(Elaboratable):
 
         @def_method(m, self.method)
         def _(arg):
-            with m.If(self.condition(m, arg)):
-                m.d.comb += ret.eq(self.target(m, arg))
+            if self.use_condition:
+                cond = Signal()
+                m.d.top_comb += cond.eq(self.condition(m, arg))
+                with condition(m, nonblocking=False, priority=False) as branch:
+                    with branch(cond):
+                        m.d.comb += ret.eq(self.target(m, arg))
+                    with branch(~cond):
+                        pass
+            else:
+                with m.If(self.condition(m, arg)):
+                    m.d.comb += ret.eq(self.target(m, arg))
             return ret
 
         return m
 
 
-class MethodProduct(Elaboratable):
+class MethodProduct(Transformer):
     def __init__(
         self,
         targets: list[Method],
@@ -177,7 +224,7 @@ class MethodProduct(Elaboratable):
         return m
 
 
-class MethodTryProduct(Elaboratable):
+class MethodTryProduct(Transformer):
     def __init__(
         self,
         targets: list[Method],
@@ -229,7 +276,7 @@ class MethodTryProduct(Elaboratable):
         return m
 
 
-class Collector(Elaboratable):
+class Collector(Transformer):
     """Single result collector.
 
     Creates method that collects results of many methods with identical
@@ -308,14 +355,13 @@ class CatTrans(Elaboratable):
         return m
 
 
-class ConnectAndTransformTrans(Elaboratable):
-    """Connecting transaction with transformations.
+class ConnectAndMapTrans(Elaboratable):
+    """Connecting transaction with mapping functions.
 
     Behaves like `ConnectTrans`, but modifies the transferred data using
-    functions or `Method`s. Equivalent to a combination of
-    `ConnectTrans` and `MethodTransformer`. The transformation
-    functions take two parameters, a `Module` and the `Record` being
-    transformed.
+    functions or `Method`s. Equivalent to a combination of `ConnectTrans`
+    and `MethodMap`. The mapping functions take two parameters, a `Module`
+    and the `Record` being transformed.
     """
 
     def __init__(
@@ -346,7 +392,7 @@ class ConnectAndTransformTrans(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.transformer = transformer = MethodTransformer(
+        m.submodules.transformer = transformer = MethodMap(
             self.method2,
             i_transform=(self.method1.data_out.layout, self.i_fun),
             o_transform=(self.method1.data_in.layout, self.o_fun),
