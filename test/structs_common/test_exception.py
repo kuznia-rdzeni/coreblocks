@@ -13,7 +13,7 @@ from ..common import *
 import random
 
 
-class TestExceptionCauseRegister(TestCaseWithSimulator, metaclass= AutoRegisterMocksMetaclass):
+class TestExceptionCauseRegister(TestCaseWithSimulator, metaclass=AutoRegisterMocksMetaclass):
     rob_max = 7
 
     def should_update(self, new_arg, old_arg, rob_start) -> bool:
@@ -91,7 +91,6 @@ class TestExceptionCauseRegister(TestCaseWithSimulator, metaclass= AutoRegisterM
         self.m = ModuleConnector(self.dut, rob_idx_mock=self.rob_idx_mock)
 
         self.rob_id = 0
-
 
     def test_randomized(self):
         with self.run_simulation(self.m) as sim:

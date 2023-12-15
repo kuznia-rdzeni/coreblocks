@@ -21,6 +21,7 @@ from ..common import (
     TestbenchIO,
     data_layout,
     def_method_mock,
+    AutoRegisterMocksMetaclass,
 )
 
 
@@ -412,7 +413,7 @@ class MethodMapTestCircuit(Elaboratable):
         return m
 
 
-class TestMethodTransformer(TestCaseWithSimulator):
+class TestMethodTransformer(TestCaseWithSimulator, metaclass=AutoRegisterMocksMetaclass):
     m: MethodMapTestCircuit
 
     def source(self):
@@ -441,7 +442,6 @@ class TestMethodTransformer(TestCaseWithSimulator):
         self.m = MethodMapTestCircuit(4, True, True)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
-            sim.add_sync_process(self.target)
 
 
 class TestMethodFilter(TestCaseWithSimulator):

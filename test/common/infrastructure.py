@@ -151,7 +151,7 @@ class TestCaseWithSimulator(unittest.TestCase):
             module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
         )
         if hasattr(self, "_transactron_testing_processes"):
-            for proc in self._transactron_testing_processes: # type: ignore
+            for proc in self._transactron_testing_processes:  # type: ignore
                 sim.add_sync_process(proc)
         yield sim
         res = sim.run()
@@ -191,10 +191,12 @@ class AutoRegisterMocksMetaclass(type):
     def __new__(cls, name, bases, namespace):
         def class_instance__new__(cls, *args):
             inst = object().__new__(cls)
-            inst._transactron_testing_processes= map(lambda proc: proc.__get__(inst), inst._transactron_testing_processes)
+            inst._transactron_testing_processes = map(
+                lambda proc: proc.__get__(inst), inst._transactron_testing_processes
+            )
             return inst
 
         result = type.__new__(cls, name, bases, dict(namespace))
-        result._transactron_testing_processes = namespace.processes # type: ignore
-        result.__new__ = class_instance__new__ # type: ignore
+        result._transactron_testing_processes = namespace.processes  # type: ignore
+        result.__new__ = class_instance__new__  # type: ignore
         return result
