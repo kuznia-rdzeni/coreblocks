@@ -26,4 +26,4 @@ def assert_bits(gen_params: GenParams) -> list[tuple[Value, SrcLoc]]:
 
 
 def assert_bit(gen_params: GenParams) -> Value:
-    return reduce(operator.and_, assert_bits(gen_params), C(1))
+    return reduce(operator.and_, [a[0] for a in assert_bits(gen_params)], C(1))
