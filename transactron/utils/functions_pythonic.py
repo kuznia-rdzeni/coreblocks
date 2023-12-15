@@ -1,12 +1,10 @@
 from collections.abc import Iterable, Mapping
 from amaranth import *
-from amaranth.lib import data
-from ._typing import LayoutList, SignalBundle, ShapeLike, LayoutLike
+from ._typing import LayoutList, ShapeLike, LayoutLike
 
 
 __all__ = [
     "make_hashable",
-    "flatten_signals",
     "align_to_power_of_two",
     "align_down_to_power_of_two",
     "bits_from_int",
@@ -29,27 +27,6 @@ def make_hashable(val):
         return (make_hashable(v) for v in val)
     else:
         return val
-
-
-def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
-    """
-    Flattens input data, which can be either a signal, a record, a list (or a dict) of SignalBundle items.
-
-    """
-    if isinstance(signals, Mapping):
-        for x in signals.values():
-            yield from flatten_signals(x)
-    elif isinstance(signals, Iterable):
-        for x in signals:
-            yield from flatten_signals(x)
-    elif isinstance(signals, Record):
-        for x in signals.fields.values():
-            yield from flatten_signals(x)
-    elif isinstance(signals, data.View):
-        for x, _ in signals.shape():
-            yield from flatten_signals(signals[x])
-    else:
-        yield signals
 
 
 def align_to_power_of_two(num: int, power: int) -> int:

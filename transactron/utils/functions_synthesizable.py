@@ -1,11 +1,15 @@
 from amaranth import *
 from amaranth.utils import bits_for, log2_int
+from amaranth.lib import data
+from collections.abc import Iterable, Mapping
+from ._typing import SignalBundle
 
 __all__ = [
+    "mod_incr",
     "popcount",
     "count_leading_zeros",
     "count_trailing_zeros",
-    "mod_incr",
+    "flatten_signals",
 ]
 
 def mod_incr(sig: Value, mod: int) -> Value:
@@ -71,3 +75,24 @@ def count_trailing_zeros(s: Value) -> Value:
         raise NotImplementedError("CountTrailingZeros - only sizes aligned to power of 2 are supperted")
 
     return count_leading_zeros(s[::-1])
+
+
+def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
+    """
+    Flattens input data, which can be either a signal, a record, a list (or a dict) of SignalBundle items.
+
+    """
+    if isinstance(signals, Mapping):
+        for x in signals.values():
+            yield from flatten_signals(x)
+    elif isinstance(signals, Iterable):
+        for x in signals:
+            yield from flatten_signals(x)
+    elif isinstance(signals, Record):
+        for x in signals.fields.values():
+            yield from flatten_signals(x)
+    elif isinstance(signals, data.View):
+        for x, _ in signals.shape():
+            yield from flatten_signals(signals[x])
+    else:
+        yield signals
