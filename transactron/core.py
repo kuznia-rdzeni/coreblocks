@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from collections.abc import Sequence, Iterable, Callable, Mapping, Iterator
+from collections.abc import Collection, Sequence, Iterable, Callable, Mapping, Iterator
 from contextlib import contextmanager
 from enum import Enum, auto
 from typing import (
@@ -14,6 +14,7 @@ from typing import (
     Protocol,
     runtime_checkable,
 )
+from os import environ
 from graphlib import TopologicalSorter
 from typing_extensions import Self
 from amaranth import *
@@ -22,7 +23,7 @@ from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 
 from transactron.utils import AssignType, assign, ModuleConnector, silence_mustuse
-from transactron.utils.utils import OneHotSwitchDynamic
+from transactron.utils.utils import OneHotSwitchDynamic, average_dict_of_lists
 from ._utils import *
 from transactron.utils._typing import ValueLike, SignalBundle, HasElaborate, SwitchKey, ModuleLike
 from .graph import Owned, OwnershipGraph, Direction
@@ -92,18 +93,18 @@ class MethodMap:
             self.methods_by_transaction[transaction] = []
             rec(transaction, transaction)
 
-    def transactions_for(self, elem: TransactionOrMethod) -> Iterable["Transaction"]:
+    def transactions_for(self, elem: TransactionOrMethod) -> Collection["Transaction"]:
         if isinstance(elem, Transaction):
             return [elem]
         else:
             return self.transactions_by_method[elem]
 
     @property
-    def methods(self) -> Iterable["Method"]:
+    def methods(self) -> Collection["Method"]:
         return self.transactions_by_method.keys()
 
     @property
-    def transactions(self) -> Iterable["Transaction"]:
+    def transactions(self) -> Collection["Transaction"]:
         return self.methods_by_transaction.keys()
 
     @property
@@ -434,8 +435,9 @@ class TransactionManager(Elaboratable):
         m = Module()
         m.submodules.merge_manager = merge_manager
 
+        ccs = _graph_ccs(rgr)
         m.submodules._transactron_schedulers = ModuleConnector(
-            *[self.cc_scheduler(method_map, cgr, cc, porder) for cc in _graph_ccs(rgr)]
+            *[self.cc_scheduler(method_map, cgr, cc, porder) for cc in ccs]
         )
 
         method_enables = self._method_enables(method_map)
@@ -457,7 +459,40 @@ class TransactionManager(Elaboratable):
                 for i in OneHotSwitchDynamic(m, runs):
                     m.d.comb += method.data_in.eq(method_args[method][i])
 
+        if "TRANSACTRON_VERBOSE" in environ:
+            self.print_info(cgr, porder, ccs, method_map)
+
         return m
+
+    def print_info(
+        self, cgr: TransactionGraph, porder: PriorityOrder, ccs: list[GraphCC["Transaction"]], method_map: MethodMap
+    ):
+        print("Transactron statistics")
+        print(f"\tMethods: {len(method_map.methods)}")
+        print(f"\tTransactions: {len(method_map.transactions)}")
+        print(f"\tIndependent subgraphs: {len(ccs)}")
+        print(f"\tAvg callers per method: {average_dict_of_lists(method_map.transactions_by_method):.2f}")
+        print(f"\tAvg conflicts per transaction: {average_dict_of_lists(cgr):.2f}")
+        print("")
+        print("Transaction subgraphs")
+        for cc in ccs:
+            ccl = list(cc)
+            ccl.sort(key=lambda t: porder[t])
+            for t in ccl:
+                print(f"\t{t.name}")
+            print("")
+        print("Calling transactions per method")
+        for m, ts in method_map.transactions_by_method.items():
+            print(f"\t{m.owned_name}")
+            for t in ts:
+                print(f"\t\t{t.name}")
+            print("")
+        print("Called methods per transaction")
+        for t, ms in method_map.methods_by_transaction.items():
+            print(f"\t{t.name}")
+            for m in ms:
+                print(f"\t\t{m.owned_name}")
+            print("")
 
     def visual_graph(self, fragment):
         graph = OwnershipGraph(fragment)

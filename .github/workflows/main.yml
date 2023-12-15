@@ -35,7 +35,7 @@ jobs:
       - name: Generate Verilog
         run: |
           . venv/bin/activate
-          PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+          PYTHONHASHSEED=0 TRANSACTRON_VERBOSE=1 ./scripts/gen_verilog.py --verbose --config full
 
       - uses: actions/upload-artifact@v3
         with:
