@@ -87,8 +87,8 @@ class TestCSRUnit(TestCaseWithSimulator):
 
         rd = random.randint(0, 15)
         rs1 = 0 if imm_op else random.randint(0, 15)
-        imm = random.randint(0, 2**self.gp.isa.xlen - 1)
-        rs1_val = random.randint(0, 2**self.gp.isa.xlen - 1) if rs1 else 0
+        imm = random.randint(0, 2**self.gen_params.isa.xlen - 1)
+        rs1_val = random.randint(0, 2**self.gen_params.isa.xlen - 1) if rs1 else 0
         operand_val = imm if imm_op else rs1_val
         csr = random.choice(list(self.dut.csr.keys()))
 
@@ -143,13 +143,13 @@ class TestCSRUnit(TestCaseWithSimulator):
             self.assertEqual(res["exception"], 0)
 
     def test_randomized(self):
-        self.gp = GenParams(test_core_config)
+        self.gen_params = GenParams(test_core_config)
         random.seed(8)
 
         self.cycles = 256
         self.csr_count = 16
 
-        self.dut = CSRUnitTestCircuit(self.gp, self.csr_count)
+        self.dut = CSRUnitTestCircuit(self.gen_params, self.csr_count)
 
         with self.run_simulation(self.dut) as sim:
             sim.add_sync_process(self.process_test)
@@ -168,7 +168,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             yield from self.dut.select.call()
 
-            rob_id = random.randrange(2**self.gp.rob_entries_bits)
+            rob_id = random.randrange(2**self.gen_params.rob_entries_bits)
             yield from self.dut.insert.call(
                 rs_data={
                     "exec_fn": {"op_type": OpType.CSR_REG, "funct3": Funct3.CSRRW, "funct7": 0},
@@ -194,10 +194,10 @@ class TestCSRUnit(TestCaseWithSimulator):
             self.assertDictEqual({"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0}, report)
 
     def test_exception(self):
-        self.gp = GenParams(test_core_config)
+        self.gen_params = GenParams(test_core_config)
         random.seed(9)
 
-        self.dut = CSRUnitTestCircuit(self.gp, 0, only_legal=False)
+        self.dut = CSRUnitTestCircuit(self.gen_params, 0, only_legal=False)
 
         with self.run_simulation(self.dut) as sim:
             sim.add_sync_process(self.process_exception_test)
@@ -217,13 +217,13 @@ class TestCSRRegister(TestCaseWithSimulator):
 
             if random.random() < 0.9:
                 write = True
-                exp_write_data = random.randint(0, 2**self.gp.isa.xlen - 1)
+                exp_write_data = random.randint(0, 2**self.gen_params.isa.xlen - 1)
                 yield from self.dut.write.call_init(data=exp_write_data)
 
             if random.random() < 0.3:
                 fu_write = True
                 # fu_write has priority over csr write, but it doesn't overwrite ro bits
-                write_arg = random.randint(0, 2**self.gp.isa.xlen - 1)
+                write_arg = random.randint(0, 2**self.gen_params.isa.xlen - 1)
                 exp_write_data = (write_arg & ~self.ro_mask) | (
                     (exp_write_data if exp_write_data is not None else previous_data) & self.ro_mask
                 )
@@ -259,13 +259,13 @@ class TestCSRRegister(TestCaseWithSimulator):
             yield from self.dut.write.disable()
 
     def test_randomized(self):
-        self.gp = GenParams(test_core_config)
+        self.gen_params = GenParams(test_core_config)
         random.seed(42)
 
         self.cycles = 200
         self.ro_mask = 0b101
 
-        self.dut = SimpleTestCircuit(CSRRegister(0, self.gp, ro_bits=self.ro_mask))
+        self.dut = SimpleTestCircuit(CSRRegister(0, self.gen_params, ro_bits=self.ro_mask))
 
         with self.run_simulation(self.dut) as sim:
             sim.add_sync_process(self.process_test)

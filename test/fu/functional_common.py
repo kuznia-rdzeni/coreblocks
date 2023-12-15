@@ -31,19 +31,19 @@ class FunctionalTestCircuit(Elaboratable):
         Class of functional unit to be tested.
     """
 
-    def __init__(self, gen: GenParams, func_unit: FunctionalComponentParams):
-        self.gen = gen
+    def __init__(self, gen_params: GenParams, func_unit: FunctionalComponentParams):
+        self.gen_params = gen_params
         self.func_unit = func_unit
 
     def elaborate(self, platform):
         m = Module()
 
         m.submodules.report_mock = self.report_mock = TestbenchIO(
-            Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
+            Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
-        self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
+        self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
 
-        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen)
+        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen_params)
 
         # mocked input and output
         m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
@@ -113,15 +113,15 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         raise NotImplementedError
 
     def setUp(self):
-        gen = GenParams(test_core_config)
-        self.m = FunctionalTestCircuit(gen, self.func_unit)
+        self.gen_params = GenParams(test_core_config)
+        self.m = FunctionalTestCircuit(self.gen_params, self.func_unit)
 
         random.seed(self.seed)
         self.requests = deque[RecordIntDict]()
         self.responses = deque[RecordIntDictRet]()
         self.exceptions = deque[RecordIntDictRet]()
 
-        max_int = 2**gen.isa.xlen - 1
+        max_int = 2**self.gen_params.isa.xlen - 1
         functions = list(self.ops.keys())
 
         for op, _ in product(functions, range(self.number_of_tests)):
@@ -129,11 +129,11 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             data2 = random.randint(0, max_int)
             data_imm = random.randint(0, max_int)
             data2_is_imm = random.randint(0, 1)
-            rob_id = random.randint(0, 2**gen.rob_entries_bits - 1)
-            rp_dst = random.randint(0, 2**gen.phys_regs_bits - 1)
+            rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits - 1)
+            rp_dst = random.randint(0, 2**self.gen_params.phys_regs_bits - 1)
             exec_fn = self.ops[op]
             pc = random.randint(0, max_int) & ~0b11
-            results = self.compute_result(data1, data2, data_imm, pc, op, gen.isa.xlen)
+            results = self.compute_result(data1, data2, data_imm, pc, op, self.gen_params.isa.xlen)
 
             self.requests.append(
                 {

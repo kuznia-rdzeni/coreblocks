@@ -12,8 +12,8 @@ from ..common import TestCaseWithSimulator, TestbenchIO
 
 
 class BackendTestCircuit(Elaboratable):
-    def __init__(self, gen: GenParams, fu_count: int = 1):
-        self.gen = gen
+    def __init__(self, gen_params: GenParams, fu_count: int = 1):
+        self.gen_params = gen_params
 
         self.fu_count = fu_count
         self.fu_fifo_ins = []
@@ -21,10 +21,12 @@ class BackendTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        self.lay_result = self.gen.get(FuncUnitLayouts).accept
-        self.lay_rob_mark_done = self.gen.get(ROBLayouts).mark_done_layout
-        self.lay_rs_write = self.gen.get(RSLayouts, rs_entries_bits=self.gen.max_rs_entries_bits).rs.update_in
-        self.lay_rf_write = self.gen.get(RFLayouts).rf_write
+        self.lay_result = self.gen_params.get(FuncUnitLayouts).accept
+        self.lay_rob_mark_done = self.gen_params.get(ROBLayouts).mark_done_layout
+        self.lay_rs_write = self.gen_params.get(
+            RSLayouts, rs_entries_bits=self.gen_params.max_rs_entries_bits
+        ).rs.update_in
+        self.lay_rf_write = self.gen_params.get(RFLayouts).rf_write
 
         # Initialize for each FU an FIFO which will be a stub for that FU
         fu_fifos = []
@@ -56,7 +58,7 @@ class BackendTestCircuit(Elaboratable):
 
         # Create result announcement
         m.submodules.result_announcement = ResultAnnouncement(
-            gen=self.gen,
+            gen=self.gen_params,
             get_result=serialized_results_fifo.read,
             rob_mark_done=self.rob_mark_done_tbio.adapter.iface,
             rs_update=self.rs_announce_val_tbio.adapter.iface,
@@ -68,8 +70,8 @@ class BackendTestCircuit(Elaboratable):
 
 class TestBackend(TestCaseWithSimulator):
     def initialize(self):
-        gen = GenParams(test_core_config)
-        self.m = BackendTestCircuit(gen, self.fu_count)
+        self.gen_params = GenParams(test_core_config)
+        self.m = BackendTestCircuit(self.gen_params, self.fu_count)
         random.seed(14)
 
         self.fu_inputs = []
@@ -83,9 +85,9 @@ class TestBackend(TestCaseWithSimulator):
             input_size = random.randint(90, 110)
             for j in range(input_size):
                 t = (
-                    random.randint(0, 2**gen.rob_entries_bits),
-                    random.randint(0, 2**gen.isa.xlen),
-                    random.randint(0, 2**gen.phys_regs_bits),
+                    random.randint(0, 2**self.gen_params.rob_entries_bits),
+                    random.randint(0, 2**self.gen_params.isa.xlen),
+                    random.randint(0, 2**self.gen_params.phys_regs_bits),
                 )
                 inputs.append(t)
                 if t in self.expected_output:
