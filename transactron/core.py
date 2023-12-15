@@ -142,14 +142,9 @@ def eager_deterministic_cc_scheduler(
     ccl = list(cc)
     ccl.sort(key=lambda transaction: porder[transaction])
     for k, transaction in enumerate(ccl):
-        ready = [
-            method_map.readiness_by_method_and_transaction[(transaction, method)]
-            for method in method_map.methods_by_transaction[transaction]
-        ]
-        runnable = Cat(ready).all()
         conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
         noconflict = ~Cat(conflicts).any()
-        m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
+        m.d.comb += transaction.grant.eq(transaction.request & transaction.runnable & noconflict)
     return m
 
 
@@ -181,12 +176,7 @@ def trivial_roundrobin_cc_scheduler(
     sched = Scheduler(len(cc))
     m.submodules.scheduler = sched
     for k, transaction in enumerate(cc):
-        ready = [
-            method_map.readiness_by_method_and_transaction[(transaction, method)]
-            for method in method_map.methods_by_transaction[transaction]
-        ]
-        runnable = Cat(ready).all()
-        m.d.comb += sched.requests[k].eq(transaction.request & runnable)
+        m.d.comb += sched.requests[k].eq(transaction.request & transaction.runnable)
         m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
     return m
 
@@ -434,6 +424,13 @@ class TransactionManager(Elaboratable):
 
         m = Module()
         m.submodules.merge_manager = merge_manager
+
+        for transaction in self.transactions:
+            ready = [
+                method_map.readiness_by_method_and_transaction[transaction, method]
+                for method in method_map.methods_by_transaction[transaction]
+            ]
+            m.d.comb += transaction.runnable.eq(Cat(ready).all())
 
         ccs = _graph_ccs(rgr)
         m.submodules._transactron_schedulers = ModuleConnector(
@@ -896,6 +893,8 @@ class Transaction(TransactionBase):
     request: Signal, in
         Signals that the transaction wants to run. If omitted, the transaction
         is always ready. Defined in the constructor.
+    runnable: Signal, out
+        Signals that all used methods are ready.
     grant: Signal, out
         Signals that the transaction is granted by the `TransactionManager`,
         and all used methods are called.
@@ -921,6 +920,7 @@ class Transaction(TransactionBase):
             manager = TransactionContext.get()
         manager.add_transaction(self)
         self.request = Signal(name=self.owned_name + "_request")
+        self.runnable = Signal(name=self.owned_name + "_runnable")
         self.grant = Signal(name=self.owned_name + "_grant")
 
     @contextmanager
