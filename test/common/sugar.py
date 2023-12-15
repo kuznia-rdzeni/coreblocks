@@ -76,6 +76,7 @@ def def_method_mock(
             assert isinstance(tb, TestbenchIO)
             yield from tb.method_handle_loop(f, extra_settle_count=sched_prio, **kw)
 
+        mock._transactron_testing_process = 1 # type: ignore
         return mock
 
     return decorator

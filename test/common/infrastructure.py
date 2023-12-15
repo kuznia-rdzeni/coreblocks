@@ -150,6 +150,9 @@ class TestCaseWithSimulator(unittest.TestCase):
         sim = PysimSimulator(
             module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
         )
+        if hasattr(self, "_transactron_testing_processes"):
+            for proc in self._transactron_testing_processes: # type: ignore
+                sim.add_sync_process(proc)
         yield sim
         res = sim.run()
 
@@ -168,3 +171,30 @@ class TestCaseWithSimulator(unittest.TestCase):
         Wait for a random amount of cycles in range [1, max_cycle_cnt)
         """
         yield from self.tick(random.randrange(max_cycle_cnt))
+
+
+class AutoRegisterMocksMetaclass(type):
+    class ProcessTable(dict):
+        def __init__(self):
+            super().__init__()
+            self.processes = []
+
+        def __setitem__(self, key, value):
+            if hasattr(value, "_transactron_testing_process"):
+                self.processes.append(value)
+            super().__setitem__(key, value)
+
+    @classmethod
+    def __prepare__(metacls, name, bases):  # noqa: N804 # pyright: ignore [ reportSelfClsParameterName ]
+        return metacls.ProcessTable()
+
+    def __new__(cls, name, bases, namespace):
+        def class_instance__new__(cls, *args):
+            inst = object().__new__(cls)
+            inst._transactron_testing_processes= map(lambda proc: proc.__get__(inst), inst._transactron_testing_processes)
+            return inst
+
+        result = type.__new__(cls, name, bases, dict(namespace))
+        result._transactron_testing_processes = namespace.processes # type: ignore
+        result.__new__ = class_instance__new__ # type: ignore
+        return result
