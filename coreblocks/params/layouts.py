@@ -16,6 +16,7 @@ __all__ = [
     "UnsignedMulUnitLayouts",
     "RATLayouts",
     "LSULayouts",
+    "PMALayouts",
     "CSRLayouts",
     "ICacheLayouts",
 ]
@@ -537,6 +538,11 @@ class LSULayouts:
         self.issue_out: LayoutList = [fields.exception, fields.cause]
 
         self.accept: LayoutList = [fields.data, fields.exception, fields.cause]
+
+
+class PMALayouts:
+    def __init__(self, gen_params: GenParams):
+        self.pma_attrs_layout = [("mmio", 1)]
 
 
 class CSRLayouts:
