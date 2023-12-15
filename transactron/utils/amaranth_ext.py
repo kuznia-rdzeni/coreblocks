@@ -12,6 +12,7 @@ __all__ = [
     "flatten_signals",
 ]
 
+
 def mod_incr(sig: Value, mod: int) -> Value:
     """
     Perform `(sig+1) % mod` operation.

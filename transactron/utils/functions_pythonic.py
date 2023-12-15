@@ -1,5 +1,4 @@
 from collections.abc import Iterable, Mapping
-from amaranth import *
 from ._typing import LayoutList, ShapeLike, LayoutLike
 
 

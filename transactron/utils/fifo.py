@@ -1,7 +1,7 @@
 from amaranth import *
 from transactron import Method, def_method, Priority, TModule
 from transactron.utils._typing import ValueLike, MethodLayout
-from transactron.utils.functions_synthesizable import mod_incr
+from transactron.utils.amaranth_ext import mod_incr
 
 
 class BasicFifo(Elaboratable):
