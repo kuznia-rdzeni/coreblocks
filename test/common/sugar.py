@@ -2,10 +2,29 @@ import functools
 from typing import Callable, Any, Optional
 from .testbenchio import TestbenchIO, TestGen
 from transactron.utils._typing import RecordIntDict
+from transactron._utils import MethodLayout
+from transactron.lib.adapters import Adapter
+from amaranth import *
+
+
+class MethodMock(Elaboratable):
+    def __init__(self, i: MethodLayout = (), o: MethodLayout = ()):
+        self.tb = TestbenchIO(Adapter(i=i, o=o))
+
+    def elaborate(self, platform):
+        return Fragment.get(self.tb, platform)
+
+    def get_method(self):
+        return self.tb.adapter.iface
 
 
 def def_method_mock(
-    tb_getter: Callable[[], TestbenchIO] | Callable[[Any], TestbenchIO], sched_prio: int = 0, **kwargs
+    tb_getter: Callable[[], TestbenchIO]
+    | Callable[[Any], TestbenchIO]
+    | Callable[[], MethodMock]
+    | Callable[[Any], MethodMock],
+    sched_prio: int = 0,
+    **kwargs,
 ) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[], TestGen[None]]]:
     """
     Decorator function to create method mock handlers. It should be applied on
@@ -73,6 +92,8 @@ def def_method_mock(
                     bind = getattr(v, "__get__", None)
                     kw[k] = bind(func_self) if bind else v
             tb = getter()
+            if isinstance(tb, MethodMock):
+                tb = tb.tb
             assert isinstance(tb, TestbenchIO)
             yield from tb.method_handle_loop(f, extra_settle_count=sched_prio, **kw)
 
