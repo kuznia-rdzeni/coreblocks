@@ -21,7 +21,6 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
-from coreblocks.utils.assertion import AssertKey, assert_bit
 from transactron.lib.transformers import MethodMap, MethodProduct
 from transactron.utils.fifo import BasicFifo
 
@@ -31,8 +30,6 @@ __all__ = ["Core"]
 class Core(Elaboratable):
     def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneBus, wb_data_bus: WishboneBus):
         self.gen_params = gen_params
-
-        self.core_bug = Signal()
 
         self.wb_instr_bus = wb_instr_bus
         self.wb_data_bus = wb_data_bus
@@ -161,8 +158,5 @@ class Core(Elaboratable):
         with Transaction(name="InitFreeRFFifo").body(m, request=(free_rf_reg.bool())):
             free_rf_fifo.write(m, free_rf_reg)
             m.d.sync += free_rf_reg.eq(free_rf_reg + 1)
-
-        if self.gen_params.assertions:
-            m.d.comb += self.core_bug.eq(assert_bit(self.gen_params))
 
         return m

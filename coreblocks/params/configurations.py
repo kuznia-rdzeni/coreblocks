@@ -65,8 +65,6 @@ class CoreConfiguration:
         Definitions of PMAs per contiguous segments of memory.
     """
 
-    assertions: bool = False
-
     xlen: int = 32
     func_units_config: Collection[BlockComponentParams] = basic_configuration
 
