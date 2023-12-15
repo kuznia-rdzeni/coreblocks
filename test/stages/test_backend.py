@@ -58,7 +58,7 @@ class BackendTestCircuit(Elaboratable):
 
         # Create result announcement
         m.submodules.result_announcement = ResultAnnouncement(
-            gen=self.gen_params,
+            gen_params=self.gen_params,
             get_result=serialized_results_fifo.read,
             rob_mark_done=self.rob_mark_done_tbio.adapter.iface,
             rs_update=self.rs_announce_val_tbio.adapter.iface,

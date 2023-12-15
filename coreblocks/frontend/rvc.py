@@ -14,8 +14,8 @@ def is_instr_compressed(instr: Value) -> Value:
 
 
 class InstrDecompress(Elaboratable):
-    def __init__(self, gen: GenParams):
-        self.gen = gen
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
 
         #
         # Input ports
@@ -58,7 +58,7 @@ class InstrDecompress(Elaboratable):
         )
         reserved = (IllegalInstr(), 0)
 
-        if self.gen.isa.extensions & Extension.D:
+        if self.gen_params.isa.extensions & Extension.D:
             fld = ITypeInstr(opcode=Opcode.LOAD_FP, rd=rd, funct3=Funct3.D, rs1=rs1, imm=lsd_imm)
             fsd = STypeInstr(opcode=Opcode.STORE_FP, imm=lsd_imm, funct3=Funct3.D, rs1=rs1, rs2=rs2)
         else:
@@ -68,14 +68,14 @@ class InstrDecompress(Elaboratable):
         lw = ITypeInstr(opcode=Opcode.LOAD, rd=rd, funct3=Funct3.W, rs1=rs1, imm=lsw_imm)
         sw = STypeInstr(opcode=Opcode.STORE, imm=lsw_imm, funct3=Funct3.W, rs1=rs1, rs2=rs2)
 
-        if self.gen.isa.extensions & Extension.F and self.gen.isa.xlen == 32:
+        if self.gen_params.isa.extensions & Extension.F and self.gen_params.isa.xlen == 32:
             flw = ITypeInstr(opcode=Opcode.LOAD_FP, rd=rd, funct3=Funct3.W, rs1=rs1, imm=lsw_imm)
             fsw = STypeInstr(opcode=Opcode.STORE_FP, imm=lsw_imm, funct3=Funct3.W, rs1=rs1, rs2=rs2)
         else:
             flw = (IllegalInstr(), 0)
             fsw = (IllegalInstr(), 0)
 
-        if self.gen.isa.xlen == 64:
+        if self.gen_params.isa.xlen == 64:
             ld = ITypeInstr(opcode=Opcode.LOAD, rd=rd, funct3=Funct3.D, rs1=rs1, imm=lsd_imm)
             sd = STypeInstr(opcode=Opcode.STORE, imm=lsd_imm, funct3=Funct3.D, rs1=rs1, rs2=rs2)
         else:
@@ -86,11 +86,11 @@ class InstrDecompress(Elaboratable):
             addi4spn,
             fld,
             lw,
-            flw if self.gen.isa.xlen == 32 else ld,
+            flw if self.gen_params.isa.xlen == 32 else ld,
             reserved,
             fsd,
             sw,
-            fsw if self.gen.isa.xlen == 32 else sd,
+            fsw if self.gen_params.isa.xlen == 32 else sd,
         ]
 
     def _quadrant_1(self) -> list[DecodedInstr]:
@@ -154,7 +154,7 @@ class InstrDecompress(Elaboratable):
                 rs2=shamt[0:5],
                 funct7=Funct7.SL | shamt[5],
             ),
-            ~shamt[5] if self.gen.isa.xlen == 32 else 1,
+            ~shamt[5] if self.gen_params.isa.xlen == 32 else 1,
         )
         srai = (
             RTypeInstr(
@@ -165,7 +165,7 @@ class InstrDecompress(Elaboratable):
                 rs2=shamt[0:5],
                 funct7=Funct7.SA | shamt[5],
             ),
-            ~shamt[5] if self.gen.isa.xlen == 32 else 1,
+            ~shamt[5] if self.gen_params.isa.xlen == 32 else 1,
         )
         andi = ITypeInstr(opcode=Opcode.OP_IMM, rd=rd_rs1, funct3=Funct3.AND, rs1=rd_rs1, imm=addi_imm)
 
@@ -175,7 +175,7 @@ class InstrDecompress(Elaboratable):
         and_ = RTypeInstr(opcode=Opcode.OP, rd=rd_rs1, funct3=Funct3.AND, rs1=rd_rs1, rs2=rs2, funct7=Funct7.AND)
         rtype = self.instr_mux(self.instr_in[5:7], [sub, xor, or_, and_])
 
-        if self.gen.isa.xlen != 32:
+        if self.gen_params.isa.xlen != 32:
             subw = (
                 RTypeInstr(opcode=Opcode.OP32, rd=rd_rs1, funct3=Funct3.SUB, rs1=rd_rs1, rs2=rs2, funct7=Funct3.SUB),
                 ~self.instr_in[6],
@@ -192,7 +192,7 @@ class InstrDecompress(Elaboratable):
 
         return [
             addi,
-            jal if self.gen.isa.xlen == 32 else addiw,
+            jal if self.gen_params.isa.xlen == 32 else addiw,
             li,
             self.instr_mux(rd == Registers.SP, [liu, addi16sp]),
             self.instr_mux(self.instr_in[10:12], [srli, srai, andi, rtype]),
@@ -220,10 +220,12 @@ class InstrDecompress(Elaboratable):
                 rs2=shamt[0:5],
                 funct7=Funct7.SL | shamt[5],
             ),
-            ~shamt[5] if self.gen.isa.xlen == 32 else 1,
+            ~shamt[5] if self.gen_params.isa.xlen == 32 else 1,
         )
 
-        if (self.gen.isa.xlen == 32 or self.gen.isa.xlen == 64) and self.gen.isa.extensions & Extension.D:
+        if (
+            self.gen_params.isa.xlen == 32 or self.gen_params.isa.xlen == 64
+        ) and self.gen_params.isa.extensions & Extension.D:
             fldsp = ITypeInstr(opcode=Opcode.LOAD_FP, rd=rd_rs1, funct3=Funct3.D, rs1=Registers.SP, imm=ldsp_imm)
             fsdsp = STypeInstr(opcode=Opcode.STORE_FP, imm=sdsp_imm, funct3=Funct3.D, rs1=Registers.SP, rs2=rs2)
         else:
@@ -236,7 +238,7 @@ class InstrDecompress(Elaboratable):
         )
         swsp = STypeInstr(opcode=Opcode.STORE, imm=swsp_imm, funct3=Funct3.W, rs1=Registers.SP, rs2=rs2)
 
-        if self.gen.isa.extensions & Extension.F:
+        if self.gen_params.isa.extensions & Extension.F:
             flwsp = ITypeInstr(opcode=Opcode.LOAD_FP, rd=rd_rs1, funct3=Funct3.W, rs1=Registers.SP, imm=lwsp_imm)
             fswsp = STypeInstr(opcode=Opcode.STORE_FP, imm=swsp_imm, funct3=Funct3.W, rs1=Registers.SP, rs2=rs2)
         else:
@@ -265,11 +267,11 @@ class InstrDecompress(Elaboratable):
             slli,
             fldsp,
             lwsp,
-            flwsp if self.gen.isa.xlen == 32 else ldsp,
+            flwsp if self.gen_params.isa.xlen == 32 else ldsp,
             self.instr_mux(self.instr_in[12], [jr_mv, ebreak_jalr_add]),
             fsdsp,
             swsp,
-            fswsp if self.gen.isa.xlen == 32 else sdsp,
+            fswsp if self.gen_params.isa.xlen == 32 else sdsp,
         ]
 
     def elaborate(self, platform):

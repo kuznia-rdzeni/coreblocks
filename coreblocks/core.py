@@ -71,7 +71,7 @@ class Core(Elaboratable):
         )
 
         self.announcement = ResultAnnouncement(
-            gen=self.gen_params,
+            gen_params=self.gen_params,
             get_result=self.func_blocks_unifier.get_result,
             rob_mark_done=self.ROB.mark_done,
             rs_update=self.func_blocks_unifier.update,
