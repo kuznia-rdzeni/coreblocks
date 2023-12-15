@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 
-class Transformer(ABC):
+class Transformer(ABC, Elaboratable):
     """Method transformer abstract class.
 
     Method transformers construct a new method which utilizes other methods.
@@ -46,7 +46,7 @@ class Transformer(ABC):
         return self.method
 
 
-class MethodMap(Transformer, Elaboratable):
+class MethodMap(Transformer):
     """Bidirectional map for methods.
 
     Takes a target method and creates a transformed method which calls the
@@ -102,7 +102,7 @@ class MethodMap(Transformer, Elaboratable):
         return m
 
 
-class MethodFilter(Transformer, Elaboratable):
+class MethodFilter(Transformer):
     """Method filter.
 
     Takes a target method and creates a method which calls the target method
@@ -176,7 +176,7 @@ class MethodFilter(Transformer, Elaboratable):
         return m
 
 
-class MethodProduct(Transformer, Elaboratable):
+class MethodProduct(Transformer):
     def __init__(
         self,
         targets: list[Method],
@@ -224,7 +224,7 @@ class MethodProduct(Transformer, Elaboratable):
         return m
 
 
-class MethodTryProduct(Transformer, Elaboratable):
+class MethodTryProduct(Transformer):
     def __init__(
         self,
         targets: list[Method],
@@ -276,7 +276,7 @@ class MethodTryProduct(Transformer, Elaboratable):
         return m
 
 
-class Collector(Transformer, Elaboratable):
+class Collector(Transformer):
     """Single result collector.
 
     Creates method that collects results of many methods with identical

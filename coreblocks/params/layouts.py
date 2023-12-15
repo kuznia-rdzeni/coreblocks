@@ -16,6 +16,7 @@ __all__ = [
     "UnsignedMulUnitLayouts",
     "RATLayouts",
     "LSULayouts",
+    "PMALayouts",
     "CSRLayouts",
     "ICacheLayouts",
 ]
@@ -429,6 +430,7 @@ class FetchLayouts:
         self.branch_verify: LayoutList = [
             ("from_pc", gen_params.isa.xlen),
             ("next_pc", gen_params.isa.xlen),
+            ("resume_from_exception", 1),
         ]
 
 
@@ -517,6 +519,7 @@ class LSULayouts:
                 "s1_val",
                 "s2_val",
                 "imm",
+                "pc",
             },
         )
 
@@ -535,6 +538,11 @@ class LSULayouts:
         self.issue_out: LayoutList = [fields.exception, fields.cause]
 
         self.accept: LayoutList = [fields.data, fields.exception, fields.cause]
+
+
+class PMALayouts:
+    def __init__(self, gen_params: GenParams):
+        self.pma_attrs_layout = [("mmio", 1)]
 
 
 class CSRLayouts:
@@ -588,6 +596,12 @@ class ExceptionRegisterLayouts:
         self.get: LayoutList = [
             fields.cause,
             fields.rob_id,
+            fields.pc,
         ]
 
         self.report = self.get
+
+
+class CoreInstructionCounterLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.decrement = [("empty", 1)]

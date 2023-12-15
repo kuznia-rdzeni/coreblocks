@@ -38,11 +38,20 @@ def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) ->
 
 
 class ExceptionCauseRegister(Elaboratable):
+    """ExceptionCauseRegister
+
+    Stores parameters of earliest (in instruction order) exception, to save resources in the `ReorderBuffer`.
+    All FUs that report exceptions should `report` the details to `ExceptionCauseRegister` and set `exception` bit in
+    result data. Exception order and priority is computed in this module.
+    If `exception` bit is set in the ROB, `Retirement` stage fetches exception details from this module.
+    """
+
     def __init__(self, gp: GenParams, rob_get_indices: Method):
         self.gp = gp
 
         self.cause = Signal(ExceptionCause)
         self.rob_id = Signal(gp.rob_entries_bits)
+        self.pc = Signal(gp.isa.xlen)
         self.valid = Signal()
 
         self.report = Method(i=gp.get(ExceptionRegisterLayouts).report)
@@ -61,7 +70,7 @@ class ExceptionCauseRegister(Elaboratable):
         m = TModule()
 
         @def_method(m, self.report)
-        def _(cause, rob_id):
+        def _(cause, rob_id, pc):
             should_write = Signal()
 
             with m.If(self.valid & (self.rob_id == rob_id)):
@@ -77,12 +86,13 @@ class ExceptionCauseRegister(Elaboratable):
             with m.If(should_write):
                 m.d.sync += self.rob_id.eq(rob_id)
                 m.d.sync += self.cause.eq(cause)
+                m.d.sync += self.pc.eq(pc)
 
             m.d.sync += self.valid.eq(1)
 
         @def_method(m, self.get)
         def _():
-            return {"rob_id": self.rob_id, "cause": self.cause}
+            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc}
 
         @def_method(m, self.clear)
         def _():

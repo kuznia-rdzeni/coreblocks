@@ -245,6 +245,7 @@ class TestCoreRandomized(TestCoreBase):
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
         ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, basic_core_config),
+        ("exception_handler", "exception_handler.asm", 1100, {2: 987, 15: 15}, full_core_config),
     ],
 )
 class TestCoreAsmSource(TestCoreBase):
