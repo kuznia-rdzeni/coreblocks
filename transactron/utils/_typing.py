@@ -27,6 +27,7 @@ LayoutLike: TypeAlias = (
     Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
 )
 SwitchKey: TypeAlias = str | int | Enum
+SrcLoc = tuple[str, int]
 
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
