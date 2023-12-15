@@ -16,7 +16,7 @@ from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenPar
 from coreblocks.params.configurations import test_core_config
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.utils.protocols import FuncBlock
-from ..common import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
+from ..common import RecordIntDict, CoreblocksTestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
 
 
 class SchedulerTestCircuit(Elaboratable):
@@ -110,7 +110,7 @@ class SchedulerTestCircuit(Elaboratable):
         ),
     ],
 )
-class TestScheduler(TestCaseWithSimulator):
+class TestScheduler(CoreblocksTestCaseWithSimulator):
     optype_sets: list[set[OpType]]
     instr_count: int
 

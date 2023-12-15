@@ -1,6 +1,6 @@
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator
+from ..common import CoreblocksTestCaseWithSimulator
 
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
@@ -9,7 +9,7 @@ from unittest import TestCase
 from typing import Optional
 
 
-class TestDecoder(TestCaseWithSimulator):
+class TestDecoder(CoreblocksTestCaseWithSimulator):
     class InstrTest:
         def __init__(
             self,
@@ -171,12 +171,12 @@ class TestDecoder(TestCaseWithSimulator):
     ]
 
     def setUp(self):
-        gen = GenParams(
+        self.gen_params = GenParams(
             test_core_config.replace(
                 _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR | Extension.ZBB
             )
         )
-        self.decoder = InstrDecoder(gen)
+        self.decoder = InstrDecoder(self.gen_params)
         self.cnt = 1
 
     def do_test(self, test):
@@ -267,7 +267,7 @@ class TestDecoder(TestCaseWithSimulator):
             self.do_test(test)
 
 
-class TestDecoderEExtLegal(TestCaseWithSimulator):
+class TestDecoderEExtLegal(CoreblocksTestCaseWithSimulator):
     E_TEST = [
         (0x00000033, False),  # add x0, x0, x0
         (0x00F787B3, False),  # add x15, x15, x15
@@ -279,8 +279,8 @@ class TestDecoderEExtLegal(TestCaseWithSimulator):
     ]
 
     def test_e(self):
-        gen = GenParams(test_core_config.replace(embedded=True, _implied_extensions=Extension.E))
-        self.decoder = InstrDecoder(gen)
+        self.gen_params = GenParams(test_core_config.replace(embedded=True, _implied_extensions=Extension.E))
+        self.decoder = InstrDecoder(self.gen_params)
 
         def process():
             for encoding, illegal in self.E_TEST:

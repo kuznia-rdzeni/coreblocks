@@ -5,6 +5,7 @@ from coreblocks.params import GenParams
 from coreblocks.utils.assertion import assert_bit
 from transactron.utils import HasElaborate
 
+
 class CoreblocksTestCaseWithSimulator(TestCaseWithSimulator):
     gen_params: GenParams
 

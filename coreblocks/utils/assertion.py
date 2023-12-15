@@ -19,4 +19,5 @@ def assertion(gen_params: GenParams, v: Value):
 
 def assert_bit(gen_params: GenParams) -> Value:
     connections = gen_params.get(DependencyManager)
-    return reduce(operator.or_, connections.get_dependency(AssertKey()))
+    assertions = connections.get_dependency(AssertKey())
+    return reduce(operator.and_, assertions, C(1))

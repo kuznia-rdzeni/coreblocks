@@ -73,7 +73,7 @@ class RetirementTestCircuit(Elaboratable):
         return m
 
 
-class RetirementTest(TestCaseWithSimulator):
+class RetirementTest(CoreblocksTestCaseWithSimulator):
     def setUp(self):
         self.gen_params = GenParams(test_core_config)
         self.rf_exp_q = deque()

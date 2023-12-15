@@ -2,7 +2,7 @@ from amaranth import Elaboratable, Module
 
 from transactron.lib import AdapterTrans, FIFO
 
-from ..common import TestCaseWithSimulator, TestbenchIO
+from ..common import CoreblocksTestCaseWithSimulator, TestbenchIO
 
 from coreblocks.frontend.decode import Decode
 from coreblocks.params import GenParams, FetchLayouts, DecodeLayouts, OpType, Funct3, Funct7
@@ -11,18 +11,18 @@ from coreblocks.params.configurations import test_core_config
 
 class TestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams):
-        self.gp = gen_params
+        self.gen_params = gen_params
 
     def elaborate(self, platform):
         m = Module()
 
-        fifo_in = FIFO(self.gp.get(FetchLayouts).raw_instr, depth=2)
-        fifo_out = FIFO(self.gp.get(DecodeLayouts).decoded_instr, depth=2)
+        fifo_in = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
+        fifo_out = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, depth=2)
 
         self.io_in = TestbenchIO(AdapterTrans(fifo_in.write))
         self.io_out = TestbenchIO(AdapterTrans(fifo_out.read))
 
-        self.decode = Decode(self.gp, fifo_in.read, fifo_out.write)
+        self.decode = Decode(self.gen_params, fifo_in.read, fifo_out.write)
 
         m.submodules.decode = self.decode
         m.submodules.io_in = self.io_in
@@ -33,10 +33,10 @@ class TestElaboratable(Elaboratable):
         return m
 
 
-class TestFetch(TestCaseWithSimulator):
+class TestFetch(CoreblocksTestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = GenParams(test_core_config.replace(start_pc=24))
-        self.test_module = TestElaboratable(self.gp)
+        self.gen_params = GenParams(test_core_config.replace(start_pc=24))
+        self.test_module = TestElaboratable(self.gen_params)
 
     def decode_test_proc(self):
         # testing an OP_IMM instruction (test copied from test_decoder.py)

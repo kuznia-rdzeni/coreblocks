@@ -12,25 +12,25 @@ from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
 from coreblocks.params.configurations import test_core_config
 
-from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
+from ..common import CoreblocksTestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
 class SimpleWBCacheRefillerTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
-        self.gp = gen_params
-        self.cp = self.gp.icache_params
+        self.gen_params = gen_params
+        self.cp = self.gen_params.icache_params
 
     def elaborate(self, platform):
         m = Module()
 
         wb_params = WishboneParameters(
-            data_width=self.gp.isa.xlen,
-            addr_width=self.gp.isa.xlen,
+            data_width=self.gen_params.isa.xlen,
+            addr_width=self.gen_params.isa.xlen,
         )
         self.wb_master = WishboneMaster(wb_params)
 
-        self.refiller = SimpleWBCacheRefiller(self.gp.get(ICacheLayouts), self.cp, self.wb_master)
+        self.refiller = SimpleWBCacheRefiller(self.gen_params.get(ICacheLayouts), self.cp, self.wb_master)
 
         self.start_refill = TestbenchIO(AdapterTrans(self.refiller.start_refill))
         self.accept_refill = TestbenchIO(AdapterTrans(self.refiller.accept_refill))
@@ -54,14 +54,16 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
         ("blk_size64B_rv32i", 32, 6),
     ],
 )
-class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
+class TestSimpleWBCacheRefiller(CoreblocksTestCaseWithSimulator):
     isa_xlen: int
     block_size: int
 
     def setUp(self) -> None:
-        self.gp = GenParams(test_core_config.replace(xlen=self.isa_xlen, icache_block_size_bits=self.block_size))
-        self.cp = self.gp.icache_params
-        self.test_module = SimpleWBCacheRefillerTestCircuit(self.gp)
+        self.gen_params = GenParams(
+            test_core_config.replace(xlen=self.isa_xlen, icache_block_size_bits=self.block_size)
+        )
+        self.cp = self.gen_params.icache_params
+        self.test_module = SimpleWBCacheRefillerTestCircuit(self.gen_params)
 
         random.seed(42)
 
@@ -71,7 +73,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
         self.requests = deque()
         for _ in range(100):
             # Make the address aligned to the beginning of a cache line
-            addr = random.randrange(2**self.gp.isa.xlen) & ~(self.cp.block_size_bytes - 1)
+            addr = random.randrange(2**self.gen_params.isa.xlen) & ~(self.cp.block_size_bytes - 1)
             self.requests.append(addr)
 
             if random.random() < 0.21:
@@ -98,7 +100,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
 
             err = 1 if addr in self.bad_addresses else 0
 
-            data = random.randrange(2**self.gp.isa.xlen)
+            data = random.randrange(2**self.gen_params.isa.xlen)
             self.mem[addr] = data
 
             yield from self.test_module.wb_ctrl.slave_respond(data, err=err)
@@ -136,19 +138,19 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
 
 class ICacheBypassTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
-        self.gp = gen_params
-        self.cp = self.gp.icache_params
+        self.gen_params = gen_params
+        self.cp = self.gen_params.icache_params
 
     def elaborate(self, platform):
         m = Module()
 
         wb_params = WishboneParameters(
-            data_width=self.gp.isa.xlen,
-            addr_width=self.gp.isa.xlen,
+            data_width=self.gen_params.isa.xlen,
+            addr_width=self.gen_params.isa.xlen,
         )
 
         m.submodules.wb_master = self.wb_master = WishboneMaster(wb_params)
-        m.submodules.bypass = self.bypass = ICacheBypass(self.gp.get(ICacheLayouts), self.cp, self.wb_master)
+        m.submodules.bypass = self.bypass = ICacheBypass(self.gen_params.get(ICacheLayouts), self.cp, self.wb_master)
         m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.bypass.issue_req))
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.bypass.accept_res))
 
@@ -164,13 +166,13 @@ class ICacheBypassTestCircuit(Elaboratable):
         ("rv64i", 64),
     ],
 )
-class TestICacheBypass(TestCaseWithSimulator):
+class TestICacheBypass(CoreblocksTestCaseWithSimulator):
     isa_xlen: str
 
     def setUp(self) -> None:
-        self.gp = GenParams(test_core_config.replace(xlen=self.isa_xlen))
-        self.cp = self.gp.icache_params
-        self.m = ICacheBypassTestCircuit(self.gp)
+        self.gen_params = GenParams(test_core_config.replace(xlen=self.isa_xlen))
+        self.cp = self.gen_params.icache_params
+        self.m = ICacheBypassTestCircuit(self.gen_params)
 
         random.seed(42)
 
@@ -184,7 +186,7 @@ class TestICacheBypass(TestCaseWithSimulator):
         self.requests.append(4)
 
         for _ in range(100):
-            addr = random.randrange(0, 2**self.gp.isa.xlen, 4)
+            addr = random.randrange(0, 2**self.gen_params.isa.xlen, 4)
             self.requests.append(addr)
 
             if random.random() < 0.10:
@@ -192,7 +194,7 @@ class TestICacheBypass(TestCaseWithSimulator):
 
     def load_or_gen_mem(self, addr: int):
         if addr not in self.mem:
-            self.mem[addr] = random.randrange(2**self.gp.isa.ilen)
+            self.mem[addr] = random.randrange(2**self.gen_params.isa.ilen)
         return self.mem[addr]
 
     def wishbone_slave(self):
@@ -210,7 +212,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             err = 1 if addr in self.bad_addrs else 0
 
             data = self.load_or_gen_mem(addr)
-            if self.gp.isa.xlen == 64:
+            if self.gen_params.isa.xlen == 64:
                 data = self.load_or_gen_mem(addr + 4) << 32 | data
 
             yield from self.m.wb_ctrl.slave_respond(data, err=err)
@@ -263,14 +265,14 @@ class MockedCacheRefiller(Elaboratable, CacheRefillerInterface):
 
 class ICacheTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
-        self.gp = gen_params
-        self.cp = self.gp.icache_params
+        self.gen_params = gen_params
+        self.cp = self.gen_params.icache_params
 
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.refiller = self.refiller = MockedCacheRefiller(self.gp)
-        m.submodules.cache = self.cache = ICache(self.gp.get(ICacheLayouts), self.cp, self.refiller)
+        m.submodules.refiller = self.refiller = MockedCacheRefiller(self.gen_params)
+        m.submodules.cache = self.cache = ICache(self.gen_params.get(ICacheLayouts), self.cp, self.refiller)
         m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.cache.issue_req))
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.cache.accept_res))
         m.submodules.flush_cache = self.flush_cache = TestbenchIO(AdapterTrans(self.cache.flush))
@@ -286,7 +288,7 @@ class ICacheTestCircuit(Elaboratable):
         ("blk_size32B_rv64i", 64, 5),
     ],
 )
-class TestICache(TestCaseWithSimulator):
+class TestICache(CoreblocksTestCaseWithSimulator):
     isa_xlen: int
     block_size: int
 
@@ -300,7 +302,7 @@ class TestICache(TestCaseWithSimulator):
         self.issued_requests = deque()
 
     def init_module(self, ways, sets) -> None:
-        self.gp = GenParams(
+        self.gen_params = GenParams(
             test_core_config.replace(
                 xlen=self.isa_xlen,
                 icache_ways=ways,
@@ -308,8 +310,8 @@ class TestICache(TestCaseWithSimulator):
                 icache_block_size_bits=self.block_size,
             )
         )
-        self.cp = self.gp.icache_params
-        self.m = ICacheTestCircuit(self.gp)
+        self.cp = self.gen_params.icache_params
+        self.m = ICacheTestCircuit(self.gen_params)
 
     def refiller_processes(self):
         refill_in_fly = False
@@ -330,13 +332,13 @@ class TestICache(TestCaseWithSimulator):
 
             addr = refill_addr + refill_word_cnt * self.cp.word_width_bytes
             data = self.load_or_gen_mem(addr)
-            if self.gp.isa.xlen == 64:
+            if self.gen_params.isa.xlen == 64:
                 data = self.load_or_gen_mem(addr + 4) << 32 | data
 
             refill_word_cnt += 1
 
             err = addr in self.bad_addrs
-            if self.gp.isa.xlen == 64:
+            if self.gen_params.isa.xlen == 64:
                 err = err or (addr + 4) in self.bad_addrs
 
             last = refill_word_cnt == self.cp.words_in_block or err
@@ -355,7 +357,7 @@ class TestICache(TestCaseWithSimulator):
 
     def load_or_gen_mem(self, addr: int):
         if addr not in self.mem:
-            self.mem[addr] = random.randrange(2**self.gp.isa.ilen)
+            self.mem[addr] = random.randrange(2**self.gen_params.isa.ilen)
         return self.mem[addr]
 
     def add_bad_addr(self, addr: int):
@@ -614,7 +616,7 @@ class TestICache(TestCaseWithSimulator):
             yield from self.send_req(0x00000000 + self.cp.block_size_bytes)
             yield from self.send_req(0x00010000)
             yield from self.m.flush_cache.call()
-            self.mem[0x00010000] = random.randrange(2**self.gp.isa.ilen)
+            self.mem[0x00010000] = random.randrange(2**self.gen_params.isa.ilen)
 
             # And accept the results
             self.assert_resp((yield from self.m.accept_res.call()))

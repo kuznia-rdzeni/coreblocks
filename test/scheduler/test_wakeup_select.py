@@ -14,7 +14,7 @@ from transactron import *
 from transactron.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
 
-from ..common import RecordIntDict, TestCaseWithSimulator, TestbenchIO
+from ..common import RecordIntDict, CoreblocksTestCaseWithSimulator, TestbenchIO
 
 
 class WakeupTestCircuit(Elaboratable):
@@ -38,12 +38,12 @@ class WakeupTestCircuit(Elaboratable):
         return m
 
 
-class TestWakeupSelect(TestCaseWithSimulator):
+class TestWakeupSelect(CoreblocksTestCaseWithSimulator):
     def setUp(self):
-        self.gen = GenParams(
+        self.gen_params = GenParams(
             test_core_config.replace(func_units_config=tuple(RSBlockComponent([], rs_entries=16) for _ in range(2)))
         )
-        self.m = WakeupTestCircuit(self.gen)
+        self.m = WakeupTestCircuit(self.gen_params)
         self.cycles = 50
         self.taken = deque()
 

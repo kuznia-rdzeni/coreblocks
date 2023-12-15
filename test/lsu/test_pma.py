@@ -10,11 +10,11 @@ from coreblocks.params.keys import ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock
+from test.common import TestbenchIO, CoreblocksTestCaseWithSimulator, def_method_mock
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
-class TestPMADirect(TestCaseWithSimulator):
+class TestPMADirect(CoreblocksTestCaseWithSimulator):
     def verify_region(self, region: PMARegion):
         for i in range(region.start, region.end + 1):
             yield self.test_module.addr.eq(i)
@@ -35,8 +35,8 @@ class TestPMADirect(TestCaseWithSimulator):
             PMARegion(0x121, 0x130, False),
         ]
 
-        self.gp = GenParams(test_core_config.replace(pma=self.pma_regions))
-        self.test_module = PMAChecker(self.gp)
+        self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions))
+        self.test_module = PMAChecker(self.gen_params)
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.process)
@@ -74,7 +74,7 @@ class PMAIndirectTestCircuit(Elaboratable):
         return m
 
 
-class TestPMAIndirect(TestCaseWithSimulator):
+class TestPMAIndirect(CoreblocksTestCaseWithSimulator):
     def get_instr(self, addr):
         return {
             "rp_s1": 0,
@@ -116,8 +116,8 @@ class TestPMAIndirect(TestCaseWithSimulator):
             PMARegion(0x10, 0x1F, False),
             PMARegion(0x20, 0x2F, True),
         ]
-        self.gp = GenParams(test_core_config.replace(pma=self.pma_regions))
-        self.test_module = PMAIndirectTestCircuit(self.gp)
+        self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions))
+        self.test_module = PMAIndirectTestCircuit(self.gen_params)
 
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):

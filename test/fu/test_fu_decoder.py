@@ -3,7 +3,7 @@ from typing import Sequence, Generator
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import SimpleTestCircuit, TestCaseWithSimulator
+from ..common import SimpleTestCircuit, CoreblocksTestCaseWithSimulator
 
 from coreblocks.fu.fu_decoder import DecoderManager, Decoder
 from coreblocks.params import OpType, Funct3, Funct7, GenParams
@@ -12,7 +12,7 @@ from coreblocks.params.configurations import test_core_config
 from enum import IntFlag, auto
 
 
-class TestFuDecoder(TestCaseWithSimulator):
+class TestFuDecoder(CoreblocksTestCaseWithSimulator):
     def setUp(self) -> None:
         self.gen_params = GenParams(test_core_config)
 
