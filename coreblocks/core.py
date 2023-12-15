@@ -145,6 +145,7 @@ class Core(Elaboratable):
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
             exception_cause_get=self.exception_cause_register.get,
+            exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
             fetch_continue=self.fetch.verify_branch,
             fetch_stall=self.fetch.stall_exception,

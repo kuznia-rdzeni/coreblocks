@@ -1,5 +1,7 @@
 from collections.abc import Iterable, Mapping
 from ._typing import LayoutList, ShapeLike, LayoutLike
+from typing import Any, Sized
+from statistics import fmean
 
 
 __all__ = [
@@ -12,6 +14,7 @@ __all__ = [
     "signed_to_int",
     "int_to_signed",
     "neg",
+    "average_dict_of_lists",
 ]
 
 
@@ -133,3 +136,7 @@ def signed_to_int(x: int, xlen: int) -> int:
         Representation of x as signed Python integer.
     """
     return x | -(x & (2 ** (xlen - 1)))
+
+
+def average_dict_of_lists(d: Mapping[Any, Sized]) -> float:
+    return fmean(map(lambda xs: len(xs), d.values()))
