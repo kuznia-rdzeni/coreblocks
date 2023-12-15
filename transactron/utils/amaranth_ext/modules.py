@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from typing import Literal, Optional, overload
 from collections.abc import Iterable
 from amaranth import *
-from ._typing import HasElaborate, ModuleLike
+from transactron.utils._typing import HasElaborate, ModuleLike
 
 __all__ = [
     "OneHotSwitchDynamic",

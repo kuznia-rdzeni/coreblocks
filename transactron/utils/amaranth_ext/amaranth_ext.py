@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.utils import bits_for, log2_int
 from amaranth.lib import data
 from collections.abc import Iterable, Mapping
-from ._typing import SignalBundle
+from transactron.utils._typing import SignalBundle
 
 __all__ = [
     "mod_incr",
