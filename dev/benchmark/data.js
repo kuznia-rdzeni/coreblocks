@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702374454924,
+  "lastUpdate": 1702650209733,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -14850,6 +14850,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 24548,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 474,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 884,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5844,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6e5e9d5f78e58b7b9a941e4366dfe31005edbd02",
+          "message": "Clear ExcepionCauseRegister after flushing core (#534)",
+          "timestamp": "2023-12-15T15:16:55+01:00",
+          "tree_id": "b4dffc92fcc0e1bcc9a99d48e507f207fb02f336",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6e5e9d5f78e58b7b9a941e4366dfe31005edbd02"
+        },
+        "date": 1702650207407,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 54.47,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 22699,
             "unit": "LUT4"
           },
           {
