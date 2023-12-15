@@ -5,7 +5,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import ExceptionReportKey
-from transactron.core import Priority, TModule, def_method, Method
+from transactron.core import TModule, def_method, Method
 
 
 def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) -> Value:
@@ -61,8 +61,6 @@ class ExceptionCauseRegister(Elaboratable):
         self.get = Method(o=gp.get(ExceptionRegisterLayouts).get)
 
         self.clear = Method()
-
-        self.clear.add_conflict(self.report, Priority.LEFT)
 
         self.rob_get_indices = rob_get_indices
 
