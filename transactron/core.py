@@ -957,7 +957,7 @@ class Transaction(TransactionBase):
         return "(transaction {})".format(self.name)
 
     def debug_signals(self) -> SignalBundle:
-        return [self.request, self.grant]
+        return [self.request, self.runnable, self.grant]
 
 
 class Method(TransactionBase):
