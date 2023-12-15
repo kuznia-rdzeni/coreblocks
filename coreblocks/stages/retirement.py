@@ -21,6 +21,7 @@ class Retirement(Elaboratable):
         rf_free: Method,
         precommit: Method,
         exception_cause_get: Method,
+        exception_cause_clear: Method,
         frat_rename: Method,
         fetch_continue: Method,
         fetch_stall: Method,
@@ -34,6 +35,7 @@ class Retirement(Elaboratable):
         self.rf_free = rf_free
         self.precommit = precommit
         self.exception_cause_get = exception_cause_get
+        self.exception_cause_clear = exception_cause_clear
         self.rename = frat_rename
         self.fetch_continue = fetch_continue
         self.fetch_stall = fetch_stall
@@ -114,6 +116,9 @@ class Retirement(Elaboratable):
                 # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
                 resume_pc = m_csr.mtvec.read(m) & ~(0b11)
                 fetch_continue_fwd.write(m, pc=resume_pc)
+
+                # Release pending trap state - allow accepting new reports
+                self.exception_cause_clear(m)
 
                 m.d.sync += side_fx.eq(1)
 
