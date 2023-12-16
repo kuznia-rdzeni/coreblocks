@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702728392728,
+  "lastUpdate": 1702728821986,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -4799,6 +4799,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nettle-sha256",
             "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9e99b5b6d68e067d879ac652344fc044e0c8507a",
+          "message": "Autumn cleaning - remove _utils.py and utils.py in transactron (#519)",
+          "timestamp": "2023-12-16T12:59:07+01:00",
+          "tree_id": "707638decfc4a57221e468d8a8679c7a10b43c00",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9e99b5b6d68e067d879ac652344fc044e0c8507a"
+        },
+        "date": 1702728820155,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nsichneu",
+            "value": 0.2420362948846237,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2783650349000975,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.26240061481242527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.3332441948567099,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.34174027385235617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.25211480106460527,
             "unit": "Instructions Per Cycle"
           }
         ]
