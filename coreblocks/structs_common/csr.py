@@ -341,8 +341,11 @@ class CSRUnit(FuncBlock, Elaboratable):
                     {"rob_id": instr.rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": instr.pc},
                 )
             with m.Elif(interrupt):
-                # According to SPEC, interrupt must be evaluated immediately after write to CSR that may cause it.
-                # At this time updated interrupt signal should be computed.
+                # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
+                # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
+                # At this time CSR operation is finished. If it caused triggering an interrupt, it would be represented
+                # by interrupt signal in this cycle.
+                # CSR instructions are never compressed, PC+4 is always next instruction
                 m.d.comb += assign(
                     exception_entry,
                     {
@@ -365,6 +368,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.fetch_continue, accepted)
         def _():
+            # CSR instructions are never compressed, PC+4 is always next instruction
             return {
                 "from_pc": instr.pc,
                 "next_pc": instr.pc + self.gen_params.isa.ilen_bytes,

@@ -77,9 +77,13 @@ class PrivilegedFuncUnit(Elaboratable):
 
             exception = Signal()
             with m.If(async_interrupt_active):
-                # If mret caused activating interrupt, it is needed to evaulate it immediately (from SPEC).
-                # This method has at least one cycle delay from precommit, so new interrupt signal is already computed.
-                # Report new interrupt with the same mepc
+                # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
+                # following the execution of an xRET instruction."
+                # mret() method is called from precommit() that was executed at least one cycle earlier (because
+                # of finished condition). If calling mret() caused interrupt to be active, it is already represented
+                # by updated async_interrupt_active singal.
+                # Interrupt is reported on this xRET instruction with return address set to instruction that we
+                # would normally return to (mepc value is preserved)
                 m.d.comb += exception.eq(1)
                 exception_report(m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob)
             with m.Else():

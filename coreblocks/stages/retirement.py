@@ -85,7 +85,7 @@ class Retirement(Elaboratable):
 
                 with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
                     # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR operations.
-                    # The PC field is set to address of instruction to resume from interrupt (ex. for jumps it is
+                    # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps it is
                     # a jump result).
                     # Instruction that reported interrupt is the last one that is commited.
                     m.d.comb += side_fx_comb.eq(1)
