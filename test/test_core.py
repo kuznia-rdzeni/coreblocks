@@ -1,8 +1,7 @@
 from amaranth import Elaboratable, Module
 
 from transactron.lib import AdapterTrans
-from transactron.utils import align_to_power_of_two
-from transactron._utils import signed_to_int
+from transactron.utils import align_to_power_of_two, signed_to_int
 
 from .common import TestCaseWithSimulator, TestbenchIO
 
@@ -304,7 +303,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
         ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, basic_core_config),
-        ("exception_handler", "exception_handler.asm", 1100, {2: 987, 15: 15}, full_core_config),
+        ("exception_handler", "exception_handler.asm", 1500, {2: 987, 11: 0xAAAA, 15: 16}, full_core_config),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):

@@ -1,6 +1,8 @@
 from collections.abc import Collection
+
 import dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from coreblocks.lsu.pma import PMARegion
 
 from coreblocks.params.isa import Extension
 from coreblocks.params.fu_params import BlockComponentParams
@@ -64,6 +66,8 @@ class CoreConfiguration:
         Allow partial support of extensions.
     _implied_extensions: Extenstion
         Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
+    pma : list[PMARegion]
+        Definitions of PMAs per contiguous segments of memory.
     """
 
     xlen: int = 32
@@ -84,6 +88,8 @@ class CoreConfiguration:
     allow_partial_extensions: bool = False
 
     _implied_extensions: Extension = Extension(0)
+
+    pma: list[PMARegion] = field(default_factory=list)
 
     def replace(self, **kwargs):
         return dataclasses.replace(self, **kwargs)

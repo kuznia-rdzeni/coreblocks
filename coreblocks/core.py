@@ -23,7 +23,7 @@ from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypa
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
-from transactron.utils.fifo import BasicFifo
+from transactron.lib import BasicFifo
 
 __all__ = ["Core"]
 
@@ -152,6 +152,7 @@ class Core(Elaboratable):
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
             exception_cause_get=self.exception_cause_register.get,
+            exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
             fetch_continue=self.fetch.verify_branch,
             fetch_stall=self.fetch.stall_exception,

@@ -1,7 +1,6 @@
 from coreblocks.params import GenParams, OpType, Funct7, Funct3
 from coreblocks.params.isa import ExceptionCause
-from transactron.utils.utils import layout_subset
-from transactron.utils import LayoutList, LayoutListField
+from transactron.utils import LayoutList, LayoutListField, layout_subset
 
 __all__ = [
     "CommonLayoutFields",
@@ -17,6 +16,7 @@ __all__ = [
     "UnsignedMulUnitLayouts",
     "RATLayouts",
     "LSULayouts",
+    "PMALayouts",
     "CSRLayouts",
     "ICacheLayouts",
 ]
@@ -538,6 +538,11 @@ class LSULayouts:
         self.issue_out: LayoutList = [fields.exception, fields.cause]
 
         self.accept: LayoutList = [fields.data, fields.exception, fields.cause]
+
+
+class PMALayouts:
+    def __init__(self, gen_params: GenParams):
+        self.pma_attrs_layout = [("mmio", 1)]
 
 
 class CSRLayouts:

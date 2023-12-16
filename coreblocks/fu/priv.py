@@ -5,7 +5,7 @@ from typing import Sequence
 
 
 from transactron import *
-from transactron.utils.fifo import BasicFifo
+from transactron.lib import BasicFifo
 
 from coreblocks.params import *
 from coreblocks.params.keys import MretKey
