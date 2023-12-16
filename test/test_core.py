@@ -334,11 +334,11 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 @parameterized_class(
     ("source_file", "main_cycle_count", "start_regvals", "expected_regvals", "lo", "hi"),
     [
-        ("interrupt.asm", 800, {4: 2971215073, 8: 29}, {2: 2971215073, 7: 29, 31: 0xDE}, 300, 500),
-        ("interrupt.asm", 800, {4: 24157817, 8: 199}, {2: 24157817, 7: 199, 31: 0xDE}, 100, 200),
-        ("interrupt.asm", 400, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
-        # 10-15 is the smallest feasible cycle count between interrupts to provide forward progress
-        ("interrupt.asm", 300, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 10, 15),
+        ("interrupt.asm", 400, {4: 2971215073, 8: 29}, {2: 2971215073, 7: 29, 31: 0xDE}, 300, 500),
+        ("interrupt.asm", 700, {4: 24157817, 8: 199}, {2: 24157817, 7: 199, 31: 0xDE}, 100, 200),
+        ("interrupt.asm", 600, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
+        # interrupts are only inserted on branches, we always have some forward progression. 15 for trigger variantion.
+        ("interrupt.asm", 80, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 0, 15),
     ],
 )
 class TestCoreInterrupt(TestCoreAsmSourceBase):
@@ -366,7 +366,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         yield from self.tick(200)
 
         early_interrupt = False
-        while main_cycles < self.main_cycle_count:
+        while main_cycles < self.main_cycle_count or early_interrupt:
             if not early_interrupt:
                 # run main code for some semi-random amount of cycles
                 c = random.randrange(self.lo, self.hi)
@@ -381,8 +381,8 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             while (yield self.m.core.interrupt_controller.interrupts_enabled) == 1:
                 yield
 
-            # trigger interrupt during execution of ISR handler (blocked-pending) with some small chance
-            early_interrupt = random.random() < 0.1
+            # trigger interrupt during execution of ISR handler (blocked-pending) with some chance
+            early_interrupt = random.random() < 0.4
             if early_interrupt:
                 yield from self.m.interrupt.call()
                 yield
