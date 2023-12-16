@@ -1,8 +1,32 @@
 transactron.utils package
 =========================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   transactron.utils.amaranth_ext
+
 Submodules
 ----------
+
+transactron.utils.assign module
+-------------------------------
+
+.. automodule:: transactron.utils.assign
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.utils.data\_repr module
+-----------------------------------
+
+.. automodule:: transactron.utils.data_repr
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 transactron.utils.debug\_signals module
 ---------------------------------------
@@ -12,18 +36,10 @@ transactron.utils.debug\_signals module
    :undoc-members:
    :show-inheritance:
 
-transactron.utils.fifo module
------------------------------
+transactron.utils.transactron\_helpers module
+---------------------------------------------
 
-.. automodule:: transactron.utils.fifo
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-transactron.utils.utils module
-------------------------------
-
-.. automodule:: transactron.utils.utils
+.. automodule:: transactron.utils.transactron_helpers
    :members:
    :undoc-members:
    :show-inheritance:

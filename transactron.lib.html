@@ -436,6 +436,67 @@ transactions. Equivalent to a set of <cite>ConnectTrans</cite>.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-transactron.lib.fifo">
+<span id="transactron-lib-fifo-module"></span><h2>transactron.lib.fifo module<a class="headerlink" href="#module-transactron.lib.fifo" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.fifo.BasicFifo">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.fifo.</span></span><span class="sig-name descname"><span class="pre">BasicFifo</span></span><a class="headerlink" href="#transactron.lib.fifo.BasicFifo" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Transactional FIFO queue</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read: Method</strong></dt><dd><p>Reads from the FIFO. Accepts an empty argument, returns a <cite>Record</cite>.
+Ready only if the FIFO is not empty.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>Writes to the FIFO. Accepts a <cite>Record</cite>, returns empty result.
+Ready only if the FIFO is not full.</p>
+</dd>
+<dt><strong>clear: Method</strong></dt><dd><p>Clears the FIFO entries. Has priority over <cite>read</cite> and <cite>write</cite> methods.
+Note that, clearing the FIFO doesn’t reinitialize it to values passed in <cite>init</cite> parameter.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.fifo.BasicFifo.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._rec.Layout</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutLike'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutLike'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Direction</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.lib.fifo.BasicFifo.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>layout: record layout</strong></dt><dd><p>Layout of data stored in the FIFO.
+If integer is given, Record with field <cite>data</cite> and width of this paramter is used as internal layout.</p>
+</dd>
+<dt><strong>depth: int</strong></dt><dd><p>Size of the FIFO.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.fifo.Semaphore">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.fifo.</span></span><span class="sig-name descname"><span class="pre">Semaphore</span></span><a class="headerlink" href="#transactron.lib.fifo.Semaphore" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Semaphore</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.fifo.Semaphore.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.lib.fifo.Semaphore.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>size: int</strong></dt><dd><p>Size of the semaphore.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-transactron.lib.reqres">
 <span id="transactron-lib-reqres-module"></span><h2>transactron.lib.reqres module<a class="headerlink" href="#module-transactron.lib.reqres" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -936,7 +997,7 @@ that a given call succeeded, and the result of the call.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 14:37 2023-12-15.
+      <span class="lastupdated">Last updated on 11:59 2023-12-16.
       </span></p>
   </div>
 

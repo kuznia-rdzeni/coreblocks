@@ -1,0 +1,29 @@
+transactron.utils.amaranth\_ext package
+=======================================
+
+Submodules
+----------
+
+transactron.utils.amaranth\_ext.elaboratables module
+----------------------------------------------------
+
+.. automodule:: transactron.utils.amaranth_ext.elaboratables
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.utils.amaranth\_ext.functions module
+------------------------------------------------
+
+.. automodule:: transactron.utils.amaranth_ext.functions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: transactron.utils.amaranth_ext
+   :members:
+   :undoc-members:
+   :show-inheritance:

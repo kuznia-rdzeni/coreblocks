@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>transactron.utils.amaranth_ext package &mdash; Coreblocks documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="transactron.utils package" href="transactron.utils.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Coreblocks documentation
+            <img src="_static/logo-banner.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="home.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development-environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transactions.html">Documentation for Coreblocks transaction framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler/overview.html">Scheduler overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared-structs/implementation/rs-impl.html">Proposition of Reservation Station implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared-structs/rs.html">Reservation Station</a></li>
+<li class="toctree-l1"><a class="reference internal" href="current-graph.html">Full transaction-method graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="problem-checklist.html">Problem checklist</a></li>
+<li class="toctree-l1"><a class="reference internal" href="synthesis/synthesis.html">Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptions-summary.html">Summary of papers about interrupts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Coreblocks documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="api.html">API</a> &raquo;</li>
+          <li><a href="transactron.html">transactron package</a> &raquo;</li>
+          <li><a href="transactron.utils.html">transactron.utils package</a> &raquo;</li>
+      <li>transactron.utils.amaranth_ext package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/transactron.utils.amaranth_ext.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="transactron-utils-amaranth-ext-package">
+<h1>transactron.utils.amaranth_ext package<a class="headerlink" href="#transactron-utils-amaranth-ext-package" title="Permalink to this heading"></a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="module-transactron.utils.amaranth_ext.elaboratables">
+<span id="transactron-utils-amaranth-ext-elaboratables-module"></span><h2>transactron.utils.amaranth_ext.elaboratables module<a class="headerlink" href="#module-transactron.utils.amaranth_ext.elaboratables" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.ModuleConnector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.elaboratables.</span></span><span class="sig-name descname"><span class="pre">ModuleConnector</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.ModuleConnector" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>An Elaboratable to create a new module, which will have all arguments
+added as its submodules.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.ModuleConnector.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">HasElaborate</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">HasElaborate</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.ModuleConnector.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>*args</strong></dt><dd><p>Modules which should be added as anonymous submodules.</p>
+</dd>
+<dt><strong>**kwargs</strong></dt><dd><p>Modules which will be added as named submodules.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.OneHotSwitch">
+<span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.elaboratables.</span></span><span class="sig-name descname"><span class="pre">OneHotSwitch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ModuleLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.OneHotSwitch" title="Permalink to this definition"></a></dt>
+<dd><p>One-hot switch.</p>
+<p>This function allows one-hot matching in the style similar to the standard
+Amaranth <cite>Switch</cite>. This allows to get the performance benefit of using
+the one-hot representation.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">OneHotSwitch</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span> <span class="k">as</span> <span class="n">OneHotCase</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">OneHotCase</span><span class="p">(</span><span class="mb">0b01</span><span class="p">):</span>
+        <span class="o">...</span>
+    <span class="k">with</span> <span class="n">OneHotCase</span><span class="p">(</span><span class="mb">0b10</span><span class="p">):</span>
+        <span class="o">...</span>
+    <span class="c1"># optional default case</span>
+    <span class="k">with</span> <span class="n">OneHotCase</span><span class="p">():</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m</strong><span class="classifier">Module</span></dt><dd><p>The module for which the matching is defined.</p>
+</dd>
+<dt><strong>test</strong><span class="classifier">Signal</span></dt><dd><p>The signal being tested.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.OneHotSwitchDynamic">
+<span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.elaboratables.</span></span><span class="sig-name descname"><span class="pre">OneHotSwitchDynamic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ModuleLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.OneHotSwitchDynamic" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.elaboratables.</span></span><span class="sig-name descname"><span class="pre">OneHotSwitchDynamic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ModuleLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">False</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd><p>Dynamic one-hot switch.</p>
+<p>This function allows simple one-hot matching on signals which can have
+variable bit widths.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">OneHotSwitchDynamic</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">sig</span><span class="p">):</span>
+    <span class="c1"># code dependent on the bit index i</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m</strong><span class="classifier">Module</span></dt><dd><p>The module for which the matching is defined.</p>
+</dd>
+<dt><strong>test</strong><span class="classifier">Signal</span></dt><dd><p>The signal being tested.</p>
+</dd>
+<dt><strong>default</strong><span class="classifier">bool, optional</span></dt><dd><p>Whether the matching includes a default case (signified by a None).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.Scheduler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.elaboratables.</span></span><span class="sig-name descname"><span class="pre">Scheduler</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.Scheduler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Scheduler</p>
+<p>An implementation of a round-robin scheduler, which is used in the
+transaction subsystem. It is based on Amaranth’s round-robin scheduler
+but instead of using binary numbers, it uses one-hot encoding for the
+<cite>grant</cite> output signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>requests: Signal(count), in</strong></dt><dd><p>Signals that something (e.g. a transaction) wants to run. When i-th
+bit is high, then the i-th agent requests the grant signal.</p>
+</dd>
+<dt><strong>grant: Signal(count), out</strong></dt><dd><p>Signals that something (e.g. transaction) is granted to run. It uses
+one-hot encoding.</p>
+</dd>
+<dt><strong>valid</strong><span class="classifier">Signal(1), out</span></dt><dd><p>Signal that <cite>grant</cite> signals are valid.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.Scheduler.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.Scheduler.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>count</strong><span class="classifier">int</span></dt><dd><p>Number of agents between which the scheduler should arbitrate.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.utils.amaranth_ext.functions">
+<span id="transactron-utils-amaranth-ext-functions-module"></span><h2>transactron.utils.amaranth_ext.functions module<a class="headerlink" href="#module-transactron.utils.amaranth_ext.functions" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.functions.count_leading_zeros">
+<span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.functions.</span></span><span class="sig-name descname"><span class="pre">count_leading_zeros</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.functions.count_leading_zeros" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.functions.count_trailing_zeros">
+<span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.functions.</span></span><span class="sig-name descname"><span class="pre">count_trailing_zeros</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.functions.count_trailing_zeros" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.functions.flatten_signals">
+<span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.functions.</span></span><span class="sig-name descname"><span class="pre">flatten_signals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl.ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl.ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Signal</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.functions.flatten_signals" title="Permalink to this definition"></a></dt>
+<dd><p>Flattens input data, which can be either a signal, a record, a list (or a dict) of SignalBundle items.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.functions.mod_incr">
+<span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.functions.</span></span><span class="sig-name descname"><span class="pre">mod_incr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sig</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.functions.mod_incr" title="Permalink to this definition"></a></dt>
+<dd><p>Perform <cite>(sig+1) % mod</cite> operation.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.functions.popcount">
+<span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.functions.</span></span><span class="sig-name descname"><span class="pre">popcount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.functions.popcount" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-transactron.utils.amaranth_ext">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-transactron.utils.amaranth_ext" title="Permalink to this heading"></a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="transactron.utils.html" class="btn btn-neutral float-left" title="transactron.utils package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Kuźnia Rdzeni, 2023.
+      <span class="lastupdated">Last updated on 11:59 2023-12-16.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
