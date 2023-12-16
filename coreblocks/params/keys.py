@@ -5,6 +5,7 @@ from coreblocks.params.dependencies import SimpleKey, UnifierKey
 from transactron import Method
 from transactron.lib import MethodTryProduct, Collector
 from coreblocks.peripherals.wishbone import WishboneMaster
+from amaranth import Signal
 
 if TYPE_CHECKING:
     from coreblocks.structs_common.csr_generic import GenericCSRRegisters  # noqa: F401
@@ -15,6 +16,8 @@ __all__ = [
     "BranchResolvedKey",
     "ExceptionReportKey",
     "GenericCSRRegistersKey",
+    "AsyncInterruptInsertSignalKey",
+    "MretKey",
 ]
 
 
@@ -40,4 +43,14 @@ class ExceptionReportKey(SimpleKey[Method]):
 
 @dataclass(frozen=True)
 class GenericCSRRegistersKey(SimpleKey["GenericCSRRegisters"]):
+    pass
+
+
+@dataclass(frozen=True)
+class AsyncInterruptInsertSignalKey(SimpleKey[Signal]):
+    pass
+
+
+@dataclass(frozen=True)
+class MretKey(SimpleKey[Method]):
     pass

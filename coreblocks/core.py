@@ -3,6 +3,7 @@ from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.structs_common.instr_counter import CoreInstructionCounter
+from coreblocks.structs_common.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
@@ -37,13 +38,20 @@ class Core(Elaboratable):
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
 
-        # make fifo_fetch visible outside the core for injecting instructions
+        self.core_counter = CoreInstructionCounter(self.gen_params)
+
+        # make fetch_continue visible outside the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
+
+        drop_args_transform = (self.gen_params.get(FetchLayouts).raw_instr, lambda _a, _b: {})
+        self.core_counter_increment_discard_map = MethodMap(
+            self.core_counter.increment, i_transform=drop_args_transform
+        )
+        self.fetch_continue = MethodProduct([self.fifo_fetch.write, self.core_counter_increment_discard_map.method])
+
         self.free_rf_fifo = BasicFifo(
             self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
-
-        self.core_counter = CoreInstructionCounter(self.gen_params)
 
         cache_layouts = self.gen_params.get(ICacheLayouts)
         if gen_params.icache_params.enable:
@@ -78,6 +86,8 @@ class Core(Elaboratable):
             rf_write=self.RF.write,
         )
 
+        self.interrupt_controller = InterruptController(self.gen_params)
+
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
 
@@ -100,17 +110,14 @@ class Core(Elaboratable):
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
 
-        drop_args_transform = (self.gen_params.get(FetchLayouts).raw_instr, lambda _a, _b: {})
-        core_counter_increment_discard_map = MethodMap(self.core_counter.increment, i_transform=drop_args_transform)
-        fetch_continue = MethodProduct([self.fifo_fetch.write, core_counter_increment_discard_map.use(m)])
-
         if Extension.C in self.gen_params.isa.extensions:
-            m.submodules.fetch = self.fetch = UnalignedFetch(self.gen_params, self.icache, fetch_continue.use(m))
+            m.submodules.fetch = self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.use(m))
         else:
-            m.submodules.fetch = self.fetch = Fetch(self.gen_params, self.icache, fetch_continue.use(m))
+            m.submodules.fetch = self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.use(m))
 
         m.submodules.fifo_fetch = self.fifo_fetch
         m.submodules.core_counter = self.core_counter
+        m.submodules.args_discard_map = self.core_counter_increment_discard_map
 
         m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
         m.submodules.decode = Decode(
@@ -150,7 +157,10 @@ class Core(Elaboratable):
             fetch_continue=self.fetch.verify_branch,
             fetch_stall=self.fetch.stall_exception,
             instr_decrement=self.core_counter.decrement,
+            trap_entry=self.interrupt_controller.entry,
         )
+
+        m.submodules.interrupt_controller = self.interrupt_controller
 
         m.submodules.csr_generic = self.csr_generic
 
