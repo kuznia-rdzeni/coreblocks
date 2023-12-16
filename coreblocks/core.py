@@ -22,7 +22,7 @@ from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypa
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
-from transactron.utils.fifo import BasicFifo
+from transactron.lib import BasicFifo
 
 __all__ = ["Core"]
 
