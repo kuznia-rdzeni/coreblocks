@@ -6,6 +6,8 @@ from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import ExceptionReportKey
 from transactron.core import TModule, def_method, Method
+from transactron.lib.connectors import ConnectTrans
+from transactron.lib.fifo import BasicFifo
 
 
 def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) -> Value:
@@ -54,9 +56,14 @@ class ExceptionCauseRegister(Elaboratable):
         self.pc = Signal(gp.isa.xlen)
         self.valid = Signal()
 
-        self.report = Method(i=gp.get(ExceptionRegisterLayouts).report)
+        self.layouts = gp.get(ExceptionRegisterLayouts)
+
+        # break long combinational path from single-cycle FUs
+        self.fu_report_fifo = BasicFifo(self.layouts.report, 2) # ?? is this delay safe -> precommit?
         dm = gp.get(DependencyManager)
-        dm.add_dependency(ExceptionReportKey(), self.report)
+        dm.add_dependency(ExceptionReportKey(), self.fu_report_fifo.write)
+
+        self.report = Method(i=self.layouts.report)
 
         self.get = Method(o=gp.get(ExceptionRegisterLayouts).get)
 
@@ -66,6 +73,9 @@ class ExceptionCauseRegister(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules.report_fifo = self.fu_report_fifo
+        m.submodules.report_connector = ConnectTrans(self.fu_report_fifo.read, self.report)
 
         @def_method(m, self.report)
         def _(cause, rob_id, pc):
