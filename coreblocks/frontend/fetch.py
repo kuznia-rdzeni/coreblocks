@@ -32,7 +32,7 @@ class Fetch(Elaboratable):
 
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
         self.stall_exception = Method()
-        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
+       # self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
@@ -132,7 +132,7 @@ class UnalignedFetch(Elaboratable):
 
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
         self.stall_exception = Method()
-        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
+        #self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
