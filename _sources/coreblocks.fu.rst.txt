@@ -60,6 +60,14 @@ coreblocks.fu.mul\_unit module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.fu.priv module
+-------------------------
+
+.. automodule:: coreblocks.fu.priv
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.fu.shift\_unit module
 --------------------------------
 

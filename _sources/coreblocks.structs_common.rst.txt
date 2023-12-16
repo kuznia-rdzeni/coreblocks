@@ -36,6 +36,14 @@ coreblocks.structs\_common.instr\_counter module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.structs\_common.interrupt\_controller module
+-------------------------------------------------------
+
+.. automodule:: coreblocks.structs_common.interrupt_controller
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.structs\_common.rat module
 -------------------------------------
 

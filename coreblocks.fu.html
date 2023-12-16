@@ -562,6 +562,73 @@ module. It uses standard FuncUnitLayout.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.fu.priv">
+<span id="coreblocks-fu-priv-module"></span><h2>coreblocks.fu.priv module<a class="headerlink" href="#module-coreblocks.fu.priv" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.priv.PrivilegedFn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.priv.</span></span><span class="sig-name descname"><span class="pre">PrivilegedFn</span></span><a class="headerlink" href="#coreblocks.fu.priv.PrivilegedFn" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.fu.fu_decoder.DecoderManager" title="coreblocks.fu.fu_decoder.DecoderManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">DecoderManager</span></code></a></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.priv.PrivilegedFn.Fn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Fn</span></span><a class="headerlink" href="#coreblocks.fu.priv.PrivilegedFn.Fn" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.fu.priv.PrivilegedFn.Fn.MRET">
+<span class="sig-name descname"><span class="pre">MRET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.fu.priv.PrivilegedFn.Fn.MRET" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.priv.PrivilegedFn.Fn.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.priv.PrivilegedFn.Fn.__new__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.priv.PrivilegedFn.get_instructions">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_instructions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.priv.PrivilegedFn.get_instructions" title="Permalink to this definition"></a></dt>
+<dd><p>Method providing list of valid instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>return</strong><span class="classifier">Sequence[tuple]</span></dt><dd><p>List of implemented instructions, each following format:
+(IntFlag, OpType, Funct3 (optional), Funct7 (optional))</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.priv.PrivilegedFuncUnit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.priv.</span></span><span class="sig-name descname"><span class="pre">PrivilegedFuncUnit</span></span><a class="headerlink" href="#coreblocks.fu.priv.PrivilegedFuncUnit" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.priv.PrivilegedFuncUnit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.fu.priv.PrivilegedFuncUnit.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.fu.priv.PrivilegedUnitComponent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.fu.priv.</span></span><span class="sig-name descname"><span class="pre">PrivilegedUnitComponent</span></span><a class="headerlink" href="#coreblocks.fu.priv.PrivilegedUnitComponent" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams" title="coreblocks.params.fu_params.FunctionalComponentParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">FunctionalComponentParams</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.priv.PrivilegedUnitComponent.get_module">
+<span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit" title="coreblocks.utils.protocols.FuncUnit"><span class="pre">FuncUnit</span></a></span></span><a class="headerlink" href="#coreblocks.fu.priv.PrivilegedUnitComponent.get_module" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.fu.priv.PrivilegedUnitComponent.get_optypes">
+<span class="sig-name descname"><span class="pre">get_optypes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.optypes.OpType" title="coreblocks.params.optypes.OpType"><span class="pre">coreblocks.params.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.fu.priv.PrivilegedUnitComponent.get_optypes" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.fu.shift_unit">
 <span id="coreblocks-fu-shift-unit-module"></span><h2>coreblocks.fu.shift_unit module<a class="headerlink" href="#module-coreblocks.fu.shift_unit" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -898,7 +965,7 @@ module. It uses standard FuncUnitLayout.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 11:59 2023-12-16.
+      <span class="lastupdated">Last updated on 18:51 2023-12-16.
       </span></p>
   </div>
 
