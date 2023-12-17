@@ -13,11 +13,11 @@ class AXILiteInterfaceWrapper:
         yield self.axi_lite.read_address.rdy.eq(rdy)
 
     def slave_ra_wait(self):
-        while not (yield self.axi_lite.read_address.val):
+        while not (yield self.axi_lite.read_address.valid):
             yield
 
     def slave_ra_verify(self, exp_addr, prot):
-        assert (yield self.axi_lite.read_address.val)
+        assert (yield self.axi_lite.read_address.valid)
         assert (yield self.axi_lite.read_address.addr) == exp_addr
         assert (yield self.axi_lite.read_address.prot) == prot
 
@@ -29,19 +29,19 @@ class AXILiteInterfaceWrapper:
         assert (yield self.axi_lite.read_data.rdy)
         yield self.axi_lite.read_data.data.eq(data)
         yield self.axi_lite.read_data.resp.eq(resp)
-        yield self.axi_lite.read_data.val.eq(1)
+        yield self.axi_lite.read_data.valid.eq(1)
         yield
-        yield self.axi_lite.read_data.val.eq(0)
+        yield self.axi_lite.read_data.valid.eq(0)
 
     def slave_wa_ready(self, rdy=1):
         yield self.axi_lite.write_address.rdy.eq(rdy)
 
     def slave_wa_wait(self):
-        while not (yield self.axi_lite.write_address.val):
+        while not (yield self.axi_lite.write_address.valid):
             yield
 
     def slave_wa_verify(self, exp_addr, prot):
-        assert (yield self.axi_lite.write_address.val)
+        assert (yield self.axi_lite.write_address.valid)
         assert (yield self.axi_lite.write_address.addr) == exp_addr
         assert (yield self.axi_lite.write_address.prot) == prot
 
@@ -49,11 +49,11 @@ class AXILiteInterfaceWrapper:
         yield self.axi_lite.write_data.rdy.eq(rdy)
 
     def slave_wd_wait(self):
-        while not (yield self.axi_lite.write_data.val):
+        while not (yield self.axi_lite.write_data.valid):
             yield
 
     def slave_wd_verify(self, exp_data, strb):
-        assert (yield self.axi_lite.write_data.val)
+        assert (yield self.axi_lite.write_data.valid)
         assert (yield self.axi_lite.write_data.data) == exp_data
         assert (yield self.axi_lite.write_data.strb) == strb
 
@@ -64,9 +64,9 @@ class AXILiteInterfaceWrapper:
     def slave_wr_respond(self, resp=0):
         assert (yield self.axi_lite.write_response.rdy)
         yield self.axi_lite.write_response.resp.eq(resp)
-        yield self.axi_lite.write_response.val.eq(1)
+        yield self.axi_lite.write_response.valid.eq(1)
         yield
-        yield self.axi_lite.write_response.val.eq(0)
+        yield self.axi_lite.write_response.valid.eq(0)
 
 
 class TestAXILiteMaster(TestCaseWithSimulator):

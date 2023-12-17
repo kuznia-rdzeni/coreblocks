@@ -42,34 +42,34 @@ class AXILiteLayout:
 
     def __init__(self, axil_params: AXILiteParameters, *, master: bool = True):
         write_address = [
-            ("val", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("valid", 1, DIR_FANOUT if master else DIR_FANIN),
             ("rdy", 1, DIR_FANIN if master else DIR_FANOUT),
             ("addr", axil_params.addr_width, DIR_FANOUT if master else DIR_FANIN),
             ("prot", 3, DIR_FANOUT if master else DIR_FANIN),
         ]
 
         write_data = [
-            ("val", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("valid", 1, DIR_FANOUT if master else DIR_FANIN),
             ("rdy", 1, DIR_FANIN if master else DIR_FANOUT),
             ("data", axil_params.data_width, DIR_FANOUT if master else DIR_FANIN),
             ("strb", axil_params.data_width // 8, DIR_FANOUT if master else DIR_FANIN),
         ]
 
         write_response = [
-            ("val", 1, DIR_FANIN if master else DIR_FANOUT),
+            ("valid", 1, DIR_FANIN if master else DIR_FANOUT),
             ("rdy", 1, DIR_FANOUT if master else DIR_FANIN),
             ("resp", 2, DIR_FANIN if master else DIR_FANOUT),
         ]
 
         read_address = [
-            ("val", 1, DIR_FANOUT if master else DIR_FANIN),
+            ("valid", 1, DIR_FANOUT if master else DIR_FANIN),
             ("rdy", 1, DIR_FANIN if master else DIR_FANOUT),
             ("addr", axil_params.addr_width, DIR_FANOUT if master else DIR_FANIN),
             ("prot", 3, DIR_FANOUT if master else DIR_FANIN),
         ]
 
         read_data = [
-            ("val", 1, DIR_FANIN if master else DIR_FANOUT),
+            ("valid", 1, DIR_FANIN if master else DIR_FANOUT),
             ("rdy", 1, DIR_FANOUT if master else DIR_FANIN),
             ("data", axil_params.data_width, DIR_FANIN if master else DIR_FANOUT),
             ("resp", 2, DIR_FANIN if master else DIR_FANOUT),
@@ -94,19 +94,19 @@ class AXILiteMasterMethodLayouts:
 
     Attributes
     ----------
-    ra_request_layout: Record
+    ra_request_layout: Layout
         Layout for ra_request method of AXILiteMaster.
 
-    wa_request_layout: Record
+    wa_request_layout: Layout
         Layout for wa_request method of AXILiteMaster.
 
-    wd_request_layout: Record
+    wd_request_layout: Layout
         Layout for wd_request method of AXILiteMaster.
 
-    rd_response_layout: Record
+    rd_response_layout: Layout
         Layout for rd_response method of AXILiteMaster.
 
-    wr_response_layout: Record
+    wr_response_layout: Layout
         Layout for wr_response method of AXILiteMaster.
     """
 
@@ -190,14 +190,12 @@ class AXILiteMaster(Elaboratable):
         else:
             m.d.sync += channel.data.eq(arg.data)
             m.d.sync += channel.strb.eq(arg.strb)
-        m.d.sync += channel.val.eq(1)
+        m.d.sync += channel.valid.eq(1)
 
-    def state_machine_request(
-        self, m: TModule, method: Method, *, is_address_channel: bool, channel: Record, request_signal: Signal
-    ):
+    def state_machine_request(self, m: TModule, method: Method, *, channel: Record, request_signal: Signal):
         with m.FSM("Idle"):
             with m.State("Idle"):
-                m.d.sync += channel.val.eq(0)
+                m.d.sync += channel.valid.eq(0)
                 m.d.comb += request_signal.eq(1)
                 with m.If(method.run):
                     m.next = "Active"
@@ -206,13 +204,13 @@ class AXILiteMaster(Elaboratable):
                 with m.If(channel.rdy):
                     m.d.comb += request_signal.eq(1)
                     with m.If(~method.run):
-                        m.d.sync += channel.val.eq(0)
+                        m.d.sync += channel.valid.eq(0)
                         m.next = "Idle"
                 with m.Else():
                     m.d.comb += request_signal.eq(0)
 
     def result_handler(self, m: TModule, forwarder: Forwarder, *, data: bool, channel: Record):
-        with m.If(channel.rdy & channel.val):
+        with m.If(channel.rdy & channel.valid):
             m.d.sync += channel.rdy.eq(forwarder.read.run)
             with Transaction().body(m):
                 if data:
@@ -238,7 +236,6 @@ class AXILiteMaster(Elaboratable):
         self.state_machine_request(
             m,
             self.ra_request,
-            is_address_channel=True,
             channel=self.axil_master.read_address,
             request_signal=ra_request_ready,
         )
@@ -258,7 +255,6 @@ class AXILiteMaster(Elaboratable):
         self.state_machine_request(
             m,
             self.wa_request,
-            is_address_channel=True,
             channel=self.axil_master.write_address,
             request_signal=wa_request_ready,
         )
@@ -271,7 +267,6 @@ class AXILiteMaster(Elaboratable):
         self.state_machine_request(
             m,
             self.wd_request,
-            is_address_channel=False,
             channel=self.axil_master.write_data,
             request_signal=wd_request_ready,
         )
