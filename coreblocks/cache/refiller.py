@@ -9,6 +9,8 @@ from amaranth.utils import log2_int
 
 from .iface import CacheRefillerInterface
 
+__all__ = ["SimpleWBCacheRefiller"]
+
 
 class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
     def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, wb_master: WishboneMaster):
