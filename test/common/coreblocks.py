@@ -15,7 +15,7 @@ def make_assert_handler(gen_params: GenParams, my_assert: Callable[[int, str], A
     def assert_handler():
         yield Passive()
         while True:
-            if (yield assert_bit(gen_params)):
+            if not (yield assert_bit(gen_params)):
                 for v, (n, i) in assert_bits(gen_params):
                     my_assert((yield v), f"Assertion at {n}:{i}")
             yield
