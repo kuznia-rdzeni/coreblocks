@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702894200083,
+  "lastUpdate": 1702898679482,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15415,6 +15415,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 17948,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 720,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 944,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6471,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f93ae2f98c3221dee0d51a15f9b703fd030cc5ab",
+          "message": "AMBA AXI4-Lite master (#524)",
+          "timestamp": "2023-12-18T12:18:48+01:00",
+          "tree_id": "2c4779e03e9d9088da652f0a980e6d61e82e0eaf",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f93ae2f98c3221dee0d51a15f9b703fd030cc5ab"
+        },
+        "date": 1702898676668,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 44.44,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17690,
             "unit": "LUT4"
           },
           {
