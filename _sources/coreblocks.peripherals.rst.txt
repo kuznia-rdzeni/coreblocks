@@ -4,6 +4,14 @@ coreblocks.peripherals package
 Submodules
 ----------
 
+coreblocks.peripherals.axi\_lite module
+---------------------------------------
+
+.. automodule:: coreblocks.peripherals.axi_lite
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.peripherals.wishbone module
 --------------------------------------
 

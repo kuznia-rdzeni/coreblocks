@@ -252,6 +252,10 @@
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.UnsignedMulUnitLayouts.__init__">(coreblocks.params.layouts.UnsignedMulUnitLayouts method)</a>
 </li>
+        <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.__init__">(coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
+</li>
+        <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteParameters.__init__">(coreblocks.peripherals.axi_lite.AXILiteParameters method)</a>
+</li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.PipelinedWishboneMaster.__init__">(coreblocks.peripherals.wishbone.PipelinedWishboneMaster method)</a>
 </li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneArbiter.__init__">(coreblocks.peripherals.wishbone.WishboneArbiter method)</a>
@@ -483,10 +487,10 @@
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.addr">addr (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.ADDRESS_GENERATION">ADDRESS_GENERATION (coreblocks.params.optypes.OpType attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.utils.html#transactron.utils.data_repr.align_down_to_power_of_two">align_down_to_power_of_two() (in module transactron.utils.data_repr)</a>
 </li>
       <li><a href="transactron.utils.html#transactron.utils.data_repr.align_to_power_of_two">align_to_power_of_two() (in module transactron.utils.data_repr)</a>
@@ -537,6 +541,10 @@
         <li><a href="transactron.html#transactron.TModule.AvoidedIf">(transactron.TModule method)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster">AXILiteMaster (class in coreblocks.peripherals.axi_lite)</a>
+</li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteParameters">AXILiteParameters (class in coreblocks.peripherals.axi_lite)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -901,8 +909,6 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.fu_params">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.genparams
 
@@ -910,6 +916,8 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.genparams">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.icache_params
 
@@ -957,6 +965,13 @@
 
       <ul>
         <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.peripherals.axi_lite
+
+      <ul>
+        <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals.axi_lite">module</a>
 </li>
       </ul></li>
       <li>
@@ -1896,6 +1911,8 @@
 </li>
         <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals">coreblocks.peripherals</a>
 </li>
+        <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals.axi_lite">coreblocks.peripherals.axi_lite</a>
+</li>
         <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals.wishbone">coreblocks.peripherals.wishbone</a>
 </li>
         <li><a href="coreblocks.scheduler.html#module-coreblocks.scheduler">coreblocks.scheduler</a>
@@ -2271,20 +2288,22 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.FuncUnitLayouts.result">result (coreblocks.params.layouts.FuncUnitLayouts attribute)</a>
 </li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.result_handler">result_handler() (coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
+</li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.backend.ResultAnnouncement">ResultAnnouncement (class in coreblocks.stages.backend)</a>
 </li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.retirement.Retirement">Retirement (class in coreblocks.stages.retirement)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.RetirementLayouts">RetirementLayouts (class in coreblocks.params.layouts)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REV8">REV8 (coreblocks.params.isa.Funct3 attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.REV8">(coreblocks.params.isa.Funct7 attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12.REV8_32">REV8_32 (coreblocks.params.isa.Funct12 attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12.REV8_64">REV8_64 (coreblocks.params.isa.Funct12 attribute)</a>
@@ -2447,10 +2466,10 @@
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.SH3ADD">(coreblocks.params.isa.Funct7 attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.SHIFT">SHIFT (coreblocks.params.optypes.OpType attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulType.SHIFT_MUL">SHIFT_MUL (coreblocks.fu.mul_unit.MulType attribute)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.shift_unit.ShiftFuncUnit">ShiftFuncUnit (class in coreblocks.fu.shift_unit)</a>
@@ -2503,12 +2522,16 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.start_pc">start_pc (coreblocks.params.configurations.CoreConfiguration attribute)</a>
 </li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.start_request_transaction">start_request_transaction() (coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
+</li>
       <li><a href="transactron.html#transactron.core.TModule.State">State() (transactron.core.TModule method)</a>
 
       <ul>
         <li><a href="transactron.html#transactron.TModule.State">(transactron.TModule method)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.state_machine_request">state_machine_request() (coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Opcode.STORE">STORE (coreblocks.params.isa.Opcode attribute)</a>
 
       <ul>
@@ -3043,7 +3066,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:54 2023-12-18.
+      <span class="lastupdated">Last updated on 11:19 2023-12-18.
       </span></p>
   </div>
 

@@ -87,6 +87,90 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </div>
+<div class="section" id="module-coreblocks.peripherals.axi_lite">
+<span id="coreblocks-peripherals-axi-lite-module"></span><h2>coreblocks.peripherals.axi_lite module<a class="headerlink" href="#module-coreblocks.peripherals.axi_lite" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMaster">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.axi_lite.</span></span><span class="sig-name descname"><span class="pre">AXILiteMaster</span></span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMaster" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>AXI-Lite master interface.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>axil_params: AXILiteParameters</strong></dt><dd><p>Parameters for bus generation.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>ra_request: Method</strong></dt><dd><p>Transactional method for initiating request on read address channel.
+Ready when no request or only one is being executed.
+Takes ‘ra_request_layout’ as argument.</p>
+</dd>
+<dt><strong>rd_response: Method</strong></dt><dd><p>Transactional method for reading response from read data channel.
+Ready when there is request response availabe.
+Returns data and response state as ‘rd_response_layout’.</p>
+</dd>
+<dt><strong>wa_request: Method</strong></dt><dd><p>Transactional method for initiating request on write address channel.
+Ready when no request or only one is being executed.
+Takes ‘wa_request_layout’ as argument.</p>
+</dd>
+<dt><strong>wd_request: Method</strong></dt><dd><p>Transactional method for initiating request on write data channel.
+Ready when no request or only one is being executed.
+Takes ‘wd_request_layout’ as argument.</p>
+</dd>
+<dt><strong>wr_response: Method</strong></dt><dd><p>Transactional method for reading response from write response channel.
+Ready when there is request response availabe.
+Returns response state as ‘wr_response_layout’.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMaster.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axil_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.axi_lite.AXILiteParameters" title="coreblocks.peripherals.axi_lite.AXILiteParameters"><span class="pre">AXILiteParameters</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMaster.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMaster.result_handler">
+<span class="sig-name descname"><span class="pre">result_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.TModule" title="transactron.core.TModule"><span class="pre">TModule</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">forwarder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.lib.html#transactron.lib.connectors.Forwarder" title="transactron.lib.connectors.Forwarder"><span class="pre">Forwarder</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Record</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMaster.result_handler" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMaster.start_request_transaction">
+<span class="sig-name descname"><span class="pre">start_request_transaction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_address_channel</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMaster.start_request_transaction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMaster.state_machine_request">
+<span class="sig-name descname"><span class="pre">state_machine_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.TModule" title="transactron.core.TModule"><span class="pre">TModule</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Record</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_signal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Signal</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMaster.state_machine_request" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteParameters">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.axi_lite.</span></span><span class="sig-name descname"><span class="pre">AXILiteParameters</span></span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteParameters" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Parameters of the AXI-Lite bus.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data_width: int</strong></dt><dd><p>Width of “data” signals for “write data” and “read data” channels. Must be either 32 or 64 bits. Defaults to 64</p>
+</dd>
+<dt><strong>addr_width: int</strong></dt><dd><p>Width of “addr” signals for “write address” and “read address” channels. Defaults to 64 bits.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteParameters.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">addr_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">64</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteParameters.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.peripherals.wishbone">
 <span id="coreblocks-peripherals-wishbone-module"></span><h2>coreblocks.peripherals.wishbone module<a class="headerlink" href="#module-coreblocks.peripherals.wishbone" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -348,7 +432,7 @@ requests should be implemented in block that controlls <cite>ssel_tga</cite> sig
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 09:54 2023-12-18.
+      <span class="lastupdated">Last updated on 11:19 2023-12-18.
       </span></p>
   </div>
 
