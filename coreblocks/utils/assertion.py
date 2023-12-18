@@ -3,8 +3,8 @@ from amaranth.tracer import get_src_loc
 from functools import reduce
 import operator
 from dataclasses import dataclass
+from coreblocks.params.genparams import DependentCache
 from transactron.utils import SrcLoc
-from coreblocks.params import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
 
 __all__ = ["AssertKey", "assertion", "assert_bit", "assert_bits"]
@@ -15,15 +15,18 @@ class AssertKey(ListKey[tuple[Value, SrcLoc]]):
     pass
 
 
-def assertion(gen_params: GenParams, v: Value, *, src_loc_at: int = 0):
+def assertion(dependencies: DependentCache | DependencyManager, v: Value, *, src_loc_at: int = 0):
+    if isinstance(dependencies, DependentCache):
+        dependencies = dependencies.get(DependencyManager)
     src_loc = get_src_loc(1 + src_loc_at)
-    gen_params.get(DependencyManager).add_dependency(AssertKey(), (v, src_loc))
+    dependencies.add_dependency(AssertKey(), (v, src_loc))
 
 
-def assert_bits(gen_params: GenParams) -> list[tuple[Value, SrcLoc]]:
-    connections = gen_params.get(DependencyManager)
-    return connections.get_dependency(AssertKey())
+def assert_bits(dependencies: DependentCache | DependencyManager) -> list[tuple[Value, SrcLoc]]:
+    if isinstance(dependencies, DependentCache):
+        dependencies = dependencies.get(DependencyManager)
+    return dependencies.get_dependency(AssertKey())
 
 
-def assert_bit(gen_params: GenParams) -> Value:
-    return reduce(operator.and_, [a[0] for a in assert_bits(gen_params)], C(1))
+def assert_bit(dependencies: DependentCache | DependencyManager) -> Value:
+    return reduce(operator.and_, [a[0] for a in assert_bits(dependencies)], C(1))
