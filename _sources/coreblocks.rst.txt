@@ -9,6 +9,7 @@ Subpackages
 
    coreblocks.frontend
    coreblocks.fu
+   coreblocks.lsu
    coreblocks.params
    coreblocks.peripherals
    coreblocks.scheduler

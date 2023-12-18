@@ -1,0 +1,29 @@
+coreblocks.lsu package
+======================
+
+Submodules
+----------
+
+coreblocks.lsu.dummyLsu module
+------------------------------
+
+.. automodule:: coreblocks.lsu.dummyLsu
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.lsu.pma module
+-------------------------
+
+.. automodule:: coreblocks.lsu.pma
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.lsu
+   :members:
+   :undoc-members:
+   :show-inheritance:
