@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702893619240,
+  "lastUpdate": 1702894200083,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -4927,6 +4927,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "minver",
             "value": 0.23461730602371625,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "723072ba39dce1c8d5d4e016e6148037775644e1",
+          "message": "Update synthesis docs (#454)\n\nCo-authored-by: Marek Materzok <tilk@tilk.eu>\r\nCo-authored-by: Kristopher38 <Kristopher38@wp.pl>",
+          "timestamp": "2023-12-18T10:53:35+01:00",
+          "tree_id": "b39cacee159896d4bf810705b6fd1a06a01b18f3",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/723072ba39dce1c8d5d4e016e6148037775644e1"
+        },
+        "date": 1702894198334,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "ud",
+            "value": 0.32227830884465813,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23461730602371625,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2393345134151435,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.43425182528066597,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.3262149437190531,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2760578944944976,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4985200128202711,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2562424141349566,
             "unit": "Instructions Per Cycle"
           }
         ]
