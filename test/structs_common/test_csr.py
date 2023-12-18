@@ -6,7 +6,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.isa import Funct3, ExceptionCause
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import ExceptionRegisterLayouts
-from coreblocks.params.keys import ExceptionReportKey
+from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.frontend.decoder import OpType
 
@@ -35,6 +35,7 @@ class CSRUnitTestCircuit(Elaboratable):
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
         self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
+        self.gen_params.get(DependencyManager).add_dependency(AsyncInterruptInsertSignalKey(), Signal())
 
         m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(AdapterTrans(self.dut.fetch_continue))
 
