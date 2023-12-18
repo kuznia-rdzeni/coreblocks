@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702893532005,
+  "lastUpdate": 1702893619240,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -18293,6 +18293,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 23491,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1476,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1084,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8485,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "723072ba39dce1c8d5d4e016e6148037775644e1",
+          "message": "Update synthesis docs (#454)\n\nCo-authored-by: Marek Materzok <tilk@tilk.eu>\r\nCo-authored-by: Kristopher38 <Kristopher38@wp.pl>",
+          "timestamp": "2023-12-18T10:53:35+01:00",
+          "tree_id": "b39cacee159896d4bf810705b6fd1a06a01b18f3",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/723072ba39dce1c8d5d4e016e6148037775644e1"
+        },
+        "date": 1702893616689,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 43.78,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23552,
             "unit": "LUT4"
           },
           {
