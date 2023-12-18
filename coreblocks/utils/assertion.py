@@ -37,7 +37,7 @@ def assertion(dependencies: DependentCache | DependencyManager, value: Value, *,
     """
     if isinstance(dependencies, DependentCache):
         dependencies = dependencies.get(DependencyManager)
-    src_loc = get_src_loc(1 + src_loc_at)
+    src_loc = get_src_loc(src_loc_at)
     dependencies.add_dependency(AssertKey(), (value, src_loc))
 
 
