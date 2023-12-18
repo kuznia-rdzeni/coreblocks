@@ -350,7 +350,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
     def setUp(self):
         self.configuration = full_core_config
-        self.gp = GenParams(self.configuration)
+        self.gen_params = GenParams(self.configuration)
         random.seed(1500100900)
 
     def run_with_interrupt(self):
@@ -397,6 +397,6 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)
-        self.m = TestElaboratable(self.gp, instr_mem=bin_src)
+        self.m = TestElaboratable(self.gen_params, instr_mem=bin_src)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_with_interrupt)
