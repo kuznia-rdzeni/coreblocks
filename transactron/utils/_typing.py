@@ -24,6 +24,7 @@ __all__ = [
     "StatementLike",
     "LayoutLike",
     "SwitchKey",
+    "SrcLoc",
     "MethodLayout",
     "SignalBundle",
     "LayoutListField",
