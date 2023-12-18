@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702899320944,
+  "lastUpdate": 1702911148996,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15528,6 +15528,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 17690,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 720,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 944,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6471,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "62593571+kindlermikolaj@users.noreply.github.com",
+            "name": "kindlermikolaj",
+            "username": "kindlermikolaj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "34073708ce2b03cf66bb3c5ca709f6f592ccdb0b",
+          "message": "fixed autodoc scanning of lsu module (#546)",
+          "timestamp": "2023-12-18T15:46:08+01:00",
+          "tree_id": "383d5672d0b9b3d4e201e2c2a8e803a35a6dbf62",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/34073708ce2b03cf66bb3c5ca709f6f592ccdb0b"
+        },
+        "date": 1702911147060,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 42.27,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 18958,
             "unit": "LUT4"
           },
           {
