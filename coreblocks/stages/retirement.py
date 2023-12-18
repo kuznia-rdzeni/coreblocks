@@ -145,8 +145,12 @@ class Retirement(Elaboratable):
             data = frat_fix.read(m)
             self.rename(m, rl_s1=0, rl_s2=0, rl_dst=data["rl_dst"], rp_dst=data["rp_dst"])
 
-        with Transaction().body(m):
-            # Implicitly depends on fetch_stall and fetch_verify method conflict!
+        # Fetch continue cannot be executed at the same time as fetch_stall, it causes fetcher to break
+        # Confilct can't be defined implicitly via Method.conflict, - it causes preformace loss, because of
+        # transaction locking (fetch_stop is only under If in common Transaction).
+        # Define conflict with priority to fetch_stall here. It is correct, because retirement is the only place
+        # where fetch_stall is called.
+        with Transaction().body(m, request=~self.fetch_stall.run):
             pc = fetch_continue_fwd.read(m).pc
             self.fetch_continue(m, from_pc=0, next_pc=pc, resume_from_exception=1)
 

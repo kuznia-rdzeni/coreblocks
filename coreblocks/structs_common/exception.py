@@ -59,7 +59,7 @@ class ExceptionCauseRegister(Elaboratable):
         self.layouts = gp.get(ExceptionRegisterLayouts)
 
         # break long combinational path from single-cycle FUs
-        self.fu_report_fifo = BasicFifo(self.layouts.report, 2) # ?? is this delay safe -> precommit?
+        self.fu_report_fifo = BasicFifo(self.layouts.report, 2)  # ?? is this delay safe -> precommit?
         dm = gp.get(DependencyManager)
         dm.add_dependency(ExceptionReportKey(), self.fu_report_fifo.write)
 
