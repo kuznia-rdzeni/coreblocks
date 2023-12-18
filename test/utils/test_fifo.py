@@ -1,8 +1,7 @@
 from amaranth import *
 from amaranth.sim import Settle
 
-from transactron.utils.fifo import BasicFifo
-from transactron.lib import AdapterTrans
+from transactron.lib import AdapterTrans, BasicFifo
 
 from test.common import TestCaseWithSimulator, TestbenchIO, data_layout
 from collections import deque

@@ -13,7 +13,7 @@ if __name__ == "__main__":
     sys.path.insert(0, parent)
 
 
-from transactron.utils.utils import ModuleConnector
+from transactron.utils import ModuleConnector
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.core import Core
