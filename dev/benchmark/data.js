@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702911275948,
+  "lastUpdate": 1702911729283,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -5055,6 +5055,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nsichneu",
             "value": 0.2393345134151435,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "62593571+kindlermikolaj@users.noreply.github.com",
+            "name": "kindlermikolaj",
+            "username": "kindlermikolaj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "34073708ce2b03cf66bb3c5ca709f6f592ccdb0b",
+          "message": "fixed autodoc scanning of lsu module (#546)",
+          "timestamp": "2023-12-18T15:46:08+01:00",
+          "tree_id": "383d5672d0b9b3d4e201e2c2a8e803a35a6dbf62",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/34073708ce2b03cf66bb3c5ca709f6f592ccdb0b"
+        },
+        "date": 1702911727500,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "ud",
+            "value": 0.32227830884465813,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2393345134151435,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2760578944944976,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4985200128202711,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.3262149437190531,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2562424141349566,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23461730602371625,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.43425182528066597,
             "unit": "Instructions Per Cycle"
           }
         ]
