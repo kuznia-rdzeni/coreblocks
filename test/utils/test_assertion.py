@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.configurations import basic_core_config
-from coreblocks.utils.assertion import assertion
+from transactron.utils import assertion
 from ..common import CoreblocksTestCaseWithSimulator
 
 

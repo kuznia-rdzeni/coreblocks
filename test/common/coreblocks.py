@@ -4,8 +4,7 @@ from amaranth.sim import Passive, Settle
 from contextlib import contextmanager
 from .infrastructure import TestCaseWithSimulator
 from coreblocks.params import GenParams
-from coreblocks.utils.assertion import assert_bit, assert_bits
-from transactron.utils import HasElaborate
+from transactron.utils import HasElaborate, assert_bit, assert_bits
 
 
 __all__ = ["CoreblocksTestCaseWithSimulator", "make_assert_handler"]
