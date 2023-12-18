@@ -58,12 +58,15 @@ class ExceptionCauseRegister(Elaboratable):
 
         self.layouts = gp.get(ExceptionRegisterLayouts)
 
-        # break long combinational path from single-cycle FUs
-        self.fu_report_fifo = BasicFifo(self.layouts.report, 2)  # ?? is this delay safe -> precommit?
+        # Break long combinational paths from single-cycle FUs
+        # Insertion of FIFO is fine, because self.report is always ready, and will delay report by
+        # exactly one cycle, so new updated value will be available to get after two cycles
+        # If report is called in accept, then on the next cycle ready bit is set in ROB,
+        # and on the second cycle Retirement reads ROB and calls get()
+        self.fu_report_fifo = BasicFifo(self.layouts.report, 2)
+        self.report = self.fu_report_fifo.write
         dm = gp.get(DependencyManager)
-        dm.add_dependency(ExceptionReportKey(), self.fu_report_fifo.write)
-
-        self.report = Method(i=self.layouts.report)
+        dm.add_dependency(ExceptionReportKey(), self.report)
 
         self.get = Method(o=gp.get(ExceptionRegisterLayouts).get)
 
@@ -74,10 +77,12 @@ class ExceptionCauseRegister(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.report_fifo = self.fu_report_fifo
-        m.submodules.report_connector = ConnectTrans(self.fu_report_fifo.read, self.report)
+        report = Method(i=self.layouts.report)
 
-        @def_method(m, self.report)
+        m.submodules.report_fifo = self.fu_report_fifo
+        m.submodules.report_connector = ConnectTrans(self.fu_report_fifo.read, report)
+
+        @def_method(m, report)
         def _(cause, rob_id, pc):
             should_write = Signal()
 

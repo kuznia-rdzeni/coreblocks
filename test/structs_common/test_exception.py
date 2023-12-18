@@ -79,6 +79,7 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
                 report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
 
                 yield from self.dut.report.call(report_arg)
+                yield  # one cycle fifo delay
 
                 new_state = yield from self.dut.get.call()
 
