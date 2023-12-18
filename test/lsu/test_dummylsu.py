@@ -5,7 +5,7 @@ from typing import Optional
 from amaranth.sim import Settle, Passive
 
 from transactron.lib import Adapter
-from transactron._utils import int_to_signed, signed_to_int
+from transactron.utils import int_to_signed, signed_to_int
 from coreblocks.params import OpType, GenParams
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config

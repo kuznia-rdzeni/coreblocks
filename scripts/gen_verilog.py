@@ -16,7 +16,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.peripherals.wishbone import WishboneBus
 from coreblocks.core import Core
 from transactron import TransactionModule
-from transactron.utils.utils import flatten_signals
+from transactron.utils import flatten_signals
 
 from coreblocks.params.configurations import *
 

@@ -3,7 +3,7 @@ from parameterized import parameterized_class
 from coreblocks.params import *
 from coreblocks.fu.mul_unit import MulFn, MulComponent, MulType
 
-from transactron._utils import signed_to_int, int_to_signed
+from transactron.utils import signed_to_int, int_to_signed
 
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 

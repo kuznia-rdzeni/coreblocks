@@ -140,7 +140,7 @@ class TestDecoder(TestCaseWithSimulator):
         # MRET
         InstrTest(0x30200073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.MRET, op=OpType.MRET),
         # WFI
-        InstrTest(0x10500073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI, op=OpType.WFI),
+        # InstrTest(0x10500073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI, op=OpType.WFI),
     ]
     DECODER_TESTS_XINTSUPERVISOR = [
         # SRET

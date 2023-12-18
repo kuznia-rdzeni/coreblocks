@@ -1,5 +1,6 @@
 from amaranth import *
 from coreblocks.params.dependencies import DependencyManager
+from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.keys import GenericCSRRegistersKey
 from coreblocks.params.layouts import CommonLayoutFields
 
@@ -25,7 +26,8 @@ class Retirement(Elaboratable):
         frat_rename: Method,
         fetch_continue: Method,
         fetch_stall: Method,
-        instr_decrement: Method
+        instr_decrement: Method,
+        trap_entry: Method,
     ):
         self.gen_params = gen_params
         self.rob_peek = rob_peek
@@ -40,6 +42,7 @@ class Retirement(Elaboratable):
         self.fetch_continue = fetch_continue
         self.fetch_stall = fetch_stall
         self.instr_decrement = instr_decrement
+        self.trap_entry = trap_entry
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
@@ -51,6 +54,7 @@ class Retirement(Elaboratable):
 
         side_fx = Signal(reset=1)
         side_fx_comb = Signal()
+        last_commited = Signal()
 
         m.d.comb += side_fx_comb.eq(side_fx)
 
@@ -77,14 +81,29 @@ class Retirement(Elaboratable):
                 m.d.comb += side_fx_comb.eq(0)
                 self.fetch_stall(m)
 
-                # TODO: only set mcause/trigger IC if cause is actual exception and not e.g.
-                # misprediction or pipeline flush after some fence.i or changing ISA
                 cause_register = self.exception_cause_get(m)
-                entry = Signal(self.gen_params.isa.xlen)
-                # MSB is exception bit
-                m.d.comb += entry.eq(cause_register.cause | (1 << (self.gen_params.isa.xlen - 1)))
-                m_csr.mcause.write(m, entry)
+
+                cause_entry = Signal(self.gen_params.isa.xlen)
+
+                with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
+                    # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR operations.
+                    # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps it is
+                    # a jump result).
+                    # Instruction that reported interrupt is the last one that is commited.
+                    m.d.comb += side_fx_comb.eq(1)
+                    # Another flag is needed to resume execution if it was the last instruction in core
+                    m.d.comb += last_commited.eq(1)
+
+                    # TODO: set correct interrupt id (from InterruptController) when multiple interrupts are supported
+                    # Set MSB - the Interrupt bit
+                    m.d.comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
+                with m.Else():
+                    m.d.comb += cause_entry.eq(cause_register.cause)
+
+                m_csr.mcause.write(m, cause_entry)
                 m_csr.mepc.write(m, cause_register.pc)
+
+                self.trap_entry(m)
 
             # set rl_dst -> rp_dst in R-RAT
             rat_out = self.r_rat_commit(
@@ -110,7 +129,7 @@ class Retirement(Elaboratable):
             core_empty = self.instr_decrement(m)
             # cycle when fetch_stop is called, is the last cycle when new instruction can be fetched.
             # in this case, counter will be incremented and result correct (non-empty).
-            with m.If(~side_fx_comb & core_empty):
+            with m.If((~side_fx_comb | last_commited) & core_empty):
                 # Resume core operation from exception handler
 
                 # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
@@ -127,6 +146,7 @@ class Retirement(Elaboratable):
             self.rename(m, rl_s1=0, rl_s2=0, rl_dst=data["rl_dst"], rp_dst=data["rp_dst"])
 
         with Transaction().body(m):
+            # Implicitly depends on fetch_stall and fetch_verify method conflict!
             pc = fetch_continue_fwd.read(m).pc
             self.fetch_continue(m, from_pc=0, next_pc=pc, resume_from_exception=1)
 

@@ -1,5 +1,6 @@
 from amaranth import *
-from transactron.utils.fifo import BasicFifo, Semaphore
+from transactron.core import Priority
+from transactron.lib import BasicFifo, Semaphore
 from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
 from transactron import def_method, Method, Transaction, TModule
@@ -31,6 +32,7 @@ class Fetch(Elaboratable):
 
         self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
         self.stall_exception = Method()
+        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
@@ -130,6 +132,7 @@ class UnalignedFetch(Elaboratable):
 
         self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
         self.stall_exception = Method()
+        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
