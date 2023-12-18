@@ -9,7 +9,7 @@ from amaranth.sim import Passive
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params.isa import Funct3, Funct7
 from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey

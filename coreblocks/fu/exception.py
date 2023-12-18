@@ -1,6 +1,6 @@
 from typing import Sequence
 from amaranth import *
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.isa import Funct3, ExceptionCause
 
 from transactron import *

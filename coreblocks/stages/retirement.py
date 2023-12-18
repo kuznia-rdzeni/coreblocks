@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.keys import GenericCSRRegistersKey
 from coreblocks.params.layouts import CommonLayoutFields

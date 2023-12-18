@@ -7,7 +7,7 @@ from coreblocks.params.isa import Funct3, ExceptionCause
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.frontend.decoder import OpType
 
 from ..common import *

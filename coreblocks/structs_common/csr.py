@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from transactron import Method, def_method, Transaction, TModule
 from transactron.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.dependencies import DependencyManager, ListKey
+from transactron.utils.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import ExceptionRegisterLayouts, FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3, ExceptionCause

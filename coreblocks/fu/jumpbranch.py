@@ -8,7 +8,7 @@ from coreblocks.params.layouts import ExceptionRegisterLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
-from transactron.utils import assign
+from transactron.utils import assign, DependencyManager
 
 from coreblocks.params import *
 from coreblocks.params.keys import AsyncInterruptInsertSignalKey
