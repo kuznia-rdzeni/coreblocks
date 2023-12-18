@@ -5,8 +5,7 @@ from amaranth import *
 from coreblocks.params import GenParams, BlockComponentParams
 from transactron.utils.dependencies import UnifierKey, DependencyManager
 from transactron import Method, TModule
-from transactron.lib import MethodProduct, Collector
-from coreblocks.utils.protocols import Unifier
+from transactron.lib import MethodProduct, Collector, Unifier
 
 __all__ = ["FuncBlocksUnifier"]
 

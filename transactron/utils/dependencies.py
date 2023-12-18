@@ -2,10 +2,11 @@ from collections import defaultdict
 
 from abc import abstractmethod, ABC
 from collections.abc import Callable
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, TYPE_CHECKING
 
-from transactron import Method
-from coreblocks.utils.protocols import Unifier
+if TYPE_CHECKING:
+    from transactron import Method
+    from transactron.lib.transformers import Unifier
 
 
 __all__ = [
@@ -84,7 +85,7 @@ class ListKey(Generic[T], DependencyKey[T, list[T]]):
         return data
 
 
-class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]]):
+class UnifierKey(DependencyKey["Method", tuple["Method", dict[str, "Unifier"]]]):
     """Base class for method unifier dependency keys.
 
     Method unifier dependency keys are used to collect methods to be called by
@@ -93,13 +94,13 @@ class UnifierKey(DependencyKey[Method, tuple[Method, dict[str, Unifier]]]):
     allows to customize the calling behavior.
     """
 
-    unifier: Callable[[list[Method]], Unifier]
+    unifier: Callable[[list["Method"]], "Unifier"]
 
-    def __init_subclass__(cls, unifier: Callable[[list[Method]], Unifier], **kwargs) -> None:
+    def __init_subclass__(cls, unifier: Callable[[list["Method"]], "Unifier"], **kwargs) -> None:
         cls.unifier = unifier
         return super().__init_subclass__(**kwargs)
 
-    def combine(self, data: list[Method]) -> tuple[Method, dict[str, Unifier]]:
+    def combine(self, data: list["Method"]) -> tuple["Method", dict[str, "Unifier"]]:
         if len(data) == 1:
             return data[0], {}
         else:

@@ -1,15 +1,15 @@
-from abc import ABC
 from amaranth import *
 from ..core import *
 from ..core import RecordDict
-from typing import Optional
+from typing import Optional, Protocol
 from collections.abc import Callable
-from transactron.utils import ValueLike, assign, AssignType, ModuleLike
+from transactron.utils import ValueLike, assign, AssignType, ModuleLike, HasElaborate
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 from .simultaneous import condition
 
 __all__ = [
     "Transformer",
+    "Unifier",
     "MethodMap",
     "MethodFilter",
     "MethodProduct",
@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 
-class Transformer(ABC, Elaboratable):
+class Transformer(HasElaborate, Protocol):
     """Method transformer abstract class.
 
     Method transformers construct a new method which utilizes other methods.
@@ -46,7 +46,14 @@ class Transformer(ABC, Elaboratable):
         return self.method
 
 
-class MethodMap(Transformer):
+class Unifier(Transformer, Protocol):
+    method: Method
+
+    def __init__(self, targets: list[Method]):
+        ...
+
+
+class MethodMap(Elaboratable, Transformer):
     """Bidirectional map for methods.
 
     Takes a target method and creates a transformed method which calls the
@@ -102,7 +109,7 @@ class MethodMap(Transformer):
         return m
 
 
-class MethodFilter(Transformer):
+class MethodFilter(Elaboratable, Transformer):
     """Method filter.
 
     Takes a target method and creates a method which calls the target method
@@ -176,7 +183,7 @@ class MethodFilter(Transformer):
         return m
 
 
-class MethodProduct(Transformer):
+class MethodProduct(Elaboratable, Unifier):
     def __init__(
         self,
         targets: list[Method],
@@ -224,7 +231,7 @@ class MethodProduct(Transformer):
         return m
 
 
-class MethodTryProduct(Transformer):
+class MethodTryProduct(Elaboratable, Unifier):
     def __init__(
         self,
         targets: list[Method],
@@ -276,7 +283,7 @@ class MethodTryProduct(Transformer):
         return m
 
 
-class Collector(Transformer):
+class Collector(Elaboratable, Unifier):
     """Single result collector.
 
     Creates method that collects results of many methods with identical
