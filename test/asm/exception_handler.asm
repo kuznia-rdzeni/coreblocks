@@ -10,6 +10,33 @@ loop:
     mv x1, x2
     mv x2, x3
     bne x2, x4, loop
+
+    # report another exception after full rob_idx overflow
+    # so it has the same rob index as previous report
+    li x10, 0
+    li x11, 13
+rob_loop:
+    addi x10, x10, 1
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    bne x10, x11, rob_loop
+
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+
+.4byte 0 # exception
+
+    li x11, 0xaaaa # verify exception return
+
 infloop:
     j infloop
 

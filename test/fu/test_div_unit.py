@@ -5,7 +5,7 @@ from coreblocks.fu.div_unit import DivFn, DivComponent
 
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
-from transactron._utils import signed_to_int, int_to_signed
+from transactron.utils import signed_to_int, int_to_signed
 
 
 @parameterized_class(

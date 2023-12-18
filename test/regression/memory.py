@@ -6,7 +6,7 @@ from dataclasses import dataclass, replace
 from elftools.elf.constants import P_FLAGS
 from elftools.elf.elffile import ELFFile, Segment
 from coreblocks.params.configurations import CoreConfiguration
-from transactron.utils.utils import align_to_power_of_two, align_down_to_power_of_two
+from transactron.utils import align_to_power_of_two, align_down_to_power_of_two
 
 all = [
     "ReplyStatus",
