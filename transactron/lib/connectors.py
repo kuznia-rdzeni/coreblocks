@@ -29,7 +29,9 @@ class FIFO(Elaboratable):
         The write method. Accepts a `Record`, returns empty result.
     """
 
-    def __init__(self, layout: MethodLayout, depth: int, fifo_type=amaranth.lib.fifo.SyncFIFO):
+    def __init__(
+        self, layout: MethodLayout, depth: int, fifo_type=amaranth.lib.fifo.SyncFIFO, *, src_loc: int | SrcLoc = 0
+    ):
         """
         Parameters
         ----------
@@ -40,13 +42,17 @@ class FIFO(Elaboratable):
         fifoType: Elaboratable
             FIFO module conforming to Amaranth library FIFO interface. Defaults
             to SyncFIFO.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         self.width = len(Record(layout))
         self.depth = depth
         self.fifoType = fifo_type
 
-        self.read = Method(o=layout, src_loc=1)
-        self.write = Method(i=layout, src_loc=1)
+        src_loc = get_src_loc(src_loc)
+        self.read = Method(o=layout, src_loc=src_loc)
+        self.write = Method(i=layout, src_loc=src_loc)
 
     def elaborate(self, platform):
         m = TModule()
@@ -91,16 +97,20 @@ class Forwarder(Elaboratable):
         The write method. Accepts a `Record`, returns empty result.
     """
 
-    def __init__(self, layout: MethodLayout):
+    def __init__(self, layout: MethodLayout, *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
         layout: record layout
             The format of records forwarded.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        self.read = Method(o=layout, src_loc=1)
-        self.write = Method(i=layout, src_loc=1)
-        self.clear = Method(src_loc=1)
+        src_loc = get_src_loc(src_loc)
+        self.read = Method(o=layout, src_loc=src_loc)
+        self.write = Method(i=layout, src_loc=src_loc)
+        self.clear = Method(src_loc=src_loc)
         self.head = Record.like(self.read.data_out)
 
         self.clear.add_conflict(self.read, Priority.LEFT)
@@ -156,7 +166,7 @@ class Connect(Elaboratable):
         `Record`.
     """
 
-    def __init__(self, layout: MethodLayout = (), rev_layout: MethodLayout = ()):
+    def __init__(self, layout: MethodLayout = (), rev_layout: MethodLayout = (), *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
@@ -164,9 +174,13 @@ class Connect(Elaboratable):
             The format of records forwarded.
         rev_layout: record layout
             The format of records forwarded in the reverse direction.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        self.read = Method(o=layout, i=rev_layout, src_loc=1)
-        self.write = Method(i=layout, o=rev_layout, src_loc=1)
+        src_loc = get_src_loc(src_loc)
+        self.read = Method(o=layout, i=rev_layout, src_loc=src_loc)
+        self.write = Method(i=layout, o=rev_layout, src_loc=src_loc)
 
     def elaborate(self, platform):
         m = TModule()

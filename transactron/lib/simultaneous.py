@@ -1,4 +1,6 @@
 from amaranth import *
+
+from ..utils import get_src_loc
 from ..core import *
 from ..core import TransactionBase
 from contextlib import contextmanager
@@ -59,6 +61,7 @@ def condition(m: TModule, *, nonblocking: bool = False, priority: bool = True):
     this = TransactionBase.get()
     transactions = list[Transaction]()
     last = False
+    src_loc = get_src_loc(0)
 
     @contextmanager
     def branch(cond: Optional[ValueLike] = None):
@@ -67,7 +70,7 @@ def condition(m: TModule, *, nonblocking: bool = False, priority: bool = True):
             raise RuntimeError("Condition clause added after catch-all")
         req = cond if cond is not None else 1
         name = f"{this.name}_cond{len(transactions)}"
-        with (transaction := Transaction(name=name)).body(m, request=req):
+        with (transaction := Transaction(name=name, src_loc=src_loc)).body(m, request=req):
             yield
         if transactions and priority:
             transactions[-1].schedule_before(transaction)

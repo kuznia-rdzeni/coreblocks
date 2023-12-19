@@ -1052,7 +1052,7 @@ class Method(TransactionBase):
             assert len(self.data_in) == 0
 
     @staticmethod
-    def like(other: "Method", *, name: Optional[str] = None) -> "Method":
+    def like(other: "Method", *, name: Optional[str] = None, src_loc: int | SrcLoc = 0) -> "Method":
         """Constructs a new `Method` based on another.
 
         The returned `Method` has the same input/output data layouts as the
@@ -1064,13 +1064,16 @@ class Method(TransactionBase):
             The `Method` which serves as a blueprint for the new `Method`.
         name : str, optional
             Name of the new `Method`.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
 
         Returns
         -------
         Method
             The freshly constructed `Method`.
         """
-        return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
+        return Method(name=name, i=other.data_in.layout, o=other.data_out.layout, src_loc=get_src_loc(src_loc))
 
     def proxy(self, m: TModule, method: "Method"):
         """Define as a proxy for another method.

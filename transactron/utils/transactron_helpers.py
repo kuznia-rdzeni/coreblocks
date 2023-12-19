@@ -108,5 +108,5 @@ def silence_mustuse(elaboratable: Elaboratable):
         raise
 
 
-def get_src_loc(src_loc_at: int | SrcLoc) -> SrcLoc:
-    return tracer.get_src_loc(1 + src_loc_at) if isinstance(src_loc_at, int) else src_loc_at
+def get_src_loc(src_loc: int | SrcLoc) -> SrcLoc:
+    return tracer.get_src_loc(1 + src_loc) if isinstance(src_loc, int) else src_loc
