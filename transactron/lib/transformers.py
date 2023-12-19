@@ -1,7 +1,10 @@
 from abc import ABC
 from amaranth import *
+
+from transactron.utils.transactron_helpers import get_src_loc
 from ..core import *
 from ..core import RecordDict
+from ..utils import SrcLoc
 from typing import Optional
 from collections.abc import Callable
 from transactron.utils import ValueLike, assign, AssignType, ModuleLike
@@ -289,16 +292,20 @@ class Collector(Transformer):
         Method which returns single result of provided methods.
     """
 
-    def __init__(self, targets: list[Method]):
+    def __init__(self, targets: list[Method], *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
         method_list: list[Method]
             List of methods from which results will be collected.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         self.method_list = targets
         layout = targets[0].data_out.layout
-        self.method = Method(o=layout)
+        self.src_loc = get_src_loc(src_loc)
+        self.method = Method(o=layout, src_loc=self.src_loc)
 
         for method in targets:
             if layout != method.data_out.layout:
@@ -310,7 +317,7 @@ class Collector(Transformer):
         m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout)
 
         m.submodules.connect = ManyToOneConnectTrans(
-            get_results=[get for get in self.method_list], put_result=forwarder.write
+            get_results=[get for get in self.method_list], put_result=forwarder.write, src_loc=self.src_loc
         )
 
         self.method.proxy(m, forwarder.read)

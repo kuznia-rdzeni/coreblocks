@@ -733,8 +733,8 @@ class TransactionBase(Owned, Protocol):
     simultaneous_list: list[TransactionOrMethod]
     independent_list: list[TransactionOrMethod]
 
-    def __init__(self, *, src_loc_at: int):
-        self.src_loc = tracer.get_src_loc(src_loc_at)
+    def __init__(self, *, src_loc: int | SrcLoc):
+        self.src_loc = get_src_loc(src_loc)
         self.method_uses: dict["Method", Tuple[Record, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
         self.simultaneous_list: list[TransactionOrMethod] = []
@@ -902,7 +902,7 @@ class Transaction(TransactionBase):
     """
 
     def __init__(
-        self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None, src_loc_at: int = 0
+        self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None, src_loc: int | SrcLoc = 0
     ):
         """
         Parameters
@@ -915,10 +915,11 @@ class Transaction(TransactionBase):
         manager: TransactionManager
             The `TransactionManager` controlling this `Transaction`.
             If omitted, the manager is received from `TransactionContext`.
-        src_loc_at: int
+        src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        super().__init__(src_loc_at=1 + src_loc_at)
+        super().__init__(src_loc=get_src_loc(src_loc))
         self.owner, owner_name = get_caller_class_name(default="$transaction")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         if manager is None:
@@ -1010,7 +1011,7 @@ class Method(TransactionBase):
         o: MethodLayout = (),
         nonexclusive: bool = False,
         single_caller: bool = False,
-        src_loc_at: int = 0,
+        src_loc: int | SrcLoc = 0,
     ):
         """
         Parameters
@@ -1033,10 +1034,11 @@ class Method(TransactionBase):
             If true, this method is intended to be called from a single
             transaction. An error will be thrown if called from multiple
             transactions.
-        src_loc_at: int
+        src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        super().__init__(src_loc_at=1 + src_loc_at)
+        super().__init__(src_loc=get_src_loc(src_loc))
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal(name=self.owned_name + "_ready")
