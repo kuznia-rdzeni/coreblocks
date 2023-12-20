@@ -3,11 +3,13 @@ import random
 import unittest
 import functools
 from contextlib import contextmanager, nullcontext
-from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast
+from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias
+from abc import ABC
 from amaranth import *
 from amaranth.sim import *
 from .testbenchio import TestbenchIO
 from .profiler import profiler_process, Profile
+from .functions import TestGen
 from ..gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
@@ -15,7 +17,7 @@ from transactron.core import TransactionModule
 from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
 
 T = TypeVar("T")
-_T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
+_T_nested_collection: TypeAlias = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 
 
 def guard_nested_collection(cont: Any, t: Type[T]) -> TypeGuard[_T_nested_collection[T]]:
@@ -100,6 +102,40 @@ class TestModule(Elaboratable):
         return m
 
 
+class CoreblocksCommand(ABC):
+    pass
+
+
+class Now(CoreblocksCommand):
+    pass
+
+
+class SyncProcessWrapper:
+    def __init__(self, f):
+        self.org_process = f
+        self.current_cycle = 0
+
+    def _wrapping_function(self):
+        response = None
+        org_coroutine = self.org_process()
+        try:
+            while True:
+                # call orginal test process and catch data yielded by it in `command` variable
+                command = org_coroutine.send(response)
+                # If process wait for new cycle
+                if command is None:
+                    self.current_cycle += 1
+                    # forward to amaranth
+                    yield
+                elif isinstance(command, Now):
+                    response = self.current_cycle
+                # Pass everything else to amaranth simulator without modifications
+                else:
+                    response = yield command
+        except StopIteration:
+            pass
+
+
 class PysimSimulator(Simulator):
     def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
         self.test_module = TestModule(module, add_transaction_module)
@@ -133,6 +169,10 @@ class PysimSimulator(Simulator):
             self.ctx = nullcontext()
 
         self.deadline = clk_period * max_cycles
+
+    def add_sync_process(self, f: Callable[[], TestGen]):
+        f_wrapped = SyncProcessWrapper(f)
+        super().add_sync_process(f_wrapped._wrapping_function)
 
     def run(self) -> bool:
         with self.ctx:
