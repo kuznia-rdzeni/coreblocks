@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703091586274,
+  "lastUpdate": 1703092098663,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -5183,6 +5183,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.2760578944944976,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "601a0f9173a482dcd59d2c5650f9e946a08e0482",
+          "message": "Refactor runnable signal of transactions (#537)",
+          "timestamp": "2023-12-20T17:51:52+01:00",
+          "tree_id": "9ce70d00698125b6e98310e8dc8e5c9cec8a8215",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/601a0f9173a482dcd59d2c5650f9e946a08e0482"
+        },
+        "date": 1703092096020,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "minver",
+            "value": 0.23461730602371625,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2760578944944976,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.32227830884465813,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2393345134151435,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.43425182528066597,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.3262149437190531,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2562424141349566,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4985200128202711,
             "unit": "Instructions Per Cycle"
           }
         ]
