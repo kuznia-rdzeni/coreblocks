@@ -138,8 +138,8 @@ class SyncProcessWrapper:
 
 class PysimSimulator(Simulator):
     def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
-        self.test_module = TestModule(module, add_transaction_module)
-        tested_module = test_module.tested_module
+        test_module = TestModule(module, add_transaction_module)
+        self.tested_module = tested_module = test_module.tested_module
         super().__init__(test_module)
 
         clk_period = 1e-6
@@ -194,9 +194,9 @@ class TestCaseWithSimulator(unittest.TestCase):
         yield sim
 
         profile = None
-        if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.test_module.tested_module, TransactionModule):
+        if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.tested_module, TransactionModule):
             profile = Profile()
-            sim.add_sync_process(profiler_process(sim.test_module.tested_module.transactionManager, profile))
+            sim.add_sync_process(profiler_process(sim.tested_module.transactionManager, profile))
 
         res = sim.run()
 
