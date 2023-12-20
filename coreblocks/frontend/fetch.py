@@ -1,5 +1,6 @@
 from amaranth import *
-from transactron.utils.fifo import BasicFifo, Semaphore
+from transactron.core import Priority
+from transactron.lib import BasicFifo, Semaphore
 from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
 from transactron import def_method, Method, Transaction, TModule
@@ -30,6 +31,8 @@ class Fetch(Elaboratable):
         self.cont = cont
 
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        self.stall_exception = Method()
+        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
@@ -44,7 +47,11 @@ class Fetch(Elaboratable):
         speculative_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
 
         stalled = Signal()
+        stalled_unsafe = Signal()
+        stalled_exception = Signal()
         spin = Signal()
+
+        m.d.av_comb += stalled.eq(stalled_unsafe | stalled_exception)
 
         with Transaction().body(m, request=~stalled):
             self.icache.issue_req(m, addr=speculative_pc)
@@ -52,8 +59,11 @@ class Fetch(Elaboratable):
 
             m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
 
-        def stall():
-            m.d.sync += stalled.eq(1)
+        def stall(exception=False):
+            if exception:
+                m.d.sync += stalled_exception.eq(1)
+            else:
+                m.d.sync += stalled_unsafe.eq(1)
             with m.If(~stalled):
                 m.d.sync += spin.eq(~spin)
 
@@ -82,12 +92,18 @@ class Fetch(Elaboratable):
                     m.d.sync += self.pc.eq(target.addr)
                     m.d.comb += instr.eq(res.instr)
 
-                self.cont(m, data=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
+                self.cont(m, instr=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
 
         @def_method(m, self.verify_branch, ready=stalled)
-        def _(from_pc: Value, next_pc: Value):
+        def _(from_pc: Value, next_pc: Value, resume_from_exception: Value):
             m.d.sync += speculative_pc.eq(next_pc)
-            m.d.sync += stalled.eq(0)
+            m.d.sync += stalled_unsafe.eq(0)
+            with m.If(resume_from_exception):
+                m.d.sync += stalled_exception.eq(0)
+
+        @def_method(m, self.stall_exception)
+        def _():
+            stall(exception=True)
 
         return m
 
@@ -115,6 +131,8 @@ class UnalignedFetch(Elaboratable):
         self.cont = cont
 
         self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        self.stall_exception = Method()
+        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gp.isa.xlen)
@@ -131,6 +149,9 @@ class UnalignedFetch(Elaboratable):
 
         flushing = Signal()
         stalled = Signal()
+        stalled_unsafe = Signal()
+        stalled_exception = Signal()
+        m.d.av_comb += stalled.eq(stalled_unsafe | stalled_exception)
 
         with Transaction().body(m, request=~stalled):
             aligned_pc = Cat(Repl(0, 2), cache_req_pc[2:])
@@ -203,19 +224,26 @@ class UnalignedFetch(Elaboratable):
 
             with m.If((resp_valid & ready_to_dispatch) | (cache_resp.error & ~stalled)):
                 with m.If(unsafe_instr | cache_resp.error):
-                    m.d.sync += stalled.eq(1)
+                    m.d.sync += stalled_unsafe.eq(1)
                     m.d.sync += flushing.eq(1)
 
                 m.d.sync += self.pc.eq(current_pc)
                 with m.If(~cache_resp.error):
                     m.d.sync += current_pc.eq(current_pc + Mux(is_rvc, C(2, 3), C(4, 3)))
 
-                self.cont(m, data=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
+                self.cont(m, instr=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
 
         @def_method(m, self.verify_branch, ready=(stalled & ~flushing))
-        def _(from_pc: Value, next_pc: Value):
+        def _(from_pc: Value, next_pc: Value, resume_from_exception: Value):
             m.d.sync += cache_req_pc.eq(next_pc)
             m.d.sync += current_pc.eq(next_pc)
-            m.d.sync += stalled.eq(0)
+            m.d.sync += stalled_unsafe.eq(0)
+            with m.If(resume_from_exception):
+                m.d.sync += stalled_exception.eq(0)
+
+        @def_method(m, self.stall_exception)
+        def _():
+            m.d.sync += stalled_exception.eq(1)
+            m.d.sync += flushing.eq(1)
 
         return m

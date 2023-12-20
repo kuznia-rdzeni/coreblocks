@@ -6,7 +6,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.isa import Funct3, ExceptionCause
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import ExceptionRegisterLayouts
-from coreblocks.params.keys import ExceptionReportKey
+from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.frontend.decoder import OpType
 
@@ -35,6 +35,7 @@ class CSRUnitTestCircuit(Elaboratable):
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
         self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
+        self.gen_params.get(DependencyManager).add_dependency(AsyncInterruptInsertSignalKey(), Signal())
 
         m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(AdapterTrans(self.dut.fetch_continue))
 
@@ -127,10 +128,10 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             yield from self.random_wait()
             if op["exp"]["rs1"]["rp_s1"]:
-                yield from self.dut.update.call(tag=op["exp"]["rs1"]["rp_s1"], value=op["exp"]["rs1"]["value"])
+                yield from self.dut.update.call(reg_id=op["exp"]["rs1"]["rp_s1"], reg_val=op["exp"]["rs1"]["value"])
 
             yield from self.random_wait()
-            yield from self.dut.precommit.call()
+            yield from self.dut.precommit.call(side_fx=1)
 
             yield from self.random_wait()
             res = yield from self.dut.accept.call()
@@ -183,7 +184,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             )
 
             yield from self.random_wait()
-            yield from self.dut.precommit.call(rob_id=rob_id)
+            yield from self.dut.precommit.call(rob_id=rob_id, side_fx=1)
 
             yield from self.random_wait()
             res = yield from self.dut.accept.call()
@@ -191,7 +192,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             self.assertEqual(res["exception"], 1)
             report = yield from self.dut.exception_report.call_result()
             assert report is not None
-            self.assertDictEqual({"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION}, report)
+            self.assertDictEqual({"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0}, report)
 
     def test_exception(self):
         self.gp = GenParams(test_core_config)

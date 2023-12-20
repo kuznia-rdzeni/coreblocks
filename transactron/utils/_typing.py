@@ -18,6 +18,28 @@ from amaranth.hdl.ast import ShapeCastable, Statement, ValueCastable
 from amaranth.hdl.dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, _ModuleBuilderDomain, FSM
 from amaranth.hdl.rec import Direction, Layout
 
+__all__ = [
+    "FragmentLike",
+    "ValueLike",
+    "StatementLike",
+    "LayoutLike",
+    "SwitchKey",
+    "MethodLayout",
+    "SignalBundle",
+    "LayoutListField",
+    "LayoutList",
+    "RecordIntDict",
+    "RecordIntDictRet",
+    "RecordValueDict",
+    "ROGraph",
+    "Graph",
+    "GraphCC",
+    "_ModuleBuilderDomainsLike",
+    "ModuleLike",
+    "HasElaborate",
+    "HasDebugSignals",
+]
+
 # Types representing Amaranth concepts
 FragmentLike: TypeAlias = Fragment | Elaboratable
 ValueLike: TypeAlias = Value | int | Enum | ValueCastable
@@ -27,14 +49,23 @@ LayoutLike: TypeAlias = (
     Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
 )
 SwitchKey: TypeAlias = str | int | Enum
+MethodLayout: TypeAlias = LayoutLike
 
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
-LayoutList: TypeAlias = list[tuple[str, "ShapeLike | LayoutList"]]
+LayoutListField: TypeAlias = tuple[str, "ShapeLike | LayoutList"]
+LayoutList: TypeAlias = list[LayoutListField]
 
 RecordIntDict: TypeAlias = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet: TypeAlias = Mapping[str, Any]  # full typing hard to work with
 RecordValueDict: TypeAlias = Mapping[str, Union[ValueLike, "RecordValueDict"]]
+
+T = TypeVar("T")
+U = TypeVar("U")
+
+ROGraph: TypeAlias = Mapping[T, Iterable[T]]
+Graph: TypeAlias = dict[T, set[T]]
+GraphCC: TypeAlias = set[T]
 
 
 class _ModuleBuilderDomainsLike(Protocol):

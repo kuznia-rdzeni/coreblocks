@@ -9,7 +9,10 @@ from transactron.core import Method, Transaction, def_method, TModule
 
 
 class CSRAddress(IntEnum, shape=12):
+    MTVEC = 0x305
+    MEPC = 0x341
     MCAUSE = 0x342
+
     CYCLE = 0xC00
     TIME = 0xC01
     INSTRET = 0xC02
@@ -67,20 +70,42 @@ class DoubleCounterCSR(Elaboratable):
         return m
 
 
+class MachineModeCSRRegisters(Elaboratable):
+    def __init__(self, gp: GenParams):
+        self.mcause = CSRRegister(CSRAddress.MCAUSE, gp)
+
+        # SPEC: The mtvec register must always be implemented, but can contain a read-only value.
+        # set `MODE` as fixed to 0 - Direct mode "All exceptions set pc to BASE"
+        self.mtvec = CSRRegister(CSRAddress.MTVEC, gp, ro_bits=0b11)
+
+        # TODO: set low bits R/O based on gp align
+        self.mepc = CSRRegister(CSRAddress.MEPC, gp)
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.mcause = self.mcause
+        m.submodules.mtvec = self.mtvec
+        m.submodules.mepc = self.mepc
+
+        return m
+
+
 class GenericCSRRegisters(Elaboratable):
     def __init__(self, gp: GenParams):
+        self.m_mode = MachineModeCSRRegisters(gp)
+
         self.csr_cycle = DoubleCounterCSR(gp, CSRAddress.CYCLE, CSRAddress.CYCLEH)
         # TODO: CYCLE should be alias to TIME
         self.csr_time = DoubleCounterCSR(gp, CSRAddress.TIME, CSRAddress.TIMEH)
 
-        self.mcause = CSRRegister(CSRAddress.MCAUSE, gp)
-
     def elaborate(self, platform):
         m = TModule()
 
+        m.submodules.m_mode = self.m_mode
+
         m.submodules.csr_cycle = self.csr_cycle
         m.submodules.csr_time = self.csr_time
-        m.submodules.mcause = self.mcause
 
         with Transaction().body(m):
             self.csr_cycle.increment(m)

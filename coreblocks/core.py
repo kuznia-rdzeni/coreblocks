@@ -2,6 +2,8 @@ from amaranth import *
 
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
+from coreblocks.structs_common.instr_counter import CoreInstructionCounter
+from coreblocks.structs_common.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
@@ -20,7 +22,8 @@ from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
-from transactron.utils.fifo import BasicFifo
+from transactron.lib.transformers import MethodMap, MethodProduct
+from transactron.lib import BasicFifo
 
 __all__ = ["Core"]
 
@@ -35,8 +38,17 @@ class Core(Elaboratable):
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
 
-        # make fifo_fetch visible outside the core for injecting instructions
+        self.core_counter = CoreInstructionCounter(self.gen_params)
+
+        # make fetch_continue visible outside the core for injecting instructions
         self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
+
+        drop_args_transform = (self.gen_params.get(FetchLayouts).raw_instr, lambda _a, _b: {})
+        self.core_counter_increment_discard_map = MethodMap(
+            self.core_counter.increment, i_transform=drop_args_transform
+        )
+        self.fetch_continue = MethodProduct([self.fifo_fetch.write, self.core_counter_increment_discard_map.method])
+
         self.free_rf_fifo = BasicFifo(
             self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
@@ -49,11 +61,6 @@ class Core(Elaboratable):
             self.icache = ICache(cache_layouts, self.gen_params.icache_params, self.icache_refiller)
         else:
             self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
-
-        if Extension.C in gen_params.isa.extensions:
-            self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fifo_fetch.write)
-        else:
-            self.fetch = Fetch(self.gen_params, self.icache, self.fifo_fetch.write)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -75,9 +82,11 @@ class Core(Elaboratable):
             gen=self.gen_params,
             get_result=self.func_blocks_unifier.get_result,
             rob_mark_done=self.ROB.mark_done,
-            rs_write_val=self.func_blocks_unifier.update,
-            rf_write_val=self.RF.write,
+            rs_update=self.func_blocks_unifier.update,
+            rf_write=self.RF.write,
         )
+
+        self.interrupt_controller = InterruptController(self.gen_params)
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
@@ -97,11 +106,18 @@ class Core(Elaboratable):
         m.submodules.RF = rf = self.RF
         m.submodules.ROB = rob = self.ROB
 
-        m.submodules.fifo_fetch = self.fifo_fetch
         if self.icache_refiller:
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
-        m.submodules.fetch = self.fetch
+
+        if Extension.C in self.gen_params.isa.extensions:
+            m.submodules.fetch = self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.use(m))
+        else:
+            m.submodules.fetch = self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.use(m))
+
+        m.submodules.fifo_fetch = self.fifo_fetch
+        m.submodules.core_counter = self.core_counter
+        m.submodules.args_discard_map = self.core_counter_increment_discard_map
 
         m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
         m.submodules.decode = Decode(
@@ -136,7 +152,15 @@ class Core(Elaboratable):
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
             exception_cause_get=self.exception_cause_register.get,
+            exception_cause_clear=self.exception_cause_register.clear,
+            frat_rename=frat.rename,
+            fetch_continue=self.fetch.verify_branch,
+            fetch_stall=self.fetch.stall_exception,
+            instr_decrement=self.core_counter.decrement,
+            trap_entry=self.interrupt_controller.entry,
         )
+
+        m.submodules.interrupt_controller = self.interrupt_controller
 
         m.submodules.csr_generic = self.csr_generic
 

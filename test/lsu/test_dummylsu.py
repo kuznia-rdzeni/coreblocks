@@ -5,7 +5,7 @@ from typing import Optional
 from amaranth.sim import Settle, Passive
 
 from transactron.lib import Adapter
-from transactron._utils import int_to_signed, signed_to_int
+from transactron.utils import int_to_signed, signed_to_int
 from coreblocks.params import OpType, GenParams
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
@@ -23,7 +23,7 @@ def generate_register(max_reg_val: int, phys_regs_bits: int) -> tuple[int, int, 
         rp = random.randint(1, 2**phys_regs_bits - 1)
         val = 0
         real_val = random.randint(0, max_reg_val // 4) * 4
-        ann_data = {"tag": rp, "value": real_val}
+        ann_data = {"reg_id": rp, "reg_val": real_val}
     else:
         rp = 0
         val = random.randint(0, max_reg_val // 4) * 4
@@ -152,6 +152,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 "s1_val": s1_val,
                 "s2_val": 0,
                 "imm": imm,
+                "pc": 0,
             }
             self.instr_queue.append(instr)
             self.mem_data_queue.append(
@@ -172,6 +173,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                         "cause": ExceptionCause.LOAD_ADDRESS_MISALIGNED
                         if misaligned
                         else ExceptionCause.LOAD_ACCESS_FAULT,
+                        "pc": 0,
                     }
                 )
 
@@ -338,7 +340,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             rp_s2, s2_val, ann_data2, data = generate_register(0xFFFFFFFF, self.gp.phys_regs_bits)
             if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
                 ann_data2 = None
-                data = ann_data1["value"]
+                data = ann_data1["reg_val"]
             # decide in which order we would get announcments
             if random.randint(0, 1):
                 self.announce_queue.append((ann_data1, ann_data2))
@@ -431,7 +433,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             while len(self.precommit_data) == 0:
                 yield
             rob_id = self.precommit_data[-1]  # precommit is called continously until instruction is retired
-            yield from self.test_module.precommit.call(rob_id=rob_id)
+            yield from self.test_module.precommit.call(rob_id=rob_id, side_fx=1)
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)

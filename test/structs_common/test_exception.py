@@ -6,7 +6,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.configurations import test_core_config
 from transactron.lib import Adapter
-from transactron.utils.utils import ModuleConnector
+from transactron.utils import ModuleConnector
 
 from ..common import *
 
@@ -75,7 +75,8 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
 
                 cause = random.choice(list(ExceptionCause))
                 report_rob = random.randint(0, self.rob_max)
-                report_arg = {"cause": cause, "rob_id": report_rob}
+                report_pc = random.randrange(2**self.gp.isa.xlen)
+                report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
 
                 yield from self.dut.report.call(report_arg)
 

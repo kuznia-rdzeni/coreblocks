@@ -4,7 +4,7 @@ import random
 from collections import deque
 from typing import Generic, TypeVar
 
-from amaranth import Elaboratable, Module
+from amaranth import Elaboratable, Module, Signal
 from amaranth.sim import Passive
 
 from coreblocks.params import GenParams
@@ -12,7 +12,7 @@ from coreblocks.params.configurations import test_core_config
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params.isa import Funct3, Funct7
-from coreblocks.params.keys import ExceptionReportKey
+from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.optypes import OpType
 from transactron.lib import AdapterTrans, Adapter
@@ -42,6 +42,7 @@ class FunctionalTestCircuit(Elaboratable):
             Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
         )
         self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
+        self.gen.get(DependencyManager).add_dependency(AsyncInterruptInsertSignalKey(), Signal())
 
         m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen)
 
@@ -154,7 +155,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
 
             self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": int(cause is not None)} | results)
             if cause is not None:
-                self.exceptions.append({"rob_id": rob_id, "cause": cause})
+                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": pc})
 
     def random_wait(self):
         for i in range(random.randint(0, self.max_wait)):

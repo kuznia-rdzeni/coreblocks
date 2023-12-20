@@ -1,9 +1,9 @@
-from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.params.layouts import CoreInstructionCounterLayouts, ExceptionRegisterLayouts, FetchLayouts
 from coreblocks.stages.retirement import *
 from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 
 from transactron.lib import FIFO, Adapter
-from coreblocks.structs_common.rat import RRAT
+from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config
 
@@ -24,8 +24,11 @@ class RetirementTestCircuit(Elaboratable):
         lsu_layouts = self.gen_params.get(LSULayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
         exception_layouts = self.gen_params.get(ExceptionRegisterLayouts)
+        fetch_layouts = self.gen_params.get(FetchLayouts)
+        core_instr_counter_layouts = self.gen_params.get(CoreInstructionCounterLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
+        m.submodules.f_rat = self.frat = FRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
@@ -39,8 +42,19 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
         m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(Adapter(o=exception_layouts.get))
+        m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(Adapter())
+
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
         self.gen_params.get(DependencyManager).add_dependency(GenericCSRRegistersKey(), self.generic_csr)
+
+        m.submodules.mock_fetch_stall = self.mock_fetch_stall = TestbenchIO(Adapter())
+        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(
+            Adapter(i=fetch_layouts.branch_verify)
+        )
+        m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
+            Adapter(o=core_instr_counter_layouts.decrement)
+        )
+        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter())
 
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
@@ -51,6 +65,12 @@ class RetirementTestCircuit(Elaboratable):
             rf_free=self.mock_rf_free.adapter.iface,
             precommit=self.mock_precommit.adapter.iface,
             exception_cause_get=self.mock_exception_cause.adapter.iface,
+            exception_cause_clear=self.mock_exception_clear.adapter.iface,
+            frat_rename=self.frat.rename,
+            fetch_stall=self.mock_fetch_stall.adapter.iface,
+            fetch_continue=self.mock_fetch_continue.adapter.iface,
+            instr_decrement=self.mock_instr_decrement.adapter.iface,
+            trap_entry=self.mock_trap_entry.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -91,6 +111,8 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         retc = RetirementTestCircuit(self.gen_params)
 
+        yield from retc.mock_fetch_stall.enable()
+
         @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q), sched_prio=1)
         def retire_process():
             return self.submit_q.popleft()
@@ -123,7 +145,7 @@ class RetirementTest(TestCaseWithSimulator):
             self.assertEqual(reg_id, self.rf_free_q.popleft())
 
         @def_method_mock(lambda: retc.mock_precommit, sched_prio=2)
-        def precommit_process(rob_id):
+        def precommit_process(rob_id, side_fx):
             self.assertEqual(rob_id, self.precommit_q.popleft())
 
         @def_method_mock(lambda: retc.mock_exception_cause)

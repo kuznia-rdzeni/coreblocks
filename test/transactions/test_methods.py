@@ -1,3 +1,4 @@
+import random
 from amaranth import *
 from amaranth.sim import *
 
@@ -529,3 +530,90 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
+
+
+class DataDependentConditionalCircuit(Elaboratable):
+    def __init__(self, n=2, ready_function=lambda arg: arg.data != 3):
+        self.method = Method(i=data_layout(n))
+        self.ready_function = ready_function
+
+        self.in_t1 = Record(data_layout(n))
+        self.in_t2 = Record(data_layout(n))
+        self.ready = Signal()
+        self.req_t1 = Signal()
+        self.req_t2 = Signal()
+
+        self.out_m = Signal()
+        self.out_t1 = Signal()
+        self.out_t2 = Signal()
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        @def_method(m, self.method, self.ready, validate_arguments=self.ready_function)
+        def _(data):
+            m.d.comb += self.out_m.eq(1)
+
+        with Transaction().body(m, request=self.req_t1):
+            m.d.comb += self.out_t1.eq(1)
+            self.method(m, self.in_t1)
+
+        with Transaction().body(m, request=self.req_t2):
+            m.d.comb += self.out_t2.eq(1)
+            self.method(m, self.in_t2)
+
+        return m
+
+
+class TestDataDependentConditionalMethod(TestCaseWithSimulator):
+    def setUp(self):
+        self.test_number = 200
+        self.bad_number = 3
+        self.n = 2
+
+    def base_random(self, f):
+        random.seed(14)
+        self.circ = DataDependentConditionalCircuit(n=self.n, ready_function=f)
+
+        def process():
+            for _ in range(self.test_number):
+                in1 = random.randrange(0, 2**self.n)
+                in2 = random.randrange(0, 2**self.n)
+                m_ready = random.randrange(2)
+                req_t1 = random.randrange(2)
+                req_t2 = random.randrange(2)
+
+                yield self.circ.in_t1.eq(in1)
+                yield self.circ.in_t2.eq(in2)
+                yield self.circ.req_t1.eq(req_t1)
+                yield self.circ.req_t2.eq(req_t2)
+                yield self.circ.ready.eq(m_ready)
+                yield Settle()
+                yield Delay(1e-8)
+
+                out_m = yield self.circ.out_m
+                out_t1 = yield self.circ.out_t1
+                out_t2 = yield self.circ.out_t2
+
+                if not m_ready or (not req_t1 or in1 == self.bad_number) and (not req_t2 or in2 == self.bad_number):
+                    self.assertEqual(out_m, 0)
+                    self.assertEqual(out_t1, 0)
+                    self.assertEqual(out_t2, 0)
+                    continue
+                # Here method global ready signal is high and we requested one of the transactions
+                # we also know that one of the transactions request correct input data
+
+                self.assertEqual(out_m, 1)
+                self.assertEqual(out_t1 ^ out_t2, 1)
+                # inX == self.bad_number implies out_tX==0
+                self.assertTrue(in1 != self.bad_number or not out_t1)
+                self.assertTrue(in2 != self.bad_number or not out_t2)
+
+        with self.run_simulation(self.circ, 100) as sim:
+            sim.add_process(process)
+
+    def test_random_arg(self):
+        self.base_random(lambda arg: arg.data != self.bad_number)
+
+    def test_random_kwarg(self):
+        self.base_random(lambda data: data != self.bad_number)

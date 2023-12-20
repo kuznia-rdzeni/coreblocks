@@ -1,5 +1,5 @@
 from .. import *
-from coreblocks.utils import HasElaborate
+from transactron.utils import HasElaborate
 
 class RoundRobin(Elaboratable):
     count: int
