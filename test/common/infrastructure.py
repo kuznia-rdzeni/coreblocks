@@ -7,6 +7,7 @@ from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast
 from amaranth import *
 from amaranth.sim import *
 from .testbenchio import TestbenchIO
+from .profiler import profiler_process, Profile
 from ..gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
@@ -101,7 +102,7 @@ class TestModule(Elaboratable):
 
 class PysimSimulator(Simulator):
     def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
-        test_module = TestModule(module, add_transaction_module)
+        self.test_module = TestModule(module, add_transaction_module)
         tested_module = test_module.tested_module
         super().__init__(test_module)
 
@@ -151,7 +152,18 @@ class TestCaseWithSimulator(unittest.TestCase):
             module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
         )
         yield sim
+
+        profile = None
+        if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.test_module.tested_module, TransactionModule):
+            profile = Profile()
+            sim.add_sync_process(profiler_process(sim.test_module.tested_module.transactionManager, profile))
+
         res = sim.run()
+
+        if profile is not None:
+            profile_dir = "test/__profiles__"
+            profile_file = unittest.TestCase.id(self)
+            profile.encode(f"{profile_dir}/{profile_file}.json")
 
         self.assertTrue(res, "Simulation time limit exceeded")
 
