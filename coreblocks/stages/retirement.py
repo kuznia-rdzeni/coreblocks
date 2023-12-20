@@ -68,30 +68,32 @@ class Retirement(Elaboratable):
             with m.If(rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
                 self.free_rf_put(m, rp_dst)
 
-        def retire_instr(rob_entry):
+        def retire_instr(rob_entry) -> Value:
             # set rl_dst -> rp_dst in R-RAT
             rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
 
-            # free old rp_dst from overwritten R-RAT mapping
-            free_phys_reg(rat_out.old_rp_dst)
-
             self.instret_csr.increment(m)
 
-        def flush_instr(rob_entry):
+            # free old rp_dst from overwritten R-RAT mapping
+            return rat_out.old_rp_dst
+
+        def flush_instr(rob_entry) -> Value:
             # get original rp_dst mapped to instruction rl_dst in R-RAT
             rat_out = self.r_rat_peek(m, rl_dst=rob_entry.rob_data.rl_dst)
 
-            # free the "new" instruction rp_dst - it is flushed
-            free_phys_reg(rob_entry.rob_data.rp_dst)
-
             # restore original rl_dst->rp_dst mapping in F-RAT
             self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
+
+            # free the "new" instruction rp_dst - result is flushed
+            return rob_entry.rob_data.rp_dst
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
                 with Transaction().body(m):
                     rob_entry = self.rob_retire(m)
                     core_empty = self.instr_decrement(m)
+
+                    commit = Signal()
 
                     with m.If(rob_entry.exception):
                         self.fetch_stall(m)
@@ -105,7 +107,7 @@ class Retirement(Elaboratable):
                             # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps
                             # it is a jump result).
                             # Instruction that reported interrupt is the last one that is commited.
-                            retire_instr(rob_entry)
+                            m.d.av_comb += commit.eq(1)
 
                             # TODO: set correct interrupt id from InterruptController
                             # Set MSB - the Interrupt bit
@@ -114,7 +116,7 @@ class Retirement(Elaboratable):
                             # RISC-V synchronous exceptions - don't retire instruction that caused exception,
                             # and later resume from it.
                             # Value of ExceptionCauseRegister pc field is the instruction address.
-                            flush_instr(rob_entry)
+                            m.d.av_comb += commit.eq(0)
 
                             m.d.av_comb += cause_entry.eq(cause_register.cause)
 
@@ -129,7 +131,15 @@ class Retirement(Elaboratable):
 
                     with m.Else():
                         # Normally retire all non-trap instructions
-                        retire_instr(rob_entry)
+                        m.d.av_comb += commit.eq(1)
+
+                    # Methods cannot be called multiple times from the same Transaction >:(
+                    rp_to_free = Signal(self.gen_params.phys_regs_bits)
+                    with m.If(commit):
+                        m.d.av_comb += rp_to_free.eq(retire_instr(rob_entry))
+                    with m.Else():
+                        m.d.av_comb += rp_to_free.eq(flush_instr(rob_entry))
+                    free_phys_reg(rp_to_free)
 
             with m.State("TRAP_FLUSH"):
                 with Transaction().body(m):
@@ -137,7 +147,8 @@ class Retirement(Elaboratable):
                     rob_entry = self.rob_retire(m)
                     core_empty = self.instr_decrement(m)
 
-                    flush_instr(rob_entry)
+                    free_reg = flush_instr(rob_entry)
+                    free_phys_reg(free_reg)
 
                     with m.If(core_empty):
                         m.next = "TRAP_RESUME"
