@@ -425,6 +425,8 @@ The used methods should be called inside the <cite>body</cite>’s
 <dt><strong>request: Signal, in</strong></dt><dd><p>Signals that the transaction wants to run. If omitted, the transaction
 is always ready. Defined in the constructor.</p>
 </dd>
+<dt><strong>runnable: Signal, out</strong></dt><dd><p>Signals that all used methods are ready.</p>
+</dd>
 <dt><strong>grant: Signal, out</strong></dt><dd><p>Signals that the transaction is granted by the <cite>TransactionManager</cite>,
 and all used methods are called.</p>
 </dd>
@@ -1140,6 +1142,8 @@ The used methods should be called inside the <cite>body</cite>’s
 <dt><strong>request: Signal, in</strong></dt><dd><p>Signals that the transaction wants to run. If omitted, the transaction
 is always ready. Defined in the constructor.</p>
 </dd>
+<dt><strong>runnable: Signal, out</strong></dt><dd><p>Signals that all used methods are ready.</p>
+</dd>
 <dt><strong>grant: Signal, out</strong></dt><dd><p>Signals that the transaction is granted by the <cite>TransactionManager</cite>,
 and all used methods are called.</p>
 </dd>
@@ -1351,7 +1355,7 @@ are accepted.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2023.
-      <span class="lastupdated">Last updated on 14:34 2023-12-20.
+      <span class="lastupdated">Last updated on 16:52 2023-12-20.
       </span></p>
   </div>
 
