@@ -13,7 +13,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
 from transactron.lib import Adapter, AdapterTrans
-from transactron._utils import Scheduler
+from transactron.utils import Scheduler
 
 from transactron.core import (
     Priority,
