@@ -16,6 +16,7 @@ class Retirement(Elaboratable):
         rob_peek: Method,
         rob_retire: Method,
         r_rat_commit: Method,
+        r_rat_peek: Method,
         free_rf_put: Method,
         rf_free: Method,
         precommit: Method,
@@ -31,6 +32,7 @@ class Retirement(Elaboratable):
         self.rob_peek = rob_peek
         self.rob_retire = rob_retire
         self.r_rat_commit = r_rat_commit
+        self.r_rat_peek = r_rat_peek
         self.free_rf_put = free_rf_put
         self.rf_free = rf_free
         self.precommit = precommit
@@ -68,9 +70,7 @@ class Retirement(Elaboratable):
 
         def retire_instr(rob_entry):
             # set rl_dst -> rp_dst in R-RAT
-            rat_out = self.r_rat_commit(
-                m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst, side_fx=1
-            )
+            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
 
             # free old rp_dst from overwritten R-RAT mapping
             free_phys_reg(rat_out.old_rp_dst)
@@ -79,9 +79,7 @@ class Retirement(Elaboratable):
 
         def flush_instr(rob_entry):
             # get original rp_dst mapped to instruction rl_dst in R-RAT
-            rat_out = self.r_rat_commit(
-                m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst, side_fx=0
-            )
+            rat_out = self.r_rat_peek(m, rl_dst=rob_entry.rob_data.rl_dst)
 
             # free the "new" instruction rp_dst - it is flushed
             free_phys_reg(rob_entry.rob_data.rp_dst)
