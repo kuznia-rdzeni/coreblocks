@@ -3,6 +3,7 @@
 import argparse
 import sys
 from pathlib import Path
+from tabulate import tabulate
 
 topdir = Path(__file__).parent.parent
 sys.path.insert(0, str(topdir))
@@ -19,7 +20,9 @@ def main():
 
     profile = Profile.decode(args.file_name[0])
 
-    print(profile)
+    transactions = profile.analyze_transactions()
+
+    print(tabulate(transactions, headers=["name", "source location", "unused", "runnable", "grant"]))
 
 
 if __name__ == "__main__":

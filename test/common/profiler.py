@@ -34,7 +34,9 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
 
         yield Passive()
         while True:
-            yield Settle()
+            # TODO: wait for the end of cycle
+            for _ in range(3):
+                yield Settle()
 
             profile.waiting_transactions[cycle] = {}
             profile.running[cycle] = {}
