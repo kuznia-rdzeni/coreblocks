@@ -148,6 +148,7 @@ class Core(Elaboratable):
             rob_peek=rob.peek,
             rob_retire=rob.retire,
             r_rat_commit=rrat.commit,
+            r_rat_peek=rrat.peek,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
