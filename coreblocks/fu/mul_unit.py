@@ -88,18 +88,18 @@ class MulUnit(FuncUnit, Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    def __init__(self, gen: GenParams, mul_type: MulType, dsp_width: int = 32, mul_fn=MulFn()):
+    def __init__(self, gen_params: GenParams, mul_type: MulType, dsp_width: int = 32, mul_fn=MulFn()):
         """
         Parameters
         ----------
-        gen: GenParams
+        gen_params: GenParams
             Core generation parameters.
         """
-        self.gen = gen
+        self.gen_params = gen_params
         self.mul_type = mul_type
         self.dsp_width = dsp_width
 
-        layouts = gen.get(FuncUnitLayouts)
+        layouts = gen_params.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
@@ -109,28 +109,28 @@ class MulUnit(FuncUnit, Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.result_fifo = result_fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
+        m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.params_fifo = params_fifo = FIFO(
             [
-                ("rob_id", self.gen.rob_entries_bits),
-                ("rp_dst", self.gen.phys_regs_bits),
+                ("rob_id", self.gen_params.rob_entries_bits),
+                ("rp_dst", self.gen_params.phys_regs_bits),
                 ("negative_res", 1),
                 ("high_res", 1),
             ],
             2,
         )
-        m.submodules.decoder = decoder = self.mul_fn.get_decoder(self.gen)
+        m.submodules.decoder = decoder = self.mul_fn.get_decoder(self.gen_params)
 
         # Selecting unsigned integer multiplication module
         match self.mul_type:
             case MulType.SHIFT_MUL:
-                m.submodules.multiplier = multiplier = ShiftUnsignedMul(self.gen)
+                m.submodules.multiplier = multiplier = ShiftUnsignedMul(self.gen_params)
             case MulType.SEQUENCE_MUL:
-                m.submodules.multiplier = multiplier = SequentialUnsignedMul(self.gen, self.dsp_width)
+                m.submodules.multiplier = multiplier = SequentialUnsignedMul(self.gen_params, self.dsp_width)
             case MulType.RECURSIVE_MUL:
-                m.submodules.multiplier = multiplier = RecursiveUnsignedMul(self.gen, self.dsp_width)
+                m.submodules.multiplier = multiplier = RecursiveUnsignedMul(self.gen_params, self.dsp_width)
 
-        xlen = self.gen.isa.xlen
+        xlen = self.gen_params.isa.xlen
         sign_bit = xlen - 1  # position of sign bit
         # Prepared for RV64
         #
@@ -145,8 +145,8 @@ class MulUnit(FuncUnit, Elaboratable):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
-            value1 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
-            value2 = Signal(self.gen.isa.xlen)  # input value for multiplier submodule
+            value1 = Signal(self.gen_params.isa.xlen)  # input value for multiplier submodule
+            value2 = Signal(self.gen_params.isa.xlen)  # input value for multiplier submodule
             negative_res = Signal(1)  # if result is negative number
             high_res = Signal(1)  # if result should contain upper part of result
 

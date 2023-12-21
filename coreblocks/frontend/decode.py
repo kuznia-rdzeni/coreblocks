@@ -30,14 +30,14 @@ class Decode(Elaboratable):
             Method which is invoked to send decoded data to the next step.
             It has layout as described by `DecodeLayouts`.
         """
-        self.gp = gen_params
+        self.gen_params = gen_params
         self.get_raw = get_raw
         self.push_decoded = push_decoded
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gp)
+        m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gen_params)
 
         with Transaction().body(m):
             raw = self.get_raw(m)

@@ -111,15 +111,15 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
     Module with @see{MulBaseUnsigned} interface performing fast recursive multiplication within 1 clock cycle.
     """
 
-    def __init__(self, gen: GenParams, dsp_width: int = 8):
-        super().__init__(gen)
+    def __init__(self, gen_params: GenParams, dsp_width: int = 8):
+        super().__init__(gen_params)
         self.dsp_width = dsp_width
 
     def elaborate(self, platform):
         m = TModule()
-        m.submodules.fifo = fifo = FIFO([("o", 2 * self.gen.isa.xlen)], 2)
+        m.submodules.fifo = fifo = FIFO([("o", 2 * self.gen_params.isa.xlen)], 2)
 
-        m.submodules.mul = mul = FastRecursiveMul(self.gen.isa.xlen, self.dsp_width)
+        m.submodules.mul = mul = FastRecursiveMul(self.gen_params.isa.xlen, self.dsp_width)
 
         @def_method(m, self.issue)
         def _(arg):

@@ -66,20 +66,20 @@ class TestReorderBuffer(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
         self.test_steps = 2000
-        gp = GenParams(
+        self.gen_params = GenParams(
             test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6)
         )  # smaller size means better coverage
-        m = SimpleTestCircuit(ReorderBuffer(gp))
+        m = SimpleTestCircuit(ReorderBuffer(self.gen_params))
         self.m = m
 
         self.regs_left_queue = Queue()
         self.to_execute_list = []
         self.executed_list = []
         self.retire_queue = Queue()
-        for i in range(2**gp.phys_regs_bits):
+        for i in range(2**self.gen_params.phys_regs_bits):
             self.regs_left_queue.put(i)
 
-        self.log_regs = gp.isa.reg_cnt
+        self.log_regs = self.gen_params.isa.reg_cnt
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(self.gen_input)
@@ -120,14 +120,14 @@ class TestFullDoneCase(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
 
-        gp = GenParams(test_core_config)
-        self.test_steps = 2**gp.rob_entries_bits
-        m = SimpleTestCircuit(ReorderBuffer(gp))
+        self.gen_params = GenParams(test_core_config)
+        self.test_steps = 2**self.gen_params.rob_entries_bits
+        m = SimpleTestCircuit(ReorderBuffer(self.gen_params))
         self.m = m
         self.to_execute_list = []
 
-        self.log_regs = gp.isa.reg_cnt
-        self.phys_regs = 2**gp.phys_regs_bits
+        self.log_regs = self.gen_params.isa.reg_cnt
+        self.phys_regs = 2**self.gen_params.phys_regs_bits
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(self.gen_input)
