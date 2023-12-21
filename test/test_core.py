@@ -35,7 +35,7 @@ from riscvmodel.variant import RV32I
 
 class TestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams, instr_mem: list[int] = [0], data_mem: Optional[list[int]] = None):
-        self.gp = gen_params
+        self.gen_params = gen_params
         self.instr_mem = instr_mem
         if data_mem is None:
             self.data_mem = [0] * (2**10)
@@ -45,18 +45,18 @@ class TestElaboratable(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        wb_instr_bus = WishboneBus(self.gp.wb_params)
-        wb_data_bus = WishboneBus(self.gp.wb_params)
+        wb_instr_bus = WishboneBus(self.gen_params.wb_params)
+        wb_data_bus = WishboneBus(self.gen_params.wb_params)
 
         # Align the size of the memory to the length of a cache line.
-        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gp.icache_params.block_size_bits)
+        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.block_size_bits)
         self.wb_mem_slave = WishboneMemorySlave(
-            wb_params=self.gp.wb_params, width=32, depth=instr_mem_depth, init=self.instr_mem
+            wb_params=self.gen_params.wb_params, width=32, depth=instr_mem_depth, init=self.instr_mem
         )
         self.wb_mem_slave_data = WishboneMemorySlave(
-            wb_params=self.gp.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
+            wb_params=self.gen_params.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
         )
-        self.core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
+        self.core = Core(gen_params=self.gen_params, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
         self.io_in = TestbenchIO(AdapterTrans(self.core.fetch_continue.method))
         self.rf_write = TestbenchIO(AdapterTrans(self.core.RF.write))
         self.interrupt = TestbenchIO(AdapterTrans(self.core.interrupt_controller.report_interrupt))
@@ -83,12 +83,12 @@ def gen_riscv_lui_instr(dst, imm):
 
 
 class TestCoreBase(TestCaseWithSimulator):
-    gp: GenParams
+    gen_params: GenParams
     m: TestElaboratable
 
     def check_RAT_alloc(self, rat, expected_alloc_count=None):  # noqa: N802
         allocated = []
-        for i in range(self.m.gp.isa.reg_cnt):
+        for i in range(self.m.gen_params.isa.reg_cnt):
             allocated.append((yield rat.entries[i]))
         filtered_zeros = list(filter(lambda x: x != 0, allocated))
 
@@ -116,7 +116,7 @@ class TestCoreBase(TestCaseWithSimulator):
         yield from self.m.io_in.call(instr=opcode)
 
     def compare_core_states(self, sw_core):
-        for i in range(self.gp.isa.reg_cnt):
+        for i in range(self.gen_params.isa.reg_cnt):
             reg_val = sw_core.state.intreg.regs[i].value
             unsigned_val = reg_val & 0xFFFFFFFF
             self.assertEqual((yield from self.get_arch_reg_val(i)), unsigned_val)
@@ -141,7 +141,7 @@ class TestCoreSimple(TestCoreBase):
         # The test sets values in the reg file by hand
 
         # provoking allocation of physical register
-        for i in range(self.m.gp.isa.reg_cnt - 1):
+        for i in range(self.m.gen_params.isa.reg_cnt - 1):
             yield from self.push_instr(gen_riscv_add_instr(i + 1, 0, 0))
 
         # waiting for the retirement rat to be set
@@ -182,8 +182,8 @@ class TestCoreSimple(TestCoreBase):
         self.assertEqual((yield from self.get_arch_reg_val(5)), 1 << 12)
 
     def test_simple(self):
-        gp = GenParams(basic_core_config)
-        m = TestElaboratable(gp)
+        self.gen_params = GenParams(basic_core_config)
+        m = TestElaboratable(self.gen_params)
         self.m = m
 
         with self.run_simulation(m) as sim:
@@ -203,7 +203,7 @@ class TestCoreRandomized(TestCoreBase):
         yield from self.compare_core_states(self.software_core)
 
     def test_randomized(self):
-        self.gp = GenParams(basic_core_config)
+        self.gen_params = GenParams(basic_core_config)
         self.instr_count = 300
         random.seed(42)
 
@@ -225,7 +225,7 @@ class TestCoreRandomized(TestCoreBase):
         # allocate some random values for registers
         init_instr_list = list(
             InstructionADDI(rd=i, rs1=0, imm=random.randint(-(2**11), 2**11 - 1))
-            for i in range(self.gp.isa.reg_cnt)
+            for i in range(self.gen_params.isa.reg_cnt)
         )
 
         # generate random instruction stream
@@ -242,7 +242,7 @@ class TestCoreRandomized(TestCoreBase):
 
         self.instr_mem = list(map(lambda x: x.encode(), all_instr))
 
-        m = TestElaboratable(self.gp, instr_mem=self.instr_mem)
+        m = TestElaboratable(self.gen_params, instr_mem=self.instr_mem)
         self.m = m
 
         with self.run_simulation(m) as sim:
@@ -320,10 +320,10 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
             self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
 
     def test_asm_source(self):
-        self.gp = GenParams(self.configuration)
+        self.gen_params = GenParams(self.configuration)
 
         bin_src = self.prepare_source(self.source_file)
-        self.m = TestElaboratable(self.gp, instr_mem=bin_src)
+        self.m = TestElaboratable(self.gen_params, instr_mem=bin_src)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_and_check)
 
@@ -350,7 +350,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
     def setUp(self):
         self.configuration = full_core_config
-        self.gp = GenParams(self.configuration)
+        self.gen_params = GenParams(self.configuration)
         random.seed(1500100900)
 
     def run_with_interrupt(self):
@@ -397,6 +397,6 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)
-        self.m = TestElaboratable(self.gp, instr_mem=bin_src)
+        self.m = TestElaboratable(self.gen_params, instr_mem=bin_src)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_with_interrupt)
