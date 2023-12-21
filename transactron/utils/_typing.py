@@ -51,7 +51,6 @@ LayoutLike: TypeAlias = (
     Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
 )
 SwitchKey: TypeAlias = str | int | Enum
-SrcLoc: TypeAlias = tuple[str, int]
 MethodLayout: TypeAlias = LayoutLike
 SrcLoc: TypeAlias = tuple[str, int]
 
