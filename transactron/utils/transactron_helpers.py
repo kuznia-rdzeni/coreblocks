@@ -2,10 +2,11 @@ import sys
 from contextlib import contextmanager
 from typing import Optional, Any, Concatenate, TypeGuard, TypeVar
 from collections.abc import Callable, Mapping
-from ._typing import ROGraph, GraphCC
+from ._typing import ROGraph, GraphCC, SrcLoc
 from inspect import Parameter, signature
 from itertools import count
 from amaranth import *
+from amaranth import tracer
 
 
 __all__ = [
@@ -14,6 +15,7 @@ __all__ = [
     "def_helper",
     "method_def_helper",
     "mock_def_helper",
+    "get_src_loc",
 ]
 
 T = TypeVar("T")
@@ -111,3 +113,7 @@ def silence_mustuse(elaboratable: Elaboratable):
     except Exception:
         elaboratable._MustUse__silence = True  # type: ignore
         raise
+
+
+def get_src_loc(src_loc: int | SrcLoc) -> SrcLoc:
+    return tracer.get_src_loc(1 + src_loc) if isinstance(src_loc, int) else src_loc

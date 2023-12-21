@@ -385,6 +385,7 @@ class TransactionManager(Elaboratable):
             # TODO: some simpler way?
             method = Method(name=transaction.name)
             method.owner = transaction.owner
+            method.src_loc = transaction.src_loc
             method.ready = transaction.request
             method.run = transaction.grant
             method.defined = transaction.defined
@@ -478,15 +479,15 @@ class TransactionManager(Elaboratable):
             print("")
         print("Calling transactions per method")
         for m, ts in method_map.transactions_by_method.items():
-            print(f"\t{m.owned_name}")
+            print(f"\t{m.owned_name}: {m.src_loc[0]}:{m.src_loc[1]}")
             for t in ts:
-                print(f"\t\t{t.name}")
+                print(f"\t\t{t.name}: {t.src_loc[0]}:{t.src_loc[1]}")
             print("")
         print("Called methods per transaction")
         for t, ms in method_map.methods_by_transaction.items():
-            print(f"\t{t.name}")
+            print(f"\t{t.name}: {t.src_loc[0]}:{t.src_loc[1]}")
             for m in ms:
-                print(f"\t\t{m.owned_name}")
+                print(f"\t\t{m.owned_name}: {m.src_loc[0]}:{m.src_loc[1]}")
             print("")
 
     def visual_graph(self, fragment):
@@ -724,12 +725,14 @@ class TransactionBase(Owned, Protocol):
     def_order: int
     defined: bool = False
     name: str
+    src_loc: SrcLoc
     method_uses: dict["Method", Tuple[Record, ValueLike]]
     relations: list[RelationBase]
     simultaneous_list: list[TransactionOrMethod]
     independent_list: list[TransactionOrMethod]
 
-    def __init__(self):
+    def __init__(self, *, src_loc: int | SrcLoc):
+        self.src_loc = get_src_loc(src_loc)
         self.method_uses: dict["Method", Tuple[Record, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
         self.simultaneous_list: list[TransactionOrMethod] = []
@@ -898,7 +901,9 @@ class Transaction(TransactionBase):
         and all used methods are called.
     """
 
-    def __init__(self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None):
+    def __init__(
+        self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None, src_loc: int | SrcLoc = 0
+    ):
         """
         Parameters
         ----------
@@ -910,8 +915,11 @@ class Transaction(TransactionBase):
         manager: TransactionManager
             The `TransactionManager` controlling this `Transaction`.
             If omitted, the manager is received from `TransactionContext`.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        super().__init__()
+        super().__init__(src_loc=get_src_loc(src_loc))
         self.owner, owner_name = get_caller_class_name(default="$transaction")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         if manager is None:
@@ -1004,6 +1012,7 @@ class Method(TransactionBase):
         o: MethodLayout = (),
         nonexclusive: bool = False,
         single_caller: bool = False,
+        src_loc: int | SrcLoc = 0,
     ):
         """
         Parameters
@@ -1026,8 +1035,11 @@ class Method(TransactionBase):
             If true, this method is intended to be called from a single
             transaction. An error will be thrown if called from multiple
             transactions.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        super().__init__()
+        super().__init__(src_loc=get_src_loc(src_loc))
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal(name=self.owned_name + "_ready")
@@ -1041,7 +1053,7 @@ class Method(TransactionBase):
             assert len(self.data_in) == 0
 
     @staticmethod
-    def like(other: "Method", *, name: Optional[str] = None) -> "Method":
+    def like(other: "Method", *, name: Optional[str] = None, src_loc: int | SrcLoc = 0) -> "Method":
         """Constructs a new `Method` based on another.
 
         The returned `Method` has the same input/output data layouts as the
@@ -1053,13 +1065,16 @@ class Method(TransactionBase):
             The `Method` which serves as a blueprint for the new `Method`.
         name : str, optional
             Name of the new `Method`.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
 
         Returns
         -------
         Method
             The freshly constructed `Method`.
         """
-        return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
+        return Method(name=name, i=other.data_in.layout, o=other.data_out.layout, src_loc=get_src_loc(src_loc))
 
     def proxy(self, m: TModule, method: "Method"):
         """Define as a proxy for another method.

@@ -1,5 +1,6 @@
 from amaranth import *
 from ..core import *
+from ..utils import SrcLoc, get_src_loc
 
 __all__ = ["ClickIn", "ClickOut"]
 
@@ -23,14 +24,18 @@ class ClickIn(Elaboratable):
         The data input.
     """
 
-    def __init__(self, layout: MethodLayout):
+    def __init__(self, layout: MethodLayout, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
         layout: record layout
             The data format for the input.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        self.get = Method(o=layout)
+        src_loc = get_src_loc(src_loc)
+        self.get = Method(o=layout, src_loc=src_loc)
         self.btn = Signal()
         self.dat = Record(layout)
 
@@ -76,14 +81,18 @@ class ClickOut(Elaboratable):
         The data output.
     """
 
-    def __init__(self, layout: MethodLayout):
+    def __init__(self, layout: MethodLayout, *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
         layout: record layout
             The data format for the output.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        self.put = Method(i=layout)
+        src_loc = get_src_loc(src_loc)
+        self.put = Method(i=layout, src_loc=src_loc)
         self.btn = Signal()
         self.dat = Record(layout)
 

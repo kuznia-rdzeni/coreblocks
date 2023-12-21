@@ -1,7 +1,10 @@
 from abc import ABC
 from amaranth import *
+
+from transactron.utils.transactron_helpers import get_src_loc
 from ..core import *
 from ..core import RecordDict
+from ..utils import SrcLoc
 from typing import Optional
 from collections.abc import Callable
 from transactron.utils import ValueLike, assign, AssignType, ModuleLike
@@ -67,6 +70,7 @@ class MethodMap(Transformer):
         *,
         i_transform: Optional[tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
         o_transform: Optional[tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
+        src_loc: int | SrcLoc = 0
     ):
         """
         Parameters
@@ -81,6 +85,9 @@ class MethodMap(Transformer):
             Output mapping function. If specified, it should be a pair of a
             function and a output layout for the transformed method.
             If not present, output is passed unmodified.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         if i_transform is None:
             i_transform = (target.data_in.layout, lambda _, x: x)
@@ -88,7 +95,8 @@ class MethodMap(Transformer):
             o_transform = (target.data_out.layout, lambda _, x: x)
 
         self.target = target
-        self.method = Method(i=i_transform[0], o=o_transform[0])
+        src_loc = get_src_loc(src_loc)
+        self.method = Method(i=i_transform[0], o=o_transform[0], src_loc=src_loc)
         self.i_fun = i_transform[1]
         self.o_fun = o_transform[1]
 
@@ -126,7 +134,9 @@ class MethodFilter(Transformer):
         target: Method,
         condition: Callable[[TModule, Record], ValueLike],
         default: Optional[RecordDict] = None,
+        *,
         use_condition: bool = False,
+        src_loc: int | SrcLoc = 0
     ):
         """
         Parameters
@@ -142,13 +152,19 @@ class MethodFilter(Transformer):
         use_condition : bool
             Instead of `m.If` use simultaneus `condition` which allow to execute
             this filter if the condition is False and target is not ready.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         if default is None:
             default = Record.like(target.data_out)
 
         self.target = target
         self.use_condition = use_condition
-        self.method = Method(i=target.data_in.layout, o=target.data_out.layout, single_caller=self.use_condition)
+        src_loc = get_src_loc(src_loc)
+        self.method = Method(
+            i=target.data_in.layout, o=target.data_out.layout, single_caller=self.use_condition, src_loc=src_loc
+        )
         self.condition = condition
         self.default = default
 
@@ -181,6 +197,8 @@ class MethodProduct(Transformer):
         self,
         targets: list[Method],
         combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[Record]], RecordDict]]] = None,
+        *,
+        src_loc: int | SrcLoc = 0
     ):
         """Method product.
 
@@ -199,6 +217,9 @@ class MethodProduct(Transformer):
             A pair of the output layout and the combiner function. The
             combiner function takes two parameters: a `Module` and
             a list of outputs of the target methods.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
 
         Attributes
         ----------
@@ -209,7 +230,8 @@ class MethodProduct(Transformer):
             combiner = (targets[0].data_out.layout, lambda _, x: x[0])
         self.targets = targets
         self.combiner = combiner
-        self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
+        src_loc = get_src_loc(src_loc)
+        self.method = Method(i=targets[0].data_in.layout, o=combiner[0], src_loc=src_loc)
 
     def elaborate(self, platform):
         m = TModule()
@@ -229,6 +251,8 @@ class MethodTryProduct(Transformer):
         self,
         targets: list[Method],
         combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[tuple[Value, Record]]], RecordDict]]] = None,
+        *,
+        src_loc: int | SrcLoc = 0
     ):
         """Method product with optional calling.
 
@@ -248,6 +272,9 @@ class MethodTryProduct(Transformer):
             combiner function takes two parameters: a `Module` and
             a list of pairs. Each pair contains a bit which signals
             that a given call succeeded, and the result of the call.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
 
         Attributes
         ----------
@@ -258,7 +285,8 @@ class MethodTryProduct(Transformer):
             combiner = ([], lambda _, __: {})
         self.targets = targets
         self.combiner = combiner
-        self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
+        self.src_loc = get_src_loc(src_loc)
+        self.method = Method(i=targets[0].data_in.layout, o=combiner[0], src_loc=self.src_loc)
 
     def elaborate(self, platform):
         m = TModule()
@@ -268,7 +296,7 @@ class MethodTryProduct(Transformer):
             results: list[tuple[Value, Record]] = []
             for target in self.targets:
                 success = Signal()
-                with Transaction().body(m):
+                with Transaction(src_loc=self.src_loc).body(m):
                     m.d.comb += success.eq(1)
                     results.append((success, target(m, arg)))
             return self.combiner[1](m, results)
@@ -289,16 +317,20 @@ class Collector(Transformer):
         Method which returns single result of provided methods.
     """
 
-    def __init__(self, targets: list[Method]):
+    def __init__(self, targets: list[Method], *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
         method_list: list[Method]
             List of methods from which results will be collected.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         self.method_list = targets
         layout = targets[0].data_out.layout
-        self.method = Method(o=layout)
+        self.src_loc = get_src_loc(src_loc)
+        self.method = Method(o=layout, src_loc=self.src_loc)
 
         for method in targets:
             if layout != method.data_out.layout:
@@ -307,10 +339,10 @@ class Collector(Transformer):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout)
+        m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout, src_loc=self.src_loc)
 
         m.submodules.connect = ManyToOneConnectTrans(
-            get_results=[get for get in self.method_list], put_result=forwarder.write
+            get_results=[get for get in self.method_list], put_result=forwarder.write, src_loc=self.src_loc
         )
 
         self.method.proxy(m, forwarder.read)
@@ -371,6 +403,7 @@ class ConnectAndMapTrans(Elaboratable):
         *,
         i_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
         o_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
+        src_loc: int | SrcLoc = 0
     ):
         """
         Parameters
@@ -383,11 +416,15 @@ class ConnectAndMapTrans(Elaboratable):
             Input transformation (`method1` to `method2`).
         o_fun: function or Method, optional
             Output transformation (`method2` to `method1`).
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         self.method1 = method1
         self.method2 = method2
         self.i_fun = i_fun or (lambda _, x: x)
         self.o_fun = o_fun or (lambda _, x: x)
+        self.src_loc = get_src_loc(src_loc)
 
     def elaborate(self, platform):
         m = TModule()
@@ -396,6 +433,7 @@ class ConnectAndMapTrans(Elaboratable):
             self.method2,
             i_transform=(self.method1.data_out.layout, self.i_fun),
             o_transform=(self.method1.data_in.layout, self.o_fun),
+            src_loc=self.src_loc,
         )
         m.submodules.connect = ConnectTrans(self.method1, transformer.method)
 

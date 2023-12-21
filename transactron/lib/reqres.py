@@ -1,5 +1,6 @@
 from amaranth import *
 from ..core import *
+from ..utils import SrcLoc, get_src_loc
 from .connectors import Forwarder, FIFO
 from transactron.lib import BasicFifo
 from amaranth.utils import *
@@ -47,7 +48,7 @@ class ArgumentsToResultsZipper(Elaboratable):
         record with two fields: 'args' and 'results'.
     """
 
-    def __init__(self, args_layout: MethodLayout, results_layout: MethodLayout):
+    def __init__(self, args_layout: MethodLayout, results_layout: MethodLayout, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
@@ -55,20 +56,24 @@ class ArgumentsToResultsZipper(Elaboratable):
             The format of arguments.
         results_layout: record layout
             The format of results.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
+        self.src_loc = get_src_loc(src_loc)
         self.results_layout = results_layout
         self.args_layout = args_layout
         self.output_layout = [("args", self.args_layout), ("results", results_layout)]
 
-        self.write_args = Method(i=self.args_layout)
-        self.write_results = Method(i=self.results_layout)
-        self.read = Method(o=self.output_layout)
+        self.write_args = Method(i=self.args_layout, src_loc=self.src_loc)
+        self.write_results = Method(i=self.results_layout, src_loc=self.src_loc)
+        self.read = Method(o=self.output_layout, src_loc=self.src_loc)
 
     def elaborate(self, platform):
         m = TModule()
 
-        fifo = FIFO(self.args_layout, depth=2)
-        forwarder = Forwarder(self.results_layout)
+        fifo = FIFO(self.args_layout, depth=2, src_loc=self.src_loc)
+        forwarder = Forwarder(self.results_layout, src_loc=self.src_loc)
 
         m.submodules.fifo = fifo
         m.submodules.forwarder = forwarder
@@ -117,6 +122,7 @@ class Serializer(Elaboratable):
         serialized_req_method: Method,
         serialized_resp_method: Method,
         depth: int = 4,
+        src_loc: int | SrcLoc = 0
     ):
         """
         Parameters
@@ -130,7 +136,11 @@ class Serializer(Elaboratable):
         depth: int
             Number of requests which can be forwarded to server, before server provides first response. Describe
             the resistance of `Serializer` to latency of server in case when server is fully pipelined.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
+        self.src_loc = get_src_loc(src_loc)
         self.port_count = port_count
         self.serialized_req_method = serialized_req_method
         self.serialized_resp_method = serialized_resp_method
@@ -140,13 +150,17 @@ class Serializer(Elaboratable):
         self.id_layout = [("id", log2_int(self.port_count))]
 
         self.clear = Method()
-        self.serialize_in = [Method.like(self.serialized_req_method) for _ in range(self.port_count)]
-        self.serialize_out = [Method.like(self.serialized_resp_method) for _ in range(self.port_count)]
+        self.serialize_in = [
+            Method.like(self.serialized_req_method, src_loc=self.src_loc) for _ in range(self.port_count)
+        ]
+        self.serialize_out = [
+            Method.like(self.serialized_resp_method, src_loc=self.src_loc) for _ in range(self.port_count)
+        ]
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        pending_requests = BasicFifo(self.id_layout, self.depth)
+        pending_requests = BasicFifo(self.id_layout, self.depth, src_loc=self.src_loc)
         m.submodules.pending_requests = pending_requests
 
         for i in range(self.port_count):
