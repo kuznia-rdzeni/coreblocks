@@ -1,4 +1,5 @@
 from amaranth import *
+from transactron.core import Priority
 from transactron.lib import BasicFifo, Semaphore
 from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
@@ -25,24 +26,25 @@ class Fetch(Elaboratable):
             Method which should be invoked to send fetched data to the next step.
             It has layout as described by `FetchLayout`.
         """
-        self.gp = gen_params
+        self.gen_params = gen_params
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
         self.stall_exception = Method()
+        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
-        self.pc = Signal(self.gp.isa.xlen)
+        self.pc = Signal(self.gen_params.isa.xlen)
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(
-            layout=[("addr", self.gp.isa.xlen), ("spin", 1)], depth=2
+            layout=[("addr", self.gen_params.isa.xlen), ("spin", 1)], depth=2
         )
 
-        speculative_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
+        speculative_pc = Signal(self.gen_params.isa.xlen, reset=self.gen_params.start_pc)
 
         stalled = Signal()
         stalled_unsafe = Signal()
@@ -55,7 +57,7 @@ class Fetch(Elaboratable):
             self.icache.issue_req(m, addr=speculative_pc)
             self.fetch_target_queue.write(m, addr=speculative_pc, spin=spin)
 
-            m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
+            m.d.sync += speculative_pc.eq(speculative_pc + self.gen_params.isa.ilen_bytes)
 
         def stall(exception=False):
             if exception:
@@ -76,7 +78,7 @@ class Fetch(Elaboratable):
             )
 
             with m.If(spin == target.spin):
-                instr = Signal(self.gp.isa.ilen)
+                instr = Signal(self.gen_params.isa.ilen)
                 fetch_error = Signal()
 
                 with m.If(res.error):
@@ -124,25 +126,26 @@ class UnalignedFetch(Elaboratable):
             Method which should be invoked to send fetched data to the next step.
             It has layout as described by `FetchLayout`.
         """
-        self.gp = gen_params
+        self.gen_params = gen_params
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
         self.stall_exception = Method()
+        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
-        self.pc = Signal(self.gp.isa.xlen)
+        self.pc = Signal(self.gen_params.isa.xlen)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
         m.submodules.req_limiter = req_limiter = Semaphore(2)
 
-        m.submodules.decompress = decompress = InstrDecompress(self.gp)
+        m.submodules.decompress = decompress = InstrDecompress(self.gen_params)
 
-        cache_req_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
-        current_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
+        cache_req_pc = Signal(self.gen_params.isa.xlen, reset=self.gen_params.start_pc)
+        current_pc = Signal(self.gen_params.isa.xlen, reset=self.gen_params.start_pc)
 
         flushing = Signal()
         stalled = Signal()

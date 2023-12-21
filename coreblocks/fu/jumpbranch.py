@@ -3,12 +3,15 @@ from amaranth import *
 from enum import IntFlag, auto
 
 from typing import Sequence
+from coreblocks.params.layouts import ExceptionRegisterLayouts
 
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
+from transactron.utils import assign
 
 from coreblocks.params import *
+from coreblocks.params.keys import AsyncInterruptInsertSignalKey
 from transactron.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
@@ -115,26 +118,26 @@ class JumpBranch(Elaboratable):
 
 
 class JumpBranchFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen: GenParams, jb_fn=JumpBranchFn()):
-        self.gen = gen
+    def __init__(self, gen_params: GenParams, jb_fn=JumpBranchFn()):
+        self.gen_params = gen_params
 
-        layouts = gen.get(FuncUnitLayouts)
+        layouts = gen_params.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
-        self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
+        self.branch_result = Method(o=gen_params.get(FetchLayouts).branch_verify)
 
         self.jb_fn = jb_fn
 
-        self.dm = gen.get(DependencyManager)
+        self.dm = gen_params.get(DependencyManager)
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
-        m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
-        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
-        m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
+        m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.jb_fn)
+        m.submodules.fifo_res = fifo_res = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
+        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen_params.get(FetchLayouts).branch_verify, 2)
+        m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
         def _():
@@ -156,23 +159,48 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             m.d.top_comb += jb.in_rvc.eq(arg.exec_fn.funct7)
 
-            # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
-            # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
-            # generated for a conditional branch that is not taken."
+            is_auipc = decoder.decode_fn == JumpBranchFn.Fn.AUIPC
+            jump_result = Mux(jb.taken, jb.jmp_addr, jb.reg_res)
+
             exception = Signal()
-            jmp_addr_misaligned = (jb.jmp_addr & (0b1 if Extension.C in self.gen.isa.extensions else 0b11)) != 0
-            with m.If((decoder.decode_fn != JumpBranchFn.Fn.AUIPC) & jb.taken & jmp_addr_misaligned):
+            exception_report = self.dm.get_dependency(ExceptionReportKey())
+
+            jmp_addr_misaligned = (jb.jmp_addr & (0b1 if Extension.C in self.gen_params.isa.extensions else 0b11)) != 0
+
+            async_interrupt_active = self.gen_params.get(DependencyManager).get_dependency(
+                AsyncInterruptInsertSignalKey()
+            )
+
+            exception_entry = Record(self.gen_params.get(ExceptionRegisterLayouts).report)
+
+            with m.If(~is_auipc & jb.taken & jmp_addr_misaligned):
+                # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
+                # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
+                # generated for a conditional branch that is not taken."
                 m.d.comb += exception.eq(1)
-                report = self.dm.get_dependency(ExceptionReportKey())
-                report(m, rob_id=arg.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED, pc=arg.pc)
+                m.d.comb += assign(
+                    exception_entry,
+                    {"rob_id": arg.rob_id, "cause": ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED, "pc": arg.pc},
+                )
+            with m.Elif(async_interrupt_active & ~is_auipc):
+                # Jump instructions are entry points for async interrupts.
+                # This way we can store known pc via report to global exception register and avoid it in ROB.
+                # Exceptions have priority, because the instruction that reports async interrupt is commited
+                # and exception would be lost.
+                m.d.comb += exception.eq(1)
+                m.d.comb += assign(
+                    exception_entry,
+                    {"rob_id": arg.rob_id, "cause": ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, "pc": jump_result},
+                )
+
+            with m.If(exception):
+                exception_report(m, exception_entry)
 
             fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
 
             # skip writing next branch target for auipc
-            with m.If(decoder.decode_fn != JumpBranchFn.Fn.AUIPC):
-                fifo_branch.write(
-                    m, from_pc=jb.in_pc, next_pc=Mux(jb.taken, jb.jmp_addr, jb.reg_res), resume_from_exception=0
-                )
+            with m.If(~is_auipc):
+                fifo_branch.write(m, from_pc=jb.in_pc, next_pc=jump_result, resume_from_exception=0)
 
         return m
 

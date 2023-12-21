@@ -126,14 +126,14 @@ class SequentialUnsignedMul(MulBaseUnsigned):
     It uses classic recursive multiplication algorithm.
     """
 
-    def __init__(self, gen: GenParams, dsp_width: int = 8):
-        super().__init__(gen)
+    def __init__(self, gen_params: GenParams, dsp_width: int = 8):
+        super().__init__(gen_params)
         self.dsp_width = dsp_width
 
     def elaborate(self, platform):
         m = TModule()
         m.submodules.dsp = dsp = DSPMulUnit(self.dsp_width)
-        m.submodules.multiplier = multiplier = RecursiveWithSingleDSPMul(dsp, self.gen.isa.xlen)
+        m.submodules.multiplier = multiplier = RecursiveWithSingleDSPMul(dsp, self.gen_params.isa.xlen)
 
         accepted = Signal(1, reset=1)
         m.d.sync += multiplier.reset.eq(0)

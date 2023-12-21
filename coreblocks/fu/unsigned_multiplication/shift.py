@@ -13,15 +13,15 @@ class ShiftUnsignedMul(MulBaseUnsigned):
     Russian Peasants Algorithm.
     """
 
-    def __init__(self, gen: GenParams):
-        super().__init__(gen)
+    def __init__(self, gen_params: GenParams):
+        super().__init__(gen_params)
 
     def elaborate(self, platform):
         m = TModule()
-        res = Signal(unsigned(self.gen.isa.xlen * 2))
+        res = Signal(unsigned(self.gen_params.isa.xlen * 2))
 
-        i1 = Signal(unsigned(self.gen.isa.xlen * 2))
-        i2 = Signal(unsigned(self.gen.isa.xlen))
+        i1 = Signal(unsigned(self.gen_params.isa.xlen * 2))
+        i2 = Signal(unsigned(self.gen_params.isa.xlen))
         accepted = Signal(1, reset=1)
 
         @def_method(m, self.issue, ready=accepted)

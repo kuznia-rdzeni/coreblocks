@@ -10,6 +10,7 @@ __all__ = [
     "DecodeLayouts",
     "FuncUnitLayouts",
     "RSInterfaceLayouts",
+    "RetirementLayouts",
     "RSLayouts",
     "RFLayouts",
     "UnsignedMulUnitLayouts",
@@ -488,15 +489,15 @@ class UnsignedMulUnitLayouts:
 
 
 class DivUnitLayouts:
-    def __init__(self, gen: GenParams):
+    def __init__(self, gen_params: GenParams):
         self.issue: LayoutList = [
-            ("dividend", gen.isa.xlen),
-            ("divisor", gen.isa.xlen),
+            ("dividend", gen_params.isa.xlen),
+            ("divisor", gen_params.isa.xlen),
         ]
 
         self.accept: LayoutList = [
-            ("quotient", gen.isa.xlen),
-            ("remainder", gen.isa.xlen),
+            ("quotient", gen_params.isa.xlen),
+            ("remainder", gen_params.isa.xlen),
         ]
 
 
