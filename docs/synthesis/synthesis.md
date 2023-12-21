@@ -1,49 +1,162 @@
-# Synthesis
+# Core verification
 
-CoreBlocks synthesizes `Core` circuit to test how many resources it consumes as the project
-grows and more functionalities are added.
+Coreblocks is verified at several levels of abstraction. Beside of unit tests and module tests, we also
+synthesise the core to the ECP5 FPGA target, to check that it can work in reality. Performance is verified
+using synthesis results and a set of benchmarks simulated with cycle precision in cocotb. We also verify
+correctness of the core behaviour by running assembler tests from [riscv-tests](https://github.com/riscv-software-src/riscv-tests/tree/master)
+and [riscv-arch-tests](https://github.com/riscv-non-isa/riscv-arch-test).
 
-## Documentation
+These three verification steps are automatically run by CI on every commit delivered to the `master` branch. Running
+the checks in CI allow us to collect historical data, which are available in the form of the graphs
+on a dedicated [benchmark subpage](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
 
-### Requirements
+In CI we use pre-built docker containers, which are publicly available on our [github page](https://github.com/orgs/kuznia-rdzeni/packages).
+In the following subsections we provide the instructions on how to manually run verification steps using these containers.
+They can be recreated using standard docker build commands:
 
-In order to perform synthesis you will need to install following tools:
-  * [yosys](https://github.com/YosysHQ/yosys)
-  * [prjtrellis](https://github.com/YosysHQ/prjtrellis)
-  * [nextpnr-ecp5](https://github.com/YosysHQ/nextpnr.git)
-
-These tools may need manual compilation from git repository, that can take some time.
-
-You can use docker images that have installed all required tools to perform synthesis:
-  * [vuush/amaranth-synth:ecp5](https://hub.docker.com/r/vuush/amaranth-synth/tags)
-
-To build the `AmaranthSynthECP5.Dockerfile` yourself use following command:
 ```
-docker build --platform linux/amd64 -t "amaranth-synth:ecp5" -f ./docker/AmaranthSynthECP5.Dockerfile .
+docker build --platform linux/amd64 -t "amaranth-synth:latest" -f ./docker/AmaranthSynthECP5.Dockerfile .
 ```
 
-### Usage
+## Synthesis
 
-Script named `synthesize.py` is used to perform the `Core` synthesis.
+The basic step in verification is to see if it is possible to synthesise the `Core` circuit. This allows us to
+control the level of complexity of the core. Although Coreblocks is an educational core, we want it to be practical.
+It should have an acceptable maximum frequency and shouldn't use too many resources, so it can be run
+on a FPGA. The synthesis step ensures that these requirements are met. In addition, it checks whether the code that is acceptable
+for Amaranth is also acceptable for the synthesis tools.
 
-Example usage:
-```
-./scripts/synthesize.py --help
-./scripts/synthesize.py --platform ecp5 --verbose
-```
-
-To collect synthesis information we use script named `parse_benchmark_info.py`.
-
-This script parses the output of the synthesis tool and extracts the
-following information:
+The main properties collected in the synthesis step:
   - Max clock frequency
   - Number of logic cells used
   - Number of carry cells used
   - Number of RAM cells used
   - Number of DFF cells used
 
-## Benchmarks
+The configuration of the docker container is described in the `AmaranthSynthECP5.Dockerfile`, which can be found in 
+[our repo](https://github.com/orgs/kuznia-rdzeni/packages/container/package/amaranth-synth).
 
-For each commit on `master` branch, CI runs the synthesis and saves the parameters collected by `parse_benchmark_info` script.
+### Manual reproduction
 
-Graphs generated from this information are available on a dedicated [subpage](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
+```bash
+sudo docker pull ghcr.io/kuznia-rdzeni/amaranth-synth:latest
+sudo docker run -it --rm ghcr.io/kuznia-rdzeni/amaranth-synth:latest
+git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
+cd coreblocks
+apt update
+apt install python3.11-venv
+python3 -m venv venv
+. venv/bin/activate
+python3 -m pip install --upgrade pip
+pip3 install -r requirements-dev.txt
+PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --config full
+./scripts/parse_benchmark_info.py
+cat benchmark.json
+```
+
+The main point of the above listing is the `synthesize.py` script, which creates an instance of the `Core` object with
+the configuration provided by the user and then passes it to Amaranth to generate a Verilog description from that instance.
+This description is then processed by Yosys and nextpnr-ecp5 to generate the ECP5 bitstream.
+
+A strength of Coreblocks is its modularity, so we can provide different configurations with little effort. You can choose
+a configuration to synthesise using the `--config` argument to the `synthesise.py` script.
+
+### Dependencies
+
+In order to perform synthesis we use:
+  * [yosys](https://github.com/YosysHQ/yosys) - to synthesise the Verilog generated by Amaranth up to gate level;
+  * [nextpnr-ecp5](https://github.com/YosysHQ/nextpnr.git) - to perform the "Place and Route" step;
+  * [prjtrellis](https://github.com/YosysHQ/prjtrellis) - provides the description of the ECP5 bitstream format.
+
+## Benchmarking
+
+The maximum clock frequency determined by synthesis isn't the only measure of performance. In theory, it is always
+possible to increase Fmax by increasing latency. To avoid the pitfall of too long latency affecting the core
+throughput, we monitor the number of instructions executed per clock cycle (IPC). We simulate the core with cycle
+accuracy and run benchmarks written in C inside the simulation. The benchmarks are taken from
+[embench](https://github.com/embench/embench-iot/tree/master).
+
+
+The benchmarking is done in two steps. First, we compile the C programs into binary format. Second, we run the binaries
+on the simulated core. To compile the code we use [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain),
+with glibc configured for different architectural subsets of RISC-V extensions (you can check the exact configuration in
+[riscv-toolchain.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/riscv-toolchain.Dockerfile)).
+
+Once we have the binaries, we can run them in simulation. This is done using [Cocotb](https://github.com/cocotb/cocotb) and
+[Verilator](https://github.com/verilator/verilator). We use Amaranth features to generate Verilog code describing Coreblocks instance,
+which is passed to Verilator for compilation. Cocotb controls the simulation and execution of the program by stubbing external
+interfaces. Pre-compiled Verilator in a compatible version is available in [Verilator.Dockerfile](https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/Verilator.Dockerfile).
+
+
+### Benchmarks manual execution
+```bash
+# ========== STEP 1: Compilation ==========
+# Clone coreblocks into host file system
+git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
+cd coreblocks
+git submodule update --init --recursive
+cd ..
+sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:latest
+# Run docker with the coreblocks directory mounted into it
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:latest
+cd /coreblocks/test/external/embench
+# Compilation will put binaries in the subdirectory of the /coreblocks directory, which is shared with the host
+# so that binaries survive after the docker container is closed
+make
+exit
+
+# ========== STEP 2: Execution ==========
+sudo docker pull ghcr.io/kuznia-rdzeni/verilator:latest
+# Run docker with the coreblocks directory mounted into it. This directory contains
+# benchmark binaries after running the first step.
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:latest
+apt update
+apt install python3.11-venv
+python3 -m venv venv
+. venv/bin/activate
+python3 -m pip install --upgrade pip
+cd coreblocks
+pip3 install -r requirements-dev.txt
+PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+./scripts/run_benchmarks.py
+```
+
+## Regression tests
+
+Regression tests should ensure that Coreblocks is compliant with RISC-V specification requirements. Tests include 
+assembler programs that tests entire RISC-V instruction set. We execute these programs in a similar way to benchmarks.
+So, as a first step, we compile the programs to the binary format and then we run them on core simulated by Verilator
+and Cocotb.
+
+### Regression tests manual execution
+```bash
+# ========== STEP 1: Compilation ==========
+# Clone coreblocks into host file system
+git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
+cd coreblocks
+git submodule update --init --recursive
+cd ..
+sudo docker pull ghcr.io/kuznia-rdzeni/riscv-toolchain:latest
+# Run docker with the coreblocks directory mounted into it
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/riscv-toolchain:latest
+cd /coreblocks/test/external/riscv-tests
+# Compilation will put binaries in the subdirectory of the /coreblocks directory, which is shared with the host
+# so that binaries survive after the docker container is closed
+make
+exit
+
+# ========== STEP 2: Execution ==========
+sudo docker pull ghcr.io/kuznia-rdzeni/verilator:latest
+# Run docker with the coreblocks directory mounted into it. This directory contains
+# regression test binaries after running the first step.
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:latest
+apt update
+apt install python3.11-venv
+python3 -m venv venv
+. venv/bin/activate
+python3 -m pip install --upgrade pip
+cd coreblocks
+pip3 install -r requirements-dev.txt
+PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+./scripts/run_tests.py -a regression
+```

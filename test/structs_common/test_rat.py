@@ -52,20 +52,19 @@ class TestRetirementRegisterAliasTable(CoreblocksTestCaseWithSimulator):
         for _ in range(self.test_steps):
             rl = self.rand.randrange(self.gen_params.isa.reg_cnt)
             rp = self.rand.randrange(1, 2**self.gen_params.phys_regs_bits) if rl != 0 else 0
-            side_fx = self.rand.randrange(0, 2)
 
-            self.to_execute_list.append({"rl": rl, "rp": rp, "side_fx": side_fx})
+            self.to_execute_list.append({"rl": rl, "rp": rp})
 
     def do_commit(self):
         for _ in range(self.test_steps):
             to_execute = self.to_execute_list.pop()
-            res = yield from self.m.commit.call(
-                rl_dst=to_execute["rl"], rp_dst=to_execute["rp"], side_fx=to_execute["side_fx"]
-            )
+            yield from self.m.peek.call_init(rl_dst=to_execute["rl"])
+            res = yield from self.m.commit.call(rl_dst=to_execute["rl"], rp_dst=to_execute["rp"])
+            peek_res = yield from self.m.peek.call_do()
             self.assertEqual(res["old_rp_dst"], self.expected_entries[to_execute["rl"]])
+            self.assertEqual(peek_res["old_rp_dst"], res["old_rp_dst"])
 
-            if to_execute["side_fx"]:
-                self.expected_entries[to_execute["rl"]] = to_execute["rp"]
+            self.expected_entries[to_execute["rl"]] = to_execute["rp"]
 
     def test_single(self):
         self.rand = Random(0)

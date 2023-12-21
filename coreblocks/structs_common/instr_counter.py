@@ -18,16 +18,16 @@ class CoreInstructionCounter(Elaboratable):
         last instruction in core and no new instruction is fetched). Should be called when instruction is retired.
     """
 
-    def __init__(self, gp: GenParams):
-        self.gp = gp
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
 
         self.increment = Method()
-        self.decrement = Method(o=gp.get(CoreInstructionCounterLayouts).decrement)
+        self.decrement = Method(o=gen_params.get(CoreInstructionCounterLayouts).decrement)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        count = Signal(self.gp.rob_entries_bits + 1)
+        count = Signal(self.gen_params.rob_entries_bits + 1)
 
         with m.If(self.increment.run & ~self.decrement.run):
             m.d.sync += count.eq(count + 1)

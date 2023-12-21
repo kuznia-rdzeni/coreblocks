@@ -71,15 +71,15 @@ class DoubleCounterCSR(Elaboratable):
 
 
 class MachineModeCSRRegisters(Elaboratable):
-    def __init__(self, gp: GenParams):
-        self.mcause = CSRRegister(CSRAddress.MCAUSE, gp)
+    def __init__(self, gen_params: GenParams):
+        self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
 
         # SPEC: The mtvec register must always be implemented, but can contain a read-only value.
         # set `MODE` as fixed to 0 - Direct mode "All exceptions set pc to BASE"
-        self.mtvec = CSRRegister(CSRAddress.MTVEC, gp, ro_bits=0b11)
+        self.mtvec = CSRRegister(CSRAddress.MTVEC, gen_params, ro_bits=0b11)
 
         # TODO: set low bits R/O based on gp align
-        self.mepc = CSRRegister(CSRAddress.MEPC, gp)
+        self.mepc = CSRRegister(CSRAddress.MEPC, gen_params)
 
     def elaborate(self, platform):
         m = Module()
@@ -92,12 +92,12 @@ class MachineModeCSRRegisters(Elaboratable):
 
 
 class GenericCSRRegisters(Elaboratable):
-    def __init__(self, gp: GenParams):
-        self.m_mode = MachineModeCSRRegisters(gp)
+    def __init__(self, gen_params: GenParams):
+        self.m_mode = MachineModeCSRRegisters(gen_params)
 
-        self.csr_cycle = DoubleCounterCSR(gp, CSRAddress.CYCLE, CSRAddress.CYCLEH)
+        self.csr_cycle = DoubleCounterCSR(gen_params, CSRAddress.CYCLE, CSRAddress.CYCLEH)
         # TODO: CYCLE should be alias to TIME
-        self.csr_time = DoubleCounterCSR(gp, CSRAddress.TIME, CSRAddress.TIMEH)
+        self.csr_time = DoubleCounterCSR(gen_params, CSRAddress.TIME, CSRAddress.TIMEH)
 
     def elaborate(self, platform):
         m = TModule()

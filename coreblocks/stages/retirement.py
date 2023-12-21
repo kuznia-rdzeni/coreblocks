@@ -1,13 +1,13 @@
 from amaranth import *
+
+from transactron.core import Method, Transaction, TModule
+from transactron.lib.simultaneous import condition
+
+from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.keys import GenericCSRRegistersKey
-from coreblocks.params.layouts import CommonLayoutFields
-
-from transactron.core import Method, Transaction, TModule
-from coreblocks.params.genparams import GenParams
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
-from transactron.lib.connectors import Forwarder
 
 
 class Retirement(Elaboratable):
@@ -18,6 +18,7 @@ class Retirement(Elaboratable):
         rob_peek: Method,
         rob_retire: Method,
         r_rat_commit: Method,
+        r_rat_peek: Method,
         free_rf_put: Method,
         rf_free: Method,
         precommit: Method,
@@ -33,6 +34,7 @@ class Retirement(Elaboratable):
         self.rob_peek = rob_peek
         self.rob_retire = rob_retire
         self.r_rat_commit = r_rat_commit
+        self.r_rat_peek = r_rat_peek
         self.free_rf_put = free_rf_put
         self.rf_free = rf_free
         self.precommit = precommit
@@ -53,17 +55,6 @@ class Retirement(Elaboratable):
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(reset=1)
-        side_fx_comb = Signal()
-        last_commited = Signal()
-
-        m.d.comb += side_fx_comb.eq(side_fx)
-
-        # Use Forwarders for calling those methods, because we don't want them to block
-        # Retirement Transaction (because of un-readiness) during normal operation (both
-        # methods are unused when not handling exceptions)
-        fields = self.gen_params.get(CommonLayoutFields)
-        m.submodules.frat_fix = frat_fix = Forwarder([fields.rl_dst, fields.rp_dst])
-        m.submodules.fetch_continue_fwd = fetch_continue_fwd = Forwarder([fields.pc])
 
         with Transaction().body(m):
             # TODO: do we prefer single precommit call per instruction?
@@ -72,82 +63,110 @@ class Retirement(Elaboratable):
             rob_entry = self.rob_peek(m)
             self.precommit(m, rob_id=rob_entry.rob_id, side_fx=side_fx)
 
-        with Transaction().body(m):
-            rob_entry = self.rob_retire(m)
+        def free_phys_reg(rp_dst: Value):
+            # mark reg in Register File as free
+            self.rf_free(m, rp_dst)
+            # put to Free RF list
+            with m.If(rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
+                self.free_rf_put(m, rp_dst)
 
-            with m.If(rob_entry.exception & side_fx):
-                # Start flushing the core
-                m.d.sync += side_fx.eq(0)
-                m.d.comb += side_fx_comb.eq(0)
-                self.fetch_stall(m)
-
-                cause_register = self.exception_cause_get(m)
-
-                cause_entry = Signal(self.gen_params.isa.xlen)
-
-                with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
-                    # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR operations.
-                    # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps it is
-                    # a jump result).
-                    # Instruction that reported interrupt is the last one that is commited.
-                    m.d.comb += side_fx_comb.eq(1)
-                    # Another flag is needed to resume execution if it was the last instruction in core
-                    m.d.comb += last_commited.eq(1)
-
-                    # TODO: set correct interrupt id (from InterruptController) when multiple interrupts are supported
-                    # Set MSB - the Interrupt bit
-                    m.d.comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
-                with m.Else():
-                    m.d.comb += cause_entry.eq(cause_register.cause)
-
-                m_csr.mcause.write(m, cause_entry)
-                m_csr.mepc.write(m, cause_register.pc)
-
-                self.trap_entry(m)
-
+        def retire_instr(rob_entry):
             # set rl_dst -> rp_dst in R-RAT
-            rat_out = self.r_rat_commit(
-                m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst, side_fx=side_fx
-            )
+            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
 
-            rp_freed = Signal(self.gen_params.phys_regs_bits)
-            with m.If(side_fx_comb):
-                m.d.av_comb += rp_freed.eq(rat_out.old_rp_dst)
-                self.instret_csr.increment(m)
-            with m.Else():
-                m.d.av_comb += rp_freed.eq(rob_entry.rob_data.rp_dst)
-                # free the phys_reg with computed value and restore old reg into FRAT as well
-                # FRAT calls are in a separate transaction to avoid locking the rename method
-                frat_fix.write(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
+            # free old rp_dst from overwritten R-RAT mapping
+            free_phys_reg(rat_out.old_rp_dst)
 
-            self.rf_free(m, rp_freed)
+            self.instret_csr.increment(m)
 
-            # put old rp_dst to free RF list
-            with m.If(rp_freed):  # don't put rp0 to free list - reserved to no-return instructions
-                self.free_rf_put(m, rp_freed)
+        def flush_instr(rob_entry):
+            # get original rp_dst mapped to instruction rl_dst in R-RAT
+            rat_out = self.r_rat_peek(m, rl_dst=rob_entry.rob_data.rl_dst)
 
-            core_empty = self.instr_decrement(m)
-            # cycle when fetch_stop is called, is the last cycle when new instruction can be fetched.
-            # in this case, counter will be incremented and result correct (non-empty).
-            with m.If((~side_fx_comb | last_commited) & core_empty):
-                # Resume core operation from exception handler
+            # free the "new" instruction rp_dst - result is flushed
+            free_phys_reg(rob_entry.rob_data.rp_dst)
 
-                # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
-                resume_pc = m_csr.mtvec.read(m) & ~(0b11)
-                fetch_continue_fwd.write(m, pc=resume_pc)
+            # restore original rl_dst->rp_dst mapping in F-RAT
+            self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
-                # Release pending trap state - allow accepting new reports
-                self.exception_cause_clear(m)
+        with m.FSM("NORMAL") as fsm:
+            with m.State("NORMAL"):
+                with Transaction().body(m):
+                    rob_entry = self.rob_retire(m)
+                    core_empty = self.instr_decrement(m)
 
-                m.d.sync += side_fx.eq(1)
+                    commit = Signal()
 
-        with Transaction().body(m):
-            data = frat_fix.read(m)
-            self.rename(m, rl_s1=0, rl_s2=0, rl_dst=data["rl_dst"], rp_dst=data["rp_dst"])
+                    with m.If(rob_entry.exception):
+                        self.fetch_stall(m)
 
-        with Transaction().body(m):
-            # Implicitly depends on fetch_stall and fetch_verify method conflict!
-            pc = fetch_continue_fwd.read(m).pc
-            self.fetch_continue(m, from_pc=0, next_pc=pc, resume_from_exception=1)
+                        cause_register = self.exception_cause_get(m)
+
+                        cause_entry = Signal(self.gen_params.isa.xlen)
+
+                        with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
+                            # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR.
+                            # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps
+                            # it is a jump result).
+                            # Instruction that reported interrupt is the last one that is commited.
+                            m.d.av_comb += commit.eq(1)
+
+                            # TODO: set correct interrupt id from InterruptController
+                            # Set MSB - the Interrupt bit
+                            m.d.av_comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
+                        with m.Else():
+                            # RISC-V synchronous exceptions - don't retire instruction that caused exception,
+                            # and later resume from it.
+                            # Value of ExceptionCauseRegister pc field is the instruction address.
+                            m.d.av_comb += commit.eq(0)
+
+                            m.d.av_comb += cause_entry.eq(cause_register.cause)
+
+                        m_csr.mcause.write(m, cause_entry)
+                        m_csr.mepc.write(m, cause_register.pc)
+                        self.trap_entry(m)
+
+                        with m.If(core_empty):
+                            m.next = "TRAP_RESUME"
+                        with m.Else():
+                            m.next = "TRAP_FLUSH"
+
+                    with m.Else():
+                        # Normally retire all non-trap instructions
+                        m.d.av_comb += commit.eq(1)
+
+                    # Methods cannot be called multiple times from the same Transaction >:(
+                    with condition(m, priority=False) as cond:
+                        with cond(commit):
+                            retire_instr(rob_entry)
+                        with cond(~commit):  # Not using default, because we want to block if condition is not ready
+                            flush_instr(rob_entry)
+
+            with m.State("TRAP_FLUSH"):
+                with Transaction().body(m):
+                    # Flush entire core
+                    rob_entry = self.rob_retire(m)
+                    core_empty = self.instr_decrement(m)
+
+                    flush_instr(rob_entry)
+
+                    with m.If(core_empty):
+                        m.next = "TRAP_RESUME"
+
+            with m.State("TRAP_RESUME"):
+                with Transaction().body(m):
+                    # Resume core operation
+
+                    # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
+                    resume_pc = m_csr.mtvec.read(m) & ~(0b11)
+                    self.fetch_continue(m, from_pc=0, next_pc=resume_pc, resume_from_exception=1)
+
+                    # Release pending trap state - allow accepting new reports
+                    self.exception_cause_clear(m)
+
+                    m.next = "NORMAL"
+
+        # Disable executing any side effects from instructions in core when it is flushed
+        m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
 
         return m
