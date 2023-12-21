@@ -118,26 +118,26 @@ class JumpBranch(Elaboratable):
 
 
 class JumpBranchFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen: GenParams, jb_fn=JumpBranchFn()):
-        self.gen = gen
+    def __init__(self, gen_params: GenParams, jb_fn=JumpBranchFn()):
+        self.gen_params = gen_params
 
-        layouts = gen.get(FuncUnitLayouts)
+        layouts = gen_params.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
-        self.branch_result = Method(o=gen.get(FetchLayouts).branch_verify)
+        self.branch_result = Method(o=gen_params.get(FetchLayouts).branch_verify)
 
         self.jb_fn = jb_fn
 
-        self.dm = gen.get(DependencyManager)
+        self.dm = gen_params.get(DependencyManager)
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.jb = jb = JumpBranch(self.gen, fn=self.jb_fn)
-        m.submodules.fifo_res = fifo_res = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
-        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen.get(FetchLayouts).branch_verify, 2)
-        m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen)
+        m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.jb_fn)
+        m.submodules.fifo_res = fifo_res = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
+        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen_params.get(FetchLayouts).branch_verify, 2)
+        m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen_params)
 
         @def_method(m, self.accept)
         def _():
@@ -165,11 +165,13 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             exception = Signal()
             exception_report = self.dm.get_dependency(ExceptionReportKey())
 
-            jmp_addr_misaligned = (jb.jmp_addr & (0b1 if Extension.C in self.gen.isa.extensions else 0b11)) != 0
+            jmp_addr_misaligned = (jb.jmp_addr & (0b1 if Extension.C in self.gen_params.isa.extensions else 0b11)) != 0
 
-            async_interrupt_active = self.gen.get(DependencyManager).get_dependency(AsyncInterruptInsertSignalKey())
+            async_interrupt_active = self.gen_params.get(DependencyManager).get_dependency(
+                AsyncInterruptInsertSignalKey()
+            )
 
-            exception_entry = Record(self.gen.get(ExceptionRegisterLayouts).report)
+            exception_entry = Record(self.gen_params.get(ExceptionRegisterLayouts).report)
 
             with m.If(~is_auipc & jb.taken & jmp_addr_misaligned):
                 # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
