@@ -589,7 +589,6 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
                 yield self.circ.req_t2.eq(req_t2)
                 yield self.circ.ready.eq(m_ready)
                 yield Settle()
-                yield Delay(1e-8)
 
                 out_m = yield self.circ.out_m
                 out_t1 = yield self.circ.out_t1
@@ -609,8 +608,10 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
                 self.assertTrue(in1 != self.bad_number or not out_t1)
                 self.assertTrue(in2 != self.bad_number or not out_t2)
 
+                yield
+
         with self.run_simulation(self.circ, 100) as sim:
-            sim.add_process(process)
+            sim.add_sync_process(process)
 
     def test_random_arg(self):
         self.base_random(lambda arg: arg.data != self.bad_number)
