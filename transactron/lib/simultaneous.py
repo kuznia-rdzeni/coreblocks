@@ -1,6 +1,6 @@
 from amaranth import *
 
-from ..utils import get_src_loc
+from ..utils import get_src_loc, SrcLoc
 from ..core import *
 from ..core import TransactionBase
 from contextlib import contextmanager
@@ -13,7 +13,7 @@ __all__ = [
 
 
 @contextmanager
-def condition(m: TModule, *, nonblocking: bool = False, priority: bool = True):
+def condition(m: TModule, *, nonblocking: bool = False, priority: bool = True, src_loc: int | SrcLoc = 1):
     """Conditions using simultaneous transactions.
 
     This context manager allows to easily define conditions utilizing
@@ -44,6 +44,9 @@ def condition(m: TModule, *, nonblocking: bool = False, priority: bool = True):
         States that the conditions are not mutually exclusive and should
         be tested in order. This influences the scheduling order of generated
         transactions.
+    src_loc : int | SrcLoc
+        How many stack frames deep the source location is taken from.
+        Alternatively, the source location to use instead of the default.
 
     Examples
     --------
@@ -61,7 +64,7 @@ def condition(m: TModule, *, nonblocking: bool = False, priority: bool = True):
     this = TransactionBase.get()
     transactions = list[Transaction]()
     last = False
-    src_loc = get_src_loc(0)
+    src_loc = get_src_loc(src_loc)
 
     @contextmanager
     def branch(cond: Optional[ValueLike] = None):
