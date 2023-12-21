@@ -390,6 +390,7 @@ class TransactionManager(Elaboratable):
             # TODO: some simpler way?
             method = Method(name=transaction.name)
             method.owner = transaction.owner
+            method.src_loc = transaction.src_loc
             method.ready = transaction.request
             method.run = transaction.grant
             method.defined = transaction.defined

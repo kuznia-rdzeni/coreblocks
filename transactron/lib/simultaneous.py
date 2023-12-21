@@ -1,6 +1,6 @@
 from amaranth import *
 
-from ..utils import get_src_loc
+from ..utils import SrcLoc
 from ..core import *
 from ..core import TransactionBase
 from contextlib import contextmanager
@@ -61,10 +61,9 @@ def condition(m: TModule, *, nonblocking: bool = False, priority: bool = True):
     this = TransactionBase.get()
     transactions = list[Transaction]()
     last = False
-    src_loc = get_src_loc(0)
 
     @contextmanager
-    def branch(cond: Optional[ValueLike] = None):
+    def branch(cond: Optional[ValueLike] = None, *, src_loc: int | SrcLoc = 2):
         nonlocal last
         if last:
             raise RuntimeError("Condition clause added after catch-all")

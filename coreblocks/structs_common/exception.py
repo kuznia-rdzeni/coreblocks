@@ -46,19 +46,19 @@ class ExceptionCauseRegister(Elaboratable):
     If `exception` bit is set in the ROB, `Retirement` stage fetches exception details from this module.
     """
 
-    def __init__(self, gp: GenParams, rob_get_indices: Method):
-        self.gp = gp
+    def __init__(self, gen_params: GenParams, rob_get_indices: Method):
+        self.gen_params = gen_params
 
         self.cause = Signal(ExceptionCause)
-        self.rob_id = Signal(gp.rob_entries_bits)
-        self.pc = Signal(gp.isa.xlen)
+        self.rob_id = Signal(gen_params.rob_entries_bits)
+        self.pc = Signal(gen_params.isa.xlen)
         self.valid = Signal()
 
-        self.report = Method(i=gp.get(ExceptionRegisterLayouts).report)
-        dm = gp.get(DependencyManager)
+        self.report = Method(i=gen_params.get(ExceptionRegisterLayouts).report)
+        dm = gen_params.get(DependencyManager)
         dm.add_dependency(ExceptionReportKey(), self.report)
 
-        self.get = Method(o=gp.get(ExceptionRegisterLayouts).get)
+        self.get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
 
         self.clear = Method()
 

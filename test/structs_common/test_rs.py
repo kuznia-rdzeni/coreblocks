@@ -28,15 +28,15 @@ def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dic
 
 class TestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams, ready_for: Optional[Iterable[Iterable[OpType]]] = None) -> None:
-        self.gp = gen_params
+        self.gen_params = gen_params
         self.ready_for = ready_for
         # test config GenParams specifies only one RS - it has the max number of entries
-        self.rs_entries = self.gp.max_rs_entries
-        self.rs_entries_bits = self.gp.max_rs_entries_bits
+        self.rs_entries = self.gen_params.max_rs_entries
+        self.rs_entries_bits = self.gen_params.max_rs_entries_bits
 
     def elaborate(self, platform) -> Module:
         m = Module()
-        rs = RS(self.gp, 2**self.rs_entries_bits, self.ready_for)
+        rs = RS(self.gen_params, 2**self.rs_entries_bits, self.ready_for)
 
         self.rs = rs
         self.io_select = TestbenchIO(AdapterTrans(rs.select))
@@ -58,8 +58,8 @@ class TestElaboratable(Elaboratable):
 
 class TestRSMethodInsert(TestCaseWithSimulator):
     def test_insert(self):
-        self.gp = GenParams(test_core_config)
-        self.m = TestElaboratable(self.gp)
+        self.gen_params = GenParams(test_core_config)
+        self.m = TestElaboratable(self.gen_params)
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -102,8 +102,8 @@ class TestRSMethodInsert(TestCaseWithSimulator):
 
 class TestRSMethodSelect(TestCaseWithSimulator):
     def test_select(self):
-        self.gp = GenParams(test_core_config)
-        self.m = TestElaboratable(self.gp)
+        self.gen_params = GenParams(test_core_config)
+        self.m = TestElaboratable(self.gen_params)
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -165,8 +165,8 @@ class TestRSMethodSelect(TestCaseWithSimulator):
 
 class TestRSMethodUpdate(TestCaseWithSimulator):
     def test_update(self):
-        self.gp = GenParams(test_core_config)
-        self.m = TestElaboratable(self.gp)
+        self.gen_params = GenParams(test_core_config)
+        self.m = TestElaboratable(self.gen_params)
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -255,8 +255,8 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
 class TestRSMethodTake(TestCaseWithSimulator):
     def test_take(self):
-        self.gp = GenParams(test_core_config)
-        self.m = TestElaboratable(self.gp)
+        self.gen_params = GenParams(test_core_config)
+        self.m = TestElaboratable(self.gen_params)
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -353,8 +353,8 @@ class TestRSMethodTake(TestCaseWithSimulator):
 
 class TestRSMethodGetReadyList(TestCaseWithSimulator):
     def test_get_ready_list(self):
-        self.gp = GenParams(test_core_config)
-        self.m = TestElaboratable(self.gp)
+        self.gen_params = GenParams(test_core_config)
+        self.m = TestElaboratable(self.gen_params)
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -406,8 +406,8 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
 
 class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
     def test_two_get_ready_lists(self):
-        self.gp = GenParams(test_core_config)
-        self.m = TestElaboratable(self.gp, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]])
+        self.gen_params = GenParams(test_core_config)
+        self.m = TestElaboratable(self.gen_params, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]])
         self.insert_list = [
             {
                 "rs_entry_id": id,

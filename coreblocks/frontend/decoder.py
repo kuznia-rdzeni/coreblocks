@@ -276,22 +276,22 @@ class InstrDecoder(Elaboratable):
         instruction type for selected core generation parameters t then value is 1.
     """
 
-    def __init__(self, gen: GenParams):
+    def __init__(self, gen_params: GenParams):
         """
         Decoder constructor.
 
         Parameters
         ----------
-        gen: GenParams
+        gen_params: GenParams
             Core generation parameters.
         """
-        self.gen = gen
+        self.gen_params = gen_params
 
         #
         # Input ports
         #
 
-        self.instr = Signal(gen.isa.ilen)
+        self.instr = Signal(gen_params.isa.ilen)
 
         #
         # Output ports
@@ -307,19 +307,19 @@ class InstrDecoder(Elaboratable):
         self.funct12_v = Signal()
 
         # Destination register
-        self.rd = Signal(gen.isa.reg_cnt_log)
+        self.rd = Signal(gen_params.isa.reg_cnt_log)
         self.rd_v = Signal()
 
         # First source register
-        self.rs1 = Signal(gen.isa.reg_cnt_log)
+        self.rs1 = Signal(gen_params.isa.reg_cnt_log)
         self.rs1_v = Signal()
 
         # Second source register
-        self.rs2 = Signal(gen.isa.reg_cnt_log)
+        self.rs2 = Signal(gen_params.isa.reg_cnt_log)
         self.rs2_v = Signal()
 
         # Immediate
-        self.imm = Signal(gen.isa.xlen)
+        self.imm = Signal(gen_params.isa.xlen)
 
         # Fence parameters
         self.succ = Signal(FenceTarget)
@@ -327,7 +327,7 @@ class InstrDecoder(Elaboratable):
         self.fm = Signal(FenceFm)
 
         # CSR address
-        self.csr = Signal(gen.isa.csr_alen)
+        self.csr = Signal(gen_params.isa.csr_alen)
 
         # Operation type
         self.optype = Signal(OpType)
@@ -356,7 +356,7 @@ class InstrDecoder(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        extensions = self.gen.isa.extensions
+        extensions = self.gen_params.isa.extensions
 
         # We need to support all I instructions in E extension, but this is not extension implication
         if Extension.E in extensions:
@@ -402,9 +402,9 @@ class InstrDecoder(Elaboratable):
             self._extract(20, self.funct12),
         ]
 
-        rd_field = Signal(self.gen.isa.reg_field_bits)
-        rs1_field = Signal(self.gen.isa.reg_field_bits)
-        rs2_field = Signal(self.gen.isa.reg_field_bits)
+        rd_field = Signal(self.gen_params.isa.reg_field_bits)
+        rs1_field = Signal(self.gen_params.isa.reg_field_bits)
+        rs2_field = Signal(self.gen_params.isa.reg_field_bits)
 
         m.d.comb += [
             self._extract(7, rd_field),
@@ -483,7 +483,7 @@ class InstrDecoder(Elaboratable):
             with m.Case(InstrType.B):
                 m.d.comb += self.imm.eq(bimm13)
             with m.Case(InstrType.U):
-                m.d.comb += self.imm.eq(uimm20 << (self.gen.isa.xlen - 20))
+                m.d.comb += self.imm.eq(uimm20 << (self.gen_params.isa.xlen - 20))
             with m.Case(InstrType.J):
                 m.d.comb += self.imm.eq(jimm20)
 

@@ -216,18 +216,19 @@ class RATLayouts:
         self.old_rp_dst: LayoutListField = ("old_rp_dst", gen_params.phys_regs_bits)
         """Physical register previously associated with the given logical register in RRAT."""
 
-        self.rat_rename_in: LayoutList = [
+        self.frat_rename_in: LayoutList = [
             fields.rl_s1,
             fields.rl_s2,
             fields.rl_dst,
             fields.rp_dst,
         ]
+        self.frat_rename_out: LayoutList = [fields.rp_s1, fields.rp_s2]
 
-        self.rat_rename_out: LayoutList = [fields.rp_s1, fields.rp_s2]
+        self.rrat_commit_in: LayoutList = [fields.rl_dst, fields.rp_dst]
+        self.rrat_commit_out: LayoutList = [self.old_rp_dst]
 
-        self.rat_commit_in: LayoutList = [fields.rl_dst, fields.rp_dst, fields.side_fx]
-
-        self.rat_commit_out: LayoutList = [self.old_rp_dst]
+        self.rrat_peek_in: LayoutList = [fields.rl_dst]
+        self.rrat_peek_out: LayoutList = self.rrat_commit_out
 
 
 class ROBLayouts:
@@ -489,15 +490,15 @@ class UnsignedMulUnitLayouts:
 
 
 class DivUnitLayouts:
-    def __init__(self, gen: GenParams):
+    def __init__(self, gen_params: GenParams):
         self.issue: LayoutList = [
-            ("dividend", gen.isa.xlen),
-            ("divisor", gen.isa.xlen),
+            ("dividend", gen_params.isa.xlen),
+            ("divisor", gen_params.isa.xlen),
         ]
 
         self.accept: LayoutList = [
-            ("quotient", gen.isa.xlen),
-            ("remainder", gen.isa.xlen),
+            ("quotient", gen_params.isa.xlen),
+            ("remainder", gen_params.isa.xlen),
         ]
 
 
