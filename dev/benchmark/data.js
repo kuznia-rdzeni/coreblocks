@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703188270039,
+  "lastUpdate": 1703188557503,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -19265,6 +19265,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 28779,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1476,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1084,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8485,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2a0a09693e4ceabd9c60f8c6fd829f23ea5da016",
+          "message": "Fix get_caller_class_name to handle calls in elaborate (#550)",
+          "timestamp": "2023-12-21T20:46:02+01:00",
+          "tree_id": "dbe98f3d5c7419cbb64b4e110d80f1af0fdd75dd",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2a0a09693e4ceabd9c60f8c6fd829f23ea5da016"
+        },
+        "date": 1703188555598,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 38.58,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23374,
             "unit": "LUT4"
           },
           {
