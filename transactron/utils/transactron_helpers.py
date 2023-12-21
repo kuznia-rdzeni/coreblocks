@@ -4,6 +4,7 @@ from typing import Optional, Any, Concatenate, TypeGuard, TypeVar
 from collections.abc import Callable, Mapping
 from ._typing import ROGraph, GraphCC
 from inspect import Parameter, signature
+from itertools import count
 from amaranth import *
 
 
@@ -87,11 +88,17 @@ def method_def_helper(method, func: Callable[..., T], arg: Record) -> T:
 
 
 def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:
-    caller_frame = sys._getframe(2)
-    if "self" in caller_frame.f_locals:
-        owner = caller_frame.f_locals["self"]
-        return owner, owner.__class__.__name__
-    elif default is not None:
+    try:
+        for d in count(2):
+            caller_frame = sys._getframe(d)
+            if "self" in caller_frame.f_locals:
+                owner = caller_frame.f_locals["self"]
+                if isinstance(owner, Elaboratable):
+                    return owner, owner.__class__.__name__
+    except ValueError:
+        pass
+
+    if default is not None:
         return None, default
     else:
         raise RuntimeError("Not called from a method")
