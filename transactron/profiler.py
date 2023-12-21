@@ -1,19 +1,13 @@
-import json
 from typing import Optional
-from dataclasses import dataclass, is_dataclass, asdict, field
+from dataclasses import dataclass, field
 from transactron.utils import SrcLoc
+from dataclasses_json import dataclass_json
 
 
-__ALL__ = ["ProfileInfo", "Profile"]
+__all__ = ["ProfileInfo", "Profile"]
 
 
-class ProfileJSONEncoder(json.JSONEncoder):
-    def default(self, o):
-        if is_dataclass(o):
-            return asdict(o)
-        return super().default(o)
-
-
+@dataclass_json
 @dataclass
 class ProfileInfo:
     name: str
@@ -21,6 +15,7 @@ class ProfileInfo:
     is_transaction: bool
 
 
+@dataclass_json
 @dataclass
 class Profile:
     transactions_and_methods: dict[int, ProfileInfo] = field(default_factory=dict)
@@ -29,4 +24,9 @@ class Profile:
 
     def encode(self, file_name: str):
         with open(file_name, "w") as fp:
-            json.dump(self, fp, cls=ProfileJSONEncoder)
+            fp.write(self.to_json())  # type: ignore
+
+    @staticmethod
+    def decode(file_name: str):
+        with open(file_name, "r") as fp:
+            return Profile.from_json(fp.read())  # type: ignore
