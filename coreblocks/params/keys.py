@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from transactron.utils.dependencies import SimpleKey, UnifierKey
+from transactron.lib.dependencies import SimpleKey, UnifierKey
 from transactron import Method
 from transactron.lib import MethodTryProduct, Collector
 from coreblocks.peripherals.wishbone import WishboneMaster
