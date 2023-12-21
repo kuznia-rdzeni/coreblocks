@@ -19,17 +19,17 @@ class MulBaseUnsigned(Elaboratable):
         Method used for getting result of requested computation.
     """
 
-    def __init__(self, gen: GenParams, dsp_width: int = 32):
+    def __init__(self, gen_params: GenParams, dsp_width: int = 32):
         """
         Parameters
         ----------
-        gen: GenParams
+        gen_params: GenParams
             Core generation parameters.
         """
-        self.gen = gen
+        self.gen_params = gen_params
         self.dsp_width = dsp_width
 
-        layout = gen.get(UnsignedMulUnitLayouts)
+        layout = gen_params.get(UnsignedMulUnitLayouts)
 
         self.issue = Method(i=layout.issue)
         self.accept = Method(o=layout.accept)

@@ -1,7 +1,8 @@
 from amaranth import *
 from transactron import Method, def_method, Priority, TModule
-from transactron.utils._typing import ValueLike, MethodLayout
+from transactron.utils._typing import ValueLike, MethodLayout, SrcLoc
 from transactron.utils.amaranth_ext import mod_incr
+from transactron.utils.transactron_helpers import get_src_loc
 
 
 class BasicFifo(Elaboratable):
@@ -21,7 +22,7 @@ class BasicFifo(Elaboratable):
 
     """
 
-    def __init__(self, layout: MethodLayout, depth: int) -> None:
+    def __init__(self, layout: MethodLayout, depth: int, *, src_loc: int | SrcLoc = 0) -> None:
         """
         Parameters
         ----------
@@ -30,15 +31,18 @@ class BasicFifo(Elaboratable):
             If integer is given, Record with field `data` and width of this paramter is used as internal layout.
         depth: int
             Size of the FIFO.
-
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         self.layout = layout
         self.width = len(Record(self.layout))
         self.depth = depth
 
-        self.read = Method(o=self.layout)
-        self.write = Method(i=self.layout)
-        self.clear = Method()
+        src_loc = get_src_loc(src_loc)
+        self.read = Method(o=self.layout, src_loc=src_loc)
+        self.write = Method(i=self.layout, src_loc=src_loc)
+        self.clear = Method(src_loc=src_loc)
         self.head = Record(self.layout)
 
         self.buff = Memory(width=self.width, depth=self.depth)

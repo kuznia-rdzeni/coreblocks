@@ -37,16 +37,16 @@ class MockedICache(Elaboratable, ICacheInterface):
 
 class TestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams):
-        self.gp = gen_params
+        self.gen_params = gen_params
 
     def elaborate(self, platform):
         m = Module()
 
-        self.icache = MockedICache(self.gp)
+        self.icache = MockedICache(self.gen_params)
 
-        fifo = FIFO(self.gp.get(FetchLayouts).raw_instr, depth=2)
+        fifo = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-        self.fetch = Fetch(self.gp, self.icache, fifo.write)
+        self.fetch = Fetch(self.gen_params, self.icache, fifo.write)
         self.verify_branch = TestbenchIO(AdapterTrans(self.fetch.verify_branch))
 
         m.submodules.icache = self.icache
@@ -60,8 +60,8 @@ class TestElaboratable(Elaboratable):
 
 class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = GenParams(test_core_config.replace(start_pc=0x18))
-        self.m = TestElaboratable(self.gp)
+        self.gen_params = GenParams(test_core_config.replace(start_pc=0x18))
+        self.m = TestElaboratable(self.gen_params)
         self.instr_queue = deque()
         self.iterations = 500
 
@@ -74,7 +74,7 @@ class TestFetch(TestCaseWithSimulator):
         def cache_process():
             yield Passive()
 
-            next_pc = self.gp.start_pc
+            next_pc = self.gen_params.start_pc
 
             while True:
                 while len(input_q) == 0:
@@ -87,7 +87,7 @@ class TestFetch(TestCaseWithSimulator):
                 is_branch = random.random() < 0.15
 
                 # exclude branches and jumps
-                data = random.randrange(2**self.gp.isa.ilen) & ~0b1111111
+                data = random.randrange(2**self.gen_params.isa.ilen) & ~0b1111111
 
                 # randomize being a branch instruction
                 if is_branch:
@@ -99,9 +99,9 @@ class TestFetch(TestCaseWithSimulator):
                 if addr != next_pc:
                     continue
 
-                next_pc = addr + self.gp.isa.ilen_bytes
+                next_pc = addr + self.gen_params.isa.ilen_bytes
                 if is_branch:
-                    next_pc = random.randrange(2**self.gp.isa.ilen) & ~0b11
+                    next_pc = random.randrange(2**self.gen_params.isa.ilen) & ~0b11
 
                 self.instr_queue.append(
                     {
@@ -148,14 +148,14 @@ class TestFetch(TestCaseWithSimulator):
 
 class TestUnalignedFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gp = GenParams(test_core_config.replace(start_pc=0x18, compressed=True))
+        self.gen_params = GenParams(test_core_config.replace(start_pc=0x18, compressed=True))
         self.instr_queue = deque()
         self.instructions = 500
 
-        self.icache = MockedICache(self.gp)
-        fifo = FIFO(self.gp.get(FetchLayouts).raw_instr, depth=2)
+        self.icache = MockedICache(self.gen_params)
+        fifo = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-        fetch = UnalignedFetch(self.gp, self.icache, fifo.write)
+        fetch = UnalignedFetch(self.gen_params, self.icache, fifo.write)
         self.verify_branch = TestbenchIO(AdapterTrans(fetch.verify_branch))
 
         self.m = ModuleConnector(self.icache, fifo, self.io_out, fetch, self.verify_branch)
@@ -166,12 +166,12 @@ class TestUnalignedFetch(TestCaseWithSimulator):
         random.seed(422)
 
     def gen_instr_seq(self):
-        pc = self.gp.start_pc
+        pc = self.gen_params.start_pc
 
         for _ in range(self.instructions):
             is_branch = random.random() < 0.15
             is_rvc = random.random() < 0.5
-            branch_target = random.randrange(2**self.gp.isa.ilen) & ~0b1
+            branch_target = random.randrange(2**self.gen_params.isa.ilen) & ~0b1
 
             error = random.random() < 0.1
 
@@ -184,7 +184,7 @@ class TestUnalignedFetch(TestCaseWithSimulator):
                 if error:
                     self.memerr.add(pc)
             else:
-                data = random.randrange(2**self.gp.isa.ilen) & ~0b1111111
+                data = random.randrange(2**self.gen_params.isa.ilen) & ~0b1111111
                 data |= 0b11  # 2 lowest bits must be set in 32-bit long instructions
                 if is_branch:
                     data |= 0b1100000
