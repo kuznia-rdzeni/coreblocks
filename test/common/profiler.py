@@ -1,37 +1,9 @@
-import json
-from typing import Optional
-from dataclasses import dataclass, field, is_dataclass, asdict
 from amaranth.sim import *
 from transactron.core import MethodMap, TransactionManager, Transaction, Method
-from transactron.lib import SrcLoc
+from transactron.profiler import Profile, ProfileInfo
 from .functions import TestGen
 
 __all__ = ["profiler_process"]
-
-
-class ProfileJSONEncoder(json.JSONEncoder):
-    def default(self, o):
-        if is_dataclass(o):
-            return asdict(o)
-        return super().default(o)
-
-
-@dataclass
-class ProfileInfo:
-    name: str
-    src_loc: SrcLoc
-    is_transaction: bool
-
-
-@dataclass
-class Profile:
-    transactions_and_methods: dict[int, ProfileInfo] = field(default_factory=dict)
-    waiting_transactions: dict[int, dict[int, int]] = field(default_factory=dict)
-    running: dict[int, dict[int, Optional[int]]] = field(default_factory=dict)
-
-    def encode(self, file_name: str):
-        with open(file_name, "w") as fp:
-            json.dump(self, fp, cls=ProfileJSONEncoder)
 
 
 def profiler_process(transaction_manager: TransactionManager, profile: Profile):
