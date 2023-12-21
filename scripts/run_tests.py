@@ -104,6 +104,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--list", action="store_true", help="List all tests")
     parser.add_argument("-t", "--trace", action="store_true", help="Dump waveforms")
+    parser.add_argument("-p", "--profile", action="store_true", help="Write execution profiles")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument("-a", "--all", action="store_true", default=False, help="Run all tests")
     parser.add_argument(
@@ -126,6 +127,9 @@ def main():
 
     if args.trace:
         os.environ["__COREBLOCKS_DUMP_TRACES"] = "1"
+
+    if args.profile:
+        os.environ["__TRANSACTRON_PROFILE"] = "1"
 
     if args.test_name:
         pattern = re.compile(args.test_name)
