@@ -266,7 +266,7 @@ class TransactionManager(Elaboratable):
                 continue
             for transaction1 in method_map.transactions_for(method):
                 for transaction2 in method_map.transactions_for(method):
-                    if transaction1 is not transaction2:
+                    if transaction1 is not transaction2 and not transactions_exclusive(transaction1, transaction2):
                         add_edge(transaction1, transaction2, Priority.UNDEFINED, True)
 
         relations = [
@@ -667,25 +667,25 @@ class CtrlPath:
 class TModuleStackManager:
     def __init__(self):
         self.depth = 0
-        self.ctrl_path: list[PathCounter] = []
+        self._ctrl_path: list[PathCounter] = []
 
     @contextmanager
     def enter(self, enter_type=EnterType.PUSH):
         et = EnterType
 
         def flush():
-            while len(self.ctrl_path) > self.depth:
-                self.ctrl_path.pop()
+            while len(self._ctrl_path) > self.depth:
+                self._ctrl_path.pop()
 
         if enter_type in [et.ADD, et.ENTRY]:
-            self.ctrl_path[-1] = replace(self.ctrl_path[-1], alt=self.ctrl_path[-1].alt + 1)
+            self._ctrl_path[-1] = replace(self._ctrl_path[-1], alt=self._ctrl_path[-1].alt + 1)
         if enter_type == et.PUSH:
-            if len(self.ctrl_path) > self.depth:
-                par = self.ctrl_path[self.depth].par + 1
+            if len(self._ctrl_path) > self.depth:
+                par = self._ctrl_path[self.depth].par + 1
             else:
                 par = 0
             flush()
-            self.ctrl_path.append(PathCounter(par=par))
+            self._ctrl_path.append(PathCounter(par=par))
         if enter_type in [et.PUSH, et.ADD]:
             self.depth += 1
         try:
@@ -694,6 +694,10 @@ class TModuleStackManager:
         finally:
             if enter_type in [et.PUSH, et.ADD]:
                 self.depth -= 1
+
+    @property
+    def ctrl_path(self):
+        return self._ctrl_path[: self.depth]
 
 
 class TModule(ModuleLike, Elaboratable):
