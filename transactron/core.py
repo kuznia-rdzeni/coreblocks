@@ -610,6 +610,43 @@ class _AvoidingModuleBuilderDomains:
         return self.__setattr__(name, value)
 
 
+class EnterType(Enum):
+    PUSH = auto()
+    ADD = auto()
+    ADD_LAST = auto()
+    ENTRY = auto()
+
+
+class TModuleStackManager:
+    def __init__(self):
+        self.depth = 0
+        self.ctrl_path: list[int] = []
+
+    @contextmanager
+    def enter(self, enter_type=EnterType.PUSH):
+        et = EnterType
+
+        def flush():
+            while len(self.ctrl_path) > self.depth:
+                self.ctrl_path.pop()
+
+        if enter_type in [et.ADD, et.ADD_LAST, et.ENTRY]:
+            self.ctrl_path[-1] = self.ctrl_path[-1] + 1
+        if enter_type == et.PUSH:
+            flush()
+            self.ctrl_path.append(0)
+        if enter_type in [et.PUSH, et.ADD, et.ADD_LAST]:
+            self.depth += 1
+        try:
+            yield
+            flush()
+        finally:
+            if enter_type in [et.PUSH, et.ADD, et.ADD_LAST]:
+                self.depth -= 1
+        if enter_type == et.ADD_LAST:
+            flush()
+
+
 class TModule(ModuleLike, Elaboratable):
     """Extended Amaranth module for use with transactions.
 
@@ -637,54 +674,63 @@ class TModule(ModuleLike, Elaboratable):
         self.submodules = self.main_module.submodules
         self.domains = self.main_module.domains
         self.fsm: Optional[FSM] = None
+        self.stack_manager = TModuleStackManager()
 
     @contextmanager
     def AvoidedIf(self, cond: ValueLike):  # noqa: N802
         with self.main_module.If(cond):
-            yield
+            with self.stack_manager.enter(EnterType.PUSH):
+                yield
 
     @contextmanager
     def If(self, cond: ValueLike):  # noqa: N802
         with self.main_module.If(cond):
             with self.avoiding_module.If(cond):
-                yield
+                with self.stack_manager.enter(EnterType.PUSH):
+                    yield
 
     @contextmanager
     def Elif(self, cond):  # noqa: N802
         with self.main_module.Elif(cond):
             with self.avoiding_module.Elif(cond):
-                yield
+                with self.stack_manager.enter(EnterType.ADD):
+                    yield
 
     @contextmanager
     def Else(self):  # noqa: N802
         with self.main_module.Else():
             with self.avoiding_module.Else():
-                yield
+                with self.stack_manager.enter(EnterType.ADD_LAST):
+                    yield
 
     @contextmanager
     def Switch(self, test: ValueLike):  # noqa: N802
         with self.main_module.Switch(test):
             with self.avoiding_module.Switch(test):
-                yield
+                with self.stack_manager.enter(EnterType.PUSH):
+                    yield
 
     @contextmanager
     def Case(self, *patterns: SwitchKey):  # noqa: N802
         with self.main_module.Case(*patterns):
             with self.avoiding_module.Case(*patterns):
-                yield
+                with self.stack_manager.enter(EnterType.ENTRY):
+                    yield
 
     @contextmanager
     def Default(self):  # noqa: N802
         with self.main_module.Default():
             with self.avoiding_module.Default():
-                yield
+                with self.stack_manager.enter(EnterType.ENTRY):
+                    yield
 
     @contextmanager
     def FSM(self, reset: Optional[str] = None, domain: str = "sync", name: str = "fsm"):  # noqa: N802
         old_fsm = self.fsm
         with self.main_module.FSM(reset, domain, name) as fsm:
             self.fsm = fsm
-            yield fsm
+            with self.stack_manager.enter(EnterType.PUSH):
+                yield fsm
         self.fsm = old_fsm
 
     @contextmanager
@@ -692,7 +738,8 @@ class TModule(ModuleLike, Elaboratable):
         assert self.fsm is not None
         with self.main_module.State(name):
             with self.avoiding_module.If(self.fsm.ongoing(name)):
-                yield
+                with self.stack_manager.enter(EnterType.ENTRY):
+                    yield
 
     @property
     def next(self) -> NoReturn:
@@ -701,6 +748,10 @@ class TModule(ModuleLike, Elaboratable):
     @next.setter
     def next(self, name: str):
         self.main_module.next = name
+
+    @property
+    def ctrl_path(self):
+        return list(self.stack_manager.ctrl_path)
 
     @property
     def _MustUse__silence(self):  # noqa: N802
