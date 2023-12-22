@@ -1,6 +1,7 @@
 from amaranth import *
 from amaranth.utils import *
 from ..core import *
+from ..utils import SrcLoc, get_src_loc
 from typing import Optional
 from transactron.utils import assign, AssignType
 from .reqres import ArgumentsToResultsZipper
@@ -28,7 +29,13 @@ class MemoryBank(Elaboratable):
     """
 
     def __init__(
-        self, *, data_layout: MethodLayout, elem_count: int, granularity: Optional[int] = None, safe_writes: bool = True
+        self,
+        *,
+        data_layout: MethodLayout,
+        elem_count: int,
+        granularity: Optional[int] = None,
+        safe_writes: bool = True,
+        src_loc: int | SrcLoc = 0
     ):
         """
         Parameters
@@ -44,7 +51,11 @@ class MemoryBank(Elaboratable):
             Set to `False` if an optimisation can be done to increase throughput of writes. This will cause that
             writes will be reordered with respect to reads eg. in sequence "read A, write A X", read can return
             "X" even when write was called later. By default `True`, which disable optimisation.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
+        self.src_loc = get_src_loc(src_loc)
         self.data_layout = data_layout
         self.elem_count = elem_count
         self.granularity = granularity
@@ -57,9 +68,9 @@ class MemoryBank(Elaboratable):
         if self.granularity is not None:
             self.write_layout.append(("mask", self.width // self.granularity))
 
-        self.read_req = Method(i=self.read_req_layout)
-        self.read_resp = Method(o=self.data_layout)
-        self.write = Method(i=self.write_layout)
+        self.read_req = Method(i=self.read_req_layout, src_loc=self.src_loc)
+        self.read_resp = Method(o=self.data_layout, src_loc=self.src_loc)
+        self.write = Method(i=self.write_layout, src_loc=self.src_loc)
         self._internal_read_resp_trans = None
 
     def elaborate(self, platform) -> TModule:
@@ -79,12 +90,12 @@ class MemoryBank(Elaboratable):
         zipper = ArgumentsToResultsZipper([("valid", 1)], self.data_layout)
         m.submodules.zipper = zipper
 
-        self._internal_read_resp_trans = Transaction()
+        self._internal_read_resp_trans = Transaction(src_loc=self.src_loc)
         with self._internal_read_resp_trans.body(m, request=read_output_valid):
             m.d.sync += read_output_valid.eq(0)
             zipper.write_results(m, read_port.data)
 
-        write_trans = Transaction()
+        write_trans = Transaction(src_loc=self.src_loc)
         with write_trans.body(m, request=write_req | (~read_output_valid & write_pending)):
             if self.safe_writes:
                 with m.If(write_pending):
