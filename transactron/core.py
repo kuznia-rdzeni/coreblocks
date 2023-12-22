@@ -656,6 +656,8 @@ class CtrlPath:
         )
 
 
+# TODO: this is not enough! changes must be made to distinguish
+# multiple different Ifs declared at the same level.
 class TModuleStackManager:
     def __init__(self):
         self.depth = 0
