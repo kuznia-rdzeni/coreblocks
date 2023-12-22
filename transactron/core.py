@@ -17,7 +17,7 @@ from typing import (
 from os import environ
 from graphlib import TopologicalSorter
 from typing_extensions import Self
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
@@ -632,36 +632,42 @@ class _AvoidingModuleBuilderDomains:
 class EnterType(Enum):
     PUSH = auto()
     ADD = auto()
-    ADD_LAST = auto()
     ENTRY = auto()
+
+
+@dataclass(frozen=True)
+class PathCounter:
+    alt: int = 0
+    par: int = 0
 
 
 @dataclass
 class CtrlPath:
     module: int
-    path: list[int]
+    path: list[PathCounter]
 
     def exclusive_with(self, other: "CtrlPath"):
         common_prefix = []
+        can_exclusive = True
         for a, b in product(self.path, other.path):
             if a == b:
                 common_prefix.append(a)
-            else:
-                break
+            elif a.par != b.par:
+                can_exclusive = False
+            break
 
         return (
             self.module == other.module
+            and can_exclusive
             and len(common_prefix) != len(self.path)
             and len(common_prefix) != len(other.path)
         )
 
 
-# TODO: this is not enough! changes must be made to distinguish
-# multiple different Ifs declared at the same level.
 class TModuleStackManager:
     def __init__(self):
         self.depth = 0
-        self.ctrl_path: list[int] = []
+        self.ctrl_path: list[PathCounter] = []
 
     @contextmanager
     def enter(self, enter_type=EnterType.PUSH):
@@ -671,21 +677,23 @@ class TModuleStackManager:
             while len(self.ctrl_path) > self.depth:
                 self.ctrl_path.pop()
 
-        if enter_type in [et.ADD, et.ADD_LAST, et.ENTRY]:
-            self.ctrl_path[-1] += 1
+        if enter_type in [et.ADD, et.ENTRY]:
+            self.ctrl_path[-1] = replace(self.ctrl_path[-1], alt=self.ctrl_path[-1].alt + 1)
         if enter_type == et.PUSH:
+            if len(self.ctrl_path) > self.depth:
+                par = self.ctrl_path[self.depth].par + 1
+            else:
+                par = 0
             flush()
-            self.ctrl_path.append(0)
-        if enter_type in [et.PUSH, et.ADD, et.ADD_LAST]:
+            self.ctrl_path.append(PathCounter(par=par))
+        if enter_type in [et.PUSH, et.ADD]:
             self.depth += 1
         try:
             yield
             flush()
         finally:
-            if enter_type in [et.PUSH, et.ADD, et.ADD_LAST]:
+            if enter_type in [et.PUSH, et.ADD]:
                 self.depth -= 1
-        if enter_type == et.ADD_LAST:
-            flush()
 
 
 class TModule(ModuleLike, Elaboratable):
@@ -745,7 +753,7 @@ class TModule(ModuleLike, Elaboratable):
     def Else(self):  # noqa: N802
         with self.main_module.Else():
             with self.avoiding_module.Else():
-                with self.stack_manager.enter(EnterType.ADD_LAST):
+                with self.stack_manager.enter(EnterType.ADD):
                     yield
 
     @contextmanager
