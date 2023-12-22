@@ -403,6 +403,7 @@ class TransactionManager(Elaboratable):
             method.ready = transaction.request
             method.run = transaction.grant
             method.defined = transaction.defined
+            method.method_calls = transaction.method_calls
             method.method_uses = transaction.method_uses
             method.relations = transaction.relations
             method.def_order = transaction.def_order
@@ -438,6 +439,9 @@ class TransactionManager(Elaboratable):
 
         m = Module()
         m.submodules.merge_manager = merge_manager
+
+        for elem in method_map.methods_and_transactions:
+            elem._set_method_uses(m)
 
         for transaction in self.transactions:
             ready = [
@@ -816,7 +820,8 @@ class TransactionBase(Owned, Protocol):
     defined: bool = False
     name: str
     src_loc: SrcLoc
-    method_uses: dict["Method", Tuple[Record, ValueLike]]
+    method_uses: dict["Method", tuple[Record, Signal]]
+    method_calls: defaultdict["Method", list[tuple[CtrlPath, Record, ValueLike]]]
     relations: list[RelationBase]
     simultaneous_list: list[TransactionOrMethod]
     independent_list: list[TransactionOrMethod]
@@ -824,10 +829,11 @@ class TransactionBase(Owned, Protocol):
 
     def __init__(self, *, src_loc: int | SrcLoc):
         self.src_loc = get_src_loc(src_loc)
-        self.method_uses: dict["Method", Tuple[Record, ValueLike]] = dict()
-        self.relations: list[RelationBase] = []
-        self.simultaneous_list: list[TransactionOrMethod] = []
-        self.independent_list: list[TransactionOrMethod] = []
+        self.method_uses = {}
+        self.method_calls = defaultdict(list)
+        self.relations = []
+        self.simultaneous_list = []
+        self.independent_list = []
 
     def add_conflict(self, end: TransactionOrMethod, priority: Priority = Priority.UNDEFINED) -> None:
         """Registers a conflict.
@@ -863,11 +869,6 @@ class TransactionBase(Owned, Protocol):
         self.relations.append(
             RelationBase(end=end, priority=Priority.LEFT, conflict=False, silence_warning=self.owner != end.owner)
         )
-
-    def use_method(self, method: "Method", arg: Record, enable: ValueLike):
-        if method in self.method_uses:
-            raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction '{self.name}'")
-        self.method_uses[method] = (arg, enable)
 
     def simultaneous(self, *others: TransactionOrMethod) -> None:
         """Adds simultaneity relations.
@@ -933,6 +934,19 @@ class TransactionBase(Owned, Protocol):
         finally:
             TransactionBase.stack.pop()
             self.defined = True
+
+    def _set_method_uses(self, m: ModuleLike):
+        for method, calls in self.method_calls.items():
+            arg_rec, enable_sig = self.method_uses[method]
+            if len(calls) == 1:
+                m.d.comb += arg_rec.eq(calls[0][1])
+                m.d.comb += enable_sig.eq(calls[0][2])
+            else:
+                call_ens = Cat([en for _, _, en in calls])
+
+                for i in OneHotSwitchDynamic(m, call_ens):
+                    m.d.comb += arg_rec.eq(calls[i][1])
+                    m.d.comb += enable_sig.eq(1)
 
     @classmethod
     def get(cls) -> Self:
@@ -1318,7 +1332,16 @@ class Method(TransactionBase):
         enable_sig = Signal(name=self.owned_name + "_enable")
         m.d.av_comb += enable_sig.eq(enable)
         m.d.top_comb += assign(arg_rec, arg, fields=AssignType.ALL)
-        TransactionBase.get().use_method(self, arg_rec, enable_sig)
+
+        caller = TransactionBase.get()
+        if not all(ctrl_path.exclusive_with(m.ctrl_path) for ctrl_path, _, _ in caller.method_calls[self]):
+            raise RuntimeError(f"Method '{self.name}' can't be called twice from the same caller '{caller.name}'")
+        caller.method_calls[self].append((m.ctrl_path, arg_rec, enable_sig))
+
+        if self not in caller.method_uses:
+            arg_rec_use = Record.like(self.data_in)
+            arg_rec_enable_sig = Signal()
+            caller.method_uses[self] = (arg_rec_use, arg_rec_enable_sig)
 
         return self.data_out
 
