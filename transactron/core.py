@@ -17,6 +17,7 @@ from typing import (
 from os import environ
 from graphlib import TopologicalSorter
 from typing_extensions import Self
+from dataclasses import dataclass
 from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
@@ -227,6 +228,18 @@ class TransactionManager(Elaboratable):
             Linear ordering of transactions which is consistent with priority constraints.
         """
 
+        def transactions_exclusive(trans1: Transaction, trans2: Transaction):
+            tms1 = [trans1] + method_map.methods_by_transaction[trans1]
+            tms2 = [trans2] + method_map.methods_by_transaction[trans2]
+
+            # if first transaction is exclusive with the second transaction, or this is true for
+            # any called methods, the transactions can't run at the same time
+            for tm1, tm2 in product(tms1, tms2):
+                if tm1.ctrl_path.exclusive_with(tm2.ctrl_path):
+                    return True
+
+            return False
+
         cgr: TransactionGraph = {}  # Conflict graph
         pgr: TransactionGraph = {}  # Priority graph
         rgr: TransactionGraph = {}  # Relation graph
@@ -271,7 +284,8 @@ class TransactionManager(Elaboratable):
 
             for trans_start in method_map.transactions_for(start):
                 for trans_end in method_map.transactions_for(end):
-                    add_edge(trans_start, trans_end, relation["priority"], relation["conflict"])
+                    conflict = relation["conflict"] and not transactions_exclusive(trans_start, trans_end)
+                    add_edge(trans_start, trans_end, relation["priority"], conflict)
 
         porder: PriorityOrder = {}
 
@@ -392,6 +406,7 @@ class TransactionManager(Elaboratable):
             method.method_uses = transaction.method_uses
             method.relations = transaction.relations
             method.def_order = transaction.def_order
+            method.ctrl_path = transaction.ctrl_path
             methods[transaction] = method
 
         for elem in method_map.methods_and_transactions:
@@ -617,6 +632,26 @@ class EnterType(Enum):
     ENTRY = auto()
 
 
+@dataclass
+class CtrlPath:
+    module: int
+    path: list[int]
+
+    def exclusive_with(self, other: "CtrlPath"):
+        common_prefix = []
+        for a, b in product(self.path, other.path):
+            if a == b:
+                common_prefix.append(a)
+            else:
+                break
+
+        return (
+            self.module == other.module
+            and len(common_prefix) != len(self.path)
+            and len(common_prefix) != len(other.path)
+        )
+
+
 class TModuleStackManager:
     def __init__(self):
         self.depth = 0
@@ -631,7 +666,7 @@ class TModuleStackManager:
                 self.ctrl_path.pop()
 
         if enter_type in [et.ADD, et.ADD_LAST, et.ENTRY]:
-            self.ctrl_path[-1] = self.ctrl_path[-1] + 1
+            self.ctrl_path[-1] += 1
         if enter_type == et.PUSH:
             flush()
             self.ctrl_path.append(0)
@@ -666,6 +701,8 @@ class TModule(ModuleLike, Elaboratable):
       statements together.
     """
 
+    __next_uid = 0
+
     def __init__(self):
         self.main_module = Module()
         self.avoiding_module = Module()
@@ -675,6 +712,8 @@ class TModule(ModuleLike, Elaboratable):
         self.domains = self.main_module.domains
         self.fsm: Optional[FSM] = None
         self.stack_manager = TModuleStackManager()
+        self.uid = TModule.__next_uid
+        TModule.__next_uid += 1
 
     @contextmanager
     def AvoidedIf(self, cond: ValueLike):  # noqa: N802
@@ -751,7 +790,7 @@ class TModule(ModuleLike, Elaboratable):
 
     @property
     def ctrl_path(self):
-        return list(self.stack_manager.ctrl_path)
+        return CtrlPath(self.uid, self.stack_manager.ctrl_path)
 
     @property
     def _MustUse__silence(self):  # noqa: N802
@@ -781,6 +820,7 @@ class TransactionBase(Owned, Protocol):
     relations: list[RelationBase]
     simultaneous_list: list[TransactionOrMethod]
     independent_list: list[TransactionOrMethod]
+    ctrl_path: CtrlPath = CtrlPath(-1, [])
 
     def __init__(self, *, src_loc: int | SrcLoc):
         self.src_loc = get_src_loc(src_loc)
@@ -880,6 +920,8 @@ class TransactionBase(Owned, Protocol):
 
     @contextmanager
     def context(self: TransactionOrMethodBound, m: TModule) -> Iterator[TransactionOrMethodBound]:
+        self.ctrl_path = m.ctrl_path
+
         parent = TransactionBase.peek()
         if parent is not None:
             parent.schedule_before(self)
@@ -890,6 +932,7 @@ class TransactionBase(Owned, Protocol):
             yield self
         finally:
             TransactionBase.stack.pop()
+            self.defined = True
 
     @classmethod
     def get(cls) -> Self:
@@ -1008,7 +1051,6 @@ class Transaction(TransactionBase):
         with self.context(m):
             with m.AvoidedIf(self.grant):
                 yield self
-        self.defined = True
 
     def __repr__(self) -> str:
         return "(transaction {})".format(self.name)
@@ -1205,14 +1247,11 @@ class Method(TransactionBase):
         self.def_order = next(TransactionBase.def_counter)
         self.validate_arguments = validate_arguments
 
-        try:
-            m.d.av_comb += self.ready.eq(ready)
-            m.d.top_comb += self.data_out.eq(out)
-            with self.context(m):
-                with m.AvoidedIf(self.run):
-                    yield self.data_in
-        finally:
-            self.defined = True
+        m.d.av_comb += self.ready.eq(ready)
+        m.d.top_comb += self.data_out.eq(out)
+        with self.context(m):
+            with m.AvoidedIf(self.run):
+                yield self.data_in
 
     def _validate_arguments(self, arg_rec: Record) -> ValueLike:
         if self.validate_arguments is not None:
