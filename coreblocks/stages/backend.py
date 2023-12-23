@@ -20,12 +20,12 @@ class ResultAnnouncement(Elaboratable):
     """
 
     def __init__(
-        self, *, gen: GenParams, get_result: Method, rob_mark_done: Method, rs_update: Method, rf_write: Method
+        self, *, gen_params: GenParams, get_result: Method, rob_mark_done: Method, rs_update: Method, rf_write: Method
     ):
         """
         Parameters
         ----------
-        gen : GenParams
+        gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
         get_result : Method

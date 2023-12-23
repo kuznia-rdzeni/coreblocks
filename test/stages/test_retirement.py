@@ -61,6 +61,7 @@ class RetirementTestCircuit(Elaboratable):
             rob_retire=self.mock_rob_retire.adapter.iface,
             rob_peek=self.mock_rob_peek.adapter.iface,
             r_rat_commit=self.rat.commit,
+            r_rat_peek=self.rat.peek,
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
             precommit=self.mock_precommit.adapter.iface,

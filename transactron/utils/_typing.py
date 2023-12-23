@@ -25,6 +25,7 @@ __all__ = [
     "LayoutLike",
     "SwitchKey",
     "MethodLayout",
+    "SrcLoc",
     "SignalBundle",
     "LayoutListField",
     "LayoutList",
@@ -50,6 +51,7 @@ LayoutLike: TypeAlias = (
 )
 SwitchKey: TypeAlias = str | int | Enum
 MethodLayout: TypeAlias = LayoutLike
+SrcLoc: TypeAlias = tuple[str, int]
 
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]

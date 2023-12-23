@@ -56,13 +56,13 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
         return False
 
     def test_randomized(self):
-        self.gp = GenParams(test_core_config)
+        self.gen_params = GenParams(test_core_config)
         random.seed(2)
 
         self.cycles = 256
 
-        self.rob_idx_mock = TestbenchIO(Adapter(o=self.gp.get(ROBLayouts).get_indices))
-        self.dut = SimpleTestCircuit(ExceptionCauseRegister(self.gp, self.rob_idx_mock.adapter.iface))
+        self.rob_idx_mock = TestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
+        self.dut = SimpleTestCircuit(ExceptionCauseRegister(self.gen_params, self.rob_idx_mock.adapter.iface))
         m = ModuleConnector(self.dut, rob_idx_mock=self.rob_idx_mock)
 
         self.rob_id = 0
@@ -75,7 +75,7 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
 
                 cause = random.choice(list(ExceptionCause))
                 report_rob = random.randint(0, self.rob_max)
-                report_pc = random.randrange(2**self.gp.isa.xlen)
+                report_pc = random.randrange(2**self.gen_params.isa.xlen)
                 report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
 
                 yield from self.dut.report.call(report_arg)
