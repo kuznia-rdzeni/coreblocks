@@ -594,13 +594,15 @@ class ExceptionRegisterLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.get: LayoutList = [
+        self.get_in: LayoutList = [fields.rob_id]
+
+        self.get_out: LayoutList = [
             fields.cause,
             fields.rob_id,
             fields.pc,
         ]
 
-        self.report = self.get
+        self.report = self.get_out
 
 
 class CoreInstructionCounterLayouts:

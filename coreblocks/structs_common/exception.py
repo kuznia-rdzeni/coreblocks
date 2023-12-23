@@ -59,16 +59,12 @@ class ExceptionCauseRegister(Elaboratable):
         self.layouts = gen_params.get(ExceptionRegisterLayouts)
 
         # Break long combinational paths from single-cycle FUs
-        # Insertion of FIFO is fine, because self.report is always ready, and will delay report by
-        # exactly one cycle, so new updated value will be available to get after two cycles
-        # If report is called in accept, then on the next cycle ready bit is set in ROB,
-        # and on the second cycle Retirement reads ROB and calls get()
         self.fu_report_fifo = BasicFifo(self.layouts.report, 2)
         self.report = self.fu_report_fifo.write
         dm = gen_params.get(DependencyManager)
         dm.add_dependency(ExceptionReportKey(), self.report)
 
-        self.get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
+        self.get = Method(i=self.layouts.get_in, o=self.layouts.get_out)
 
         self.clear = Method()
 
@@ -103,8 +99,8 @@ class ExceptionCauseRegister(Elaboratable):
 
             m.d.sync += self.valid.eq(1)
 
-        @def_method(m, self.get)
-        def _():
+        @def_method(m, self.get, validate_arguments=lambda rob_id: rob_id == self.rob_id)
+        def _(rob_id):
             return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc}
 
         @def_method(m, self.clear)

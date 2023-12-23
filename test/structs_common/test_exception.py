@@ -68,7 +68,7 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
         self.rob_id = 0
 
         def process_test():
-            saved_entry = None
+            saved_entry = {}
 
             for _ in range(self.cycles):
                 self.rob_id = random.randint(0, self.rob_max)
@@ -78,16 +78,19 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
                 report_pc = random.randrange(2**self.gen_params.isa.xlen)
                 report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
 
+                expected = (
+                    report_arg
+                    if saved_entry == {} or self.should_update(report_arg, saved_entry, self.rob_id)
+                    else saved_entry
+                )
+
                 yield from self.dut.report.call(report_arg)
-                yield  # one cycle fifo delay
+                # yield
 
-                new_state = yield from self.dut.get.call()
+                new_state = yield from self.dut.get.call({"rob_id": expected["rob_id"]})
 
-                if self.should_update(report_arg, saved_entry, self.rob_id):
-                    self.assertDictEqual(new_state, report_arg)
-                    saved_entry = report_arg
-                elif saved_entry is not None:
-                    self.assertDictEqual(new_state, saved_entry)
+                self.assertDictEqual(new_state, expected)
+                saved_entry = new_state
 
         @def_method_mock(lambda: self.rob_idx_mock)
         def process_rob_idx_mock():

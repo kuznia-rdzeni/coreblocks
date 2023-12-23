@@ -41,7 +41,9 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
-        m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(Adapter(o=exception_layouts.get))
+        m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
+            Adapter(i=exception_layouts.get_in, o=exception_layouts.get_out)
+        )
         m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(Adapter())
 
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
