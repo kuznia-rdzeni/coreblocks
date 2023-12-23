@@ -73,9 +73,7 @@ class Fetch(Elaboratable):
 
             opcode = res.instr[2:7]
             # whether we have to wait for the retirement of this instruction before we make futher speculation
-            unsafe_instr = (
-                (opcode == Opcode.BRANCH) | (opcode == Opcode.JAL) | (opcode == Opcode.JALR) | (opcode == Opcode.SYSTEM)
-            )
+            unsafe_instr = opcode == Opcode.SYSTEM
 
             with m.If(spin == target.spin):
                 instr = Signal(self.gen_params.isa.ilen)
@@ -194,9 +192,7 @@ class UnalignedFetch(Elaboratable):
 
             opcode = instr[2:7]
             # whether we have to wait for the retirement of this instruction before we make futher speculation
-            unsafe_instr = (
-                (opcode == Opcode.BRANCH) | (opcode == Opcode.JAL) | (opcode == Opcode.JALR) | (opcode == Opcode.SYSTEM)
-            )
+            unsafe_instr = opcode == Opcode.SYSTEM
 
             # Check if we are ready to dispatch an instruction in the current cycle.
             # This can happen in three situations:

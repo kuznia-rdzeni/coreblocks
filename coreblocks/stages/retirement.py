@@ -89,6 +89,8 @@ class Retirement(Elaboratable):
             # restore original rl_dst->rp_dst mapping in F-RAT
             self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
+        continue_from_ecr_pc = Signal()
+
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
                 with Transaction().body(m):
@@ -104,6 +106,8 @@ class Retirement(Elaboratable):
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
 
+                        arch_trap = Signal(reset=1)
+
                         with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
                             # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR.
                             # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps
@@ -114,6 +118,10 @@ class Retirement(Elaboratable):
                             # TODO: set correct interrupt id from InterruptController
                             # Set MSB - the Interrupt bit
                             m.d.av_comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
+                        with m.Elif(cause_register.cause == ExceptionCause._COREBLOCKS_MISPREDICTION):
+                            m.d.av_comb += commit.eq(1)
+                            m.d.av_comb += arch_trap.eq(0)
+                            m.d.sync += continue_from_ecr_pc.eq(1)
                         with m.Else():
                             # RISC-V synchronous exceptions - don't retire instruction that caused exception,
                             # and later resume from it.
@@ -121,10 +129,11 @@ class Retirement(Elaboratable):
                             m.d.av_comb += commit.eq(0)
 
                             m.d.av_comb += cause_entry.eq(cause_register.cause)
-
-                        m_csr.mcause.write(m, cause_entry)
-                        m_csr.mepc.write(m, cause_register.pc)
-                        self.trap_entry(m)
+                        
+                        with m.If(arch_trap):
+                            m_csr.mcause.write(m, cause_entry)
+                            m_csr.mepc.write(m, cause_register.pc)
+                            self.trap_entry(m)
 
                         with m.If(core_empty):
                             m.next = "TRAP_RESUME"
@@ -157,8 +166,14 @@ class Retirement(Elaboratable):
                 with Transaction().body(m):
                     # Resume core operation
 
-                    # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
-                    resume_pc = m_csr.mtvec.read(m) & ~(0b11)
+                    resume_pc = Signal(self.gen_params.isa.xlen)
+                    with m.If(continue_from_ecr_pc):
+                        m.d.av_comb += resume_pc.eq(self.exception_cause_get(m).pc)
+                        m.d.sync += continue_from_ecr_pc.eq(0)
+                    with m.Else():
+                        # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
+                        m.d.av_comb += resume_pc.eq(m_csr.mtvec.read(m) & ~(0b11))
+
                     self.fetch_continue(m, from_pc=0, next_pc=resume_pc, resume_from_exception=1)
 
                     # Release pending trap state - allow accepting new reports

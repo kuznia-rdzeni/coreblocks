@@ -298,7 +298,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
 @parameterized_class(
     ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
     [
-        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
+        ("fibonacci", "fibonacci.asm", 1200*2, {2: 2971215073}, basic_core_config),
         ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
