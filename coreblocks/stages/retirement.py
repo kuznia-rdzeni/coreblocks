@@ -89,7 +89,8 @@ class Retirement(Elaboratable):
             # restore original rl_dst->rp_dst mapping in F-RAT
             self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
-        continue_from_ecr_pc = Signal()
+        continue_pc_override = Signal()
+        continue_pc = Signal(self.gen_params.isa.xlen)
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
@@ -121,7 +122,8 @@ class Retirement(Elaboratable):
                         with m.Elif(cause_register.cause == ExceptionCause._COREBLOCKS_MISPREDICTION):
                             m.d.av_comb += commit.eq(1)
                             m.d.av_comb += arch_trap.eq(0)
-                            m.d.sync += continue_from_ecr_pc.eq(1)
+                            m.d.sync += continue_pc_override.eq(1)
+                            m.d.sync += continue_pc.eq(cause_register.pc)
                         with m.Else():
                             # RISC-V synchronous exceptions - don't retire instruction that caused exception,
                             # and later resume from it.
@@ -129,7 +131,7 @@ class Retirement(Elaboratable):
                             m.d.av_comb += commit.eq(0)
 
                             m.d.av_comb += cause_entry.eq(cause_register.cause)
-                        
+
                         with m.If(arch_trap):
                             m_csr.mcause.write(m, cause_entry)
                             m_csr.mepc.write(m, cause_register.pc)
@@ -166,13 +168,12 @@ class Retirement(Elaboratable):
                 with Transaction().body(m):
                     # Resume core operation
 
-                    resume_pc = Signal(self.gen_params.isa.xlen)
-                    with m.If(continue_from_ecr_pc):
-                        m.d.av_comb += resume_pc.eq(self.exception_cause_get(m).pc)
-                        m.d.sync += continue_from_ecr_pc.eq(0)
-                    with m.Else():
-                        # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
-                        m.d.av_comb += resume_pc.eq(m_csr.mtvec.read(m) & ~(0b11))
+                    handler_pc = Signal(self.gen_params.isa.xlen)
+                    # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
+                    m.d.av_comb += handler_pc.eq(m_csr.mtvec.read(m) & ~(0b11))
+
+                    resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
+                    m.d.sync += continue_pc_override.eq(0)
 
                     self.fetch_continue(m, from_pc=0, next_pc=resume_pc, resume_from_exception=1)
 
