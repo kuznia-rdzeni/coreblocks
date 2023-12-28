@@ -2,6 +2,7 @@ from itertools import product
 from transactron.core import CtrlPath, TModule
 from unittest import TestCase
 
+
 class TestExclusivePath(TestCase):
     def test_exclusive_path(self):
         m = TModule()
@@ -22,15 +23,15 @@ class TestExclusivePath(TestCase):
         with m.Elif(1):
             cp1 = m.ctrl_path
             with m.FSM():
-                with m.State('start'):
+                with m.State("start"):
                     cp10 = m.ctrl_path
-                with m.State('next'):
+                with m.State("next"):
                     cp11 = m.ctrl_path
         with m.Else():
             cp2 = m.ctrl_path
 
         def mutually_exclusive(*cps: CtrlPath):
-            return all(cpa.exclusive_with(cpb) for i, cpa in enumerate(cps) for cpb in cps[i+1:])
+            return all(cpa.exclusive_with(cpb) for i, cpa in enumerate(cps) for cpb in cps[i + 1 :])
 
         def pairwise_exclusive(cps1: list[CtrlPath], cps2: list[CtrlPath]):
             return all(cpa.exclusive_with(cpb) for cpa, cpb in product(cps1, cps2))

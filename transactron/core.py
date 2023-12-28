@@ -648,17 +648,16 @@ class CtrlPath:
 
     def exclusive_with(self, other: "CtrlPath"):
         common_prefix = []
-        can_exclusive = True
-        for a, b in product(self.path, other.path):
+        for a, b in zip(self.path, other.path):
             if a == b:
                 common_prefix.append(a)
             elif a.par != b.par:
-                can_exclusive = False
-            break
+                return False
+            else:
+                break
 
         return (
             self.module == other.module
-            and can_exclusive
             and len(common_prefix) != len(self.path)
             and len(common_prefix) != len(other.path)
         )
