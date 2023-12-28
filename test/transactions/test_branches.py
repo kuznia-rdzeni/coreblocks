@@ -1,6 +1,17 @@
+from amaranth import *
 from itertools import product
-from transactron.core import CtrlPath, TModule
+from transactron.core import (
+    CtrlPath,
+    MethodMap,
+    TModule,
+    Method,
+    Transaction,
+    TransactionManager,
+    TransactionModule,
+    def_method,
+)
 from unittest import TestCase
+from ..common import TestCaseWithSimulator
 
 
 class TestExclusivePath(TestCase):
@@ -45,3 +56,42 @@ class TestExclusivePath(TestCase):
         self.assertTrue(mutually_exclusive(cp10, cp11))
         self.assertTrue(pairwise_exclusive([cp0, cp0a0, cp0a1, cp0a2, cp0b0, cp0b1], [cp1, cp10, cp11]))
         self.assertTrue(pairwise_not_exclusive([cp0, cp0a0, cp0a1, cp0a2], [cp0, cp0b0, cp0b1]))
+
+
+class ExclusiveConflictRemovalCircuit(Elaboratable):
+    def __init__(self):
+        self.sel = Signal()
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        called_method = Method(i=[], o=[])
+
+        @def_method(m, called_method)
+        def _():
+            pass
+
+        with m.If(self.sel):
+            with Transaction().body(m):
+                called_method(m)
+        with m.Else():
+            with Transaction().body(m):
+                called_method(m)
+
+        return m
+
+
+class TestExclusiveConflictRemoval(TestCaseWithSimulator):
+    def test_conflict_removal(self):
+        circ = ExclusiveConflictRemovalCircuit()
+
+        tm = TransactionManager()
+        dut = TransactionModule(circ, tm)
+
+        with self.run_simulation(dut):
+            pass
+
+        cgr, _, _ = tm._conflict_graph(MethodMap(tm.transactions))
+
+        for s in cgr.values():
+            self.assertFalse(s)
