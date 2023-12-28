@@ -24,6 +24,19 @@ class TransactionStat:
     grant: int = 0
 
 
+@dataclass
+class RunStat:
+    name: str
+    src_loc: str
+    run: int = 0
+
+
+@dataclass
+class RunStatNode:
+    stat: RunStat
+    callers: dict[int, "RunStatNode"] = {}
+
+
 @dataclass_json
 @dataclass
 class Profile:
@@ -40,7 +53,7 @@ class Profile:
         with open(file_name, "r") as fp:
             return Profile.from_json(fp.read())  # type: ignore
 
-    def analyze_transactions(self: "Profile") -> list[TransactionStat]:
+    def analyze_transactions(self) -> list[TransactionStat]:
         stats = {
             i: TransactionStat(info.name, f"{info.src_loc[0]}:{info.src_loc[1]}")
             for i, info in self.transactions_and_methods.items()
@@ -50,10 +63,30 @@ class Profile:
         for k in self.running.keys():
             for i in stats:
                 if i in self.waiting_transactions[k]:
-                    stats[i].runnable = stats[i].runnable + 1
+                    stats[i].runnable += 1
                 elif i in self.running[k]:
-                    stats[i].grant = stats[i].grant + 1
+                    stats[i].grant += 1
                 else:
-                    stats[i].unused = stats[i].unused + 1
+                    stats[i].unused += 1
 
         return list(stats.values())
+
+    def analyze_methods(self, recursive=True) -> list[RunStat]:
+        stats: dict[int, RunStatNode] = {
+            i: RunStatNode(RunStat(info.name, f"{info.src_loc[0]}:{info.src_loc[1]}"))
+            for i, info in self.transactions_and_methods.items()
+        }
+
+        def rec(k: int, caller: int):
+            stats[caller].stat.run += 1
+            caller1 = self.running[k][caller]
+            if caller1 is not None:
+                rec(k, caller1)
+
+        for k, d in self.running.items():
+            for i, caller in d.items():
+                stats[i].stat.run += 1
+                if recursive and caller is not None:
+                    rec(k, caller)
+
+        return list(map(lambda node: node.stat, stats.values()))
