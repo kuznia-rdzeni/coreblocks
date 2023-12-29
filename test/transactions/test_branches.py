@@ -17,6 +17,7 @@ from ..common import TestCaseWithSimulator
 class TestExclusivePath(TestCase):
     def test_exclusive_path(self):
         m = TModule()
+        m._MustUse__silence = True  # type: ignore
 
         with m.If(0):
             cp0 = m.ctrl_path

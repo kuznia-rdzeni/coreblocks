@@ -710,39 +710,35 @@ class CtrlPathBuilder:
         module: int
             Unique module identifier.
         """
-        self.depth = 0
         self.module = module
         self.ctrl_path: list[PathEdge] = []
+        self.previous: Optional[PathEdge] = None
 
     @contextmanager
     def enter(self, enter_type=EnterType.PUSH):
         et = EnterType
 
-        def flush():
-            while len(self.ctrl_path) > self.depth:
-                self.ctrl_path.pop()
-
-        if enter_type in [et.ADD, et.ENTRY]:
-            self.ctrl_path[-1] = replace(self.ctrl_path[-1], alt=self.ctrl_path[-1].alt + 1)
-        if enter_type == et.PUSH:
-            if len(self.ctrl_path) > self.depth:
-                par = self.ctrl_path[self.depth].par + 1
-            else:
-                par = 0
-            flush()
-            self.ctrl_path.append(PathEdge(par=par))
-        if enter_type in [et.PUSH, et.ADD]:
-            self.depth += 1
+        match enter_type:
+            case et.ADD:
+                assert self.previous is not None
+                self.ctrl_path.append(replace(self.previous, alt=self.previous.alt + 1))
+            case et.ENTRY:
+                self.ctrl_path[-1] = replace(self.ctrl_path[-1], alt=self.ctrl_path[-1].alt + 1)
+            case et.PUSH:
+                if self.previous is not None:
+                    self.ctrl_path.append(PathEdge(par=self.previous.par + 1))
+                else:
+                    self.ctrl_path.append(PathEdge())
+        self.previous = None
         try:
             yield
-            flush()
         finally:
             if enter_type in [et.PUSH, et.ADD]:
-                self.depth -= 1
+                self.previous = self.ctrl_path.pop()
 
     def build_ctrl_path(self):
         """Returns the current control path."""
-        return CtrlPath(self.module, self.ctrl_path[: self.depth])
+        return CtrlPath(self.module, self.ctrl_path[:])
 
 
 class TModule(ModuleLike, Elaboratable):
