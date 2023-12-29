@@ -630,23 +630,58 @@ class _AvoidingModuleBuilderDomains:
 
 
 class EnterType(Enum):
+    """Characterizes stack behavior of Amaranth's context managers for control structures."""
+
+    #: Used for `m.If`, `m.Switch` and `m.FSM`.
     PUSH = auto()
+    #: Used for `m.Elif` and `m.Else`.
     ADD = auto()
+    #: Used for `m.Case`, `m.Default` and `m.State`.
     ENTRY = auto()
 
 
 @dataclass(frozen=True)
-class PathCounter:
+class PathEdge:
+    """Describes an edge in Amaranth's control tree.
+
+    Attributes
+    ----------
+    alt : int
+        Which alternative (e.g. case of `m.If` or m.Switch`) is described.
+    par : int
+        Which parallel control structure (e.g. `m.If` at the same level) is described.
+    """
+
     alt: int = 0
     par: int = 0
 
 
 @dataclass
 class CtrlPath:
+    """Describes a path in Amaranth's control tree.
+
+    Attributes
+    ----------
+    module : int
+        Unique number of the module the path refers to.
+    path : list[PathEdge]
+        Path in the control tree, starting from the root.
+    """
+
     module: int
-    path: list[PathCounter]
+    path: list[PathEdge]
 
     def exclusive_with(self, other: "CtrlPath"):
+        """Decides if this path is mutually exclusive with some other path.
+
+        Paths are mutually exclusive iff they refer to the same module and
+        diverge on different alternatives of the same control structure.
+
+        Arguments
+        ---------
+        other : CtrlPath
+            The other path this path is compared to.
+        """
         common_prefix = []
         for a, b in zip(self.path, other.path):
             if a == b:
@@ -663,28 +698,39 @@ class CtrlPath:
         )
 
 
-class TModuleStackManager:
-    def __init__(self):
+class CtrlPathBuilder:
+    """Constructs control paths.
+
+    Used internally by `TModule`."""
+
+    def __init__(self, module: int):
+        """
+        Parameters
+        ----------
+        module: int
+            Unique module identifier.
+        """
         self.depth = 0
-        self._ctrl_path: list[PathCounter] = []
+        self.module = module
+        self.ctrl_path: list[PathEdge] = []
 
     @contextmanager
     def enter(self, enter_type=EnterType.PUSH):
         et = EnterType
 
         def flush():
-            while len(self._ctrl_path) > self.depth:
-                self._ctrl_path.pop()
+            while len(self.ctrl_path) > self.depth:
+                self.ctrl_path.pop()
 
         if enter_type in [et.ADD, et.ENTRY]:
-            self._ctrl_path[-1] = replace(self._ctrl_path[-1], alt=self._ctrl_path[-1].alt + 1)
+            self.ctrl_path[-1] = replace(self.ctrl_path[-1], alt=self.ctrl_path[-1].alt + 1)
         if enter_type == et.PUSH:
-            if len(self._ctrl_path) > self.depth:
-                par = self._ctrl_path[self.depth].par + 1
+            if len(self.ctrl_path) > self.depth:
+                par = self.ctrl_path[self.depth].par + 1
             else:
                 par = 0
             flush()
-            self._ctrl_path.append(PathCounter(par=par))
+            self.ctrl_path.append(PathEdge(par=par))
         if enter_type in [et.PUSH, et.ADD]:
             self.depth += 1
         try:
@@ -694,9 +740,9 @@ class TModuleStackManager:
             if enter_type in [et.PUSH, et.ADD]:
                 self.depth -= 1
 
-    @property
-    def ctrl_path(self):
-        return self._ctrl_path[: self.depth]
+    def build_ctrl_path(self):
+        """Returns the current control path."""
+        return CtrlPath(self.module, self.ctrl_path[: self.depth])
 
 
 class TModule(ModuleLike, Elaboratable):
@@ -728,56 +774,56 @@ class TModule(ModuleLike, Elaboratable):
         self.submodules = self.main_module.submodules
         self.domains = self.main_module.domains
         self.fsm: Optional[FSM] = None
-        self.stack_manager = TModuleStackManager()
         self.uid = TModule.__next_uid
+        self.path_builder = CtrlPathBuilder(self.uid)
         TModule.__next_uid += 1
 
     @contextmanager
     def AvoidedIf(self, cond: ValueLike):  # noqa: N802
         with self.main_module.If(cond):
-            with self.stack_manager.enter(EnterType.PUSH):
+            with self.path_builder.enter(EnterType.PUSH):
                 yield
 
     @contextmanager
     def If(self, cond: ValueLike):  # noqa: N802
         with self.main_module.If(cond):
             with self.avoiding_module.If(cond):
-                with self.stack_manager.enter(EnterType.PUSH):
+                with self.path_builder.enter(EnterType.PUSH):
                     yield
 
     @contextmanager
     def Elif(self, cond):  # noqa: N802
         with self.main_module.Elif(cond):
             with self.avoiding_module.Elif(cond):
-                with self.stack_manager.enter(EnterType.ADD):
+                with self.path_builder.enter(EnterType.ADD):
                     yield
 
     @contextmanager
     def Else(self):  # noqa: N802
         with self.main_module.Else():
             with self.avoiding_module.Else():
-                with self.stack_manager.enter(EnterType.ADD):
+                with self.path_builder.enter(EnterType.ADD):
                     yield
 
     @contextmanager
     def Switch(self, test: ValueLike):  # noqa: N802
         with self.main_module.Switch(test):
             with self.avoiding_module.Switch(test):
-                with self.stack_manager.enter(EnterType.PUSH):
+                with self.path_builder.enter(EnterType.PUSH):
                     yield
 
     @contextmanager
     def Case(self, *patterns: SwitchKey):  # noqa: N802
         with self.main_module.Case(*patterns):
             with self.avoiding_module.Case(*patterns):
-                with self.stack_manager.enter(EnterType.ENTRY):
+                with self.path_builder.enter(EnterType.ENTRY):
                     yield
 
     @contextmanager
     def Default(self):  # noqa: N802
         with self.main_module.Default():
             with self.avoiding_module.Default():
-                with self.stack_manager.enter(EnterType.ENTRY):
+                with self.path_builder.enter(EnterType.ENTRY):
                     yield
 
     @contextmanager
@@ -785,7 +831,7 @@ class TModule(ModuleLike, Elaboratable):
         old_fsm = self.fsm
         with self.main_module.FSM(reset, domain, name) as fsm:
             self.fsm = fsm
-            with self.stack_manager.enter(EnterType.PUSH):
+            with self.path_builder.enter(EnterType.PUSH):
                 yield fsm
         self.fsm = old_fsm
 
@@ -794,7 +840,7 @@ class TModule(ModuleLike, Elaboratable):
         assert self.fsm is not None
         with self.main_module.State(name):
             with self.avoiding_module.If(self.fsm.ongoing(name)):
-                with self.stack_manager.enter(EnterType.ENTRY):
+                with self.path_builder.enter(EnterType.ENTRY):
                     yield
 
     @property
@@ -807,7 +853,7 @@ class TModule(ModuleLike, Elaboratable):
 
     @property
     def ctrl_path(self):
-        return CtrlPath(self.uid, self.stack_manager.ctrl_path)
+        return self.path_builder.build_ctrl_path()
 
     @property
     def _MustUse__silence(self):  # noqa: N802
