@@ -1,6 +1,6 @@
 from amaranth.sim import *
 from transactron.core import MethodMap, TransactionManager, Transaction, Method
-from transactron.profiler import Profile, ProfileInfo
+from transactron.profiler import CycleProfile, Profile, ProfileInfo
 from .functions import TestGen
 
 __all__ = ["profiler_process"]
@@ -38,8 +38,7 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
             for _ in range(3):
                 yield Settle()
 
-            profile.waiting_transactions[cycle] = {}
-            profile.running[cycle] = {}
+            cprof = CycleProfile()
 
             for transaction in method_map.transactions:
                 request = yield transaction.request
@@ -47,22 +46,22 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
                 grant = yield transaction.grant
 
                 if grant:
-                    profile.running[cycle][get_id(transaction)] = None
+                    cprof.running[get_id(transaction)] = None
                 elif request and runnable:
                     for transaction2 in cgr[transaction]:
                         if (yield transaction2.grant):
-                            profile.waiting_transactions[cycle][get_id(transaction)] = get_id(transaction2)
+                            cprof.waiting_transactions[get_id(transaction)] = get_id(transaction2)
 
             for method in method_map.methods:
-                if (yield method.run):
-                    for t_or_m in method_map.method_parents[method]:
+                for t_or_m in method_map.method_parents[method]:
+                    if (yield method.run):
                         if (
                             isinstance(t_or_m, Transaction)
                             and (yield t_or_m.grant)
                             or isinstance(t_or_m, Method)
                             and (yield t_or_m.run)
                         ):
-                            profile.running[cycle][get_id(method)] = get_id(t_or_m)
+                            cprof.running[get_id(method)] = get_id(t_or_m)
 
             yield
             cycle = cycle + 1

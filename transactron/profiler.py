@@ -39,10 +39,17 @@ class RunStatNode:
 
 @dataclass_json
 @dataclass
+class CycleProfile:
+    waiting_transactions: dict[int, int] = field(default_factory=dict)
+    locked_methods: dict[int, int] = field(default_factory=dict)
+    running: dict[int, Optional[int]] = field(default_factory=dict)
+
+
+@dataclass_json
+@dataclass
 class Profile:
     transactions_and_methods: dict[int, ProfileInfo] = field(default_factory=dict)
-    waiting_transactions: dict[int, dict[int, int]] = field(default_factory=dict)
-    running: dict[int, dict[int, Optional[int]]] = field(default_factory=dict)
+    cycles: list[CycleProfile] = field(default_factory=list)
 
     def encode(self, file_name: str):
         with open(file_name, "w") as fp:
@@ -60,11 +67,11 @@ class Profile:
             if info.is_transaction
         }
 
-        for k in self.running.keys():
+        for c in self.cycles:
             for i in stats:
-                if i in self.waiting_transactions[k]:
+                if i in c.waiting_transactions:
                     stats[i].runnable += 1
-                elif i in self.running[k]:
+                elif i in c.running:
                     stats[i].grant += 1
                 else:
                     stats[i].unused += 1
@@ -77,16 +84,16 @@ class Profile:
             for i, info in self.transactions_and_methods.items()
         }
 
-        def rec(k: int, caller: int):
+        def rec(c: CycleProfile, caller: int):
             stats[caller].stat.run += 1
-            caller1 = self.running[k][caller]
+            caller1 = c.running[caller]
             if caller1 is not None:
-                rec(k, caller1)
+                rec(c, caller1)
 
-        for k, d in self.running.items():
-            for i, caller in d.items():
+        for c in self.cycles:
+            for i, caller in c.running.items():
                 stats[i].stat.run += 1
                 if recursive and caller is not None:
-                    rec(k, caller)
+                    rec(c, caller)
 
         return list(map(lambda node: node.stat, stats.values()))
