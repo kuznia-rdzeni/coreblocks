@@ -233,7 +233,7 @@ class TransactionManager(Elaboratable):
             tms2 = [trans2] + method_map.methods_by_transaction[trans2]
 
             # if first transaction is exclusive with the second transaction, or this is true for
-            # any called methods, the transactions can't run at the same time
+            # any called methods, the transactions will never run at the same time
             for tm1, tm2 in product(tms1, tms2):
                 if tm1.ctrl_path.exclusive_with(tm2.ctrl_path):
                     return True
