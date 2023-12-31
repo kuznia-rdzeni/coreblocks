@@ -110,13 +110,15 @@ class Now(CoreblocksCommand):
     pass
 
 class TrueSettle(CoreblocksCommand):
+    """Wait till all process are waiting for the next cycle or for the TrueSettle"""
     pass
 
 class SyncProcessState(Enum):
-    sleeping = 0
+    """State of SyncProcessWrapper."""
+    sleeping = 0 # Wait for the next cycle
     running = 1
     ended = 2
-    true_settle = 3
+    true_settle = 3 # Wait for the TrueSettle
 
 class SyncProcessWrapper:
     def __init__(self, f):
