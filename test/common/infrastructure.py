@@ -2,6 +2,7 @@ import os
 import random
 import unittest
 import functools
+from enum import Enum
 from contextlib import contextmanager, nullcontext
 from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias
 from abc import ABC
@@ -108,15 +109,26 @@ class CoreblocksCommand(ABC):
 class Now(CoreblocksCommand):
     pass
 
+class TrueSettle(CoreblocksCommand):
+    pass
+
+class SyncProcessState(Enum):
+    sleeping = 0
+    running = 1
+    ended = 2
+    true_settle = 3
 
 class SyncProcessWrapper:
     def __init__(self, f):
         self.org_process = f
         self.current_cycle = 0
+        self.state = None
+        self.blocked = None
 
     def _wrapping_function(self):
         response = None
         org_coroutine = self.org_process()
+        self.state = SyncProcessState.running
         try:
             while True:
                 # call orginal test process and catch data yielded by it in `command` variable
@@ -124,14 +136,26 @@ class SyncProcessWrapper:
                 # If process wait for new cycle
                 if command is None:
                     self.current_cycle += 1
+                    self.state = SyncProcessState.sleeping
                     # forward to amaranth
                     yield
-                elif isinstance(command, Now):
-                    response = self.current_cycle
+                    self.state = SyncProcessState.running
+                elif isinstance(command, CoreblocksCommand):
+                    if isinstance(command, Now):
+                        response = self.current_cycle
+                    elif isinstance(command, TrueSettle):
+                        self.state = SyncProcessState.true_settle
+                        self.blocked=True
+                        while self.blocked:
+                            yield Settle()
+                        self.state = SyncProcessState.running
+                    else:
+                        raise RuntimeError(f"Not known CoreblocksCommand: {command}")
                 # Pass everything else to amaranth simulator without modifications
                 else:
                     response = yield command
         except StopIteration:
+            self.state = SyncProcessState.ended
             pass
 
 
@@ -168,15 +192,30 @@ class PysimSimulator(Simulator):
             self.ctx = nullcontext()
 
         self.deadline = clk_period * max_cycles
+        self.sync_proc_list = []
 
     def add_sync_process(self, f: Callable[[], TestGen]):
         f_wrapped = SyncProcessWrapper(f)
+        self.sync_proc_list.append(f_wrapped)
         super().add_sync_process(f_wrapped._wrapping_function)
 
-    def run(self) -> bool:
-        with self.ctx:
-            self.run_until(self.deadline)
+    def _check_true_settle_ready(self):
+        return all(p.state != SyncProcessState.running for p in self.sync_proc_list)
 
+    def _unblock_sync_processes(self):
+        for p in self.sync_proc_list:
+            if p.blocked:
+                p.blocked = False
+
+    def run(self) -> bool:
+        deadline = self.deadline * 1e12
+        assert self._engine.now <= deadline 
+        last_now = self._engine.now
+        while self.advance() and self._engine.now < deadline:
+            if last_now == self._engine.now:
+                if self._check_true_settle_ready():
+                    self._unblock_sync_processes()
+            last_now = self._engine.now
         return not self.advance()
 
 
