@@ -154,7 +154,7 @@ class UnalignedFetch(Elaboratable):
         m.d.av_comb += stalled.eq(stalled_unsafe | stalled_exception)
 
         with Transaction().body(m, request=~stalled):
-            aligned_pc = Cat(Repl(0, 2), cache_req_pc[2:])
+            aligned_pc = Cat(C(0, 2), cache_req_pc[2:])
             self.icache.issue_req(m, addr=aligned_pc)
             req_limiter.acquire(m)
 
