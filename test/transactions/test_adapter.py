@@ -4,7 +4,7 @@ from transactron import Method, def_method, TModule
 from transactron.lib import AdapterTrans
 
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
+from ..common import TestCaseWithSimulator, TestbenchIO, data_layout, SimpleTestCircuit, ModuleConnector
 
 
 class Echo(Elaboratable):
@@ -45,35 +45,19 @@ class Consumer(Elaboratable):
         return m
 
 
-class TestElaboratable(Elaboratable):
-    def __init__(self):
-        self.echo = Echo()
-        self.consumer = Consumer()
-        self.io_echo = TestbenchIO(AdapterTrans(self.echo.action))
-        self.io_consume = TestbenchIO(AdapterTrans(self.consumer.action))
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        m.submodules.echo = self.echo
-        m.submodules.io_echo = self.io_echo
-        m.submodules.consumer = self.consumer
-        m.submodules.io_consume = self.io_consume
-
-        return m
-
-
 class TestAdapterTrans(TestCaseWithSimulator):
     def proc(self):
         for _ in range(3):
             # this would previously timeout if the output layout was empty (as is in this case)
-            yield from self.t.io_consume.call()
+            yield from self.consumer.action.call()
         for expected in [4, 1, 0]:
-            obtained = (yield from self.t.io_echo.call(data=expected))["data"]
+            obtained = (yield from self.echo.action.call(data=expected))["data"]
             self.assertEqual(expected, obtained)
 
     def test_single(self):
-        self.t = t = TestElaboratable()
+        self.echo = SimpleTestCircuit(Echo())
+        self.consumer = SimpleTestCircuit(Consumer())
+        self.m = ModuleConnector(echo = self.echo, consumer = self.consumer)
 
-        with self.run_simulation(t, max_cycles=100) as sim:
+        with self.run_simulation(self.m, max_cycles=100) as sim:
             sim.add_sync_process(self.proc)
