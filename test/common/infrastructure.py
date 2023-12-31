@@ -109,16 +109,21 @@ class CoreblocksCommand(ABC):
 class Now(CoreblocksCommand):
     pass
 
+
 class TrueSettle(CoreblocksCommand):
     """Wait till all process are waiting for the next cycle or for the TrueSettle"""
+
     pass
+
 
 class SyncProcessState(Enum):
     """State of SyncProcessWrapper."""
-    sleeping = 0 # Wait for the next cycle
+
+    sleeping = 0  # Wait for the next cycle
     running = 1
     ended = 2
-    true_settle = 3 # Wait for the TrueSettle
+    true_settle = 3  # Wait for the TrueSettle
+
 
 class SyncProcessWrapper:
     def __init__(self, f):
@@ -147,7 +152,7 @@ class SyncProcessWrapper:
                         response = self.current_cycle
                     elif isinstance(command, TrueSettle):
                         self.state = SyncProcessState.true_settle
-                        self.blocked=True
+                        self.blocked = True
                         while self.blocked:
                             yield Settle()
                         self.state = SyncProcessState.running
@@ -211,7 +216,7 @@ class PysimSimulator(Simulator):
 
     def run(self) -> bool:
         deadline = self.deadline * 1e12
-        assert self._engine.now <= deadline 
+        assert self._engine.now <= deadline
         last_now = self._engine.now
         while self.advance() and self._engine.now < deadline:
             if last_now == self._engine.now:

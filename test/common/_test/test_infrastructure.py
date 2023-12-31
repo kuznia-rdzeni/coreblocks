@@ -30,6 +30,7 @@ class TestNow(TestCaseWithSimulator):
         with self.run_simulation(self.m, 50) as sim:
             sim.add_sync_process(self.process)
 
+
 class TestTrueSettle(TestCaseWithSimulator):
     def setUp(self):
         self.m = SimpleTestCircuit(EmptyCircuit())
@@ -46,7 +47,7 @@ class TestTrueSettle(TestCaseWithSimulator):
 
     def flag_process(self):
         for k in range(self.test_cycles):
-            for i in range(random.randrange(0,5)):
+            for i in range(random.randrange(0, 5)):
                 yield Settle()
             self.flag = True
             yield
