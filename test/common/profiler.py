@@ -53,8 +53,8 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
                             cprof.waiting_transactions[get_id(transaction)] = get_id(transaction2)
 
             for method in method_map.methods:
-                for t_or_m in method_map.method_parents[method]:
-                    if (yield method.run):
+                if (yield method.run):
+                    for t_or_m in method_map.method_parents[method]:
                         if (
                             isinstance(t_or_m, Transaction)
                             and (yield t_or_m.grant)
@@ -62,6 +62,12 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
                             and (yield t_or_m.run)
                         ):
                             cprof.running[get_id(method)] = get_id(t_or_m)
+                else:
+                    if any(
+                        get_id(transaction) in cprof.running
+                        for transaction in method_map.transactions_by_method[method]
+                    ):
+                        cprof.locked_methods.add(get_id(method))
 
             yield
             cycle = cycle + 1

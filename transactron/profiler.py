@@ -23,25 +23,38 @@ class TransactionStat:
     runnable: int = 0
     grant: int = 0
 
+    @staticmethod
+    def make(info: ProfileInfo):
+        return TransactionStat(info.name, f"{info.src_loc[0]}:{info.src_loc[1]}")
+
 
 @dataclass
 class RunStat:
     name: str
     src_loc: str
     run: int = 0
+    locked: int = 0
+
+    @staticmethod
+    def make(info: ProfileInfo):
+        return RunStat(info.name, f"{info.src_loc[0]}:{info.src_loc[1]}")
 
 
 @dataclass
 class RunStatNode:
     stat: RunStat
-    callers: dict[int, "RunStatNode"] = {}
+    callers: dict[int, "RunStatNode"] = field(default_factory=dict)
+
+    @staticmethod
+    def make(info: ProfileInfo):
+        return RunStatNode(RunStat.make(info))
 
 
 @dataclass_json
 @dataclass
 class CycleProfile:
     waiting_transactions: dict[int, int] = field(default_factory=dict)
-    locked_methods: dict[int, int] = field(default_factory=dict)
+    locked_methods: set[int] = field(default_factory=set)
     running: dict[int, Optional[int]] = field(default_factory=dict)
 
 
@@ -62,9 +75,7 @@ class Profile:
 
     def analyze_transactions(self) -> list[TransactionStat]:
         stats = {
-            i: TransactionStat(info.name, f"{info.src_loc[0]}:{info.src_loc[1]}")
-            for i, info in self.transactions_and_methods.items()
-            if info.is_transaction
+            i: TransactionStat.make(info) for i, info in self.transactions_and_methods.items() if info.is_transaction
         }
 
         for c in self.cycles:
@@ -79,21 +90,21 @@ class Profile:
         return list(stats.values())
 
     def analyze_methods(self, recursive=True) -> list[RunStat]:
-        stats: dict[int, RunStatNode] = {
-            i: RunStatNode(RunStat(info.name, f"{info.src_loc[0]}:{info.src_loc[1]}"))
-            for i, info in self.transactions_and_methods.items()
-        }
+        stats = {i: RunStatNode.make(info) for i, info in self.transactions_and_methods.items()}
 
-        def rec(c: CycleProfile, caller: int):
-            stats[caller].stat.run += 1
-            caller1 = c.running[caller]
-            if caller1 is not None:
-                rec(c, caller1)
+        def rec(c: CycleProfile, node: RunStatNode, i: int):
+            node.stat.run += 1
+            caller = c.running[i]
+            if recursive and caller is not None:
+                if caller not in stats[i].callers:
+                    node.callers[caller] = RunStatNode.make(self.transactions_and_methods[caller])
+                rec(c, node.callers[caller], caller)
 
         for c in self.cycles:
-            for i, caller in c.running.items():
-                stats[i].stat.run += 1
-                if recursive and caller is not None:
-                    rec(c, caller)
+            for i in c.running:
+                rec(c, stats[i], i)
+
+            for i in c.locked_methods:
+                stats[i].stat.locked += 1
 
         return list(map(lambda node: node.stat, stats.values()))
