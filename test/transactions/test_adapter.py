@@ -57,7 +57,7 @@ class TestAdapterTrans(TestCaseWithSimulator):
     def test_single(self):
         self.echo = SimpleTestCircuit(Echo())
         self.consumer = SimpleTestCircuit(Consumer())
-        self.m = ModuleConnector(echo = self.echo, consumer = self.consumer)
+        self.m = ModuleConnector(echo=self.echo, consumer=self.consumer)
 
         with self.run_simulation(self.m, max_cycles=100) as sim:
             sim.add_sync_process(self.proc)

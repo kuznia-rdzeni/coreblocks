@@ -50,7 +50,7 @@ class RTypeInstr(RISCVInstr):
         self.funct7 = Value.cast(funct7)
 
     def pack(self) -> Value:
-        return Cat(C(0b11,2), self.opcode, self.rd, self.funct3, self.rs1, self.rs2, self.funct7)
+        return Cat(C(0b11, 2), self.opcode, self.rd, self.funct3, self.rs1, self.rs2, self.funct7)
 
 
 class ITypeInstr(RISCVInstr):
@@ -62,7 +62,7 @@ class ITypeInstr(RISCVInstr):
         self.imm = Value.cast(imm)
 
     def pack(self) -> Value:
-        return Cat(C(0b11,2), self.opcode, self.rd, self.funct3, self.rs1, self.imm)
+        return Cat(C(0b11, 2), self.opcode, self.rd, self.funct3, self.rs1, self.imm)
 
 
 class STypeInstr(RISCVInstr):
@@ -74,7 +74,7 @@ class STypeInstr(RISCVInstr):
         self.rs2 = Value.cast(rs2)
 
     def pack(self) -> Value:
-        return Cat(C(0b11,2), self.opcode, self.imm[0:5], self.funct3, self.rs1, self.rs2, self.imm[5:12])
+        return Cat(C(0b11, 2), self.opcode, self.imm[0:5], self.funct3, self.rs1, self.rs2, self.imm[5:12])
 
 
 class BTypeInstr(RISCVInstr):
@@ -87,7 +87,7 @@ class BTypeInstr(RISCVInstr):
 
     def pack(self) -> Value:
         return Cat(
-            C(0b11,2),
+            C(0b11, 2),
             self.opcode,
             self.imm[11],
             self.imm[1:5],
@@ -106,7 +106,7 @@ class UTypeInstr(RISCVInstr):
         self.imm = Value.cast(imm)
 
     def pack(self) -> Value:
-        return Cat(C(0b11,2), self.opcode, self.rd, self.imm[12:])
+        return Cat(C(0b11, 2), self.opcode, self.rd, self.imm[12:])
 
 
 class JTypeInstr(RISCVInstr):
@@ -116,7 +116,7 @@ class JTypeInstr(RISCVInstr):
         self.imm = Value.cast(imm)
 
     def pack(self) -> Value:
-        return Cat(C(0b11,2), self.opcode, self.rd, self.imm[12:20], self.imm[11], self.imm[1:11], self.imm[20])
+        return Cat(C(0b11, 2), self.opcode, self.rd, self.imm[12:20], self.imm[11], self.imm[1:11], self.imm[20])
 
 
 class IllegalInstr(RISCVInstr):

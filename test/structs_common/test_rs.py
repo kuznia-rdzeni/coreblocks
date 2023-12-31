@@ -25,6 +25,7 @@ def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dic
 
     return check_list
 
+
 class TestRSMethodInsert(TestCaseWithSimulator):
     def test_insert(self):
         self.gen_params = GenParams(test_core_config)
@@ -383,7 +384,9 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries = self.gen_params.max_rs_entries
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]]))
+        self.m = SimpleTestCircuit(
+            RS(self.gen_params, 2**self.rs_entries_bits, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]])
+        )
         self.insert_list = [
             {
                 "rs_entry_id": id,

@@ -109,7 +109,6 @@ class RetirementTest(TestCaseWithSimulator):
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
 
-
     @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q), sched_prio=1)
     def retire_process(self):
         return self.submit_q.popleft()
@@ -152,7 +151,7 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         self.retc = RetirementTestCircuit(self.gen_params)
 
-        yield from self.retc.mock_fetch_stall.enable() # To be fixed
+        yield from self.retc.mock_fetch_stall.enable()  # To be fixed
         with self.run_simulation(self.retc) as sim:
             sim.add_sync_process(self.retire_process)
             sim.add_sync_process(self.peek_process)

@@ -136,7 +136,12 @@ COMMON_TESTS = [
     # c.lwsp x2, 4
     (0x4112, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X2, funct3=Funct3.W, rs1=Registers.SP, imm=C(4, 12))),
     # c.jr x30
-    (0x8F02, ITypeInstr(opcode=Opcode.JALR, rd=Registers.ZERO, funct3=Funct3.JALR, rs1=Registers.X30, imm=C(0).replicate(12))),
+    (
+        0x8F02,
+        ITypeInstr(
+            opcode=Opcode.JALR, rd=Registers.ZERO, funct3=Funct3.JALR, rs1=Registers.X30, imm=C(0).replicate(12)
+        ),
+    ),
     # c.mv x2, x26
     (
         0x816A,

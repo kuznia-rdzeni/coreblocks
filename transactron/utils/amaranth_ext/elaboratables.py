@@ -185,6 +185,7 @@ class Scheduler(Elaboratable):
 
         return m
 
+
 class RoundRobin(Elaboratable):
     """Round-robin scheduler.
     For a given set of requests, the round-robin scheduler will
@@ -212,15 +213,15 @@ class RoundRobin(Elaboratable):
         Asserted if grant corresponds to an active request. Deasserted
         otherwise, i.e. if no requests are active.
     """
+
     def __init__(self, *, count):
         if not isinstance(count, int) or count < 0:
-            raise ValueError("Count must be a non-negative integer, not {!r}"
-                             .format(count))
-        self.count    = count
+            raise ValueError("Count must be a non-negative integer, not {!r}".format(count))
+        self.count = count
 
         self.requests = Signal(count)
-        self.grant    = Signal(range(count))
-        self.valid    = Signal()
+        self.grant = Signal(range(count))
+        self.valid = Signal()
 
     def elaborate(self, platform):
         m = Module()
