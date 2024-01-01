@@ -1,3 +1,4 @@
+import sys
 import os
 import random
 import unittest
@@ -39,7 +40,10 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         self._io: dict[str, _T_nested_collection[TestbenchIO]] = {}
 
     def __getattr__(self, name: str) -> Any:
-        return self._io[name]
+        try:
+            return self._io[name]
+        except KeyError:
+            raise AttributeError()
 
     def elaborate(self, platform):
         def transform_methods_to_testbenchios(
@@ -181,6 +185,21 @@ class PysimSimulator(Simulator):
 
 
 class TestCaseWithSimulator(unittest.TestCase):
+    def add_class_mocks(self, sim: PysimSimulator) -> None:
+        for key in dir(self):
+            val = getattr(self, key)
+            if hasattr(val, "_transactron_testing_process"):
+                sim.add_sync_process(val)
+
+    def add_local_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
+        for key, val in frame_locals.items():
+            if hasattr(val, "_transactron_testing_process"):
+                sim.add_sync_process(val)
+
+    def add_all_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
+        self.add_class_mocks(sim)
+        self.add_local_mocks(sim, frame_locals)
+
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
         traces_file = None
@@ -190,9 +209,7 @@ class TestCaseWithSimulator(unittest.TestCase):
         sim = PysimSimulator(
             module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
         )
-        if hasattr(self, "_transactron_testing_processes"):
-            for proc in self._transactron_testing_processes:  # type: ignore
-                sim.add_sync_process(proc)
+        self.add_all_mocks(sim, sys._getframe(2).f_locals)
         yield sim
         res = sim.run()
 
@@ -211,32 +228,3 @@ class TestCaseWithSimulator(unittest.TestCase):
         Wait for a random amount of cycles in range [1, max_cycle_cnt)
         """
         yield from self.tick(random.randrange(max_cycle_cnt))
-
-
-class AutoRegisterMocksMetaclass(type):
-    class ProcessTable(dict):
-        def __init__(self):
-            super().__init__()
-            self.processes = []
-
-        def __setitem__(self, key, value):
-            if hasattr(value, "_transactron_testing_process"):
-                self.processes.append(value)
-            super().__setitem__(key, value)
-
-    @classmethod
-    def __prepare__(metacls, name, bases):  # noqa: N804 # pyright: ignore [ reportSelfClsParameterName ]
-        return metacls.ProcessTable()
-
-    def __new__(cls, name, bases, namespace):
-        def class_instance__new__(cls, *args):
-            inst = object().__new__(cls)
-            inst._transactron_testing_processes = map(
-                lambda proc: proc.__get__(inst), inst._transactron_testing_processes
-            )
-            return inst
-
-        result = type.__new__(cls, name, bases, dict(namespace))
-        result._transactron_testing_processes = namespace.processes  # type: ignore
-        result.__new__ = class_instance__new__  # type: ignore
-        return result

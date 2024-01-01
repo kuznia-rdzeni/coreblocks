@@ -55,6 +55,31 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
 
         return False
 
+    def process_test(self):
+        saved_entry = None
+
+        for _ in range(self.cycles):
+            self.rob_id = random.randint(0, self.rob_max)
+
+            cause = random.choice(list(ExceptionCause))
+            report_rob = random.randint(0, self.rob_max)
+            report_pc = random.randrange(2**self.gen_params.isa.xlen)
+            report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
+
+            yield from self.dut.report.call(report_arg)
+
+            new_state = yield from self.dut.get.call()
+
+            if self.should_update(report_arg, saved_entry, self.rob_id):
+                self.assertDictEqual(new_state, report_arg)
+                saved_entry = report_arg
+            elif saved_entry is not None:
+                self.assertDictEqual(new_state, saved_entry)
+
+    @def_method_mock(lambda self: self.rob_idx_mock)
+    def process_rob_idx_mock(self):
+        return {"start": self.rob_id, "end": 0}
+
     def test_randomized(self):
         self.gen_params = GenParams(test_core_config)
         random.seed(2)
@@ -67,31 +92,5 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
 
         self.rob_id = 0
 
-        def process_test():
-            saved_entry = None
-
-            for _ in range(self.cycles):
-                self.rob_id = random.randint(0, self.rob_max)
-
-                cause = random.choice(list(ExceptionCause))
-                report_rob = random.randint(0, self.rob_max)
-                report_pc = random.randrange(2**self.gen_params.isa.xlen)
-                report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
-
-                yield from self.dut.report.call(report_arg)
-
-                new_state = yield from self.dut.get.call()
-
-                if self.should_update(report_arg, saved_entry, self.rob_id):
-                    self.assertDictEqual(new_state, report_arg)
-                    saved_entry = report_arg
-                elif saved_entry is not None:
-                    self.assertDictEqual(new_state, saved_entry)
-
-        @def_method_mock(lambda: self.rob_idx_mock)
-        def process_rob_idx_mock():
-            return {"start": self.rob_id, "end": 0}
-
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process_test)
-            sim.add_sync_process(process_rob_idx_mock)
+            sim.add_sync_process(self.process_test)
