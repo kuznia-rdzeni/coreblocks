@@ -3,7 +3,7 @@ from coreblocks.fu.alu import AluFn, ALUComponent
 
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
-from transactron._utils import signed_to_int
+from transactron.utils import signed_to_int
 
 
 class AluUnitTest(FunctionalUnitTestCase[AluFn.Fn]):

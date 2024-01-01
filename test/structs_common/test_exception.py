@@ -6,14 +6,14 @@ from coreblocks.params import GenParams
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.configurations import test_core_config
 from transactron.lib import Adapter
-from transactron.utils.utils import ModuleConnector
+from transactron.utils import ModuleConnector
 
 from ..common import *
 
 import random
 
 
-class TestExceptionCauseRegister(TestCaseWithSimulator, metaclass=AutoRegisterMocksMetaclass):
+class TestExceptionCauseRegister(TestCaseWithSimulator):
     rob_max = 7
 
     def should_update(self, new_arg, old_arg, rob_start) -> bool:
@@ -55,43 +55,43 @@ class TestExceptionCauseRegister(TestCaseWithSimulator, metaclass=AutoRegisterMo
 
         return False
 
-    def process_test(self):
-        saved_entry = None
-
-        for _ in range(self.cycles):
-            self.rob_id = random.randint(0, self.rob_max)
-
-            cause = random.choice(list(ExceptionCause))
-            report_rob = random.randint(0, self.rob_max)
-            report_pc = random.randrange(2**self.gp.isa.xlen)
-            report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
-
-            yield from self.dut.report.call(report_arg)
-
-            new_state = yield from self.dut.get.call()
-
-            if self.should_update(report_arg, saved_entry, self.rob_id):
-                self.assertDictEqual(new_state, report_arg)
-                saved_entry = report_arg
-            elif saved_entry is not None:
-                self.assertDictEqual(new_state, saved_entry)
-
-    @def_method_mock(lambda self: self.rob_idx_mock)
-    def process_rob_idx_mock(self):
-        return {"start": self.rob_id, "end": 0}
-
-    def setUp(self):
-        self.gp = GenParams(test_core_config)
+    def test_randomized(self):
+        self.gen_params = GenParams(test_core_config)
         random.seed(2)
 
         self.cycles = 256
 
-        self.rob_idx_mock = TestbenchIO(Adapter(o=self.gp.get(ROBLayouts).get_indices))
-        self.dut = SimpleTestCircuit(ExceptionCauseRegister(self.gp, self.rob_idx_mock.adapter.iface))
-        self.m = ModuleConnector(self.dut, rob_idx_mock=self.rob_idx_mock)
+        self.rob_idx_mock = TestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
+        self.dut = SimpleTestCircuit(ExceptionCauseRegister(self.gen_params, self.rob_idx_mock.adapter.iface))
+        m = ModuleConnector(self.dut, rob_idx_mock=self.rob_idx_mock)
 
         self.rob_id = 0
 
-    def test_randomized(self):
-        with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.process_test)
+        def process_test():
+            saved_entry = None
+
+            for _ in range(self.cycles):
+                self.rob_id = random.randint(0, self.rob_max)
+
+                cause = random.choice(list(ExceptionCause))
+                report_rob = random.randint(0, self.rob_max)
+                report_pc = random.randrange(2**self.gen_params.isa.xlen)
+                report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
+
+                yield from self.dut.report.call(report_arg)
+
+                new_state = yield from self.dut.get.call()
+
+                if self.should_update(report_arg, saved_entry, self.rob_id):
+                    self.assertDictEqual(new_state, report_arg)
+                    saved_entry = report_arg
+                elif saved_entry is not None:
+                    self.assertDictEqual(new_state, saved_entry)
+
+        @def_method_mock(lambda: self.rob_idx_mock)
+        def process_rob_idx_mock():
+            return {"start": self.rob_id, "end": 0}
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(process_test)
+            sim.add_sync_process(process_rob_idx_mock)

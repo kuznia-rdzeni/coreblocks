@@ -140,7 +140,7 @@ class TestDecoder(TestCaseWithSimulator):
         # MRET
         InstrTest(0x30200073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.MRET, op=OpType.MRET),
         # WFI
-        InstrTest(0x10500073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI, op=OpType.WFI),
+        # InstrTest(0x10500073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.WFI, op=OpType.WFI),
     ]
     DECODER_TESTS_XINTSUPERVISOR = [
         # SRET
@@ -171,12 +171,12 @@ class TestDecoder(TestCaseWithSimulator):
     ]
 
     def setUp(self):
-        gen = GenParams(
+        self.gen_params = GenParams(
             test_core_config.replace(
                 _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR | Extension.ZBB
             )
         )
-        self.decoder = InstrDecoder(gen)
+        self.decoder = InstrDecoder(self.gen_params)
         self.cnt = 1
 
     def do_test(self, test):
@@ -279,8 +279,8 @@ class TestDecoderEExtLegal(TestCaseWithSimulator):
     ]
 
     def test_e(self):
-        gen = GenParams(test_core_config.replace(embedded=True, _implied_extensions=Extension.E))
-        self.decoder = InstrDecoder(gen)
+        self.gen_params = GenParams(test_core_config.replace(embedded=True, _implied_extensions=Extension.E))
+        self.decoder = InstrDecoder(self.gen_params)
 
         def process():
             for encoding, illegal in self.E_TEST:

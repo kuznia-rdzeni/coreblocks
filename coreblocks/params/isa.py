@@ -140,7 +140,7 @@ class FenceFm(IntEnum, shape=4):
 
 
 @unique
-class ExceptionCause(IntEnum, shape=4):
+class ExceptionCause(IntEnum, shape=5):
     INSTRUCTION_ADDRESS_MISALIGNED = 0
     INSTRUCTION_ACCESS_FAULT = 1
     ILLEGAL_INSTRUCTION = 2
@@ -155,6 +155,7 @@ class ExceptionCause(IntEnum, shape=4):
     INSTRUCTION_PAGE_FAULT = 12
     LOAD_PAGE_FAULT = 13
     STORE_PAGE_FAULT = 15
+    _COREBLOCKS_ASYNC_INTERRUPT = 16
 
 
 @unique

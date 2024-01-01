@@ -5,7 +5,7 @@ from typing import Optional
 from amaranth.sim import Settle, Passive
 
 from transactron.lib import Adapter
-from transactron._utils import int_to_signed, signed_to_int
+from transactron.utils import int_to_signed, signed_to_int
 from coreblocks.params import OpType, GenParams
 from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
@@ -123,7 +123,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 # generate opcode
                 (op, mask, signess) = generate_random_op(ops)
                 # generate rp1, val1 which create addr
-                rp_s1, s1_val, ann_data, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
+                rp_s1, s1_val, ann_data, addr = generate_register(max_reg_val, self.gen_params.phys_regs_bits)
                 imm = generate_imm(max_imm_val)
                 addr += imm
 
@@ -141,8 +141,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             mask = shift_mask_based_on_addr(mask, addr)
             addr = addr >> 2
 
-            rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
-            rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
+            rp_dst = random.randint(0, 2**self.gen_params.phys_regs_bits - 1)
+            rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits - 1)
             instr = {
                 "rp_s1": rp_s1,
                 "rp_s2": 0,
@@ -184,8 +184,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     def setUp(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
-        self.test_module = DummyLSUTestCircuit(self.gp)
+        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.test_module = DummyLSUTestCircuit(self.gen_params)
         self.instr_queue = deque()
         self.announce_queue = deque()
         self.mem_data_queue = deque()
@@ -264,8 +264,8 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
     def generate_instr(self, max_reg_val, max_imm_val):
         s1_val = random.randint(0, max_reg_val // 4) * 4
         imm = random.randint(0, max_imm_val // 4) * 4
-        rp_dst = random.randint(0, 2**self.gp.phys_regs_bits - 1)
-        rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
+        rp_dst = random.randint(0, 2**self.gen_params.phys_regs_bits - 1)
+        rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits - 1)
 
         exec_fn = {"op_type": OpType.LOAD, "funct3": Funct3.W, "funct7": 0}
         instr = {
@@ -288,8 +288,8 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
 
     def setUp(self) -> None:
         random.seed(14)
-        self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
-        self.test_module = DummyLSUTestCircuit(self.gp)
+        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.test_module = DummyLSUTestCircuit(self.gen_params)
 
     def one_instr_test(self):
         instr, wish_data = self.generate_instr(2**7, 2**7)
@@ -331,13 +331,13 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 # generate opcode
                 (op, mask, _) = generate_random_op(ops)
                 # generate rp1, val1 which create addr
-                rp_s1, s1_val, ann_data1, addr = generate_register(max_reg_val, self.gp.phys_regs_bits)
+                rp_s1, s1_val, ann_data1, addr = generate_register(max_reg_val, self.gen_params.phys_regs_bits)
                 imm = generate_imm(max_imm_val)
                 addr += imm
                 if check_align(addr, op):
                     break
 
-            rp_s2, s2_val, ann_data2, data = generate_register(0xFFFFFFFF, self.gp.phys_regs_bits)
+            rp_s2, s2_val, ann_data2, data = generate_register(0xFFFFFFFF, self.gen_params.phys_regs_bits)
             if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
                 ann_data2 = None
                 data = ann_data1["reg_val"]
@@ -353,7 +353,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             mask = shift_mask_based_on_addr(mask, addr)
             addr = addr >> 2
 
-            rob_id = random.randint(0, 2**self.gp.rob_entries_bits - 1)
+            rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits - 1)
             instr = {
                 "rp_s1": rp_s1,
                 "rp_s2": rp_s2,
@@ -370,8 +370,8 @@ class TestDummyLSUStores(TestCaseWithSimulator):
     def setUp(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
-        self.test_module = DummyLSUTestCircuit(self.gp)
+        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.test_module = DummyLSUTestCircuit(self.gen_params)
         self.instr_queue = deque()
         self.announce_queue = deque()
         self.mem_data_queue = deque()
@@ -482,8 +482,8 @@ class TestDummyLSUFence(TestCaseWithSimulator):
         yield from self.push_one_instr(self.get_instr(load_fn))
 
     def test_fence(self):
-        self.gp = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
-        self.test_module = DummyLSUTestCircuit(self.gp)
+        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.test_module = DummyLSUTestCircuit(self.gen_params)
 
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):

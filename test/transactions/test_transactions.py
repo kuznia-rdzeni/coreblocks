@@ -13,7 +13,7 @@ from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
 from transactron.lib import Adapter, AdapterTrans
-from transactron._utils import Scheduler
+from transactron.utils import Scheduler
 
 from transactron.core import (
     Priority,
@@ -28,8 +28,9 @@ class TestNames(TestCase):
         mgr = TransactionManager()
         mgr._MustUse__silence = True  # type: ignore
 
-        class T:
+        class T(Elaboratable):
             def __init__(self):
+                self._MustUse__silence = True  # type: ignore
                 Transaction(manager=mgr)
 
         T()

@@ -1,3 +1,4 @@
+from .fifo import *  # noqa: F401
 from .connectors import *  # noqa: F401
 from .buttons import *  # noqa: F401
 from .adapters import *  # noqa: F401

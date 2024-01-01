@@ -22,11 +22,9 @@ from amaranth import tracer
 from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 
-from transactron.utils import AssignType, assign, ModuleConnector, silence_mustuse
-from transactron.utils.utils import OneHotSwitchDynamic, average_dict_of_lists
-from ._utils import *
-from transactron.utils._typing import ValueLike, SignalBundle, HasElaborate, SwitchKey, ModuleLike
 from .graph import Owned, OwnershipGraph, Direction
+from transactron.utils import *
+from transactron.utils.transactron_helpers import _graph_ccs
 
 __all__ = [
     "MethodLayout",
@@ -142,14 +140,9 @@ def eager_deterministic_cc_scheduler(
     ccl = list(cc)
     ccl.sort(key=lambda transaction: porder[transaction])
     for k, transaction in enumerate(ccl):
-        ready = [
-            method_map.readiness_by_method_and_transaction[(transaction, method)]
-            for method in method_map.methods_by_transaction[transaction]
-        ]
-        runnable = Cat(ready).all()
         conflicts = [ccl[j].grant for j in range(k) if ccl[j] in gr[transaction]]
         noconflict = ~Cat(conflicts).any()
-        m.d.comb += transaction.grant.eq(transaction.request & runnable & noconflict)
+        m.d.comb += transaction.grant.eq(transaction.request & transaction.runnable & noconflict)
     return m
 
 
@@ -181,12 +174,7 @@ def trivial_roundrobin_cc_scheduler(
     sched = Scheduler(len(cc))
     m.submodules.scheduler = sched
     for k, transaction in enumerate(cc):
-        ready = [
-            method_map.readiness_by_method_and_transaction[(transaction, method)]
-            for method in method_map.methods_by_transaction[transaction]
-        ]
-        runnable = Cat(ready).all()
-        m.d.comb += sched.requests[k].eq(transaction.request & runnable)
+        m.d.comb += sched.requests[k].eq(transaction.request & transaction.runnable)
         m.d.comb += transaction.grant.eq(sched.grant[k] & sched.valid)
     return m
 
@@ -397,6 +385,7 @@ class TransactionManager(Elaboratable):
             # TODO: some simpler way?
             method = Method(name=transaction.name)
             method.owner = transaction.owner
+            method.src_loc = transaction.src_loc
             method.ready = transaction.request
             method.run = transaction.grant
             method.defined = transaction.defined
@@ -434,6 +423,13 @@ class TransactionManager(Elaboratable):
 
         m = Module()
         m.submodules.merge_manager = merge_manager
+
+        for transaction in self.transactions:
+            ready = [
+                method_map.readiness_by_method_and_transaction[transaction, method]
+                for method in method_map.methods_by_transaction[transaction]
+            ]
+            m.d.comb += transaction.runnable.eq(Cat(ready).all())
 
         ccs = _graph_ccs(rgr)
         m.submodules._transactron_schedulers = ModuleConnector(
@@ -483,15 +479,15 @@ class TransactionManager(Elaboratable):
             print("")
         print("Calling transactions per method")
         for m, ts in method_map.transactions_by_method.items():
-            print(f"\t{m.owned_name}")
+            print(f"\t{m.owned_name}: {m.src_loc[0]}:{m.src_loc[1]}")
             for t in ts:
-                print(f"\t\t{t.name}")
+                print(f"\t\t{t.name}: {t.src_loc[0]}:{t.src_loc[1]}")
             print("")
         print("Called methods per transaction")
         for t, ms in method_map.methods_by_transaction.items():
-            print(f"\t{t.name}")
+            print(f"\t{t.name}: {t.src_loc[0]}:{t.src_loc[1]}")
             for m in ms:
-                print(f"\t\t{m.owned_name}")
+                print(f"\t\t{m.owned_name}: {m.src_loc[0]}:{m.src_loc[1]}")
             print("")
 
     def visual_graph(self, fragment):
@@ -729,12 +725,14 @@ class TransactionBase(Owned, Protocol):
     def_order: int
     defined: bool = False
     name: str
+    src_loc: SrcLoc
     method_uses: dict["Method", Tuple[Record, ValueLike]]
     relations: list[RelationBase]
     simultaneous_list: list[TransactionOrMethod]
     independent_list: list[TransactionOrMethod]
 
-    def __init__(self):
+    def __init__(self, *, src_loc: int | SrcLoc):
+        self.src_loc = get_src_loc(src_loc)
         self.method_uses: dict["Method", Tuple[Record, ValueLike]] = dict()
         self.relations: list[RelationBase] = []
         self.simultaneous_list: list[TransactionOrMethod] = []
@@ -896,12 +894,16 @@ class Transaction(TransactionBase):
     request: Signal, in
         Signals that the transaction wants to run. If omitted, the transaction
         is always ready. Defined in the constructor.
+    runnable: Signal, out
+        Signals that all used methods are ready.
     grant: Signal, out
         Signals that the transaction is granted by the `TransactionManager`,
         and all used methods are called.
     """
 
-    def __init__(self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None):
+    def __init__(
+        self, *, name: Optional[str] = None, manager: Optional[TransactionManager] = None, src_loc: int | SrcLoc = 0
+    ):
         """
         Parameters
         ----------
@@ -913,14 +915,18 @@ class Transaction(TransactionBase):
         manager: TransactionManager
             The `TransactionManager` controlling this `Transaction`.
             If omitted, the manager is received from `TransactionContext`.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        super().__init__()
+        super().__init__(src_loc=get_src_loc(src_loc))
         self.owner, owner_name = get_caller_class_name(default="$transaction")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         if manager is None:
             manager = TransactionContext.get()
         manager.add_transaction(self)
         self.request = Signal(name=self.owned_name + "_request")
+        self.runnable = Signal(name=self.owned_name + "_runnable")
         self.grant = Signal(name=self.owned_name + "_grant")
 
     @contextmanager
@@ -957,7 +963,7 @@ class Transaction(TransactionBase):
         return "(transaction {})".format(self.name)
 
     def debug_signals(self) -> SignalBundle:
-        return [self.request, self.grant]
+        return [self.request, self.runnable, self.grant]
 
 
 class Method(TransactionBase):
@@ -1006,6 +1012,7 @@ class Method(TransactionBase):
         o: MethodLayout = (),
         nonexclusive: bool = False,
         single_caller: bool = False,
+        src_loc: int | SrcLoc = 0,
     ):
         """
         Parameters
@@ -1028,8 +1035,11 @@ class Method(TransactionBase):
             If true, this method is intended to be called from a single
             transaction. An error will be thrown if called from multiple
             transactions.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        super().__init__()
+        super().__init__(src_loc=get_src_loc(src_loc))
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal(name=self.owned_name + "_ready")
@@ -1043,7 +1053,7 @@ class Method(TransactionBase):
             assert len(self.data_in) == 0
 
     @staticmethod
-    def like(other: "Method", *, name: Optional[str] = None) -> "Method":
+    def like(other: "Method", *, name: Optional[str] = None, src_loc: int | SrcLoc = 0) -> "Method":
         """Constructs a new `Method` based on another.
 
         The returned `Method` has the same input/output data layouts as the
@@ -1055,13 +1065,16 @@ class Method(TransactionBase):
             The `Method` which serves as a blueprint for the new `Method`.
         name : str, optional
             Name of the new `Method`.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
 
         Returns
         -------
         Method
             The freshly constructed `Method`.
         """
-        return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
+        return Method(name=name, i=other.data_in.layout, o=other.data_out.layout, src_loc=get_src_loc(src_loc))
 
     def proxy(self, m: TModule, method: "Method"):
         """Define as a proxy for another method.

@@ -54,12 +54,14 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
             Adapter(o=core_instr_counter_layouts.decrement)
         )
+        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter())
 
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
             rob_retire=self.mock_rob_retire.adapter.iface,
             rob_peek=self.mock_rob_peek.adapter.iface,
             r_rat_commit=self.rat.commit,
+            r_rat_peek=self.rat.peek,
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
             precommit=self.mock_precommit.adapter.iface,
@@ -69,6 +71,7 @@ class RetirementTestCircuit(Elaboratable):
             fetch_stall=self.mock_fetch_stall.adapter.iface,
             fetch_continue=self.mock_fetch_continue.adapter.iface,
             instr_decrement=self.mock_instr_decrement.adapter.iface,
+            trap_entry=self.mock_trap_entry.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))

@@ -4,7 +4,8 @@ from amaranth.lib import data
 from amaranth.hdl.ast import ArrayProxy, Slice
 
 from transactron.utils._typing import LayoutLike
-from transactron.utils.utils import AssignArg, AssignType, AssignFields, assign
+from transactron.utils import AssignType, assign
+from transactron.utils.assign import AssignArg, AssignFields
 
 from unittest import TestCase
 from parameterized import parameterized_class, parameterized
