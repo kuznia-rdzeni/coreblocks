@@ -1,10 +1,6 @@
-from typing import Iterable, Optional
-from amaranth import Elaboratable, Module
 from amaranth.sim import Settle
 
-from transactron.lib import AdapterTrans
-
-from ..common import TestCaseWithSimulator, TestbenchIO, get_outputs, SimpleTestCircuit
+from ..common import TestCaseWithSimulator, get_outputs, SimpleTestCircuit
 
 from coreblocks.structs_common.rs import RS
 from coreblocks.params import *

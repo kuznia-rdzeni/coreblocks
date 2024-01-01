@@ -1,10 +1,9 @@
 from amaranth import *
 
 from transactron import Method, def_method, TModule
-from transactron.lib import AdapterTrans
 
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout, SimpleTestCircuit, ModuleConnector
+from ..common import TestCaseWithSimulator, data_layout, SimpleTestCircuit, ModuleConnector
 
 
 class Echo(Elaboratable):
