@@ -674,7 +674,7 @@ class CtrlPath:
     def exclusive_with(self, other: "CtrlPath"):
         """Decides if this path is mutually exclusive with some other path.
 
-        Paths are mutually exclusive iff they refer to the same module and
+        Paths are mutually exclusive if they refer to the same module and
         diverge on different alternatives of the same control structure.
 
         Arguments
