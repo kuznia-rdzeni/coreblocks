@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704198826813,
+  "lastUpdate": 1704199352880,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -5503,6 +5503,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nsichneu",
             "value": 0.2393345134151435,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cf30bbe30f3126f8c5efbf5f4c943f2f6aa43c61",
+          "message": "Exclusive branches (#551)",
+          "timestamp": "2024-01-02T13:26:10+01:00",
+          "tree_id": "67888d5d127e8a70cdbb01a780b7fa949cf5e162",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cf30bbe30f3126f8c5efbf5f4c943f2f6aa43c61"
+        },
+        "date": 1704199351033,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "statemate",
+            "value": 0.2760578944944976,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.43425182528066597,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2393345134151435,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.32227830884465813,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2562424141349566,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4985200128202711,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.3262149437190531,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23461730602371625,
             "unit": "Instructions Per Cycle"
           }
         ]
