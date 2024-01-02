@@ -49,10 +49,11 @@ class Active(Command):
 
 
 class Simulator:
+    _fragment : Fragment
+    _engine : PySimEngine
+    _clocked  : set
     def __init__(self, fragment, *, engine=...) -> None:
-        self._fragment : Fragment
-        self._engine : PySimEngine
-        self._clocked  : set
+        ...
     
     def add_process(self, process): # -> None:
         ...
