@@ -1,6 +1,8 @@
+import os.path
 from amaranth.sim import *
 from transactron.core import MethodMap, TransactionManager, Transaction, Method
 from transactron.profiler import CycleProfile, Profile, ProfileInfo
+from transactron.utils import SrcLoc
 from .functions import TestGen
 
 __all__ = ["profiler_process"]
@@ -22,13 +24,16 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
                 id_map[id(obj)] = id_seq
                 return id_seq
 
+        def local_src_loc(src_loc: SrcLoc):
+            return (os.path.relpath(src_loc[0]), src_loc[1])
+
         for transaction in method_map.transactions:
             profile.transactions_and_methods[get_id(transaction)] = ProfileInfo(
-                transaction.owned_name, transaction.src_loc, True
+                transaction.owned_name, local_src_loc(transaction.src_loc), True
             )
 
         for method in method_map.methods:
-            profile.transactions_and_methods[get_id(method)] = ProfileInfo(method.owned_name, method.src_loc, False)
+            profile.transactions_and_methods[get_id(method)] = ProfileInfo(method.owned_name, local_src_loc(method.src_loc), False)
 
         cycle = 0
 
