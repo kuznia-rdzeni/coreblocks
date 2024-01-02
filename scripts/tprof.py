@@ -22,7 +22,12 @@ def main():
 
     transactions = profile.analyze_transactions()
 
-    print(tabulate(transactions, headers=["name", "source location", "unused", "runnable", "grant"]))
+    print(tabulate(transactions, headers=["name", "source location", "runnable", "grant"]))
+    print()
+
+    methods = profile.analyze_methods(recursive=False)
+
+    print(tabulate(methods, headers=["name", "source location", "locked", "run"]))
 
 
 if __name__ == "__main__":

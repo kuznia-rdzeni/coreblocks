@@ -21,7 +21,7 @@ venv.bak/
 
 # Tests outputs
 test/__traces__
-test/__profiles__
+test/__profiles__/*.json
 
 # cocotb build
 /test/regression/cocotb/build

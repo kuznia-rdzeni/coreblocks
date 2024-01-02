@@ -19,7 +19,6 @@ class ProfileInfo:
 class TransactionStat:
     name: str
     src_loc: str
-    unused: int = 0
     runnable: int = 0
     grant: int = 0
 
@@ -32,8 +31,8 @@ class TransactionStat:
 class RunStat:
     name: str
     src_loc: str
-    run: int = 0
     locked: int = 0
+    run: int = 0
 
     @staticmethod
     def make(info: ProfileInfo):
@@ -84,8 +83,6 @@ class Profile:
                     stats[i].runnable += 1
                 elif i in c.running:
                     stats[i].grant += 1
-                else:
-                    stats[i].unused += 1
 
         return list(stats.values())
 

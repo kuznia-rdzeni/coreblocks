@@ -28,7 +28,7 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
             )
 
         for method in method_map.methods:
-            profile.transactions_and_methods[get_id(method)] = ProfileInfo(method.name, method.src_loc, False)
+            profile.transactions_and_methods[get_id(method)] = ProfileInfo(method.owned_name, method.src_loc, False)
 
         cycle = 0
 
@@ -39,6 +39,7 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
                 yield Settle()
 
             cprof = CycleProfile()
+            profile.cycles.append(cprof)
 
             for transaction in method_map.transactions:
                 request = yield transaction.request
