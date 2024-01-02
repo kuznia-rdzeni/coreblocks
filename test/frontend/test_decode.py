@@ -7,7 +7,7 @@ from coreblocks.params import GenParams, FetchLayouts, DecodeLayouts, OpType, Fu
 from coreblocks.params.configurations import test_core_config
 
 
-class TestFetch(TestCaseWithSimulator):
+class TestDecode(TestCaseWithSimulator):
     def setUp(self) -> None:
         self.gen_params = GenParams(test_core_config.replace(start_pc=24))
 
