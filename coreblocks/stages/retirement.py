@@ -89,9 +89,18 @@ class Retirement(Elaboratable):
             # restore original rl_dst->rp_dst mapping in F-RAT
             self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
+        retire_valid = Signal()
+        with Transaction().body(m) as validate_transaction:
+            # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
+            rob_entry = self.rob_peek(m)
+            ecr_entry = self.exception_cause_get(m)
+            m.d.comb += retire_valid.eq(
+                ~rob_entry.exception | (rob_entry.exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entry.rob_id))
+            )
+
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
-                with Transaction().body(m):
+                with Transaction().body(m, request=retire_valid) as retire_transaction:
                     rob_entry = self.rob_retire(m)
                     core_empty = self.instr_decrement(m)
 
@@ -101,9 +110,7 @@ class Retirement(Elaboratable):
                         with cond(rob_entry.exception):
                             self.fetch_stall(m)
 
-                            # get() method will block (via validate args) until ExceptionCauseRegister is updated to
-                            # correct instruction entry (rob_id matches). condition is used to unblock normal operation
-                            cause_register = self.exception_cause_get(m, self.rob_peek(m).rob_id)
+                            cause_register = self.exception_cause_get(m)
 
                             cause_entry = Signal(self.gen_params.isa.xlen)
 
@@ -145,6 +152,8 @@ class Retirement(Elaboratable):
                             retire_instr(rob_entry)
                         with cond(~commit):
                             flush_instr(rob_entry)
+
+                    validate_transaction.schedule_before(retire_transaction)
 
             with m.State("TRAP_FLUSH"):
                 with Transaction().body(m):

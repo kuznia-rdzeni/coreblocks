@@ -66,7 +66,7 @@ class ExceptionCauseRegister(Elaboratable):
         dm = gen_params.get(DependencyManager)
         dm.add_dependency(ExceptionReportKey(), self.report)
 
-        self.get = Method(i=self.layouts.get_in, o=self.layouts.get_out)
+        self.get = Method(o=self.layouts.get, nonexclusive=True)
 
         self.clear = Method()
 
@@ -85,8 +85,8 @@ class ExceptionCauseRegister(Elaboratable):
             should_write = Signal()
 
             with m.If(self.valid & (self.rob_id == rob_id)):
-                # entry for the same rob_id cannot be overwritten, because validate_arguments for
-                # get would make no sense
+                # entry for the same rob_id cannot be overwritten, because its update couldn't be validated
+                # in Retirement.
                 m.d.comb += should_write.eq(0)
             with m.Elif(self.valid):
                 rob_start_idx = self.rob_get_indices(m).start
@@ -103,9 +103,9 @@ class ExceptionCauseRegister(Elaboratable):
 
             m.d.sync += self.valid.eq(1)
 
-        @def_method(m, self.get, validate_arguments=lambda rob_id: rob_id == self.rob_id)
-        def _(rob_id):
-            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc}
+        @def_method(m, self.get)
+        def _():
+            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc, "valid": self.valid}
 
         @def_method(m, self.clear)
         def _():

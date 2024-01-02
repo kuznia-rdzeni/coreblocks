@@ -54,12 +54,12 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
                 report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
 
                 expected = report_arg if self.should_update(report_arg, saved_entry, self.rob_id) else saved_entry
-
                 yield from self.dut.report.call(report_arg)
+                yield  # additional FIFO delay
 
-                new_state = yield from self.dut.get.call({"rob_id": expected["rob_id"]})
+                new_state = yield from self.dut.get.call()
 
-                self.assertDictEqual(new_state, expected)  # type: ignore
+                self.assertDictEqual(new_state, expected | {"valid": 1})  # type: ignore
 
                 saved_entry = new_state
 
