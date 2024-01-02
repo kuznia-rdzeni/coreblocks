@@ -16,18 +16,6 @@ class ProfileInfo:
 
 
 @dataclass
-class TransactionStat:
-    name: str
-    src_loc: str
-    runnable: int = 0
-    grant: int = 0
-
-    @staticmethod
-    def make(info: ProfileInfo):
-        return TransactionStat(info.name, f"{info.src_loc[0]}:{info.src_loc[1]}")
-
-
-@dataclass
 class RunStat:
     name: str
     src_loc: str
@@ -52,8 +40,7 @@ class RunStatNode:
 @dataclass_json
 @dataclass
 class CycleProfile:
-    waiting_transactions: dict[int, int] = field(default_factory=dict)
-    locked_methods: set[int] = field(default_factory=set)
+    locked: dict[int, int] = field(default_factory=dict)
     running: dict[int, Optional[int]] = field(default_factory=dict)
 
 
@@ -72,20 +59,6 @@ class Profile:
         with open(file_name, "r") as fp:
             return Profile.from_json(fp.read())  # type: ignore
 
-    def analyze_transactions(self) -> list[TransactionStat]:
-        stats = {
-            i: TransactionStat.make(info) for i, info in self.transactions_and_methods.items() if info.is_transaction
-        }
-
-        for c in self.cycles:
-            for i in stats:
-                if i in c.waiting_transactions:
-                    stats[i].runnable += 1
-                elif i in c.running:
-                    stats[i].grant += 1
-
-        return list(stats.values())
-
     def analyze_methods(self, recursive=True) -> list[RunStat]:
         stats = {i: RunStatNode.make(info) for i, info in self.transactions_and_methods.items()}
 
@@ -101,7 +74,7 @@ class Profile:
             for i in c.running:
                 rec(c, stats[i], i)
 
-            for i in c.locked_methods:
+            for i in c.locked:
                 stats[i].stat.locked += 1
 
         return list(map(lambda node: node.stat, stats.values()))

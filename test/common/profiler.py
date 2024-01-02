@@ -56,24 +56,27 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
                 elif request and runnable:
                     for transaction2 in cgr[transaction]:
                         if (yield transaction2.grant):
-                            cprof.waiting_transactions[get_id(transaction)] = get_id(transaction2)
+                            cprof.locked[get_id(transaction)] = get_id(transaction2)
 
+            running = set(cprof.running)
             for method in method_map.methods:
                 if (yield method.run):
+                    running.add(get_id(method))
+
+            locked_methods = set[int]()
+            for method in method_map.methods:
+                if get_id(method) not in running:
+                    if any(get_id(transaction) in running for transaction in method_map.transactions_by_method[method]):
+                        locked_methods.add(get_id(method))
+
+            for method in method_map.methods:
+                if get_id(method) in running:
                     for t_or_m in method_map.method_parents[method]:
-                        if (
-                            isinstance(t_or_m, Transaction)
-                            and (yield t_or_m.grant)
-                            or isinstance(t_or_m, Method)
-                            and (yield t_or_m.run)
-                        ):
+                        if get_id(t_or_m) in running:
                             cprof.running[get_id(method)] = get_id(t_or_m)
-                else:
-                    if any(
-                        get_id(transaction) in cprof.running
-                        for transaction in method_map.transactions_by_method[method]
-                    ):
-                        cprof.locked_methods.add(get_id(method))
+                elif get_id(method) in locked_methods:
+                    caller = next(get_id(t_or_m) for t_or_m in method_map.method_parents[method] if get_id(t_or_m) in running or get_id(t_or_m) in locked_methods)
+                    cprof.locked[get_id(method)] = caller
 
             yield
             cycle = cycle + 1

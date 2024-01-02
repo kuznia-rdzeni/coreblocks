@@ -20,11 +20,6 @@ def main():
 
     profile = Profile.decode(args.file_name[0])
 
-    transactions = profile.analyze_transactions()
-
-    print(tabulate(transactions, headers=["name", "source location", "runnable", "grant"]))
-    print()
-
     methods = profile.analyze_methods(recursive=False)
 
     print(tabulate(methods, headers=["name", "source location", "locked", "run"]))
