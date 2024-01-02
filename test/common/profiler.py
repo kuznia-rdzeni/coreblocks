@@ -1,6 +1,6 @@
 import os.path
 from amaranth.sim import *
-from transactron.core import MethodMap, TransactionManager, Transaction, Method
+from transactron.core import MethodMap, TransactionManager
 from transactron.profiler import CycleProfile, Profile, ProfileInfo
 from transactron.utils import SrcLoc
 from .functions import TestGen
@@ -33,7 +33,9 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
             )
 
         for method in method_map.methods:
-            profile.transactions_and_methods[get_id(method)] = ProfileInfo(method.owned_name, local_src_loc(method.src_loc), False)
+            profile.transactions_and_methods[get_id(method)] = ProfileInfo(
+                method.owned_name, local_src_loc(method.src_loc), False
+            )
 
         cycle = 0
 
@@ -75,7 +77,11 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
                         if get_id(t_or_m) in running:
                             cprof.running[get_id(method)] = get_id(t_or_m)
                 elif get_id(method) in locked_methods:
-                    caller = next(get_id(t_or_m) for t_or_m in method_map.method_parents[method] if get_id(t_or_m) in running or get_id(t_or_m) in locked_methods)
+                    caller = next(
+                        get_id(t_or_m)
+                        for t_or_m in method_map.method_parents[method]
+                        if get_id(t_or_m) in running or get_id(t_or_m) in locked_methods
+                    )
                     cprof.locked[get_id(method)] = caller
 
             yield

@@ -22,6 +22,7 @@ class ProfileInfo:
     is_transaction : bool
         If true, this object describes a transaction; if false, a method.
     """
+
     name: str
     src_loc: SrcLoc
     is_transaction: bool
@@ -43,6 +44,7 @@ class RunStat:
         the number of cycles this transaction was ready to run, but did not
         run because a conflicting transaction has run instead.
     """
+
     name: str
     src_loc: str
     locked: int = 0
@@ -64,6 +66,7 @@ class RunStatNode:
     callers : dict[int, RunStatNode]
         Statistics for the method callers. For transactions, this is empty.
     """
+
     stat: RunStat
     callers: dict[int, "RunStatNode"] = field(default_factory=dict)
 
@@ -90,6 +93,7 @@ class CycleProfile:
         For each running method, its caller. Running transactions don't
         have a caller (the value is `None`).
     """
+
     locked: dict[int, int] = field(default_factory=dict)
     running: dict[int, Optional[int]] = field(default_factory=dict)
 
@@ -110,6 +114,7 @@ class Profile:
     cycles : list[CycleProfile]
         Profile information for each cycle of the simulation.
     """
+
     transactions_and_methods: dict[int, ProfileInfo] = field(default_factory=dict)
     cycles: list[CycleProfile] = field(default_factory=list)
 
