@@ -106,51 +106,50 @@ class Retirement(Elaboratable):
 
                     commit = Signal()
 
-                    with condition(m, priority=False) as cond:
-                        with cond(rob_entry.exception):
-                            self.fetch_stall(m)
+                    with m.If(rob_entry.exception):
+                        self.fetch_stall(m)
 
-                            cause_register = self.exception_cause_get(m)
+                        cause_register = self.exception_cause_get(m)
 
-                            cause_entry = Signal(self.gen_params.isa.xlen)
+                        cause_entry = Signal(self.gen_params.isa.xlen)
 
-                            with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
-                                # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR
-                                # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps
-                                # it is a jump result).
-                                # Instruction that reported interrupt is the last one that is commited.
-                                m.d.av_comb += commit.eq(1)
-
-                                # TODO: set correct interrupt id from InterruptController
-                                # Set MSB - the Interrupt bit
-                                m.d.av_comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
-                            with m.Else():
-                                # RISC-V synchronous exceptions - don't retire instruction that caused exception,
-                                # and later resume from it.
-                                # Value of ExceptionCauseRegister pc field is the instruction address.
-                                m.d.av_comb += commit.eq(0)
-
-                                m.d.av_comb += cause_entry.eq(cause_register.cause)
-
-                            m_csr.mcause.write(m, cause_entry)
-                            m_csr.mepc.write(m, cause_register.pc)
-                            self.trap_entry(m)
-
-                            with m.If(core_empty):
-                                m.next = "TRAP_RESUME"
-                            with m.Else():
-                                m.next = "TRAP_FLUSH"
-
-                        # Not using default condition, because we want to block if branch is not ready
-                        with cond(~rob_entry.exception):
-                            # Normally retire all non-trap instructions
+                        with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
+                            # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR
+                            # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps
+                            # it is a jump result).
+                            # Instruction that reported interrupt is the last one that is commited.
                             m.d.av_comb += commit.eq(1)
 
-                    # Methods cannot be called multiple times from the same Transaction >:(
+                            # TODO: set correct interrupt id from InterruptController
+                            # Set MSB - the Interrupt bit
+                            m.d.av_comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
+                        with m.Else():
+                            # RISC-V synchronous exceptions - don't retire instruction that caused exception,
+                            # and later resume from it.
+                            # Value of ExceptionCauseRegister pc field is the instruction address.
+                            m.d.av_comb += commit.eq(0)
+
+                            m.d.av_comb += cause_entry.eq(cause_register.cause)
+
+                        m_csr.mcause.write(m, cause_entry)
+                        m_csr.mepc.write(m, cause_register.pc)
+                        self.trap_entry(m)
+
+                        with m.If(core_empty):
+                            m.next = "TRAP_RESUME"
+                        with m.Else():
+                            m.next = "TRAP_FLUSH"
+
+                    with m.Else():
+                        # Normally retire all non-trap instructions
+                        m.d.av_comb += commit.eq(1)
+
+                    # Condition is used to avoid FRAT locking during normal operation
                     with condition(m, priority=False) as cond:
                         with cond(commit):
                             retire_instr(rob_entry)
                         with cond(~commit):
+                            # Not using default condition, because we want to block if branch is not ready
                             flush_instr(rob_entry)
 
                     validate_transaction.schedule_before(retire_transaction)
