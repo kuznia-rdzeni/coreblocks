@@ -13,7 +13,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from contextlib import AbstractContextManager
 from enum import Enum
 from amaranth import *
-from amaranth.lib.data import View
+from amaranth.lib.data import StructLayout, View
 from amaranth.hdl.ast import ShapeCastable, Statement, ValueCastable
 from amaranth.hdl.dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, _ModuleBuilderDomain, FSM
 from amaranth.hdl.rec import Direction, Layout
@@ -21,6 +21,7 @@ from amaranth.hdl.rec import Direction, Layout
 __all__ = [
     "FragmentLike",
     "ValueLike",
+    "ShapeLike",
     "StatementLike",
     "LayoutLike",
     "SwitchKey",
@@ -50,13 +51,13 @@ LayoutLike: TypeAlias = (
     Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
 )
 SwitchKey: TypeAlias = str | int | Enum
-MethodLayout: TypeAlias = LayoutLike
 SrcLoc: TypeAlias = tuple[str, int]
 
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
 LayoutListField: TypeAlias = tuple[str, "ShapeLike | LayoutList"]
-LayoutList: TypeAlias = list[LayoutListField]
+LayoutList: TypeAlias = Iterable[LayoutListField]
+MethodLayout: TypeAlias = StructLayout | LayoutList
 
 RecordIntDict: TypeAlias = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet: TypeAlias = Mapping[str, Any]  # full typing hard to work with

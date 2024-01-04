@@ -22,6 +22,9 @@ from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
+from amaranth.lib.data import StructLayout, View
+
+from transactron.utils.assign import AssignArg
 
 from .graph import Owned, OwnershipGraph, Direction
 from transactron.utils import *
@@ -513,7 +516,7 @@ class TransactionManager(Elaboratable):
         graph = OwnershipGraph(fragment)
         method_map = MethodMap(self.transactions)
         for method, transactions in method_map.transactions_by_method.items():
-            if len(method.data_in) > len(method.data_out):
+            if len(method.data_in.as_value()) > len(method.data_out.as_value()):
                 direction = Direction.IN
             elif len(method.data_in) < len(method.data_out):
                 direction = Direction.OUT
@@ -875,8 +878,8 @@ class TransactionBase(Owned, Protocol):
     defined: bool = False
     name: str
     src_loc: SrcLoc
-    method_uses: dict["Method", tuple[Record, Signal]]
-    method_calls: defaultdict["Method", list[tuple[CtrlPath, Record, ValueLike]]]
+    method_uses: dict["Method", tuple[View[StructLayout], Signal]]
+    method_calls: defaultdict["Method", list[tuple[CtrlPath, View[StructLayout], ValueLike]]]
     relations: list[RelationBase]
     simultaneous_list: list[TransactionOrMethod]
     independent_list: list[TransactionOrMethod]
@@ -1206,13 +1209,21 @@ class Method(TransactionBase):
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal(name=self.owned_name + "_ready")
         self.run = Signal(name=self.owned_name + "_run")
-        self.data_in = Record(i)
-        self.data_out = Record(o)
+        self.data_in: View[StructLayout] = Signal(from_method_layout(i))
+        self.data_out: View[StructLayout] = Signal(from_method_layout(o))
         self.nonexclusive = nonexclusive
         self.single_caller = single_caller
         self.validate_arguments: Optional[Callable[..., ValueLike]] = None
         if nonexclusive:
-            assert len(self.data_in) == 0
+            assert len(self.data_in.as_value()) == 0
+
+    @property
+    def layout_in(self):
+        return self.data_in.shape()
+
+    @property
+    def layout_out(self):
+        return self.data_out.shape()
 
     @staticmethod
     def like(other: "Method", *, name: Optional[str] = None, src_loc: int | SrcLoc = 0) -> "Method":
@@ -1236,7 +1247,7 @@ class Method(TransactionBase):
         Method
             The freshly constructed `Method`.
         """
-        return Method(name=name, i=other.data_in.layout, o=other.data_out.layout, src_loc=get_src_loc(src_loc))
+        return Method(name=name, i=other.layout_in, o=other.layout_out, src_loc=get_src_loc(src_loc))
 
     def proxy(self, m: TModule, method: "Method"):
         """Define as a proxy for another method.
@@ -1264,7 +1275,7 @@ class Method(TransactionBase):
         ready: ValueLike = C(1),
         out: ValueLike = C(0, 0),
         validate_arguments: Optional[Callable[..., ValueLike]] = None,
-    ) -> Iterator[Record]:
+    ) -> Iterator[View[StructLayout]]:
         """Define method body
 
         The `body` context manager can be used to define the actions
@@ -1328,8 +1339,8 @@ class Method(TransactionBase):
         return self.ready
 
     def __call__(
-        self, m: TModule, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
-    ) -> Record:
+        self, m: TModule, arg: Optional[AssignArg] = None, enable: ValueLike = C(1), /, **kwargs: AssignArg
+    ) -> View[StructLayout]:
         """Call a method.
 
         Methods can only be called from transaction and method bodies.
@@ -1376,7 +1387,7 @@ class Method(TransactionBase):
             with Transaction.body(m):
                 ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
         """
-        arg_rec = Record.like(self.data_in)
+        arg_rec = Signal.like(self.data_in)
 
         if arg is not None and kwargs:
             raise ValueError(f"Method '{self.name}' call with both keyword arguments and legacy record argument")
@@ -1394,7 +1405,7 @@ class Method(TransactionBase):
         caller.method_calls[self].append((m.ctrl_path, arg_rec, enable_sig))
 
         if self not in caller.method_uses:
-            arg_rec_use = Record.like(self.data_in)
+            arg_rec_use = Signal(self.layout_in)
             arg_rec_enable_sig = Signal()
             caller.method_uses[self] = (arg_rec_use, arg_rec_enable_sig)
 
@@ -1474,8 +1485,8 @@ def def_method(
             return {"res": arg.arg1 + arg.arg2}
     """
 
-    def decorator(func: Callable[..., Optional[RecordDict]]):
-        out = Record.like(method.data_out)
+    def decorator(func: Callable[..., Optional[AssignArg]]):
+        out = Signal(method.layout_out)
         ret_out = None
 
         with method.body(m, ready=ready, out=out, validate_arguments=validate_arguments) as arg:

@@ -2,11 +2,12 @@ import sys
 from contextlib import contextmanager
 from typing import Optional, Any, Concatenate, TypeGuard, TypeVar
 from collections.abc import Callable, Mapping
-from ._typing import ROGraph, GraphCC, SrcLoc
+from ._typing import ROGraph, GraphCC, SrcLoc, MethodLayout, ShapeLike, LayoutList
 from inspect import Parameter, signature
 from itertools import count
 from amaranth import *
 from amaranth import tracer
+from amaranth.lib.data import View, StructLayout
 
 
 __all__ = [
@@ -16,6 +17,7 @@ __all__ = [
     "method_def_helper",
     "mock_def_helper",
     "get_src_loc",
+    "from_method_layout",
 ]
 
 T = TypeVar("T")
@@ -85,7 +87,7 @@ def mock_def_helper(tb, func: Callable[..., T], arg: Mapping[str, Any]) -> T:
     return def_helper(f"mock definition for {tb}", func, Mapping[str, Any], arg, **arg)
 
 
-def method_def_helper(method, func: Callable[..., T], arg: Record) -> T:
+def method_def_helper(method, func: Callable[..., T], arg: View[StructLayout]) -> T:
     return def_helper(f"method definition for {method}", func, Record, arg, **arg.fields)
 
 
@@ -117,3 +119,17 @@ def silence_mustuse(elaboratable: Elaboratable):
 
 def get_src_loc(src_loc: int | SrcLoc) -> SrcLoc:
     return tracer.get_src_loc(1 + src_loc) if isinstance(src_loc, int) else src_loc
+
+
+def from_layout_field(shape: ShapeLike | LayoutList) -> ShapeLike:
+    if isinstance(shape, list):
+        return from_method_layout(shape)
+    else:
+        return shape
+
+
+def from_method_layout(layout: MethodLayout) -> StructLayout:
+    if isinstance(layout, StructLayout):
+        return layout
+    else:
+        return StructLayout({k: from_layout_field(v) for k, v in layout})
