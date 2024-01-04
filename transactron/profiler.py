@@ -130,19 +130,26 @@ class Profile:
     def analyze_methods(self, recursive=False) -> list[RunStatNode]:
         stats = {i: RunStatNode.make(info) for i, info in self.transactions_and_methods.items()}
 
-        def rec(c: CycleProfile, node: RunStatNode, i: int):
-            node.stat.run += 1
-            caller = c.running[i]
+        def rec(c: CycleProfile, node: RunStatNode, i: int, locking_call = False):
+            if i in c.running:
+                if not locking_call:
+                    node.stat.run += 1
+                else:
+                    node.stat.locked += 1
+                caller = c.running[i]
+            else:
+                node.stat.locked += 1
+                caller = c.locked[i]
             if recursive and caller is not None:
                 if caller not in node.callers:
                     node.callers[caller] = RunStatNode.make(self.transactions_and_methods[caller])
-                rec(c, node.callers[caller], caller)
+                rec(c, node.callers[caller], caller, locking_call)
 
         for c in self.cycles:
             for i in c.running:
                 rec(c, stats[i], i)
 
             for i in c.locked:
-                stats[i].stat.locked += 1
+                rec(c, stats[i], i, locking_call=True)
 
         return list(stats.values())
