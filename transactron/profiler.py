@@ -127,14 +127,14 @@ class Profile:
         with open(file_name, "r") as fp:
             return Profile.from_json(fp.read())  # type: ignore
 
-    def analyze_methods(self, recursive=False) -> list[RunStat]:
+    def analyze_methods(self, recursive=False) -> list[RunStatNode]:
         stats = {i: RunStatNode.make(info) for i, info in self.transactions_and_methods.items()}
 
         def rec(c: CycleProfile, node: RunStatNode, i: int):
             node.stat.run += 1
             caller = c.running[i]
             if recursive and caller is not None:
-                if caller not in stats[i].callers:
+                if caller not in node.callers:
                     node.callers[caller] = RunStatNode.make(self.transactions_and_methods[caller])
                 rec(c, node.callers[caller], caller)
 
@@ -145,4 +145,4 @@ class Profile:
             for i in c.locked:
                 stats[i].stat.locked += 1
 
-        return list(map(lambda node: node.stat, stats.values()))
+        return list(stats.values())
