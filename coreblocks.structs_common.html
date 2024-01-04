@@ -381,7 +381,8 @@ low_addr CSR is available to the counter.</p>
 <p>ExceptionCauseRegister</p>
 <p>Stores parameters of earliest (in instruction order) exception, to save resources in the <cite>ReorderBuffer</cite>.
 All FUs that report exceptions should <cite>report</cite> the details to <cite>ExceptionCauseRegister</cite> and set <cite>exception</cite> bit in
-result data. Exception order and priority is computed in this module.
+result data. Exception order is computed in this module. Only one exception can be reported for single instruction,
+exception priorities should be computed locally before calling report.
 If <cite>exception</cite> bit is set in the ROB, <cite>Retirement</cite> stage fetches exception details from this module.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.structs_common.exception.ExceptionCauseRegister.__init__">
@@ -521,7 +522,7 @@ last instruction in core and no new instruction is fetched). Should be called wh
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 12:27 2024-01-02.
+      <span class="lastupdated">Last updated on 20:54 2024-01-04.
       </span></p>
   </div>
 
