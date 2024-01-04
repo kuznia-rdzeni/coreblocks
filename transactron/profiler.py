@@ -130,7 +130,7 @@ class Profile:
     def analyze_methods(self, recursive=False) -> list[RunStatNode]:
         stats = {i: RunStatNode.make(info) for i, info in self.transactions_and_methods.items()}
 
-        def rec(c: CycleProfile, node: RunStatNode, i: int, locking_call = False):
+        def rec(c: CycleProfile, node: RunStatNode, i: int, locking_call=False):
             if i in c.running:
                 if not locking_call:
                     node.stat.run += 1
