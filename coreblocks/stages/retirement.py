@@ -89,9 +89,18 @@ class Retirement(Elaboratable):
             # restore original rl_dst->rp_dst mapping in F-RAT
             self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
+        retire_valid = Signal()
+        with Transaction().body(m) as validate_transaction:
+            # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
+            rob_entry = self.rob_peek(m)
+            ecr_entry = self.exception_cause_get(m)
+            m.d.comb += retire_valid.eq(
+                ~rob_entry.exception | (rob_entry.exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entry.rob_id))
+            )
+
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
-                with Transaction().body(m):
+                with Transaction().body(m, request=retire_valid) as retire_transaction:
                     rob_entry = self.rob_retire(m)
                     core_empty = self.instr_decrement(m)
 
@@ -105,7 +114,7 @@ class Retirement(Elaboratable):
                         cause_entry = Signal(self.gen_params.isa.xlen)
 
                         with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
-                            # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR.
+                            # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR
                             # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps
                             # it is a jump result).
                             # Instruction that reported interrupt is the last one that is commited.
@@ -135,12 +144,15 @@ class Retirement(Elaboratable):
                         # Normally retire all non-trap instructions
                         m.d.av_comb += commit.eq(1)
 
-                    # Methods cannot be called multiple times from the same Transaction >:(
+                    # Condition is used to avoid FRAT locking during normal operation
                     with condition(m, priority=False) as cond:
                         with cond(commit):
                             retire_instr(rob_entry)
-                        with cond(~commit):  # Not using default, because we want to block if condition is not ready
+                        with cond(~commit):
+                            # Not using default condition, because we want to block if branch is not ready
                             flush_instr(rob_entry)
+
+                    validate_transaction.schedule_before(retire_transaction)
 
             with m.State("TRAP_FLUSH"):
                 with Transaction().body(m):
