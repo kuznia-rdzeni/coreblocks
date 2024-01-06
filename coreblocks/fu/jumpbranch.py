@@ -10,7 +10,7 @@ from transactron.lib import *
 from transactron.utils import DependencyManager
 
 from coreblocks.params import *
-from coreblocks.params.keys import AsyncInterruptInsertSignalKey
+from coreblocks.params.keys import AsyncInterruptInsertSignalKey, BranchVerifyKey
 from transactron.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
@@ -125,9 +125,12 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
 
+        self.fifo_branch_resolved = FIFO(self.gen_params.get(JumpBranchLayouts).verify_branch, 2)
+
         self.jb_fn = jb_fn
 
         self.dm = gen_params.get(DependencyManager)
+        self.dm.add_dependency(BranchVerifyKey(), self.fifo_branch_resolved.read)
 
     def elaborate(self, platform):
         m = TModule()
@@ -135,6 +138,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.jb_fn)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen_params)
+        m.submodules.fifo_branch_resolved = self.fifo_branch_resolved
 
         @def_method(m, self.accept)
         def _():
@@ -188,6 +192,9 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 exception_report(m, rob_id=arg.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result)
 
             fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
+
+            with m.If(~is_auipc):
+                self.fifo_branch_resolved.write(m, from_pc=jb.in_pc, next_pc=jump_result, misprediction=misprediction)
 
         return m
 

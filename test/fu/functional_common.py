@@ -11,7 +11,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.fu_params import FunctionalComponentParams
-from coreblocks.params.isa import Funct3, Funct7
+from coreblocks.params.isa import ExceptionCause, Funct3, Funct7
 from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.optypes import OpType
@@ -155,7 +155,9 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
 
             self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": int(cause is not None)} | results)
             if cause is not None:
-                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": pc})
+                # JumpBranchUnit specific :( - misprediction has target pc (appended form verify_branch layout)
+                e_pc = results["next_pc"] if cause == ExceptionCause._COREBLOCKS_MISPREDICTION else pc
+                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": e_pc})
 
     def random_wait(self):
         for i in range(random.randint(0, self.max_wait)):
