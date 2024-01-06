@@ -47,9 +47,7 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
         self.gen_params.get(DependencyManager).add_dependency(GenericCSRRegistersKey(), self.generic_csr)
 
-        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(
-            Adapter(i=fetch_layouts.branch_verify)
-        )
+        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(Adapter(i=fetch_layouts.resume))
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
             Adapter(o=core_instr_counter_layouts.decrement)
         )

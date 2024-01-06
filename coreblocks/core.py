@@ -7,7 +7,7 @@ from coreblocks.structs_common.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import FetchResumeKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import Extension
 from coreblocks.frontend.decode import Decode
@@ -82,7 +82,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
+            extra_methods_required=[InstructionPrecommitKey(), FetchResumeKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -141,8 +141,8 @@ class Core(Elaboratable):
 
         m.submodules.exception_cause_register = self.exception_cause_register
 
-        m.submodules.verify_branch = ConnectTrans(
-            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch
+        m.submodules.fetch_resume_connector = ConnectTrans(
+            self.func_blocks_unifier.get_extra_method(FetchResumeKey()), self.fetch.resume
         )
 
         m.submodules.announcement = self.announcement
@@ -159,7 +159,7 @@ class Core(Elaboratable):
             exception_cause_get=self.exception_cause_register.get,
             exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
-            fetch_continue=self.fetch.verify_branch,
+            fetch_continue=self.fetch.resume,
             instr_decrement=self.core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
         )

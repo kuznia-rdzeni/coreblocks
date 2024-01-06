@@ -19,6 +19,7 @@ __all__ = [
     "PMALayouts",
     "CSRLayouts",
     "ICacheLayouts",
+    "JumpBranchLayouts",
 ]
 
 
@@ -428,11 +429,7 @@ class FetchLayouts:
             self.rvc,
         ]
 
-        self.branch_verify: LayoutList = [
-            ("from_pc", gen_params.isa.xlen),
-            ("next_pc", gen_params.isa.xlen),
-            ("resume_from_exception", 1),
-        ]
+        self.resume: LayoutList = [("pc", gen_params.isa.xlen), ("resume_from_exception", 1)]
 
 
 class DecodeLayouts:
@@ -500,6 +497,12 @@ class DivUnitLayouts:
             ("quotient", gen_params.isa.xlen),
             ("remainder", gen_params.isa.xlen),
         ]
+
+
+class JumpBranchLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.verify_branch = [("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)]
+        """ Hint for Branch Predictor about branch result """
 
 
 class LSULayouts:

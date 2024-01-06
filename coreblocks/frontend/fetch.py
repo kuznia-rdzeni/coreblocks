@@ -30,9 +30,9 @@ class Fetch(Elaboratable):
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
+        self.resume = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.stall_exception = Method()
-        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
+        self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
@@ -92,9 +92,9 @@ class Fetch(Elaboratable):
 
                 self.cont(m, instr=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
 
-        @def_method(m, self.verify_branch, ready=stalled)
-        def _(from_pc: Value, next_pc: Value, resume_from_exception: Value):
-            m.d.sync += speculative_pc.eq(next_pc)
+        @def_method(m, self.resume, ready=stalled)
+        def _(pc: Value, resume_from_exception: Value):
+            m.d.sync += speculative_pc.eq(pc)
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
                 m.d.sync += stalled_exception.eq(0)
@@ -128,9 +128,9 @@ class UnalignedFetch(Elaboratable):
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
+        self.resume = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.stall_exception = Method()
-        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
+        self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
@@ -229,10 +229,10 @@ class UnalignedFetch(Elaboratable):
 
                 self.cont(m, instr=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
 
-        @def_method(m, self.verify_branch, ready=(stalled & ~flushing))
-        def _(from_pc: Value, next_pc: Value, resume_from_exception: Value):
-            m.d.sync += cache_req_pc.eq(next_pc)
-            m.d.sync += current_pc.eq(next_pc)
+        @def_method(m, self.resume, ready=(stalled & ~flushing))
+        def _(pc: Value, resume_from_exception: Value):
+            m.d.sync += cache_req_pc.eq(pc)
+            m.d.sync += current_pc.eq(pc)
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
                 m.d.sync += stalled_exception.eq(0)

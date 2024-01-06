@@ -47,12 +47,12 @@ class TestElaboratable(Elaboratable):
         fifo = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
         self.fetch = Fetch(self.gen_params, self.icache, fifo.write)
-        self.verify_branch = TestbenchIO(AdapterTrans(self.fetch.verify_branch))
+        self.fetch_resume = TestbenchIO(AdapterTrans(self.fetch.resume))
 
         m.submodules.icache = self.icache
         m.submodules.fetch = self.fetch
         m.submodules.io_out = self.io_out
-        m.submodules.verify_branch = self.verify_branch
+        m.submodules.fetch_resume = self.fetch_resume
         m.submodules.fifo = fifo
 
         return m
@@ -130,7 +130,7 @@ class TestFetch(TestCaseWithSimulator):
             instr = self.instr_queue.popleft()
             if instr["is_branch"]:
                 yield from self.random_wait(10)
-                yield from self.m.verify_branch.call(from_pc=instr["pc"], next_pc=instr["next_pc"])
+                yield from self.m.fetch_resume.call(from_pc=instr["pc"], next_pc=instr["next_pc"])
 
             v = yield from self.m.io_out.call()
             self.assertEqual(v["pc"], instr["pc"])
@@ -156,9 +156,9 @@ class TestUnalignedFetch(TestCaseWithSimulator):
         fifo = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
         fetch = UnalignedFetch(self.gen_params, self.icache, fifo.write)
-        self.verify_branch = TestbenchIO(AdapterTrans(fetch.verify_branch))
+        self.fetch_resume = TestbenchIO(AdapterTrans(fetch.resume))
 
-        self.m = ModuleConnector(self.icache, fifo, self.io_out, fetch, self.verify_branch)
+        self.m = ModuleConnector(self.icache, fifo, self.io_out, fetch, self.fetch_resume)
 
         self.mem = {}
         self.memerr = set()
@@ -259,7 +259,7 @@ class TestUnalignedFetch(TestCaseWithSimulator):
 
             if instr["is_branch"] or instr_error:
                 yield from self.random_wait(10)
-                yield from self.verify_branch.call(next_pc=instr["next_pc"])
+                yield from self.fetch_resume.call(next_pc=instr["next_pc"])
 
     def test(self):
         issue_req_mock, accept_res_mock, cache_process = self.cache_processes()
