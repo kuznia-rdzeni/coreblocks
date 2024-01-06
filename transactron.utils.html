@@ -335,6 +335,159 @@ tests, for use in <code class="docutils literal notranslate"><span class="pre">g
 </dd></dl>
 
 </div>
+<div class="section" id="module-transactron.utils.depcache">
+<span id="transactron-utils-depcache-module"></span><h2>transactron.utils.depcache module<a class="headerlink" href="#module-transactron.utils.depcache" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.depcache.DependentCache">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.depcache.</span></span><span class="sig-name descname"><span class="pre">DependentCache</span></span><a class="headerlink" href="#transactron.utils.depcache.DependentCache" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Cache for classes, that depend on the <cite>DependentCache</cite> class itself.</p>
+<p>Cached classes may accept one positional argument in the constructor, where this <cite>DependentCache</cite> class will
+be passed. Classes may define any number keyword arguments in the constructor and separate cache entry will
+be created for each set of the arguments.</p>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 86%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>get: T, **kwargs -&gt; T</strong></p></td>
+<td><p>Gets class <cite>cls</cite> from cache. Caches <cite>cls</cite> reference if this is the first call for it. Optionally accepts <cite>kwargs</cite> for additional arguments in <cite>cls</cite> constructor.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.depcache.DependentCache.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.depcache.DependentCache.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.depcache.DependentCache.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">T</span></span></span><a class="headerlink" href="#transactron.utils.depcache.DependentCache.get" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.utils.dependencies">
+<span id="transactron-utils-dependencies-module"></span><h2>transactron.utils.dependencies module<a class="headerlink" href="#module-transactron.utils.dependencies" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.DependencyKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.dependencies.</span></span><span class="sig-name descname"><span class="pre">DependencyKey</span></span><a class="headerlink" href="#transactron.utils.dependencies.DependencyKey" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">U</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Base class for dependency keys.</p>
+<p>Dependency keys are used to access dependencies in the <cite>DependencyManager</cite>.
+Concrete instances of dependency keys should be frozen data classes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>lock_on_get: bool, default: True</strong></dt><dd><p>Specifies if no new dependencies should be added to key if it was already read by <cite>get_dependency</cite>.</p>
+</dd>
+<dt><strong>empty_valid: bool, default</strong><span class="classifier">False</span></dt><dd><p>Specifies if getting key dependency without any added dependencies is valid. If set to <cite>False</cite>, that
+action would cause raising <cite>KeyError</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.DependencyKey.combine">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">combine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">U</span></span></span><a class="headerlink" href="#transactron.utils.dependencies.DependencyKey.combine" title="Permalink to this definition"></a></dt>
+<dd><p>Combine multiple dependencies with the same key.</p>
+<p>This method is used to generate the value returned from <cite>get_dependency</cite>
+in the <cite>DependencyManager</cite>. It takes dependencies added to the key
+using <cite>add_dependency</cite> and combines them to a single result.</p>
+<p>Different implementations of <cite>combine</cite> give different combining behavior
+for different kinds of keys.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.DependencyKey.empty_valid">
+<span class="sig-name descname"><span class="pre">empty_valid</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#transactron.utils.dependencies.DependencyKey.empty_valid" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.DependencyKey.lock_on_get">
+<span class="sig-name descname"><span class="pre">lock_on_get</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#transactron.utils.dependencies.DependencyKey.lock_on_get" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.DependencyManager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.dependencies.</span></span><span class="sig-name descname"><span class="pre">DependencyManager</span></span><a class="headerlink" href="#transactron.utils.dependencies.DependencyManager" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Dependency manager.</p>
+<p>Tracks dependencies across the core.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.DependencyManager.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.dependencies.DependencyManager.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.DependencyManager.add_dependency">
+<span class="sig-name descname"><span class="pre">add_dependency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.utils.dependencies.DependencyKey" title="transactron.utils.dependencies.DependencyKey"><span class="pre">DependencyKey</span></a><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">T</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.utils.dependencies.DependencyManager.add_dependency" title="Permalink to this definition"></a></dt>
+<dd><p>Adds a new dependency to a key.</p>
+<p>Depending on the key type, a key can have a single dependency or
+multple dependencies added to it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.DependencyManager.get_dependency">
+<span class="sig-name descname"><span class="pre">get_dependency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.utils.dependencies.DependencyKey" title="transactron.utils.dependencies.DependencyKey"><span class="pre">DependencyKey</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">U</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">U</span></span></span><a class="headerlink" href="#transactron.utils.dependencies.DependencyManager.get_dependency" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the dependency for a key.</p>
+<p>The way dependencies are interpreted is dependent on the key type.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.ListKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.dependencies.</span></span><span class="sig-name descname"><span class="pre">ListKey</span></span><a class="headerlink" href="#transactron.utils.dependencies.ListKey" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>], <a class="reference internal" href="#transactron.utils.dependencies.DependencyKey" title="transactron.utils.dependencies.DependencyKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">DependencyKey</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>]]</p>
+<p>Base class for list key.</p>
+<p>List keys are used when there is an one-to-many relation between keys
+and dependecies. Provides list of dependencies.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.ListKey.combine">
+<span class="sig-name descname"><span class="pre">combine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.utils.dependencies.ListKey.combine" title="Permalink to this definition"></a></dt>
+<dd><p>Combine multiple dependencies with the same key.</p>
+<p>This method is used to generate the value returned from <cite>get_dependency</cite>
+in the <cite>DependencyManager</cite>. It takes dependencies added to the key
+using <cite>add_dependency</cite> and combines them to a single result.</p>
+<p>Different implementations of <cite>combine</cite> give different combining behavior
+for different kinds of keys.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.ListKey.empty_valid">
+<span class="sig-name descname"><span class="pre">empty_valid</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#transactron.utils.dependencies.ListKey.empty_valid" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.SimpleKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.dependencies.</span></span><span class="sig-name descname"><span class="pre">SimpleKey</span></span><a class="headerlink" href="#transactron.utils.dependencies.SimpleKey" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>], <a class="reference internal" href="#transactron.utils.dependencies.DependencyKey" title="transactron.utils.dependencies.DependencyKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">DependencyKey</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>]</p>
+<p>Base class for simple dependency keys.</p>
+<p>Simple dependency keys are used when there is an one-to-one relation between
+keys and dependencies. If more than one dependency is added to a simple key,
+an error is raised.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.SimpleKey.combine">
+<span class="sig-name descname"><span class="pre">combine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">T</span></span></span><a class="headerlink" href="#transactron.utils.dependencies.SimpleKey.combine" title="Permalink to this definition"></a></dt>
+<dd><p>Combine multiple dependencies with the same key.</p>
+<p>This method is used to generate the value returned from <cite>get_dependency</cite>
+in the <cite>DependencyManager</cite>. It takes dependencies added to the key
+using <cite>add_dependency</cite> and combines them to a single result.</p>
+<p>Different implementations of <cite>combine</cite> give different combining behavior
+for different kinds of keys.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-transactron.utils.transactron_helpers">
 <span id="transactron-utils-transactron-helpers-module"></span><h2>transactron.utils.transactron_helpers module<a class="headerlink" href="#module-transactron.utils.transactron_helpers" title="Permalink to this heading"></a></h2>
 <dl class="py function">
@@ -385,7 +538,7 @@ tests, for use in <code class="docutils literal notranslate"><span class="pre">g
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 20:54 2024-01-04.
+      <span class="lastupdated">Last updated on 10:53 2024-01-06.
       </span></p>
   </div>
 

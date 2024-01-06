@@ -12,14 +12,6 @@ coreblocks.params.configurations module
    :undoc-members:
    :show-inheritance:
 
-coreblocks.params.dependencies module
--------------------------------------
-
-.. automodule:: coreblocks.params.dependencies
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 coreblocks.params.fu\_params module
 -----------------------------------
 

@@ -188,8 +188,6 @@
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.__init__">(coreblocks.params.configurations.CoreConfiguration method)</a>
 </li>
-        <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyManager.__init__">(coreblocks.params.dependencies.DependencyManager method)</a>
-</li>
         <li><a href="coreblocks.params.html#coreblocks.params.genparams.GenParams.__init__">(coreblocks.params.genparams.GenParams method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters.__init__">(coreblocks.params.icache_params.ICacheParameters method)</a>
@@ -320,8 +318,6 @@
 </li>
         <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rs.RS.__init__">(coreblocks.structs_common.rs.RS method)</a>
 </li>
-        <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.Unifier.__init__">(coreblocks.utils.protocols.Unifier method)</a>
-</li>
         <li><a href="transactron.html#transactron.core.Method.__init__">(transactron.core.Method method)</a>
 </li>
         <li><a href="transactron.html#transactron.core.TModule.__init__">(transactron.core.TModule method)</a>
@@ -358,6 +354,8 @@
 </li>
         <li><a href="transactron.lib.html#transactron.lib.connectors.ManyToOneConnectTrans.__init__">(transactron.lib.connectors.ManyToOneConnectTrans method)</a>
 </li>
+        <li><a href="transactron.lib.html#transactron.lib.dependencies.DependencyManager.__init__">(transactron.lib.dependencies.DependencyManager method)</a>
+</li>
         <li><a href="transactron.lib.html#transactron.lib.fifo.BasicFifo.__init__">(transactron.lib.fifo.BasicFifo method)</a>
 </li>
         <li><a href="transactron.lib.html#transactron.lib.fifo.Semaphore.__init__">(transactron.lib.fifo.Semaphore method)</a>
@@ -382,6 +380,8 @@
 </li>
         <li><a href="transactron.lib.html#transactron.lib.transformers.MethodTryProduct.__init__">(transactron.lib.transformers.MethodTryProduct method)</a>
 </li>
+        <li><a href="transactron.lib.html#transactron.lib.transformers.Unifier.__init__">(transactron.lib.transformers.Unifier method)</a>
+</li>
         <li><a href="transactron.html#transactron.Method.__init__">(transactron.Method method)</a>
 </li>
         <li><a href="transactron.html#transactron.TModule.__init__">(transactron.TModule method)</a>
@@ -397,6 +397,10 @@
         <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.elaboratables.ModuleConnector.__init__">(transactron.utils.amaranth_ext.elaboratables.ModuleConnector method)</a>
 </li>
         <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.elaboratables.Scheduler.__init__">(transactron.utils.amaranth_ext.elaboratables.Scheduler method)</a>
+</li>
+        <li><a href="transactron.utils.html#transactron.utils.depcache.DependentCache.__init__">(transactron.utils.depcache.DependentCache method)</a>
+</li>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.DependencyManager.__init__">(transactron.utils.dependencies.DependencyManager method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -483,8 +487,12 @@
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.ADD">(coreblocks.params.isa.Funct7 attribute)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyManager.add_dependency">add_dependency() (coreblocks.params.dependencies.DependencyManager method)</a>
+      <li><a href="transactron.lib.html#transactron.lib.dependencies.DependencyManager.add_dependency">add_dependency() (transactron.lib.dependencies.DependencyManager method)</a>
+
+      <ul>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.DependencyManager.add_dependency">(transactron.utils.dependencies.DependencyManager method)</a>
 </li>
+      </ul></li>
       <li><a href="transactron.html#transactron.core.TransactionManager.add_transaction">add_transaction() (transactron.core.TransactionManager method)</a>
 
       <ul>
@@ -699,8 +707,22 @@
       </ul></li>
       <li><a href="transactron.lib.html#transactron.lib.transformers.Collector">Collector (class in transactron.lib.transformers)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey.combine">combine() (coreblocks.params.dependencies.DependencyKey method)</a>
+      <li><a href="transactron.lib.html#transactron.lib.dependencies.DependencyKey.combine">combine() (transactron.lib.dependencies.DependencyKey method)</a>
+
+      <ul>
+        <li><a href="transactron.lib.html#transactron.lib.dependencies.ListKey.combine">(transactron.lib.dependencies.ListKey method)</a>
 </li>
+        <li><a href="transactron.lib.html#transactron.lib.dependencies.SimpleKey.combine">(transactron.lib.dependencies.SimpleKey method)</a>
+</li>
+        <li><a href="transactron.lib.html#transactron.lib.dependencies.UnifierKey.combine">(transactron.lib.dependencies.UnifierKey method)</a>
+</li>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.DependencyKey.combine">(transactron.utils.dependencies.DependencyKey method)</a>
+</li>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.ListKey.combine">(transactron.utils.dependencies.ListKey method)</a>
+</li>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.SimpleKey.combine">(transactron.utils.dependencies.SimpleKey method)</a>
+</li>
+      </ul></li>
       <li><a href="transactron.utils.html#transactron.utils.assign.AssignType.COMMON">COMMON (transactron.utils.assign.AssignType attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields">CommonLayoutFields (class in coreblocks.params.layouts)</a>
@@ -922,13 +944,8 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.configurations">module</a>
 </li>
       </ul></li>
-      <li>
-    coreblocks.params.dependencies
-
-      <ul>
-        <li><a href="coreblocks.params.html#module-coreblocks.params.dependencies">module</a>
-</li>
-      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.fu_params
 
@@ -936,8 +953,6 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.fu_params">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.genparams
 
@@ -1276,11 +1291,21 @@
         <li><a href="transactron.html#transactron.TModule.Default">(transactron.TModule method)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey">DependencyKey (class in coreblocks.params.dependencies)</a>
+      <li><a href="transactron.lib.html#transactron.lib.dependencies.DependencyKey">DependencyKey (class in transactron.lib.dependencies)</a>
+
+      <ul>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.DependencyKey">(class in transactron.utils.dependencies)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyManager">DependencyManager (class in coreblocks.params.dependencies)</a>
+      <li><a href="transactron.lib.html#transactron.lib.dependencies.DependencyManager">DependencyManager (class in transactron.lib.dependencies)</a>
+
+      <ul>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.DependencyManager">(class in transactron.utils.dependencies)</a>
+</li>
+      </ul></li>
+      <li><a href="transactron.utils.html#transactron.utils.depcache.DependentCache">DependentCache (class in transactron.utils.depcache)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICache.deserialize_addr">deserialize_addr() (coreblocks.frontend.icache.ICache method)</a>
 </li>
@@ -1372,16 +1397,24 @@
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.embedded">embedded (coreblocks.params.configurations.CoreConfiguration attribute)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey.empty_valid">empty_valid (coreblocks.params.dependencies.DependencyKey attribute)</a>
+      <li><a href="transactron.lib.html#transactron.lib.dependencies.DependencyKey.empty_valid">empty_valid (transactron.lib.dependencies.DependencyKey attribute)</a>
+
+      <ul>
+        <li><a href="transactron.lib.html#transactron.lib.dependencies.ListKey.empty_valid">(transactron.lib.dependencies.ListKey attribute)</a>
 </li>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.DependencyKey.empty_valid">(transactron.utils.dependencies.DependencyKey attribute)</a>
+</li>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.ListKey.empty_valid">(transactron.utils.dependencies.ListKey attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.lsu.html#coreblocks.lsu.pma.PMARegion.end">end (coreblocks.lsu.pma.PMARegion attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.ROBLayouts.end">(coreblocks.params.layouts.ROBLayouts attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.ENVIRONMENT_CALL_FROM_M">ENVIRONMENT_CALL_FROM_M (coreblocks.params.isa.ExceptionCause attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.ENVIRONMENT_CALL_FROM_S">ENVIRONMENT_CALL_FROM_S (coreblocks.params.isa.ExceptionCause attribute)</a>
@@ -1515,13 +1548,19 @@
 </li>
         <li><a href="transactron.html#transactron.TransactionContext.get">(transactron.TransactionContext class method)</a>
 </li>
+        <li><a href="transactron.utils.html#transactron.utils.depcache.DependentCache.get">(transactron.utils.depcache.DependentCache method)</a>
+</li>
       </ul></li>
       <li><a href="transactron.utils.html#transactron.utils.transactron_helpers.get_caller_class_name">get_caller_class_name() (in module transactron.utils.transactron_helpers)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager.get_decoder">get_decoder() (coreblocks.fu.fu_decoder.DecoderManager method)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyManager.get_dependency">get_dependency() (coreblocks.params.dependencies.DependencyManager method)</a>
+      <li><a href="transactron.lib.html#transactron.lib.dependencies.DependencyManager.get_dependency">get_dependency() (transactron.lib.dependencies.DependencyManager method)</a>
+
+      <ul>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.DependencyManager.get_dependency">(transactron.utils.dependencies.DependencyManager method)</a>
 </li>
+      </ul></li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier.get_extra_method">get_extra_method() (coreblocks.stages.func_blocks_unifier.FuncBlocksUnifier method)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager.get_function">get_function() (coreblocks.fu.fu_decoder.DecoderManager method)</a>
@@ -1784,6 +1823,12 @@
         <li><a href="transactron.html#transactron.Method.like">(transactron.Method static method)</a>
 </li>
       </ul></li>
+      <li><a href="transactron.lib.html#transactron.lib.dependencies.ListKey">ListKey (class in transactron.lib.dependencies)</a>
+
+      <ul>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.ListKey">(class in transactron.utils.dependencies)</a>
+</li>
+      </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Opcode.LOAD">LOAD (coreblocks.params.isa.Opcode attribute)</a>
 
       <ul>
@@ -1800,8 +1845,12 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.LOAD_PAGE_FAULT">LOAD_PAGE_FAULT (coreblocks.params.isa.ExceptionCause attribute)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.dependencies.DependencyKey.lock_on_get">lock_on_get (coreblocks.params.dependencies.DependencyKey attribute)</a>
+      <li><a href="transactron.lib.html#transactron.lib.dependencies.DependencyKey.lock_on_get">lock_on_get (transactron.lib.dependencies.DependencyKey attribute)</a>
+
+      <ul>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.DependencyKey.lock_on_get">(transactron.utils.dependencies.DependencyKey attribute)</a>
 </li>
+      </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.LOGIC">LOGIC (coreblocks.params.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.lsu.html#coreblocks.lsu.dummyLsu.LSUBlockComponent">LSUBlockComponent (class in coreblocks.lsu.dummyLsu)</a>
@@ -1854,10 +1903,10 @@
         <li><a href="transactron.html#transactron.core.Method">(class in transactron.core)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.Unifier.method">method (coreblocks.utils.protocols.Unifier attribute)</a>
+      <li><a href="transactron.lib.html#transactron.lib.transformers.Transformer.method">method (transactron.lib.transformers.Transformer attribute)</a>
 
       <ul>
-        <li><a href="transactron.lib.html#transactron.lib.transformers.Transformer.method">(transactron.lib.transformers.Transformer attribute)</a>
+        <li><a href="transactron.lib.html#transactron.lib.transformers.Unifier.method">(transactron.lib.transformers.Unifier attribute)</a>
 </li>
       </ul></li>
       <li><a href="transactron.utils.html#transactron.utils.transactron_helpers.method_def_helper">method_def_helper() (in module transactron.utils.transactron_helpers)</a>
@@ -1948,8 +1997,6 @@
 </li>
         <li><a href="coreblocks.params.html#module-coreblocks.params.configurations">coreblocks.params.configurations</a>
 </li>
-        <li><a href="coreblocks.params.html#module-coreblocks.params.dependencies">coreblocks.params.dependencies</a>
-</li>
         <li><a href="coreblocks.params.html#module-coreblocks.params.fu_params">coreblocks.params.fu_params</a>
 </li>
         <li><a href="coreblocks.params.html#module-coreblocks.params.genparams">coreblocks.params.genparams</a>
@@ -2026,6 +2073,8 @@
 </li>
         <li><a href="transactron.lib.html#module-transactron.lib.connectors">transactron.lib.connectors</a>
 </li>
+        <li><a href="transactron.lib.html#module-transactron.lib.dependencies">transactron.lib.dependencies</a>
+</li>
         <li><a href="transactron.lib.html#module-transactron.lib.fifo">transactron.lib.fifo</a>
 </li>
         <li><a href="transactron.lib.html#module-transactron.lib.reqres">transactron.lib.reqres</a>
@@ -2051,6 +2100,10 @@
         <li><a href="transactron.utils.html#module-transactron.utils.data_repr">transactron.utils.data_repr</a>
 </li>
         <li><a href="transactron.utils.html#module-transactron.utils.debug_signals">transactron.utils.debug_signals</a>
+</li>
+        <li><a href="transactron.utils.html#module-transactron.utils.depcache">transactron.utils.depcache</a>
+</li>
+        <li><a href="transactron.utils.html#module-transactron.utils.dependencies">transactron.utils.dependencies</a>
 </li>
         <li><a href="transactron.utils.html#module-transactron.utils.transactron_helpers">transactron.utils.transactron_helpers</a>
 </li>
@@ -2531,10 +2584,10 @@
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulType.SHIFT_MUL">SHIFT_MUL (coreblocks.fu.mul_unit.MulType attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.fu.html#coreblocks.fu.shift_unit.ShiftFuncUnit">ShiftFuncUnit (class in coreblocks.fu.shift_unit)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.fu.html#coreblocks.fu.shift_unit.ShiftUnitComponent">ShiftUnitComponent (class in coreblocks.fu.shift_unit)</a>
 </li>
       <li><a href="coreblocks.fu.unsigned_multiplication.html#coreblocks.fu.unsigned_multiplication.shift.ShiftUnsignedMul">ShiftUnsignedMul (class in coreblocks.fu.unsigned_multiplication.shift)</a>
@@ -2547,6 +2600,12 @@
 </li>
       <li><a href="transactron.utils.html#transactron.utils.transactron_helpers.silence_mustuse">silence_mustuse() (in module transactron.utils.transactron_helpers)</a>
 </li>
+      <li><a href="transactron.lib.html#transactron.lib.dependencies.SimpleKey">SimpleKey (class in transactron.lib.dependencies)</a>
+
+      <ul>
+        <li><a href="transactron.utils.html#transactron.utils.dependencies.SimpleKey">(class in transactron.utils.dependencies)</a>
+</li>
+      </ul></li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.SimpleWBCacheRefiller">SimpleWBCacheRefiller (class in coreblocks.frontend.icache)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.SINGLE_BIT_MANIPULATION">SINGLE_BIT_MANIPULATION (coreblocks.params.optypes.OpType attribute)</a>
@@ -2738,8 +2797,6 @@
         <li><a href="transactron.lib.html#module-transactron.lib.adapters">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     transactron.lib.buttons
 
@@ -2747,11 +2804,20 @@
         <li><a href="transactron.lib.html#module-transactron.lib.buttons">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     transactron.lib.connectors
 
       <ul>
         <li><a href="transactron.lib.html#module-transactron.lib.connectors">module</a>
+</li>
+      </ul></li>
+      <li>
+    transactron.lib.dependencies
+
+      <ul>
+        <li><a href="transactron.lib.html#module-transactron.lib.dependencies">module</a>
 </li>
       </ul></li>
       <li>
@@ -2846,6 +2912,20 @@
 </li>
       </ul></li>
       <li>
+    transactron.utils.depcache
+
+      <ul>
+        <li><a href="transactron.utils.html#module-transactron.utils.depcache">module</a>
+</li>
+      </ul></li>
+      <li>
+    transactron.utils.dependencies
+
+      <ul>
+        <li><a href="transactron.utils.html#module-transactron.utils.dependencies">module</a>
+</li>
+      </ul></li>
+      <li>
     transactron.utils.transactron_helpers
 
       <ul>
@@ -2880,16 +2960,20 @@
 </li>
       <li><a href="transactron.html#transactron.core.Priority.UNDEFINED">UNDEFINED (transactron.core.Priority attribute)</a>
 </li>
+      <li><a href="transactron.lib.html#transactron.lib.transformers.Unifier">Unifier (class in transactron.lib.transformers)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.Unifier">Unifier (class in coreblocks.utils.protocols)</a>
-</li>
       <li><a href="coreblocks.params.html#coreblocks.params.keys.BranchResolvedKey.unifier">unifier (coreblocks.params.keys.BranchResolvedKey attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.InstructionPrecommitKey.unifier">(coreblocks.params.keys.InstructionPrecommitKey attribute)</a>
 </li>
+        <li><a href="transactron.lib.html#transactron.lib.dependencies.UnifierKey.unifier">(transactron.lib.dependencies.UnifierKey attribute)</a>
+</li>
       </ul></li>
+      <li><a href="transactron.lib.html#transactron.lib.dependencies.UnifierKey">UnifierKey (class in transactron.lib.dependencies)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.UNKNOWN">UNKNOWN (coreblocks.params.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.UnsignedMulUnitLayouts">UnsignedMulUnitLayouts (class in coreblocks.params.layouts)</a>
@@ -3131,7 +3215,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 20:54 2024-01-04.
+      <span class="lastupdated">Last updated on 10:53 2024-01-06.
       </span></p>
   </div>
 

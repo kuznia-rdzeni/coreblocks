@@ -28,6 +28,14 @@ transactron.lib.connectors module
    :undoc-members:
    :show-inheritance:
 
+transactron.lib.dependencies module
+-----------------------------------
+
+.. automodule:: transactron.lib.dependencies
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 transactron.lib.fifo module
 ---------------------------
 

@@ -207,78 +207,6 @@ Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
 </dd></dl>
 
 </div>
-<div class="section" id="module-coreblocks.params.dependencies">
-<span id="coreblocks-params-dependencies-module"></span><h2>coreblocks.params.dependencies module<a class="headerlink" href="#module-coreblocks.params.dependencies" title="Permalink to this heading"></a></h2>
-<dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.params.dependencies.DependencyKey">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.dependencies.</span></span><span class="sig-name descname"><span class="pre">DependencyKey</span></span><a class="headerlink" href="#coreblocks.params.dependencies.DependencyKey" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">U</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
-<p>Base class for dependency keys.</p>
-<p>Dependency keys are used to access dependencies in the <cite>DependencyManager</cite>.
-Concrete instances of dependency keys should be frozen data classes.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>lock_on_get: bool, default: True</strong></dt><dd><p>Specifies if no new dependencies should be added to key if it was already read by <cite>get_dependency</cite>.</p>
-</dd>
-<dt><strong>empty_valid: bool, default</strong><span class="classifier">False</span></dt><dd><p>Specifies if getting key dependency without any added dependencies is valid. If set to <cite>False</cite>, that
-action would cause raising <cite>KeyError</cite>.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.dependencies.DependencyKey.combine">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">combine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">U</span></span></span><a class="headerlink" href="#coreblocks.params.dependencies.DependencyKey.combine" title="Permalink to this definition"></a></dt>
-<dd><p>Combine multiple dependencies with the same key.</p>
-<p>This method is used to generate the value returned from <cite>get_dependency</cite>
-in the <cite>DependencyManager</cite>. It takes dependencies added to the key
-using <cite>add_dependency</cite> and combines them to a single result.</p>
-<p>Different implementations of <cite>combine</cite> give different combining behavior
-for different kinds of keys.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.dependencies.DependencyKey.empty_valid">
-<span class="sig-name descname"><span class="pre">empty_valid</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#coreblocks.params.dependencies.DependencyKey.empty_valid" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.dependencies.DependencyKey.lock_on_get">
-<span class="sig-name descname"><span class="pre">lock_on_get</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#coreblocks.params.dependencies.DependencyKey.lock_on_get" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.params.dependencies.DependencyManager">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.dependencies.</span></span><span class="sig-name descname"><span class="pre">DependencyManager</span></span><a class="headerlink" href="#coreblocks.params.dependencies.DependencyManager" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Dependency manager.</p>
-<p>Tracks dependencies across the core.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.dependencies.DependencyManager.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.dependencies.DependencyManager.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.dependencies.DependencyManager.add_dependency">
-<span class="sig-name descname"><span class="pre">add_dependency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.dependencies.DependencyKey" title="coreblocks.params.dependencies.DependencyKey"><span class="pre">DependencyKey</span></a><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">T</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.params.dependencies.DependencyManager.add_dependency" title="Permalink to this definition"></a></dt>
-<dd><p>Adds a new dependency to a key.</p>
-<p>Depending on the key type, a key can have a single dependency or
-multple dependencies added to it.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.dependencies.DependencyManager.get_dependency">
-<span class="sig-name descname"><span class="pre">get_dependency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.dependencies.DependencyKey" title="coreblocks.params.dependencies.DependencyKey"><span class="pre">DependencyKey</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">U</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">U</span></span></span><a class="headerlink" href="#coreblocks.params.dependencies.DependencyManager.get_dependency" title="Permalink to this definition"></a></dt>
-<dd><p>Gets the dependency for a key.</p>
-<p>The way dependencies are interpreted is dependent on the key type.</p>
-</dd></dl>
-
-</dd></dl>
-
-</div>
 <div class="section" id="module-coreblocks.params.fu_params">
 <span id="coreblocks-params-fu-params-module"></span><h2>coreblocks.params.fu_params module<a class="headerlink" href="#module-coreblocks.params.fu_params" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -329,7 +257,7 @@ multple dependencies added to it.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.genparams.GenParams">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.genparams.</span></span><span class="sig-name descname"><span class="pre">GenParams</span></span><a class="headerlink" href="#coreblocks.params.genparams.GenParams" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">DependentCache</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="transactron.utils.html#transactron.utils.depcache.DependentCache" title="transactron.utils.depcache.DependentCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">DependentCache</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.genparams.GenParams.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.configurations.CoreConfiguration" title="coreblocks.params.configurations.CoreConfiguration"><span class="pre">CoreConfiguration</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.genparams.GenParams.__init__" title="Permalink to this definition"></a></dt>
@@ -1986,7 +1914,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.keys.AsyncInterruptInsertSignalKey">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.keys.</span></span><span class="sig-name descname"><span class="pre">AsyncInterruptInsertSignalKey</span></span><a class="headerlink" href="#coreblocks.params.keys.AsyncInterruptInsertSignalKey" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Signal</span></code>]</p>
+<dd><p>Bases: <a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.SimpleKey" title="transactron.utils.dependencies.SimpleKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Signal</span></code>]</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.keys.AsyncInterruptInsertSignalKey.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.params.keys.AsyncInterruptInsertSignalKey.__init__" title="Permalink to this definition"></a></dt>
@@ -1997,7 +1925,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.keys.BranchResolvedKey">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.keys.</span></span><span class="sig-name descname"><span class="pre">BranchResolvedKey</span></span><a class="headerlink" href="#coreblocks.params.keys.BranchResolvedKey" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">UnifierKey</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="transactron.lib.html#transactron.lib.dependencies.UnifierKey" title="transactron.lib.dependencies.UnifierKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">UnifierKey</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.keys.BranchResolvedKey.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.params.keys.BranchResolvedKey.__init__" title="Permalink to this definition"></a></dt>
@@ -2014,7 +1942,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.keys.ExceptionReportKey">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.keys.</span></span><span class="sig-name descname"><span class="pre">ExceptionReportKey</span></span><a class="headerlink" href="#coreblocks.params.keys.ExceptionReportKey" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code>[<a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><code class="xref py py-class docutils literal notranslate"><span class="pre">Method</span></code></a>]</p>
+<dd><p>Bases: <a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.SimpleKey" title="transactron.utils.dependencies.SimpleKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code></a>[<a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><code class="xref py py-class docutils literal notranslate"><span class="pre">Method</span></code></a>]</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.keys.ExceptionReportKey.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.params.keys.ExceptionReportKey.__init__" title="Permalink to this definition"></a></dt>
@@ -2025,7 +1953,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.keys.GenericCSRRegistersKey">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.keys.</span></span><span class="sig-name descname"><span class="pre">GenericCSRRegistersKey</span></span><a class="headerlink" href="#coreblocks.params.keys.GenericCSRRegistersKey" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">GenericCSRRegisters</span></code>]</p>
+<dd><p>Bases: <a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.SimpleKey" title="transactron.utils.dependencies.SimpleKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">GenericCSRRegisters</span></code>]</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.keys.GenericCSRRegistersKey.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.params.keys.GenericCSRRegistersKey.__init__" title="Permalink to this definition"></a></dt>
@@ -2036,7 +1964,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.keys.InstructionPrecommitKey">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.keys.</span></span><span class="sig-name descname"><span class="pre">InstructionPrecommitKey</span></span><a class="headerlink" href="#coreblocks.params.keys.InstructionPrecommitKey" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">UnifierKey</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="transactron.lib.html#transactron.lib.dependencies.UnifierKey" title="transactron.lib.dependencies.UnifierKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">UnifierKey</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.keys.InstructionPrecommitKey.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.params.keys.InstructionPrecommitKey.__init__" title="Permalink to this definition"></a></dt>
@@ -2053,7 +1981,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.keys.MretKey">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.keys.</span></span><span class="sig-name descname"><span class="pre">MretKey</span></span><a class="headerlink" href="#coreblocks.params.keys.MretKey" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code>[<a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><code class="xref py py-class docutils literal notranslate"><span class="pre">Method</span></code></a>]</p>
+<dd><p>Bases: <a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.SimpleKey" title="transactron.utils.dependencies.SimpleKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code></a>[<a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><code class="xref py py-class docutils literal notranslate"><span class="pre">Method</span></code></a>]</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.keys.MretKey.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.params.keys.MretKey.__init__" title="Permalink to this definition"></a></dt>
@@ -2064,7 +1992,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.keys.WishboneDataKey">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.keys.</span></span><span class="sig-name descname"><span class="pre">WishboneDataKey</span></span><a class="headerlink" href="#coreblocks.params.keys.WishboneDataKey" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code>[<a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMaster" title="coreblocks.peripherals.wishbone.WishboneMaster"><code class="xref py py-class docutils literal notranslate"><span class="pre">WishboneMaster</span></code></a>]</p>
+<dd><p>Bases: <a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.SimpleKey" title="transactron.utils.dependencies.SimpleKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code></a>[<a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMaster" title="coreblocks.peripherals.wishbone.WishboneMaster"><code class="xref py py-class docutils literal notranslate"><span class="pre">WishboneMaster</span></code></a>]</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.keys.WishboneDataKey.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.params.keys.WishboneDataKey.__init__" title="Permalink to this definition"></a></dt>
@@ -2727,7 +2655,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 20:54 2024-01-04.
+      <span class="lastupdated">Last updated on 10:53 2024-01-06.
       </span></p>
   </div>
 

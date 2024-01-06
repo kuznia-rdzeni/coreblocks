@@ -36,6 +36,22 @@ transactron.utils.debug\_signals module
    :undoc-members:
    :show-inheritance:
 
+transactron.utils.depcache module
+---------------------------------
+
+.. automodule:: transactron.utils.depcache
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.utils.dependencies module
+-------------------------------------
+
+.. automodule:: transactron.utils.dependencies
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 transactron.utils.transactron\_helpers module
 ---------------------------------------------
 
