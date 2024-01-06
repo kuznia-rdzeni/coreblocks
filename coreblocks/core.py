@@ -7,7 +7,13 @@ from coreblocks.structs_common.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import FetchResumeKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import (
+    BranchVerifyKey,
+    FetchResumeKey,
+    GenericCSRRegistersKey,
+    InstructionPrecommitKey,
+    WishboneDataKey,
+)
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import Extension
 from coreblocks.frontend.decode import Decode
@@ -67,8 +73,8 @@ class Core(Elaboratable):
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        connections = gen_params.get(DependencyManager)
-        connections.add_dependency(WishboneDataKey(), self.wb_master_data)
+        self.connections = gen_params.get(DependencyManager)
+        self.connections.add_dependency(WishboneDataKey(), self.wb_master_data)
 
         if Extension.C in self.gen_params.isa.extensions:
             self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.method)
@@ -96,7 +102,7 @@ class Core(Elaboratable):
         self.interrupt_controller = InterruptController(self.gen_params)
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)
-        connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
+        self.connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
 
     def elaborate(self, platform):
         m = TModule()
@@ -173,5 +179,10 @@ class Core(Elaboratable):
         with Transaction(name="InitFreeRFFifo").body(m, request=(free_rf_reg.bool())):
             free_rf_fifo.write(m, free_rf_reg)
             m.d.sync += free_rf_reg.eq(free_rf_reg + 1)
+
+        # TODO: Remove when Branch Predictor implemented
+        with Transaction(name="DiscardBranchVerify").body(m):
+            read = self.connections.get_dependency(BranchVerifyKey())
+            read(m)  # Consume to not block JB Unit
 
         return m
