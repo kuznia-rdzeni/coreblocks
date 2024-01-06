@@ -3,9 +3,9 @@ from amaranth.tracer import get_src_loc
 from functools import reduce
 import operator
 from dataclasses import dataclass
-from coreblocks.params.genparams import DependentCache
+from transactron.utils.depcache import DependentCache
 from transactron.utils import SrcLoc
-from coreblocks.params.dependencies import DependencyManager, ListKey
+from transactron.utils.dependencies import DependencyManager, ListKey
 
 __all__ = ["AssertKey", "assertion", "assert_bit", "assert_bits"]
 
