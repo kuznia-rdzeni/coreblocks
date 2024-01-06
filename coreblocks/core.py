@@ -70,7 +70,14 @@ class Core(Elaboratable):
         connections = gen_params.get(DependencyManager)
         connections.add_dependency(WishboneDataKey(), self.wb_master_data)
 
-        self.exception_cause_register = ExceptionCauseRegister(self.gen_params, rob_get_indices=self.ROB.get_indices)
+        if Extension.C in self.gen_params.isa.extensions:
+            self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.method)
+        else:
+            self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.method)
+
+        self.exception_cause_register = ExceptionCauseRegister(
+            self.gen_params, rob_get_indices=self.ROB.get_indices, fetch_stall_exception=self.fetch.stall_exception
+        )
 
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
@@ -110,11 +117,8 @@ class Core(Elaboratable):
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
 
-        if Extension.C in self.gen_params.isa.extensions:
-            m.submodules.fetch = self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.use(m))
-        else:
-            m.submodules.fetch = self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.use(m))
-
+        m.submodules.fetch_continue = self.fetch_continue
+        m.submodules.fetch = self.fetch
         m.submodules.fifo_fetch = self.fifo_fetch
         m.submodules.core_counter = self.core_counter
         m.submodules.args_discard_map = self.core_counter_increment_discard_map
@@ -156,7 +160,6 @@ class Core(Elaboratable):
             exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
             fetch_continue=self.fetch.verify_branch,
-            fetch_stall=self.fetch.stall_exception,
             instr_decrement=self.core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
         )

@@ -26,7 +26,6 @@ class Retirement(Elaboratable):
         exception_cause_clear: Method,
         frat_rename: Method,
         fetch_continue: Method,
-        fetch_stall: Method,
         instr_decrement: Method,
         trap_entry: Method,
     ):
@@ -42,7 +41,6 @@ class Retirement(Elaboratable):
         self.exception_cause_clear = exception_cause_clear
         self.rename = frat_rename
         self.fetch_continue = fetch_continue
-        self.fetch_stall = fetch_stall
         self.instr_decrement = instr_decrement
         self.trap_entry = trap_entry
 
@@ -101,8 +99,6 @@ class Retirement(Elaboratable):
                     commit = Signal()
 
                     with m.If(rob_entry.exception):
-                        self.fetch_stall(m)
-
                         cause_register = self.exception_cause_get(m)
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
