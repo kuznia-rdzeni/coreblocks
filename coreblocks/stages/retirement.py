@@ -2,9 +2,9 @@ from amaranth import *
 
 from transactron.core import Method, Transaction, TModule
 from transactron.lib.simultaneous import condition
+from transactron.utils.dependencies import DependencyManager
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.keys import GenericCSRRegistersKey
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
