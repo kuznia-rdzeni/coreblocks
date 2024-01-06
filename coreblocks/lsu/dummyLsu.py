@@ -4,7 +4,7 @@ from transactron import Method, def_method, Transaction, TModule
 from coreblocks.params import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from transactron.lib.connectors import Forwarder
-from transactron.utils import assign, ModuleLike
+from transactron.utils import assign, ModuleLike, DependencyManager
 from coreblocks.utils.protocols import FuncBlock
 
 from coreblocks.lsu.pma import PMAChecker

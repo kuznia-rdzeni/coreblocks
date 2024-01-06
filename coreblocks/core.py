@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.structs_common.instr_counter import CoreInstructionCounter
 from coreblocks.structs_common.interrupt_controller import InterruptController

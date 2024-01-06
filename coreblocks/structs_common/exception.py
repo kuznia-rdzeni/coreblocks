@@ -1,13 +1,16 @@
 from amaranth import *
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.genparams import GenParams
 
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import ExceptionReportKey
 from transactron.core import TModule, def_method, Method
+from transactron.lib.connectors import ConnectTrans
+from transactron.lib.fifo import BasicFifo
 
 
+# NOTE: This function is not used in ExceptionCauseRegister, but may be useful in computing priorities before reporting
 def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) -> Value:
     # Comparing all priorities would be expensive, this function only checks conditions that could happen in hardware
     _update = Signal()
@@ -42,7 +45,8 @@ class ExceptionCauseRegister(Elaboratable):
 
     Stores parameters of earliest (in instruction order) exception, to save resources in the `ReorderBuffer`.
     All FUs that report exceptions should `report` the details to `ExceptionCauseRegister` and set `exception` bit in
-    result data. Exception order and priority is computed in this module.
+    result data. Exception order is computed in this module. Only one exception can be reported for single instruction,
+    exception priorities should be computed locally before calling report.
     If `exception` bit is set in the ROB, `Retirement` stage fetches exception details from this module.
     """
 
@@ -54,11 +58,15 @@ class ExceptionCauseRegister(Elaboratable):
         self.pc = Signal(gen_params.isa.xlen)
         self.valid = Signal()
 
-        self.report = Method(i=gen_params.get(ExceptionRegisterLayouts).report)
+        self.layouts = gen_params.get(ExceptionRegisterLayouts)
+
+        # Break long combinational paths from single-cycle FUs
+        self.fu_report_fifo = BasicFifo(self.layouts.report, 2)
+        self.report = self.fu_report_fifo.write
         dm = gen_params.get(DependencyManager)
         dm.add_dependency(ExceptionReportKey(), self.report)
 
-        self.get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
+        self.get = Method(o=self.layouts.get, nonexclusive=True)
 
         self.clear = Method()
 
@@ -68,12 +76,19 @@ class ExceptionCauseRegister(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        @def_method(m, self.report)
+        report = Method(i=self.layouts.report)
+
+        m.submodules.report_fifo = self.fu_report_fifo
+        m.submodules.report_connector = ConnectTrans(self.fu_report_fifo.read, report)
+
+        @def_method(m, report)
         def _(cause, rob_id, pc):
             should_write = Signal()
 
             with m.If(self.valid & (self.rob_id == rob_id)):
-                m.d.comb += should_write.eq(should_update_prioriy(m, current_cause=self.cause, new_cause=cause))
+                # entry for the same rob_id cannot be overwritten, because its update couldn't be validated
+                # in Retirement.
+                m.d.comb += should_write.eq(0)
             with m.Elif(self.valid):
                 rob_start_idx = self.rob_get_indices(m).start
                 m.d.comb += should_write.eq(
@@ -94,7 +109,7 @@ class ExceptionCauseRegister(Elaboratable):
 
         @def_method(m, self.get)
         def _():
-            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc}
+            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc, "valid": self.valid}
 
         @def_method(m, self.clear)
         def _():
