@@ -120,8 +120,11 @@ class Retirement(Elaboratable):
                             # Set MSB - the Interrupt bit
                             m.d.av_comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
                         with m.Elif(cause_register.cause == ExceptionCause._COREBLOCKS_MISPREDICTION):
+                            # Branch misprediction - commit jump, flush core and continue from correct pc.
                             m.d.av_comb += commit.eq(1)
+                            # Do not modify trap related CSRs
                             m.d.av_comb += arch_trap.eq(0)
+
                             m.d.sync += continue_pc_override.eq(1)
                             m.d.sync += continue_pc.eq(cause_register.pc)
                         with m.Else():
@@ -133,10 +136,12 @@ class Retirement(Elaboratable):
                             m.d.av_comb += cause_entry.eq(cause_register.cause)
 
                         with m.If(arch_trap):
+                            # Register RISC-V architectural trap in CSRs
                             m_csr.mcause.write(m, cause_entry)
                             m_csr.mepc.write(m, cause_register.pc)
                             self.trap_entry(m)
 
+                        # Fetch is already stalled by ExceptionCauseRegister
                         with m.If(core_empty):
                             m.next = "TRAP_RESUME"
                         with m.Else():

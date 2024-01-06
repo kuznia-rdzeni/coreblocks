@@ -165,7 +165,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 AsyncInterruptInsertSignalKey()
             )
 
-            # Why logic
+            # TODO: Update with branch prediction support.
+            # Temporarily there is no jump prediction, jumps don't stall fetch and pc+4 is always fetched to pipeline
             misprediction = ~is_auipc & jb.taken
 
             exception_entry = Record(self.gen_params.get(ExceptionRegisterLayouts).report)
@@ -190,7 +191,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                     {"rob_id": arg.rob_id, "cause": ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, "pc": jump_result},
                 )
             with m.Elif(misprediction):
-                # Why async interrupt priority?
+                # Async interrupts can have priority, because `jump_result` is handled in the same way.
+                # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
                 m.d.comb += exception.eq(1)
                 m.d.comb += assign(
                     exception_entry,
