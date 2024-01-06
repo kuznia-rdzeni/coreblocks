@@ -162,6 +162,29 @@ class TestInvalidMethods(TestCase):
 
         self.assert_re("called twice", Twice())
 
+    def test_twice_cond(self):
+        class Twice(Elaboratable):
+            def __init__(self):
+                self.meth1 = Method()
+                self.meth2 = Method()
+
+            def elaborate(self, platform):
+                m = TModule()
+                m._MustUse__silence = True  # type: ignore
+
+                with self.meth1.body(m):
+                    pass
+
+                with self.meth2.body(m):
+                    with m.If(1):
+                        self.meth1(m)
+                    with m.Else():
+                        self.meth1(m)
+
+                return m
+
+        Fragment.get(TransactionModule(Twice()), platform=None)
+
     def test_diamond(self):
         class Diamond(Elaboratable):
             def __init__(self):

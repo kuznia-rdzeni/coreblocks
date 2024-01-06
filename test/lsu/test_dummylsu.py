@@ -11,7 +11,7 @@ from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import *
 from coreblocks.params.keys import ExceptionReportKey
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
 from test.common import TestbenchIO, CoreblocksTestCaseWithSimulator, def_method_mock
