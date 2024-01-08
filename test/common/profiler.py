@@ -41,9 +41,7 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
 
         yield Passive()
         while True:
-            # TODO: wait for the end of cycle
-            for _ in range(3):
-                yield Settle()
+            yield Delay(5e-7)  # shorter than one clock cycle
 
             cprof = CycleProfile()
             profile.cycles.append(cprof)

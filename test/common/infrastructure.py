@@ -203,6 +203,7 @@ class TestCaseWithSimulator(unittest.TestCase):
         if profile is not None:
             profile_dir = "test/__profiles__"
             profile_file = unittest.TestCase.id(self)
+            os.makedirs(profile_dir, exist_ok=True)
             profile.encode(f"{profile_dir}/{profile_file}.json")
 
         self.assertTrue(res, "Simulation time limit exceeded")
