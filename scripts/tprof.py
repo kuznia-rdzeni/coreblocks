@@ -22,10 +22,10 @@ def process_stat_tree(
     if ret is None:
         ret = list[tuple]()
     for x in xs:
-        row = astuple(x.stat)
-        if recursive:
-            row = (depth * "-",) + row
-        ret.append(row)
+        row = asdict(x.stat)
+        if recursive and depth:
+            row["name"] = (2*depth-1) * "-" + " " + row["name"]
+        ret.append(tuple(row.values()))
         if recursive and x.callers:
             process_stat_tree(x.callers.values(), recursive, ret, depth + 1)
     return ret
@@ -47,8 +47,6 @@ def main():
     methods = profile.analyze_methods(recursive=recursive)
 
     headers = ["name", "source location", "locked", "run"]
-    if recursive:
-        headers = [""] + headers
 
     methods.sort(key=lambda node: asdict(node.stat)[args.sort])
 
