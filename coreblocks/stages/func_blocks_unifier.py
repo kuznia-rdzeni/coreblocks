@@ -2,11 +2,10 @@ from collections.abc import Iterable
 
 from amaranth import *
 
-from coreblocks.params import GenParams, BlockComponentParams, DependencyManager
-from coreblocks.params.dependencies import UnifierKey
+from coreblocks.params import GenParams, BlockComponentParams
+from transactron.lib.dependencies import UnifierKey, DependencyManager
 from transactron import Method, TModule
-from transactron.lib import MethodProduct, Collector
-from coreblocks.utils.protocols import Unifier
+from transactron.lib import MethodProduct, Collector, Unifier
 
 __all__ = ["FuncBlocksUnifier"]
 

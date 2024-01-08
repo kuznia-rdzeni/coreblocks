@@ -186,15 +186,15 @@ class Alu(Elaboratable):
                     m.d.comb += clz.in_sig.eq(self.in1[::-1])
                     m.d.comb += self.out.eq(clz.out_sig)
                 with OneHotCase(AluFn.Fn.SEXTH):
-                    m.d.comb += self.out.eq(Cat(self.in1[0:16], Repl(self.in1[15], xlen - 16)))
+                    m.d.comb += self.out.eq(Cat(self.in1[0:16], self.in1[15].replicate(xlen - 16)))
                 with OneHotCase(AluFn.Fn.SEXTB):
-                    m.d.comb += self.out.eq(Cat(self.in1[0:8], Repl(self.in1[7], xlen - 8)))
+                    m.d.comb += self.out.eq(Cat(self.in1[0:8], self.in1[7].replicate(xlen - 8)))
                 with OneHotCase(AluFn.Fn.ZEXTH):
                     m.d.comb += self.out.eq(Cat(self.in1[0:16], C(0, shape=unsigned(xlen - 16))))
                 with OneHotCase(AluFn.Fn.ORCB):
 
                     def _or(s: Value) -> Value:
-                        return Repl(s.any(), 8)
+                        return s.any().replicate(8)
 
                     for i in range(xlen // 8):
                         m.d.comb += self.out[i * 8 : (i + 1) * 8].eq(_or(self.in1[i * 8 : (i + 1) * 8]))

@@ -3,12 +3,11 @@ from amaranth import *
 from enum import IntFlag, auto
 
 from typing import Sequence
-from coreblocks.params.layouts import ExceptionRegisterLayouts
 
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
-from transactron.utils import assign
+from transactron.utils import DependencyManager
 
 from coreblocks.params import *
 from coreblocks.params.keys import AsyncInterruptInsertSignalKey
@@ -171,30 +170,19 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 AsyncInterruptInsertSignalKey()
             )
 
-            exception_entry = Record(self.gen_params.get(ExceptionRegisterLayouts).report)
-
             with m.If(~is_auipc & jb.taken & jmp_addr_misaligned):
                 # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
                 # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
                 # generated for a conditional branch that is not taken."
                 m.d.comb += exception.eq(1)
-                m.d.comb += assign(
-                    exception_entry,
-                    {"rob_id": arg.rob_id, "cause": ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED, "pc": arg.pc},
-                )
+                exception_report(m, rob_id=arg.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED, pc=arg.pc)
             with m.Elif(async_interrupt_active & ~is_auipc):
                 # Jump instructions are entry points for async interrupts.
                 # This way we can store known pc via report to global exception register and avoid it in ROB.
                 # Exceptions have priority, because the instruction that reports async interrupt is commited
                 # and exception would be lost.
                 m.d.comb += exception.eq(1)
-                m.d.comb += assign(
-                    exception_entry,
-                    {"rob_id": arg.rob_id, "cause": ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, "pc": jump_result},
-                )
-
-            with m.If(exception):
-                exception_report(m, exception_entry)
+                exception_report(m, rob_id=arg.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result)
 
             fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
 
