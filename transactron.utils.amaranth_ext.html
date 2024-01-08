@@ -171,6 +171,44 @@ variable bit widths.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.RoundRobin">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.elaboratables.</span></span><span class="sig-name descname"><span class="pre">RoundRobin</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.RoundRobin" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Round-robin scheduler.
+For a given set of requests, the round-robin scheduler will
+grant one request. Once it grants a request, if any other
+requests are active, it grants the next active request with
+a greater number, restarting from zero once it reaches the
+highest one.
+Use <code class="xref py py-class docutils literal notranslate"><span class="pre">EnableInserter</span></code> to control when the scheduler
+is updated.</p>
+<p>Implementation ported from amaranth lib.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>count</strong><span class="classifier">int</span></dt><dd><p>Number of requests.</p>
+</dd>
+<dt><strong>Attributes</strong></dt><dd></dd>
+<dt><strong>———-</strong></dt><dd></dd>
+<dt><strong>requests</strong><span class="classifier">Signal(count), in</span></dt><dd><p>Set of requests.</p>
+</dd>
+<dt><strong>grant</strong><span class="classifier">Signal(range(count)), out</span></dt><dd><p>Number of the granted request. Does not change if there are no
+active requests.</p>
+</dd>
+<dt><strong>valid</strong><span class="classifier">Signal(), out</span></dt><dd><p>Asserted if grant corresponds to an active request. Deasserted
+otherwise, i.e. if no requests are active.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.RoundRobin.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">count</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.RoundRobin.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.Scheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.elaboratables.</span></span><span class="sig-name descname"><span class="pre">Scheduler</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.Scheduler" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -255,7 +293,7 @@ one-hot encoding.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 08:47 2024-01-08.
+      <span class="lastupdated">Last updated on 09:04 2024-01-08.
       </span></p>
   </div>
 
