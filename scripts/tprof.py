@@ -46,7 +46,7 @@ def main():
 
     args = parser.parse_args()
 
-    profile: Profile = Profile.decode(args.file_name[0])
+    profile = Profile.decode(args.file_name[0])
 
     recursive = args.call_graph
 

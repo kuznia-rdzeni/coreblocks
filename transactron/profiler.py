@@ -123,7 +123,7 @@ class Profile:
             fp.write(self.to_json())  # type: ignore
 
     @staticmethod
-    def decode(file_name: str):
+    def decode(file_name: str) -> "Profile":
         with open(file_name, "r") as fp:
             return Profile.from_json(fp.read())  # type: ignore
 
