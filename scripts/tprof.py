@@ -2,11 +2,12 @@
 
 import argparse
 import sys
+import re
 from pathlib import Path
 from typing import Optional
 from collections.abc import Iterable
 from tabulate import tabulate
-from dataclasses import astuple
+from dataclasses import astuple, asdict
 
 topdir = Path(__file__).parent.parent
 sys.path.insert(0, str(topdir))
@@ -32,19 +33,28 @@ def process_stat_tree(
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("-g", "--call-graph", action="store_true", help="Show call graph")
+    parser.add_argument("-s", "--sort", choices=["name", "locked", "run"], default="name", help="Sort by column")
+    parser.add_argument("-f", "--filter", help="Filter by name, regular expressions can be used")
     parser.add_argument("file_name", nargs=1)
 
     args = parser.parse_args()
 
-    profile = Profile.decode(args.file_name[0])
+    profile: Profile = Profile.decode(args.file_name[0])
 
-    recursive = True
+    recursive = args.call_graph
 
     methods = profile.analyze_methods(recursive=recursive)
 
     headers = ["name", "source location", "locked", "run"]
     if recursive:
         headers = [""] + headers
+
+    methods.sort(key=lambda node: asdict(node.stat)[args.sort])
+
+    if args.filter:
+        pattern = re.compile(args.filter)
+        methods = [node for node in methods if pattern.search(node.stat.name)]
 
     print(tabulate(process_stat_tree(methods, recursive), headers=headers))
 
