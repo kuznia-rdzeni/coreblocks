@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from typing import Any
-from amaranth.sim import Passive, Settle
+from amaranth.sim import Passive, Delay
 from contextlib import contextmanager
 from .infrastructure import TestCaseWithSimulator
 from coreblocks.params import GenParams
@@ -14,7 +14,7 @@ def make_assert_handler(gen_params: GenParams, my_assert: Callable[[int, str], A
     def assert_handler():
         yield Passive()
         while True:
-            yield Settle()  # TODO: more settles needed?
+            yield Delay(5e-7)  # Shorter than clock cycle
             if not (yield assert_bit(gen_params)):
                 for v, (n, i) in assert_bits(gen_params):
                     my_assert((yield v), f"Assertion at {n}:{i}")
