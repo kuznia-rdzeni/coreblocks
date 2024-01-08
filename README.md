@@ -44,6 +44,6 @@ This way, you can ensure that the contribution fits the project and will be merg
 
 ## License
 
-Copyright © 2022-2023, University of Wrocław.
+Copyright © 2022-2024, University of Wrocław.
 
 This project is [three-clause BSD](https://github.com/kuznia-rdzeni/coreblocks/blob/master/LICENSE) licensed.
