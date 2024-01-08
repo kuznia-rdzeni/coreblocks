@@ -7,6 +7,7 @@ from typing import Sequence
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
+from transactron.utils import DependencyManager
 
 from coreblocks.params import *
 from coreblocks.params.keys import AsyncInterruptInsertSignalKey
