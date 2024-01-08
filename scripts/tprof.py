@@ -24,7 +24,7 @@ def process_stat_tree(
     for x in xs:
         row = asdict(x.stat)
         if recursive and depth:
-            row["name"] = (2*depth-1) * "-" + " " + row["name"]
+            row["name"] = (2 * depth - 1) * "-" + " " + row["name"]
         ret.append(tuple(row.values()))
         if recursive and x.callers:
             process_stat_tree(x.callers.values(), recursive, ret, depth + 1)
