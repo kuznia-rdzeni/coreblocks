@@ -40,6 +40,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-g", "--call-graph", action="store_true", help="Show call graph")
     parser.add_argument("-s", "--sort", choices=["name", "locked", "run"], default="name", help="Sort by column")
+    parser.add_argument(
+        "-m", "--mode", choices=["transactions", "methods"], default="transactions", help="Profile display mode"
+    )
     parser.add_argument("-f", "--filter-name", help="Filter by name, regular expressions can be used")
     parser.add_argument("-l", "--filter-loc", help="Filter by source location, regular expressions can be used")
     parser.add_argument("file_name", nargs=1)
@@ -50,7 +53,12 @@ def main():
 
     recursive = args.call_graph
 
-    nodes = profile.analyze_methods(recursive=recursive)
+    if args.mode == "transactions":
+        nodes = profile.analyze_transactions(recursive=recursive)
+    elif args.mode == "methods":
+        nodes = profile.analyze_methods(recursive=recursive)
+    else:
+        assert False
 
     headers = ["name", "source location", "locked", "run"]
 

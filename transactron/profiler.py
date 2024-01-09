@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Optional
 from dataclasses import dataclass, field
 from transactron.utils import SrcLoc
@@ -127,8 +128,44 @@ class Profile:
         with open(file_name, "r") as fp:
             return Profile.from_json(fp.read())  # type: ignore
 
+    def analyze_transactions(self, recursive=False) -> list[RunStatNode]:
+        stats = {i: RunStatNode.make(info) for i, info in self.transactions_and_methods.items() if info.is_transaction}
+
+        def rec(c: CycleProfile, node: RunStatNode, i: int):
+            if i in c.running:
+                node.stat.run += 1
+            elif i in c.locked:
+                node.stat.locked += 1
+            if recursive:
+                for j in called[i]:
+                    if j not in node.callers:
+                        node.callers[j] = RunStatNode.make(self.transactions_and_methods[j])
+                    rec(c, node.callers[j], j)
+
+        for c in self.cycles:
+            called = defaultdict[int, set[int]](set)
+
+            for i, j in c.running.items():
+                if j is not None:
+                    called[j].add(i)
+
+            for i, j in c.locked.items():
+                called[j].add(i)
+
+            for i in c.running:
+                if i in stats:
+                    rec(c, stats[i], i)
+
+            for i in c.locked:
+                if i in stats:
+                    stats[i].stat.locked += 1
+
+        return list(stats.values())
+
     def analyze_methods(self, recursive=False) -> list[RunStatNode]:
-        stats = {i: RunStatNode.make(info) for i, info in self.transactions_and_methods.items()}
+        stats = {
+            i: RunStatNode.make(info) for i, info in self.transactions_and_methods.items() if not info.is_transaction
+        }
 
         def rec(c: CycleProfile, node: RunStatNode, i: int, locking_call=False):
             if i in c.running:
@@ -147,9 +184,11 @@ class Profile:
 
         for c in self.cycles:
             for i in c.running:
-                rec(c, stats[i], i)
+                if i in stats:
+                    rec(c, stats[i], i)
 
             for i in c.locked:
-                rec(c, stats[i], i, locking_call=True)
+                if i in stats:
+                    rec(c, stats[i], i, locking_call=True)
 
         return list(stats.values())
