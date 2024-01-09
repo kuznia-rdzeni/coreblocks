@@ -3,6 +3,7 @@ from amaranth import *
 from ..utils import SrcLoc, get_src_loc
 from ..core import *
 from ..core import SignalBundle
+from ..utils._typing import type_self_kwargs_as
 
 __all__ = [
     "AdapterBase",
@@ -91,6 +92,7 @@ class Adapter(AdapterBase):
         Data passed as argument to the defined method.
     """
 
+    @type_self_kwargs_as(Method.__init__)
     def __init__(self, **kwargs):
         """
         Parameters
