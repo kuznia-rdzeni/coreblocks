@@ -48,11 +48,13 @@ class TestElaboratable(Elaboratable):
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
         self.fetch = Fetch(self.gen_params, self.icache, fifo.write)
         self.fetch_resume = TestbenchIO(AdapterTrans(self.fetch.resume))
+        self.fetch_stall_exception = TestbenchIO(AdapterTrans(self.fetch.stall_exception))
 
         m.submodules.icache = self.icache
         m.submodules.fetch = self.fetch
         m.submodules.io_out = self.io_out
         m.submodules.fetch_resume = self.fetch_resume
+        m.submodules.fetch_stall_exception = self.fetch_stall_exception
         m.submodules.fifo = fifo
 
         return m
@@ -92,6 +94,7 @@ class TestFetch(TestCaseWithSimulator):
                 # randomize being a branch instruction
                 if is_branch:
                     data |= 0b1100000
+                    data &= ~0b0010000  # but not system
 
                 output_q.append({"instr": data, "error": 0})
 
@@ -123,18 +126,31 @@ class TestFetch(TestCaseWithSimulator):
         return issue_req_mock, accept_res_mock, cache_process
 
     def fetch_out_check(self):
+        discard_mispredict = False
+        next_pc = 0
         for _ in range(self.iterations):
+            v = yield from self.m.io_out.call()
+            if discard_mispredict:
+                while v["pc"] != next_pc:
+                    v = yield from self.m.io_out.call()
+                discard_mispredict = False
+
             while len(self.instr_queue) == 0:
                 yield
 
             instr = self.instr_queue.popleft()
-            if instr["is_branch"]:
-                yield from self.random_wait(10)
-                yield from self.m.fetch_resume.call(from_pc=instr["pc"], next_pc=instr["next_pc"])
 
-            v = yield from self.m.io_out.call()
             self.assertEqual(v["pc"], instr["pc"])
             self.assertEqual(v["instr"], instr["instr"])
+
+            if instr["is_branch"]:
+                # branches on mispredict will stall fetch because of exception and then resume with new pc
+                yield from self.random_wait(5)
+                yield from self.m.fetch_stall_exception.call()
+                yield from self.random_wait(5)
+                yield from self.m.fetch_resume.call(pc=instr["next_pc"], resume_from_exception=1)
+                discard_mispredict = True
+                next_pc = instr["next_pc"]
 
     def test(self):
         issue_req_mock, accept_res_mock, cache_process = self.cache_processes()
@@ -157,8 +173,9 @@ class TestUnalignedFetch(TestCaseWithSimulator):
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
         fetch = UnalignedFetch(self.gen_params, self.icache, fifo.write)
         self.fetch_resume = TestbenchIO(AdapterTrans(fetch.resume))
+        self.fetch_stall_exception = TestbenchIO(AdapterTrans(fetch.stall_exception))
 
-        self.m = ModuleConnector(self.icache, fifo, self.io_out, fetch, self.fetch_resume)
+        self.m = ModuleConnector(self.icache, fifo, self.io_out, fetch, self.fetch_resume, self.fetch_stall_exception)
 
         self.mem = {}
         self.memerr = set()
@@ -188,6 +205,7 @@ class TestUnalignedFetch(TestCaseWithSimulator):
                 data |= 0b11  # 2 lowest bits must be set in 32-bit long instructions
                 if is_branch:
                     data |= 0b1100000
+                    data &= ~0b0010000
 
                 self.mem[pc] = data & 0xFFFF
                 self.mem[pc + 2] = data >> 16
@@ -244,6 +262,7 @@ class TestUnalignedFetch(TestCaseWithSimulator):
         return issue_req_mock, accept_res_mock, cache_process
 
     def fetch_out_check(self):
+        discard_mispredict = False
         while self.instr_queue:
             instr = self.instr_queue.popleft()
 
@@ -254,12 +273,22 @@ class TestUnalignedFetch(TestCaseWithSimulator):
                 ) + 2 in self.memerr
 
             v = yield from self.io_out.call()
+            if discard_mispredict:
+                while v["pc"] != instr["pc"]:
+                    v = yield from self.io_out.call()
+                discard_mispredict = False
+
             self.assertEqual(v["pc"], instr["pc"])
             self.assertEqual(v["access_fault"], instr_error)
 
             if instr["is_branch"] or instr_error:
-                yield from self.random_wait(10)
-                yield from self.fetch_resume.call(next_pc=instr["next_pc"])
+                yield from self.random_wait(5)
+                yield from self.fetch_stall_exception.call()
+                yield from self.random_wait(5)
+                while (yield from self.fetch_resume.call_try(pc=instr["next_pc"], resume_from_exception=1)) is None:
+                    yield from self.io_out.call_try()  # try flushing to unblock or wait
+
+                discard_mispredict = True
 
     def test(self):
         issue_req_mock, accept_res_mock, cache_process = self.cache_processes()
