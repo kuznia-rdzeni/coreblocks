@@ -62,7 +62,7 @@ class ShiftUnit(Elaboratable):
             with OneHotCase(ShiftUnitFn.Fn.SRL):
                 m.d.comb += self.out.eq(self.in1 >> self.in2[0:xlen_log])
             with OneHotCase(ShiftUnitFn.Fn.SRA):
-                m.d.comb += self.out.eq(Cat(self.in1, Repl(self.in1[xlen - 1], xlen)) >> self.in2[0:xlen_log])
+                m.d.comb += self.out.eq(Cat(self.in1, self.in1[xlen - 1].replicate(xlen)) >> self.in2[0:xlen_log])
 
             if self.zbb_enable:
                 with OneHotCase(ShiftUnitFn.Fn.ROL):
