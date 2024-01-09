@@ -36,6 +36,12 @@ def filter_nodes(nodes: list[RunStatNode], key: Callable[[RunStat], str], regex:
     return [node for node in nodes if pattern.search(key(node.stat))]
 
 
+def sort_node(node: RunStatNode, sort_order: str):
+    node.callers = dict(sorted(node.callers.items(), key=lambda node: asdict(node[1].stat)[sort_order]))
+    for node2 in node.callers.values():
+        sort_node(node2, sort_order)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-g", "--call-graph", action="store_true", help="Show call graph")
@@ -63,6 +69,8 @@ def main():
     headers = ["name", "source location", "locked", "run"]
 
     nodes.sort(key=lambda node: asdict(node.stat)[args.sort])
+    for node in nodes:
+        sort_node(node, args.sort)
 
     if args.filter_name:
         nodes = filter_nodes(nodes, lambda stat: stat.name, args.filter_name)
