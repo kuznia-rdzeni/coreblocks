@@ -100,9 +100,7 @@ class Adapter(AdapterBase):
             See transactron.core.Method.__init__ for parameters description.
         """
 
-        if "src_loc" not in kwargs:
-            kwargs["src_loc"] = 0
-        kwargs["src_loc"] = get_src_loc(kwargs["src_loc"])
+        kwargs["src_loc"] = get_src_loc(kwargs.setdefault("src_loc", 0))
 
         super().__init__(Method(**kwargs))
         self.data_in = Record.like(self.iface.data_out)
