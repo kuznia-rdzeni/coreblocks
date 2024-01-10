@@ -37,7 +37,7 @@ class RetirementTestCircuit(Elaboratable):
             Adapter(o=rob_layouts.peek_layout, nonexclusive=True)
         )
 
-        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.retire_layout))
+        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter())
 
         m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
 
@@ -115,7 +115,7 @@ class RetirementTest(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q), sched_prio=1)
     def retire_process(self):
-        return self.submit_q.popleft()
+        self.submit_q.popleft()
 
     @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
     def peek_process(self):
