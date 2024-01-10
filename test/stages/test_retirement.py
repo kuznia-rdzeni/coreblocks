@@ -33,7 +33,9 @@ class RetirementTestCircuit(Elaboratable):
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
 
-        m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(Adapter(o=rob_layouts.peek_layout))
+        m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
+            Adapter(o=rob_layouts.peek_layout, nonexclusive=True)
+        )
 
         m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.retire_layout))
 
