@@ -195,7 +195,7 @@ class TestCaseWithSimulator(unittest.TestCase):
 
         self.assertTrue(res, "Simulation time limit exceeded")
 
-    def tick(self, cycle_cnt=1):
+    def tick(self, cycle_cnt: int = 1):
         """
         Yields for the given number of cycles.
         """
@@ -203,8 +203,10 @@ class TestCaseWithSimulator(unittest.TestCase):
         for _ in range(cycle_cnt):
             yield
 
-    def random_wait(self, max_cycle_cnt):
+    def random_wait(self, max_cycle_cnt: int):
         """
-        Wait for a random amount of cycles in range [1, max_cycle_cnt)
+        Wait for a random amount of cycles in range [0, max_cycle_cnt)
         """
+        if max_cycle_cnt == 0:
+            return
         yield from self.tick(random.randrange(max_cycle_cnt))
