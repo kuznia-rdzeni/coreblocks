@@ -89,7 +89,6 @@ class TestRSSelect(TestCaseWithSimulator):
 
                 self.instr_in.append(instr)
                 yield from self.m.instr_in.call(instr)
-                yield
                 yield from self.random_wait(random_wait)
 
         return process
@@ -111,7 +110,6 @@ class TestRSSelect(TestCaseWithSimulator):
                 yield from io.enable()
                 yield from io.method_handle(mock)
                 yield from io.disable()
-                yield
                 yield from self.random_wait(random_wait)
 
         return process
@@ -122,7 +120,6 @@ class TestRSSelect(TestCaseWithSimulator):
                 result = yield from self.m.instr_out.call()
                 outputs = self.expected_out.popleft()
 
-                yield
                 yield from self.random_wait(random_wait)
                 yield Settle()
                 self.assertEqual(result, outputs)
