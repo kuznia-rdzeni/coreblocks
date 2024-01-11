@@ -43,7 +43,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         try:
             return self._io[name]
         except KeyError:
-            raise AttributeError()
+            raise AttributeError(f"No mock for '{name}'")
 
     def elaborate(self, platform):
         def transform_methods_to_testbenchios(
