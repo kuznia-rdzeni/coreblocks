@@ -1,3 +1,4 @@
+import sys
 import os
 import random
 import unittest
@@ -39,7 +40,10 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         self._io: dict[str, _T_nested_collection[TestbenchIO]] = {}
 
     def __getattr__(self, name: str) -> Any:
-        return self._io[name]
+        try:
+            return self._io[name]
+        except KeyError:
+            raise AttributeError(f"No mock for '{name}'")
 
     def elaborate(self, platform):
         def transform_methods_to_testbenchios(
@@ -181,6 +185,21 @@ class PysimSimulator(Simulator):
 
 
 class TestCaseWithSimulator(unittest.TestCase):
+    def add_class_mocks(self, sim: PysimSimulator) -> None:
+        for key in dir(self):
+            val = getattr(self, key)
+            if hasattr(val, "_transactron_testing_process"):
+                sim.add_sync_process(val)
+
+    def add_local_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
+        for key, val in frame_locals.items():
+            if hasattr(val, "_transactron_testing_process"):
+                sim.add_sync_process(val)
+
+    def add_all_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
+        self.add_class_mocks(sim)
+        self.add_local_mocks(sim, frame_locals)
+
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
         traces_file = None
@@ -190,6 +209,7 @@ class TestCaseWithSimulator(unittest.TestCase):
         sim = PysimSimulator(
             module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
         )
+        self.add_all_mocks(sim, sys._getframe(2).f_locals)
         yield sim
         res = sim.run()
 

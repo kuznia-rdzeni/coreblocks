@@ -155,10 +155,5 @@ class RetirementTest(TestCaseWithSimulator):
 
         yield from self.retc.mock_fetch_stall.enable()  # To be fixed
         with self.run_simulation(self.retc) as sim:
-            sim.add_sync_process(self.retire_process)
-            sim.add_sync_process(self.peek_process)
             sim.add_sync_process(self.free_reg_process)
             sim.add_sync_process(self.rat_process)
-            sim.add_sync_process(self.rf_free_process)
-            sim.add_sync_process(self.precommit_process)
-            sim.add_sync_process(self.exception_cause_process)

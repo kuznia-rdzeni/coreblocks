@@ -125,4 +125,3 @@ class TestPMAIndirect(TestCaseWithSimulator):
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.process)
-            sim.add_sync_process(exception_consumer)

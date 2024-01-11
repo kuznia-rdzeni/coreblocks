@@ -301,6 +301,10 @@ class TestICache(TestCaseWithSimulator):
         self.refill_requests = deque()
         self.issued_requests = deque()
 
+        self.refill_in_fly = False
+        self.refill_word_cnt = 0
+        self.refill_addr = 0
+
     def init_module(self, ways, sets) -> None:
         self.gen_params = GenParams(
             test_core_config.replace(
@@ -313,47 +317,37 @@ class TestICache(TestCaseWithSimulator):
         self.cp = self.gen_params.icache_params
         self.m = ICacheTestCircuit(self.gen_params)
 
-    def refiller_processes(self):
-        refill_in_fly = False
-        refill_word_cnt = 0
-        refill_addr = 0
+    @def_method_mock(lambda self: self.m.refiller.start_refill_mock)
+    def start_refill_mock(self, addr):
+        self.refill_requests.append(addr)
+        self.refill_word_cnt = 0
+        self.refill_in_fly = True
+        self.refill_addr = addr
 
-        @def_method_mock(lambda: self.m.refiller.start_refill_mock)
-        def start_refill_mock(addr):
-            nonlocal refill_in_fly, refill_word_cnt, refill_addr
-            self.refill_requests.append(addr)
-            refill_word_cnt = 0
-            refill_in_fly = True
-            refill_addr = addr
+    @def_method_mock(lambda self: self.m.refiller.accept_refill_mock, enable=lambda self: self.refill_in_fly)
+    def accept_refill_mock(self):
+        addr = self.refill_addr + self.refill_word_cnt * self.cp.word_width_bytes
+        data = self.load_or_gen_mem(addr)
+        if self.gen_params.isa.xlen == 64:
+            data = self.load_or_gen_mem(addr + 4) << 32 | data
 
-        @def_method_mock(lambda: self.m.refiller.accept_refill_mock, enable=lambda: refill_in_fly)
-        def accept_refill_mock():
-            nonlocal refill_in_fly, refill_word_cnt, refill_addr
+        self.refill_word_cnt += 1
 
-            addr = refill_addr + refill_word_cnt * self.cp.word_width_bytes
-            data = self.load_or_gen_mem(addr)
-            if self.gen_params.isa.xlen == 64:
-                data = self.load_or_gen_mem(addr + 4) << 32 | data
+        err = addr in self.bad_addrs
+        if self.gen_params.isa.xlen == 64:
+            err = err or (addr + 4) in self.bad_addrs
 
-            refill_word_cnt += 1
+        last = self.refill_word_cnt == self.cp.words_in_block or err
 
-            err = addr in self.bad_addrs
-            if self.gen_params.isa.xlen == 64:
-                err = err or (addr + 4) in self.bad_addrs
+        if last:
+            self.refill_in_fly = False
 
-            last = refill_word_cnt == self.cp.words_in_block or err
-
-            if last:
-                refill_in_fly = False
-
-            return {
-                "addr": addr,
-                "data": data,
-                "error": err,
-                "last": last,
-            }
-
-        return start_refill_mock, accept_refill_mock
+        return {
+            "addr": addr,
+            "data": data,
+            "error": err,
+            "last": last,
+        }
 
     def load_or_gen_mem(self, addr: int):
         if addr not in self.mem:
@@ -428,11 +422,7 @@ class TestICache(TestCaseWithSimulator):
                 yield from self.call_cache(random.randrange(0, self.cp.block_size_bytes * self.cp.num_of_sets, 4))
             self.assertEqual(len(self.refill_requests), 0)
 
-        start_refill_mock, accept_refill_mock = self.refiller_processes()
-
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(start_refill_mock)
-            sim.add_sync_process(accept_refill_mock)
             sim.add_sync_process(cache_user_process)
 
     def test_2_way(self):
@@ -450,11 +440,7 @@ class TestICache(TestCaseWithSimulator):
             yield from self.call_cache(0x00020004)
             self.assertEqual(len(self.refill_requests), 0)
 
-        start_refill_mock, accept_refill_mock = self.refiller_processes()
-
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(start_refill_mock)
-            sim.add_sync_process(accept_refill_mock)
             sim.add_sync_process(cache_process)
 
     # Tests whether the cache is fully pipelined and the latency between requests and response is exactly one cycle.
@@ -550,11 +536,7 @@ class TestICache(TestCaseWithSimulator):
             yield
             yield from self.m.accept_res.disable()
 
-        start_refill_mock, accept_refill_mock = self.refiller_processes()
-
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(start_refill_mock)
-            sim.add_sync_process(accept_refill_mock)
             sim.add_sync_process(cache_process)
 
     def test_flush(self):
@@ -627,11 +609,7 @@ class TestICache(TestCaseWithSimulator):
             yield from self.call_cache(0x00010000)
             self.expect_refill(0x00010000)
 
-        start_refill_mock, accept_refill_mock = self.refiller_processes()
-
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(start_refill_mock)
-            sim.add_sync_process(accept_refill_mock)
             sim.add_sync_process(cache_process)
 
     def test_errors(self):
@@ -704,11 +682,7 @@ class TestICache(TestCaseWithSimulator):
             yield
             yield from self.m.accept_res.disable()
 
-        start_refill_mock, accept_refill_mock = self.refiller_processes()
-
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(start_refill_mock)
-            sim.add_sync_process(accept_refill_mock)
             sim.add_sync_process(cache_process)
 
     def test_random(self):
@@ -738,10 +712,6 @@ class TestICache(TestCaseWithSimulator):
                 while random.random() < 0.2:
                     yield
 
-        start_refill_mock, accept_refill_mock = self.refiller_processes()
-
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(start_refill_mock)
-            sim.add_sync_process(accept_refill_mock)
             sim.add_sync_process(sender)
             sim.add_sync_process(receiver)
