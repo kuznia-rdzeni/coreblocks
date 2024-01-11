@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704997000553,
+  "lastUpdate": 1704997345296,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -5887,6 +5887,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nettle-sha256",
             "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "14efcc9a98715dcd15982e26845b4e0605811986",
+          "message": "Simplify adding mock processes (#540)",
+          "timestamp": "2024-01-11T19:06:05+01:00",
+          "tree_id": "b2db7580b77ee7f67edd8c2d76c50a9a0246c878",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/14efcc9a98715dcd15982e26845b4e0605811986"
+        },
+        "date": 1704997339889,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "minver",
+            "value": 0.25211480106460527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.34174027385235617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2420362948846237,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.3332441948567099,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.26240061481242527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2783650349000975,
             "unit": "Instructions Per Cycle"
           }
         ]
