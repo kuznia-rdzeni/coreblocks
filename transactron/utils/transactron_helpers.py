@@ -69,7 +69,11 @@ def has_first_param(func: Callable[..., T], name: str, tp: type[U]) -> TypeGuard
 
 
 def def_helper(description, func: Callable[..., T], tp: type[U], arg: U, /, **kwargs) -> T:
-    parameters = signature(func).parameters
+    try:
+        parameters = signature(func).parameters
+    except ValueError:
+        raise TypeError(f"Invalid python method signature for {func} (missing `self` for class-level mock?)")
+
     kw_parameters = set(
         n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
     )
