@@ -37,13 +37,15 @@ class RetirementTestCircuit(Elaboratable):
             Adapter(o=rob_layouts.peek_layout, nonexclusive=True)
         )
 
-        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.retire_layout))
+        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter())
 
         m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
 
         m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
 
-        m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(Adapter(o=exception_layouts.get))
+        m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
+            Adapter(o=exception_layouts.get, nonexclusive=True)
+        )
         m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(Adapter())
 
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
@@ -113,9 +115,8 @@ class RetirementTest(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q), sched_prio=1)
     def retire_process(self):
-        return self.submit_q.popleft()
+        self.submit_q.popleft()
 
-    # TODO: mocking really seems to dislike nonexclusive methods for some reason
     @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
     def peek_process(self):
         return self.submit_q[0]
@@ -144,16 +145,37 @@ class RetirementTest(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_precommit, sched_prio=2)
     def precommit_process(self, rob_id, side_fx):
-        self.assertEqual(rob_id, self.precommit_q.popleft())
+        self.assertTrue(side_fx)
+        if self.precommit_q[0] != rob_id:
+            self.precommit_q.popleft()
+            self.assertEqual(rob_id, self.precommit_q[0])
 
     @def_method_mock(lambda self: self.retc.mock_exception_cause)
     def exception_cause_process(self):
         return {"cause": 0, "rob_id": 0}  # keep exception cause method enabled
 
+    @def_method_mock(lambda self: self.retc.mock_exception_clear)
+    def exception_clear_process(self):
+        pass
+
+    @def_method_mock(lambda self: self.retc.mock_fetch_stall)
+    def mock_fetch_stall(self):
+        pass
+
+    @def_method_mock(lambda self: self.retc.mock_instr_decrement)
+    def instr_decrement_process(self):
+        pass
+
+    @def_method_mock(lambda self: self.retc.mock_trap_entry)
+    def mock_trap_entry_process(self):
+        pass
+
+    @def_method_mock(lambda self: self.retc.mock_fetch_continue)
+    def mock_fetch_continue_process(self):
+        pass
+
     def test_rand(self):
         self.retc = RetirementTestCircuit(self.gen_params)
-
-        yield from self.retc.mock_fetch_stall.enable()  # To be fixed
         with self.run_simulation(self.retc) as sim:
             sim.add_sync_process(self.free_reg_process)
             sim.add_sync_process(self.rat_process)
