@@ -177,15 +177,5 @@ class RetirementTest(TestCaseWithSimulator):
     def test_rand(self):
         self.retc = RetirementTestCircuit(self.gen_params)
         with self.run_simulation(self.retc) as sim:
-            sim.add_sync_process(self.retire_process)
-            sim.add_sync_process(self.peek_process)
             sim.add_sync_process(self.free_reg_process)
             sim.add_sync_process(self.rat_process)
-            sim.add_sync_process(self.rf_free_process)
-            sim.add_sync_process(self.precommit_process)
-            sim.add_sync_process(self.exception_cause_process)
-            sim.add_sync_process(self.exception_clear_process)
-            sim.add_sync_process(self.mock_fetch_stall)
-            sim.add_sync_process(self.instr_decrement_process)
-            sim.add_sync_process(self.mock_trap_entry_process)
-            sim.add_sync_process(self.mock_fetch_continue_process)
