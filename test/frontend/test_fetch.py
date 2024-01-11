@@ -12,7 +12,7 @@ from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from transactron.utils import ModuleConnector
-from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock
+from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock, SimpleTestCircuit
 
 
 class MockedICache(Elaboratable, ICacheInterface):
@@ -35,40 +35,31 @@ class MockedICache(Elaboratable, ICacheInterface):
         return m
 
 
-class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gen_params = gen_params
-
-    def elaborate(self, platform):
-        m = Module()
+class TestFetch(TestCaseWithSimulator):
+    def setUp(self) -> None:
+        self.gen_params = GenParams(test_core_config.replace(start_pc=0x18))
 
         self.icache = MockedICache(self.gen_params)
 
         fifo = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-        self.fetch = Fetch(self.gen_params, self.icache, fifo.write)
-        self.verify_branch = TestbenchIO(AdapterTrans(self.fetch.verify_branch))
+        self.fetch = SimpleTestCircuit(Fetch(self.gen_params, self.icache, fifo.write))
+        self.verify_branch = TestbenchIO(AdapterTrans(self.fetch._dut.verify_branch))
 
-        m.submodules.icache = self.icache
-        m.submodules.fetch = self.fetch
-        m.submodules.io_out = self.io_out
-        m.submodules.verify_branch = self.verify_branch
-        m.submodules.fifo = fifo
+        self.m = ModuleConnector(
+            icache=self.icache,
+            fetch=self.fetch,
+            io_out=self.io_out,
+            verify_branch=self.verify_branch,
+            fifo=fifo,
+        )
 
-        return m
-
-
-class TestFetch(TestCaseWithSimulator):
-    def setUp(self) -> None:
-        self.gen_params = GenParams(test_core_config.replace(start_pc=0x18))
-        self.m = TestElaboratable(self.gen_params)
         self.instr_queue = deque()
         self.iterations = 500
-
-        random.seed(422)
-
         self.input_q = deque()
         self.output_q = deque()
+
+        random.seed(422)
 
     def cache_process(self):
         yield Passive()
@@ -111,11 +102,11 @@ class TestFetch(TestCaseWithSimulator):
                 }
             )
 
-    @def_method_mock(lambda self: self.m.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2, sched_prio=1)
+    @def_method_mock(lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2, sched_prio=1)
     def issue_req_mock(self, addr):
         self.input_q.append(addr)
 
-    @def_method_mock(lambda self: self.m.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
+    @def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
     def accept_res_mock(self):
         return self.output_q.popleft()
 
@@ -127,9 +118,9 @@ class TestFetch(TestCaseWithSimulator):
             instr = self.instr_queue.popleft()
             if instr["is_branch"]:
                 yield from self.random_wait(10)
-                yield from self.m.verify_branch.call(from_pc=instr["pc"], next_pc=instr["next_pc"])
+                yield from self.verify_branch.call(from_pc=instr["pc"], next_pc=instr["next_pc"])
 
-            v = yield from self.m.io_out.call()
+            v = yield from self.io_out.call()
             self.assertEqual(v["pc"], instr["pc"])
             self.assertEqual(v["instr"], instr["instr"])
 
@@ -155,10 +146,10 @@ class TestUnalignedFetch(TestCaseWithSimulator):
 
         self.mem = {}
         self.memerr = set()
-
-        random.seed(422)
         self.input_q = deque()
         self.output_q = deque()
+
+        random.seed(422)
 
     def gen_instr_seq(self):
         pc = self.gen_params.start_pc

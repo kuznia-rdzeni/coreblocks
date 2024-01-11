@@ -33,7 +33,9 @@ class RetirementTestCircuit(Elaboratable):
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
 
-        m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(Adapter(o=rob_layouts.peek_layout))
+        m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
+            Adapter(o=rob_layouts.peek_layout, nonexclusive=True)
+        )
 
         m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(o=rob_layouts.retire_layout))
 
@@ -109,50 +111,49 @@ class RetirementTest(TestCaseWithSimulator):
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
 
+    @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q), sched_prio=1)
+    def retire_process(self):
+        return self.submit_q.popleft()
+
+    # TODO: mocking really seems to dislike nonexclusive methods for some reason
+    @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
+    def peek_process(self):
+        return self.submit_q[0]
+
+    def free_reg_process(self):
+        while self.rf_exp_q:
+            reg = yield from self.retc.free_rf_adapter.call()
+            self.assertEqual(reg["reg_id"], self.rf_exp_q.popleft())
+
+    def rat_process(self):
+        while self.rat_map_q:
+            current_map = self.rat_map_q.popleft()
+            wait_cycles = 0
+            # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
+            while (yield self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
+                wait_cycles += 1
+                if wait_cycles >= self.cycles + 10:
+                    self.fail("RAT entry was not updated")
+                yield
+        self.assertFalse(self.submit_q)
+        self.assertFalse(self.rf_free_q)
+
+    @def_method_mock(lambda self: self.retc.mock_rf_free, sched_prio=2)
+    def rf_free_process(self, reg_id):
+        self.assertEqual(reg_id, self.rf_free_q.popleft())
+
+    @def_method_mock(lambda self: self.retc.mock_precommit, sched_prio=2)
+    def precommit_process(self, rob_id, side_fx):
+        self.assertEqual(rob_id, self.precommit_q.popleft())
+
+    @def_method_mock(lambda self: self.retc.mock_exception_cause)
+    def exception_cause_process(self):
+        return {"cause": 0, "rob_id": 0}  # keep exception cause method enabled
+
     def test_rand(self):
-        retc = RetirementTestCircuit(self.gen_params)
+        self.retc = RetirementTestCircuit(self.gen_params)
 
-        yield from retc.mock_fetch_stall.enable()
-
-        @def_method_mock(lambda: retc.mock_rob_retire, enable=lambda: bool(self.submit_q), sched_prio=1)
-        def retire_process():
-            return self.submit_q.popleft()
-
-        # TODO: mocking really seems to dislike nonexclusive methods for some reason
-        @def_method_mock(lambda: retc.mock_rob_peek, enable=lambda: bool(self.submit_q))
-        def peek_process():
-            return self.submit_q[0]
-
-        def free_reg_process():
-            while self.rf_exp_q:
-                reg = yield from retc.free_rf_adapter.call()
-                self.assertEqual(reg["reg_id"], self.rf_exp_q.popleft())
-
-        def rat_process():
-            while self.rat_map_q:
-                current_map = self.rat_map_q.popleft()
-                wait_cycles = 0
-                # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
-                while (yield retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
-                    wait_cycles += 1
-                    if wait_cycles >= self.cycles + 10:
-                        self.fail("RAT entry was not updated")
-                    yield
-            self.assertFalse(self.submit_q)
-            self.assertFalse(self.rf_free_q)
-
-        @def_method_mock(lambda: retc.mock_rf_free, sched_prio=2)
-        def rf_free_process(reg_id):
-            self.assertEqual(reg_id, self.rf_free_q.popleft())
-
-        @def_method_mock(lambda: retc.mock_precommit, sched_prio=2)
-        def precommit_process(rob_id, side_fx):
-            self.assertEqual(rob_id, self.precommit_q.popleft())
-
-        @def_method_mock(lambda: retc.mock_exception_cause)
-        def exception_cause_process():
-            return {"cause": 0, "rob_id": 0}  # keep exception cause method enabled
-
-        with self.run_simulation(retc) as sim:
-            sim.add_sync_process(free_reg_process)
-            sim.add_sync_process(rat_process)
+        yield from self.retc.mock_fetch_stall.enable()  # To be fixed
+        with self.run_simulation(self.retc) as sim:
+            sim.add_sync_process(self.free_reg_process)
+            sim.add_sync_process(self.rat_process)

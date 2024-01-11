@@ -88,7 +88,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         return sigs
 
 
-class TestModule(Elaboratable):
+class _TestModule(Elaboratable):
     def __init__(self, tested_module: HasElaborate, add_transaction_module):
         self.tested_module = TransactionModule(tested_module) if add_transaction_module else tested_module
         self.add_transaction_module = add_transaction_module
@@ -141,7 +141,7 @@ class SyncProcessWrapper:
 
 class PysimSimulator(Simulator):
     def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
-        test_module = TestModule(module, add_transaction_module)
+        test_module = _TestModule(module, add_transaction_module)
         tested_module = test_module.tested_module
         super().__init__(test_module)
 
