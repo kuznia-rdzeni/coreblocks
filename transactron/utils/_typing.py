@@ -26,10 +26,12 @@ __all__ = [
     "LayoutLike",
     "SwitchKey",
     "MethodLayout",
+    "MethodStruct",
     "SrcLoc",
     "SignalBundle",
     "LayoutListField",
     "LayoutList",
+    "LayoutIterable",
     "RecordIntDict",
     "RecordIntDictRet",
     "RecordValueDict",
@@ -56,8 +58,10 @@ SrcLoc: TypeAlias = tuple[str, int]
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
 LayoutListField: TypeAlias = tuple[str, "ShapeLike | LayoutList"]
-LayoutList: TypeAlias = Iterable[LayoutListField]
-MethodLayout: TypeAlias = StructLayout | LayoutList
+LayoutList: TypeAlias = list[LayoutListField]
+LayoutIterable: TypeAlias = Iterable[LayoutListField]
+MethodLayout: TypeAlias = StructLayout | LayoutIterable
+MethodStruct: TypeAlias = "View[StructLayout]"
 
 RecordIntDict: TypeAlias = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet: TypeAlias = Mapping[str, Any]  # full typing hard to work with

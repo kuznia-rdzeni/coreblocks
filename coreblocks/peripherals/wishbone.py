@@ -10,6 +10,7 @@ from transactron.core import Transaction
 from transactron.lib import AdapterTrans, BasicFifo
 from transactron.utils import OneHotSwitchDynamic, assign
 from transactron.lib.connectors import Forwarder
+from transactron.utils.transactron_helpers import from_method_layout
 
 
 class WishboneParameters:
@@ -110,20 +111,20 @@ class WishboneMaster(Elaboratable):
         self.request = Method(i=self.requestLayout)
         self.result = Method(o=self.resultLayout)
 
-        self.result_data = Record(self.resultLayout)
+        self.result_data = Signal(from_method_layout(self.resultLayout))
 
         # latched input signals
-        self.txn_req = Record(self.requestLayout)
+        self.txn_req = Signal(from_method_layout(self.requestLayout))
 
         self.ports = list(self.wbMaster.fields.values())
 
     def generate_layouts(self, wb_params: WishboneParameters):
         # generate method layouts locally
         self.requestLayout = [
-            ("addr", wb_params.addr_width, DIR_FANIN),
-            ("data", wb_params.data_width, DIR_FANIN),
-            ("we", 1, DIR_FANIN),
-            ("sel", wb_params.data_width // wb_params.granularity, DIR_FANIN),
+            ("addr", wb_params.addr_width),
+            ("data", wb_params.data_width),
+            ("we", 1),
+            ("sel", wb_params.data_width // wb_params.granularity),
         ]
 
         self.resultLayout = [("data", wb_params.data_width), ("err", 1)]

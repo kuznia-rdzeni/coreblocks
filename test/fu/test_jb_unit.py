@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import StructLayout
 from parameterized import parameterized_class
 
 from coreblocks.params import *
@@ -16,7 +17,11 @@ class JumpBranchWrapper(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.jb = JumpBranchFuncUnit(gen_params)
         self.issue = self.jb.issue
-        self.accept = Method(o=gen_params.get(FuncUnitLayouts).accept + gen_params.get(FetchLayouts).branch_verify)
+        self.accept = Method(
+            o=StructLayout(
+                gen_params.get(FuncUnitLayouts).accept.members | gen_params.get(FetchLayouts).branch_verify.members
+            )
+        )
 
     def elaborate(self, platform):
         m = TModule()

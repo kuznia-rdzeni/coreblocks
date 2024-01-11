@@ -7,7 +7,7 @@ from ..core import RecordDict
 from ..utils import SrcLoc
 from typing import Optional
 from collections.abc import Callable
-from transactron.utils import ValueLike, assign, AssignType, ModuleLike
+from transactron.utils import ValueLike, assign, AssignType, ModuleLike, MethodStruct
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 from .simultaneous import condition
 
@@ -68,8 +68,8 @@ class MethodMap(Transformer):
         self,
         target: Method,
         *,
-        i_transform: Optional[tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
-        o_transform: Optional[tuple[MethodLayout, Callable[[TModule, Record], RecordDict]]] = None,
+        i_transform: Optional[tuple[MethodLayout, Callable[[TModule, MethodStruct], RecordDict]]] = None,
+        o_transform: Optional[tuple[MethodLayout, Callable[[TModule, MethodStruct], RecordDict]]] = None,
         src_loc: int | SrcLoc = 0
     ):
         """
@@ -90,9 +90,9 @@ class MethodMap(Transformer):
             Alternatively, the source location to use instead of the default.
         """
         if i_transform is None:
-            i_transform = (target.data_in.layout, lambda _, x: x)
+            i_transform = (target.layout_in, lambda _, x: x)
         if o_transform is None:
-            o_transform = (target.data_out.layout, lambda _, x: x)
+            o_transform = (target.layout_out, lambda _, x: x)
 
         self.target = target
         src_loc = get_src_loc(src_loc)
@@ -132,7 +132,7 @@ class MethodFilter(Transformer):
     def __init__(
         self,
         target: Method,
-        condition: Callable[[TModule, Record], ValueLike],
+        condition: Callable[[TModule, MethodStruct], ValueLike],
         default: Optional[RecordDict] = None,
         *,
         use_condition: bool = False,
@@ -157,21 +157,19 @@ class MethodFilter(Transformer):
             Alternatively, the source location to use instead of the default.
         """
         if default is None:
-            default = Record.like(target.data_out)
+            default = Signal.like(target.data_out)
 
         self.target = target
         self.use_condition = use_condition
         src_loc = get_src_loc(src_loc)
-        self.method = Method(
-            i=target.data_in.layout, o=target.data_out.layout, single_caller=self.use_condition, src_loc=src_loc
-        )
+        self.method = Method(i=target.layout_in, o=target.layout_out, single_caller=self.use_condition, src_loc=src_loc)
         self.condition = condition
         self.default = default
 
     def elaborate(self, platform):
         m = TModule()
 
-        ret = Record.like(self.target.data_out)
+        ret = Signal.like(self.target.data_out)
         m.d.comb += assign(ret, self.default, fields=AssignType.ALL)
 
         @def_method(m, self.method)
@@ -227,11 +225,11 @@ class MethodProduct(Transformer):
             The product method.
         """
         if combiner is None:
-            combiner = (targets[0].data_out.layout, lambda _, x: x[0])
+            combiner = (targets[0].layout_out, lambda _, x: x[0])
         self.targets = targets
         self.combiner = combiner
         src_loc = get_src_loc(src_loc)
-        self.method = Method(i=targets[0].data_in.layout, o=combiner[0], src_loc=src_loc)
+        self.method = Method(i=targets[0].layout_in, o=combiner[0], src_loc=src_loc)
 
     def elaborate(self, platform):
         m = TModule()
@@ -250,7 +248,9 @@ class MethodTryProduct(Transformer):
     def __init__(
         self,
         targets: list[Method],
-        combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[tuple[Value, Record]]], RecordDict]]] = None,
+        combiner: Optional[
+            tuple[MethodLayout, Callable[[TModule, list[tuple[Value, MethodStruct]]], RecordDict]]
+        ] = None,
         *,
         src_loc: int | SrcLoc = 0
     ):
@@ -286,14 +286,14 @@ class MethodTryProduct(Transformer):
         self.targets = targets
         self.combiner = combiner
         self.src_loc = get_src_loc(src_loc)
-        self.method = Method(i=targets[0].data_in.layout, o=combiner[0], src_loc=self.src_loc)
+        self.method = Method(i=targets[0].layout_in, o=combiner[0], src_loc=self.src_loc)
 
     def elaborate(self, platform):
         m = TModule()
 
         @def_method(m, self.method)
         def _(arg):
-            results: list[tuple[Value, Record]] = []
+            results: list[tuple[Value, MethodStruct]] = []
             for target in self.targets:
                 success = Signal()
                 with Transaction(src_loc=self.src_loc).body(m):
@@ -328,18 +328,18 @@ class Collector(Transformer):
             Alternatively, the source location to use instead of the default.
         """
         self.method_list = targets
-        layout = targets[0].data_out.layout
+        layout = targets[0].layout_out
         self.src_loc = get_src_loc(src_loc)
         self.method = Method(o=layout, src_loc=self.src_loc)
 
         for method in targets:
-            if layout != method.data_out.layout:
+            if layout != method.layout_out:
                 raise Exception("Not all methods have this same layout")
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout, src_loc=self.src_loc)
+        m.submodules.forwarder = forwarder = Forwarder(self.method.layout_out, src_loc=self.src_loc)
 
         m.submodules.connect = ManyToOneConnectTrans(
             get_results=[get for get in self.method_list], put_result=forwarder.write, src_loc=self.src_loc
@@ -379,7 +379,7 @@ class CatTrans(Elaboratable):
         with Transaction().body(m):
             sdata1 = self.src1(m)
             sdata2 = self.src2(m)
-            ddata = Record.like(self.dst.data_in)
+            ddata = Signal.like(self.dst.data_in)
             self.dst(m, ddata)
 
             m.d.comb += ddata.eq(Cat(sdata1, sdata2))
@@ -401,8 +401,8 @@ class ConnectAndMapTrans(Elaboratable):
         method1: Method,
         method2: Method,
         *,
-        i_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
-        o_fun: Optional[Callable[[TModule, Record], RecordDict]] = None,
+        i_fun: Optional[Callable[[TModule, MethodStruct], RecordDict]] = None,
+        o_fun: Optional[Callable[[TModule, MethodStruct], RecordDict]] = None,
         src_loc: int | SrcLoc = 0
     ):
         """
@@ -431,8 +431,8 @@ class ConnectAndMapTrans(Elaboratable):
 
         m.submodules.transformer = transformer = MethodMap(
             self.method2,
-            i_transform=(self.method1.data_out.layout, self.i_fun),
-            o_transform=(self.method1.data_in.layout, self.o_fun),
+            i_transform=(self.method1.layout_out, self.i_fun),
+            o_transform=(self.method1.layout_in, self.o_fun),
             src_loc=self.src_loc,
         )
         m.submodules.connect = ConnectTrans(self.method1, transformer.method)

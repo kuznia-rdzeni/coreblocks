@@ -158,7 +158,7 @@ class Retirement(Elaboratable):
                     # Resume core operation
 
                     # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
-                    resume_pc = m_csr.mtvec.read(m) & ~(0b11)
+                    resume_pc = m_csr.mtvec.read(m).data & ~(0b11)
                     self.fetch_continue(m, from_pc=0, next_pc=resume_pc, resume_from_exception=1)
 
                     # Release pending trap state - allow accepting new reports

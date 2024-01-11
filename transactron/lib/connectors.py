@@ -1,5 +1,7 @@
 from amaranth import *
 import amaranth.lib.fifo
+
+from transactron.utils.transactron_helpers import from_method_layout
 from ..core import *
 from ..utils import SrcLoc, get_src_loc
 
@@ -46,7 +48,7 @@ class FIFO(Elaboratable):
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
         """
-        self.width = len(Record(layout))
+        self.width = from_method_layout(layout).size
         self.depth = depth
         self.fifoType = fifo_type
 
@@ -111,7 +113,7 @@ class Forwarder(Elaboratable):
         self.read = Method(o=layout, src_loc=src_loc)
         self.write = Method(i=layout, src_loc=src_loc)
         self.clear = Method(src_loc=src_loc)
-        self.head = Record.like(self.read.data_out)
+        self.head = Signal.like(self.read.data_out)
 
         self.clear.add_conflict(self.read, Priority.LEFT)
         self.clear.add_conflict(self.write, Priority.LEFT)
@@ -119,9 +121,9 @@ class Forwarder(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        reg = Record.like(self.read.data_out)
+        reg = Signal.like(self.read.data_out)
         reg_valid = Signal()
-        read_value = Record.like(self.read.data_out)
+        read_value = Signal.like(self.read.data_out)
         m.d.comb += self.head.eq(read_value)
 
         self.write.schedule_before(self.read)  # to avoid combinational loops
@@ -185,8 +187,8 @@ class Connect(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        read_value = Record.like(self.read.data_out)
-        rev_read_value = Record.like(self.write.data_out)
+        read_value = Signal.like(self.read.data_out)
+        rev_read_value = Signal.like(self.write.data_out)
 
         self.write.simultaneous(self.read)
 
@@ -232,8 +234,8 @@ class ConnectTrans(Elaboratable):
         m = TModule()
 
         with Transaction(src_loc=self.src_loc).body(m):
-            data1 = Record.like(self.method1.data_out)
-            data2 = Record.like(self.method2.data_out)
+            data1 = Signal.like(self.method1.data_out)
+            data2 = Signal.like(self.method2.data_out)
 
             m.d.top_comb += data1.eq(self.method1(m, data2))
             m.d.top_comb += data2.eq(self.method2(m, data1))

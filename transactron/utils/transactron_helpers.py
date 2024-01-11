@@ -2,12 +2,12 @@ import sys
 from contextlib import contextmanager
 from typing import Optional, Any, Concatenate, TypeGuard, TypeVar
 from collections.abc import Callable, Mapping
-from ._typing import ROGraph, GraphCC, SrcLoc, MethodLayout, ShapeLike, LayoutList
+from ._typing import ROGraph, GraphCC, SrcLoc, MethodLayout, MethodStruct, ShapeLike, LayoutList
 from inspect import Parameter, signature
 from itertools import count
 from amaranth import *
 from amaranth import tracer
-from amaranth.lib.data import View, StructLayout
+from amaranth.lib.data import StructLayout
 
 
 __all__ = [
@@ -87,8 +87,9 @@ def mock_def_helper(tb, func: Callable[..., T], arg: Mapping[str, Any]) -> T:
     return def_helper(f"mock definition for {tb}", func, Mapping[str, Any], arg, **arg)
 
 
-def method_def_helper(method, func: Callable[..., T], arg: View[StructLayout]) -> T:
-    return def_helper(f"method definition for {method}", func, Record, arg, **arg.fields)
+def method_def_helper(method, func: Callable[..., T], arg: MethodStruct) -> T:
+    kwargs = {k: arg[k] for k in arg.shape().members}
+    return def_helper(f"method definition for {method}", func, MethodStruct, arg, **kwargs)
 
 
 def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:

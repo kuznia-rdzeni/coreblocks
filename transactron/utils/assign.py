@@ -31,8 +31,8 @@ def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
                 yield elem
 
     elems = list(flatten_elems(proxy))
-    if elems and all(isinstance(el, Record) for el in elems):
-        return set.intersection(*[set(cast(Record, el).fields) for el in elems])
+    if elems and all(isinstance(el, data.View) for el in elems):
+        return set.intersection(*[set(cast(data.View, el).shape().members.keys()) for el in elems])
 
 
 def assign_arg_fields(val: AssignArg) -> Optional[set[str]]:
@@ -43,7 +43,7 @@ def assign_arg_fields(val: AssignArg) -> Optional[set[str]]:
     elif isinstance(val, data.View):
         layout = val.shape()
         if isinstance(layout, data.StructLayout):
-            return set(k for k, _ in layout)
+            return set(k for k in layout.members)
     elif isinstance(val, dict):
         return set(val.keys())
 
@@ -152,7 +152,7 @@ def assign(
             )
     else:
         if not isinstance(fields, AssignType):
-            raise ValueError("Fields on assigning non-records")
+            raise ValueError("Fields on assigning non-records lhs: {} rhs: {}".format(lhs, rhs))
         if not isinstance(lhs, ValueLike) or not isinstance(rhs, ValueLike):
             raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
 

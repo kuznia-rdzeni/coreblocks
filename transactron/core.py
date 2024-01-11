@@ -22,7 +22,6 @@ from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
-from amaranth.lib.data import StructLayout, View
 
 from transactron.utils.assign import AssignArg
 
@@ -518,7 +517,7 @@ class TransactionManager(Elaboratable):
         for method, transactions in method_map.transactions_by_method.items():
             if len(method.data_in.as_value()) > len(method.data_out.as_value()):
                 direction = Direction.IN
-            elif len(method.data_in) < len(method.data_out):
+            elif method.data_in.shape().size < method.data_out.shape().size:
                 direction = Direction.OUT
             else:
                 direction = Direction.INOUT
@@ -878,8 +877,8 @@ class TransactionBase(Owned, Protocol):
     defined: bool = False
     name: str
     src_loc: SrcLoc
-    method_uses: dict["Method", tuple[View[StructLayout], Signal]]
-    method_calls: defaultdict["Method", list[tuple[CtrlPath, View[StructLayout], ValueLike]]]
+    method_uses: dict["Method", tuple[MethodStruct, Signal]]
+    method_calls: defaultdict["Method", list[tuple[CtrlPath, MethodStruct, ValueLike]]]
     relations: list[RelationBase]
     simultaneous_list: list[TransactionOrMethod]
     independent_list: list[TransactionOrMethod]
@@ -1209,8 +1208,8 @@ class Method(TransactionBase):
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal(name=self.owned_name + "_ready")
         self.run = Signal(name=self.owned_name + "_run")
-        self.data_in: View[StructLayout] = Signal(from_method_layout(i))
-        self.data_out: View[StructLayout] = Signal(from_method_layout(o))
+        self.data_in: MethodStruct = Signal(from_method_layout(i))
+        self.data_out: MethodStruct = Signal(from_method_layout(o))
         self.nonexclusive = nonexclusive
         self.single_caller = single_caller
         self.validate_arguments: Optional[Callable[..., ValueLike]] = None
@@ -1275,7 +1274,7 @@ class Method(TransactionBase):
         ready: ValueLike = C(1),
         out: ValueLike = C(0, 0),
         validate_arguments: Optional[Callable[..., ValueLike]] = None,
-    ) -> Iterator[View[StructLayout]]:
+    ) -> Iterator[MethodStruct]:
         """Define method body
 
         The `body` context manager can be used to define the actions
@@ -1333,14 +1332,14 @@ class Method(TransactionBase):
             with m.AvoidedIf(self.run):
                 yield self.data_in
 
-    def _validate_arguments(self, arg_rec: Record) -> ValueLike:
+    def _validate_arguments(self, arg_rec: MethodStruct) -> ValueLike:
         if self.validate_arguments is not None:
             return self.ready & method_def_helper(self, self.validate_arguments, arg_rec)
         return self.ready
 
     def __call__(
         self, m: TModule, arg: Optional[AssignArg] = None, enable: ValueLike = C(1), /, **kwargs: AssignArg
-    ) -> View[StructLayout]:
+    ) -> MethodStruct:
         """Call a method.
 
         Methods can only be called from transaction and method bodies.

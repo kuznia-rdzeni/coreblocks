@@ -1,4 +1,6 @@
 from amaranth import *
+
+from transactron.utils.transactron_helpers import from_method_layout
 from ..core import *
 from ..utils import SrcLoc, get_src_loc
 
@@ -37,7 +39,7 @@ class ClickIn(Elaboratable):
         src_loc = get_src_loc(src_loc)
         self.get = Method(o=layout, src_loc=src_loc)
         self.btn = Signal()
-        self.dat = Record(layout)
+        self.dat = Signal(from_method_layout(layout))
 
     def elaborate(self, platform):
         m = TModule()
@@ -94,7 +96,7 @@ class ClickOut(Elaboratable):
         src_loc = get_src_loc(src_loc)
         self.put = Method(i=layout, src_loc=src_loc)
         self.btn = Signal()
-        self.dat = Record(layout)
+        self.dat = Signal(from_method_layout(layout))
 
     def elaborate(self, platform):
         m = TModule()

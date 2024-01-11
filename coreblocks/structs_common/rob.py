@@ -13,7 +13,7 @@ class ReorderBuffer(Elaboratable):
         self.mark_done = Method(i=layouts.mark_done_layout)
         self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
         self.retire = Method(o=layouts.retire_layout)
-        self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
+        self.data = Array(Signal(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
         self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
 
     def elaborate(self, platform):

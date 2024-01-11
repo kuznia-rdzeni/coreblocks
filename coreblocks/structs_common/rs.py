@@ -5,6 +5,7 @@ from amaranth.lib.coding import PriorityEncoder
 from transactron import Method, def_method, TModule
 from coreblocks.params import RSLayouts, GenParams, OpType
 from transactron.core import RecordDict
+from transactron.utils.transactron_helpers import from_method_layout
 
 __all__ = ["RS"]
 
@@ -18,12 +19,13 @@ class RS(Elaboratable):
         self.rs_entries = rs_entries
         self.rs_entries_bits = (rs_entries - 1).bit_length()
         self.layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
-        self.internal_layout = [
-            ("rs_data", self.layouts.rs.data_layout),
-            ("rec_full", 1),
-            ("rec_ready", 1),
-            ("rec_reserved", 1),
-        ]
+        self.internal_layout = from_method_layout(
+            [
+                ("rs_data", self.layouts.rs.data_layout),
+                ("rec_full", 1),
+                ("rec_reserved", 1),
+            ]
+        )
 
         self.insert = Method(i=self.layouts.rs.insert_in)
         self.select = Method(o=self.layouts.rs.select_out)
@@ -33,22 +35,24 @@ class RS(Elaboratable):
         self.ready_for = [list(op_list) for op_list in ready_for]
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
-        self.data = Array(Record(self.internal_layout) for _ in range(self.rs_entries))
+        self.data = Array(Signal(self.internal_layout) for _ in range(self.rs_entries))
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
 
-        for record in self.data:
-            m.d.comb += record.rec_ready.eq(
+        data_ready = Signal(self.rs_entries)
+
+        for i, record in enumerate(self.data):
+            m.d.comb += data_ready[i].eq(
                 ~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full.bool()
             )
 
         select_vector = Cat(~record.rec_reserved for record in self.data)
         select_possible = select_vector.any()
 
-        take_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
+        take_vector = Cat(data_ready[i] & record.rec_full for i, record in enumerate(self.data))
         take_possible = take_vector.any()
 
         ready_lists: list[Value] = []
