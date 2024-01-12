@@ -111,7 +111,7 @@ class Profile:
     Attributes
     ----------
     transactions_and_methods : dict[int, ProfileInfo]
-        Information about transactions and methods.
+        Information about transactions and methods indexed by ID numbers.
     cycles : list[CycleProfile]
         Profile information for each cycle of the simulation.
     """
