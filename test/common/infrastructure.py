@@ -137,12 +137,18 @@ class SyncProcessWrapper:
 
 
 class PysimSimulator(Simulator):
-    def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
+    def __init__(
+        self,
+        module: HasElaborate,
+        max_cycles: float = 10e4,
+        add_transaction_module=True,
+        traces_file=None,
+        clk_period=1e-6,
+    ):
         test_module = _TestModule(module, add_transaction_module)
         self.tested_module = tested_module = test_module.tested_module
         super().__init__(test_module)
 
-        clk_period = 1e-6
         self.add_clock(clk_period)
 
         if isinstance(tested_module, HasDebugSignals):
@@ -188,15 +194,20 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_file = unittest.TestCase.id(self)
 
+        clk_period = 1e-6
         sim = PysimSimulator(
-            module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
+            module,
+            max_cycles=max_cycles,
+            add_transaction_module=add_transaction_module,
+            traces_file=traces_file,
+            clk_period=clk_period,
         )
         yield sim
 
         profile = None
         if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.tested_module, TransactionModule):
             profile = Profile()
-            sim.add_sync_process(profiler_process(sim.tested_module.transactionManager, profile))
+            sim.add_sync_process(profiler_process(sim.tested_module.transactionManager, profile, clk_period))
 
         res = sim.run()
 

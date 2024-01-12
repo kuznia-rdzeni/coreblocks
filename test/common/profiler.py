@@ -8,7 +8,7 @@ from .functions import TestGen
 __all__ = ["profiler_process"]
 
 
-def profiler_process(transaction_manager: TransactionManager, profile: Profile):
+def profiler_process(transaction_manager: TransactionManager, profile: Profile, clk_period: float):
     def process() -> TestGen:
         method_map = MethodMap(transaction_manager.transactions)
         cgr, _, _ = TransactionManager._conflict_graph(method_map)
@@ -41,7 +41,7 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
 
         yield Passive()
         while True:
-            yield Delay(5e-7)  # shorter than one clock cycle
+            yield Delay((1 - 1e-4) * clk_period)  # shorter than one clock cycle
 
             cprof = CycleProfile()
             profile.cycles.append(cprof)
