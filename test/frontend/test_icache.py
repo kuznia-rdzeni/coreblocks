@@ -7,10 +7,10 @@ from amaranth.sim import Passive, Settle
 from amaranth.utils import log2_int
 
 from transactron.lib import AdapterTrans, Adapter
-from coreblocks.frontend.icache import ICache, ICacheBypass
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
 from coreblocks.params.configurations import test_core_config
+from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.iface import CacheRefillerInterface
 from coreblocks.cache.refiller import SimpleWBCacheRefiller
 
