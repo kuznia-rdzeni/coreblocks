@@ -9,7 +9,7 @@ __all__ = ["CacheInterface", "CacheRefillerInterface"]
 
 class CacheInterface(HasElaborate, Protocol):
     """
-    Instruction Cache Interface.
+    Cache Interface.
 
     Parameters
     ----------
@@ -28,7 +28,7 @@ class CacheInterface(HasElaborate, Protocol):
 
 class CacheRefillerInterface(HasElaborate, Protocol):
     """
-    Instruction Cache Refiller Interface.
+    Cache Refiller Interface.
 
     Parameters
     ----------
