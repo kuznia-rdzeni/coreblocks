@@ -136,7 +136,12 @@ COMMON_TESTS = [
     # c.lwsp x2, 4
     (0x4112, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X2, funct3=Funct3.W, rs1=Registers.SP, imm=C(4, 12))),
     # c.jr x30
-    (0x8F02, ITypeInstr(opcode=Opcode.JALR, rd=Registers.ZERO, funct3=Funct3.JALR, rs1=Registers.X30, imm=Repl(0, 12))),
+    (
+        0x8F02,
+        ITypeInstr(
+            opcode=Opcode.JALR, rd=Registers.ZERO, funct3=Funct3.JALR, rs1=Registers.X30, imm=C(0).replicate(12)
+        ),
+    ),
     # c.mv x2, x26
     (
         0x816A,
@@ -274,7 +279,8 @@ class TestInstrDecompress(TestCaseWithSimulator):
     test_cases: list[tuple[int, ValueLike]]
 
     def test(self):
-        self.m = InstrDecompress(GenParams(test_core_config.replace(compressed=True, xlen=self.isa_xlen)))
+        self.gen_params = GenParams(test_core_config.replace(compressed=True, xlen=self.isa_xlen))
+        self.m = InstrDecompress(self.gen_params)
 
         def process():
             for instr_in, instr_out in self.test_cases:

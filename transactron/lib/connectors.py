@@ -1,6 +1,7 @@
 from amaranth import *
 import amaranth.lib.fifo
 from ..core import *
+from ..utils import SrcLoc, get_src_loc
 
 __all__ = [
     "FIFO",
@@ -28,7 +29,9 @@ class FIFO(Elaboratable):
         The write method. Accepts a `Record`, returns empty result.
     """
 
-    def __init__(self, layout: MethodLayout, depth: int, fifo_type=amaranth.lib.fifo.SyncFIFO):
+    def __init__(
+        self, layout: MethodLayout, depth: int, fifo_type=amaranth.lib.fifo.SyncFIFO, *, src_loc: int | SrcLoc = 0
+    ):
         """
         Parameters
         ----------
@@ -39,13 +42,17 @@ class FIFO(Elaboratable):
         fifoType: Elaboratable
             FIFO module conforming to Amaranth library FIFO interface. Defaults
             to SyncFIFO.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         self.width = len(Record(layout))
         self.depth = depth
         self.fifoType = fifo_type
 
-        self.read = Method(o=layout)
-        self.write = Method(i=layout)
+        src_loc = get_src_loc(src_loc)
+        self.read = Method(o=layout, src_loc=src_loc)
+        self.write = Method(i=layout, src_loc=src_loc)
 
     def elaborate(self, platform):
         m = TModule()
@@ -90,16 +97,20 @@ class Forwarder(Elaboratable):
         The write method. Accepts a `Record`, returns empty result.
     """
 
-    def __init__(self, layout: MethodLayout):
+    def __init__(self, layout: MethodLayout, *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
         layout: record layout
             The format of records forwarded.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        self.read = Method(o=layout)
-        self.write = Method(i=layout)
-        self.clear = Method()
+        src_loc = get_src_loc(src_loc)
+        self.read = Method(o=layout, src_loc=src_loc)
+        self.write = Method(i=layout, src_loc=src_loc)
+        self.clear = Method(src_loc=src_loc)
         self.head = Record.like(self.read.data_out)
 
         self.clear.add_conflict(self.read, Priority.LEFT)
@@ -155,7 +166,7 @@ class Connect(Elaboratable):
         `Record`.
     """
 
-    def __init__(self, layout: MethodLayout = (), rev_layout: MethodLayout = ()):
+    def __init__(self, layout: MethodLayout = (), rev_layout: MethodLayout = (), *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
@@ -163,9 +174,13 @@ class Connect(Elaboratable):
             The format of records forwarded.
         rev_layout: record layout
             The format of records forwarded in the reverse direction.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
-        self.read = Method(o=layout, i=rev_layout)
-        self.write = Method(i=layout, o=rev_layout)
+        src_loc = get_src_loc(src_loc)
+        self.read = Method(o=layout, i=rev_layout, src_loc=src_loc)
+        self.write = Method(i=layout, o=rev_layout, src_loc=src_loc)
 
     def elaborate(self, platform):
         m = TModule()
@@ -197,7 +212,7 @@ class ConnectTrans(Elaboratable):
     layouts.
     """
 
-    def __init__(self, method1: Method, method2: Method):
+    def __init__(self, method1: Method, method2: Method, *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
@@ -205,14 +220,18 @@ class ConnectTrans(Elaboratable):
             First method.
         method2: Method
             Second method.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         self.method1 = method1
         self.method2 = method2
+        self.src_loc = get_src_loc(src_loc)
 
     def elaborate(self, platform):
         m = TModule()
 
-        with Transaction().body(m):
+        with Transaction(src_loc=self.src_loc).body(m):
             data1 = Record.like(self.method1.data_out)
             data2 = Record.like(self.method2.data_out)
 
@@ -229,7 +248,7 @@ class ManyToOneConnectTrans(Elaboratable):
     transactions. Equivalent to a set of `ConnectTrans`.
     """
 
-    def __init__(self, *, get_results: list[Method], put_result: Method):
+    def __init__(self, *, get_results: list[Method], put_result: Method, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
@@ -237,16 +256,22 @@ class ManyToOneConnectTrans(Elaboratable):
             Methods to be connected to the `put_result` method.
         put_result: Method
             Common method for each of the connections created.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         self.get_results = get_results
         self.m_put_result = put_result
 
         self.count = len(self.get_results)
+        self.src_loc = get_src_loc(src_loc)
 
     def elaborate(self, platform):
         m = TModule()
 
         for i in range(self.count):
-            m.submodules[f"ManyToOneConnectTrans_input_{i}"] = ConnectTrans(self.m_put_result, self.get_results[i])
+            m.submodules[f"ManyToOneConnectTrans_input_{i}"] = ConnectTrans(
+                self.m_put_result, self.get_results[i], src_loc=self.src_loc
+            )
 
         return m

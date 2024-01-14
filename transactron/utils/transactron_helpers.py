@@ -2,9 +2,11 @@ import sys
 from contextlib import contextmanager
 from typing import Optional, Any, Concatenate, TypeGuard, TypeVar
 from collections.abc import Callable, Mapping
-from ._typing import ROGraph, GraphCC
+from ._typing import ROGraph, GraphCC, SrcLoc
 from inspect import Parameter, signature
+from itertools import count
 from amaranth import *
+from amaranth import tracer
 
 
 __all__ = [
@@ -13,6 +15,7 @@ __all__ = [
     "def_helper",
     "method_def_helper",
     "mock_def_helper",
+    "get_src_loc",
 ]
 
 T = TypeVar("T")
@@ -66,7 +69,11 @@ def has_first_param(func: Callable[..., T], name: str, tp: type[U]) -> TypeGuard
 
 
 def def_helper(description, func: Callable[..., T], tp: type[U], arg: U, /, **kwargs) -> T:
-    parameters = signature(func).parameters
+    try:
+        parameters = signature(func).parameters
+    except ValueError:
+        raise TypeError(f"Invalid python method signature for {func} (missing `self` for class-level mock?)")
+
     kw_parameters = set(
         n for n, p in parameters.items() if p.kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY}
     )
@@ -87,11 +94,17 @@ def method_def_helper(method, func: Callable[..., T], arg: Record) -> T:
 
 
 def get_caller_class_name(default: Optional[str] = None) -> tuple[Optional[Elaboratable], str]:
-    caller_frame = sys._getframe(2)
-    if "self" in caller_frame.f_locals:
-        owner = caller_frame.f_locals["self"]
-        return owner, owner.__class__.__name__
-    elif default is not None:
+    try:
+        for d in count(2):
+            caller_frame = sys._getframe(d)
+            if "self" in caller_frame.f_locals:
+                owner = caller_frame.f_locals["self"]
+                if isinstance(owner, Elaboratable):
+                    return owner, owner.__class__.__name__
+    except ValueError:
+        pass
+
+    if default is not None:
         return None, default
     else:
         raise RuntimeError("Not called from a method")
@@ -104,3 +117,7 @@ def silence_mustuse(elaboratable: Elaboratable):
     except Exception:
         elaboratable._MustUse__silence = True  # type: ignore
         raise
+
+
+def get_src_loc(src_loc: int | SrcLoc) -> SrcLoc:
+    return tracer.get_src_loc(1 + src_loc) if isinstance(src_loc, int) else src_loc

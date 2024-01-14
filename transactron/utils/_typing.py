@@ -1,10 +1,14 @@
 from typing import (
+    Callable,
+    Concatenate,
     Generic,
     NoReturn,
     Optional,
+    ParamSpec,
     Protocol,
     TypeAlias,
     TypeVar,
+    cast,
     runtime_checkable,
     Union,
     Any,
@@ -25,6 +29,7 @@ __all__ = [
     "LayoutLike",
     "SwitchKey",
     "MethodLayout",
+    "SrcLoc",
     "SignalBundle",
     "LayoutListField",
     "LayoutList",
@@ -50,6 +55,7 @@ LayoutLike: TypeAlias = (
 )
 SwitchKey: TypeAlias = str | int | Enum
 MethodLayout: TypeAlias = LayoutLike
+SrcLoc: TypeAlias = tuple[str, int]
 
 # Internal Coreblocks types
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
@@ -62,6 +68,7 @@ RecordValueDict: TypeAlias = Mapping[str, Union[ValueLike, "RecordValueDict"]]
 
 T = TypeVar("T")
 U = TypeVar("U")
+P = ParamSpec("P")
 
 ROGraph: TypeAlias = Mapping[T, Iterable[T]]
 Graph: TypeAlias = dict[T, set[T]]
@@ -134,3 +141,16 @@ class HasElaborate(Protocol):
 class HasDebugSignals(Protocol):
     def debug_signals(self) -> SignalBundle:
         ...
+
+
+def type_self_kwargs_as(as_func: Callable[Concatenate[Any, P], Any]):
+    """
+    Decorator used to annotate `**kwargs` type to be the same as named arguments from `as_func` method.
+
+    Works only with methods with (self, **kwargs) signature. `self` parameter is also required in `as_func`.
+    """
+
+    def return_func(func: Callable[Concatenate[Any, ...], T]) -> Callable[Concatenate[Any, P], T]:
+        return cast(Callable[Concatenate[Any, P], T], func)
+
+    return return_func

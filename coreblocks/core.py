@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.structs_common.instr_counter import CoreInstructionCounter
 from coreblocks.structs_common.interrupt_controller import InterruptController
@@ -80,7 +80,7 @@ class Core(Elaboratable):
         )
 
         self.announcement = ResultAnnouncement(
-            gen=self.gen_params,
+            gen_params=self.gen_params,
             get_result=self.func_blocks_unifier.get_result,
             rob_mark_done=self.ROB.mark_done,
             rs_update=self.func_blocks_unifier.update,
@@ -149,6 +149,7 @@ class Core(Elaboratable):
             rob_peek=rob.peek,
             rob_retire=rob.retire,
             r_rat_commit=rrat.commit,
+            r_rat_peek=rrat.peek,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
             precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),

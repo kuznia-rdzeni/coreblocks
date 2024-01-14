@@ -1,6 +1,5 @@
 from amaranth import *
 from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
-from amaranth.lib.scheduler import RoundRobin
 from functools import reduce
 from typing import List
 import operator
@@ -8,7 +7,7 @@ import operator
 from transactron import Method, def_method, TModule
 from transactron.core import Transaction
 from transactron.lib import AdapterTrans, BasicFifo
-from transactron.utils import OneHotSwitchDynamic, assign
+from transactron.utils import OneHotSwitchDynamic, assign, RoundRobin
 from transactron.lib.connectors import Forwarder
 
 

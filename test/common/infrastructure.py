@@ -1,12 +1,15 @@
+import sys
 import os
 import random
 import unittest
 import functools
 from contextlib import contextmanager, nullcontext
-from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast
+from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias
+from abc import ABC
 from amaranth import *
 from amaranth.sim import *
 from .testbenchio import TestbenchIO
+from .functions import TestGen
 from ..gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
@@ -14,7 +17,7 @@ from transactron.core import TransactionModule
 from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
 
 T = TypeVar("T")
-_T_nested_collection = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
+_T_nested_collection: TypeAlias = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
 
 
 def guard_nested_collection(cont: Any, t: Type[T]) -> TypeGuard[_T_nested_collection[T]]:
@@ -37,7 +40,10 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         self._io: dict[str, _T_nested_collection[TestbenchIO]] = {}
 
     def __getattr__(self, name: str) -> Any:
-        return self._io[name]
+        try:
+            return self._io[name]
+        except KeyError:
+            raise AttributeError(f"No mock for '{name}'")
 
     def elaborate(self, platform):
         def transform_methods_to_testbenchios(
@@ -82,7 +88,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
         return sigs
 
 
-class TestModule(Elaboratable):
+class _TestModule(Elaboratable):
     def __init__(self, tested_module: HasElaborate, add_transaction_module):
         self.tested_module = TransactionModule(tested_module) if add_transaction_module else tested_module
         self.add_transaction_module = add_transaction_module
@@ -99,9 +105,43 @@ class TestModule(Elaboratable):
         return m
 
 
+class CoreblocksCommand(ABC):
+    pass
+
+
+class Now(CoreblocksCommand):
+    pass
+
+
+class SyncProcessWrapper:
+    def __init__(self, f):
+        self.org_process = f
+        self.current_cycle = 0
+
+    def _wrapping_function(self):
+        response = None
+        org_coroutine = self.org_process()
+        try:
+            while True:
+                # call orginal test process and catch data yielded by it in `command` variable
+                command = org_coroutine.send(response)
+                # If process wait for new cycle
+                if command is None:
+                    self.current_cycle += 1
+                    # forward to amaranth
+                    yield
+                elif isinstance(command, Now):
+                    response = self.current_cycle
+                # Pass everything else to amaranth simulator without modifications
+                else:
+                    response = yield command
+        except StopIteration:
+            pass
+
+
 class PysimSimulator(Simulator):
     def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
-        test_module = TestModule(module, add_transaction_module)
+        test_module = _TestModule(module, add_transaction_module)
         tested_module = test_module.tested_module
         super().__init__(test_module)
 
@@ -133,6 +173,10 @@ class PysimSimulator(Simulator):
 
         self.deadline = clk_period * max_cycles
 
+    def add_sync_process(self, f: Callable[[], TestGen]):
+        f_wrapped = SyncProcessWrapper(f)
+        super().add_sync_process(f_wrapped._wrapping_function)
+
     def run(self) -> bool:
         with self.ctx:
             self.run_until(self.deadline)
@@ -141,6 +185,21 @@ class PysimSimulator(Simulator):
 
 
 class TestCaseWithSimulator(unittest.TestCase):
+    def add_class_mocks(self, sim: PysimSimulator) -> None:
+        for key in dir(self):
+            val = getattr(self, key)
+            if hasattr(val, "_transactron_testing_process"):
+                sim.add_sync_process(val)
+
+    def add_local_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
+        for key, val in frame_locals.items():
+            if hasattr(val, "_transactron_testing_process"):
+                sim.add_sync_process(val)
+
+    def add_all_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
+        self.add_class_mocks(sim)
+        self.add_local_mocks(sim, frame_locals)
+
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
         traces_file = None
@@ -150,6 +209,7 @@ class TestCaseWithSimulator(unittest.TestCase):
         sim = PysimSimulator(
             module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
         )
+        self.add_all_mocks(sim, sys._getframe(2).f_locals)
         yield sim
         res = sim.run()
 

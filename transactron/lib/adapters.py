@@ -1,7 +1,9 @@
 from amaranth import *
+
+from ..utils import SrcLoc, get_src_loc
 from ..core import *
 from ..core import SignalBundle
-from typing import Optional
+from ..utils._typing import type_self_kwargs_as
 
 __all__ = [
     "AdapterBase",
@@ -42,14 +44,18 @@ class AdapterTrans(AdapterBase):
         Data returned from the `iface` method.
     """
 
-    def __init__(self, iface: Method):
+    def __init__(self, iface: Method, *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
         iface: Method
             The method to be called by the transaction.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         super().__init__(iface)
+        self.src_loc = get_src_loc(src_loc)
         self.data_in = Record.like(iface.data_in)
         self.data_out = Record.like(iface.data_out)
 
@@ -60,7 +66,7 @@ class AdapterTrans(AdapterBase):
         data_in = Signal.like(self.data_in)
         m.d.comb += data_in.eq(self.data_in)
 
-        with Transaction(name=f"AdapterTrans_{self.iface.name}").body(m, request=self.en):
+        with Transaction(name=f"AdapterTrans_{self.iface.name}", src_loc=self.src_loc).body(m, request=self.en):
             data_out = self.iface(m, data_in)
             m.d.top_comb += self.data_out.eq(data_out)
             m.d.comb += self.done.eq(1)
@@ -86,16 +92,19 @@ class Adapter(AdapterBase):
         Data passed as argument to the defined method.
     """
 
-    def __init__(self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = ()):
+    @type_self_kwargs_as(Method.__init__)
+    def __init__(self, **kwargs):
         """
         Parameters
         ----------
-        i: record layout
-            The input layout of the defined method.
-        o: record layout
-            The output layout of the defined method.
+        **kwargs
+            Keyword arguments for Method that will be created.
+            See transactron.core.Method.__init__ for parameters description.
         """
-        super().__init__(Method(name=name, i=i, o=o))
+
+        kwargs["src_loc"] = get_src_loc(kwargs.setdefault("src_loc", 0))
+
+        super().__init__(Method(**kwargs))
         self.data_in = Record.like(self.iface.data_out)
         self.data_out = Record.like(self.iface.data_in)
 

@@ -1,7 +1,6 @@
 from amaranth import *
-from transactron.utils.fifo import BasicFifo, Semaphore
+from transactron.lib import BasicFifo, Semaphore
 from coreblocks.cache.iface import CacheInterface
-
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
 from transactron import def_method, Method, Transaction, TModule
 from ..params import *
@@ -26,25 +25,24 @@ class Fetch(Elaboratable):
             Method which should be invoked to send fetched data to the next step.
             It has layout as described by `FetchLayout`.
         """
-        self.gp = gen_params
+        self.gen_params = gen_params
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
         self.stall_exception = Method()
-        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
-        self.pc = Signal(self.gp.isa.xlen)
+        self.pc = Signal(self.gen_params.isa.xlen)
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(
-            layout=[("addr", self.gp.isa.xlen), ("spin", 1)], depth=2
+            layout=[("addr", self.gen_params.isa.xlen), ("spin", 1)], depth=2
         )
 
-        speculative_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
+        speculative_pc = Signal(self.gen_params.isa.xlen, reset=self.gen_params.start_pc)
 
         stalled = Signal()
         stalled_unsafe = Signal()
@@ -57,7 +55,7 @@ class Fetch(Elaboratable):
             self.icache.issue_req(m, addr=speculative_pc)
             self.fetch_target_queue.write(m, addr=speculative_pc, spin=spin)
 
-            m.d.sync += speculative_pc.eq(speculative_pc + self.gp.isa.ilen_bytes)
+            m.d.sync += speculative_pc.eq(speculative_pc + self.gen_params.isa.ilen_bytes)
 
         def stall(exception=False):
             if exception:
@@ -78,7 +76,7 @@ class Fetch(Elaboratable):
             )
 
             with m.If(spin == target.spin):
-                instr = Signal(self.gp.isa.ilen)
+                instr = Signal(self.gen_params.isa.ilen)
                 fetch_error = Signal()
 
                 with m.If(res.error):
@@ -126,26 +124,25 @@ class UnalignedFetch(Elaboratable):
             Method which should be invoked to send fetched data to the next step.
             It has layout as described by `FetchLayout`.
         """
-        self.gp = gen_params
+        self.gen_params = gen_params
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gp.get(FetchLayouts).branch_verify)
+        self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
         self.stall_exception = Method()
-        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
-        self.pc = Signal(self.gp.isa.xlen)
+        self.pc = Signal(self.gen_params.isa.xlen)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
         m.submodules.req_limiter = req_limiter = Semaphore(2)
 
-        m.submodules.decompress = decompress = InstrDecompress(self.gp)
+        m.submodules.decompress = decompress = InstrDecompress(self.gen_params)
 
-        cache_req_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
-        current_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)
+        cache_req_pc = Signal(self.gen_params.isa.xlen, reset=self.gen_params.start_pc)
+        current_pc = Signal(self.gen_params.isa.xlen, reset=self.gen_params.start_pc)
 
         flushing = Signal()
         stalled = Signal()
@@ -154,7 +151,7 @@ class UnalignedFetch(Elaboratable):
         m.d.av_comb += stalled.eq(stalled_unsafe | stalled_exception)
 
         with Transaction().body(m, request=~stalled):
-            aligned_pc = Cat(Repl(0, 2), cache_req_pc[2:])
+            aligned_pc = Cat(C(0, 2), cache_req_pc[2:])
             self.icache.issue_req(m, addr=aligned_pc)
             req_limiter.acquire(m)
 

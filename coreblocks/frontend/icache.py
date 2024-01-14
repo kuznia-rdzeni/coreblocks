@@ -55,7 +55,7 @@ class ICacheBypass(Elaboratable, CacheInterface):
                 addr=addr >> log2_int(self.params.word_width_bytes),
                 data=0,
                 we=0,
-                sel=Repl(1, self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
+                sel=C(1).replicate(self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
             )
 
         @def_method(m, self.accept_res)
@@ -242,7 +242,7 @@ class ICache(Elaboratable, CacheInterface):
 
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += [
-                self.mem.way_wr_en.eq(Repl(1, self.params.num_of_ways)),
+                self.mem.way_wr_en.eq(C(1).replicate(self.params.num_of_ways)),
                 self.mem.tag_wr_index.eq(flush_index),
                 self.mem.tag_wr_data.valid.eq(0),
                 self.mem.tag_wr_data.tag.eq(0),
@@ -332,3 +332,4 @@ class ICacheMemory(Elaboratable):
             ]
 
         return m
+      
