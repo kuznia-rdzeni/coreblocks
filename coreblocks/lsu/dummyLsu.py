@@ -2,7 +2,7 @@ from amaranth import *
 
 from transactron import Method, def_method, Transaction, TModule
 from coreblocks.params import *
-from coreblocks.peripherals.wishbone import WishboneMaster
+from coreblocks.peripherals.bus_adapter import BusMasterAdapter
 from transactron.lib.connectors import Forwarder
 from transactron.utils import assign, ModuleLike, DependencyManager
 from coreblocks.utils.protocols import FuncBlock
@@ -12,10 +12,10 @@ from coreblocks.lsu.pma import PMAChecker
 __all__ = ["LSUDummy", "LSUBlockComponent"]
 
 
-class LSURequesterWB(Elaboratable):
+class LSURequester(Elaboratable):
     """
-    Wishbone request logic for the load/store unit. Its job is to interface
-    between the LSU and the Wishbone bus.
+    Bus request logic for the load/store unit. Its job is to interface
+    between the LSU and the bus.
 
     Attributes
     ----------
@@ -25,14 +25,14 @@ class LSURequesterWB(Elaboratable):
         Retrieves a result from the bus.
     """
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
+    def __init__(self, gen_params: GenParams, bus: BusMasterAdapter) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Parameters to be used during processor generation.
-        bus : WishboneMaster
-            An instance of the Wishbone master for interfacing with the data bus.
+        bus : BusMasterAdapter
+            An instance of the bus master for interfacing with the data bus.
         """
         self.gen_params = gen_params
         self.bus = bus
@@ -43,7 +43,7 @@ class LSURequesterWB(Elaboratable):
         self.accept = Method(o=lsu_layouts.accept)
 
     def prepare_bytes_mask(self, m: ModuleLike, funct3: Value, addr: Value) -> Signal:
-        mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
+        mask_len = self.gen_params.isa.xlen // self.bus.params.granularity
         mask = Signal(mask_len)
         with m.Switch(funct3):
             with m.Case(Funct3.B, Funct3.BU):
@@ -109,13 +109,18 @@ class LSURequesterWB(Elaboratable):
         def _(addr: Value, data: Value, funct3: Value, store: Value):
             exception = Signal()
             cause = Signal(ExceptionCause)
+            prot = C(0, unsigned(3))
+            strb = C(0, unsigned(self.bus.params.data_width // 8))
 
             aligned = self.check_align(m, funct3, addr)
             bytes_mask = self.prepare_bytes_mask(m, funct3, addr)
-            wb_data = self.prepare_data_to_save(m, funct3, data, addr)
+            bus_data = self.prepare_data_to_save(m, funct3, data, addr)
 
             with m.If(aligned):
-                self.bus.request(m, addr=addr >> 2, we=store, sel=bytes_mask, data=wb_data)
+                with m.If(store):
+                    self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask, prot=prot, strb=strb)
+                with m.Else():
+                    self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask, prot=prot)
                 m.d.sync += request_sent.eq(1)
                 m.d.sync += addr_reg.eq(addr)
                 m.d.sync += funct3_reg.eq(funct3)
@@ -130,15 +135,22 @@ class LSURequesterWB(Elaboratable):
 
         @def_method(m, self.accept, request_sent)
         def _():
+            data = Signal(self.gen_params.isa.xlen)
             exception = Signal()
             cause = Signal(ExceptionCause)
+            err = Signal()
 
-            fetched = self.bus.result(m)
+            with m.If(store_reg):
+                fetched = self.bus.get_write_response(m)
+                err = fetched.err
+            with m.Else():
+                fetched = self.bus.get_read_response(m)
+                err = fetched.err
+                data = self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg)
+
             m.d.sync += request_sent.eq(0)
 
-            data = self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg)
-
-            with m.If(fetched.err):
+            with m.If(err):
                 m.d.av_comb += exception.eq(1)
                 m.d.av_comb += cause.eq(
                     Mux(store_reg, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT)
@@ -172,14 +184,14 @@ class LSUDummy(FuncBlock, Elaboratable):
         Used to inform LSU that new instruction is ready to be retired.
     """
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster) -> None:
+    def __init__(self, gen_params: GenParams, bus: BusMasterAdapter) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Parameters to be used during processor generation.
-        bus : WishboneMaster
-            An instance of the Wishbone master for interfacing with the data bus.
+        bus : BusMasterAdapter
+            An instance of the bus master for interfacing with the data bus.
         """
 
         self.gen_params = gen_params
@@ -207,7 +219,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         current_instr = Record(self.lsu_layouts.rs.data_layout)
 
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
-        m.submodules.requester = requester = LSURequesterWB(self.gen_params, self.bus)
+        m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.results = results = self.forwarder = Forwarder(self.lsu_layouts.accept)
 
@@ -303,8 +315,8 @@ class LSUDummy(FuncBlock, Elaboratable):
 class LSUBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
-        wb_master = connections.get_dependency(WishboneDataKey())
-        unit = LSUDummy(gen_params, wb_master)
+        bus_master = connections.get_dependency(CommonBusDataKey())
+        unit = LSUDummy(gen_params, bus_master)
         connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 
