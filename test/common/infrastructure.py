@@ -230,3 +230,10 @@ class TestCaseWithSimulator(unittest.TestCase):
         if max_cycle_cnt == 0:
             return
         yield from self.tick(random.randrange(min_cycle_cnt, max_cycle_cnt))
+
+    def random_wait_geom(self, prob: float = 0.5):
+        """
+        Wait till the first success, where there is `prob` probability for success in each cycle.
+        """
+        while random.random() > prob:
+            yield
