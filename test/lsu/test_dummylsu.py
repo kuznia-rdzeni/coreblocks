@@ -254,7 +254,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.consumer)
-            sim.add_sync_process(exception_consumer)
 
 
 class TestDummyLSULoadsCycles(TestCaseWithSimulator):
@@ -313,7 +312,6 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.one_instr_test)
-            sim.add_sync_process(exception_consumer)
 
 
 class TestDummyLSUStores(TestCaseWithSimulator):
@@ -439,7 +437,6 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.get_resulter)
             sim.add_sync_process(self.precommiter)
-            sim.add_sync_process(exception_consumer)
 
 
 class TestDummyLSUFence(TestCaseWithSimulator):
@@ -485,4 +482,3 @@ class TestDummyLSUFence(TestCaseWithSimulator):
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.process)
-            sim.add_sync_process(exception_consumer)
