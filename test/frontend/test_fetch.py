@@ -12,7 +12,7 @@ from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from transactron.utils import ModuleConnector
-from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock
+from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock, SimpleTestCircuit
 
 
 class MockedICache(Elaboratable, ICacheInterface):
@@ -35,130 +35,114 @@ class MockedICache(Elaboratable, ICacheInterface):
         return m
 
 
-class TestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gen_params = gen_params
-
-    def elaborate(self, platform):
-        m = Module()
+class TestFetch(TestCaseWithSimulator):
+    def setUp(self) -> None:
+        self.gen_params = GenParams(test_core_config.replace(start_pc=0x18))
 
         self.icache = MockedICache(self.gen_params)
 
         fifo = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-        self.fetch = Fetch(self.gen_params, self.icache, fifo.write)
-        self.fetch_resume = TestbenchIO(AdapterTrans(self.fetch.resume))
-        self.fetch_stall_exception = TestbenchIO(AdapterTrans(self.fetch.stall_exception))
 
-        m.submodules.icache = self.icache
-        m.submodules.fetch = self.fetch
-        m.submodules.io_out = self.io_out
-        m.submodules.fetch_resume = self.fetch_resume
-        m.submodules.fetch_stall_exception = self.fetch_stall_exception
-        m.submodules.fifo = fifo
+        self.fetch = SimpleTestCircuit(Fetch(self.gen_params, self.icache, fifo.write))
 
-        return m
+        # self.fetch_resume = TestbenchIO(AdapterTrans(self.fetch.resume))
+        # self.fetch_stall_exception = TestbenchIO(AdapterTrans(self.fetch.stall_exception))
 
+        self.m = ModuleConnector(
+            icache=self.icache,
+            fetch=self.fetch,
+            io_out=self.io_out,
+            fifo=fifo,
+        )
 
-class TestFetch(TestCaseWithSimulator):
-    def setUp(self) -> None:
-        self.gen_params = GenParams(test_core_config.replace(start_pc=0x18))
-        self.m = TestElaboratable(self.gen_params)
         self.instr_queue = deque()
         self.iterations = 500
+        self.input_q = deque()
+        self.output_q = deque()
 
         random.seed(422)
 
-    def cache_processes(self):
-        input_q = deque()
-        output_q = deque()
+    def cache_process(self):
+        yield Passive()
 
-        def cache_process():
-            yield Passive()
+        next_pc = self.gen_params.start_pc
 
-            next_pc = self.gen_params.start_pc
+        while True:
+            while len(self.input_q) == 0:
+                yield
 
-            while True:
-                while len(input_q) == 0:
-                    yield
+            while random.random() < 0.5:
+                yield
 
-                while random.random() < 0.5:
-                    yield
+            addr = self.input_q.popleft()
+            is_branch = random.random() < 0.15
 
-                addr = input_q.popleft()
-                is_branch = random.random() < 0.15
+            # exclude branches and jumps
+            data = random.randrange(2**self.gen_params.isa.ilen) & ~0b1111111
 
-                # exclude branches and jumps
-                data = random.randrange(2**self.gen_params.isa.ilen) & ~0b1111111
+            # randomize being a branch instruction
+            if is_branch:
+                data |= 0b1100000
+                data &= ~0b0010000  # but not system
 
-                # randomize being a branch instruction
-                if is_branch:
-                    data |= 0b1100000
-                    data &= ~0b0010000  # but not system
+            self.output_q.append({"instr": data, "error": 0})
 
-                output_q.append({"instr": data, "error": 0})
+            # Speculative fetch. Skip, because this instruction shouldn't be executed.
+            if addr != next_pc:
+                continue
 
-                # Speculative fetch. Skip, because this instruction shouldn't be executed.
-                if addr != next_pc:
-                    continue
+            next_pc = addr + self.gen_params.isa.ilen_bytes
+            if is_branch:
+                next_pc = random.randrange(2**self.gen_params.isa.ilen) & ~0b11
 
-                next_pc = addr + self.gen_params.isa.ilen_bytes
-                if is_branch:
-                    next_pc = random.randrange(2**self.gen_params.isa.ilen) & ~0b11
+            self.instr_queue.append(
+                {
+                    "instr": data,
+                    "pc": addr,
+                    "is_branch": is_branch,
+                    "next_pc": next_pc,
+                }
+            )
 
-                self.instr_queue.append(
-                    {
-                        "instr": data,
-                        "pc": addr,
-                        "is_branch": is_branch,
-                        "next_pc": next_pc,
-                    }
-                )
+    @def_method_mock(lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2, sched_prio=1)
+    def issue_req_mock(self, addr):
+        self.input_q.append(addr)
 
-        @def_method_mock(lambda: self.m.icache.issue_req_io, enable=lambda: len(input_q) < 2, sched_prio=1)
-        def issue_req_mock(addr):
-            input_q.append(addr)
-
-        @def_method_mock(lambda: self.m.icache.accept_res_io, enable=lambda: len(output_q) > 0)
-        def accept_res_mock():
-            return output_q.popleft()
-
-        return issue_req_mock, accept_res_mock, cache_process
+    @def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
+    def accept_res_mock(self):
+        return self.output_q.popleft()
 
     def fetch_out_check(self):
         discard_mispredict = False
         next_pc = 0
         for _ in range(self.iterations):
-            v = yield from self.m.io_out.call()
+            v = yield from self.io_out.call()
             if discard_mispredict:
                 while v["pc"] != next_pc:
-                    v = yield from self.m.io_out.call()
+                    v = yield from self.io_out.call()
                 discard_mispredict = False
 
             while len(self.instr_queue) == 0:
                 yield
 
             instr = self.instr_queue.popleft()
-
             self.assertEqual(v["pc"], instr["pc"])
             self.assertEqual(v["instr"], instr["instr"])
 
             if instr["is_branch"]:
                 # branches on mispredict will stall fetch because of exception and then resume with new pc
                 yield from self.random_wait(5)
-                yield from self.m.fetch_stall_exception.call()
+                yield from self.fetch.stall_exception.call()
                 yield from self.random_wait(5)
-                yield from self.m.fetch_resume.call(pc=instr["next_pc"], resume_from_exception=1)
+                yield from self.fetch.resume.call(pc=instr["next_pc"], resume_from_exception=1)
+
                 discard_mispredict = True
                 next_pc = instr["next_pc"]
 
     def test(self):
-        issue_req_mock, accept_res_mock, cache_process = self.cache_processes()
-
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(issue_req_mock)
-            sim.add_sync_process(accept_res_mock)
-            sim.add_sync_process(cache_process)
+            sim.add_sync_process(self.cache_process)
             sim.add_sync_process(self.fetch_out_check)
 
 
@@ -179,6 +163,8 @@ class TestUnalignedFetch(TestCaseWithSimulator):
 
         self.mem = {}
         self.memerr = set()
+        self.input_q = deque()
+        self.output_q = deque()
 
         random.seed(422)
 
@@ -227,39 +213,33 @@ class TestUnalignedFetch(TestCaseWithSimulator):
 
             pc = next_pc
 
-    def cache_processes(self):
-        input_q = deque()
-        output_q = deque()
+    def cache_process(self):
+        yield Passive()
 
-        def cache_process():
-            yield Passive()
+        while True:
+            while len(self.input_q) == 0:
+                yield
 
-            while True:
-                while len(input_q) == 0:
-                    yield
+            while random.random() < 0.5:
+                yield
 
-                while random.random() < 0.5:
-                    yield
+            req_addr = self.input_q.popleft()
 
-                req_addr = input_q.popleft()
+            def get_mem_or_random(addr):
+                return self.mem[addr] if addr in self.mem else random.randrange(2**16)
 
-                def get_mem_or_random(addr):
-                    return self.mem[addr] if addr in self.mem else random.randrange(2**16)
+            data = (get_mem_or_random(req_addr + 2) << 16) | get_mem_or_random(req_addr)
 
-                data = (get_mem_or_random(req_addr + 2) << 16) | get_mem_or_random(req_addr)
+            err = (req_addr in self.memerr) or (req_addr + 2 in self.memerr)
+            self.output_q.append({"instr": data, "error": err})
 
-                err = (req_addr in self.memerr) or (req_addr + 2 in self.memerr)
-                output_q.append({"instr": data, "error": err})
+    @def_method_mock(lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2, sched_prio=1)
+    def issue_req_mock(self, addr):
+        self.input_q.append(addr)
 
-        @def_method_mock(lambda: self.icache.issue_req_io, enable=lambda: len(input_q) < 2, sched_prio=1)
-        def issue_req_mock(addr):
-            input_q.append(addr)
-
-        @def_method_mock(lambda: self.icache.accept_res_io, enable=lambda: len(output_q) > 0)
-        def accept_res_mock():
-            return output_q.popleft()
-
-        return issue_req_mock, accept_res_mock, cache_process
+    @def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
+    def accept_res_mock(self):
+        return self.output_q.popleft()
 
     def fetch_out_check(self):
         discard_mispredict = False
@@ -291,12 +271,8 @@ class TestUnalignedFetch(TestCaseWithSimulator):
                 discard_mispredict = True
 
     def test(self):
-        issue_req_mock, accept_res_mock, cache_process = self.cache_processes()
-
         self.gen_instr_seq()
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(issue_req_mock)
-            sim.add_sync_process(accept_res_mock)
-            sim.add_sync_process(cache_process)
+            sim.add_sync_process(self.cache_process)
             sim.add_sync_process(self.fetch_out_check)

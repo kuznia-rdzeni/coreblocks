@@ -102,7 +102,9 @@ class Retirement(Elaboratable):
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
                 with Transaction().body(m, request=retire_valid) as retire_transaction:
-                    rob_entry = self.rob_retire(m)
+                    rob_entry = self.rob_peek(m)
+                    self.rob_retire(m)
+
                     core_empty = self.instr_decrement(m)
 
                     commit = Signal()
@@ -169,7 +171,9 @@ class Retirement(Elaboratable):
             with m.State("TRAP_FLUSH"):
                 with Transaction().body(m):
                     # Flush entire core
-                    rob_entry = self.rob_retire(m)
+                    rob_entry = self.rob_peek(m)
+                    self.rob_retire(m)
+
                     core_empty = self.instr_decrement(m)
 
                     flush_instr(rob_entry)

@@ -77,4 +77,3 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process_test)
-            sim.add_sync_process(process_rob_idx_mock)
