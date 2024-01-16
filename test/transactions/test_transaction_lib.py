@@ -47,18 +47,15 @@ class TestFifoBase(TestCaseWithSimulator):
 
         random.seed(1337)
 
-        def random_wait(rand: int):
-            yield from self.tick(random.randint(0, rand))
-
         def writer():
             for i in range(2**iosize):
                 yield from m.write.call(data=i)
-                yield from random_wait(writer_rand)
+                yield from self.random_wait(writer_rand)
 
         def reader():
             for i in range(2**iosize):
                 self.assertEqual((yield from m.read.call()), {"data": i})
-                yield from random_wait(reader_rand)
+                yield from self.random_wait(reader_rand)
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(reader)
@@ -153,9 +150,6 @@ class TestMemoryBank(TestCaseWithSimulator):
 
         random.seed(seed)
 
-        def random_wait(rand: int):
-            yield from self.tick(random.randrange(rand) + 1)
-
         def writer():
             for cycle in range(test_count):
                 d = random.randrange(2**data_width)
@@ -164,7 +158,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 for _ in range(2):
                     yield Settle()
                 data_dict[a] = d
-                yield from random_wait(writer_rand)
+                yield from self.random_wait(writer_rand, min_cycle_cnt=1)
 
         def reader_req():
             for cycle in range(test_count):
@@ -177,15 +171,15 @@ class TestMemoryBank(TestCaseWithSimulator):
                     read_req_queue.append(d)
                 else:
                     addr_queue.append((cycle, a))
-                yield from random_wait(reader_req_rand)
+                yield from self.random_wait(reader_req_rand, min_cycle_cnt=1)
 
         def reader_resp():
             for cycle in range(test_count):
                 while not read_req_queue:
-                    yield from random_wait(reader_resp_rand)
+                    yield from self.random_wait(reader_resp_rand, min_cycle_cnt=1)
                 d = read_req_queue.popleft()
                 self.assertEqual((yield from m.read_resp.call()), {"data": d})
-                yield from random_wait(reader_resp_rand)
+                yield from self.random_wait(reader_resp_rand, min_cycle_cnt=1)
 
         def internal_reader_resp():
             assert m._dut._internal_read_resp_trans is not None
@@ -278,6 +272,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         # Create list with info if we processed all data from inputs
         self.producer_end = [False for i in range(self.count)]
         self.expected_output = {}
+        self.max_wait = 4
 
         # Prepare random results for inputs
         for i in range(self.count):
@@ -295,10 +290,6 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
                     self.expected_output[t] = 1
             self.inputs.append(data)
 
-    def random_wait(self):
-        for i in range(random.randint(0, 3)):
-            yield
-
     def generate_producer(self, i: int):
         """
         This is an helper function, which generates a producer process,
@@ -311,7 +302,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
             for field1, field2 in inputs:
                 io: TestbenchIO = self.m.inputs[i]
                 yield from io.call_init(field1=field1, field2=field2)
-                yield from self.random_wait()
+                yield from self.random_wait(self.max_wait)
             self.producer_end[i] = True
 
         return producer
@@ -332,7 +323,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
                 del self.expected_output[t]
             else:
                 self.expected_output[t] -= 1
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
     def test_one_out(self):
         self.count = 1
@@ -595,9 +586,6 @@ class TestSerializer(TestCaseWithSimulator):
 
         self.got_request = False
 
-    def random_wait(self, rand: int):
-        yield from self.tick(random.randrange(rand) + 1)
-
     @def_method_mock(lambda self: self.req_method, enable=lambda self: not self.got_request)
     def serial_req_mock(self, field):
         self.serialized_data.append(field)
@@ -614,7 +602,7 @@ class TestSerializer(TestCaseWithSimulator):
                 d = random.randrange(2**self.data_width)
                 yield from self.test_circuit.serialize_in[i].call(field=d)
                 self.port_data[i].append(d)
-                yield from self.random_wait(self.requestor_rand)
+                yield from self.random_wait(self.requestor_rand, min_cycle_cnt=1)
 
         return f
 
@@ -623,7 +611,7 @@ class TestSerializer(TestCaseWithSimulator):
             for _ in range(self.test_count):
                 data_out = yield from self.test_circuit.serialize_out[i].call()
                 self.assertEqual(self.port_data[i].popleft(), data_out["field"])
-                yield from self.random_wait(self.requestor_rand)
+                yield from self.random_wait(self.requestor_rand, min_cycle_cnt=1)
 
         return f
 
