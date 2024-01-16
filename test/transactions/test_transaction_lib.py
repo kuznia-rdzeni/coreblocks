@@ -131,7 +131,7 @@ class TestForwarder(TestFifoBase):
 
 
 class TestMemoryBank(TestCaseWithSimulator):
-    test_conf = [(9, 4, 4, 4, 14), (16, 2, 2, 4, 15), (16, 2, 2, 2, 16), (12, 4, 2, 2, 17)]
+    test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
 
     parametrized_input = [tc + sf for tc, sf in itertools.product(test_conf, [(True,), (False,)])]
 

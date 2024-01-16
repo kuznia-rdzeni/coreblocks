@@ -225,11 +225,9 @@ class TestCaseWithSimulator(unittest.TestCase):
 
     def random_wait(self, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
         """
-        Wait for a random amount of cycles in range [min_cycle_cnt, max_cycle_cnt)
+        Wait for a random amount of cycles in range [min_cycle_cnt, max_cycle_cnt]
         """
-        if max_cycle_cnt == 0:
-            return
-        yield from self.tick(random.randrange(min_cycle_cnt, max_cycle_cnt))
+        yield from self.tick(random.randrange(min_cycle_cnt, max_cycle_cnt + 1))
 
     def random_wait_geom(self, prob: float = 0.5):
         """
