@@ -8,7 +8,7 @@ from coreblocks.peripherals.axi_lite import AXILiteMaster
 
 from transactron import Method, def_method, TModule
 from transactron.utils import HasElaborate
-
+from transactron.lib import Serializer
 
 __all__ = ["BusMasterInterface", "WishboneMasterAdapter", "AXILiteMasterAdapter"]
 
@@ -19,6 +19,16 @@ class BusParametersInterface(Protocol):
     data_width: int
     addr_width: int
     granularity: int
+
+
+class BusMasterInterface(HasElaborate, Protocol):
+    """"""
+
+    params: BusParametersInterface
+    request_read: Method
+    request_write: Method
+    get_read_response: Method
+    get_write_response: Method
 
 
 class CommonBusMasterMethodLayout:
@@ -43,16 +53,6 @@ class CommonBusMasterMethodLayout:
         self.write_response_layout = [("err", 1)]
 
 
-class BusMasterInterface(HasElaborate, Protocol):
-    """"""
-
-    params: BusParametersInterface
-    request_read: Method
-    request_write: Method
-    get_read_response: Method
-    get_write_response: Method
-
-
 class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
     """"""
 
@@ -70,25 +70,30 @@ class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
     def elaborate(self, platform):
         m = TModule()
 
+        bus_serializer = Serializer(
+            port_count=2, serialized_req_method=self.bus.request, serialized_resp_method=self.bus.result
+        )
+        m.submodules.bus_serializer = bus_serializer
+
         @def_method(m, self.request_read)
         def _(arg):
             we = C(0, unsigned(1))
             data = C(0, unsigned(self.params.data_width))
-            self.bus.request(m, addr=arg.addr, data=data, we=we, sel=arg.sel)
+            bus_serializer.serialize_in[0](m, addr=arg.addr, data=data, we=we, sel=arg.sel)
 
         @def_method(m, self.request_write)
         def _(arg):
             we = C(1, unsigned(1))
-            self.bus.request(m, addr=arg.addr, data=arg.data, we=we, sel=arg.sel)
+            bus_serializer.serialize_in[1](m, addr=arg.addr, data=arg.data, we=we, sel=arg.sel)
 
         @def_method(m, self.get_read_response)
         def _():
-            res = self.bus.result(m)
+            res = bus_serializer.serialize_out[0](m)
             return {"data": res.data, "err": res.err}
 
         @def_method(m, self.get_write_response)
         def _():
-            res = self.bus.result(m)
+            res = bus_serializer.serialize_out[1](m)
             return {"err": res.err}
 
         return m
