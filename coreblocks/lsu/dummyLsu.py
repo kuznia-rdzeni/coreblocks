@@ -6,6 +6,7 @@ from coreblocks.peripherals.bus_adapter import BusMasterAdapter
 from transactron.lib.connectors import Forwarder
 from transactron.utils import assign, ModuleLike, DependencyManager
 from coreblocks.utils.protocols import FuncBlock
+from transactron.lib.simultaneous import condition
 
 from coreblocks.lsu.pma import PMAChecker
 
@@ -117,10 +118,11 @@ class LSURequester(Elaboratable):
             bus_data = self.prepare_data_to_save(m, funct3, data, addr)
 
             with m.If(aligned):
-                with m.If(store):
-                    self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask, prot=prot, strb=strb)
-                with m.Else():
-                    self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask, prot=prot)
+                with condition(m, nonblocking=False, priority=False) as branch:
+                    with branch(store):
+                        self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask, prot=prot, strb=strb)
+                    with branch(~store):
+                        self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask, prot=prot)
                 m.d.sync += request_sent.eq(1)
                 m.d.sync += addr_reg.eq(addr)
                 m.d.sync += funct3_reg.eq(funct3)
@@ -140,13 +142,14 @@ class LSURequester(Elaboratable):
             cause = Signal(ExceptionCause)
             err = Signal()
 
-            with m.If(store_reg):
-                fetched = self.bus.get_write_response(m)
-                err = fetched.err
-            with m.Else():
-                fetched = self.bus.get_read_response(m)
-                err = fetched.err
-                data = self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg)
+            with condition(m, nonblocking=False, priority=False) as branch:
+                with branch(store_reg):
+                    fetched = self.bus.get_write_response(m)
+                    err = fetched.err
+                with branch(~store_reg):
+                    fetched = self.bus.get_read_response(m)
+                    err = fetched.err
+                    data = self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg)
 
             m.d.sync += request_sent.eq(0)
 
