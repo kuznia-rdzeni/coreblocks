@@ -2,7 +2,7 @@ from amaranth import *
 
 from transactron import Method, def_method, Transaction, TModule
 from coreblocks.params import *
-from coreblocks.peripherals.bus_adapter import BusMasterAdapter
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from transactron.lib.connectors import Forwarder
 from transactron.utils import assign, ModuleLike, DependencyManager
 from coreblocks.utils.protocols import FuncBlock
@@ -26,13 +26,13 @@ class LSURequester(Elaboratable):
         Retrieves a result from the bus.
     """
 
-    def __init__(self, gen_params: GenParams, bus: BusMasterAdapter) -> None:
+    def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Parameters to be used during processor generation.
-        bus : BusMasterAdapter
+        bus : BusMasterInterface
             An instance of the bus master for interfacing with the data bus.
         """
         self.gen_params = gen_params
@@ -110,8 +110,6 @@ class LSURequester(Elaboratable):
         def _(addr: Value, data: Value, funct3: Value, store: Value):
             exception = Signal()
             cause = Signal(ExceptionCause)
-            prot = C(0, unsigned(3))
-            strb = C(0, unsigned(self.bus.params.data_width // 8))
 
             aligned = self.check_align(m, funct3, addr)
             bytes_mask = self.prepare_bytes_mask(m, funct3, addr)
@@ -120,9 +118,9 @@ class LSURequester(Elaboratable):
             with m.If(aligned):
                 with condition(m, nonblocking=False, priority=False) as branch:
                     with branch(store):
-                        self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask, prot=prot, strb=strb)
+                        self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
                     with branch(~store):
-                        self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask, prot=prot)
+                        self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
                 m.d.sync += request_sent.eq(1)
                 m.d.sync += addr_reg.eq(addr)
                 m.d.sync += funct3_reg.eq(funct3)
@@ -187,13 +185,13 @@ class LSUDummy(FuncBlock, Elaboratable):
         Used to inform LSU that new instruction is ready to be retired.
     """
 
-    def __init__(self, gen_params: GenParams, bus: BusMasterAdapter) -> None:
+    def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Parameters to be used during processor generation.
-        bus : BusMasterAdapter
+        bus : BusMasterInterface
             An instance of the bus master for interfacing with the data bus.
         """
 

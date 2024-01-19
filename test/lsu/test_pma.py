@@ -10,7 +10,7 @@ from coreblocks.params.keys import ExceptionReportKey
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
-from coreblocks.peripherals.bus_adapter import BusMasterAdapter
+from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
@@ -56,7 +56,7 @@ class PMAIndirectTestCircuit(Elaboratable):
         )
 
         self.bus = WishboneMaster(wb_params)
-        self.bus_master_adapter = BusMasterAdapter(self.bus)
+        self.bus_master_adapter = WishboneMasterAdapter(self.bus)
 
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)

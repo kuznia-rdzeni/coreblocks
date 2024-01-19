@@ -1,30 +1,24 @@
-from typing import TypeAlias
-from enum import Enum
+from typing import Protocol
+
 from amaranth import *
 from amaranth.hdl.rec import DIR_FANIN
-from transactron import Method, def_method, TModule
+
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.peripherals.axi_lite import AXILiteMaster
 
-__all__ = ["BusMasterAdapter"]
+from transactron import Method, def_method, TModule
+from transactron.utils import HasElaborate
 
 
-BusMasterLike: TypeAlias = WishboneMaster | AXILiteMaster
+__all__ = ["BusMasterInterface", "WishboneMasterAdapter", "AXILiteMasterAdapter"]
 
 
-class BusMasterType(Enum):
-    """ """
+class BusParametersInterface(Protocol):
+    """"""
 
-    Wishbone = (1,)
-    AXILite = (2,)
-
-    @staticmethod
-    def map_bus_type(bus: BusMasterLike) -> "BusMasterType":
-        if isinstance(bus, WishboneMaster):
-            return BusMasterType.Wishbone
-        if isinstance(bus, AXILiteMaster):
-            return BusMasterType.AXILite
-        raise TypeError("Bus master instance not handled")
+    data_width: int
+    addr_width: int
+    granularity: int
 
 
 class CommonBusMasterMethodLayout:
@@ -36,15 +30,12 @@ class CommonBusMasterMethodLayout:
         self.request_read_layout = [
             ("addr", self.bus_params.addr_width, DIR_FANIN),
             ("sel", self.bus_params.data_width // self.bus_params.granularity, DIR_FANIN),
-            ("prot", 3, DIR_FANIN),
         ]
 
         self.request_write_layout = [
             ("addr", self.bus_params.addr_width, DIR_FANIN),
             ("data", self.bus_params.data_width, DIR_FANIN),
             ("sel", self.bus_params.data_width // self.bus_params.granularity, DIR_FANIN),
-            ("prot", 3, DIR_FANIN),
-            ("strb", self.bus_params.data_width // 8, DIR_FANIN),
         ]
 
         self.read_response_layout = [("data", self.bus_params.data_width), ("err", 1)]
@@ -52,14 +43,23 @@ class CommonBusMasterMethodLayout:
         self.write_response_layout = [("err", 1)]
 
 
-class BusMasterAdapter(Elaboratable):
-    """ """
+class BusMasterInterface(HasElaborate, Protocol):
+    """"""
 
-    def __init__(self, bus):
+    params: BusParametersInterface
+    request_read: Method
+    request_write: Method
+    get_read_response: Method
+    get_write_response: Method
+
+
+class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
+    """"""
+
+    def __init__(self, bus: WishboneMaster):
         self.bus = bus
-        self.params = self.bus.params
+        self.params = self.bus.wb_params
 
-        self.bus_type = BusMasterType.map_bus_type(self.bus)
         self.method_layouts = CommonBusMasterMethodLayout(self.params)
 
         self.request_read = Method(i=self.method_layouts.request_read_layout)
@@ -67,20 +67,19 @@ class BusMasterAdapter(Elaboratable):
         self.get_read_response = Method(o=self.method_layouts.read_response_layout)
         self.get_write_response = Method(o=self.method_layouts.write_response_layout)
 
-    def def_wishbone_methods(self, m: TModule):
-        if self.bus_type != BusMasterType.Wishbone:
-            return
+    def elaborate(self, platform):
+        m = TModule()
 
         @def_method(m, self.request_read)
         def _(arg):
             we = C(0, unsigned(1))
-            data = C(0, unsigned(self.bus.params.data_width))
-            self.bus.request(m, addr=arg.addr, sel=arg.sel, we=we, data=data)
+            data = C(0, unsigned(self.params.data_width))
+            self.bus.request(m, addr=arg.addr, data=data, we=we, sel=arg.sel)
 
         @def_method(m, self.request_write)
         def _(arg):
             we = C(1, unsigned(1))
-            self.bus.request(m, addr=arg.addr, sel=arg.sel, we=we, data=arg.data)
+            self.bus.request(m, addr=arg.addr, data=arg.data, we=we, sel=arg.sel)
 
         @def_method(m, self.get_read_response)
         def _():
@@ -92,49 +91,58 @@ class BusMasterAdapter(Elaboratable):
             res = self.bus.result(m)
             return {"err": res.err}
 
-    def def_axi_lite_methods(self, m: TModule):
-        if self.bus_type != BusMasterType.AXILite:
-            return
+        return m
 
-        @def_method(m, self.request_read)
-        def _(arg):
-            self.bus.ra_request(m, addr=arg.addr, prot=arg.prot)
 
-        @def_method(m, self.request_write)
-        def _(arg):
-            self.bus.wa_request(m, addr=arg.addr, prot=arg.prot)
-            self.bus.wd_request(m, data=arg.data, strb=arg.strb)
+class AXILiteMasterAdapter(Elaboratable, BusMasterInterface):
+    """"""
 
-        @def_method(m, self.get_read_response)
-        def _():
-            err = Signal(1)
-            res = self.bus.rd_response(m)
+    def __init__(self, bus: AXILiteMaster):
+        self.bus = bus
+        self.params = self.bus.axil_params
 
-            with m.Switch(res.resp):
-                with m.Case(0):
-                    m.d.comb += err.eq(0)
-                with m.Default():
-                    m.d.comb += err.eq(1)
+        self.method_layouts = CommonBusMasterMethodLayout(self.params)
 
-            return {"data": res.data, "err": err}
+        self.request_read = Method(i=self.method_layouts.request_read_layout)
+        self.request_write = Method(i=self.method_layouts.request_write_layout)
+        self.get_read_response = Method(o=self.method_layouts.read_response_layout)
+        self.get_write_response = Method(o=self.method_layouts.write_response_layout)
 
-        @def_method(m, self.get_write_response)
-        def _():
-            err = Signal(1)
-            res = self.bus.wr_response(m)
+    def deduce_err(self, m: TModule, resp: Value):
+        err = Signal(1)
 
-            with m.Switch(res.resp):
-                with m.Case(0):
-                    m.d.comb += err.eq(0)
-                with m.Default():
-                    m.d.comb += err.eq(1)
+        with m.Switch(resp):
+            with m.Case(0):
+                m.d.comb += err.eq(0)
+            with m.Default():
+                m.d.comb += err.eq(1)
 
-            return {"err": err}
+        return err
 
     def elaborate(self, platform):
         m = TModule()
 
-        self.def_wishbone_methods(m)
-        self.def_axi_lite_methods(m)
+        @def_method(m, self.request_read)
+        def _(arg):
+            prot = C(0, unsigned(3))
+            self.bus.ra_request(m, addr=arg.addr, prot=prot)
+
+        @def_method(m, self.request_write)
+        def _(arg):
+            prot = C(0, unsigned(3))
+            self.bus.wa_request(m, addr=arg.addr, prot=prot)
+            self.bus.wd_request(m, data=arg.data, strb=arg.sel)
+
+        @def_method(m, self.get_read_response)
+        def _():
+            res = self.bus.rd_response(m)
+            err = self.deduce_err(m, res.resp)
+            return {"data": res.data, "err": err}
+
+        @def_method(m, self.get_write_response)
+        def _():
+            res = self.bus.wr_response(m)
+            err = self.deduce_err(m, res.resp)
+            return {"err": err}
 
         return m

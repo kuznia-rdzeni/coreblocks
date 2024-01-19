@@ -20,7 +20,7 @@ from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
 from coreblocks.frontend.icache import ICache, SimpleCommonBusCacheRefiller, ICacheBypass
-from coreblocks.peripherals.bus_adapter import BusMasterAdapter
+from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
@@ -39,8 +39,8 @@ class Core(Elaboratable):
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
 
-        self.bus_master_instr_adapter = BusMasterAdapter(self.wb_master_instr)
-        self.bus_master_data_adapter = BusMasterAdapter(self.wb_master_data)
+        self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
+        self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data)
 
         self.core_counter = CoreInstructionCounter(self.gen_params)
 

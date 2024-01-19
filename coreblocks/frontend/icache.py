@@ -11,7 +11,7 @@ from coreblocks.params import ICacheLayouts, ICacheParameters
 from transactron.utils import assign, OneHotSwitchDynamic
 from transactron.utils._typing import HasElaborate
 from transactron.lib import *
-from coreblocks.peripherals.bus_adapter import BusMasterAdapter
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 
 __all__ = ["ICache", "ICacheBypass", "ICacheInterface", "SimpleCommonBusCacheRefiller"]
@@ -67,7 +67,7 @@ class CacheRefillerInterface(HasElaborate, Protocol):
 
 
 class ICacheBypass(Elaboratable, ICacheInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterAdapter) -> None:
+    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface) -> None:
         self.params = params
         self.bus_master = bus_master
 
@@ -87,7 +87,6 @@ class ICacheBypass(Elaboratable, ICacheInterface):
                 m,
                 addr=addr >> log2_int(self.params.word_width_bytes),
                 sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
-                prot=C(0, unsigned(3)),
             )
 
         @def_method(m, self.accept_res)
@@ -367,7 +366,7 @@ class ICacheMemory(Elaboratable):
 
 
 class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterAdapter):
+    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface):
         self.params = params
         self.bus_master = bus_master
 
@@ -391,7 +390,6 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
                 m,
                 addr=Cat(address["word_counter"], address["refill_address"]),
                 sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
-                prot=C(0, unsigned(3)),
             )
 
         @def_method(m, self.start_refill, ready=~refill_active)

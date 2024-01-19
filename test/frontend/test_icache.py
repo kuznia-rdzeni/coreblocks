@@ -10,7 +10,7 @@ from transactron.lib import AdapterTrans, Adapter
 from coreblocks.frontend.icache import SimpleCommonBusCacheRefiller, ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
-from coreblocks.peripherals.bus_adapter import BusMasterAdapter
+from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.params.configurations import test_core_config
 
 from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
@@ -30,7 +30,7 @@ class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
             addr_width=self.gen_params.isa.xlen,
         )
         self.wb_master = WishboneMaster(wb_params)
-        self.bus_master_adapter = BusMasterAdapter(self.wb_master)
+        self.bus_master_adapter = WishboneMasterAdapter(self.wb_master)
 
         self.refiller = SimpleCommonBusCacheRefiller(
             self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
@@ -155,7 +155,7 @@ class ICacheBypassTestCircuit(Elaboratable):
         )
 
         m.submodules.wb_master = self.wb_master = WishboneMaster(wb_params)
-        m.submodules.bus_master_adapter = self.bus_master_adapter = BusMasterAdapter(self.wb_master)
+        m.submodules.bus_master_adapter = self.bus_master_adapter = WishboneMasterAdapter(self.wb_master)
         m.submodules.bypass = self.bypass = ICacheBypass(
             self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
         )

@@ -18,10 +18,10 @@ class AXILiteParameters:
         Width of "addr" signals for "write address" and "read address" channels. Defaults to 64 bits.
     """
 
-    def __init__(self, *, data_width: int = 64, addr_width: int = 64, granularity: int = 64):
+    def __init__(self, *, data_width: int = 64, addr_width: int = 64):
         self.data_width = data_width
         self.addr_width = addr_width
-        self.granularity = granularity
+        self.granularity = 8
 
 
 class AXILiteLayout:
@@ -175,7 +175,6 @@ class AXILiteMaster(Elaboratable):
 
     def __init__(self, axil_params: AXILiteParameters):
         self.axil_params = axil_params
-        self.params = axil_params  # replace all axil_params with params
         self.axil_layout = AXILiteLayout(self.axil_params).axil_layout
         self.axil_master = Record(self.axil_layout)
 

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from transactron.lib.dependencies import SimpleKey, UnifierKey
 from transactron import Method
 from transactron.lib import MethodTryProduct, Collector
-from coreblocks.peripherals.bus_adapter import BusMasterAdapter
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ __all__ = [
 
 
 @dataclass(frozen=True)
-class CommonBusDataKey(SimpleKey[BusMasterAdapter]):
+class CommonBusDataKey(SimpleKey[BusMasterInterface]):
     pass
 
 
