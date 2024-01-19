@@ -115,12 +115,15 @@ class LSURequester(Elaboratable):
             bytes_mask = self.prepare_bytes_mask(m, funct3, addr)
             bus_data = self.prepare_data_to_save(m, funct3, data, addr)
 
+            with condition(m, nonblocking=False, priority=False) as branch:
+                with branch(aligned & store):
+                    self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
+                with branch(aligned & ~store):
+                    self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
+                with branch():
+                    pass
+
             with m.If(aligned):
-                with condition(m, nonblocking=False, priority=False) as branch:
-                    with branch(store):
-                        self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
-                    with branch(~store):
-                        self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
                 m.d.sync += request_sent.eq(1)
                 m.d.sync += addr_reg.eq(addr)
                 m.d.sync += funct3_reg.eq(funct3)
