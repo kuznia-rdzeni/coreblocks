@@ -335,6 +335,11 @@ class RetirementLayouts:
 
         self.precommit: LayoutList = [fields.rob_id, fields.side_fx]
 
+        self.flushing = ("flushing", 1)
+        """ Core is currently flushed """
+
+        self.core_state: LayoutList = [self.flushing]
+
 
 class RSLayouts:
     """Layouts used in the reservation station."""
