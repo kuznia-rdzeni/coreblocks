@@ -1,12 +1,13 @@
 from amaranth import *
+from coreblocks.params.layouts import RetirementLayouts
 
-from transactron.core import Method, Transaction, TModule
+from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
 from transactron.utils.dependencies import DependencyManager
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import ExceptionCause
-from coreblocks.params.keys import GenericCSRRegistersKey
+from coreblocks.params.keys import CoreStateKey, GenericCSRRegistersKey
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
 
 
@@ -46,10 +47,14 @@ class Retirement(Elaboratable):
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
+        self.dependency_manager = gen_params.get(DependencyManager)
+        self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state)
+        self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
+
     def elaborate(self, platform):
         m = TModule()
 
-        m_csr = self.gen_params.get(DependencyManager).get_dependency(GenericCSRRegistersKey()).m_mode
+        m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(reset=1)
@@ -98,6 +103,7 @@ class Retirement(Elaboratable):
 
         continue_pc_override = Signal()
         continue_pc = Signal(self.gen_params.isa.xlen)
+        core_flushing = Signal()
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
@@ -166,6 +172,8 @@ class Retirement(Elaboratable):
                             # Not using default condition, because we want to block if branch is not ready
                             flush_instr(rob_entry)
 
+                            m.d.comb += core_flushing.eq(1)
+
                     validate_transaction.schedule_before(retire_transaction)
 
             with m.State("TRAP_FLUSH"):
@@ -180,6 +188,8 @@ class Retirement(Elaboratable):
 
                     with m.If(core_empty):
                         m.next = "TRAP_RESUME"
+
+                m.d.comb += core_flushing.eq(1)
 
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
@@ -201,5 +211,9 @@ class Retirement(Elaboratable):
 
         # Disable executing any side effects from instructions in core when it is flushed
         m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
+
+        @def_method(m, self.core_state)
+        def _():
+            return {"flushing": core_flushing}
 
         return m

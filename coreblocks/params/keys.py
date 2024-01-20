@@ -60,3 +60,8 @@ class AsyncInterruptInsertSignalKey(SimpleKey[Signal]):
 @dataclass(frozen=True)
 class MretKey(SimpleKey[Method]):
     pass
+
+
+@dataclass(frozen=True)
+class CoreStateKey(SimpleKey[Method]):
+    pass
