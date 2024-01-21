@@ -5,10 +5,13 @@ from typing import Callable, Optional, Iterable
 from amaranth import *
 from amaranth.sim import Settle
 from parameterized import parameterized_class
+from coreblocks.params.keys import CoreStateKey
+from coreblocks.params.layouts import RetirementLayouts
 from coreblocks.stages.rs_func_block import RSBlockComponent
 
 from transactron.core import Method
 from transactron.lib import FIFO, AdapterTrans, Adapter
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.structs_common.rf import RegisterFile
 from coreblocks.structs_common.rat import FRAT
@@ -82,6 +85,10 @@ class SchedulerTestCircuit(Elaboratable):
         m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
         m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
         m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
+        m.submodules.core_state = self.core_state = TestbenchIO(
+            Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
+        )
+        self.gen_params.get(DependencyManager).add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         # main scheduler
         m.submodules.scheduler = self.scheduler = Scheduler(
@@ -360,6 +367,10 @@ class TestScheduler(TestCaseWithSimulator):
 
             return process
 
+        @def_method_mock(lambda: self.m.core_state)
+        def core_state_mock():
+            return {"flushing": 0}
+
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             for i in range(self.rs_count):
                 sim.add_sync_process(
@@ -371,3 +382,4 @@ class TestScheduler(TestCaseWithSimulator):
             )
             sim.add_sync_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
             sim.add_sync_process(instr_input_process)
+            sim.add_sync_process(core_state_mock)
