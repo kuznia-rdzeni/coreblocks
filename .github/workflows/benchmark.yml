@@ -82,7 +82,7 @@ jobs:
   run-perf-benchmarks:
     name: Run performance benchmarks
     runs-on: ubuntu-latest
-    timeout-minutes: 600
+    timeout-minutes: 30
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: build-perf-benchmarks
     steps:
