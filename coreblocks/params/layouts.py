@@ -273,8 +273,6 @@ class ROBLayouts:
             fields.exception,
         ]
 
-        self.retire_layout: LayoutList = self.peek_layout
-
         self.get_indices: LayoutList = [self.start, self.end]
 
 
