@@ -369,6 +369,7 @@ class TestScheduler(TestCaseWithSimulator):
 
         @def_method_mock(lambda: self.m.core_state)
         def core_state_mock():
+            # TODO: flushing test
             return {"flushing": 0}
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
