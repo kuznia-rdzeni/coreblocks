@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1705445623311,
+  "lastUpdate": 1706001909434,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -17449,6 +17449,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 30215,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 688,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 988,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6477,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "668061fde0eb1c4cd08c4e0958da8274894f5d91",
+          "message": "Fix core freezing during flushing (#568)",
+          "timestamp": "2024-01-23T10:19:34+01:00",
+          "tree_id": "4fa42cdd2d02f6a3a84e24b7d18af71021eef259",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/668061fde0eb1c4cd08c4e0958da8274894f5d91"
+        },
+        "date": 1706001907142,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 51.96,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 18938,
             "unit": "LUT4"
           },
           {
