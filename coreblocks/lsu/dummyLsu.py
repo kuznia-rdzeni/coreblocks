@@ -120,7 +120,7 @@ class LSURequester(Elaboratable):
                     self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
                 with branch(aligned & ~store):
                     self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
-                with branch():
+                with branch(~aligned):
                     pass
 
             with m.If(aligned):
