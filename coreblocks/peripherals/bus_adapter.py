@@ -237,17 +237,6 @@ class AXILiteMasterAdapter(Elaboratable, BusMasterInterface):
         self.get_read_response = Method(o=self.method_layouts.read_response_layout)
         self.get_write_response = Method(o=self.method_layouts.write_response_layout)
 
-    def deduce_error(self, m: TModule, resp: Value):
-        err = Signal(1)
-
-        with m.Switch(resp):
-            with m.Case(0):
-                m.d.comb += err.eq(0)
-            with m.Default():
-                m.d.comb += err.eq(1)
-
-        return err
-
     def elaborate(self, platform):
         m = TModule()
 
@@ -265,13 +254,13 @@ class AXILiteMasterAdapter(Elaboratable, BusMasterInterface):
         @def_method(m, self.get_read_response)
         def _():
             res = self.bus.rd_response(m)
-            err = self.deduce_error(m, res.resp)
+            err = res.resp != 0
             return {"data": res.data, "err": err}
 
         @def_method(m, self.get_write_response)
         def _():
             res = self.bus.wr_response(m)
-            err = self.deduce_error(m, res.resp)
+            err = res.resp != 0
             return {"err": err}
 
         return m
