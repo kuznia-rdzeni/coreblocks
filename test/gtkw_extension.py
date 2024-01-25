@@ -1,5 +1,6 @@
 from typing import Iterable, Mapping
 from contextlib import contextmanager
+from amaranth.lib.data import View
 from amaranth.sim.pysim import _VCDWriter
 from amaranth import *
 from transactron.utils import flatten_signals
@@ -13,6 +14,11 @@ class _VCDWriterExt(_VCDWriter):
         self._tree_traces = traces
 
     def close(self, timestamp):
+        def save_signal(value: Value):
+            for signal in value._rhs_signals():  # type: ignore
+                for name in self.gtkw_names[signal]:
+                    self.gtkw_save.trace(name)
+
         def gtkw_traces(traces):
             if isinstance(traces, Mapping):
                 for k, v in traces.items():
@@ -28,12 +34,12 @@ class _VCDWriterExt(_VCDWriter):
                             gtkw_traces(v)
                 elif len(traces.fields) == 1:  # to make gtkwave view less verbose
                     gtkw_traces(next(iter(traces.fields.values())))
-            elif isinstance(traces, Signal):
-                if len(traces) > 1 and not traces.decoder:
-                    suffix = "[{}:0]".format(len(traces) - 1)
-                else:
-                    suffix = ""
-                self.gtkw_save.trace(".".join(self.gtkw_names[traces]) + suffix)
+            elif isinstance(traces, View):
+                with self.gtkw_save.group("View"):
+                    for name, _ in traces.shape():
+                        gtkw_traces(getattr(traces, name))
+            elif isinstance(traces, Value):
+                save_signal(traces)
 
         if self.vcd_writer is not None:
             self.vcd_writer.close(timestamp)
