@@ -37,8 +37,6 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile, 
                 method.owned_name, local_src_loc(method.src_loc), False
             )
 
-        cycle = 0
-
         yield Passive()
         while True:
             yield Delay((1 - 1e-4) * clk_period)  # shorter than one clock cycle
@@ -83,6 +81,5 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile, 
                     cprof.locked[get_id(method)] = caller
 
             yield
-            cycle = cycle + 1
 
     return process
