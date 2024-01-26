@@ -384,6 +384,10 @@
 </li>
         <li><a href="transactron.html#transactron.Method.__init__">(transactron.Method method)</a>
 </li>
+        <li><a href="transactron.html#transactron.profiler.Profile.__init__">(transactron.profiler.Profile method)</a>
+</li>
+        <li><a href="transactron.html#transactron.profiler.ProfileInfo.__init__">(transactron.profiler.ProfileInfo method)</a>
+</li>
         <li><a href="transactron.html#transactron.TModule.__init__">(transactron.TModule method)</a>
 </li>
         <li><a href="transactron.html#transactron.Transaction.__init__">(transactron.Transaction method)</a>
@@ -505,10 +509,10 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.ADDRESS_GENERATION">ADDRESS_GENERATION (coreblocks.params.optypes.OpType attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.utils.html#transactron.utils.data_repr.align_down_to_power_of_two">align_down_to_power_of_two() (in module transactron.utils.data_repr)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.utils.html#transactron.utils.data_repr.align_to_power_of_two">align_to_power_of_two() (in module transactron.utils.data_repr)</a>
 </li>
       <li><a href="transactron.utils.html#transactron.utils.assign.AssignType.ALL">ALL (transactron.utils.assign.AssignType attribute)</a>
@@ -518,6 +522,10 @@
       <li><a href="coreblocks.fu.html#coreblocks.fu.alu.ALUComponent">ALUComponent (class in coreblocks.fu.alu)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.alu.AluFuncUnit">AluFuncUnit (class in coreblocks.fu.alu)</a>
+</li>
+      <li><a href="transactron.html#transactron.profiler.Profile.analyze_methods">analyze_methods() (transactron.profiler.Profile method)</a>
+</li>
+      <li><a href="transactron.html#transactron.profiler.Profile.analyze_transactions">analyze_transactions() (transactron.profiler.Profile method)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.AND">AND (coreblocks.params.isa.Funct3 attribute)</a>
 
@@ -1231,6 +1239,8 @@
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.CSRAddress.CYCLEH">CYCLEH (coreblocks.structs_common.csr_generic.CSRAddress attribute)</a>
 </li>
+      <li><a href="transactron.html#transactron.profiler.Profile.cycles">cycles (transactron.profiler.Profile attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -1270,6 +1280,8 @@
 </li>
       </ul></li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.decode.Decode">Decode (class in coreblocks.frontend.decode)</a>
+</li>
+      <li><a href="transactron.html#transactron.profiler.Profile.decode">decode() (transactron.profiler.Profile static method)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.DecodeLayouts">DecodeLayouts (class in coreblocks.params.layouts)</a>
 </li>
@@ -1409,6 +1421,8 @@
         <li><a href="transactron.utils.html#transactron.utils.dependencies.ListKey.empty_valid">(transactron.utils.dependencies.ListKey attribute)</a>
 </li>
       </ul></li>
+      <li><a href="transactron.html#transactron.profiler.Profile.encode">encode() (transactron.profiler.Profile method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.lsu.html#coreblocks.lsu.pma.PMARegion.end">end (coreblocks.lsu.pma.PMARegion attribute)</a>
@@ -1489,12 +1503,24 @@
 </li>
       <li><a href="transactron.lib.html#transactron.lib.connectors.Forwarder">Forwarder (class in transactron.lib.connectors)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Registers.FP">FP (coreblocks.params.isa.Registers attribute)</a>
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.FRAT">FRAT (class in coreblocks.structs_common.rat)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="transactron.html#transactron.profiler.Profile.from_dict">from_dict() (transactron.profiler.Profile class method)</a>
+
+      <ul>
+        <li><a href="transactron.html#transactron.profiler.ProfileInfo.from_dict">(transactron.profiler.ProfileInfo class method)</a>
+</li>
+      </ul></li>
+      <li><a href="transactron.html#transactron.profiler.Profile.from_json">from_json() (transactron.profiler.Profile class method)</a>
+
+      <ul>
+        <li><a href="transactron.html#transactron.profiler.ProfileInfo.from_json">(transactron.profiler.ProfileInfo class method)</a>
+</li>
+      </ul></li>
       <li><a href="transactron.html#transactron.core.TModule.FSM">FSM() (transactron.core.TModule method)</a>
 
       <ul>
@@ -1731,10 +1757,10 @@
 </li>
       <li><a href="transactron.html#transactron.graph.OwnershipGraph.insert_edge">insert_edge() (transactron.graph.OwnershipGraph method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.html#transactron.graph.OwnershipGraph.insert_node">insert_node() (transactron.graph.OwnershipGraph method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.instr">instr (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.rvc.InstrDecompress.instr_mux">instr_mux() (coreblocks.frontend.rvc.InstrDecompress method)</a>
@@ -1764,6 +1790,8 @@
       <li><a href="coreblocks.fu.html#coreblocks.fu.div_unit.DivComponent.ipc">ipc (coreblocks.fu.div_unit.DivComponent attribute)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.rvc.is_instr_compressed">is_instr_compressed() (in module coreblocks.frontend.rvc)</a>
+</li>
+      <li><a href="transactron.html#transactron.profiler.ProfileInfo.is_transaction">is_transaction (transactron.profiler.ProfileInfo attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.ISA">ISA (class in coreblocks.params.isa)</a>
 </li>
@@ -2089,6 +2117,8 @@
 </li>
         <li><a href="transactron.lib.html#module-transactron.lib.transformers">transactron.lib.transformers</a>
 </li>
+        <li><a href="transactron.html#module-transactron.profiler">transactron.profiler</a>
+</li>
         <li><a href="transactron.html#module-transactron.tracing">transactron.tracing</a>
 </li>
         <li><a href="transactron.utils.html#module-transactron.utils">transactron.utils</a>
@@ -2183,7 +2213,11 @@
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Extension.N">N (coreblocks.params.isa.Extension attribute)</a>
 </li>
       <li><a href="transactron.html#transactron.graph.Owned.name">name (transactron.graph.Owned attribute)</a>
+
+      <ul>
+        <li><a href="transactron.html#transactron.profiler.ProfileInfo.name">(transactron.profiler.ProfileInfo attribute)</a>
 </li>
+      </ul></li>
       <li><a href="transactron.utils.html#transactron.utils.data_repr.neg">neg() (in module transactron.utils.data_repr)</a>
 </li>
   </ul></td>
@@ -2298,10 +2332,10 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.PMALayouts">PMALayouts (class in coreblocks.params.layouts)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.lsu.html#coreblocks.lsu.pma.PMARegion">PMARegion (class in coreblocks.lsu.pma)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.functions.popcount">popcount() (in module transactron.utils.amaranth_ext.functions)</a>
 </li>
       <li><a href="transactron.html#transactron.tracing.TracingFragment.prepare">prepare() (transactron.tracing.TracingFragment method)</a>
@@ -2325,6 +2359,10 @@
       <li><a href="coreblocks.fu.html#coreblocks.fu.priv.PrivilegedUnitComponent">PrivilegedUnitComponent (class in coreblocks.fu.priv)</a>
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.PrivilegeLevel">PrivilegeLevel (class in coreblocks.structs_common.csr)</a>
+</li>
+      <li><a href="transactron.html#transactron.profiler.Profile">Profile (class in transactron.profiler)</a>
+</li>
+      <li><a href="transactron.html#transactron.profiler.ProfileInfo">ProfileInfo (class in transactron.profiler)</a>
 </li>
       <li><a href="transactron.html#transactron.core.Method.proxy">proxy() (transactron.core.Method method)</a>
 
@@ -2534,6 +2572,12 @@
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.SchedulerLayouts">SchedulerLayouts (class in coreblocks.params.layouts)</a>
 </li>
+      <li><a href="transactron.html#transactron.profiler.Profile.schema">schema() (transactron.profiler.Profile class method)</a>
+
+      <ul>
+        <li><a href="transactron.html#transactron.profiler.ProfileInfo.schema">(transactron.profiler.ProfileInfo class method)</a>
+</li>
+      </ul></li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.FuncBlock.select">select (coreblocks.utils.protocols.FuncBlock attribute)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.fifo.Semaphore">Semaphore (class in transactron.lib.fifo)</a>
@@ -2590,10 +2634,10 @@
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.mul_unit.MulType.SHIFT_MUL">SHIFT_MUL (coreblocks.fu.mul_unit.MulType attribute)</a>
 </li>
-      <li><a href="coreblocks.fu.html#coreblocks.fu.shift_unit.ShiftFuncUnit">ShiftFuncUnit (class in coreblocks.fu.shift_unit)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.fu.html#coreblocks.fu.shift_unit.ShiftFuncUnit">ShiftFuncUnit (class in coreblocks.fu.shift_unit)</a>
+</li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.shift_unit.ShiftUnitComponent">ShiftUnitComponent (class in coreblocks.fu.shift_unit)</a>
 </li>
       <li><a href="coreblocks.fu.unsigned_multiplication.html#coreblocks.fu.unsigned_multiplication.shift.ShiftUnsignedMul">ShiftUnsignedMul (class in coreblocks.fu.unsigned_multiplication.shift)</a>
@@ -2631,6 +2675,8 @@
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Registers.SP">SP (coreblocks.params.isa.Registers attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.SR">SR (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
+      <li><a href="transactron.html#transactron.profiler.ProfileInfo.src_loc">src_loc (transactron.profiler.ProfileInfo attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12.SRET">SRET (coreblocks.params.isa.Funct12 attribute)</a>
 
@@ -2728,6 +2774,18 @@
         <li><a href="transactron.html#transactron.core.TModule">(class in transactron.core)</a>
 </li>
       </ul></li>
+      <li><a href="transactron.html#transactron.profiler.Profile.to_dict">to_dict() (transactron.profiler.Profile method)</a>
+
+      <ul>
+        <li><a href="transactron.html#transactron.profiler.ProfileInfo.to_dict">(transactron.profiler.ProfileInfo method)</a>
+</li>
+      </ul></li>
+      <li><a href="transactron.html#transactron.profiler.Profile.to_json">to_json() (transactron.profiler.Profile method)</a>
+
+      <ul>
+        <li><a href="transactron.html#transactron.profiler.ProfileInfo.to_json">(transactron.profiler.ProfileInfo method)</a>
+</li>
+      </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Registers.TP">TP (coreblocks.params.isa.Registers attribute)</a>
 </li>
       <li><a href="transactron.html#transactron.tracing.TracingEnabler">TracingEnabler (class in transactron.tracing)</a>
@@ -2768,6 +2826,8 @@
         <li><a href="transactron.html#transactron.core.TransactionModule">(class in transactron.core)</a>
 </li>
       </ul></li>
+      <li><a href="transactron.html#transactron.profiler.Profile.transactions_and_methods">transactions_and_methods (transactron.profiler.Profile attribute)</a>
+</li>
       <li>
     transactron
 
@@ -2803,6 +2863,8 @@
         <li><a href="transactron.lib.html#module-transactron.lib.adapters">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     transactron.lib.buttons
 
@@ -2810,8 +2872,6 @@
         <li><a href="transactron.lib.html#module-transactron.lib.buttons">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     transactron.lib.connectors
 
@@ -2859,6 +2919,13 @@
 
       <ul>
         <li><a href="transactron.lib.html#module-transactron.lib.transformers">module</a>
+</li>
+      </ul></li>
+      <li>
+    transactron.profiler
+
+      <ul>
+        <li><a href="transactron.html#module-transactron.profiler">module</a>
 </li>
       </ul></li>
       <li>
@@ -3221,7 +3288,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 09:20 2024-01-23.
+      <span class="lastupdated">Last updated on 09:17 2024-01-26.
       </span></p>
   </div>
 

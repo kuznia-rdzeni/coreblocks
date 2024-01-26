@@ -50,6 +50,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#lint-sh">lint.sh</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#core-graph-py">core_graph.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#build-docs-sh">build_docs.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tprof-py">tprof.py</a></li>
 </ul>
 </li>
 </ul>
@@ -128,6 +129,7 @@
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">-l</span></code>, <code class="docutils literal notranslate"><span class="pre">--list</span></code> – lists available tests. This option is helpful, e.g., to find a name of a test generated using the <code class="docutils literal notranslate"><span class="pre">parameterized</span></code> package.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-t</span></code>, <code class="docutils literal notranslate"><span class="pre">--trace</span></code> – generates waveforms in the <code class="docutils literal notranslate"><span class="pre">vcd</span></code> format and <code class="docutils literal notranslate"><span class="pre">gtkw</span></code> files for the <code class="docutils literal notranslate"><span class="pre">gtkwave</span></code> tool. The files are saved in the <code class="docutils literal notranslate"><span class="pre">test/__traces__/</span></code> directory. Useful for debugging and test-driven development.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-p</span></code>, <code class="docutils literal notranslate"><span class="pre">--profile</span></code> – generates Transactron execution profile information, which can then be read by the script <code class="docutils literal notranslate"><span class="pre">tprof.py</span></code>. The files are saved in the <code class="docutils literal notranslate"><span class="pre">test/__profile__/</span></code> directory. Useful for analyzing performance.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-v</span></code>, <code class="docutils literal notranslate"><span class="pre">--verbose</span></code> – makes the test runner more verbose. It will, for example, print the names of all the tests being run.</p></li>
 </ul>
 </div>
@@ -163,6 +165,35 @@
 <h3>build_docs.sh<a class="headerlink" href="#build-docs-sh" title="Permalink to this heading"></a></h3>
 <p>Generates local documentation using <a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a>. The generated HTML files are located in <code class="docutils literal notranslate"><span class="pre">build/html</span></code>.</p>
 </div>
+<div class="section" id="tprof-py">
+<h3>tprof.py<a class="headerlink" href="#tprof-py" title="Permalink to this heading"></a></h3>
+<p>Processes Transactron profile files and presents them in a readable way.
+To generate a profile file, the <code class="docutils literal notranslate"><span class="pre">run_tests.py</span></code> script should be used with the <code class="docutils literal notranslate"><span class="pre">--profile</span></code> option.
+The <code class="docutils literal notranslate"><span class="pre">tprof.py</span></code> can then be run as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">tprof</span><span class="o">.</span><span class="n">py</span> <span class="n">test</span><span class="o">/</span><span class="n">__profile__</span><span class="o">/</span><span class="n">profile_file</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>This displays the profile information about transactions by default.
+For method profiles, one should use the <code class="docutils literal notranslate"><span class="pre">--mode=methods</span></code> option.</p>
+<p>The columns have the following meaning:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> – the name of the transaction or method in question. The method names are displayed together with the containing module name to differentiate between identically named methods in different modules.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">location</span></code> – the file and line where the transaction or method was declared. Used to further disambiguate transaction/methods.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">locked</span></code> – for methods, shows the number of cycles the method was locked by the caller (called with a false condition). For transactions, shows the number of cycles the transaction could run, but was forced to wait by another, conflicting, transaction.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">run</span></code> – shows the number of cycles the given method/transaction was running.</p></li>
+</ul>
+<p>To display information about method calls, one can use the <code class="docutils literal notranslate"><span class="pre">--call-graph</span></code> option.
+When displaying transaction profiles, this option produces a call graph. For each transaction, there is a tree of methods which are called by this transaction.
+Counters presented in the tree shows information about the calls from the transaction in the root of the tree: if a method is also called by a different transaction, these calls are not counted.
+When displaying method profiles, an inverted call graph is produced: the transactions are in the leaves, and the children nodes are the callers of the method in question.
+In this mode, the <code class="docutils literal notranslate"><span class="pre">locked</span></code> field in the tree shows how many cycles a given method or transaction was responsible for locking the method in the root.</p>
+<p>Other options of <code class="docutils literal notranslate"><span class="pre">tprof.py</span></code> are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--sort</span></code> – selects which column is used for sorting rows.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--filter-name</span></code> – filters rows by name. Regular expressions can be used.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--filter-loc</span></code> – filters rows by source locations. Regular expressions can be used.</p></li>
+</ul>
+</div>
 </div>
 </div>
 
@@ -178,7 +209,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 09:20 2024-01-23.
+      <span class="lastupdated">Last updated on 09:17 2024-01-26.
       </span></p>
   </div>
 
