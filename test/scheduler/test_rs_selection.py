@@ -53,10 +53,6 @@ class TestRSSelect(TestCaseWithSimulator):
         self.instr_in = deque()
         random.seed(1789)
 
-    def random_wait(self, n: int):
-        for i in range(random.randrange(n + 1)):
-            yield
-
     def create_instr_input_process(self, instr_count: int, optypes: set[OpType], random_wait: int = 0):
         def process():
             for i in range(instr_count):

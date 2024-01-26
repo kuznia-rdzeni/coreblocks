@@ -273,8 +273,6 @@ class ROBLayouts:
             fields.exception,
         ]
 
-        self.retire_layout: LayoutList = self.peek_layout
-
         self.get_indices: LayoutList = [self.start, self.end]
 
 
@@ -334,6 +332,11 @@ class RetirementLayouts:
         fields = gen_params.get(CommonLayoutFields)
 
         self.precommit: LayoutList = [fields.rob_id, fields.side_fx]
+
+        self.flushing = ("flushing", 1)
+        """ Core is currently flushed """
+
+        self.core_state: LayoutList = [self.flushing]
 
 
 class RSLayouts:
