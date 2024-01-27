@@ -14,7 +14,7 @@ from coreblocks.params.keys import ExceptionReportKey
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock
+from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 

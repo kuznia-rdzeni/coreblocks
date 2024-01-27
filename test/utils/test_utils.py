@@ -2,7 +2,7 @@ import unittest
 import random
 
 from amaranth import *
-from test.common import *
+from transactron.testing import *
 from transactron.utils import (
     align_to_power_of_two,
     align_down_to_power_of_two,
