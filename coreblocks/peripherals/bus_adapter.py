@@ -15,16 +15,16 @@ __all__ = ["BusMasterInterface", "WishboneMasterAdapter", "AXILiteMasterAdapter"
 
 class BusParametersInterface(Protocol):
     """
-    Bus Parameters Interface for common buses.
+    An interface for parameters of a common bus.
 
     Parameters
     ----------
     data_width : int
-        An integer that describes the data width for a parametrized bus.
+        An integer that describes the data width of a parametrized bus.
     addr_width : int
-        An integer that describes the address width for a parametrized bus.
+        An integer that describes the address width of a parametrized bus.
     granularity : int
-        An integer that describes the granularity of accesses for a parametrized bus.
+        An integer that describes the granularity of accesses of a parametrized bus.
     """
 
     data_width: int
@@ -34,7 +34,7 @@ class BusParametersInterface(Protocol):
 
 class BusMasterInterface(HasElaborate, Protocol):
     """
-    Bus Master Interface for common buses.
+    An interface of a common bus.
 
     The bus interface is the preferred way to gain access to a specific bus.
     It simplifies interchangeability of buses on the core configuration level.
@@ -44,13 +44,13 @@ class BusMasterInterface(HasElaborate, Protocol):
     params : BusParametersInterface
         Parameters of the bus.
     request_read : Method
-        A method that is used to send a read request to the bus.
+        A method that is used to send a read request to a bus.
     request_write : Method
-        A method that is used to send a write request to the bus.
+        A method that is used to send a write request to a bus.
     get_read_response : Method
-        A method that is used to receive a response from the bus for a previously sent read request.
+        A method that is used to receive a response from a bus for a previously sent read request.
     get_write_response : Method
-        A method that is used to receive a response from the bus for a previously sent write request.
+        A method that is used to receive a response from a bus for a previously sent write request.
     """
 
     params: BusParametersInterface
@@ -62,12 +62,12 @@ class BusMasterInterface(HasElaborate, Protocol):
 
 class CommonBusMasterMethodLayout:
     """
-    Common bus master layouts for methods
+    Layouts of methods for a common bus master.
 
     Parameters
     ----------
     bus_params: BusParametersInterface
-        Patameters used to generate common bus master layouts.
+        Parameters used to generate common bus master methods layouts.
 
     Attributes
     ----------
@@ -133,12 +133,12 @@ class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
         Input layout is `request_write_layout`.
 
     get_read_response: Method
-        Transactional method for reading a response of read action.
+        Transactional method for reading a response of a read action.
         It is ready if the `result` method of the underlying Wishbone master is ready.
         Output layout is `read_response_layout`.
 
     get_write_response: Method
-        Transactional method for reading a response of write action.
+        Transactional method for reading a response of a write action.
         It is ready if the `result` method of the underlying Wishbone master is ready.
         Output layout is `write_response_layout`.
     """
