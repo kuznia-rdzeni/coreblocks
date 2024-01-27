@@ -15,7 +15,7 @@ from transactron.lib import *
 from coreblocks.utils import *
 from transactron.utils._typing import LayoutLike, ModuleLike
 from transactron.utils import ModuleConnector
-from ..common import (
+from transactron.testing import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
     TestbenchIO,

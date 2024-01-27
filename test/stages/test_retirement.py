@@ -7,7 +7,7 @@ from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config
 
-from ..common import *
+from transactron.testing import *
 from collections import deque
 import random
 

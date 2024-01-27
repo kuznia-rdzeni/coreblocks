@@ -2,7 +2,7 @@ import random
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
 from transactron.lib import *

@@ -12,7 +12,7 @@ from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
 from coreblocks.params.configurations import test_core_config
 
-from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 

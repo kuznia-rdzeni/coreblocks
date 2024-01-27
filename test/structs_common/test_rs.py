@@ -1,6 +1,6 @@
 from amaranth.sim import Settle
 
-from ..common import TestCaseWithSimulator, get_outputs, SimpleTestCircuit
+from transactron.testing import TestCaseWithSimulator, get_outputs, SimpleTestCircuit
 
 from coreblocks.structs_common.rs import RS
 from coreblocks.params import *
