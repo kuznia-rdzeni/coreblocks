@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1706383366095,
+  "lastUpdate": 1706383964482,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -6271,6 +6271,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "crc32",
             "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "25af7af70455ae161fcbc9881e88cc2601acb0e0",
+          "message": "Refactor naming in coreblocks frontend. (#570)",
+          "timestamp": "2024-01-27T20:16:32+01:00",
+          "tree_id": "898d3ee0219bee4a7f24ee70776894bc21522177",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/25af7af70455ae161fcbc9881e88cc2601acb0e0"
+        },
+        "date": 1706383961608,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.50015132026935,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.25211480106460527,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.34174027385235617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.3332441948567099,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.4343032651645274,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2783650349000975,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2420362948846237,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.26240061481242527,
             "unit": "Instructions Per Cycle"
           }
         ]
