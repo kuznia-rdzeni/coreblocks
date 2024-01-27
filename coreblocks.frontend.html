@@ -87,18 +87,18 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </div>
-<div class="section" id="module-coreblocks.frontend.decode">
-<span id="coreblocks-frontend-decode-module"></span><h2>coreblocks.frontend.decode module<a class="headerlink" href="#module-coreblocks.frontend.decode" title="Permalink to this heading"></a></h2>
+<div class="section" id="module-coreblocks.frontend.decode_stage">
+<span id="coreblocks-frontend-decode-stage-module"></span><h2>coreblocks.frontend.decode_stage module<a class="headerlink" href="#module-coreblocks.frontend.decode_stage" title="Permalink to this heading"></a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.frontend.decode.Decode">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.decode.</span></span><span class="sig-name descname"><span class="pre">Decode</span></span><a class="headerlink" href="#coreblocks.frontend.decode.Decode" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.frontend.decode_stage.DecodeStage">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.decode_stage.</span></span><span class="sig-name descname"><span class="pre">DecodeStage</span></span><a class="headerlink" href="#coreblocks.frontend.decode_stage.DecodeStage" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Simple decode unit. This is a transactional interface which instantiates a
 submodule <cite>InstrDecoder</cite>. This <cite>InstrDecoder</cite> makes actual decoding in
 a combinatorial manner.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.decode.Decode.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_raw</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_decoded</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.decode.Decode.__init__" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.frontend.decode_stage.DecodeStage.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_raw</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_decoded</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.decode_stage.DecodeStage.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -110,80 +110,6 @@ fetch unit.</p>
 </dd>
 <dt><strong>push_decoded</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to send decoded data to the next step.
 It has layout as described by <cite>DecodeLayouts</cite>.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-coreblocks.frontend.decoder">
-<span id="coreblocks-frontend-decoder-module"></span><h2>coreblocks.frontend.decoder module<a class="headerlink" href="#module-coreblocks.frontend.decoder" title="Permalink to this heading"></a></h2>
-<dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.frontend.decoder.InstrDecoder">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.decoder.</span></span><span class="sig-name descname"><span class="pre">InstrDecoder</span></span><a class="headerlink" href="#coreblocks.frontend.decoder.InstrDecoder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
-<p>Class performing instruction decoding into elementary components like opcodes, funct3 etc.
-It uses combinatorial connection via its attributes.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>instr: Signal(gen.isa.ilen), in</strong></dt><dd><p>Instruction to be decoded.</p>
-</dd>
-<dt><strong>opcode: Signal(Opcode), out</strong></dt><dd><p>Opcode of decoded instruction.</p>
-</dd>
-<dt><strong>funct3: Signal(Funct3), out</strong></dt><dd><p>Three bits function identifier.</p>
-</dd>
-<dt><strong>funct3_v: Signal(1), out</strong></dt><dd><p>Signals if decoded instruction has funct3 identifier.</p>
-</dd>
-<dt><strong>funct7: Signal(Funct7), out</strong></dt><dd><p>Seven bits function identifier.</p>
-</dd>
-<dt><strong>funct7_v: Signal(1), out</strong></dt><dd><p>Signals if decoded instruction has funct7 identifier.</p>
-</dd>
-<dt><strong>funct12: Signal(Funct12), out</strong></dt><dd><p>Twelve bits function identifier.</p>
-</dd>
-<dt><strong>funct12_v: Signal(1), out</strong></dt><dd><p>Signals if decoded instruction has funct12 identifier.</p>
-</dd>
-<dt><strong>rd: Signal(gen.isa.reg_cnt_log), out</strong></dt><dd><p>Address of register to write instruction result.</p>
-</dd>
-<dt><strong>rd_v: Signal(1), out</strong></dt><dd><p>Signal if instruction writes to register.</p>
-</dd>
-<dt><strong>rs1: Signal(gen.isa.reg_cnt_log), out</strong></dt><dd><p>Address of register holding first input value.</p>
-</dd>
-<dt><strong>rs1_v: Signal(1), out</strong></dt><dd><p>Signal if instruction takes first input value form register.</p>
-</dd>
-<dt><strong>rs2: Signal(gen.isa.reg_cnt_log), out</strong></dt><dd><p>Address of register holding second input value.</p>
-</dd>
-<dt><strong>rs2_v: Signal(1), out</strong></dt><dd><p>Signal if instruction takes second input value form register.</p>
-</dd>
-<dt><strong>imm: Signal(gen.isa.xlen), out</strong></dt><dd><p>Immediate values provided in instruction. If no immediate values were provided then value is 0.</p>
-</dd>
-<dt><strong>succ: Signal(FenceTarget), out</strong></dt><dd><p>Successor for <cite>FENCE</cite> instructions.</p>
-</dd>
-<dt><strong>pred: Signal(FenceTarget), out</strong></dt><dd><p>Predecessor for <cite>FENCE</cite> instructions.</p>
-</dd>
-<dt><strong>fm: Signal(FenceFm), out</strong></dt><dd><p>Fence mode for <cite>FENCE</cite> instructions.</p>
-</dd>
-<dt><strong>csr: Signal(gen.isa.csr_alen), out</strong></dt><dd><p>Address of Control and Source Register for <cite>CSR</cite> instructions.</p>
-</dd>
-<dt><strong>optype: Signal(OpType), out</strong></dt><dd><p>Operation type of instruction, used to define functional unit to perform this kind of instructions.</p>
-</dd>
-<dt><strong>illegal: Signal(1), out</strong></dt><dd><p>Signal if decoding of instruction was successful. If instruction do not fit into any supported
-instruction type for selected core generation parameters t then value is 1.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.decoder.InstrDecoder.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.decoder.InstrDecoder.__init__" title="Permalink to this definition"></a></dt>
-<dd><p>Decoder constructor.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
 </dd>
 </dl>
 </dd>
@@ -353,6 +279,153 @@ the cache.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.frontend.instr_decoder">
+<span id="coreblocks-frontend-instr-decoder-module"></span><h2>coreblocks.frontend.instr_decoder module<a class="headerlink" href="#module-coreblocks.frontend.instr_decoder" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_decoder.InstrDecoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.instr_decoder.</span></span><span class="sig-name descname"><span class="pre">InstrDecoder</span></span><a class="headerlink" href="#coreblocks.frontend.instr_decoder.InstrDecoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Class performing instruction decoding into elementary components like opcodes, funct3 etc.
+It uses combinatorial connection via its attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>instr: Signal(gen.isa.ilen), in</strong></dt><dd><p>Instruction to be decoded.</p>
+</dd>
+<dt><strong>opcode: Signal(Opcode), out</strong></dt><dd><p>Opcode of decoded instruction.</p>
+</dd>
+<dt><strong>funct3: Signal(Funct3), out</strong></dt><dd><p>Three bits function identifier.</p>
+</dd>
+<dt><strong>funct3_v: Signal(1), out</strong></dt><dd><p>Signals if decoded instruction has funct3 identifier.</p>
+</dd>
+<dt><strong>funct7: Signal(Funct7), out</strong></dt><dd><p>Seven bits function identifier.</p>
+</dd>
+<dt><strong>funct7_v: Signal(1), out</strong></dt><dd><p>Signals if decoded instruction has funct7 identifier.</p>
+</dd>
+<dt><strong>funct12: Signal(Funct12), out</strong></dt><dd><p>Twelve bits function identifier.</p>
+</dd>
+<dt><strong>funct12_v: Signal(1), out</strong></dt><dd><p>Signals if decoded instruction has funct12 identifier.</p>
+</dd>
+<dt><strong>rd: Signal(gen.isa.reg_cnt_log), out</strong></dt><dd><p>Address of register to write instruction result.</p>
+</dd>
+<dt><strong>rd_v: Signal(1), out</strong></dt><dd><p>Signal if instruction writes to register.</p>
+</dd>
+<dt><strong>rs1: Signal(gen.isa.reg_cnt_log), out</strong></dt><dd><p>Address of register holding first input value.</p>
+</dd>
+<dt><strong>rs1_v: Signal(1), out</strong></dt><dd><p>Signal if instruction takes first input value form register.</p>
+</dd>
+<dt><strong>rs2: Signal(gen.isa.reg_cnt_log), out</strong></dt><dd><p>Address of register holding second input value.</p>
+</dd>
+<dt><strong>rs2_v: Signal(1), out</strong></dt><dd><p>Signal if instruction takes second input value form register.</p>
+</dd>
+<dt><strong>imm: Signal(gen.isa.xlen), out</strong></dt><dd><p>Immediate values provided in instruction. If no immediate values were provided then value is 0.</p>
+</dd>
+<dt><strong>succ: Signal(FenceTarget), out</strong></dt><dd><p>Successor for <cite>FENCE</cite> instructions.</p>
+</dd>
+<dt><strong>pred: Signal(FenceTarget), out</strong></dt><dd><p>Predecessor for <cite>FENCE</cite> instructions.</p>
+</dd>
+<dt><strong>fm: Signal(FenceFm), out</strong></dt><dd><p>Fence mode for <cite>FENCE</cite> instructions.</p>
+</dd>
+<dt><strong>csr: Signal(gen.isa.csr_alen), out</strong></dt><dd><p>Address of Control and Source Register for <cite>CSR</cite> instructions.</p>
+</dd>
+<dt><strong>optype: Signal(OpType), out</strong></dt><dd><p>Operation type of instruction, used to define functional unit to perform this kind of instructions.</p>
+</dd>
+<dt><strong>illegal: Signal(1), out</strong></dt><dd><p>Signal if decoding of instruction was successful. If instruction do not fit into any supported
+instruction type for selected core generation parameters t then value is 1.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_decoder.InstrDecoder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.instr_decoder.InstrDecoder.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Decoder constructor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.frontend.instr_description">
+<span id="coreblocks-frontend-instr-description-module"></span><h2>coreblocks.frontend.instr_description module<a class="headerlink" href="#module-coreblocks.frontend.instr_description" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_description.Encoding">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.instr_description.</span></span><span class="sig-name descname"><span class="pre">Encoding</span></span><a class="headerlink" href="#coreblocks.frontend.instr_description.Encoding" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class representing encoding of single RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>opcode: Opcode</strong></dt><dd><p>Opcode of instruction.</p>
+</dd>
+<dt><strong>funct3: Optional[Funct3]</strong></dt><dd><p>Three bits function identifier. If not exists for instruction then <cite>None</cite>.</p>
+</dd>
+<dt><strong>funct7: Optional[Funct7]</strong></dt><dd><p>Seven bits function identifier. If not exists for instruction then <cite>None</cite>.</p>
+</dd>
+<dt><strong>funct12: Optional[Funct12]</strong></dt><dd><p>Twelve bits function identifier. If not exists for instruction then <cite>None</cite>.</p>
+</dd>
+<dt><strong>instr_type_override: Optional[InstrType]</strong></dt><dd><p>Specify <cite>InstrType</cite> used for decoding of register and immediate for single opcode.
+If set to <cite>None</cite> optype is determined from instrustion opcode, which is almost always correct.</p>
+</dd>
+<dt><strong>rd_zero: bool</strong></dt><dd><p><cite>rd</cite> field is specifed as constant zero in instruction encoding. Other fields are decoded
+accordingly to <cite>InstrType</cite>. Default is False.</p>
+</dd>
+<dt><strong>rs1_zero: bool</strong></dt><dd><p><cite>rs1</cite> field is specifed as constant zero in instruction encoding. Other fields are decoded
+accordingly to <cite>InstrType</cite>. Default is False.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_description.Encoding.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.Opcode" title="coreblocks.params.isa.Opcode"><span class="pre">Opcode</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.Funct3" title="coreblocks.params.isa.Funct3"><span class="pre">Funct3</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct7</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.Funct7" title="coreblocks.params.isa.Funct7"><span class="pre">Funct7</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct12</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.Funct12" title="coreblocks.params.isa.Funct12"><span class="pre">Funct12</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instr_type_override</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.InstrType" title="coreblocks.params.isa.InstrType"><span class="pre">InstrType</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd_zero</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1_zero</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.instr_description.Encoding.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_description.Encoding.funct12">
+<span class="sig-name descname"><span class="pre">funct12</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.Funct12" title="coreblocks.params.isa.Funct12"><span class="pre">Funct12</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#coreblocks.frontend.instr_description.Encoding.funct12" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_description.Encoding.funct3">
+<span class="sig-name descname"><span class="pre">funct3</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.Funct3" title="coreblocks.params.isa.Funct3"><span class="pre">Funct3</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#coreblocks.frontend.instr_description.Encoding.funct3" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_description.Encoding.funct7">
+<span class="sig-name descname"><span class="pre">funct7</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.Funct7" title="coreblocks.params.isa.Funct7"><span class="pre">Funct7</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#coreblocks.frontend.instr_description.Encoding.funct7" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_description.Encoding.instr_type_override">
+<span class="sig-name descname"><span class="pre">instr_type_override</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.InstrType" title="coreblocks.params.isa.InstrType"><span class="pre">InstrType</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#coreblocks.frontend.instr_description.Encoding.instr_type_override" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_description.Encoding.opcode">
+<span class="sig-name descname"><span class="pre">opcode</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="coreblocks.params.html#coreblocks.params.isa.Opcode" title="coreblocks.params.isa.Opcode"><span class="pre">Opcode</span></a></em><a class="headerlink" href="#coreblocks.frontend.instr_description.Encoding.opcode" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_description.Encoding.rd_zero">
+<span class="sig-name descname"><span class="pre">rd_zero</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#coreblocks.frontend.instr_description.Encoding.rd_zero" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.instr_description.Encoding.rs1_zero">
+<span class="sig-name descname"><span class="pre">rs1_zero</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#coreblocks.frontend.instr_description.Encoding.rs1_zero" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.frontend.rvc">
 <span id="coreblocks-frontend-rvc-module"></span><h2>coreblocks.frontend.rvc module<a class="headerlink" href="#module-coreblocks.frontend.rvc" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -399,7 +472,7 @@ the cache.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 09:17 2024-01-26.
+      <span class="lastupdated">Last updated on 19:17 2024-01-27.
       </span></p>
   </div>
 

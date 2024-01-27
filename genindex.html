@@ -114,9 +114,7 @@
       <li><a href="coreblocks.html#coreblocks.core.Core.__init__">__init__() (coreblocks.core.Core method)</a>
 
       <ul>
-        <li><a href="coreblocks.frontend.html#coreblocks.frontend.decode.Decode.__init__">(coreblocks.frontend.decode.Decode method)</a>
-</li>
-        <li><a href="coreblocks.frontend.html#coreblocks.frontend.decoder.InstrDecoder.__init__">(coreblocks.frontend.decoder.InstrDecoder method)</a>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.decode_stage.DecodeStage.__init__">(coreblocks.frontend.decode_stage.DecodeStage method)</a>
 </li>
         <li><a href="coreblocks.frontend.html#coreblocks.frontend.fetch.Fetch.__init__">(coreblocks.frontend.fetch.Fetch method)</a>
 </li>
@@ -127,6 +125,10 @@
         <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICacheBypass.__init__">(coreblocks.frontend.icache.ICacheBypass method)</a>
 </li>
         <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.SimpleWBCacheRefiller.__init__">(coreblocks.frontend.icache.SimpleWBCacheRefiller method)</a>
+</li>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_decoder.InstrDecoder.__init__">(coreblocks.frontend.instr_decoder.InstrDecoder method)</a>
+</li>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_description.Encoding.__init__">(coreblocks.frontend.instr_description.Encoding method)</a>
 </li>
         <li><a href="coreblocks.frontend.html#coreblocks.frontend.rvc.InstrDecompress.__init__">(coreblocks.frontend.rvc.InstrDecompress method)</a>
 </li>
@@ -773,17 +775,10 @@
 </li>
       </ul></li>
       <li>
-    coreblocks.frontend.decode
+    coreblocks.frontend.decode_stage
 
       <ul>
-        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.decode">module</a>
-</li>
-      </ul></li>
-      <li>
-    coreblocks.frontend.decoder
-
-      <ul>
-        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.decoder">module</a>
+        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.decode_stage">module</a>
 </li>
       </ul></li>
       <li>
@@ -798,6 +793,20 @@
 
       <ul>
         <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.icache">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.frontend.instr_decoder
+
+      <ul>
+        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.instr_decoder">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.frontend.instr_description
+
+      <ul>
+        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.instr_description">module</a>
 </li>
       </ul></li>
       <li>
@@ -947,6 +956,8 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.configurations
 
@@ -954,8 +965,6 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.configurations">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.fu_params
 
@@ -1279,8 +1288,6 @@
         <li><a href="transactron.html#transactron.TransactionManager.debug_signals">(transactron.TransactionManager method)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.frontend.html#coreblocks.frontend.decode.Decode">Decode (class in coreblocks.frontend.decode)</a>
-</li>
       <li><a href="transactron.html#transactron.profiler.Profile.decode">decode() (transactron.profiler.Profile static method)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.DecodeLayouts">DecodeLayouts (class in coreblocks.params.layouts)</a>
@@ -1288,6 +1295,8 @@
       <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.Decoder">Decoder (class in coreblocks.fu.fu_decoder)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.fu_decoder.DecoderManager">DecoderManager (class in coreblocks.fu.fu_decoder)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.decode_stage.DecodeStage">DecodeStage (class in coreblocks.frontend.decode_stage)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.rvc.InstrDecompress.decompr_reg">decompr_reg() (coreblocks.frontend.rvc.InstrDecompress method)</a>
 </li>
@@ -1425,6 +1434,8 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_description.Encoding">Encoding (class in coreblocks.frontend.instr_description)</a>
+</li>
       <li><a href="coreblocks.lsu.html#coreblocks.lsu.pma.PMARegion.end">end (coreblocks.lsu.pma.PMARegion attribute)</a>
 
       <ul>
@@ -1507,14 +1518,14 @@
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.FRAT">FRAT (class in coreblocks.structs_common.rat)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.html#transactron.profiler.Profile.from_dict">from_dict() (transactron.profiler.Profile class method)</a>
 
       <ul>
         <li><a href="transactron.html#transactron.profiler.ProfileInfo.from_dict">(transactron.profiler.ProfileInfo class method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.html#transactron.profiler.Profile.from_json">from_json() (transactron.profiler.Profile class method)</a>
 
       <ul>
@@ -1537,14 +1548,24 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12">Funct12 (class in coreblocks.params.isa)</a>
 </li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_description.Encoding.funct12">funct12 (coreblocks.frontend.instr_description.Encoding attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3">Funct3 (class in coreblocks.params.isa)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.funct3">funct3 (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_description.Encoding.funct3">funct3 (coreblocks.frontend.instr_description.Encoding attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.funct3">(coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
+      </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7">Funct7 (class in coreblocks.params.isa)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.funct7">funct7 (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_description.Encoding.funct7">funct7 (coreblocks.frontend.instr_description.Encoding attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.funct7">(coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
+      </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams">FunctionalComponentParams (class in coreblocks.params.fu_params)</a>
 </li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.FuncUnit">FuncUnit (class in coreblocks.utils.protocols)</a>
@@ -1765,7 +1786,9 @@
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.rvc.InstrDecompress.instr_mux">instr_mux() (coreblocks.frontend.rvc.InstrDecompress method)</a>
 </li>
-      <li><a href="coreblocks.frontend.html#coreblocks.frontend.decoder.InstrDecoder">InstrDecoder (class in coreblocks.frontend.decoder)</a>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_description.Encoding.instr_type_override">instr_type_override (coreblocks.frontend.instr_description.Encoding attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_decoder.InstrDecoder">InstrDecoder (class in coreblocks.frontend.instr_decoder)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.rvc.InstrDecompress">InstrDecompress (class in coreblocks.frontend.rvc)</a>
 </li>
@@ -1977,13 +2000,15 @@
 </li>
         <li><a href="coreblocks.frontend.html#module-coreblocks.frontend">coreblocks.frontend</a>
 </li>
-        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.decode">coreblocks.frontend.decode</a>
-</li>
-        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.decoder">coreblocks.frontend.decoder</a>
+        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.decode_stage">coreblocks.frontend.decode_stage</a>
 </li>
         <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.fetch">coreblocks.frontend.fetch</a>
 </li>
         <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.icache">coreblocks.frontend.icache</a>
+</li>
+        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.instr_decoder">coreblocks.frontend.instr_decoder</a>
+</li>
+        <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.instr_description">coreblocks.frontend.instr_description</a>
 </li>
         <li><a href="coreblocks.frontend.html#module-coreblocks.frontend.rvc">coreblocks.frontend.rvc</a>
 </li>
@@ -2260,12 +2285,14 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Opcode">Opcode (class in coreblocks.params.isa)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType">OpType (class in coreblocks.params.optypes)</a>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_description.Encoding.opcode">opcode (coreblocks.frontend.instr_description.Encoding attribute)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.optypes.optypes_required_by_extensions">optypes_required_by_extensions() (in module coreblocks.params.optypes)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType">OpType (class in coreblocks.params.optypes)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.optypes.optypes_required_by_extensions">optypes_required_by_extensions() (in module coreblocks.params.optypes)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.fu_params.optypes_supported">optypes_supported() (in module coreblocks.params.fu_params)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.OR">OR (coreblocks.params.isa.Funct3 attribute)</a>
@@ -2392,6 +2419,8 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.RATLayouts">RATLayouts (class in coreblocks.params.layouts)</a>
 </li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_description.Encoding.rd_zero">rd_zero (coreblocks.frontend.instr_description.Encoding attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.RSLayouts.ready_list">ready_list (coreblocks.params.layouts.RSLayouts attribute)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.zbc.ZbcComponent.recursion_depth">recursion_depth (coreblocks.fu.zbc.ZbcComponent attribute)</a>
@@ -2507,6 +2536,8 @@
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rat.RRAT">RRAT (class in coreblocks.structs_common.rat)</a>
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.rs.RS">RS (class in coreblocks.structs_common.rs)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_description.Encoding.rs1_zero">rs1_zero (coreblocks.frontend.instr_description.Encoding attribute)</a>
 </li>
       <li><a href="coreblocks.stages.html#coreblocks.stages.rs_func_block.RSBlockComponent.rs_entries">rs_entries (coreblocks.stages.rs_func_block.RSBlockComponent attribute)</a>
 </li>
@@ -3288,7 +3319,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 09:17 2024-01-26.
+      <span class="lastupdated">Last updated on 19:17 2024-01-27.
       </span></p>
   </div>
 
