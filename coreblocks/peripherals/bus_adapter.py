@@ -15,7 +15,7 @@ __all__ = ["BusMasterInterface", "WishboneMasterAdapter", "AXILiteMasterAdapter"
 
 class BusParametersInterface(Protocol):
     """
-    Bus Parameters Interface for common buses
+    Bus Parameters Interface for common buses.
 
     Parameters
     ----------
@@ -44,13 +44,13 @@ class BusMasterInterface(HasElaborate, Protocol):
     params : BusParametersInterface
         Parameters of the bus.
     request_read : Method
-        A method that is used to send a read request to a bus.
+        A method that is used to send a read request to the bus.
     request_write : Method
-        A method that is used to send a write request to a bus.
+        A method that is used to send a write request to the bus.
     get_read_response : Method
-        A method that is used to receive the response from bus for a previously sent read request.
+        A method that is used to receive a response from the bus for a previously sent read request.
     get_write_response : Method
-        A method that is used to receive the response from bus for a previously sent write request.
+        A method that is used to receive a response from the bus for a previously sent write request.
     """
 
     params: BusParametersInterface
@@ -72,16 +72,16 @@ class CommonBusMasterMethodLayout:
     Attributes
     ----------
     request_read_layout: Layout
-        Layout for the request_read method of common bus master.
+        A layout for the `request_read` method of a common bus master.
 
     request_write_layout: Layout
-        Layout for the request_write method of common bus master.
+        A layout for the `request_write` method of a common bus master.
 
     read_response_layout: Layout
-        Layout for the get_read_response method of common bus master.
+        A layout for the `get_read_response` method of a common bus master.
 
     write_response_layout: Layout
-        Layout for the get_write_response method of common bus master.
+        A layout for the `get_write_response` method of a common bus master.
     """
 
     def __init__(self, bus_params: BusParametersInterface):
@@ -216,12 +216,12 @@ class AXILiteMasterAdapter(Elaboratable, BusMasterInterface):
         Input layout is `request_write_layout`.
 
     get_read_response: Method
-        Transactional method for reading a response of read action.
+        Transactional method for reading a response of a read action.
         It is ready if the `rd_response` method of the underlying AXI Lite master is ready.
         Output layout is `read_response_layout`.
 
     get_write_response: Method
-        Transactional method for reading a response of write action.
+        Transactional method for reading a response of a write action.
         It is ready if the `wr_response` method of the underlying AXI Lite master is ready.
         Output layout is `write_response_layout`.
     """
