@@ -11,7 +11,7 @@ from amaranth.sim import *
 from .testbenchio import TestbenchIO
 from .profiler import profiler_process, Profile
 from .functions import TestGen
-from ..gtkw_extension import write_vcd_ext
+from .gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
 from transactron.core import TransactionModule
