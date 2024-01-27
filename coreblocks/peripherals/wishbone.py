@@ -24,7 +24,7 @@ class WishboneParameters:
         The smallest unit of data transfer that a port is capable of transferring. Defaults to 8 bits
     """
 
-    def __init__(self, *, data_width: int = 64, addr_width: int = 64, granularity=8):
+    def __init__(self, *, data_width: int = 64, addr_width: int = 64, granularity: int = 8):
         self.data_width = data_width
         self.addr_width = addr_width
         self.granularity = granularity

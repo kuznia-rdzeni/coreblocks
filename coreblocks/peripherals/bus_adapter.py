@@ -20,11 +20,11 @@ class BusParametersInterface(Protocol):
     Parameters
     ----------
     data_width : int
-        An integer that describe the width of data for parametrized bus.
+        An integer that describes the data width for a parametrized bus.
     addr_width : int
-        An integer that describe the width of address for parametrized bus.
+        An integer that describes the address width for a parametrized bus.
     granularity : int
-        An integer that describe the granularity of accesses for parametrized bus.
+        An integer that describes the granularity of accesses for a parametrized bus.
     """
 
     data_width: int
@@ -36,21 +36,21 @@ class BusMasterInterface(HasElaborate, Protocol):
     """
     Bus Master Interface for common buses.
 
-    The bus interface if preferable way to gain access to specific bus.
-    It ease interchangeability of buses on core configuration level.
+    The bus interface is the preferred way to gain access to a specific bus.
+    It simplifies interchangeability of buses on the core configuration level.
 
     Parameters
     ----------
     params : BusParametersInterface
-        Object that describe parameters of bus.
+        Parameters of the bus.
     request_read : Method
-        A method that is used to send a read request to bus.
+        A method that is used to send a read request to a bus.
     request_write : Method
-        A method that is used to send a write request to bus.
+        A method that is used to send a write request to a bus.
     get_read_response : Method
-        A method that is used to receive the response from bus for previously sent read request.
+        A method that is used to receive the response from bus for a previously sent read request.
     get_write_response : Method
-        A method that is used to receive the response from bus for previously sent write request.
+        A method that is used to receive the response from bus for a previously sent write request.
     """
 
     params: BusParametersInterface
@@ -72,16 +72,16 @@ class CommonBusMasterMethodLayout:
     Attributes
     ----------
     request_read_layout: Layout
-        Layout for request_read method of common bus master.
+        Layout for the request_read method of common bus master.
 
     request_write_layout: Layout
-        Layout for request_write method of common bus master.
+        Layout for the request_write method of common bus master.
 
     read_response_layout: Layout
-        Layout for get_read_response method of common bus master.
+        Layout for the get_read_response method of common bus master.
 
     write_response_layout: Layout
-        Layout for get_write_response method of common bus master.
+        Layout for the get_write_response method of common bus master.
     """
 
     def __init__(self, bus_params: BusParametersInterface):
@@ -112,7 +112,7 @@ class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
     Parameters
     ----------
     bus: WishboneMaster
-        Specific wishbone master module which is to be adapted.
+        Specific Wishbone master module which is to be adapted.
 
     Attributes
     ----------
@@ -123,24 +123,24 @@ class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
         Layouts of common bus master methods.
 
     request_read: Method
-        Transactional method for initiating read request.
-        Readiense depends on readiense of wishbone 'request' method.
-        Takes 'request_read_layout' as argument.
+        Transactional method for initiating a read request.
+        It is ready if the `request` method of the underlying Wishbone master is ready.
+        Input layout is `request_read_layout`.
 
     request_write: Method
-        Transactional method for initiating write request.
-        Readiense depends on readiense of wishbone 'request' method.
-        Takes 'request_write_layout' as argument.
+        Transactional method for initiating a write request.
+        It is ready if the `request` method of the underlying Wishbone master is ready.
+        Input layout is `request_write_layout`.
 
     get_read_response: Method
-        Transactional method for reading response of read action.
-        Readiense depends on readiense of wishbone 'result' method.
-        Takes 'read_response_layout' as argument.
+        Transactional method for reading a response of read action.
+        It is ready if the `result` method of the underlying Wishbone master is ready.
+        Output layout is `read_response_layout`.
 
     get_write_response: Method
-        Transactional method for reading response of write action.
-        Readiense depends on readiense of wishbone 'result' method.
-        Takes 'write_response_layout' as argument.
+        Transactional method for reading a response of write action.
+        It is ready if the `result` method of the underlying Wishbone master is ready.
+        Output layout is `write_response_layout`.
     """
 
     def __init__(self, bus: WishboneMaster):
@@ -195,7 +195,7 @@ class AXILiteMasterAdapter(Elaboratable, BusMasterInterface):
     Parameters
     ----------
     bus: AXILiteMaster
-        Specific axi lite master module which is to be adapted.
+        Specific AXI Lite master module which is to be adapted.
 
     Attributes
     ----------
@@ -206,24 +206,24 @@ class AXILiteMasterAdapter(Elaboratable, BusMasterInterface):
         Layouts of common bus master methods.
 
     request_read: Method
-        Transactional method for initiating read request.
-        Readiense depends on readiense of axi lite 'ra_request' method.
-        Takes 'request_read_layout' as argument.
+        Transactional method for initiating a read request.
+        It is ready if the `ra_request` method of the underlying AXI Lite master is ready.
+        Input layout is `request_read_layout`.
 
     request_write: Method
-        Transactional method for initiating write request.
-        Readiense depends on readiense of axi lite 'wa_request' and 'wd_request' methods.
-        Takes 'request_write_layout' as argument.
+        Transactional method for initiating a write request.
+        It is ready if the 'wa_request' and 'wd_request' methods of the underlying AXI Lite master are ready.
+        Input layout is `request_write_layout`.
 
     get_read_response: Method
-        Transactional method for reading response of read action.
-        Readiense depends on readiense of axi lite 'rd_response' method.
-        Takes 'read_response_layout' as argument.
+        Transactional method for reading a response of read action.
+        It is ready if the `rd_response` method of the underlying AXI Lite master is ready.
+        Output layout is `read_response_layout`.
 
     get_write_response: Method
-        Transactional method for reading response of write action.
-        Readiense depends on readiense of axi lite 'wr_response' method.
-        Takes 'write_response_layout' as argument.
+        Transactional method for reading a response of write action.
+        It is ready if the `wr_response` method of the underlying AXI Lite master is ready.
+        Output layout is `write_response_layout`.
     """
 
     def __init__(self, bus: AXILiteMaster):
