@@ -1,25 +1,12 @@
 #!/usr/bin/env python3
 
 import pytest
-import unittest
-import asyncio
 import argparse
-import re
-import sys
 import os
-import subprocess
-from typing import Literal
 from pathlib import Path
 
 topdir = Path(__file__).parent.parent
-sys.path.insert(0, str(topdir))
 
-import test.regression.conftest  # noqa: E402
-import test.regression.test_regression  # noqa: E402
-from test.regression.pysim import PySimulation  # noqa: E402
-
-REGRESSION_TESTS_PREFIX = "test.regression."
-pytest_plugins = "coreblocks_pytest_plugin"
 
 def cd_to_testdir():
     os.chdir(str(topdir / "test"))
@@ -36,12 +23,14 @@ def main():
         "-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend for regression tests"
     )
     parser.add_argument("-c", "--count", type=int, help="Start `c` first tests which match regexp")
-    parser.add_argument("-j", "--jobs", type=int, default = len(os.sched_getaffinity(0)), help="Start `j` jobs in parallel. Default: all")
+    parser.add_argument(
+        "-j", "--jobs", type=int, default=len(os.sched_getaffinity(0)), help="Start `j` jobs in parallel. Default: all"
+    )
     parser.add_argument("test_name", nargs="?")
 
     args = parser.parse_args()
 
-    pytest_arguments=["--max-worker-restart=1"]
+    pytest_arguments = ["--max-worker-restart=1"]
 
     if args.trace:
         os.environ["__COREBLOCKS_DUMP_TRACES"] = "1"
@@ -57,7 +46,7 @@ def main():
     if args.list:
         pytest_arguments.append("--coreblocks-list")
     if args.jobs and not args.list:
-        # To list tests we have to run only one job. Otherwise there is no output (probably captured by worker server).
+        # To list tests we can not use xdist, because it doesn't support forwarding of stdout from workers.
         pytest_arguments += ["-n", str(args.jobs)]
     if args.all:
         pytest_arguments.append("--coreblocks-regression")
@@ -67,11 +56,10 @@ def main():
         pytest_arguments += [f"--coreblocks-backend={args.backend}"]
 
     print(pytest_arguments)
-    ret = pytest.main(pytest_arguments, ["coreblocks_pytest_plugin"])
-    
+    ret = pytest.main(pytest_arguments, [])
+
     exit(ret)
 
+
 if __name__ == "__main__":
-    #cd_to_testdir()
-    #pytest.main(["--coreblocks-list"], ["coreblocks_pytest_plugin"])
     main()

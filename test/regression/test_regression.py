@@ -30,8 +30,6 @@ class MMIO(MemorySegment):
         return WriteReply()
 
 
-
-
 async def run_test(sim_backend: SimulationBackend, test_name: str):
     mmio = MMIO(lambda: sim_backend.stop())
 
@@ -78,4 +76,3 @@ def test_entrypoint(test_name: str, backend: Literal["pysim", "cocotb"], traces:
         regression_body_with_cocotb(test_name, traces)
     elif backend == "pysim":
         regression_body_with_pysim(test_name, traces, verbose)
-
