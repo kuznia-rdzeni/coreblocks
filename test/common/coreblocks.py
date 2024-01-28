@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from typing import Any
-from amaranth.sim import Active, Passive, Delay
+from amaranth.sim import Passive, Delay
 from contextlib import contextmanager
 from .infrastructure import TestCaseWithSimulator
 from coreblocks.params import GenParams
@@ -11,8 +11,8 @@ __all__ = ["CoreblocksTestCaseWithSimulator", "make_assert_handler"]
 
 
 def make_assert_handler(gen_params: GenParams, my_assert: Callable[[int, str], Any], clk_period: float):
-    yield Passive()
     def assert_handler():
+        yield Passive()
         while True:
             yield Delay((1 - 1e-4) * clk_period)  # Shorter than clock cycle
             if not (yield assert_bit(gen_params)):
