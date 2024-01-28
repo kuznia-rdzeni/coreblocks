@@ -6,6 +6,8 @@ from transactron import Method, Transaction, TModule
 from transactron.lib import FIFO, Forwarder
 from coreblocks.params import SchedulerLayouts, GenParams, OpType
 from transactron.utils import assign, AssignType
+from transactron.utils.dependencies import DependencyManager
+from coreblocks.params.keys import CoreStateKey
 from coreblocks.utils.protocols import FuncBlock
 
 
@@ -305,11 +307,16 @@ class RSInsertion(Elaboratable):
             source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
             source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
 
+            # when core is flushed, rp_dst are discarded.
+            # source operands may never become ready, skip waiting for them in any in RSes/FBs.
+            core_state = self.gen_params.get(DependencyManager).get_dependency(CoreStateKey())
+            flushing = core_state(m).flushing
+
             data = {
                 # when operand value is valid the convention is to set operand source to 0
                 "rs_data": {
-                    "rp_s1": Mux(source1.valid, 0, instr.regs_p.rp_s1),
-                    "rp_s2": Mux(source2.valid, 0, instr.regs_p.rp_s2),
+                    "rp_s1": Mux(source1.valid | flushing, 0, instr.regs_p.rp_s1),
+                    "rp_s2": Mux(source2.valid | flushing, 0, instr.regs_p.rp_s2),
                     "rp_s1_reg": instr.regs_p.rp_s1,
                     "rp_s2_reg": instr.regs_p.rp_s2,
                     "rp_dst": instr.regs_p.rp_dst,

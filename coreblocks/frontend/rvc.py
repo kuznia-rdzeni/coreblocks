@@ -47,10 +47,10 @@ class InstrDecompress(Elaboratable):
         rd = self.decompr_reg(self.instr_in[2:5])
 
         addi4spn_imm = Cat(
-            Repl(0, 2), self.instr_in[6], self.instr_in[5], self.instr_in[11:13], self.instr_in[7:11], Repl(0, 2)
+            C(0, 2), self.instr_in[6], self.instr_in[5], self.instr_in[11:13], self.instr_in[7:11], C(0, 2)
         )
-        lsd_imm = Cat(Repl(0, 3), self.instr_in[10:13], self.instr_in[5:7], Repl(0, 4))
-        lsw_imm = Cat(Repl(0, 2), self.instr_in[6], self.instr_in[10:13], self.instr_in[5], Repl(0, 5))
+        lsd_imm = Cat(C(0, 3), self.instr_in[10:13], self.instr_in[5:7], C(0, 4))
+        lsw_imm = Cat(C(0, 2), self.instr_in[6], self.instr_in[10:13], self.instr_in[5], C(0, 5))
 
         addi4spn = (
             ITypeInstr(opcode=Opcode.OP_IMM, rd=rd, funct3=Funct3.ADD, rs1=Registers.SP, imm=addi4spn_imm),
@@ -98,18 +98,18 @@ class InstrDecompress(Elaboratable):
         rs2 = self.decompr_reg(self.instr_in[2:5])
         rd = self.instr_in[7:12]
 
-        addi_imm = Cat(self.instr_in[2:7], Repl(self.instr_in[12], 7))
+        addi_imm = Cat(self.instr_in[2:7], self.instr_in[12].replicate(7))
         addi16sp_imm = Cat(
-            Repl(0, 4),
+            C(0, 4),
             self.instr_in[6],
             self.instr_in[2],
             self.instr_in[5],
             self.instr_in[3:5],
-            Repl(self.instr_in[12], 3),
+            self.instr_in[12].replicate(3),
         )
-        lui_imm = Cat(Repl(0, 12), self.instr_in[2:7], Repl(self.instr_in[12], 15))
+        lui_imm = Cat(C(0, 12), self.instr_in[2:7], self.instr_in[12].replicate(15))
         j_imm = Cat(
-            Repl(0, 1),
+            C(0, 1),
             self.instr_in[3:6],
             self.instr_in[11],
             self.instr_in[2],
@@ -117,15 +117,15 @@ class InstrDecompress(Elaboratable):
             self.instr_in[6],
             self.instr_in[9:11],
             self.instr_in[8],
-            Repl(self.instr_in[12], 10),
+            self.instr_in[12].replicate(10),
         )
         b_imm = Cat(
-            Repl(0, 1),
+            C(0, 1),
             self.instr_in[3:5],
             self.instr_in[10:12],
             self.instr_in[2],
             self.instr_in[5:7],
-            Repl(self.instr_in[12], 5),
+            self.instr_in[12].replicate(5),
         )
         shamt = Cat(self.instr_in[2:7], self.instr_in[12])
 
@@ -206,10 +206,10 @@ class InstrDecompress(Elaboratable):
         rs2 = self.instr_in[2:7]
 
         shamt = Cat(self.instr_in[2:7], self.instr_in[12])
-        ldsp_imm = Cat(Repl(0, 3), self.instr_in[5:7], self.instr_in[12], self.instr_in[2:5], Repl(0, 3))
-        lwsp_imm = Cat(Repl(0, 2), self.instr_in[4:7], self.instr_in[12], self.instr_in[2:4], Repl(0, 4))
-        sdsp_imm = Cat(Repl(0, 3), self.instr_in[10:13], self.instr_in[7:10], Repl(0, 2))
-        swsp_imm = Cat(Repl(0, 2), self.instr_in[9:13], self.instr_in[7:9], Repl(0, 4))
+        ldsp_imm = Cat(C(0, 3), self.instr_in[5:7], self.instr_in[12], self.instr_in[2:5], C(0, 3))
+        lwsp_imm = Cat(C(0, 2), self.instr_in[4:7], self.instr_in[12], self.instr_in[2:4], C(0, 4))
+        sdsp_imm = Cat(C(0, 3), self.instr_in[10:13], self.instr_in[7:10], C(0, 2))
+        swsp_imm = Cat(C(0, 2), self.instr_in[9:13], self.instr_in[7:9], C(0, 4))
 
         slli = (
             RTypeInstr(
@@ -249,10 +249,10 @@ class InstrDecompress(Elaboratable):
         sdsp = STypeInstr(opcode=Opcode.STORE, imm=sdsp_imm, funct3=Funct3.D, rs1=Registers.SP, rs2=rs2)
 
         jr = (
-            ITypeInstr(opcode=Opcode.JALR, rd=Registers.ZERO, funct3=Funct3.JALR, rs1=rd_rs1, imm=Repl(0, 12)),
+            ITypeInstr(opcode=Opcode.JALR, rd=Registers.ZERO, funct3=Funct3.JALR, rs1=rd_rs1, imm=C(0, 12)),
             rd_rs1.any(),
         )
-        jalr = ITypeInstr(opcode=Opcode.JALR, rd=Registers.RA, funct3=Funct3.JALR, rs1=rd_rs1, imm=Repl(0, 12))
+        jalr = ITypeInstr(opcode=Opcode.JALR, rd=Registers.RA, funct3=Funct3.JALR, rs1=rd_rs1, imm=C(0, 12))
 
         ebreak = EBreakInstr()
 

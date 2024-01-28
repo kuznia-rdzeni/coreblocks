@@ -33,7 +33,7 @@ from riscvmodel.isa import Instruction, InstructionRType, get_insns
 from riscvmodel.variant import RV32I
 
 
-class TestElaboratable(Elaboratable):
+class CoreTestElaboratable(Elaboratable):
     def __init__(self, gen_params: GenParams, instr_mem: list[int] = [0], data_mem: Optional[list[int]] = None):
         self.gen_params = gen_params
         self.instr_mem = instr_mem
@@ -84,7 +84,7 @@ def gen_riscv_lui_instr(dst, imm):
 
 class TestCoreBase(CoreblocksTestCaseWithSimulator):
     gen_params: GenParams
-    m: TestElaboratable
+    m: CoreTestElaboratable
 
     def check_RAT_alloc(self, rat, expected_alloc_count=None):  # noqa: N802
         allocated = []
@@ -183,7 +183,7 @@ class TestCoreSimple(TestCoreBase):
 
     def test_simple(self):
         self.gen_params = GenParams(basic_core_config)
-        m = TestElaboratable(self.gen_params)
+        m = CoreTestElaboratable(self.gen_params)
         self.m = m
 
         with self.run_simulation(m) as sim:
@@ -242,7 +242,7 @@ class TestCoreRandomized(TestCoreBase):
 
         self.instr_mem = list(map(lambda x: x.encode(), all_instr))
 
-        m = TestElaboratable(self.gen_params, instr_mem=self.instr_mem)
+        m = CoreTestElaboratable(self.gen_params, instr_mem=self.instr_mem)
         self.m = m
 
         with self.run_simulation(m) as sim:
@@ -323,7 +323,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
 
         bin_src = self.prepare_source(self.source_file)
-        self.m = TestElaboratable(self.gen_params, instr_mem=bin_src)
+        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_and_check)
 
@@ -397,6 +397,6 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)
-        self.m = TestElaboratable(self.gen_params, instr_mem=bin_src)
+        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_with_interrupt)

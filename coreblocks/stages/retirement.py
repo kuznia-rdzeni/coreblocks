@@ -1,12 +1,13 @@
 from amaranth import *
+from coreblocks.params.layouts import RetirementLayouts
 
-from transactron.core import Method, Transaction, TModule
+from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
 from transactron.utils.dependencies import DependencyManager
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import ExceptionCause
-from coreblocks.params.keys import GenericCSRRegistersKey
+from coreblocks.params.keys import CoreStateKey, GenericCSRRegistersKey
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
 
 
@@ -48,10 +49,14 @@ class Retirement(Elaboratable):
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
+        self.dependency_manager = gen_params.get(DependencyManager)
+        self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
+        self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
+
     def elaborate(self, platform):
         m = TModule()
 
-        m_csr = self.gen_params.get(DependencyManager).get_dependency(GenericCSRRegistersKey()).m_mode
+        m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(reset=1)
@@ -98,10 +103,14 @@ class Retirement(Elaboratable):
                 ~rob_entry.exception | (rob_entry.exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entry.rob_id))
             )
 
+        core_flushing = Signal()
+
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
                 with Transaction().body(m, request=retire_valid) as retire_transaction:
-                    rob_entry = self.rob_retire(m)
+                    rob_entry = self.rob_peek(m)
+                    self.rob_retire(m)
+
                     core_empty = self.instr_decrement(m)
 
                     commit = Signal()
@@ -152,18 +161,24 @@ class Retirement(Elaboratable):
                             # Not using default condition, because we want to block if branch is not ready
                             flush_instr(rob_entry)
 
+                            m.d.comb += core_flushing.eq(1)
+
                     validate_transaction.schedule_before(retire_transaction)
 
             with m.State("TRAP_FLUSH"):
                 with Transaction().body(m):
                     # Flush entire core
-                    rob_entry = self.rob_retire(m)
+                    rob_entry = self.rob_peek(m)
+                    self.rob_retire(m)
+
                     core_empty = self.instr_decrement(m)
 
                     flush_instr(rob_entry)
 
                     with m.If(core_empty):
                         m.next = "TRAP_RESUME"
+
+                m.d.comb += core_flushing.eq(1)
 
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
@@ -180,5 +195,9 @@ class Retirement(Elaboratable):
 
         # Disable executing any side effects from instructions in core when it is flushed
         m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
+
+        @def_method(m, self.core_state)
+        def _():
+            return {"flushing": core_flushing}
 
         return m

@@ -73,6 +73,7 @@ class TestBackend(CoreblocksTestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config)
         self.m = BackendTestCircuit(self.gen_params, self.fu_count)
         random.seed(14)
+        self.max_wait = 3
 
         self.fu_inputs = []
         # Create list with info if we processed all results from FU
@@ -96,10 +97,6 @@ class TestBackend(CoreblocksTestCaseWithSimulator):
                     self.expected_output[t] = 1
             self.fu_inputs.append(inputs)
 
-    def random_wait(self):
-        for i in range(random.randint(0, 3)):
-            yield
-
     def generate_producer(self, i: int):
         """
         This is an helper function, which generates a producer process,
@@ -112,7 +109,7 @@ class TestBackend(CoreblocksTestCaseWithSimulator):
             for rob_id, result, rp_dst in inputs:
                 io: TestbenchIO = self.m.fu_fifo_ins[i]
                 yield from io.call_init(rob_id=rob_id, result=result, rp_dst=rp_dst)
-                yield from self.random_wait()
+                yield from self.random_wait(self.max_wait)
             self.producer_end[i] = True
 
         return producer
@@ -151,7 +148,7 @@ class TestBackend(CoreblocksTestCaseWithSimulator):
                 del self.expected_output[t]
             else:
                 self.expected_output[t] -= 1
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
     def test_one_out(self):
         self.fu_count = 1

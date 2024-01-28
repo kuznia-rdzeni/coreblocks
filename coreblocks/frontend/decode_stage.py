@@ -4,11 +4,11 @@ from coreblocks.params.isa import Funct3
 from coreblocks.params.optypes import OpType
 from transactron import Method, Transaction, TModule
 from ..params import GenParams
-from .decoder import InstrDecoder
+from .instr_decoder import InstrDecoder
 from coreblocks.params import *
 
 
-class Decode(Elaboratable):
+class DecodeStage(Elaboratable):
     """
     Simple decode unit. This is a transactional interface which instantiates a
     submodule `InstrDecoder`. This `InstrDecoder` makes actual decoding in

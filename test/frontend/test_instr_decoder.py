@@ -4,7 +4,7 @@ from ..common import CoreblocksTestCaseWithSimulator
 
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from coreblocks.frontend.decoder import InstrDecoder, Encoding, _instructions_by_optype
+from coreblocks.frontend.instr_decoder import InstrDecoder, Encoding, instructions_by_optype
 from unittest import TestCase
 from typing import Optional
 
@@ -325,7 +325,7 @@ class TestEncodingUniqueness(TestCase):
         # if value is None -> there is an instruction with prefix equal to this code
         known_codes: dict[code_type, Optional[Encoding]] = dict()
 
-        for instructions in _instructions_by_optype.values():
+        for instructions in instructions_by_optype.values():
             for instruction in instructions:
                 code = instruction_code(instruction)
                 prefixes = code_prefixes(code)
@@ -386,7 +386,7 @@ class TestEncodingUniqueness(TestCase):
 
             return (funct3, funct7)
 
-        for ext, instructions in _instructions_by_optype.items():
+        for ext, instructions in instructions_by_optype.items():
             known_codes: set[code_type] = set()
             ext_collisions = collisions[ext] if ext in collisions else set()
 
