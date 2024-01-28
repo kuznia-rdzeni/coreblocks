@@ -32,6 +32,9 @@ class Fetch(Elaboratable):
 
         self.resume = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.stall_exception = Method()
+        # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because
+        # of exception report, both can happen at any time during normal excecution.
+        # ExceptionCauseRegister uses separate Transaction for it, so performace is not affected.
         self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.

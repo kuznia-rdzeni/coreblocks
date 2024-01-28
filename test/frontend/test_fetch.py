@@ -46,9 +46,6 @@ class TestFetch(TestCaseWithSimulator):
 
         self.fetch = SimpleTestCircuit(Fetch(self.gen_params, self.icache, fifo.write))
 
-        # self.fetch_resume = TestbenchIO(AdapterTrans(self.fetch.resume))
-        # self.fetch_stall_exception = TestbenchIO(AdapterTrans(self.fetch.stall_exception))
-
         self.m = ModuleConnector(
             icache=self.icache,
             fetch=self.fetch,
