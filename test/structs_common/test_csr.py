@@ -8,7 +8,7 @@ from coreblocks.params.configurations import test_core_config
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
 from transactron.utils.dependencies import DependencyManager
-from coreblocks.frontend.decoder import OpType
+from coreblocks.params.optypes import OpType
 
 from ..common import *
 
@@ -110,15 +110,11 @@ class TestCSRUnit(TestCaseWithSimulator):
             "exp": exp,
         }
 
-    def random_wait(self, prob: float = 0.5):
-        while random.random() < prob:
-            yield
-
     def process_test(self):
         yield from self.dut.fetch_resume.enable()
         yield from self.dut.exception_report.enable()
         for _ in range(self.cycles):
-            yield from self.random_wait()
+            yield from self.random_wait_geom()
 
             op = yield from self.generate_instruction()
 
@@ -126,14 +122,14 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             yield from self.dut.insert.call(rs_data=op["instr"])
 
-            yield from self.random_wait()
+            yield from self.random_wait_geom()
             if op["exp"]["rs1"]["rp_s1"]:
                 yield from self.dut.update.call(reg_id=op["exp"]["rs1"]["rp_s1"], reg_val=op["exp"]["rs1"]["value"])
 
-            yield from self.random_wait()
+            yield from self.random_wait_geom()
             yield from self.dut.precommit.call(side_fx=1)
 
-            yield from self.random_wait()
+            yield from self.random_wait_geom()
             res = yield from self.dut.accept.call()
 
             self.assertTrue(self.dut.fetch_resume.done())
@@ -165,7 +161,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         yield from self.dut.fetch_resume.enable()
         yield from self.dut.exception_report.enable()
         for csr in self.exception_csr_numbers:
-            yield from self.random_wait()
+            yield from self.random_wait_geom()
 
             yield from self.dut.select.call()
 
@@ -183,10 +179,10 @@ class TestCSRUnit(TestCaseWithSimulator):
                 }
             )
 
-            yield from self.random_wait()
+            yield from self.random_wait_geom()
             yield from self.dut.precommit.call(rob_id=rob_id, side_fx=1)
 
-            yield from self.random_wait()
+            yield from self.random_wait_geom()
             res = yield from self.dut.accept.call()
 
             self.assertEqual(res["exception"], 1)

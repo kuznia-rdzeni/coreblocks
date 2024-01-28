@@ -16,7 +16,7 @@ from coreblocks.params.keys import (
 )
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import Extension
-from coreblocks.frontend.decode import Decode
+from coreblocks.frontend.decode_stage import DecodeStage
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.structs_common.rf import RegisterFile
@@ -130,7 +130,7 @@ class Core(Elaboratable):
         m.submodules.args_discard_map = self.core_counter_increment_discard_map
 
         m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
-        m.submodules.decode = Decode(
+        m.submodules.decode = DecodeStage(
             gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=fifo_decode.write
         )
 

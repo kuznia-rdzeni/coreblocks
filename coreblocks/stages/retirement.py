@@ -48,7 +48,7 @@ class Retirement(Elaboratable):
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
         self.dependency_manager = gen_params.get(DependencyManager)
-        self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state)
+        self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
 
     def elaborate(self, platform):

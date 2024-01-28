@@ -247,8 +247,8 @@ jobs:
       - name: Run tests
         run: ./scripts/run_tests.py --verbose
 
-      - name: Check traces
-        run: ./scripts/run_tests.py -t -c 1 TestCore
+      - name: Check traces and profiles
+        run: ./scripts/run_tests.py -t -p -c 1 TestCore
 
   lint:
     name: Check code formatting and typing

@@ -9,6 +9,7 @@ from abc import ABC
 from amaranth import *
 from amaranth.sim import *
 from .testbenchio import TestbenchIO
+from .profiler import profiler_process, Profile
 from .functions import TestGen
 from ..gtkw_extension import write_vcd_ext
 from transactron import Method
@@ -140,12 +141,18 @@ class SyncProcessWrapper:
 
 
 class PysimSimulator(Simulator):
-    def __init__(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True, traces_file=None):
+    def __init__(
+        self,
+        module: HasElaborate,
+        max_cycles: float = 10e4,
+        add_transaction_module=True,
+        traces_file=None,
+        clk_period=1e-6,
+    ):
         test_module = _TestModule(module, add_transaction_module)
-        tested_module = test_module.tested_module
+        self.tested_module = tested_module = test_module.tested_module
         super().__init__(test_module)
 
-        clk_period = 1e-6
         self.add_clock(clk_period)
 
         if isinstance(tested_module, HasDebugSignals):
@@ -206,16 +213,33 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_file = unittest.TestCase.id(self)
 
+        clk_period = 1e-6
         sim = PysimSimulator(
-            module, max_cycles=max_cycles, add_transaction_module=add_transaction_module, traces_file=traces_file
+            module,
+            max_cycles=max_cycles,
+            add_transaction_module=add_transaction_module,
+            traces_file=traces_file,
+            clk_period=clk_period,
         )
         self.add_all_mocks(sim, sys._getframe(2).f_locals)
         yield sim
+
+        profile = None
+        if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.tested_module, TransactionModule):
+            profile = Profile()
+            sim.add_sync_process(profiler_process(sim.tested_module.transactionManager, profile, clk_period))
+
         res = sim.run()
+
+        if profile is not None:
+            profile_dir = "test/__profiles__"
+            profile_file = unittest.TestCase.id(self)
+            os.makedirs(profile_dir, exist_ok=True)
+            profile.encode(f"{profile_dir}/{profile_file}.json")
 
         self.assertTrue(res, "Simulation time limit exceeded")
 
-    def tick(self, cycle_cnt=1):
+    def tick(self, cycle_cnt: int = 1):
         """
         Yields for the given number of cycles.
         """
@@ -223,8 +247,15 @@ class TestCaseWithSimulator(unittest.TestCase):
         for _ in range(cycle_cnt):
             yield
 
-    def random_wait(self, max_cycle_cnt):
+    def random_wait(self, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
         """
-        Wait for a random amount of cycles in range [1, max_cycle_cnt)
+        Wait for a random amount of cycles in range [min_cycle_cnt, max_cycle_cnt]
         """
-        yield from self.tick(random.randrange(max_cycle_cnt))
+        yield from self.tick(random.randrange(min_cycle_cnt, max_cycle_cnt + 1))
+
+    def random_wait_geom(self, prob: float = 0.5):
+        """
+        Wait till the first success, where there is `prob` probability for success in each cycle.
+        """
+        while random.random() > prob:
+            yield
