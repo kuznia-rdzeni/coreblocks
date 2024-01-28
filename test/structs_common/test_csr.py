@@ -11,6 +11,7 @@ from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.optypes import OpType
 
 from ..common import *
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 import random
 

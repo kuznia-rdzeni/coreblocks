@@ -1,6 +1,6 @@
 from amaranth.sim import *
 
-from ..common import CoreblocksTestCaseWithSimulator
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config

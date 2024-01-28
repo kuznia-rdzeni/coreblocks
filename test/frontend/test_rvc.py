@@ -8,7 +8,7 @@ from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from transactron.utils import ValueLike
 
-from ..common import CoreblocksTestCaseWithSimulator
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 COMMON_TESTS = [
     # Illegal instruction

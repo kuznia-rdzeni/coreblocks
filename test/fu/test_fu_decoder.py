@@ -3,7 +3,8 @@ from typing import Sequence, Generator
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import SimpleTestCircuit, CoreblocksTestCaseWithSimulator
+from ..common import SimpleTestCircuit
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 from coreblocks.fu.fu_decoder import DecoderManager, Decoder
 from coreblocks.params import OpType, Funct3, Funct7, GenParams

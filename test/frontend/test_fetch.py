@@ -12,7 +12,8 @@ from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from transactron.utils import ModuleConnector
-from ..common import CoreblocksTestCaseWithSimulator, TestbenchIO, def_method_mock, SimpleTestCircuit
+from ..common import TestbenchIO, def_method_mock, SimpleTestCircuit
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 
 class MockedICache(Elaboratable, ICacheInterface):

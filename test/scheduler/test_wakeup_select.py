@@ -14,7 +14,8 @@ from transactron import *
 from transactron.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
 
-from ..common import RecordIntDict, CoreblocksTestCaseWithSimulator, TestbenchIO
+from ..common import RecordIntDict, TestbenchIO
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 
 class WakeupTestCircuit(Elaboratable):

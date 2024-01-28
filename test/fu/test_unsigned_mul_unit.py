@@ -10,7 +10,8 @@ from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsign
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 
-from test.common import CoreblocksTestCaseWithSimulator, SimpleTestCircuit
+from test.common import SimpleTestCircuit
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config

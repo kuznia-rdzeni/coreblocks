@@ -1,4 +1,5 @@
-from ..common import CoreblocksTestCaseWithSimulator, SimpleTestCircuit
+from ..common import SimpleTestCircuit
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.params import GenParams

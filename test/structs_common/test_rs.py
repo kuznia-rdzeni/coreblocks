@@ -1,6 +1,7 @@
 from amaranth.sim import Settle
 
-from ..common import CoreblocksTestCaseWithSimulator, get_outputs, SimpleTestCircuit
+from ..common import get_outputs, SimpleTestCircuit
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 from coreblocks.structs_common.rs import RS
 from coreblocks.params import *

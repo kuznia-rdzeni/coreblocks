@@ -16,7 +16,8 @@ from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionRepor
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.optypes import OpType
 from transactron.lib import Adapter
-from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, CoreblocksTestCaseWithSimulator, SimpleTestCircuit
+from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, SimpleTestCircuit
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 from transactron.utils import ModuleConnector
 
 

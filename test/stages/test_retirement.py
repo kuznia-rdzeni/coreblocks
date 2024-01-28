@@ -8,6 +8,7 @@ from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, Sche
 from coreblocks.params.configurations import test_core_config
 
 from ..common import *
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 from collections import deque
 import random
 

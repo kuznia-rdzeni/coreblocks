@@ -9,6 +9,7 @@ from transactron.lib import Adapter
 from transactron.utils import ModuleConnector
 
 from ..common import *
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 import random
 

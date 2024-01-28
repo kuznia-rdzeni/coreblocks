@@ -19,7 +19,8 @@ from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenPar
 from coreblocks.params.configurations import test_core_config
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.utils.protocols import FuncBlock
-from ..common import RecordIntDict, CoreblocksTestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
+from ..common import RecordIntDict, TestGen, TestbenchIO, def_method_mock
+from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
 
 
 class SchedulerTestCircuit(Elaboratable):

@@ -227,6 +227,7 @@ class TestCaseWithSimulator(unittest.TestCase):
             clk_period=clk_period,
         )
         self.add_all_mocks(sim, sys._getframe(2).f_locals)
+
         yield sim
 
         profile = None
@@ -234,7 +235,9 @@ class TestCaseWithSimulator(unittest.TestCase):
             profile = Profile()
             sim.add_sync_process(profiler_process(sim.tested_module.transactionManager, profile, clk_period))
 
-        sim.add_sync_process(make_assert_handler(self.dependency_manager, self.assertTrue, clk_period))
+        # DependencyManager is requires for assertion checking
+        if hasattr(self, "dependency_manager"):
+            sim.add_sync_process(make_assert_handler(self.dependency_manager, self.assertTrue, clk_period))
 
         res = sim.run()
 

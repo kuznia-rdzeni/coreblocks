@@ -1,14 +1,13 @@
 from amaranth import *
 
-from coreblocks.params.genparams import GenParams
-from coreblocks.params.configurations import basic_core_config
 from transactron.utils import assertion
-from ..common import CoreblocksTestCaseWithSimulator
+from transactron.utils.dependencies import DependencyManager
+from ..common import TestCaseWithSimulator
 
 
 class AssertionTest(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gen_params = gen_params
+    def __init__(self, dependency_manager: DependencyManager):
+        self.dependency_manager = dependency_manager
         self.input = Signal()
         self.output = Signal()
 
@@ -17,17 +16,17 @@ class AssertionTest(Elaboratable):
 
         m.d.comb += self.output.eq(self.input & ~self.input)
 
-        assertion(self.gen_params, self.input == self.output)
+        assertion(self.dependency_manager, self.input == self.output)
 
         return m
 
 
-class TestAssertion(CoreblocksTestCaseWithSimulator):
+class TestAssertion(TestCaseWithSimulator):
     def setUp(self):
-        self.gen_params = GenParams(basic_core_config)
+        self.dependency_manager = DependencyManager()
 
     def test_assertion(self):
-        m = AssertionTest(self.gen_params)
+        m = AssertionTest(self.dependency_manager)
 
         def proc():
             yield
