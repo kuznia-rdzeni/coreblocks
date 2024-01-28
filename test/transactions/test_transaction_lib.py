@@ -47,18 +47,15 @@ class TestFifoBase(TestCaseWithSimulator):
 
         random.seed(1337)
 
-        def random_wait(rand: int):
-            yield from self.tick(random.randint(0, rand))
-
         def writer():
             for i in range(2**iosize):
                 yield from m.write.call(data=i)
-                yield from random_wait(writer_rand)
+                yield from self.random_wait(writer_rand)
 
         def reader():
             for i in range(2**iosize):
                 self.assertEqual((yield from m.read.call()), {"data": i})
-                yield from random_wait(reader_rand)
+                yield from self.random_wait(reader_rand)
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(reader)
@@ -153,9 +150,6 @@ class TestMemoryBank(TestCaseWithSimulator):
 
         random.seed(seed)
 
-        def random_wait(rand: int):
-            yield from self.tick(random.randrange(rand) + 1)
-
         def writer():
             for cycle in range(test_count):
                 d = random.randrange(2**data_width)
@@ -164,7 +158,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 for _ in range(2):
                     yield Settle()
                 data_dict[a] = d
-                yield from random_wait(writer_rand)
+                yield from self.random_wait(writer_rand, min_cycle_cnt=1)
 
         def reader_req():
             for cycle in range(test_count):
@@ -177,15 +171,15 @@ class TestMemoryBank(TestCaseWithSimulator):
                     read_req_queue.append(d)
                 else:
                     addr_queue.append((cycle, a))
-                yield from random_wait(reader_req_rand)
+                yield from self.random_wait(reader_req_rand, min_cycle_cnt=1)
 
         def reader_resp():
             for cycle in range(test_count):
                 while not read_req_queue:
-                    yield from random_wait(reader_resp_rand)
+                    yield from self.random_wait(reader_resp_rand, min_cycle_cnt=1)
                 d = read_req_queue.popleft()
                 self.assertEqual((yield from m.read_resp.call()), {"data": d})
-                yield from random_wait(reader_resp_rand)
+                yield from self.random_wait(reader_resp_rand, min_cycle_cnt=1)
 
         def internal_reader_resp():
             assert m._dut._internal_read_resp_trans is not None
@@ -278,6 +272,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         # Create list with info if we processed all data from inputs
         self.producer_end = [False for i in range(self.count)]
         self.expected_output = {}
+        self.max_wait = 4
 
         # Prepare random results for inputs
         for i in range(self.count):
@@ -295,10 +290,6 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
                     self.expected_output[t] = 1
             self.inputs.append(data)
 
-    def random_wait(self):
-        for i in range(random.randint(0, 3)):
-            yield
-
     def generate_producer(self, i: int):
         """
         This is an helper function, which generates a producer process,
@@ -311,7 +302,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
             for field1, field2 in inputs:
                 io: TestbenchIO = self.m.inputs[i]
                 yield from io.call_init(field1=field1, field2=field2)
-                yield from self.random_wait()
+                yield from self.random_wait(self.max_wait)
             self.producer_end[i] = True
 
         return producer
@@ -332,7 +323,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
                 del self.expected_output[t]
             else:
                 self.expected_output[t] -= 1
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
     def test_one_out(self):
         self.count = 1
@@ -435,13 +426,11 @@ class TestMethodTransformer(TestCaseWithSimulator):
         self.m = MethodMapTestCircuit(4, False, True)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
-            sim.add_sync_process(self.target)
 
     def test_method_transformer_with_methods(self):
         self.m = MethodMapTestCircuit(4, True, True)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.source)
-            sim.add_sync_process(self.target)
 
 
 class TestMethodFilter(TestCaseWithSimulator):
@@ -449,6 +438,7 @@ class TestMethodFilter(TestCaseWithSimulator):
         self.iosize = 4
         self.layout = data_layout(self.iosize)
         self.target = TestbenchIO(Adapter(i=self.layout, o=self.layout))
+        self.cmeth = TestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
 
     def source(self):
         for i in range(2**self.iosize):
@@ -469,15 +459,12 @@ class TestMethodFilter(TestCaseWithSimulator):
     @parameterized.expand([(True,), (False,)])
     def test_method_filter_with_methods(self, use_condition):
         self.initialize()
-        self.cmeth = TestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
         self.tc = SimpleTestCircuit(
             MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface, use_condition=use_condition)
         )
         m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
         with self.run_simulation(m) as sim:
             sim.add_sync_process(self.source)
-            sim.add_sync_process(self.target_mock)
-            sim.add_sync_process(self.cmeth_mock)
 
     @parameterized.expand([(True,), (False,)])
     def test_method_filter(self, use_condition):
@@ -487,10 +474,9 @@ class TestMethodFilter(TestCaseWithSimulator):
             return v[0]
 
         self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition, use_condition=use_condition))
-        m = ModuleConnector(test_circuit=self.tc, target=self.target)
+        m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
         with self.run_simulation(m) as sim:
             sim.add_sync_process(self.source)
-            sim.add_sync_process(self.target_mock)
 
 
 class MethodProductTestCircuit(Elaboratable):
@@ -569,75 +555,71 @@ class TestMethodProduct(TestCaseWithSimulator):
 
 
 class TestSerializer(TestCaseWithSimulator):
-    def test_serial(self):
-        test_count = 100
+    def setUp(self):
+        self.test_count = 100
 
-        port_count = 2
-        data_width = 5
+        self.port_count = 2
+        self.data_width = 5
 
-        requestor_rand = 4
+        self.requestor_rand = 4
 
-        layout = [("field", data_width)]
+        layout = [("field", self.data_width)]
 
         self.req_method = TestbenchIO(Adapter(i=layout))
         self.resp_method = TestbenchIO(Adapter(o=layout))
 
         self.test_circuit = SimpleTestCircuit(
             Serializer(
-                port_count=port_count,
+                port_count=self.port_count,
                 serialized_req_method=self.req_method.adapter.iface,
                 serialized_resp_method=self.resp_method.adapter.iface,
             )
         )
-        m = ModuleConnector(test_circuit=self.test_circuit, req_method=self.req_method, resp_method=self.resp_method)
+        self.m = ModuleConnector(
+            test_circuit=self.test_circuit, req_method=self.req_method, resp_method=self.resp_method
+        )
 
         random.seed(14)
 
-        serialized_data = deque()
-        port_data = [deque() for _ in range(port_count)]
+        self.serialized_data = deque()
+        self.port_data = [deque() for _ in range(self.port_count)]
 
-        got_request = False
+        self.got_request = False
 
-        def random_wait(rand: int):
-            yield from self.tick(random.randrange(rand) + 1)
+    @def_method_mock(lambda self: self.req_method, enable=lambda self: not self.got_request)
+    def serial_req_mock(self, field):
+        self.serialized_data.append(field)
+        self.got_request = True
 
-        @def_method_mock(lambda: self.req_method, enable=lambda: not got_request)
-        def serial_req_mock(field):
-            nonlocal got_request
-            serialized_data.append(field)
-            got_request = True
+    @def_method_mock(lambda self: self.resp_method, enable=lambda self: self.got_request)
+    def serial_resp_mock(self):
+        self.got_request = False
+        return {"field": self.serialized_data[-1]}
 
-        @def_method_mock(lambda: self.resp_method, enable=lambda: got_request)
-        def serial_resp_mock():
-            nonlocal got_request
-            got_request = False
-            return {"field": serialized_data[-1]}
+    def requestor(self, i: int):
+        def f():
+            for _ in range(self.test_count):
+                d = random.randrange(2**self.data_width)
+                yield from self.test_circuit.serialize_in[i].call(field=d)
+                self.port_data[i].append(d)
+                yield from self.random_wait(self.requestor_rand, min_cycle_cnt=1)
 
-        def requestor(i: int):
-            def f():
-                for _ in range(test_count):
-                    d = random.randrange(2**data_width)
-                    yield from self.test_circuit.serialize_in[i].call(field=d)
-                    port_data[i].append(d)
-                    yield from random_wait(requestor_rand)
+        return f
 
-            return f
+    def responder(self, i: int):
+        def f():
+            for _ in range(self.test_count):
+                data_out = yield from self.test_circuit.serialize_out[i].call()
+                self.assertEqual(self.port_data[i].popleft(), data_out["field"])
+                yield from self.random_wait(self.requestor_rand, min_cycle_cnt=1)
 
-        def responder(i: int):
-            def f():
-                for _ in range(test_count):
-                    data_out = yield from self.test_circuit.serialize_out[i].call()
-                    self.assertEqual(port_data[i].popleft(), data_out["field"])
-                    yield from random_wait(requestor_rand)
+        return f
 
-            return f
-
-        with self.run_simulation(m) as sim:
-            sim.add_sync_process(serial_req_mock)
-            sim.add_sync_process(serial_resp_mock)
-            for i in range(port_count):
-                sim.add_sync_process(requestor(i))
-                sim.add_sync_process(responder(i))
+    def test_serial(self):
+        with self.run_simulation(self.m) as sim:
+            for i in range(self.port_count):
+                sim.add_sync_process(self.requestor(i))
+                sim.add_sync_process(self.responder(i))
 
 
 class TestMethodTryProduct(TestCaseWithSimulator):
@@ -777,5 +759,4 @@ class ConditionTest(TestCaseWithSimulator):
                     self.assertIn(selection, [c1, 2 * c2, 3 * c3])
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(target_process)
             sim.add_sync_process(process)

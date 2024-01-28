@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from coreblocks.params.dependencies import SimpleKey, UnifierKey
+from transactron.lib.dependencies import SimpleKey, UnifierKey
 from transactron import Method
 from transactron.lib import MethodTryProduct, Collector
 from coreblocks.peripherals.wishbone import WishboneMaster
@@ -53,4 +53,9 @@ class AsyncInterruptInsertSignalKey(SimpleKey[Signal]):
 
 @dataclass(frozen=True)
 class MretKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class CoreStateKey(SimpleKey[Method]):
     pass

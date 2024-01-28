@@ -249,6 +249,26 @@ class Value(metaclass=ABCMeta):
         """Rotate right by constant amount."""
         ...
     
+    def replicate(self, count : int) -> Value:
+        """Replication.
+
+        A ``Value`` is replicated (repeated) several times to be used
+        on the RHS of assignments::
+
+            len(v.replicate(n)) == len(v) * n
+
+        Parameters
+        ----------
+        count : int
+            Number of replications.
+
+        Returns
+        -------
+        Value, out
+            Replicated value.
+        """
+        ...
+
     def eq(self, value: ValueLike) -> Assign:
         """Assignment.
 

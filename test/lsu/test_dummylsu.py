@@ -11,7 +11,7 @@ from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import *
 from coreblocks.params.keys import ExceptionReportKey
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
 from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock
@@ -193,10 +193,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         self.exception_queue = deque()
         self.exception_result = deque()
         self.generate_instr(2**7, 2**7)
-
-    def random_wait(self):
-        for i in range(random.randint(0, 10)):
-            yield
+        self.max_wait = 10
 
     def wishbone_slave(self):
         yield Passive()
@@ -211,7 +208,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             mask = generated_data["mask"]
             sign = generated_data["sign"]
             yield from self.test_module.io_in.slave_verify(generated_data["addr"], 0, 0, mask)
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
             resp_data = int((generated_data["rnd_bytes"][:4]).hex(), 16)
             data_shift = (mask & -mask).bit_length() - 1
@@ -236,7 +233,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             announc = self.announce_queue.pop()
             if announc is not None:
                 yield from self.test_module.update.call(announc)
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
     def consumer(self):
         for i in range(self.tests_number):
@@ -246,7 +243,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 self.assertEqual(v["result"], self.returned_data.pop())
             self.assertEqual(v["exception"], exc)
 
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
@@ -257,7 +254,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             sim.add_sync_process(self.wishbone_slave)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.consumer)
-            sim.add_sync_process(exception_consumer)
 
 
 class TestDummyLSULoadsCycles(TestCaseWithSimulator):
@@ -316,7 +312,6 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.one_instr_test)
-            sim.add_sync_process(exception_consumer)
 
 
 class TestDummyLSUStores(TestCaseWithSimulator):
@@ -378,10 +373,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         self.get_result_data = deque()
         self.precommit_data = deque()
         self.generate_instr(2**7, 2**7)
-
-    def random_wait(self):
-        for i in range(random.randint(0, 8)):
-            yield
+        self.max_wait = 8
 
     def wishbone_slave(self):
         for i in range(self.tests_number):
@@ -398,7 +390,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             else:
                 data = int(generated_data["data"][-4:].hex(), 16)
             yield from self.test_module.io_in.slave_verify(generated_data["addr"], data, 1, mask)
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
             yield from self.test_module.io_in.slave_respond(0)
             yield Settle()
@@ -414,9 +406,9 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             announc = self.announce_queue.pop()
             for j in range(2):
                 if announc[j] is not None:
-                    yield from self.random_wait()
+                    yield from self.random_wait(self.max_wait)
                     yield from self.test_module.update.call(announc[j])
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
     def get_resulter(self):
         for i in range(self.tests_number):
@@ -424,7 +416,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             rob_id = self.get_result_data.pop()
             self.assertEqual(v["rob_id"], rob_id)
             self.assertEqual(v["rp_dst"], 0)
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
             self.precommit_data.pop()  # retire
 
     def precommiter(self):
@@ -445,7 +437,6 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.get_resulter)
             sim.add_sync_process(self.precommiter)
-            sim.add_sync_process(exception_consumer)
 
 
 class TestDummyLSUFence(TestCaseWithSimulator):
@@ -491,4 +482,3 @@ class TestDummyLSUFence(TestCaseWithSimulator):
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.process)
-            sim.add_sync_process(exception_consumer)

@@ -88,7 +88,7 @@ class ICacheBypass(Elaboratable, ICacheInterface):
                 addr=addr >> log2_int(self.params.word_width_bytes),
                 data=0,
                 we=0,
-                sel=Repl(1, self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
+                sel=C(1).replicate(self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
             )
 
         @def_method(m, self.accept_res)
@@ -275,7 +275,7 @@ class ICache(Elaboratable, ICacheInterface):
 
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += [
-                self.mem.way_wr_en.eq(Repl(1, self.params.num_of_ways)),
+                self.mem.way_wr_en.eq(C(1).replicate(self.params.num_of_ways)),
                 self.mem.tag_wr_index.eq(flush_index),
                 self.mem.tag_wr_data.valid.eq(0),
                 self.mem.tag_wr_data.tag.eq(0),
@@ -393,7 +393,7 @@ class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
                 addr=Cat(address["word_counter"], address["refill_address"]),
                 data=0,
                 we=0,
-                sel=Repl(1, self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
+                sel=C(1).replicate(self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
             )
 
         @def_method(m, self.start_refill, ready=~refill_active)
@@ -421,7 +421,7 @@ class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
                 address_fwd.write(m, word_counter=next_word_counter, refill_address=refill_address)
 
             return {
-                "addr": Cat(Repl(0, log2_int(self.params.word_width_bytes)), word_counter, refill_address),
+                "addr": Cat(C(0, log2_int(self.params.word_width_bytes)), word_counter, refill_address),
                 "data": fetched.data,
                 "error": fetched.err,
                 "last": last,

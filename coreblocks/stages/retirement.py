@@ -1,12 +1,13 @@
 from amaranth import *
+from coreblocks.params.layouts import RetirementLayouts
 
-from transactron.core import Method, Transaction, TModule
+from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
+from transactron.utils.dependencies import DependencyManager
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.dependencies import DependencyManager
 from coreblocks.params.isa import ExceptionCause
-from coreblocks.params.keys import GenericCSRRegistersKey
+from coreblocks.params.keys import CoreStateKey, GenericCSRRegistersKey
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
 
 
@@ -48,10 +49,14 @@ class Retirement(Elaboratable):
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
+        self.dependency_manager = gen_params.get(DependencyManager)
+        self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
+        self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
+
     def elaborate(self, platform):
         m = TModule()
 
-        m_csr = self.gen_params.get(DependencyManager).get_dependency(GenericCSRRegistersKey()).m_mode
+        m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(reset=1)
@@ -89,10 +94,23 @@ class Retirement(Elaboratable):
             # restore original rl_dst->rp_dst mapping in F-RAT
             self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
+        retire_valid = Signal()
+        with Transaction().body(m) as validate_transaction:
+            # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
+            rob_entry = self.rob_peek(m)
+            ecr_entry = self.exception_cause_get(m)
+            m.d.comb += retire_valid.eq(
+                ~rob_entry.exception | (rob_entry.exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entry.rob_id))
+            )
+
+        core_flushing = Signal()
+
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
-                with Transaction().body(m):
-                    rob_entry = self.rob_retire(m)
+                with Transaction().body(m, request=retire_valid) as retire_transaction:
+                    rob_entry = self.rob_peek(m)
+                    self.rob_retire(m)
+
                     core_empty = self.instr_decrement(m)
 
                     commit = Signal()
@@ -105,7 +123,7 @@ class Retirement(Elaboratable):
                         cause_entry = Signal(self.gen_params.isa.xlen)
 
                         with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
-                            # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR.
+                            # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR
                             # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps
                             # it is a jump result).
                             # Instruction that reported interrupt is the last one that is commited.
@@ -135,23 +153,32 @@ class Retirement(Elaboratable):
                         # Normally retire all non-trap instructions
                         m.d.av_comb += commit.eq(1)
 
-                    # Methods cannot be called multiple times from the same Transaction >:(
+                    # Condition is used to avoid FRAT locking during normal operation
                     with condition(m, priority=False) as cond:
                         with cond(commit):
                             retire_instr(rob_entry)
-                        with cond(~commit):  # Not using default, because we want to block if condition is not ready
+                        with cond(~commit):
+                            # Not using default condition, because we want to block if branch is not ready
                             flush_instr(rob_entry)
+
+                            m.d.comb += core_flushing.eq(1)
+
+                    validate_transaction.schedule_before(retire_transaction)
 
             with m.State("TRAP_FLUSH"):
                 with Transaction().body(m):
                     # Flush entire core
-                    rob_entry = self.rob_retire(m)
+                    rob_entry = self.rob_peek(m)
+                    self.rob_retire(m)
+
                     core_empty = self.instr_decrement(m)
 
                     flush_instr(rob_entry)
 
                     with m.If(core_empty):
                         m.next = "TRAP_RESUME"
+
+                m.d.comb += core_flushing.eq(1)
 
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
@@ -168,5 +195,9 @@ class Retirement(Elaboratable):
 
         # Disable executing any side effects from instructions in core when it is flushed
         m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
+
+        @def_method(m, self.core_state)
+        def _():
+            return {"flushing": core_flushing}
 
         return m

@@ -1,5 +1,4 @@
 from amaranth import *
-from transactron.core import Priority
 from transactron.lib import BasicFifo, Semaphore
 from coreblocks.frontend.icache import ICacheInterface
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
@@ -32,7 +31,6 @@ class Fetch(Elaboratable):
 
         self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
         self.stall_exception = Method()
-        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
@@ -132,7 +130,6 @@ class UnalignedFetch(Elaboratable):
 
         self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
         self.stall_exception = Method()
-        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
@@ -154,7 +151,7 @@ class UnalignedFetch(Elaboratable):
         m.d.av_comb += stalled.eq(stalled_unsafe | stalled_exception)
 
         with Transaction().body(m, request=~stalled):
-            aligned_pc = Cat(Repl(0, 2), cache_req_pc[2:])
+            aligned_pc = Cat(C(0, 2), cache_req_pc[2:])
             self.icache.issue_req(m, addr=aligned_pc)
             req_limiter.acquire(m)
 

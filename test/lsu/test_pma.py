@@ -7,7 +7,7 @@ from coreblocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.isa import *
 from coreblocks.params.keys import ExceptionReportKey
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
 from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock
@@ -125,4 +125,3 @@ class TestPMAIndirect(TestCaseWithSimulator):
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.process)
-            sim.add_sync_process(exception_consumer)

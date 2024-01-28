@@ -273,8 +273,6 @@ class ROBLayouts:
             fields.exception,
         ]
 
-        self.retire_layout: LayoutList = self.peek_layout
-
         self.get_indices: LayoutList = [self.start, self.end]
 
 
@@ -334,6 +332,11 @@ class RetirementLayouts:
         fields = gen_params.get(CommonLayoutFields)
 
         self.precommit: LayoutList = [fields.rob_id, fields.side_fx]
+
+        self.flushing = ("flushing", 1)
+        """ Core is currently flushed """
+
+        self.core_state: LayoutList = [self.flushing]
 
 
 class RSLayouts:
@@ -594,13 +597,15 @@ class ExceptionRegisterLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.get: LayoutList = [
+        self.valid = ("valid", 1)
+
+        self.report: LayoutList = [
             fields.cause,
             fields.rob_id,
             fields.pc,
         ]
 
-        self.report = self.get
+        self.get = self.report + [self.valid]
 
 
 class CoreInstructionCounterLayouts:
