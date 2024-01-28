@@ -8,9 +8,12 @@ from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast
 from abc import ABC
 from amaranth import *
 from amaranth.sim import *
+
+from transactron.utils.dependencies import DependencyManager
 from .testbenchio import TestbenchIO
 from .profiler import profiler_process, Profile
 from .functions import TestGen
+from .assertion import make_assert_handler
 from ..gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
@@ -192,6 +195,8 @@ class PysimSimulator(Simulator):
 
 
 class TestCaseWithSimulator(unittest.TestCase):
+    dependency_manager: DependencyManager
+
     def add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
             val = getattr(self, key)
@@ -228,6 +233,8 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.tested_module, TransactionModule):
             profile = Profile()
             sim.add_sync_process(profiler_process(sim.tested_module.transactionManager, profile, clk_period))
+
+        sim.add_sync_process(make_assert_handler(self.dependency_manager, self.assertTrue, clk_period))
 
         res = sim.run()
 
