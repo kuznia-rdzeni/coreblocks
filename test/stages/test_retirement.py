@@ -51,10 +51,7 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
         self.gen_params.get(DependencyManager).add_dependency(GenericCSRRegistersKey(), self.generic_csr)
 
-        m.submodules.mock_fetch_stall = self.mock_fetch_stall = TestbenchIO(Adapter())
-        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(
-            Adapter(i=fetch_layouts.branch_verify)
-        )
+        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(Adapter(i=fetch_layouts.resume))
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
             Adapter(o=core_instr_counter_layouts.decrement)
         )
@@ -72,7 +69,6 @@ class RetirementTestCircuit(Elaboratable):
             exception_cause_get=self.mock_exception_cause.adapter.iface,
             exception_cause_clear=self.mock_exception_clear.adapter.iface,
             frat_rename=self.frat.rename,
-            fetch_stall=self.mock_fetch_stall.adapter.iface,
             fetch_continue=self.mock_fetch_continue.adapter.iface,
             instr_decrement=self.mock_instr_decrement.adapter.iface,
             trap_entry=self.mock_trap_entry.adapter.iface,
@@ -156,10 +152,6 @@ class RetirementTest(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_exception_clear)
     def exception_clear_process(self):
-        pass
-
-    @def_method_mock(lambda self: self.retc.mock_fetch_stall)
-    def mock_fetch_stall(self):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_instr_decrement)

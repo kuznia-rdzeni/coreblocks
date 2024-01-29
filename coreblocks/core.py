@@ -7,7 +7,13 @@ from coreblocks.structs_common.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import (
+    BranchVerifyKey,
+    FetchResumeKey,
+    GenericCSRRegistersKey,
+    InstructionPrecommitKey,
+    WishboneDataKey,
+)
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import Extension
 from coreblocks.frontend.decode_stage import DecodeStage
@@ -67,15 +73,22 @@ class Core(Elaboratable):
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        connections = gen_params.get(DependencyManager)
-        connections.add_dependency(WishboneDataKey(), self.wb_master_data)
+        self.connections = gen_params.get(DependencyManager)
+        self.connections.add_dependency(WishboneDataKey(), self.wb_master_data)
 
-        self.exception_cause_register = ExceptionCauseRegister(self.gen_params, rob_get_indices=self.ROB.get_indices)
+        if Extension.C in self.gen_params.isa.extensions:
+            self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.method)
+        else:
+            self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.method)
+
+        self.exception_cause_register = ExceptionCauseRegister(
+            self.gen_params, rob_get_indices=self.ROB.get_indices, fetch_stall_exception=self.fetch.stall_exception
+        )
 
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
+            extra_methods_required=[InstructionPrecommitKey(), FetchResumeKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -89,7 +102,7 @@ class Core(Elaboratable):
         self.interrupt_controller = InterruptController(self.gen_params)
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)
-        connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
+        self.connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
 
     def elaborate(self, platform):
         m = TModule()
@@ -110,11 +123,8 @@ class Core(Elaboratable):
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
 
-        if Extension.C in self.gen_params.isa.extensions:
-            m.submodules.fetch = self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.use(m))
-        else:
-            m.submodules.fetch = self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.use(m))
-
+        m.submodules.fetch_continue = self.fetch_continue
+        m.submodules.fetch = self.fetch
         m.submodules.fifo_fetch = self.fifo_fetch
         m.submodules.core_counter = self.core_counter
         m.submodules.args_discard_map = self.core_counter_increment_discard_map
@@ -137,8 +147,8 @@ class Core(Elaboratable):
 
         m.submodules.exception_cause_register = self.exception_cause_register
 
-        m.submodules.verify_branch = ConnectTrans(
-            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch
+        m.submodules.fetch_resume_connector = ConnectTrans(
+            self.func_blocks_unifier.get_extra_method(FetchResumeKey()), self.fetch.resume
         )
 
         m.submodules.announcement = self.announcement
@@ -155,8 +165,7 @@ class Core(Elaboratable):
             exception_cause_get=self.exception_cause_register.get,
             exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
-            fetch_continue=self.fetch.verify_branch,
-            fetch_stall=self.fetch.stall_exception,
+            fetch_continue=self.fetch.resume,
             instr_decrement=self.core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
         )
@@ -170,5 +179,10 @@ class Core(Elaboratable):
         with Transaction(name="InitFreeRFFifo").body(m, request=(free_rf_reg.bool())):
             free_rf_fifo.write(m, free_rf_reg)
             m.d.sync += free_rf_reg.eq(free_rf_reg + 1)
+
+        # TODO: Remove when Branch Predictor implemented
+        with Transaction(name="DiscardBranchVerify").body(m):
+            read = self.connections.get_dependency(BranchVerifyKey())
+            read(m)  # Consume to not block JB Unit
 
         return m

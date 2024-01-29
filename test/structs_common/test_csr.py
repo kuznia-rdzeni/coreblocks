@@ -37,7 +37,7 @@ class CSRUnitTestCircuit(Elaboratable):
         self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
         self.gen_params.get(DependencyManager).add_dependency(AsyncInterruptInsertSignalKey(), Signal())
 
-        m.submodules.fetch_continue = self.fetch_continue = TestbenchIO(AdapterTrans(self.dut.fetch_continue))
+        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(AdapterTrans(self.dut.fetch_resume))
 
         self.csr = {}
 
@@ -111,7 +111,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         }
 
     def process_test(self):
-        yield from self.dut.fetch_continue.enable()
+        yield from self.dut.fetch_resume.enable()
         yield from self.dut.exception_report.enable()
         for _ in range(self.cycles):
             yield from self.random_wait_geom()
@@ -132,7 +132,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             yield from self.random_wait_geom()
             res = yield from self.dut.accept.call()
 
-            self.assertTrue(self.dut.fetch_continue.done())
+            self.assertTrue(self.dut.fetch_resume.done())
             self.assertEqual(res["rp_dst"], op["exp"]["exp_read"]["rp_dst"])
             if op["exp"]["exp_read"]["rp_dst"]:
                 self.assertEqual(res["result"], op["exp"]["exp_read"]["result"])
@@ -158,7 +158,7 @@ class TestCSRUnit(TestCaseWithSimulator):
     ]
 
     def process_exception_test(self):
-        yield from self.dut.fetch_continue.enable()
+        yield from self.dut.fetch_resume.enable()
         yield from self.dut.exception_report.enable()
         for csr in self.exception_csr_numbers:
             yield from self.random_wait_geom()

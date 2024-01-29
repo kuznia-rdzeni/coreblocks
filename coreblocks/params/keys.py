@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 __all__ = [
     "WishboneDataKey",
     "InstructionPrecommitKey",
-    "BranchResolvedKey",
+    "BranchVerifyKey",
+    "FetchResumeKey",
     "ExceptionReportKey",
     "GenericCSRRegistersKey",
     "AsyncInterruptInsertSignalKey",
@@ -32,7 +33,12 @@ class InstructionPrecommitKey(UnifierKey, unifier=MethodTryProduct):
 
 
 @dataclass(frozen=True)
-class BranchResolvedKey(UnifierKey, unifier=Collector):
+class BranchVerifyKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class FetchResumeKey(UnifierKey, unifier=Collector):
     pass
 
 
