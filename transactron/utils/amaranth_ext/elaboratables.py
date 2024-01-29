@@ -245,10 +245,10 @@ class RoundRobin(Elaboratable):
 class MultiPriorityEncoder(Elaboratable):
     """Priority encoder with more outputs
 
-    This is an extension of the `PriorityEncoder` from amaranth, that supports
-    generating more than one output from an input signal. In other words
-    it decodes multi-hot encoded signal to lists of signals in binary
-    format, each with index of a different high bit in input.
+    This is an extension of the `PriorityEncoder` from amaranth that supports
+    more than one output from an input signal. In other words
+    it decodes multi-hot encoded signal into lists of signals in binary
+    format, each with the index of a different high bit in the input.
 
     Attributes
     ----------
@@ -259,8 +259,8 @@ class MultiPriorityEncoder(Elaboratable):
     input : Signal, in
         Signal with 1 on `i`-th bit if `i` can be selected by encoder
     outputs : list[Signal], out
-        Signals with selected indicies, they are sorted in ascending order,
-        if the number of ready signals is less than `outputs_count`,
+        Signals with selected indicies, sorted in ascending order,
+        if the number of ready signals is less than `outputs_count`
         then valid signals are at the beginning of the list.
     valids : list[Signals], out
         One bit for each output signal, indicating whether the output is valid or not.
