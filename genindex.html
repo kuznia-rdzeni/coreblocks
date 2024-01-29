@@ -124,7 +124,7 @@
 </li>
         <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.ICacheBypass.__init__">(coreblocks.frontend.icache.ICacheBypass method)</a>
 </li>
-        <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.SimpleWBCacheRefiller.__init__">(coreblocks.frontend.icache.SimpleWBCacheRefiller method)</a>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.SimpleCommonBusCacheRefiller.__init__">(coreblocks.frontend.icache.SimpleCommonBusCacheRefiller method)</a>
 </li>
         <li><a href="coreblocks.frontend.html#coreblocks.frontend.instr_decoder.InstrDecoder.__init__">(coreblocks.frontend.instr_decoder.InstrDecoder method)</a>
 </li>
@@ -216,6 +216,8 @@
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.BranchVerifyKey.__init__">(coreblocks.params.keys.BranchVerifyKey method)</a>
 </li>
+        <li><a href="coreblocks.params.html#coreblocks.params.keys.CommonBusDataKey.__init__">(coreblocks.params.keys.CommonBusDataKey method)</a>
+</li>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.ExceptionReportKey.__init__">(coreblocks.params.keys.ExceptionReportKey method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.FetchResumeKey.__init__">(coreblocks.params.keys.FetchResumeKey method)</a>
@@ -225,8 +227,6 @@
         <li><a href="coreblocks.params.html#coreblocks.params.keys.InstructionPrecommitKey.__init__">(coreblocks.params.keys.InstructionPrecommitKey method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.MretKey.__init__">(coreblocks.params.keys.MretKey method)</a>
-</li>
-        <li><a href="coreblocks.params.html#coreblocks.params.keys.WishboneDataKey.__init__">(coreblocks.params.keys.WishboneDataKey method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.__init__">(coreblocks.params.layouts.CommonLayoutFields method)</a>
 </li>
@@ -266,6 +266,10 @@
 </li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteParameters.__init__">(coreblocks.peripherals.axi_lite.AXILiteParameters method)</a>
 </li>
+        <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.__init__">(coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter method)</a>
+</li>
+        <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.__init__">(coreblocks.peripherals.bus_adapter.WishboneMasterAdapter method)</a>
+</li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.PipelinedWishboneMaster.__init__">(coreblocks.peripherals.wishbone.PipelinedWishboneMaster method)</a>
 </li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneArbiter.__init__">(coreblocks.peripherals.wishbone.WishboneArbiter method)</a>
@@ -275,6 +279,8 @@
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneLayout.__init__">(coreblocks.peripherals.wishbone.WishboneLayout method)</a>
 </li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMaster.__init__">(coreblocks.peripherals.wishbone.WishboneMaster method)</a>
+</li>
+        <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMasterMethodLayout.__init__">(coreblocks.peripherals.wishbone.WishboneMasterMethodLayout method)</a>
 </li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMemorySlave.__init__">(coreblocks.peripherals.wishbone.WishboneMemorySlave method)</a>
 </li>
@@ -573,6 +579,8 @@
       </ul></li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster">AXILiteMaster (class in coreblocks.peripherals.axi_lite)</a>
 </li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter">AXILiteMasterAdapter (class in coreblocks.peripherals.bus_adapter)</a>
+</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteParameters">AXILiteParameters (class in coreblocks.peripherals.axi_lite)</a>
 </li>
   </ul></td>
@@ -623,10 +631,10 @@
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.BIT_MANIPULATION">BIT_MANIPULATION (coreblocks.params.optypes.OpType attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.utils.html#transactron.utils.data_repr.bits_from_int">bits_from_int() (in module transactron.utils.data_repr)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.fu_params.BlockComponentParams">BlockComponentParams (class in coreblocks.params.fu_params)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.BLT">BLT (coreblocks.params.isa.Funct3 attribute)</a>
@@ -666,6 +674,8 @@
       <li><a href="coreblocks.params.html#coreblocks.params.instr.BTypeInstr">BTypeInstr (class in coreblocks.params.instr)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.BU">BU (coreblocks.params.isa.Funct3 attribute)</a>
+</li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface">BusMasterInterface (class in coreblocks.peripherals.bus_adapter)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -740,6 +750,8 @@
 </li>
       </ul></li>
       <li><a href="transactron.utils.html#transactron.utils.assign.AssignType.COMMON">COMMON (transactron.utils.assign.AssignType attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.keys.CommonBusDataKey">CommonBusDataKey (class in coreblocks.params.keys)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields">CommonLayoutFields (class in coreblocks.params.layouts)</a>
 </li>
@@ -960,8 +972,6 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.configurations
 
@@ -969,6 +979,8 @@
         <li><a href="coreblocks.params.html#module-coreblocks.params.configurations">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.params.fu_params
 
@@ -1037,6 +1049,13 @@
 
       <ul>
         <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals.axi_lite">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.peripherals.bus_adapter
+
+      <ul>
+        <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals.bus_adapter">module</a>
 </li>
       </ul></li>
       <li>
@@ -1586,8 +1605,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Extension.G">G (coreblocks.params.isa.Extension attribute)</a>
 </li>
-      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMaster.generate_layouts">generate_layouts() (coreblocks.peripherals.wishbone.WishboneMaster method)</a>
-</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.PipelinedWishboneMaster.generate_method_layouts">generate_method_layouts() (coreblocks.peripherals.wishbone.PipelinedWishboneMaster method)</a>
 </li>
       <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr_generic.GenericCSRRegisters">GenericCSRRegisters (class in coreblocks.structs_common.csr_generic)</a>
@@ -1706,6 +1723,8 @@
         <li><a href="coreblocks.structs_common.html#coreblocks.structs_common.csr.CSRBlockComponent.get_optypes">(coreblocks.structs_common.csr.CSRBlockComponent method)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_read_response">get_read_response (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
+</li>
       <li><a href="coreblocks.utils.html#coreblocks.utils.protocols.FuncBlock.get_result">get_result (coreblocks.utils.protocols.FuncBlock attribute)</a>
 </li>
       <li><a href="coreblocks.lsu.html#coreblocks.lsu.dummyLsu.LSUBlockComponent.get_rs_entry_count">get_rs_entry_count() (coreblocks.lsu.dummyLsu.LSUBlockComponent method)</a>
@@ -1719,6 +1738,8 @@
 </li>
       </ul></li>
       <li><a href="transactron.utils.html#transactron.utils.transactron_helpers.get_src_loc">get_src_loc() (in module transactron.utils.transactron_helpers)</a>
+</li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_write_response">get_write_response (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Registers.GP">GP (coreblocks.params.isa.Registers attribute)</a>
 </li>
@@ -2082,6 +2103,8 @@
 </li>
         <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals.axi_lite">coreblocks.peripherals.axi_lite</a>
 </li>
+        <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals.bus_adapter">coreblocks.peripherals.bus_adapter</a>
+</li>
         <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals.wishbone">coreblocks.peripherals.wishbone</a>
 </li>
         <li><a href="coreblocks.scheduler.html#module-coreblocks.scheduler">coreblocks.scheduler</a>
@@ -2355,6 +2378,8 @@
         <li><a href="coreblocks.params.html#coreblocks.params.instr.UTypeInstr.pack">(coreblocks.params.instr.UTypeInstr method)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.params">params (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.CommonLayoutFields.pc">pc (coreblocks.params.layouts.CommonLayoutFields attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.phys_regs_bits">phys_regs_bits (coreblocks.params.configurations.CoreConfiguration attribute)</a>
@@ -2479,6 +2504,10 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.replace">replace() (coreblocks.params.configurations.CoreConfiguration method)</a>
 </li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_read">request_read (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
+</li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write">request_write (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.FuncUnitLayouts.result">result (coreblocks.params.layouts.FuncUnitLayouts attribute)</a>
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.result_handler">result_handler() (coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
@@ -2489,14 +2518,14 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.RetirementLayouts">RetirementLayouts (class in coreblocks.params.layouts)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct3.REV8">REV8 (coreblocks.params.isa.Funct3 attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.REV8">(coreblocks.params.isa.Funct7 attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12.REV8_32">REV8_32 (coreblocks.params.isa.Funct12 attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct12.REV8_64">REV8_64 (coreblocks.params.isa.Funct12 attribute)</a>
@@ -2689,14 +2718,14 @@
 </li>
       <li><a href="transactron.utils.html#transactron.utils.transactron_helpers.silence_mustuse">silence_mustuse() (in module transactron.utils.transactron_helpers)</a>
 </li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.SimpleCommonBusCacheRefiller">SimpleCommonBusCacheRefiller (class in coreblocks.frontend.icache)</a>
+</li>
       <li><a href="transactron.lib.html#transactron.lib.dependencies.SimpleKey">SimpleKey (class in transactron.lib.dependencies)</a>
 
       <ul>
         <li><a href="transactron.utils.html#transactron.utils.dependencies.SimpleKey">(class in transactron.utils.dependencies)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.frontend.html#coreblocks.frontend.icache.SimpleWBCacheRefiller">SimpleWBCacheRefiller (class in coreblocks.frontend.icache)</a>
-</li>
       <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.SINGLE_BIT_MANIPULATION">SINGLE_BIT_MANIPULATION (coreblocks.params.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.Funct7.SL">SL (coreblocks.params.isa.Funct7 attribute)</a>
@@ -3140,11 +3169,13 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="coreblocks.params.html#coreblocks.params.keys.WishboneDataKey">WishboneDataKey (class in coreblocks.params.keys)</a>
-</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneLayout">WishboneLayout (class in coreblocks.peripherals.wishbone)</a>
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMaster">WishboneMaster (class in coreblocks.peripherals.wishbone)</a>
+</li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter">WishboneMasterAdapter (class in coreblocks.peripherals.bus_adapter)</a>
+</li>
+      <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMasterMethodLayout">WishboneMasterMethodLayout (class in coreblocks.peripherals.wishbone)</a>
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMemorySlave">WishboneMemorySlave (class in coreblocks.peripherals.wishbone)</a>
 </li>
@@ -3329,7 +3360,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 09:21 2024-01-29.
+      <span class="lastupdated">Last updated on 13:31 2024-01-29.
       </span></p>
   </div>
 

@@ -12,6 +12,14 @@ coreblocks.peripherals.axi\_lite module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.peripherals.bus\_adapter module
+------------------------------------------
+
+.. automodule:: coreblocks.peripherals.bus_adapter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.peripherals.wishbone module
 --------------------------------------
 
