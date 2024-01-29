@@ -1,4 +1,5 @@
 from typing import (
+    Tuple,
     Callable,
     Concatenate,
     Generic,
@@ -27,6 +28,7 @@ __all__ = [
     "ValueLike",
     "StatementLike",
     "LayoutLike",
+    "SimpleLayout",
     "SwitchKey",
     "MethodLayout",
     "SrcLoc",
@@ -61,6 +63,7 @@ SrcLoc: TypeAlias = tuple[str, int]
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
 LayoutListField: TypeAlias = tuple[str, "ShapeLike | LayoutList"]
 LayoutList: TypeAlias = list[LayoutListField]
+SimpleLayout = list[Tuple[str, Union[int, "SimpleLayout"]]]
 
 RecordIntDict: TypeAlias = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet: TypeAlias = Mapping[str, Any]  # full typing hard to work with

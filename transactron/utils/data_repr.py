@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Mapping
-from ._typing import LayoutList, ShapeLike, LayoutLike
+from ._typing import LayoutList, SimpleLayout
 from typing import Any, Sized
 from statistics import fmean
 
@@ -77,7 +77,7 @@ def bits_from_int(num: int, lower: int, length: int):
     return (num >> lower) & ((1 << (length)) - 1)
 
 
-def data_layout(val: ShapeLike) -> LayoutLike:
+def data_layout(val: int) -> SimpleLayout:
     return [("data", val)]
 
 
