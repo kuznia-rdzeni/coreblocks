@@ -214,9 +214,11 @@
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.AsyncInterruptInsertSignalKey.__init__">(coreblocks.params.keys.AsyncInterruptInsertSignalKey method)</a>
 </li>
-        <li><a href="coreblocks.params.html#coreblocks.params.keys.BranchResolvedKey.__init__">(coreblocks.params.keys.BranchResolvedKey method)</a>
+        <li><a href="coreblocks.params.html#coreblocks.params.keys.BranchVerifyKey.__init__">(coreblocks.params.keys.BranchVerifyKey method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.ExceptionReportKey.__init__">(coreblocks.params.keys.ExceptionReportKey method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.keys.FetchResumeKey.__init__">(coreblocks.params.keys.FetchResumeKey method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.GenericCSRRegistersKey.__init__">(coreblocks.params.keys.GenericCSRRegistersKey method)</a>
 </li>
@@ -237,6 +239,8 @@
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.FuncUnitLayouts.__init__">(coreblocks.params.layouts.FuncUnitLayouts method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.ICacheLayouts.__init__">(coreblocks.params.layouts.ICacheLayouts method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.layouts.JumpBranchLayouts.__init__">(coreblocks.params.layouts.JumpBranchLayouts method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.layouts.LSULayouts.__init__">(coreblocks.params.layouts.LSULayouts method)</a>
 </li>
@@ -647,7 +651,7 @@
         <li><a href="coreblocks.params.html#coreblocks.params.optypes.OpType.BRANCH">(coreblocks.params.optypes.OpType attribute)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.params.html#coreblocks.params.keys.BranchResolvedKey">BranchResolvedKey (class in coreblocks.params.keys)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.keys.BranchVerifyKey">BranchVerifyKey (class in coreblocks.params.keys)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.isa.ExceptionCause.BREAKPOINT">BREAKPOINT (coreblocks.params.isa.ExceptionCause attribute)</a>
 </li>
@@ -1502,6 +1506,8 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.layouts.FetchLayouts">FetchLayouts (class in coreblocks.params.layouts)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.keys.FetchResumeKey">FetchResumeKey (class in coreblocks.params.keys)</a>
+</li>
       <li><a href="transactron.lib.html#transactron.lib.connectors.FIFO">FIFO (class in transactron.lib.connectors)</a>
 </li>
       <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.functions.flatten_signals">flatten_signals() (in module transactron.utils.amaranth_ext.functions)</a>
@@ -1857,6 +1863,8 @@
       <li><a href="coreblocks.params.html#coreblocks.params.instr.JTypeInstr">JTypeInstr (class in coreblocks.params.instr)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.jumpbranch.JumpBranchFuncUnit">JumpBranchFuncUnit (class in coreblocks.fu.jumpbranch)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.JumpBranchLayouts">JumpBranchLayouts (class in coreblocks.params.layouts)</a>
 </li>
       <li><a href="coreblocks.fu.html#coreblocks.fu.jumpbranch.JumpComponent">JumpComponent (class in coreblocks.fu.jumpbranch)</a>
 </li>
@@ -3068,7 +3076,7 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="coreblocks.params.html#coreblocks.params.keys.BranchResolvedKey.unifier">unifier (coreblocks.params.keys.BranchResolvedKey attribute)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.keys.FetchResumeKey.unifier">unifier (coreblocks.params.keys.FetchResumeKey attribute)</a>
 
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.keys.InstructionPrecommitKey.unifier">(coreblocks.params.keys.InstructionPrecommitKey attribute)</a>
@@ -3102,6 +3110,8 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.layouts.JumpBranchLayouts.verify_branch">verify_branch (coreblocks.params.layouts.JumpBranchLayouts attribute)</a>
+</li>
       <li><a href="transactron.html#transactron.core.TransactionManager.visual_graph">visual_graph() (transactron.core.TransactionManager method)</a>
 
       <ul>
@@ -3319,7 +3329,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 19:17 2024-01-27.
+      <span class="lastupdated">Last updated on 09:21 2024-01-29.
       </span></p>
   </div>
 
