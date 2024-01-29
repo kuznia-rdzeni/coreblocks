@@ -9,12 +9,10 @@ from amaranth.utils import log2_int
 from transactron.lib import AdapterTrans, Adapter
 from coreblocks.frontend.icache import SimpleCommonBusCacheRefiller, ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams, ICacheLayouts
-from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
-from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.params.configurations import test_core_config
+from test.peripherals.bus_mock import BusMasterMock, MockBusParameteres
 
 from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
-from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
 class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
@@ -25,27 +23,21 @@ class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        wb_params = WishboneParameters(
+        bus_params = MockBusParameteres(
             data_width=self.gen_params.isa.xlen,
             addr_width=self.gen_params.isa.xlen,
         )
-        self.wb_master = WishboneMaster(wb_params)
-        self.bus_master_adapter = WishboneMasterAdapter(self.wb_master)
 
-        self.refiller = SimpleCommonBusCacheRefiller(
-            self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
-        )
+        m.submodules.bus_master_mock = self.bus_master_mock = BusMasterMock(bus_params)
+
+        self.refiller = SimpleCommonBusCacheRefiller(self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_mock)
 
         self.start_refill = TestbenchIO(AdapterTrans(self.refiller.start_refill))
         self.accept_refill = TestbenchIO(AdapterTrans(self.refiller.accept_refill))
 
-        m.submodules.wb_master = self.wb_master
-        m.submodules.bus_master_adapter = self.bus_master_adapter
         m.submodules.refiller = self.refiller
         m.submodules.start_refill = self.start_refill
         m.submodules.accept_refill = self.accept_refill
-
-        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wb_master)
 
         return m
 
@@ -90,14 +82,17 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
 
                 self.bad_addresses.add(bad_addr)
 
-    def wishbone_slave(self):
+    def bus_controller(self):
         yield Passive()
 
-        while True:
-            yield from self.test_module.wb_ctrl.slave_wait()
+        bus_master_mock = self.test_module.bus_master_mock
+        bus_master_mock.activate()
 
-            # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-            addr = (yield self.test_module.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
+        while True:
+            yield from bus_master_mock.wait_for_read_request()
+
+            # Bus is addressing words, so we need to shift it a bit to get the real address.
+            addr = (yield bus_master_mock.request_read_rec.addr) << log2_int(self.cp.word_width_bytes)
 
             yield
             while random.random() < 0.5:
@@ -108,7 +103,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             data = random.randrange(2**self.gen_params.isa.xlen)
             self.mem[addr] = data
 
-            yield from self.test_module.wb_ctrl.slave_respond(data, err=err)
+            yield from bus_master_mock.respond_to_read_request(data, err)
 
             yield Settle()
 
@@ -137,7 +132,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
 
     def test(self):
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.wishbone_slave)
+            sim.add_sync_process(self.bus_controller)
             sim.add_sync_process(self.refiller_process)
 
 
@@ -149,20 +144,18 @@ class ICacheBypassTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        wb_params = WishboneParameters(
+        bus_params = MockBusParameteres(
             data_width=self.gen_params.isa.xlen,
             addr_width=self.gen_params.isa.xlen,
         )
 
-        m.submodules.wb_master = self.wb_master = WishboneMaster(wb_params)
-        m.submodules.bus_master_adapter = self.bus_master_adapter = WishboneMasterAdapter(self.wb_master)
+        m.submodules.bus_master_mock = self.bus_master_mock = BusMasterMock(bus_params)
+
         m.submodules.bypass = self.bypass = ICacheBypass(
-            self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
+            self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_mock
         )
         m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.bypass.issue_req))
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.bypass.accept_res))
-
-        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wb_master)
 
         return m
 
@@ -205,14 +198,17 @@ class TestICacheBypass(TestCaseWithSimulator):
             self.mem[addr] = random.randrange(2**self.gen_params.isa.ilen)
         return self.mem[addr]
 
-    def wishbone_slave(self):
+    def bus_controller(self):
         yield Passive()
 
-        while True:
-            yield from self.m.wb_ctrl.slave_wait()
+        bus_master_mock = self.m.bus_master_mock
+        bus_master_mock.activate()
 
-            # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-            addr = (yield self.m.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
+        while True:
+            yield from bus_master_mock.wait_for_read_request()
+
+            # Bus is addressing words, so we need to shift it a bit to get the real address.
+            addr = (yield bus_master_mock.request_read_rec.addr) << log2_int(self.cp.word_width_bytes)
 
             while random.random() < 0.5:
                 yield
@@ -223,7 +219,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             if self.gen_params.isa.xlen == 64:
                 data = self.load_or_gen_mem(addr + 4) << 32 | data
 
-            yield from self.m.wb_ctrl.slave_respond(data, err=err)
+            yield from bus_master_mock.respond_to_read_request(data, err)
 
             yield Settle()
 
@@ -248,7 +244,7 @@ class TestICacheBypass(TestCaseWithSimulator):
 
     def test(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.wishbone_slave)
+            sim.add_sync_process(self.bus_controller)
             sim.add_sync_process(self.user_process)
 
 

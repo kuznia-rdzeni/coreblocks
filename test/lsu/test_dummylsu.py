@@ -2,9 +2,10 @@ import random
 from collections import deque
 from typing import Optional
 
+from amaranth import Elaboratable, Module
 from amaranth.sim import Settle, Passive
 
-from transactron.lib import Adapter
+from transactron.lib import AdapterTrans, Adapter
 from transactron.utils import int_to_signed, signed_to_int
 from coreblocks.params import OpType, GenParams
 from coreblocks.lsu.dummyLsu import LSUDummy
@@ -13,10 +14,8 @@ from coreblocks.params.isa import *
 from coreblocks.params.keys import ExceptionReportKey
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
-from coreblocks.peripherals.wishbone import *
-from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.common import TestbenchIO, TestCaseWithSimulator, def_method_mock
-from test.peripherals.test_wishbone import WishboneInterfaceWrapper
+from test.peripherals.bus_mock import BusMasterMock, MockBusParameteres
 
 
 def generate_register(max_reg_val: int, phys_regs_bits: int) -> tuple[int, int, Optional[dict[str, int]], int]:
@@ -81,30 +80,22 @@ class DummyLSUTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        wb_params = WishboneParameters(
-            data_width=self.gen.isa.ilen,
-            addr_width=32,
-        )
-
-        self.bus = WishboneMaster(wb_params)
-        self.bus_master_adapter = WishboneMasterAdapter(self.bus)
-
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
         )
 
         self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
-        m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
+        bus_params = MockBusParameteres(data_width=self.gen.isa.ilen, addr_width=32)
+
+        m.submodules.bus_master_mock = self.bus_master_mock = BusMasterMock(bus_params)
+        m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_mock)
 
         m.submodules.select_mock = self.select = TestbenchIO(AdapterTrans(func_unit.select))
         m.submodules.insert_mock = self.insert = TestbenchIO(AdapterTrans(func_unit.insert))
         m.submodules.update_mock = self.update = TestbenchIO(AdapterTrans(func_unit.update))
         m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
         m.submodules.precommit_mock = self.precommit = TestbenchIO(AdapterTrans(func_unit.precommit))
-        self.io_in = WishboneInterfaceWrapper(self.bus.wb_master)
-        m.submodules.bus_master_adapter = self.bus_master_adapter
-        m.submodules.bus = self.bus
         return m
 
 
@@ -198,11 +189,14 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         self.generate_instr(2**7, 2**7)
         self.max_wait = 10
 
-    def wishbone_slave(self):
+    def bus_controller(self):
         yield Passive()
 
+        bus_master_mock = self.test_module.bus_master_mock
+        bus_master_mock.activate()
+
         while True:
-            yield from self.test_module.io_in.slave_wait()
+            yield from bus_master_mock.wait_for_read_request()
             generated_data = self.mem_data_queue.pop()
 
             if generated_data["misaligned"]:
@@ -210,7 +204,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
             mask = generated_data["mask"]
             sign = generated_data["sign"]
-            yield from self.test_module.io_in.slave_verify(generated_data["addr"], 0, 0, mask)
+            yield from bus_master_mock.verify_read_request(generated_data["addr"], mask)
             yield from self.random_wait(self.max_wait)
 
             resp_data = int((generated_data["rnd_bytes"][:4]).hex(), 16)
@@ -224,7 +218,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 data = int_to_signed(signed_to_int(data, size), 32)
             if not generated_data["err"]:
                 self.returned_data.append(data)
-            yield from self.test_module.io_in.slave_respond(resp_data, err=generated_data["err"])
+            yield from bus_master_mock.respond_to_read_request(resp_data, generated_data["err"])
             yield Settle()
 
     def inserter(self):
@@ -254,7 +248,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             self.assertDictEqual(arg, self.exception_queue.pop())
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.wishbone_slave)
+            sim.add_sync_process(self.bus_controller)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.consumer)
 
@@ -278,12 +272,12 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
             "imm": imm,
         }
 
-        wish_data = {
+        bus_data = {
             "addr": (s1_val + imm) >> 2,
             "mask": 0xF,
             "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
         }
-        return instr, wish_data
+        return instr, bus_data
 
     def setUp(self) -> None:
         random.seed(14)
@@ -291,18 +285,21 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         self.test_module = DummyLSUTestCircuit(self.gen_params)
 
     def one_instr_test(self):
-        instr, wish_data = self.generate_instr(2**7, 2**7)
+        instr, bus_data = self.generate_instr(2**7, 2**7)
+
+        bus_master_mock = self.test_module.bus_master_mock
+        bus_master_mock.activate()
 
         ret = yield from self.test_module.select.call()
         self.assertEqual(ret["rs_entry_id"], 0)
         yield from self.test_module.insert.call(rs_data=instr, rs_entry_id=1)
-        yield from self.test_module.io_in.slave_wait()
+        yield from bus_master_mock.wait_for_read_request()
 
-        mask = wish_data["mask"]
-        yield from self.test_module.io_in.slave_verify(wish_data["addr"], 0, 0, mask)
-        data = wish_data["rnd_bytes"][:4]
+        mask = bus_data["mask"]
+        yield from bus_master_mock.verify_read_request(bus_data["addr"], mask)
+        data = bus_data["rnd_bytes"][:4]
         data = int(data.hex(), 16)
-        yield from self.test_module.io_in.slave_respond(data)
+        yield from bus_master_mock.respond_to_read_request(data, 0)
         yield Settle()
 
         v = yield from self.test_module.get_result.call()
@@ -378,9 +375,12 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         self.generate_instr(2**7, 2**7)
         self.max_wait = 8
 
-    def wishbone_slave(self):
+    def bus_controller(self):
+        bus_master_mock = self.test_module.bus_master_mock
+        bus_master_mock.activate()
+
         for i in range(self.tests_number):
-            yield from self.test_module.io_in.slave_wait()
+            yield from bus_master_mock.wait_for_write_request()
             generated_data = self.mem_data_queue.pop()
 
             mask = generated_data["mask"]
@@ -392,10 +392,10 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 data = (int(generated_data["data"][-2:].hex(), 16) & 0xFFFF) << h_dict[mask]
             else:
                 data = int(generated_data["data"][-4:].hex(), 16)
-            yield from self.test_module.io_in.slave_verify(generated_data["addr"], data, 1, mask)
+            yield from bus_master_mock.verify_write_request(generated_data["addr"], mask, data)
             yield from self.random_wait(self.max_wait)
 
-            yield from self.test_module.io_in.slave_respond(0)
+            yield from bus_master_mock.respond_to_write_request(0)
             yield Settle()
 
     def inserter(self):
@@ -436,7 +436,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             self.assertTrue(False)
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.wishbone_slave)
+            sim.add_sync_process(self.bus_controller)
             sim.add_sync_process(self.inserter)
             sim.add_sync_process(self.get_resulter)
             sim.add_sync_process(self.precommiter)
@@ -456,12 +456,15 @@ class TestDummyLSUFence(TestCaseWithSimulator):
         }
 
     def push_one_instr(self, instr):
+        bus_master_mock = self.test_module.bus_master_mock
+        bus_master_mock.activate()
+
         yield from self.test_module.select.call()
         yield from self.test_module.insert.call(rs_data=instr, rs_entry_id=1)
 
         if instr["exec_fn"]["op_type"] == OpType.LOAD:
-            yield from self.test_module.io_in.slave_wait()
-            yield from self.test_module.io_in.slave_respond(1)
+            yield from bus_master_mock.wait_for_read_request()
+            yield from bus_master_mock.respond_to_read_request(1, 0)
             yield Settle()
         v = yield from self.test_module.get_result.call()
         if instr["exec_fn"]["op_type"] == OpType.LOAD:
