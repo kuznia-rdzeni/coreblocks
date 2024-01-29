@@ -1,12 +1,13 @@
 from amaranth import *
+from coreblocks.params.layouts import RetirementLayouts
 
-from transactron.core import Method, Transaction, TModule
+from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
 from transactron.utils.dependencies import DependencyManager
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import ExceptionCause
-from coreblocks.params.keys import GenericCSRRegistersKey
+from coreblocks.params.keys import CoreStateKey, GenericCSRRegistersKey
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
 
 
@@ -26,7 +27,6 @@ class Retirement(Elaboratable):
         exception_cause_clear: Method,
         frat_rename: Method,
         fetch_continue: Method,
-        fetch_stall: Method,
         instr_decrement: Method,
         trap_entry: Method,
     ):
@@ -42,16 +42,19 @@ class Retirement(Elaboratable):
         self.exception_cause_clear = exception_cause_clear
         self.rename = frat_rename
         self.fetch_continue = fetch_continue
-        self.fetch_stall = fetch_stall
         self.instr_decrement = instr_decrement
         self.trap_entry = trap_entry
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
 
+        self.dependency_manager = gen_params.get(DependencyManager)
+        self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
+        self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
+
     def elaborate(self, platform):
         m = TModule()
 
-        m_csr = self.gen_params.get(DependencyManager).get_dependency(GenericCSRRegistersKey()).m_mode
+        m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(reset=1)
@@ -98,6 +101,10 @@ class Retirement(Elaboratable):
                 ~rob_entry.exception | (rob_entry.exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entry.rob_id))
             )
 
+        continue_pc_override = Signal()
+        continue_pc = Signal(self.gen_params.isa.xlen)
+        core_flushing = Signal()
+
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
                 with Transaction().body(m, request=retire_valid) as retire_transaction:
@@ -109,11 +116,11 @@ class Retirement(Elaboratable):
                     commit = Signal()
 
                     with m.If(rob_entry.exception):
-                        self.fetch_stall(m)
-
                         cause_register = self.exception_cause_get(m)
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
+
+                        arch_trap = Signal(reset=1)
 
                         with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
                             # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR
@@ -125,6 +132,14 @@ class Retirement(Elaboratable):
                             # TODO: set correct interrupt id from InterruptController
                             # Set MSB - the Interrupt bit
                             m.d.av_comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
+                        with m.Elif(cause_register.cause == ExceptionCause._COREBLOCKS_MISPREDICTION):
+                            # Branch misprediction - commit jump, flush core and continue from correct pc.
+                            m.d.av_comb += commit.eq(1)
+                            # Do not modify trap related CSRs
+                            m.d.av_comb += arch_trap.eq(0)
+
+                            m.d.sync += continue_pc_override.eq(1)
+                            m.d.sync += continue_pc.eq(cause_register.pc)
                         with m.Else():
                             # RISC-V synchronous exceptions - don't retire instruction that caused exception,
                             # and later resume from it.
@@ -133,10 +148,13 @@ class Retirement(Elaboratable):
 
                             m.d.av_comb += cause_entry.eq(cause_register.cause)
 
-                        m_csr.mcause.write(m, cause_entry)
-                        m_csr.mepc.write(m, cause_register.pc)
-                        self.trap_entry(m)
+                        with m.If(arch_trap):
+                            # Register RISC-V architectural trap in CSRs
+                            m_csr.mcause.write(m, cause_entry)
+                            m_csr.mepc.write(m, cause_register.pc)
+                            self.trap_entry(m)
 
+                        # Fetch is already stalled by ExceptionCauseRegister
                         with m.If(core_empty):
                             m.next = "TRAP_RESUME"
                         with m.Else():
@@ -154,6 +172,8 @@ class Retirement(Elaboratable):
                             # Not using default condition, because we want to block if branch is not ready
                             flush_instr(rob_entry)
 
+                            m.d.comb += core_flushing.eq(1)
+
                     validate_transaction.schedule_before(retire_transaction)
 
             with m.State("TRAP_FLUSH"):
@@ -169,13 +189,20 @@ class Retirement(Elaboratable):
                     with m.If(core_empty):
                         m.next = "TRAP_RESUME"
 
+                m.d.comb += core_flushing.eq(1)
+
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
                     # Resume core operation
 
+                    handler_pc = Signal(self.gen_params.isa.xlen)
                     # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
-                    resume_pc = m_csr.mtvec.read(m) & ~(0b11)
-                    self.fetch_continue(m, from_pc=0, next_pc=resume_pc, resume_from_exception=1)
+                    m.d.av_comb += handler_pc.eq(m_csr.mtvec.read(m) & ~(0b11))
+
+                    resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
+                    m.d.sync += continue_pc_override.eq(0)
+
+                    self.fetch_continue(m, pc=resume_pc, resume_from_exception=1)
 
                     # Release pending trap state - allow accepting new reports
                     self.exception_cause_clear(m)
@@ -184,5 +211,9 @@ class Retirement(Elaboratable):
 
         # Disable executing any side effects from instructions in core when it is flushed
         m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
+
+        @def_method(m, self.core_state)
+        def _():
+            return {"flushing": core_flushing}
 
         return m

@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 __all__ = [
     "CommonBusDataKey",
     "InstructionPrecommitKey",
-    "BranchResolvedKey",
+    "BranchVerifyKey",
+    "FetchResumeKey",
     "ExceptionReportKey",
     "GenericCSRRegistersKey",
     "AsyncInterruptInsertSignalKey",
@@ -32,7 +33,12 @@ class InstructionPrecommitKey(UnifierKey, unifier=MethodTryProduct):
 
 
 @dataclass(frozen=True)
-class BranchResolvedKey(UnifierKey, unifier=Collector):
+class BranchVerifyKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class FetchResumeKey(UnifierKey, unifier=Collector):
     pass
 
 
@@ -53,4 +59,9 @@ class AsyncInterruptInsertSignalKey(SimpleKey[Signal]):
 
 @dataclass(frozen=True)
 class MretKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class CoreStateKey(SimpleKey[Method]):
     pass

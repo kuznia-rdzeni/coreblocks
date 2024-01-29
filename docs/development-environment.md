@@ -40,6 +40,7 @@ The `run_tests.py` script has the following options:
 
 * `-l`, `--list` -- lists available tests. This option is helpful, e.g., to find a name of a test generated using the `parameterized` package.
 * `-t`, `--trace` -- generates waveforms in the `vcd` format and `gtkw` files for the `gtkwave` tool. The files are saved in the `test/__traces__/` directory. Useful for debugging and test-driven development.
+* `-p`, `--profile` -- generates Transactron execution profile information, which can then be read by the script `tprof.py`. The files are saved in the `test/__profile__/` directory. Useful for analyzing performance.
 * `-v`, `--verbose` -- makes the test runner more verbose. It will, for example, print the names of all the tests being run.
 
 ### lint.sh
@@ -76,3 +77,35 @@ The `core_graph.py` script has the following options:
 ### build\_docs.sh
 
 Generates local documentation using [Sphinx](https://www.sphinx-doc.org/). The generated HTML files are located in `build/html`.
+
+### tprof.py
+
+Processes Transactron profile files and presents them in a readable way.
+To generate a profile file, the `run_tests.py` script should be used with the `--profile` option.
+The `tprof.py` can then be run as follows:
+
+```
+scripts/tprof.py test/__profile__/profile_file.json
+```
+
+This displays the profile information about transactions by default.
+For method profiles, one should use the `--mode=methods` option.
+
+The columns have the following meaning:
+
+* `name` -- the name of the transaction or method in question. The method names are displayed together with the containing module name to differentiate between identically named methods in different modules.
+* `source location` -- the file and line where the transaction or method was declared. Used to further disambiguate transaction/methods.
+* `locked` -- for methods, shows the number of cycles the method was locked by the caller (called with a false condition). For transactions, shows the number of cycles the transaction could run, but was forced to wait by another, conflicting, transaction.
+* `run` -- shows the number of cycles the given method/transaction was running.
+
+To display information about method calls, one can use the `--call-graph` option.
+When displaying transaction profiles, this option produces a call graph. For each transaction, there is a tree of methods which are called by this transaction.
+Counters presented in the tree shows information about the calls from the transaction in the root of the tree: if a method is also called by a different transaction, these calls are not counted.
+When displaying method profiles, an inverted call graph is produced: the transactions are in the leaves, and the children nodes are the callers of the method in question.
+In this mode, the `locked` field in the tree shows how many cycles a given method or transaction was responsible for locking the method in the root.
+
+Other options of `tprof.py` are:
+
+* `--sort` -- selects which column is used for sorting rows.
+* `--filter-name` -- filters rows by name. Regular expressions can be used.
+* `--filter-loc` -- filters rows by source locations. Regular expressions can be used.
