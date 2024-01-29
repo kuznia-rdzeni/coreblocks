@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1706535468555,
+  "lastUpdate": 1706536173462,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -6399,6 +6399,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nsichneu",
             "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "70346597+makz00@users.noreply.github.com",
+            "name": "Maksymilian Komarnicki",
+            "username": "makz00"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1888131a9f713af6e114b0eb6a6189dcb1304fd3",
+          "message": "Add adapter module for bus (#566)",
+          "timestamp": "2024-01-29T14:30:38+01:00",
+          "tree_id": "bc272de31109e2d3dfc37ae3cd48ab24b4d17236",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/1888131a9f713af6e114b0eb6a6189dcb1304fd3"
+        },
+        "date": 1706536171339,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "crc32",
+            "value": 0.3008663337319172,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.464452895145921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2152619862603825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.1814903648969226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.16937939273068717,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.2707173800277587,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.24238811346240433,
             "unit": "Instructions Per Cycle"
           }
         ]
