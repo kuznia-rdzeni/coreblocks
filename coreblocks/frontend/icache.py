@@ -11,10 +11,10 @@ from coreblocks.params import ICacheLayouts, ICacheParameters
 from transactron.utils import assign, OneHotSwitchDynamic
 from transactron.utils._typing import HasElaborate
 from transactron.lib import *
-from coreblocks.peripherals.wishbone import WishboneMaster
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 
-__all__ = ["ICache", "ICacheBypass", "ICacheInterface", "SimpleWBCacheRefiller"]
+__all__ = ["ICache", "ICacheBypass", "ICacheInterface", "SimpleCommonBusCacheRefiller"]
 
 
 def extract_instr_from_word(m: TModule, params: ICacheParameters, word: Signal, addr: Value):
@@ -67,9 +67,9 @@ class CacheRefillerInterface(HasElaborate, Protocol):
 
 
 class ICacheBypass(Elaboratable, ICacheInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, wb_master: WishboneMaster) -> None:
+    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface) -> None:
         self.params = params
-        self.wb_master = wb_master
+        self.bus_master = bus_master
 
         self.issue_req = Method(i=layouts.issue_req)
         self.accept_res = Method(o=layouts.accept_res)
@@ -83,17 +83,15 @@ class ICacheBypass(Elaboratable, ICacheInterface):
         @def_method(m, self.issue_req)
         def _(addr: Value) -> None:
             m.d.sync += req_addr.eq(addr)
-            self.wb_master.request(
+            self.bus_master.request_read(
                 m,
                 addr=addr >> log2_int(self.params.word_width_bytes),
-                data=0,
-                we=0,
-                sel=C(1).replicate(self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
+                sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
             )
 
         @def_method(m, self.accept_res)
         def _():
-            res = self.wb_master.result(m)
+            res = self.bus_master.get_read_response(m)
             return {
                 "instr": extract_instr_from_word(m, self.params, res.data, req_addr),
                 "error": res.err,
@@ -367,10 +365,10 @@ class ICacheMemory(Elaboratable):
         return m
 
 
-class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, wb_master: WishboneMaster):
+class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
+    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface):
         self.params = params
-        self.wb_master = wb_master
+        self.bus_master = bus_master
 
         self.start_refill = Method(i=layouts.start_refill)
         self.accept_refill = Method(o=layouts.accept_refill)
@@ -388,12 +386,10 @@ class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
 
         with Transaction().body(m):
             address = address_fwd.read(m)
-            self.wb_master.request(
+            self.bus_master.request_read(
                 m,
                 addr=Cat(address["word_counter"], address["refill_address"]),
-                data=0,
-                we=0,
-                sel=C(1).replicate(self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
+                sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
             )
 
         @def_method(m, self.start_refill, ready=~refill_active)
@@ -407,7 +403,7 @@ class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
 
         @def_method(m, self.accept_refill, ready=refill_active)
         def _():
-            fetched = self.wb_master.result(m)
+            fetched = self.bus_master.get_read_response(m)
 
             last = (word_counter == (self.params.words_in_block - 1)) | fetched.err
 

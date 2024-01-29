@@ -12,7 +12,7 @@ from coreblocks.params.keys import (
     FetchResumeKey,
     GenericCSRRegistersKey,
     InstructionPrecommitKey,
-    WishboneDataKey,
+    CommonBusDataKey,
 )
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import Extension
@@ -25,7 +25,8 @@ from coreblocks.structs_common.exception import ExceptionCauseRegister
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
-from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
+from coreblocks.frontend.icache import ICache, SimpleCommonBusCacheRefiller, ICacheBypass
+from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
@@ -44,6 +45,9 @@ class Core(Elaboratable):
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
 
+        self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
+        self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data)
+
         self.core_counter = CoreInstructionCounter(self.gen_params)
 
         # make fetch_continue visible outside the core for injecting instructions
@@ -61,12 +65,12 @@ class Core(Elaboratable):
 
         cache_layouts = self.gen_params.get(ICacheLayouts)
         if gen_params.icache_params.enable:
-            self.icache_refiller = SimpleWBCacheRefiller(
-                cache_layouts, self.gen_params.icache_params, self.wb_master_instr
+            self.icache_refiller = SimpleCommonBusCacheRefiller(
+                cache_layouts, self.gen_params.icache_params, self.bus_master_instr_adapter
             )
             self.icache = ICache(cache_layouts, self.gen_params.icache_params, self.icache_refiller)
         else:
-            self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
+            self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.bus_master_instr_adapter)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -74,7 +78,7 @@ class Core(Elaboratable):
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
         self.connections = gen_params.get(DependencyManager)
-        self.connections.add_dependency(WishboneDataKey(), self.wb_master_data)
+        self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
 
         if Extension.C in self.gen_params.isa.extensions:
             self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.method)
@@ -107,11 +111,14 @@ class Core(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.d.comb += self.wb_master_instr.wbMaster.connect(self.wb_instr_bus)
-        m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_data_bus)
+        m.d.comb += self.wb_master_instr.wb_master.connect(self.wb_instr_bus)
+        m.d.comb += self.wb_master_data.wb_master.connect(self.wb_data_bus)
 
         m.submodules.wb_master_instr = self.wb_master_instr
         m.submodules.wb_master_data = self.wb_master_data
+
+        m.submodules.bus_master_instr_adapter = self.bus_master_instr_adapter
+        m.submodules.bus_master_data_adapter = self.bus_master_data_adapter
 
         m.submodules.free_rf_fifo = free_rf_fifo = self.free_rf_fifo
         m.submodules.FRAT = frat = self.FRAT

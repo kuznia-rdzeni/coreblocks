@@ -21,6 +21,7 @@ class AXILiteParameters:
     def __init__(self, *, data_width: int = 64, addr_width: int = 64):
         self.data_width = data_width
         self.addr_width = addr_width
+        self.granularity = 8
 
 
 class AXILiteLayout:
@@ -174,6 +175,8 @@ class AXILiteMaster(Elaboratable):
 
     def __init__(self, axil_params: AXILiteParameters):
         self.axil_params = axil_params
+        self.axil_layout = AXILiteLayout(self.axil_params).axil_layout
+        self.axil_master = Record(self.axil_layout)
 
         self.method_layouts = AXILiteMasterMethodLayouts(self.axil_params)
 
@@ -222,9 +225,6 @@ class AXILiteMaster(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-
-        self.axil_layout = AXILiteLayout(self.axil_params).axil_layout
-        self.axil_master = Record(self.axil_layout)
 
         m.submodules.rd_forwarder = rd_forwarder = Forwarder(self.method_layouts.rd_response_layout)
         m.submodules.wr_forwarder = wr_forwarder = Forwarder(self.method_layouts.wr_response_layout)
