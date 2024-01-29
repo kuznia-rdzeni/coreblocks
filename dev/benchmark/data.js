@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1706535377447,
+  "lastUpdate": 1706535468555,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -22034,6 +22034,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 8522,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "70346597+makz00@users.noreply.github.com",
+            "name": "Maksymilian Komarnicki",
+            "username": "makz00"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1888131a9f713af6e114b0eb6a6189dcb1304fd3",
+          "message": "Add adapter module for bus (#566)",
+          "timestamp": "2024-01-29T14:30:38+01:00",
+          "tree_id": "bc272de31109e2d3dfc37ae3cd48ab24b4d17236",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/1888131a9f713af6e114b0eb6a6189dcb1304fd3"
+        },
+        "date": 1706535466546,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 42.76,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23927,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1476,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1096,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8538,
             "unit": "LUT"
           }
         ]
