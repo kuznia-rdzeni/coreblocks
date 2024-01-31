@@ -73,8 +73,11 @@ def escape_verilog_identifier(identifier: str) -> str:
     return identifier
 
 
-def build_gen_info(gen_params: GenParams, name_map: SignalDict) -> CoreGenInfo:
-    gen_info = CoreGenInfo()
+def collect_metric_locations(gen_params: GenParams, name_map: SignalDict) -> dict[str, CoreMetricLocation]:
+    if not gen_params.hardware_metrics_enabled:
+        return {}
+
+    core_metrics_location: dict[str, CoreMetricLocation] = {}
 
     # Collect information about the location of metric registers in the generated code.
     metrics_manager = HardwareMetricsManager(gen_params.get(DependencyManager))
@@ -89,9 +92,9 @@ def build_gen_info(gen_params: GenParams, name_map: SignalDict) -> CoreGenInfo:
 
             metric_loc.regs[reg_name] = signal_location
 
-        gen_info.core_metrics_location[metric_name] = metric_loc
+        core_metrics_location[metric_name] = metric_loc
 
-    return gen_info
+    return core_metrics_location
 
 
 def gen_verilog(core_config: CoreConfiguration, output_path: str):
@@ -103,7 +106,7 @@ def gen_verilog(core_config: CoreConfiguration, output_path: str):
     fragment = ir.Fragment.get(top, platform=None).prepare(ports=ports)
     verilog_text, name_map = verilog.convert_fragment(fragment, name="top", emit_src=True, strip_internal_attrs=True)
 
-    gen_info = build_gen_info(gp, name_map)  # type: ignore
+    gen_info = CoreGenInfo(core_metrics_location=collect_metric_locations(gp, name_map))  # type: ignore
     gen_info.encode(f"{output_path}.json")
 
     with open(output_path, "w") as f:
@@ -129,6 +132,12 @@ def main():
     )
 
     parser.add_argument(
+        "--strip-debug",
+        action="store_true",
+        help="Remove debugging signals. Default: %(default)s",
+    )
+
+    parser.add_argument(
         "-o", "--output", action="store", default="core.v", help="Output file path. Default: %(default)s"
     )
 
@@ -139,7 +148,11 @@ def main():
     if args.config not in str_to_coreconfig:
         raise KeyError(f"Unknown config '{args.config}'")
 
-    gen_verilog(str_to_coreconfig[args.config], args.output)
+    config = str_to_coreconfig[args.config]
+    if args.strip_debug:
+        config = config.replace(hardware_metrics=False)
+
+    gen_verilog(config, args.output)
 
 
 if __name__ == "__main__":

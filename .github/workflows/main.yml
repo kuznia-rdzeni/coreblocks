@@ -40,7 +40,9 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: "verilog-full-core"
-          path: core.v
+          path: |
+            core.v
+            core.v.json
 
 
   build-riscof-tests:
