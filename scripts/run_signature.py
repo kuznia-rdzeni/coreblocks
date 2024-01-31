@@ -31,6 +31,9 @@ def run_with_cocotb(test_name: str, traces: bool, output: str) -> bool:
     arglist += [f"TESTNAME={test_name}"]
     arglist += [f"OUTPUT={output}"]
 
+    verilog_code = parent.joinpath("core.v")
+    arglist += [f"VERILOG_SOURCES={verilog_code}"]
+
     if traces:
         arglist += ["TRACES=1"]
 
