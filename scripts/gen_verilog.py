@@ -7,6 +7,8 @@ import argparse
 from amaranth.build import Platform
 from amaranth.back import verilog
 from amaranth import Module, Elaboratable
+from amaranth.hdl import ir
+from amaranth.hdl.ast import SignalDict
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,8 +17,10 @@ if __name__ == "__main__":
 from coreblocks.params.genparams import GenParams
 from coreblocks.peripherals.wishbone import WishboneBus
 from coreblocks.core import Core
+from coreblocks.utils.gen_info import *
+from coreblocks.structs_common.hw_metrics import HardwareMetricsManager
 from transactron import TransactionModule
-from transactron.utils import flatten_signals
+from transactron.utils import flatten_signals, DependencyManager
 
 from coreblocks.params.configurations import *
 
@@ -43,13 +47,67 @@ class Top(Elaboratable):
         return tm
 
 
-def gen_verilog(core_config: CoreConfiguration, output_path):
-    top = Top(GenParams(core_config))
+def escape_verilog_identifier(identifier: str) -> str:
+    """
+    Escapes a Verilog identifier according to the language standard.
+
+    From IEEE Std 1364-2001 (IEEE Standard Verilog® Hardware Description Language)
+
+    "2.7.1 Escaped identifiers
+
+    Escaped identifiers shall start with the backslash character and end with white
+    space (space, tab, newline). They provide a means of including any of the printable ASCII
+    characters in an identifier (the decimal values 33 through 126, or 21 through 7E in hexadecimal)."
+    """
+
+    # The standard says how to escape a identifier, but not when. So this is
+    # a non-exhaustive list of characters that Yosys escapes (it is used
+    # by Amaranth when generating Verilog code).
+    characters_to_escape = [".", "$"]
+
+    for char in characters_to_escape:
+        if char in identifier:
+            # Note the intentional space at the end.
+            return f"\\{identifier} "
+
+    return identifier
+
+
+def build_gen_info(gen_params: GenParams, name_map: SignalDict) -> CoreGenInfo:
+    gen_info = CoreGenInfo()
+
+    # Collect information about the location of metric registers in the generated code.
+    metrics_manager = HardwareMetricsManager(gen_params.get(DependencyManager))
+    for metric_name, metric in metrics_manager.get_metrics().items():
+        metric_loc = CoreMetricLocation()
+        for reg_name in metric.regs:
+            signal_location = name_map[metrics_manager.get_register_value(metric_name, reg_name)]
+
+            # Amaranth escapes identifiers when generating Verilog code, but returns non-escaped identifiers
+            # in the name map, so we need to take care of it manually.
+            signal_location = [escape_verilog_identifier(component) for component in signal_location]
+
+            metric_loc.regs[reg_name] = signal_location
+
+        gen_info.core_metrics_location[metric_name] = metric_loc
+
+    return gen_info
+
+
+def gen_verilog(core_config: CoreConfiguration, output_path: str):
+    gp = GenParams(core_config)
+    top = Top(gp)
+
+    ports = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
+
+    fragment = ir.Fragment.get(top, platform=None).prepare(ports=ports)
+    verilog_text, name_map = verilog.convert_fragment(fragment, name="top", emit_src=True, strip_internal_attrs=True)
+
+    gen_info = build_gen_info(gp, name_map)  # type: ignore
+    gen_info.encode(f"{output_path}.json")
 
     with open(output_path, "w") as f:
-        signals = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
-
-        f.write(verilog.convert(top, ports=signals, strip_internal_attrs=True))
+        f.write(verilog_text)
 
 
 def main():

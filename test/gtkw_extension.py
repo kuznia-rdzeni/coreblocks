@@ -29,11 +29,7 @@ class _VCDWriterExt(_VCDWriter):
                 elif len(traces.fields) == 1:  # to make gtkwave view less verbose
                     gtkw_traces(next(iter(traces.fields.values())))
             elif isinstance(traces, Signal):
-                if len(traces) > 1 and not traces.decoder:
-                    suffix = "[{}:0]".format(len(traces) - 1)
-                else:
-                    suffix = ""
-                self.gtkw_save.trace(".".join(self.gtkw_names[traces]) + suffix)
+                self.gtkw_save.trace(".".join(self.gtkw_names[traces]))
 
         if self.vcd_writer is not None:
             self.vcd_writer.close(timestamp)

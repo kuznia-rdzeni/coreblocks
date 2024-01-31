@@ -9,6 +9,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import ExceptionCause
 from coreblocks.params.keys import CoreStateKey, GenericCSRRegistersKey
 from coreblocks.structs_common.csr_generic import CSRAddress, DoubleCounterCSR
+from coreblocks.structs_common.hw_metrics import HwCounter
 
 
 class Retirement(Elaboratable):
@@ -46,6 +47,9 @@ class Retirement(Elaboratable):
         self.trap_entry = trap_entry
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
+        self.perf_instr_ret = HwCounter(
+            gen_params, "backend.retirement.retired_instr", "Number of retired instructions"
+        )
 
         self.dependency_manager = gen_params.get(DependencyManager)
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
@@ -53,6 +57,8 @@ class Retirement(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [self.perf_instr_ret]
 
         m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
@@ -81,6 +87,7 @@ class Retirement(Elaboratable):
             free_phys_reg(rat_out.old_rp_dst)
 
             self.instret_csr.increment(m)
+            self.perf_instr_ret.incr(m)
 
         def flush_instr(rob_entry):
             # get original rp_dst mapped to instruction rl_dst in R-RAT

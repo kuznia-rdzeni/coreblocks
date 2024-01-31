@@ -48,6 +48,8 @@ class CoreConfiguration:
         Enables 16-bit Compressed Instructions extension.
     embedded: bool
         Enables Reduced Integer (E) extension.
+    hardware_metrics: bool
+        Enable hardware metrics. If disabled, metrics will not be synthesized.
     phys_regs_bits: int
         Size of the Physical Register File is 2**phys_regs_bits.
     rob_entries_bits: int
@@ -75,6 +77,8 @@ class CoreConfiguration:
 
     compressed: bool = False
     embedded: bool = False
+
+    hardware_metrics: bool = True
 
     phys_regs_bits: int = 6
     rob_entries_bits: int = 7

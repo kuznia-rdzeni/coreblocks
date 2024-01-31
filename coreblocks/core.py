@@ -68,7 +68,7 @@ class Core(Elaboratable):
             self.icache_refiller = SimpleCommonBusCacheRefiller(
                 cache_layouts, self.gen_params.icache_params, self.bus_master_instr_adapter
             )
-            self.icache = ICache(cache_layouts, self.gen_params.icache_params, self.icache_refiller)
+            self.icache = ICache(self.gen_params, self.icache_refiller)
         else:
             self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.bus_master_instr_adapter)
 

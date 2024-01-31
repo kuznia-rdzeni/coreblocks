@@ -2,7 +2,6 @@ import sys
 import os
 import random
 import unittest
-import functools
 from contextlib import contextmanager, nullcontext
 from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias
 from abc import ABC
@@ -147,6 +146,7 @@ class PysimSimulator(Simulator):
         max_cycles: float = 10e4,
         add_transaction_module=True,
         traces_file=None,
+        extra_debug_signals: list[HasDebugSignals] = [],
         clk_period=1e-6,
     ):
         test_module = _TestModule(module, add_transaction_module)
@@ -155,25 +155,26 @@ class PysimSimulator(Simulator):
 
         self.add_clock(clk_period)
 
-        if isinstance(tested_module, HasDebugSignals):
-            extra_signals = tested_module.debug_signals
-        else:
-            extra_signals = functools.partial(auto_debug_signals, tested_module)
-
         if traces_file:
             traces_dir = "test/__traces__"
             os.makedirs(traces_dir, exist_ok=True)
-            # Signal handling is hacky and accesses Simulator internals.
-            # TODO: try to merge with Amaranth.
-            if isinstance(extra_signals, Callable):
-                extra_signals = extra_signals()
+
+            if isinstance(tested_module, HasDebugSignals):
+                debug_signals = [tested_module.debug_signals()]
+            else:
+                debug_signals = [auto_debug_signals(tested_module)]
+
+            debug_signals += [obj.debug_signals() for obj in extra_debug_signals]
+
             clocks = [d.clk for d in cast(Any, self)._fragment.domains.values()]
 
+            # Signal handling is hacky and accesses Simulator internals.
+            # TODO: try to merge with Amaranth.
             self.ctx = write_vcd_ext(
                 cast(Any, self)._engine,
                 f"{traces_dir}/{traces_file}.vcd",
                 f"{traces_dir}/{traces_file}.gtkw",
-                traces=[clocks, extra_signals],
+                traces=[clocks, debug_signals],
             )
         else:
             self.ctx = nullcontext()
@@ -208,7 +209,13 @@ class TestCaseWithSimulator(unittest.TestCase):
         self.add_local_mocks(sim, frame_locals)
 
     @contextmanager
-    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
+    def run_simulation(
+        self,
+        module: HasElaborate,
+        max_cycles: float = 10e4,
+        add_transaction_module=True,
+        extra_debug_signals: list[HasDebugSignals] = [],
+    ):
         traces_file = None
         if "__COREBLOCKS_DUMP_TRACES" in os.environ:
             traces_file = unittest.TestCase.id(self)
@@ -219,6 +226,7 @@ class TestCaseWithSimulator(unittest.TestCase):
             max_cycles=max_cycles,
             add_transaction_module=add_transaction_module,
             traces_file=traces_file,
+            extra_debug_signals=extra_debug_signals,
             clk_period=clk_period,
         )
         self.add_all_mocks(sim, sys._getframe(2).f_locals)

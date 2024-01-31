@@ -7,7 +7,9 @@ from amaranth.utils import log2_int
 
 from transactron.core import def_method, Priority, TModule
 from transactron import Method, Transaction
+from coreblocks.structs_common.hw_metrics import HwCounter, LatencyMeasurer
 from coreblocks.params import ICacheLayouts, ICacheParameters
+from coreblocks.params.genparams import GenParams
 from transactron.utils import assign, OneHotSwitchDynamic
 from transactron.utils._typing import HasElaborate
 from transactron.lib import *
@@ -118,7 +120,7 @@ class ICache(Elaboratable, ICacheInterface):
     the next transfer is started.
     """
 
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, refiller: CacheRefillerInterface) -> None:
+    def __init__(self, gen_params: GenParams, refiller: CacheRefillerInterface) -> None:
         """
         Parameters
         ----------
@@ -132,13 +134,13 @@ class ICache(Elaboratable, ICacheInterface):
         refiller_accept : Method
             A method with output layout ICacheLayouts.accept_refill
         """
-        self.layouts = layouts
-        self.params = params
+        self.layouts = gen_params.get(ICacheLayouts)
+        self.params = gen_params.icache_params
 
         self.refiller = refiller
 
-        self.issue_req = Method(i=layouts.issue_req)
-        self.accept_res = Method(o=layouts.accept_res)
+        self.issue_req = Method(i=self.layouts.issue_req)
+        self.accept_res = Method(o=self.layouts.accept_res)
         self.flush = Method()
         self.flush.add_conflict(self.issue_req, Priority.LEFT)
 
@@ -147,6 +149,17 @@ class ICache(Elaboratable, ICacheInterface):
             ("index", self.params.index_bits),
             ("tag", self.params.tag_bits),
         ]
+
+        self.perf_loads = HwCounter(
+            gen_params, "frontend.icache.loads", "Number of requests to the L1 Instruction Cache"
+        )
+        self.perf_hits = HwCounter(gen_params, "frontend.icache.hits")
+        self.perf_misses = HwCounter(gen_params, "frontend.icache.misses")
+        self.perf_errors = HwCounter(gen_params, "frontend.icache.fetch_errors")
+        self.perf_flushes = HwCounter(gen_params, "frontend.icache.flushes")
+        self.req_latency = LatencyMeasurer(
+            gen_params, "frontend.icache.req_latency", "Latencies of cache requests", slots_number=2, max_latency=500
+        )
 
     def deserialize_addr(self, raw_addr: Value) -> dict[str, Value]:
         return {
@@ -161,6 +174,15 @@ class ICache(Elaboratable, ICacheInterface):
     def elaborate(self, platform):
         m = TModule()
 
+        m.submodules += [
+            self.perf_loads,
+            self.perf_hits,
+            self.perf_misses,
+            self.perf_errors,
+            self.perf_flushes,
+            self.req_latency,
+        ]
+
         m.submodules.mem = self.mem = ICacheMemory(self.params)
         m.submodules.req_fifo = self.req_fifo = FIFO(layout=self.addr_layout, depth=2)
         m.submodules.res_fwd = self.res_fwd = Forwarder(layout=self.layouts.accept_res)
@@ -168,10 +190,14 @@ class ICache(Elaboratable, ICacheInterface):
         # State machine logic
         needs_refill = Signal()
         refill_finish = Signal()
+        refill_finish_last = Signal()
         refill_error = Signal()
 
         flush_start = Signal()
         flush_finish = Signal()
+
+        with Transaction().body(m):
+            self.perf_flushes.incr_when(m, flush_finish)
 
         with m.FSM(reset="FLUSH") as fsm:
             with m.State("FLUSH"):
@@ -212,12 +238,17 @@ class ICache(Elaboratable, ICacheInterface):
         m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_saved)
 
         with Transaction().body(m, request=request_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_saved)):
+            self.perf_errors.incr_when(m, refill_error_saved)
+            self.perf_misses.incr_when(m, refill_finish_last)
+            self.perf_hits.incr_when(m, ~refill_finish_last)
+
             self.res_fwd.write(m, instr=instr_out, error=refill_error_saved)
             m.d.sync += refill_error_saved.eq(0)
 
         @def_method(m, self.accept_res)
         def _():
             self.req_fifo.read(m)
+            self.req_latency.stop(m)
             return self.res_fwd.read(m)
 
         mem_read_addr = Record(self.addr_layout)
@@ -225,6 +256,9 @@ class ICache(Elaboratable, ICacheInterface):
 
         @def_method(m, self.issue_req, ready=accepting_requests)
         def _(addr: Value) -> None:
+            self.perf_loads.incr(m)
+            self.req_latency.start(m)
+
             deserialized = self.deserialize_addr(addr)
             # Forward read address only if the method is called
             m.d.comb += assign(mem_read_addr, deserialized)
@@ -256,6 +290,8 @@ class ICache(Elaboratable, ICacheInterface):
             aligned_addr = self.serialize_addr(request_addr) & ~((1 << self.params.offset_bits) - 1)
             self.refiller.start_refill(m, addr=aligned_addr)
 
+        m.d.sync += refill_finish_last.eq(0)
+
         with Transaction().body(m):
             ret = self.refiller.accept_refill(m)
             deserialized = self.deserialize_addr(ret.addr)
@@ -268,6 +304,7 @@ class ICache(Elaboratable, ICacheInterface):
 
             m.d.comb += self.mem.data_wr_en.eq(1)
             m.d.comb += refill_finish.eq(ret.last)
+            m.d.sync += refill_finish_last.eq(1)
             m.d.comb += refill_error.eq(ret.error)
             m.d.sync += refill_error_saved.eq(ret.error)
 

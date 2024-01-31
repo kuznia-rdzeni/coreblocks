@@ -280,7 +280,7 @@ class ICacheTestCircuit(Elaboratable):
         m = Module()
 
         m.submodules.refiller = self.refiller = MockedCacheRefiller(self.gen_params)
-        m.submodules.cache = self.cache = ICache(self.gen_params.get(ICacheLayouts), self.cp, self.refiller)
+        m.submodules.cache = self.cache = ICache(self.gen_params, self.refiller)
         m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.cache.issue_req))
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.cache.accept_res))
         m.submodules.flush_cache = self.flush_cache = TestbenchIO(AdapterTrans(self.cache.flush))

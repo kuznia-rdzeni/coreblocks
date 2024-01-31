@@ -2,6 +2,7 @@ from amaranth import *
 
 from coreblocks.params.isa import Funct3
 from coreblocks.params.optypes import OpType
+from coreblocks.structs_common.hw_metrics import HwCounter
 from transactron import Method, Transaction, TModule
 from ..params import GenParams
 from .instr_decoder import InstrDecoder
@@ -34,9 +35,12 @@ class DecodeStage(Elaboratable):
         self.get_raw = get_raw
         self.push_decoded = push_decoded
 
+        self.perf_illegal_instr = HwCounter(self.gen_params, "frontend.decode.illegal_instr")
+
     def elaborate(self, platform):
         m = TModule()
 
+        m.submodules.perf_illegal_instr = self.perf_illegal_instr
         m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gen_params)
 
         with Transaction().body(m):
@@ -61,6 +65,7 @@ class DecodeStage(Elaboratable):
             with m.If(raw.access_fault):
                 m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
             with m.Elif(instr_decoder.illegal):
+                self.perf_illegal_instr.incr(m)
                 m.d.comb += exception_funct.eq(Funct3._EILLEGALINSTR)
 
             self.push_decoded(
