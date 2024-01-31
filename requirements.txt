@@ -1,2 +1,2 @@
 amaranth-yosys==0.35.0.0.post81
-git+https://github.com/amaranth-lang/amaranth@a2f3c544eef8d55f29f115663eb33a467cc01178
+git+https://github.com/amaranth-lang/amaranth@3ed78d98ea6d6d1f65dfd2ee94a0ea02dce7f571
