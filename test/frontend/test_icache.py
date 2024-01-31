@@ -4,7 +4,7 @@ import random
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
-from amaranth.utils import log2_int
+from amaranth.utils import exact_log2
 
 from transactron.lib import AdapterTrans, Adapter
 from coreblocks.frontend.icache import SimpleCommonBusCacheRefiller, ICache, ICacheBypass, CacheRefillerInterface
@@ -97,7 +97,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             yield from self.test_module.wb_ctrl.slave_wait()
 
             # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-            addr = (yield self.test_module.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
+            addr = (yield self.test_module.wb_ctrl.wb.adr) << exact_log2(self.cp.word_width_bytes)
 
             yield
             while random.random() < 0.5:
@@ -212,7 +212,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             yield from self.m.wb_ctrl.slave_wait()
 
             # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-            addr = (yield self.m.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
+            addr = (yield self.m.wb_ctrl.wb.adr) << exact_log2(self.cp.word_width_bytes)
 
             while random.random() < 0.5:
                 yield
@@ -318,7 +318,7 @@ class TestICache(TestCaseWithSimulator):
             test_core_config.replace(
                 xlen=self.isa_xlen,
                 icache_ways=ways,
-                icache_sets_bits=log2_int(sets),
+                icache_sets_bits=exact_log2(sets),
                 icache_block_size_bits=self.block_size,
             )
         )

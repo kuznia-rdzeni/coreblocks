@@ -147,7 +147,7 @@ class Serializer(Elaboratable):
 
         self.depth = depth
 
-        self.id_layout = [("id", log2_int(self.port_count))]
+        self.id_layout = [("id", exact_log2(self.port_count))]
 
         self.clear = Method()
         self.serialize_in = [
