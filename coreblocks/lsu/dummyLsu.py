@@ -72,7 +72,7 @@ class LSURequester(Elaboratable):
                     m.d.av_comb += data.eq(tmp.as_signed())
                 with m.Else():
                     m.d.av_comb += data.eq(tmp)
-            with m.Case():
+            with m.Default():
                 m.d.av_comb += data.eq(raw_data)
         return data
 
@@ -83,7 +83,7 @@ class LSURequester(Elaboratable):
                 m.d.av_comb += data.eq(raw_data[0:8] << (addr[0:2] << 3))
             with m.Case(Funct3.H):
                 m.d.av_comb += data.eq(raw_data[0:16] << (addr[1] << 4))
-            with m.Case():
+            with m.Default():
                 m.d.av_comb += data.eq(raw_data)
         return data
 
@@ -94,7 +94,7 @@ class LSURequester(Elaboratable):
                 m.d.av_comb += aligned.eq(addr[0:2] == 0)
             with m.Case(Funct3.H, Funct3.HU):
                 m.d.av_comb += aligned.eq(addr[0] == 0)
-            with m.Case():
+            with m.Default():
                 m.d.av_comb += aligned.eq(1)
         return aligned
 

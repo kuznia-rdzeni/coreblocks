@@ -44,7 +44,7 @@ def OneHotSwitch(m: ModuleLike, test: Value):
     @contextmanager
     def case(n: Optional[int] = None):
         if n is None:
-            with m.Case():
+            with m.Default():
                 yield
         else:
             # find the index of the least significant bit set
