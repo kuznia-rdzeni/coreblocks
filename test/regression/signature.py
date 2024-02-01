@@ -46,7 +46,7 @@ async def run_test(sim_backend: SimulationBackend, test_path: str, signature_pat
     mem_segments.append(signature_ram)
     mem_model = CoreMemoryModel(mem_segments)
 
-    success = await sim_backend.run(mem_model, timeout_cycles=200000)
+    success = await sim_backend.run(mem_model, timeout_cycles=60000)
 
     if not success:
         raise RuntimeError(f"{test_path}: Simulation timed out")

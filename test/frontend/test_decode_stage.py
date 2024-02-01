@@ -2,7 +2,7 @@ from transactron.lib import AdapterTrans, FIFO
 
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, SimpleTestCircuit, ModuleConnector
 
-from coreblocks.frontend.decode import Decode
+from coreblocks.frontend.decode_stage import DecodeStage
 from coreblocks.params import GenParams, FetchLayouts, DecodeLayouts, OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 
@@ -17,7 +17,7 @@ class TestDecode(TestCaseWithSimulator):
         self.fifo_in_write = TestbenchIO(AdapterTrans(fifo_in.write))
         self.fifo_out_read = TestbenchIO(AdapterTrans(fifo_out.read))
 
-        self.decode = Decode(self.gen_params, fifo_in.read, fifo_out.write)
+        self.decode = DecodeStage(self.gen_params, fifo_in.read, fifo_out.write)
         self.m = SimpleTestCircuit(
             ModuleConnector(
                 decode=self.decode,

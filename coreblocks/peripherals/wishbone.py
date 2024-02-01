@@ -24,7 +24,7 @@ class WishboneParameters:
         The smallest unit of data transfer that a port is capable of transferring. Defaults to 8 bits
     """
 
-    def __init__(self, *, data_width=64, addr_width=64, granularity=8):
+    def __init__(self, *, data_width: int = 64, addr_width: int = 64, granularity: int = 8):
         self.data_width = data_width
         self.addr_width = addr_width
         self.granularity = granularity
@@ -78,6 +78,34 @@ class WishboneBus(Record):
         super().__init__(WishboneLayout(wb_params).wb_layout, **kwargs)
 
 
+class WishboneMasterMethodLayout:
+    """Wishbone master layouts for methods
+
+    Parameters
+    ----------
+    wb_params: WishboneParameters
+        Patameters used to generate Wishbone master layouts
+
+    Attributes
+    ----------
+    request_layout: Layout
+        Layout for request method of WishboneMaster.
+
+    result_layout: Layout
+        Layout for result method of WishboneMaster.
+    """
+
+    def __init__(self, wb_params: WishboneParameters):
+        self.request_layout = [
+            ("addr", wb_params.addr_width, DIR_FANIN),
+            ("data", wb_params.data_width, DIR_FANIN),
+            ("we", 1, DIR_FANIN),
+            ("sel", wb_params.data_width // wb_params.granularity, DIR_FANIN),
+        ]
+
+        self.result_layout = [("data", wb_params.data_width), ("err", 1)]
+
+
 class WishboneMaster(Elaboratable):
     """Wishbone bus master interface.
 
@@ -88,70 +116,56 @@ class WishboneMaster(Elaboratable):
 
     Attributes
     ----------
-    wbMaster: Record (like WishboneLayout)
+    wb_master: Record (like WishboneLayout)
         Wishbone bus output.
     request: Method
         Transactional method to start a new Wishbone request.
         Ready when no request is being executed and previous result is read.
-        Takes `requestLayout` as argument.
+        Takes `request_layout` as argument.
     result: Method
         Transactional method to read previous request result.
         Becomes ready after Wishbone request is completed.
-        Returns state of request (error or success) and data (in case of read request) as `resultLayout`.
+        Returns state of request (error or success) and data (in case of read request) as `result_layout`.
     """
 
     def __init__(self, wb_params: WishboneParameters):
         self.wb_params = wb_params
         self.wb_layout = WishboneLayout(wb_params).wb_layout
-        self.wbMaster = Record(self.wb_layout)
-        self.generate_layouts(wb_params)
+        self.wb_master = Record(self.wb_layout)
 
-        self.request = Method(i=self.requestLayout)
-        self.result = Method(o=self.resultLayout)
+        self.method_layouts = WishboneMasterMethodLayout(wb_params)
 
-        self.result_data = Record(self.resultLayout)
+        self.request = Method(i=self.method_layouts.request_layout)
+        self.result = Method(o=self.method_layouts.result_layout)
 
         # latched input signals
-        self.txn_req = Record(self.requestLayout)
-
-        self.ports = list(self.wbMaster.fields.values())
-
-    def generate_layouts(self, wb_params: WishboneParameters):
-        # generate method layouts locally
-        self.requestLayout = [
-            ("addr", wb_params.addr_width, DIR_FANIN),
-            ("data", wb_params.data_width, DIR_FANIN),
-            ("we", 1, DIR_FANIN),
-            ("sel", wb_params.data_width // wb_params.granularity, DIR_FANIN),
-        ]
-
-        self.resultLayout = [("data", wb_params.data_width), ("err", 1)]
+        self.txn_req = Record(self.method_layouts.request_layout)
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.result = result = Forwarder(self.resultLayout)
+        m.submodules.result = result = Forwarder(self.method_layouts.result_layout)
 
         request_ready = Signal()
 
         def FSMWBCycStart(request):  # noqa: N802
             # internal FSM function that starts Wishbone cycle
-            m.d.sync += self.wbMaster.cyc.eq(1)
-            m.d.sync += self.wbMaster.stb.eq(1)
-            m.d.sync += self.wbMaster.adr.eq(request.addr)
-            m.d.sync += self.wbMaster.dat_w.eq(Mux(request.we, request.data, 0))
-            m.d.sync += self.wbMaster.we.eq(request.we)
-            m.d.sync += self.wbMaster.sel.eq(request.sel)
+            m.d.sync += self.wb_master.cyc.eq(1)
+            m.d.sync += self.wb_master.stb.eq(1)
+            m.d.sync += self.wb_master.adr.eq(request.addr)
+            m.d.sync += self.wb_master.dat_w.eq(Mux(request.we, request.data, 0))
+            m.d.sync += self.wb_master.we.eq(request.we)
+            m.d.sync += self.wb_master.sel.eq(request.sel)
 
         with m.FSM("Reset"):
             with m.State("Reset"):
-                m.d.sync += self.wbMaster.rst.eq(1)
+                m.d.sync += self.wb_master.rst.eq(1)
                 m.next = "Idle"
             with m.State("Idle"):
                 # default values for important signals
-                m.d.sync += self.wbMaster.rst.eq(0)
-                m.d.sync += self.wbMaster.stb.eq(0)
-                m.d.sync += self.wbMaster.cyc.eq(0)
+                m.d.sync += self.wb_master.rst.eq(0)
+                m.d.sync += self.wb_master.stb.eq(0)
+                m.d.sync += self.wb_master.cyc.eq(0)
                 m.d.comb += request_ready.eq(1)
                 with m.If(self.request.run):
                     m.next = "WBWaitACK"
@@ -161,20 +175,20 @@ class WishboneMaster(Elaboratable):
                 m.next = "WBWaitACK"
 
             with m.State("WBWaitACK"):
-                with m.If(self.wbMaster.ack | self.wbMaster.err):
+                with m.If(self.wb_master.ack | self.wb_master.err):
                     m.d.comb += request_ready.eq(result.read.run)
                     with Transaction().body(m):
                         # will be always ready, as we checked that in Idle
-                        result.write(m, data=Mux(self.txn_req.we, 0, self.wbMaster.dat_r), err=self.wbMaster.err)
+                        result.write(m, data=Mux(self.txn_req.we, 0, self.wb_master.dat_r), err=self.wb_master.err)
                     with m.If(self.request.run):
                         m.next = "WBWaitACK"
                     with m.Else():
-                        m.d.sync += self.wbMaster.cyc.eq(0)
-                        m.d.sync += self.wbMaster.stb.eq(0)
+                        m.d.sync += self.wb_master.cyc.eq(0)
+                        m.d.sync += self.wb_master.stb.eq(0)
                         m.next = "Idle"
-                with m.If(self.wbMaster.rty):
-                    m.d.sync += self.wbMaster.cyc.eq(1)
-                    m.d.sync += self.wbMaster.stb.eq(0)
+                with m.If(self.wb_master.rty):
+                    m.d.sync += self.wb_master.cyc.eq(1)
+                    m.d.sync += self.wb_master.stb.eq(0)
                     m.next = "WBCycStart"
 
         @def_method(m, self.result)
@@ -210,11 +224,11 @@ class PipelinedWishboneMaster(Elaboratable):
     request: Method
         Transactional method to start a new Wishbone request.
         Ready if new request can be immediately sent.
-        Takes `requestLayout` as argument.
+        Takes `request_layout` as argument.
     result: Method
         Transactional method to read results from completed requests sequentially.
         Ready if buffered results are available.
-        Returns state of request (error or success) and data (in case of read request) as `resultLayout`.
+        Returns state of request (error or success) and data (in case of read request) as `result_layout`.
     requests_finished: Signal, out
         True, if there are no requests waiting for response
     """

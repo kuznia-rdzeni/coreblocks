@@ -4,16 +4,17 @@ from typing import TYPE_CHECKING
 from transactron.lib.dependencies import SimpleKey, UnifierKey
 from transactron import Method
 from transactron.lib import MethodTryProduct, Collector
-from coreblocks.peripherals.wishbone import WishboneMaster
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
 
 if TYPE_CHECKING:
     from coreblocks.structs_common.csr_generic import GenericCSRRegisters  # noqa: F401
 
 __all__ = [
-    "WishboneDataKey",
+    "CommonBusDataKey",
     "InstructionPrecommitKey",
-    "BranchResolvedKey",
+    "BranchVerifyKey",
+    "FetchResumeKey",
     "ExceptionReportKey",
     "GenericCSRRegistersKey",
     "AsyncInterruptInsertSignalKey",
@@ -22,7 +23,7 @@ __all__ = [
 
 
 @dataclass(frozen=True)
-class WishboneDataKey(SimpleKey[WishboneMaster]):
+class CommonBusDataKey(SimpleKey[BusMasterInterface]):
     pass
 
 
@@ -32,7 +33,12 @@ class InstructionPrecommitKey(UnifierKey, unifier=MethodTryProduct):
 
 
 @dataclass(frozen=True)
-class BranchResolvedKey(UnifierKey, unifier=Collector):
+class BranchVerifyKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class FetchResumeKey(UnifierKey, unifier=Collector):
     pass
 
 

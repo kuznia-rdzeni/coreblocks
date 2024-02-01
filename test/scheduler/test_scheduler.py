@@ -383,4 +383,3 @@ class TestScheduler(TestCaseWithSimulator):
             )
             sim.add_sync_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
             sim.add_sync_process(instr_input_process)
-            sim.add_sync_process(core_state_mock)

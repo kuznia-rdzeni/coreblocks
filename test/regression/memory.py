@@ -97,9 +97,10 @@ TRep = TypeVar("TRep", bound=ReadReply | WriteReply)
 
 
 class CoreMemoryModel:
-    def __init__(self, segments: list[MemorySegment], fail_on_undefined=True):
+    def __init__(self, segments: list[MemorySegment], fail_on_undefined_read=False, fail_on_undefined_write=True):
         self.segments = segments
-        self.fail_on_undefined = fail_on_undefined
+        self.fail_on_undefined_read = fail_on_undefined_read  # Core may do undefined reads speculatively
+        self.fail_on_undefined_write = fail_on_undefined_write
 
     def _run_on_range(self, f: Callable[[MemorySegment, TReq], TRep], req: TReq) -> Optional[TRep]:
         for seg in self.segments:
@@ -124,7 +125,7 @@ class CoreMemoryModel:
         rep = self._run_on_range(self._do_read, req)
         if rep is not None:
             return rep
-        if self.fail_on_undefined:
+        if self.fail_on_undefined_read:
             raise RuntimeError("Undefined read: %x" % req.addr)
         else:
             return ReadReply(status=ReplyStatus.ERROR)
@@ -133,7 +134,7 @@ class CoreMemoryModel:
         rep = self._run_on_range(self._do_write, req)
         if rep is not None:
             return rep
-        if self.fail_on_undefined:
+        if self.fail_on_undefined_write:
             raise RuntimeError("Undefined write: %x <= %x" % (req.addr, req.data))
         else:
             return WriteReply(status=ReplyStatus.ERROR)
