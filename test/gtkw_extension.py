@@ -16,8 +16,9 @@ class _VCDWriterExt(_VCDWriter):
     def close(self, timestamp):
         def save_signal(value: Value):
             for signal in value._rhs_signals():  # type: ignore
-                for name in self.gtkw_names[signal]:
-                    self.gtkw_save.trace(name)
+                if signal in self.gtkw_names:
+                    for name in self.gtkw_names[signal]:
+                        self.gtkw_save.trace(name)
 
         def gtkw_traces(traces):
             if isinstance(traces, Mapping):
@@ -35,9 +36,7 @@ class _VCDWriterExt(_VCDWriter):
                 elif len(traces.fields) == 1:  # to make gtkwave view less verbose
                     gtkw_traces(next(iter(traces.fields.values())))
             elif isinstance(traces, View):
-                with self.gtkw_save.group("View"):
-                    for name, _ in traces.shape():
-                        gtkw_traces(getattr(traces, name))
+                save_signal(Value.cast(traces))
             elif isinstance(traces, Value):
                 save_signal(traces)
 
