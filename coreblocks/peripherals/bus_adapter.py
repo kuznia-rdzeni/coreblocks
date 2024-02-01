@@ -9,6 +9,7 @@ from coreblocks.peripherals.axi_lite import AXILiteMaster
 from transactron import Method, def_method, TModule
 from transactron.utils import HasElaborate
 from transactron.lib import Serializer
+from transactron.utils.transactron_helpers import from_method_layout
 
 __all__ = ["BusMasterInterface", "WishboneMasterAdapter", "AXILiteMasterAdapter"]
 
@@ -87,20 +88,20 @@ class CommonBusMasterMethodLayout:
     def __init__(self, bus_params: BusParametersInterface):
         self.bus_params = bus_params
 
-        self.request_read_layout = [
-            ("addr", self.bus_params.addr_width, DIR_FANIN),
-            ("sel", self.bus_params.data_width // self.bus_params.granularity, DIR_FANIN),
-        ]
+        self.request_read_layout = from_method_layout([
+            ("addr", self.bus_params.addr_width),
+            ("sel", self.bus_params.data_width // self.bus_params.granularity),
+        ])
 
-        self.request_write_layout = [
-            ("addr", self.bus_params.addr_width, DIR_FANIN),
-            ("data", self.bus_params.data_width, DIR_FANIN),
-            ("sel", self.bus_params.data_width // self.bus_params.granularity, DIR_FANIN),
-        ]
+        self.request_write_layout = from_method_layout([
+            ("addr", self.bus_params.addr_width),
+            ("data", self.bus_params.data_width),
+            ("sel", self.bus_params.data_width // self.bus_params.granularity),
+        ])
 
-        self.read_response_layout = [("data", self.bus_params.data_width), ("err", 1)]
+        self.read_response_layout = from_method_layout([("data", self.bus_params.data_width), ("err", 1)])
 
-        self.write_response_layout = [("err", 1)]
+        self.write_response_layout = from_method_layout([("err", 1)])
 
 
 class WishboneMasterAdapter(Elaboratable, BusMasterInterface):

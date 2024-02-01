@@ -302,9 +302,8 @@ class TestRSMethodTake(TestCaseWithSimulator):
         for index in range(2):
             yield from self.m.insert.call(rs_entry_id=index, rs_data=entry_data)
             yield Settle()
-            self.assertEqual((yield self.m.rs.take.ready), 1)
-            # self.assertEqual((yield self.m._dut.data[index].rec_ready), 1)
             self.assertEqual((yield self.m._dut.take.ready), 1)
+            # self.assertEqual((yield self.m._dut.data[index].rec_ready), 1)
 
         data = yield from self.m.take.call(rs_entry_id=0)
         for key in data:
