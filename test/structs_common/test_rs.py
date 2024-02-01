@@ -170,7 +170,6 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
         # Update second entry first SP, instruction should be not ready
         value_sp1 = 1010
-        # TODO: rec_ready inaccessible now
         self.assertEqual((yield self.m._dut.data_ready[1]), 0)
         yield from self.m.update.call(reg_id=2, reg_val=value_sp1)
         yield Settle()
