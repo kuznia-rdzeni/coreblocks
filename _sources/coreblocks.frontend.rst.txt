@@ -20,14 +20,6 @@ coreblocks.frontend.fetch module
    :undoc-members:
    :show-inheritance:
 
-coreblocks.frontend.icache module
----------------------------------
-
-.. automodule:: coreblocks.frontend.icache
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 coreblocks.frontend.instr\_decoder module
 -----------------------------------------
 

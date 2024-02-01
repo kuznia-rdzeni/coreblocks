@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>coreblocks.cache package &mdash; Coreblocks documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="coreblocks.frontend package" href="coreblocks.frontend.html" />
+    <link rel="prev" title="coreblocks package" href="coreblocks.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Coreblocks documentation
+            <img src="_static/logo-banner.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="home.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development-environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transactions.html">Documentation for Coreblocks transaction framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler/overview.html">Scheduler overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared-structs/implementation/rs-impl.html">Proposition of Reservation Station implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared-structs/rs.html">Reservation Station</a></li>
+<li class="toctree-l1"><a class="reference internal" href="current-graph.html">Full transaction-method graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="problem-checklist.html">Problem checklist</a></li>
+<li class="toctree-l1"><a class="reference internal" href="synthesis/synthesis.html">Core verification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptions-summary.html">Summary of papers about interrupts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Coreblocks documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="api.html">API</a> &raquo;</li>
+          <li><a href="coreblocks.html">coreblocks package</a> &raquo;</li>
+      <li>coreblocks.cache package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/coreblocks.cache.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="coreblocks-cache-package">
+<h1>coreblocks.cache package<a class="headerlink" href="#coreblocks-cache-package" title="Permalink to this heading"></a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="module-coreblocks.cache.icache">
+<span id="coreblocks-cache-icache-module"></span><h2>coreblocks.cache.icache module<a class="headerlink" href="#module-coreblocks.cache.icache" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.cache.icache.ICache">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.cache.icache.</span></span><span class="sig-name descname"><span class="pre">ICache</span></span><a class="headerlink" href="#coreblocks.cache.icache.ICache" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code>, <a class="reference internal" href="#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">CacheInterface</span></code></a></p>
+<p>A simple set-associative instruction cache.</p>
+<p>The replacement policy is a pseudo random scheme. Every time a line is trashed,
+we select the next way we write to (we keep one global counter for selecting the next way).</p>
+<p>Refilling a cache line is abstracted away from this module. ICache module needs two methods
+from the refiller <cite>refiller_start</cite>, which is called whenever we need to refill a cache line.
+<cite>refiller_accept</cite> should be ready to be called whenever the refiller has another word ready
+to be written to cache. <cite>refiller_accept</cite> should set <cite>last</cite> bit when either an error occurs
+or the transfer is over. After issuing <cite>last</cite> bit, <cite>refiller_accept</cite> shouldn’t be ready until
+the next transfer is started.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.cache.icache.ICache.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layouts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.layouts.ICacheLayouts" title="coreblocks.params.layouts.ICacheLayouts"><span class="pre">ICacheLayouts</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters" title="coreblocks.params.icache_params.ICacheParameters"><span class="pre">ICacheParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">refiller</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.cache.iface.CacheRefillerInterface" title="coreblocks.cache.iface.CacheRefillerInterface"><span class="pre">CacheRefillerInterface</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.cache.icache.ICache.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>layouts</strong><span class="classifier">ICacheLayouts</span></dt><dd><p>Instance of ICacheLayouts used to create cache methods.</p>
+</dd>
+<dt><strong>params</strong><span class="classifier">ICacheParameters</span></dt><dd><p>Instance of ICacheParameters with parameters which should be used to generate
+the cache.</p>
+</dd>
+<dt><strong>refiller_start</strong><span class="classifier">Method</span></dt><dd><p>A method with input layout ICacheLayouts.start_refill</p>
+</dd>
+<dt><strong>refiller_accept</strong><span class="classifier">Method</span></dt><dd><p>A method with output layout ICacheLayouts.accept_refill</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.cache.icache.ICache.deserialize_addr">
+<span class="sig-name descname"><span class="pre">deserialize_addr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.cache.icache.ICache.deserialize_addr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.cache.icache.ICache.serialize_addr">
+<span class="sig-name descname"><span class="pre">serialize_addr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Record</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.cache.icache.ICache.serialize_addr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.cache.icache.ICacheBypass">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.cache.icache.</span></span><span class="sig-name descname"><span class="pre">ICacheBypass</span></span><a class="headerlink" href="#coreblocks.cache.icache.ICacheBypass" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code>, <a class="reference internal" href="#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">CacheInterface</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.cache.icache.ICacheBypass.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layouts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.layouts.ICacheLayouts" title="coreblocks.params.layouts.ICacheLayouts"><span class="pre">ICacheLayouts</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters" title="coreblocks.params.icache_params.ICacheParameters"><span class="pre">ICacheParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bus_master</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><span class="pre">BusMasterInterface</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.cache.icache.ICacheBypass.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.cache.iface">
+<span id="coreblocks-cache-iface-module"></span><h2>coreblocks.cache.iface module<a class="headerlink" href="#module-coreblocks.cache.iface" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.cache.iface.</span></span><span class="sig-name descname"><span class="pre">CacheInterface</span></span><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">HasElaborate</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
+<p>Cache Interface.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>issue_req</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to issue a cache lookup request.</p>
+</dd>
+<dt><strong>accept_res</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to accept the result of a cache lookup request.</p>
+</dd>
+<dt><strong>flush</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to flush the whole cache.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface.accept_res">
+<span class="sig-name descname"><span class="pre">accept_res</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></em><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface.accept_res" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></em><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface.flush" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface.issue_req">
+<span class="sig-name descname"><span class="pre">issue_req</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></em><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface.issue_req" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheRefillerInterface">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.cache.iface.</span></span><span class="sig-name descname"><span class="pre">CacheRefillerInterface</span></span><a class="headerlink" href="#coreblocks.cache.iface.CacheRefillerInterface" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">HasElaborate</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
+<p>Cache Refiller Interface.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>start_refill</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to start a refill for a given cache line.</p>
+</dd>
+<dt><strong>accept_refill</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to accept one word from the requested cache line.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheRefillerInterface.accept_refill">
+<span class="sig-name descname"><span class="pre">accept_refill</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></em><a class="headerlink" href="#coreblocks.cache.iface.CacheRefillerInterface.accept_refill" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheRefillerInterface.start_refill">
+<span class="sig-name descname"><span class="pre">start_refill</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></em><a class="headerlink" href="#coreblocks.cache.iface.CacheRefillerInterface.start_refill" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.cache.refiller">
+<span id="coreblocks-cache-refiller-module"></span><h2>coreblocks.cache.refiller module<a class="headerlink" href="#module-coreblocks.cache.refiller" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.cache.refiller.SimpleCommonBusCacheRefiller">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.cache.refiller.</span></span><span class="sig-name descname"><span class="pre">SimpleCommonBusCacheRefiller</span></span><a class="headerlink" href="#coreblocks.cache.refiller.SimpleCommonBusCacheRefiller" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code>, <a class="reference internal" href="#coreblocks.cache.iface.CacheRefillerInterface" title="coreblocks.cache.iface.CacheRefillerInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">CacheRefillerInterface</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.cache.refiller.SimpleCommonBusCacheRefiller.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layouts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.layouts.ICacheLayouts" title="coreblocks.params.layouts.ICacheLayouts"><span class="pre">ICacheLayouts</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters" title="coreblocks.params.icache_params.ICacheParameters"><span class="pre">ICacheParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bus_master</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><span class="pre">BusMasterInterface</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.cache.refiller.SimpleCommonBusCacheRefiller.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.cache">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.cache" title="Permalink to this heading"></a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="coreblocks.html" class="btn btn-neutral float-left" title="coreblocks package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="coreblocks.frontend.html" class="btn btn-neutral float-right" title="coreblocks.frontend package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Kuźnia Rdzeni, 2024.
+      <span class="lastupdated">Last updated on 18:02 2024-02-01.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

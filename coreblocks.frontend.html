@@ -21,7 +21,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="coreblocks.fu package" href="coreblocks.fu.html" />
-    <link rel="prev" title="coreblocks package" href="coreblocks.html" /> 
+    <link rel="prev" title="coreblocks.cache package" href="coreblocks.cache.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -129,14 +129,14 @@ It has layout as described by <cite>DecodeLayouts</cite>.</p>
 after each fetch.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.fetch.Fetch.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">icache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.frontend.icache.ICacheInterface" title="coreblocks.frontend.icache.ICacheInterface"><span class="pre">ICacheInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.Fetch.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">icache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><span class="pre">CacheInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.Fetch.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Instance of GenParams with parameters which should be used to generate
 fetch unit.</p>
 </dd>
-<dt><strong>icache</strong><span class="classifier">ICacheInterface</span></dt><dd><p>Instruction Cache</p>
+<dt><strong>icache</strong><span class="classifier">CacheInterface</span></dt><dd><p>Instruction Cache</p>
 </dd>
 <dt><strong>cont</strong><span class="classifier">Method</span></dt><dd><p>Method which should be invoked to send fetched data to the next step.
 It has layout as described by <cite>FetchLayout</cite>.</p>
@@ -155,14 +155,14 @@ It has layout as described by <cite>FetchLayout</cite>.</p>
 <p>Simple fetch unit that works with unaligned and RVC instructions.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.fetch.UnalignedFetch.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">icache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.frontend.icache.ICacheInterface" title="coreblocks.frontend.icache.ICacheInterface"><span class="pre">ICacheInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.UnalignedFetch.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">icache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><span class="pre">CacheInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.UnalignedFetch.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Instance of GenParams with parameters which should be used to generate
 fetch unit.</p>
 </dd>
-<dt><strong>icache</strong><span class="classifier">ICacheInterface</span></dt><dd><p>Instruction Cache</p>
+<dt><strong>icache</strong><span class="classifier">CacheInterface</span></dt><dd><p>Instruction Cache</p>
 </dd>
 <dt><strong>cont</strong><span class="classifier">Method</span></dt><dd><p>Method which should be invoked to send fetched data to the next step.
 It has layout as described by <cite>FetchLayout</cite>.</p>
@@ -171,110 +171,6 @@ It has layout as described by <cite>FetchLayout</cite>.</p>
 </dd>
 </dl>
 </dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-coreblocks.frontend.icache">
-<span id="coreblocks-frontend-icache-module"></span><h2>coreblocks.frontend.icache module<a class="headerlink" href="#module-coreblocks.frontend.icache" title="Permalink to this heading"></a></h2>
-<dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.ICache">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.icache.</span></span><span class="sig-name descname"><span class="pre">ICache</span></span><a class="headerlink" href="#coreblocks.frontend.icache.ICache" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code>, <a class="reference internal" href="#coreblocks.frontend.icache.ICacheInterface" title="coreblocks.frontend.icache.ICacheInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">ICacheInterface</span></code></a></p>
-<p>A simple set-associative instruction cache.</p>
-<p>The replacement policy is a pseudo random scheme. Every time a line is trashed,
-we select the next way we write to (we keep one global counter for selecting the next way).</p>
-<p>Refilling a cache line is abstracted away from this module. ICache module needs two methods
-from the refiller <cite>refiller_start</cite>, which is called whenever we need to refill a cache line.
-<cite>refiller_accept</cite> should be ready to be called whenever the refiller has another word ready
-to be written to cache. <cite>refiller_accept</cite> should set <cite>last</cite> bit when either an error occurs
-or the transfer is over. After issuing <cite>last</cite> bit, <cite>refiller_accept</cite> shouldn’t be ready until
-the next transfer is started.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.ICache.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layouts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.layouts.ICacheLayouts" title="coreblocks.params.layouts.ICacheLayouts"><span class="pre">ICacheLayouts</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters" title="coreblocks.params.icache_params.ICacheParameters"><span class="pre">ICacheParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">refiller</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">CacheRefillerInterface</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.icache.ICache.__init__" title="Permalink to this definition"></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>layouts</strong><span class="classifier">ICacheLayouts</span></dt><dd><p>Instance of ICacheLayouts used to create cache methods.</p>
-</dd>
-<dt><strong>params</strong><span class="classifier">ICacheParameters</span></dt><dd><p>Instance of ICacheParameters with parameters which should be used to generate
-the cache.</p>
-</dd>
-<dt><strong>refiller_start</strong><span class="classifier">Method</span></dt><dd><p>A method with input layout ICacheLayouts.start_refill</p>
-</dd>
-<dt><strong>refiller_accept</strong><span class="classifier">Method</span></dt><dd><p>A method with output layout ICacheLayouts.accept_refill</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.ICache.deserialize_addr">
-<span class="sig-name descname"><span class="pre">deserialize_addr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl.ast.Value</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.frontend.icache.ICache.deserialize_addr" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.ICache.serialize_addr">
-<span class="sig-name descname"><span class="pre">serialize_addr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Record</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.frontend.icache.ICache.serialize_addr" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.ICacheBypass">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.icache.</span></span><span class="sig-name descname"><span class="pre">ICacheBypass</span></span><a class="headerlink" href="#coreblocks.frontend.icache.ICacheBypass" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code>, <a class="reference internal" href="#coreblocks.frontend.icache.ICacheInterface" title="coreblocks.frontend.icache.ICacheInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">ICacheInterface</span></code></a></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.ICacheBypass.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layouts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.layouts.ICacheLayouts" title="coreblocks.params.layouts.ICacheLayouts"><span class="pre">ICacheLayouts</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters" title="coreblocks.params.icache_params.ICacheParameters"><span class="pre">ICacheParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bus_master</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><span class="pre">BusMasterInterface</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.icache.ICacheBypass.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.ICacheInterface">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.icache.</span></span><span class="sig-name descname"><span class="pre">ICacheInterface</span></span><a class="headerlink" href="#coreblocks.frontend.icache.ICacheInterface" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">HasElaborate</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
-<p>Instruction Cache Interface.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>issue_req</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to issue a cache lookup request.</p>
-</dd>
-<dt><strong>accept_res</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to accept the result of a cache lookup request.</p>
-</dd>
-<dt><strong>flush</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to flush the whole cache.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.ICacheInterface.accept_res">
-<span class="sig-name descname"><span class="pre">accept_res</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></em><a class="headerlink" href="#coreblocks.frontend.icache.ICacheInterface.accept_res" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.ICacheInterface.flush">
-<span class="sig-name descname"><span class="pre">flush</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></em><a class="headerlink" href="#coreblocks.frontend.icache.ICacheInterface.flush" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.ICacheInterface.issue_req">
-<span class="sig-name descname"><span class="pre">issue_req</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="transactron.html#transactron.core.Method" title="transactron.core.Method"><span class="pre">Method</span></a></em><a class="headerlink" href="#coreblocks.frontend.icache.ICacheInterface.issue_req" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.SimpleCommonBusCacheRefiller">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.icache.</span></span><span class="sig-name descname"><span class="pre">SimpleCommonBusCacheRefiller</span></span><a class="headerlink" href="#coreblocks.frontend.icache.SimpleCommonBusCacheRefiller" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">CacheRefillerInterface</span></code></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.icache.SimpleCommonBusCacheRefiller.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layouts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.layouts.ICacheLayouts" title="coreblocks.params.layouts.ICacheLayouts"><span class="pre">ICacheLayouts</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters" title="coreblocks.params.icache_params.ICacheParameters"><span class="pre">ICacheParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bus_master</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><span class="pre">BusMasterInterface</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.icache.SimpleCommonBusCacheRefiller.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
 
 </dd></dl>
 
@@ -464,7 +360,7 @@ accordingly to <cite>InstrType</cite>. Default is False.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="coreblocks.html" class="btn btn-neutral float-left" title="coreblocks package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="coreblocks.cache.html" class="btn btn-neutral float-left" title="coreblocks.cache package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="coreblocks.fu.html" class="btn btn-neutral float-right" title="coreblocks.fu package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
@@ -472,7 +368,7 @@ accordingly to <cite>InstrType</cite>. Default is False.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 17:17 2024-02-01.
+      <span class="lastupdated">Last updated on 18:02 2024-02-01.
       </span></p>
   </div>
 
