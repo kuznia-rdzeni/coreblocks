@@ -1,6 +1,5 @@
 from functools import reduce
 import operator
-from typing import Protocol
 
 from amaranth import *
 from amaranth.utils import log2_int
@@ -9,12 +8,15 @@ from transactron.core import def_method, Priority, TModule
 from transactron import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
 from transactron.utils import assign, OneHotSwitchDynamic
-from transactron.utils._typing import HasElaborate
 from transactron.lib import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
+from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
 
-__all__ = ["ICache", "ICacheBypass", "ICacheInterface", "SimpleCommonBusCacheRefiller"]
+__all__ = [
+    "ICache",
+    "ICacheBypass",
+]
 
 
 def extract_instr_from_word(m: TModule, params: ICacheParameters, word: Signal, addr: Value):
@@ -31,42 +33,7 @@ def extract_instr_from_word(m: TModule, params: ICacheParameters, word: Signal, 
     return instr_out
 
 
-class ICacheInterface(HasElaborate, Protocol):
-    """
-    Instruction Cache Interface.
-
-    Parameters
-    ----------
-    issue_req : Method
-        A method that is used to issue a cache lookup request.
-    accept_res : Method
-        A method that is used to accept the result of a cache lookup request.
-    flush : Method
-        A method that is used to flush the whole cache.
-    """
-
-    issue_req: Method
-    accept_res: Method
-    flush: Method
-
-
-class CacheRefillerInterface(HasElaborate, Protocol):
-    """
-    Instruction Cache Refiller Interface.
-
-    Parameters
-    ----------
-    start_refill : Method
-        A method that is used to start a refill for a given cache line.
-    accept_refill : Method
-        A method that is used to accept one word from the requested cache line.
-    """
-
-    start_refill: Method
-    accept_refill: Method
-
-
-class ICacheBypass(Elaboratable, ICacheInterface):
+class ICacheBypass(Elaboratable, CacheInterface):
     def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface) -> None:
         self.params = params
         self.bus_master = bus_master
@@ -104,7 +71,7 @@ class ICacheBypass(Elaboratable, ICacheInterface):
         return m
 
 
-class ICache(Elaboratable, ICacheInterface):
+class ICache(Elaboratable, CacheInterface):
     """A simple set-associative instruction cache.
 
     The replacement policy is a pseudo random scheme. Every time a line is trashed,
@@ -361,66 +328,5 @@ class ICacheMemory(Elaboratable):
                 data_mem_wp.data.eq(self.data_wr_data),
                 data_mem_wp.en.eq(self.data_wr_en & way_wr),
             ]
-
-        return m
-
-
-class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface):
-        self.params = params
-        self.bus_master = bus_master
-
-        self.start_refill = Method(i=layouts.start_refill)
-        self.accept_refill = Method(o=layouts.accept_refill)
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        refill_address = Signal(self.params.word_width - self.params.offset_bits)
-        refill_active = Signal()
-        word_counter = Signal(range(self.params.words_in_block))
-
-        m.submodules.address_fwd = address_fwd = Forwarder(
-            [("word_counter", word_counter.shape()), ("refill_address", refill_address.shape())]
-        )
-
-        with Transaction().body(m):
-            address = address_fwd.read(m)
-            self.bus_master.request_read(
-                m,
-                addr=Cat(address["word_counter"], address["refill_address"]),
-                sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
-            )
-
-        @def_method(m, self.start_refill, ready=~refill_active)
-        def _(addr) -> None:
-            address = addr[self.params.offset_bits :]
-            m.d.sync += refill_address.eq(address)
-            m.d.sync += refill_active.eq(1)
-            m.d.sync += word_counter.eq(0)
-
-            address_fwd.write(m, word_counter=0, refill_address=address)
-
-        @def_method(m, self.accept_refill, ready=refill_active)
-        def _():
-            fetched = self.bus_master.get_read_response(m)
-
-            last = (word_counter == (self.params.words_in_block - 1)) | fetched.err
-
-            next_word_counter = Signal.like(word_counter)
-            m.d.top_comb += next_word_counter.eq(word_counter + 1)
-
-            m.d.sync += word_counter.eq(next_word_counter)
-            with m.If(last):
-                m.d.sync += refill_active.eq(0)
-            with m.Else():
-                address_fwd.write(m, word_counter=next_word_counter, refill_address=refill_address)
-
-            return {
-                "addr": Cat(C(0, log2_int(self.params.word_width_bytes)), word_counter, refill_address),
-                "data": fetched.data,
-                "error": fetched.err,
-                "last": last,
-            }
 
         return m

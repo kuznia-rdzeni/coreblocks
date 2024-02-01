@@ -8,14 +8,14 @@ from amaranth.sim import Passive
 from transactron.core import Method
 from transactron.lib import AdapterTrans, FIFO, Adapter
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
-from coreblocks.frontend.icache import ICacheInterface
+from coreblocks.cache.iface import CacheInterface
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from transactron.utils import ModuleConnector
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, SimpleTestCircuit
 
 
-class MockedICache(Elaboratable, ICacheInterface):
+class MockedICache(Elaboratable, CacheInterface):
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
