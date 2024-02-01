@@ -36,7 +36,8 @@ class _VCDWriterExt(_VCDWriter):
                 elif len(traces.fields) == 1:  # to make gtkwave view less verbose
                     gtkw_traces(next(iter(traces.fields.values())))
             elif isinstance(traces, View):
-                save_signal(Value.cast(traces))
+                with self.gtkw_save.group(""):  # Views don't have names, unfortunately
+                    save_signal(Value.cast(traces))
             elif isinstance(traces, Value):
                 save_signal(traces)
 
