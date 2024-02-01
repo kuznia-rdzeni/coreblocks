@@ -1,7 +1,6 @@
 from typing import Protocol
 
 from amaranth import *
-from amaranth.hdl.rec import DIR_FANIN
 
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.peripherals.axi_lite import AXILiteMaster
@@ -88,16 +87,20 @@ class CommonBusMasterMethodLayout:
     def __init__(self, bus_params: BusParametersInterface):
         self.bus_params = bus_params
 
-        self.request_read_layout = from_method_layout([
-            ("addr", self.bus_params.addr_width),
-            ("sel", self.bus_params.data_width // self.bus_params.granularity),
-        ])
+        self.request_read_layout = from_method_layout(
+            [
+                ("addr", self.bus_params.addr_width),
+                ("sel", self.bus_params.data_width // self.bus_params.granularity),
+            ]
+        )
 
-        self.request_write_layout = from_method_layout([
-            ("addr", self.bus_params.addr_width),
-            ("data", self.bus_params.data_width),
-            ("sel", self.bus_params.data_width // self.bus_params.granularity),
-        ])
+        self.request_write_layout = from_method_layout(
+            [
+                ("addr", self.bus_params.addr_width),
+                ("data", self.bus_params.data_width),
+                ("sel", self.bus_params.data_width // self.bus_params.granularity),
+            ]
+        )
 
         self.read_response_layout = from_method_layout([("data", self.bus_params.data_width), ("err", 1)])
 

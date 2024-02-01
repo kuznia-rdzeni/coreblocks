@@ -2,7 +2,7 @@ import sys
 from contextlib import contextmanager
 from typing import Optional, Any, Concatenate, TypeGuard, TypeVar
 from collections.abc import Callable, Mapping
-from ._typing import ROGraph, GraphCC, SrcLoc, MethodLayout, MethodStruct, ShapeLike, LayoutList
+from ._typing import ROGraph, GraphCC, SrcLoc, MethodLayout, MethodStruct, ShapeLike, LayoutList, LayoutListField
 from inspect import Parameter, signature
 from itertools import count
 from amaranth import *
@@ -131,6 +131,10 @@ def from_layout_field(shape: ShapeLike | LayoutList) -> ShapeLike:
         return from_method_layout(shape)
     else:
         return shape
+
+
+def make_layout(*fields: LayoutListField):
+    return from_method_layout(fields)
 
 
 def from_method_layout(layout: MethodLayout) -> StructLayout:
