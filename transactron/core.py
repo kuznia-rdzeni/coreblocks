@@ -1370,7 +1370,7 @@ class Method(TransactionBase):
         .. code-block:: python
 
             m = Module()
-            with Transaction.body(m):
+            with Transaction().body(m):
                 ret = my_sum_method(m, arg1=2, arg2=3)
 
         Alternative syntax:
@@ -1378,7 +1378,7 @@ class Method(TransactionBase):
         .. highlight:: python
         .. code-block:: python
 
-            with Transaction.body(m):
+            with Transaction().body(m):
                 ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
         """
         arg_rec = Record.like(self.data_in)
