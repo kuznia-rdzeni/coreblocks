@@ -14,11 +14,8 @@ from cocotb.result import SimTimeoutError
 
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
-<<<<<<< HEAD
-=======
 
 from coreblocks.utils.gen_info import CoreGenInfo
->>>>>>> 48022965 (Add Hardware Metrics)
 
 
 @dataclass
