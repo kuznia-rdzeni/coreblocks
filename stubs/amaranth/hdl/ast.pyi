@@ -450,6 +450,7 @@ class Signal(Value, DUID, metaclass=_SignalMeta):
     def __repr__(self) -> str:
         ...
     
+    name: str
     decoder: Any
 
 
