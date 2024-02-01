@@ -34,23 +34,22 @@ class RS(Elaboratable):
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
         self.data = Array(Signal(self.internal_layout) for _ in range(self.rs_entries))
+        self.data_ready = Signal(self.rs_entries)
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
 
-        data_ready = Signal(self.rs_entries)
-
         for i, record in enumerate(self.data):
-            m.d.comb += data_ready[i].eq(
+            m.d.comb += self.data_ready[i].eq(
                 ~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full.bool()
             )
 
         select_vector = Cat(~record.rec_reserved for record in self.data)
         select_possible = select_vector.any()
 
-        take_vector = Cat(data_ready[i] & record.rec_full for i, record in enumerate(self.data))
+        take_vector = Cat(self.data_ready[i] & record.rec_full for i, record in enumerate(self.data))
         take_possible = take_vector.any()
 
         ready_lists: list[Value] = []

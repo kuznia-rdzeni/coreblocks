@@ -171,12 +171,12 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         # Update second entry first SP, instruction should be not ready
         value_sp1 = 1010
         # TODO: rec_ready inaccessible now
-        # self.assertEqual((yield self.m._dut.data[1].rec_ready), 0)
+        self.assertEqual((yield self.m._dut.data_ready[1]), 0)
         yield from self.m.update.call(reg_id=2, reg_val=value_sp1)
         yield Settle()
         self.assertEqual((yield self.m._dut.data[1].rs_data.rp_s1), 0)
         self.assertEqual((yield self.m._dut.data[1].rs_data.s1_val), value_sp1)
-        # self.assertEqual((yield self.m._dut.data[1].rec_ready), 0)
+        self.assertEqual((yield self.m._dut.data_ready[1]), 0)
 
         # Update second entry second SP, instruction should be ready
         value_sp2 = 2020
@@ -184,7 +184,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         yield Settle()
         self.assertEqual((yield self.m._dut.data[1].rs_data.rp_s2), 0)
         self.assertEqual((yield self.m._dut.data[1].rs_data.s2_val), value_sp2)
-        # self.assertEqual((yield self.m._dut.data[1].rec_ready), 1)
+        self.assertEqual((yield self.m._dut.data_ready[1]), 1)
 
         # Insert new instruction to entries 0 and 1, check if update of multiple registers works
         reg_id = 4
@@ -207,7 +207,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         for index in range(2):
             yield from self.m.insert.call(rs_entry_id=index, rs_data=data)
             yield Settle()
-            # self.assertEqual((yield self.m._dut.data[index].rec_ready), 0)
+            self.assertEqual((yield self.m._dut.data_ready[index]), 0)
 
         yield from self.m.update.call(reg_id=reg_id, reg_val=value_spx)
         yield Settle()
@@ -216,7 +216,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
             self.assertEqual((yield self.m._dut.data[index].rs_data.rp_s2), 0)
             self.assertEqual((yield self.m._dut.data[index].rs_data.s1_val), value_spx)
             self.assertEqual((yield self.m._dut.data[index].rs_data.s2_val), value_spx)
-            # self.assertEqual((yield self.m._dut.data[index].rec_ready), 1)
+            self.assertEqual((yield self.m._dut.data_ready[index]), 1)
 
 
 class TestRSMethodTake(TestCaseWithSimulator):
@@ -303,7 +303,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
             yield from self.m.insert.call(rs_entry_id=index, rs_data=entry_data)
             yield Settle()
             self.assertEqual((yield self.m._dut.take.ready), 1)
-            # self.assertEqual((yield self.m._dut.data[index].rec_ready), 1)
+            self.assertEqual((yield self.m._dut.data_ready[index]), 1)
 
         data = yield from self.m.take.call(rs_entry_id=0)
         for key in data:
