@@ -5,7 +5,7 @@ from amaranth.lib.coding import PriorityEncoder
 from transactron import Method, def_method, TModule
 from coreblocks.params import RSLayouts, GenParams, OpType
 from transactron.core import RecordDict
-from transactron.utils.transactron_helpers import from_method_layout
+from transactron.utils.transactron_helpers import make_layout
 
 __all__ = ["RS"]
 
@@ -19,12 +19,10 @@ class RS(Elaboratable):
         self.rs_entries = rs_entries
         self.rs_entries_bits = (rs_entries - 1).bit_length()
         self.layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
-        self.internal_layout = from_method_layout(
-            [
-                ("rs_data", self.layouts.rs.data_layout),
-                ("rec_full", 1),
-                ("rec_reserved", 1),
-            ]
+        self.internal_layout = make_layout(
+            ("rs_data", self.layouts.rs.data_layout),
+            ("rec_full", 1),
+            ("rec_reserved", 1),
         )
 
         self.insert = Method(i=self.layouts.rs.insert_in)
