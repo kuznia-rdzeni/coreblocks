@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: [ build-riscof-tests, build-core ]
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -136,6 +136,7 @@ jobs:
     name: Build regression tests (riscv-tests)
     runs-on: ubuntu-latest
     container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
+    timeout-minutes: 10
     outputs:
         cache_hit: ${{ steps.cache-regression.outputs.cache-hit }}
     steps:
@@ -223,7 +224,7 @@ jobs:
   unit-test:
     name: Run unit tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -246,8 +247,8 @@ jobs:
       - name: Run tests
         run: ./scripts/run_tests.py --verbose
 
-      - name: Check traces
-        run: ./scripts/run_tests.py -t -c 1 TestCore
+      - name: Check traces and profiles
+        run: ./scripts/run_tests.py -t -p -c 1 TestCore
 
   lint:
     name: Check code formatting and typing

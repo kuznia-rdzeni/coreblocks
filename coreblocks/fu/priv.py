@@ -6,6 +6,7 @@ from typing import Sequence
 
 from transactron import *
 from transactron.lib import BasicFifo
+from transactron.utils import DependencyManager
 
 from coreblocks.params import *
 from coreblocks.params.keys import MretKey
@@ -35,7 +36,7 @@ class PrivilegedFuncUnit(Elaboratable):
         self.accept = Method(o=layouts.accept)
         self.precommit = Method(i=gp.get(RetirementLayouts).precommit)
 
-        self.branch_resolved_fifo = BasicFifo(self.gp.get(FetchLayouts).branch_verify, 2)
+        self.fetch_resume_fifo = BasicFifo(self.gp.get(FetchLayouts).resume, 2)
 
     def elaborate(self, platform):
         m = TModule()
@@ -51,7 +52,7 @@ class PrivilegedFuncUnit(Elaboratable):
         exception_report = self.dm.get_dependency(ExceptionReportKey())
         csr = self.dm.get_dependency(GenericCSRRegistersKey())
 
-        m.submodules.branch_resolved_fifo = self.branch_resolved_fifo
+        m.submodules.fetch_resume_fifo = self.fetch_resume_fifo
 
         @def_method(m, self.issue, ready=~instr_valid)
         def _(arg):
@@ -88,7 +89,7 @@ class PrivilegedFuncUnit(Elaboratable):
                 exception_report(m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob)
             with m.Else():
                 # Unstall the fetch to return address (MRET is SYSTEM opcode)
-                self.branch_resolved_fifo.write(m, next_pc=ret_pc, from_pc=0, resume_from_exception=0)
+                self.fetch_resume_fifo.write(m, pc=ret_pc, resume_from_exception=0)
 
             return {
                 "rob_id": instr_rob,
@@ -105,7 +106,7 @@ class PrivilegedUnitComponent(FunctionalComponentParams):
         unit = PrivilegedFuncUnit(gp)
         connections = gp.get(DependencyManager)
         connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
-        connections.add_dependency(BranchResolvedKey(), unit.branch_resolved_fifo.read)
+        connections.add_dependency(FetchResumeKey(), unit.fetch_resume_fifo.read)
         return unit
 
     def get_optypes(self) -> set[OpType]:

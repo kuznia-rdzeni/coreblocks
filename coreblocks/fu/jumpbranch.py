@@ -7,9 +7,10 @@ from typing import Sequence
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
+from transactron.utils import DependencyManager
 
 from coreblocks.params import *
-from coreblocks.params.keys import AsyncInterruptInsertSignalKey
+from coreblocks.params.keys import AsyncInterruptInsertSignalKey, BranchVerifyKey
 from transactron.utils import OneHotSwitch
 from coreblocks.utils.protocols import FuncUnit
 
@@ -123,27 +124,25 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
-        self.branch_result = Method(o=gen_params.get(FetchLayouts).branch_verify)
+
+        self.fifo_branch_resolved = FIFO(self.gen_params.get(JumpBranchLayouts).verify_branch, 2)
 
         self.jb_fn = jb_fn
 
         self.dm = gen_params.get(DependencyManager)
+        self.dm.add_dependency(BranchVerifyKey(), self.fifo_branch_resolved.read)
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.jb_fn)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
-        m.submodules.fifo_branch = fifo_branch = FIFO(self.gen_params.get(FetchLayouts).branch_verify, 2)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen_params)
+        m.submodules.fifo_branch_resolved = self.fifo_branch_resolved
 
         @def_method(m, self.accept)
         def _():
             return fifo_res.read(m)
-
-        @def_method(m, self.branch_result)
-        def _():
-            return fifo_branch.read(m)
 
         @def_method(m, self.issue)
         def _(arg):
@@ -169,6 +168,10 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 AsyncInterruptInsertSignalKey()
             )
 
+            # TODO: Update with branch prediction support.
+            # Temporarily there is no jump prediction, jumps don't stall fetch and pc+4 is always fetched to pipeline
+            misprediction = ~is_auipc & jb.taken
+
             with m.If(~is_auipc & jb.taken & jmp_addr_misaligned):
                 # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
                 # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
@@ -182,12 +185,16 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 # and exception would be lost.
                 m.d.comb += exception.eq(1)
                 exception_report(m, rob_id=arg.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result)
+            with m.Elif(misprediction):
+                # Async interrupts can have priority, because `jump_result` is handled in the same way.
+                # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
+                m.d.comb += exception.eq(1)
+                exception_report(m, rob_id=arg.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result)
 
             fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
 
-            # skip writing next branch target for auipc
             with m.If(~is_auipc):
-                fifo_branch.write(m, from_pc=jb.in_pc, next_pc=jump_result, resume_from_exception=0)
+                self.fifo_branch_resolved.write(m, from_pc=jb.in_pc, next_pc=jump_result, misprediction=misprediction)
 
         return m
 
@@ -198,8 +205,6 @@ class JumpComponent(FunctionalComponentParams):
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
-        connections = gen_params.get(DependencyManager)
-        connections.add_dependency(BranchResolvedKey(), unit.branch_result)
         return unit
 
     def get_optypes(self) -> set[OpType]:

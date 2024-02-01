@@ -5,7 +5,7 @@ from parameterized import parameterized_class
 from coreblocks.params import *
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
 from transactron import Method, def_method, TModule
-from coreblocks.params.layouts import FuncUnitLayouts, FetchLayouts
+from coreblocks.params.layouts import FuncUnitLayouts
 from coreblocks.utils.protocols import FuncUnit
 
 from transactron.utils import signed_to_int
@@ -19,7 +19,7 @@ class JumpBranchWrapper(Elaboratable):
         self.issue = self.jb.issue
         self.accept = Method(
             o=StructLayout(
-                gen_params.get(FuncUnitLayouts).accept.members | gen_params.get(FetchLayouts).branch_verify.members
+                gen_params.get(FuncUnitLayouts).accept.members | gen_params.get(JumpBranchLayouts).verify_branch.members
             )
         )
 
@@ -31,15 +31,15 @@ class JumpBranchWrapper(Elaboratable):
         @def_method(m, self.accept)
         def _(arg):
             res = self.jb.accept(m)
-            br = self.jb.branch_result(m)
+            verify = self.jb.fifo_branch_resolved.read(m)
             return {
-                "from_pc": br.from_pc,
-                "next_pc": br.next_pc,
-                "resume_from_exception": 0,
                 "result": res.result,
                 "rob_id": res.rob_id,
                 "rp_dst": res.rp_dst,
                 "exception": res.exception,
+                "next_pc": verify.next_pc,
+                "from_pc": verify.from_pc,
+                "misprediction": verify.misprediction,
             }
 
         return m
@@ -82,12 +82,18 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
     next_pc &= max_int
     res &= max_int
 
+    misprediction = next_pc != pc + 4
+
     exception = None
+    exception_pc = pc
     if next_pc & 0b11 != 0:
         exception = ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED
+    elif misprediction:
+        exception = ExceptionCause._COREBLOCKS_MISPREDICTION
+        exception_pc = next_pc
 
-    return {"result": res, "from_pc": pc, "next_pc": next_pc, "resume_from_exception": 0} | (
-        {"exception": exception} if exception is not None else {}
+    return {"result": res, "from_pc": pc, "next_pc": next_pc, "misprediction": misprediction} | (
+        {"exception": exception, "exception_pc": exception_pc} if exception is not None else {}
     )
 
 

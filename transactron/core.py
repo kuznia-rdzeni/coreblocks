@@ -78,6 +78,7 @@ class MethodMap:
         self.methods_by_transaction = dict[Transaction, list[Method]]()
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
         self.readiness_by_method_and_transaction = dict[tuple[Transaction, Method], ValueLike]()
+        self.method_parents = defaultdict[Method, list[TransactionBase]](list)
 
         def rec(transaction: Transaction, source: TransactionBase):
             for method, (arg_rec, _) in source.method_uses.items():
@@ -93,6 +94,10 @@ class MethodMap:
         for transaction in transactions:
             self.methods_by_transaction[transaction] = []
             rec(transaction, transaction)
+
+        for transaction_or_method in self.methods_and_transactions:
+            for method in transaction_or_method.method_uses.keys():
+                self.method_parents[method].append(transaction_or_method)
 
     def transactions_for(self, elem: TransactionOrMethod) -> Collection["Transaction"]:
         if isinstance(elem, Transaction):

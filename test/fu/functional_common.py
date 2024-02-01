@@ -4,19 +4,20 @@ import random
 from collections import deque
 from typing import Generic, TypeVar
 
-from amaranth import Elaboratable, Module, Signal
+from amaranth import Elaboratable, Signal
 from amaranth.sim import Passive
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from coreblocks.params.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params.isa import Funct3, Funct7
 from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.optypes import OpType
-from transactron.lib import AdapterTrans, Adapter
-from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator
+from transactron.lib import Adapter
+from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator, SimpleTestCircuit
+from transactron.utils import ModuleConnector
 
 
 class FunctionalTestCircuit(Elaboratable):
@@ -30,27 +31,6 @@ class FunctionalTestCircuit(Elaboratable):
     func_unit : FunctionalComponentParams
         Class of functional unit to be tested.
     """
-
-    def __init__(self, gen_params: GenParams, func_unit: FunctionalComponentParams):
-        self.gen_params = gen_params
-        self.func_unit = func_unit
-
-    def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.report_mock = self.report_mock = TestbenchIO(
-            Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
-        )
-        self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
-        self.gen_params.get(DependencyManager).add_dependency(AsyncInterruptInsertSignalKey(), Signal())
-
-        m.submodules.func_unit = func_unit = self.func_unit.get_module(self.gen_params)
-
-        # mocked input and output
-        m.submodules.issue_method = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_method = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
-
-        return m
 
 
 @dataclass
@@ -115,7 +95,14 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
 
     def setUp(self):
         self.gen_params = GenParams(test_core_config)
-        self.m = FunctionalTestCircuit(self.gen_params, self.func_unit)
+
+        self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
+
+        self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
+        self.gen_params.get(DependencyManager).add_dependency(AsyncInterruptInsertSignalKey(), Signal())
+
+        self.m = SimpleTestCircuit(self.func_unit.get_module(self.gen_params))
+        self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock)
 
         random.seed(self.seed)
         self.requests = deque[RecordIntDict]()
@@ -151,39 +138,36 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             cause = None
             if "exception" in results:
                 cause = results["exception"]
+                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": results.setdefault("exception_pc", pc)})
+
                 results.pop("exception")
+                results.pop("exception_pc")
 
             self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": int(cause is not None)} | results)
-            if cause is not None:
-                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": pc})
-
-    def random_wait(self):
-        for i in range(random.randint(0, self.max_wait)):
-            yield
 
     def consumer(self):
         while self.responses:
             expected = self.responses.pop()
             result = yield from self.m.accept.call()
             self.assertDictEqual(expected, result)
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
     def producer(self):
         while self.requests:
             req = self.requests.pop()
             yield from self.m.issue.call(req)
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
     def exception_consumer(self):
         while self.exceptions:
             expected = self.exceptions.pop()
-            result = yield from self.m.report_mock.call()
+            result = yield from self.report_mock.call()
             self.assertDictEqual(expected, result)
-            yield from self.random_wait()
+            yield from self.random_wait(self.max_wait)
 
         # keep partialy dependent tests from hanging up and detect extra calls
         yield Passive()
-        result = yield from self.m.report_mock.call()
+        result = yield from self.report_mock.call()
         self.assertFalse(True, "unexpected report call")
 
     def pipeline_verifier(self):
@@ -199,7 +183,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         else:
             self.max_wait = 10
 
-        with self.run_simulation(self.m) as sim:
+        with self.run_simulation(self.circ) as sim:
             sim.add_sync_process(self.producer)
             sim.add_sync_process(self.consumer)
             sim.add_sync_process(self.exception_consumer)

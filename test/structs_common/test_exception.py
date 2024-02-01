@@ -25,34 +25,6 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
         ):
             return True
 
-        # check only for causes that can possibly collide and should be updated (if priorty is equal,
-        # result shouldn't be updated - first happened)
-        if new_arg["rob_id"] == old_arg["rob_id"]:
-            return (
-                new_arg["cause"] == ExceptionCause.BREAKPOINT
-                or (
-                    (
-                        new_arg["cause"] == ExceptionCause.INSTRUCTION_ACCESS_FAULT
-                        or new_arg["cause"] == ExceptionCause.INSTRUCTION_PAGE_FAULT
-                    )
-                    and old_arg["cause"] != ExceptionCause.BREAKPOINT
-                )
-                or (
-                    (
-                        old_arg["cause"] == ExceptionCause.STORE_ACCESS_FAULT
-                        or old_arg["cause"] == ExceptionCause.STORE_PAGE_FAULT
-                    )
-                    and new_arg["cause"] == ExceptionCause.STORE_ADDRESS_MISALIGNED
-                )
-                or (
-                    (
-                        old_arg["cause"] == ExceptionCause.LOAD_ACCESS_FAULT
-                        or old_arg["cause"] == ExceptionCause.LOAD_PAGE_FAULT
-                    )
-                    and new_arg["cause"] == ExceptionCause.LOAD_ADDRESS_MISALIGNED
-                )
-            )
-
         return False
 
     def test_randomized(self):
@@ -62,31 +34,42 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
         self.cycles = 256
 
         self.rob_idx_mock = TestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
-        self.dut = SimpleTestCircuit(ExceptionCauseRegister(self.gen_params, self.rob_idx_mock.adapter.iface))
-        m = ModuleConnector(self.dut, rob_idx_mock=self.rob_idx_mock)
+        self.fetch_stall_mock = TestbenchIO(Adapter())
+        self.dut = SimpleTestCircuit(
+            ExceptionCauseRegister(
+                self.gen_params, self.rob_idx_mock.adapter.iface, self.fetch_stall_mock.adapter.iface
+            )
+        )
+        m = ModuleConnector(self.dut, rob_idx_mock=self.rob_idx_mock, fetch_stall_mock=self.fetch_stall_mock)
 
         self.rob_id = 0
 
         def process_test():
             saved_entry = None
 
+            yield from self.fetch_stall_mock.enable()
             for _ in range(self.cycles):
                 self.rob_id = random.randint(0, self.rob_max)
 
                 cause = random.choice(list(ExceptionCause))
                 report_rob = random.randint(0, self.rob_max)
+                # only one exception per rob_id
+                while saved_entry and report_rob == saved_entry["rob_id"]:
+                    report_rob = random.randint(0, self.rob_max)
                 report_pc = random.randrange(2**self.gen_params.isa.xlen)
                 report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
 
+                expected = report_arg if self.should_update(report_arg, saved_entry, self.rob_id) else saved_entry
                 yield from self.dut.report.call(report_arg)
+                yield  # additional FIFO delay
+
+                self.assertTrue((yield from self.fetch_stall_mock.done()))
 
                 new_state = yield from self.dut.get.call()
 
-                if self.should_update(report_arg, saved_entry, self.rob_id):
-                    self.assertDictEqual(new_state, report_arg)
-                    saved_entry = report_arg
-                elif saved_entry is not None:
-                    self.assertDictEqual(new_state, saved_entry)
+                self.assertDictEqual(new_state, expected | {"valid": 1})  # type: ignore
+
+                saved_entry = new_state
 
         @def_method_mock(lambda: self.rob_idx_mock)
         def process_rob_idx_mock():
@@ -94,4 +77,3 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process_test)
-            sim.add_sync_process(process_rob_idx_mock)

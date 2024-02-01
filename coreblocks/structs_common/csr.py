@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from transactron import Method, def_method, Transaction, TModule
 from transactron.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.dependencies import DependencyManager, ListKey
+from transactron.utils.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3, ExceptionCause
 from coreblocks.params.keys import (
     AsyncInterruptInsertSignalKey,
-    BranchResolvedKey,
+    FetchResumeKey,
     ExceptionReportKey,
     InstructionPrecommitKey,
 )
@@ -196,7 +196,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.gen_params = gen_params
         self.dependency_manager = gen_params.get(DependencyManager)
 
-        self.fetch_continue = Method(o=gen_params.get(FetchLayouts).branch_verify)
+        self.fetch_resume = Method(o=gen_params.get(FetchLayouts).resume)
 
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRLayouts)
@@ -360,12 +360,11 @@ class CSRUnit(FuncBlock, Elaboratable):
                 "exception": exception | interrupt,
             }
 
-        @def_method(m, self.fetch_continue, accepted)
+        @def_method(m, self.fetch_resume, accepted)
         def _():
             # CSR instructions are never compressed, PC+4 is always next instruction
             return {
-                "from_pc": instr.pc,
-                "next_pc": instr.pc + self.gen_params.isa.ilen_bytes,
+                "pc": instr.pc + self.gen_params.isa.ilen_bytes,
                 "resume_from_exception": False,
             }
 
@@ -383,7 +382,7 @@ class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
         unit = CSRUnit(gen_params)
-        connections.add_dependency(BranchResolvedKey(), unit.fetch_continue)
+        connections.add_dependency(FetchResumeKey(), unit.fetch_resume)
         connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 

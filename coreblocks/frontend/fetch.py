@@ -30,9 +30,12 @@ class Fetch(Elaboratable):
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
+        self.resume = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.stall_exception = Method()
-        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
+        # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because
+        # of exception report, both can happen at any time during normal excecution.
+        # ExceptionCauseRegister uses separate Transaction for it, so performace is not affected.
+        self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
@@ -73,9 +76,7 @@ class Fetch(Elaboratable):
 
             opcode = res.instr[2:7]
             # whether we have to wait for the retirement of this instruction before we make futher speculation
-            unsafe_instr = (
-                (opcode == Opcode.BRANCH) | (opcode == Opcode.JAL) | (opcode == Opcode.JALR) | (opcode == Opcode.SYSTEM)
-            )
+            unsafe_instr = opcode == Opcode.SYSTEM
 
             with m.If(spin == target.spin):
                 instr = Signal(self.gen_params.isa.ilen)
@@ -94,9 +95,9 @@ class Fetch(Elaboratable):
 
                 self.cont(m, instr=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
 
-        @def_method(m, self.verify_branch, ready=stalled)
-        def _(from_pc: Value, next_pc: Value, resume_from_exception: Value):
-            m.d.sync += speculative_pc.eq(next_pc)
+        @def_method(m, self.resume, ready=stalled)
+        def _(pc: Value, resume_from_exception: Value):
+            m.d.sync += speculative_pc.eq(pc)
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
                 m.d.sync += stalled_exception.eq(0)
@@ -130,9 +131,9 @@ class UnalignedFetch(Elaboratable):
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
+        self.resume = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.stall_exception = Method()
-        self.stall_exception.add_conflict(self.verify_branch, Priority.LEFT)
+        self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
@@ -154,7 +155,7 @@ class UnalignedFetch(Elaboratable):
         m.d.av_comb += stalled.eq(stalled_unsafe | stalled_exception)
 
         with Transaction().body(m, request=~stalled):
-            aligned_pc = Cat(Repl(0, 2), cache_req_pc[2:])
+            aligned_pc = Cat(C(0, 2), cache_req_pc[2:])
             self.icache.issue_req(m, addr=aligned_pc)
             req_limiter.acquire(m)
 
@@ -194,9 +195,7 @@ class UnalignedFetch(Elaboratable):
 
             opcode = instr[2:7]
             # whether we have to wait for the retirement of this instruction before we make futher speculation
-            unsafe_instr = (
-                (opcode == Opcode.BRANCH) | (opcode == Opcode.JAL) | (opcode == Opcode.JALR) | (opcode == Opcode.SYSTEM)
-            )
+            unsafe_instr = opcode == Opcode.SYSTEM
 
             # Check if we are ready to dispatch an instruction in the current cycle.
             # This can happen in three situations:
@@ -233,10 +232,10 @@ class UnalignedFetch(Elaboratable):
 
                 self.cont(m, instr=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
 
-        @def_method(m, self.verify_branch, ready=(stalled & ~flushing))
-        def _(from_pc: Value, next_pc: Value, resume_from_exception: Value):
-            m.d.sync += cache_req_pc.eq(next_pc)
-            m.d.sync += current_pc.eq(next_pc)
+        @def_method(m, self.resume, ready=(stalled & ~flushing))
+        def _(pc: Value, resume_from_exception: Value):
+            m.d.sync += cache_req_pc.eq(pc)
+            m.d.sync += current_pc.eq(pc)
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
                 m.d.sync += stalled_exception.eq(0)

@@ -168,5 +168,4 @@ class TransitivityTest(TestCaseWithSimulator):
                     self.assertIn(result, possibles)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(target_process)
             sim.add_sync_process(process)

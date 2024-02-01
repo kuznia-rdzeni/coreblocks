@@ -1,3 +1,4 @@
+from amaranth.lib.data import StructLayout
 from coreblocks.params import GenParams, OpType, Funct7, Funct3
 from coreblocks.params.isa import ExceptionCause
 from transactron.utils import LayoutList, LayoutListField, layout_subset
@@ -20,6 +21,7 @@ __all__ = [
     "PMALayouts",
     "CSRLayouts",
     "ICacheLayouts",
+    "JumpBranchLayouts",
 ]
 
 
@@ -294,8 +296,6 @@ class ROBLayouts:
             ]
         )
 
-        self.retire_layout = self.peek_layout
-
         self.get_indices = from_method_layout([self.start, self.end])
 
 
@@ -357,6 +357,11 @@ class RetirementLayouts:
         fields = gen_params.get(CommonLayoutFields)
 
         self.precommit = from_method_layout([fields.rob_id, fields.side_fx])
+
+        self.flushing = ("flushing", 1)
+        """ Core is currently flushed """
+
+        self.core_state: LayoutList = [self.flushing]
 
 
 class RSLayouts:
@@ -459,13 +464,7 @@ class FetchLayouts:
             ]
         )
 
-        self.branch_verify = from_method_layout(
-            [
-                ("from_pc", gen_params.isa.xlen),
-                ("next_pc", gen_params.isa.xlen),
-                ("resume_from_exception", 1),
-            ]
-        )
+        self.resume = from_method_layout([("pc", gen_params.isa.xlen), ("resume_from_exception", 1)])
 
 
 class DecodeLayouts:
@@ -547,6 +546,14 @@ class DivUnitLayouts:
                 ("remainder", gen_params.isa.xlen),
             ]
         )
+
+
+class JumpBranchLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.verify_branch = from_method_layout(
+            [("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)]
+        )
+        """ Hint for Branch Predictor about branch result """
 
 
 class LSULayouts:
@@ -643,7 +650,9 @@ class ExceptionRegisterLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.get = from_method_layout(
+        self.valid: LayoutListField = ("valid", 1)
+
+        self.report = from_method_layout(
             [
                 fields.cause,
                 fields.rob_id,
@@ -651,7 +660,7 @@ class ExceptionRegisterLayouts:
             ]
         )
 
-        self.report = self.get
+        self.get = StructLayout(self.report.members | from_method_layout([self.valid]).members)
 
 
 class CoreInstructionCounterLayouts:
