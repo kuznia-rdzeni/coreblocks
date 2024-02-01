@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1706810827358,
+  "lastUpdate": 1706810981343,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -22510,6 +22510,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1444,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1096,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8538,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "62593571+kindlermikolaj@users.noreply.github.com",
+            "name": "kindlermikolaj",
+            "username": "kindlermikolaj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0a21082d56a9b05ffd5ce58a165aff25785f9ac1",
+          "message": "Icache code split (#543)",
+          "timestamp": "2024-02-01T19:01:46+01:00",
+          "tree_id": "2e7f08ff9a3a00fba49f7819ba6126533198e4c2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0a21082d56a9b05ffd5ce58a165aff25785f9ac1"
+        },
+        "date": 1706810979401,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 45.08,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23207,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1476,
             "unit": "LUT"
           },
           {
